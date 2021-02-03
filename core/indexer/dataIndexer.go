@@ -96,23 +96,11 @@ func (di *dataIndexer) epochStartEventHandler() epochStart.ActionHandler {
 }
 
 // SaveBlock saves the block info in the queue to be sent to elastic
-func (di *dataIndexer) SaveBlock(
-	bodyHandler data.BodyHandler,
-	headerHandler data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	signersIndexes []uint64,
-	notarizedHeadersHashes []string,
-	headerHash []byte,
-) {
+func (di *dataIndexer) SaveBlock(args *types.ArgsSaveBlockData) {
 	wi := workItems.NewItemBlock(
 		di.elasticProcessor,
 		di.marshalizer,
-		bodyHandler,
-		headerHandler,
-		txPool,
-		signersIndexes,
-		notarizedHeadersHashes,
-		headerHash,
+		args,
 	)
 	di.dispatcher.Add(wi)
 }
@@ -133,13 +121,13 @@ func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler, body data.B
 }
 
 // SaveRoundsInfo will save data about a slice of rounds in elasticsearch
-func (di *dataIndexer) SaveRoundsInfo(roundsInfo []types.RoundInfo) {
+func (di *dataIndexer) SaveRoundsInfo(roundsInfo []*types.RoundInfo) {
 	wi := workItems.NewItemRounds(di.elasticProcessor, roundsInfo)
 	di.dispatcher.Add(wi)
 }
 
 // SaveValidatorsRating will save all validators rating info to elasticsearch
-func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []types.ValidatorRatingInfo) {
+func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []*types.ValidatorRatingInfo) {
 	wi := workItems.NewItemRating(
 		di.elasticProcessor,
 		indexID,

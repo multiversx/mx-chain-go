@@ -179,14 +179,22 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
 	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
 	// not all data was indexed
-	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders, headerHash)
+	args := &indexerTypes.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   newBody,
+		Header:                 data.Header,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeaders,
+		TransactionsPool:       data.BodyTransactions,
+	}
+	dp.elasticIndexer.SaveBlock(args)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header, headerHash)
 	return nil
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := indexerTypes.RoundInfo{
+	ri := &indexerTypes.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -194,7 +202,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfo([]indexerTypes.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]*indexerTypes.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

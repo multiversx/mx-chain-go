@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -1849,14 +1850,14 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var saveBlockCalled map[string]data.TransactionHandler
+	var pool *types.Pool
 	saveBlockCalledMutex := sync.Mutex{}
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.Indexer = &mock.IndexerMock{
-		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+		SaveBlockCalled: func(args *types.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
-			saveBlockCalled = txPool
+			pool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()
 		},
 	}
@@ -1907,10 +1908,10 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	saveBlockCalledMutex.Lock()
-	wasCalled := saveBlockCalled
+	totalTxs := len(pool.Txs) + len(pool.Scrs)
 	saveBlockCalledMutex.Unlock()
 
-	assert.Equal(t, 4, len(wasCalled))
+	assert.Equal(t, 4, totalTxs)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {

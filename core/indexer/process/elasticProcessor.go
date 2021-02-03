@@ -379,16 +379,15 @@ func (ei *elasticProcessor) miniblocksInDBMap(mbs []*types.Miniblock) (map[strin
 func (ei *elasticProcessor) SaveTransactions(
 	body *block.Body,
 	header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	selfShardID uint32,
+	pool *types.Pool,
 	mbsInDb map[string]bool,
 ) error {
 	if !ei.isIndexEnabled(txIndex) {
 		return nil
 	}
 
-	preparedResults := ei.txProc.PrepareTransactionsForDatabase(body, header, txPool)
-	buffSlice, err := ei.txProc.SerializeTransactions(preparedResults.Transactions, selfShardID, mbsInDb)
+	preparedResults := ei.txProc.PrepareTransactionsForDatabase(body, header, pool)
+	buffSlice, err := ei.txProc.SerializeTransactions(preparedResults.Transactions, header.GetShardID(), mbsInDb)
 	if err != nil {
 		return err
 	}
@@ -427,7 +426,7 @@ func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBench
 }
 
 // SaveValidatorsRating will save validators rating
-func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error {
 	if !ei.isIndexEnabled(ratingIndex) {
 		return nil
 	}
@@ -470,7 +469,7 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 }
 
 // SaveRoundsInfo will prepare and save information about a slice of rounds in elasticsearch server
-func (ei *elasticProcessor) SaveRoundsInfo(infos []types.RoundInfo) error {
+func (ei *elasticProcessor) SaveRoundsInfo(infos []*types.RoundInfo) error {
 	if !ei.isIndexEnabled(roundIndex) {
 		return nil
 	}

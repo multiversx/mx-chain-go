@@ -34,7 +34,7 @@ func NewMiniblocksProcessor(
 	}
 }
 
-// PrepareDBMiniblocks -
+// PrepareDBMiniblocks prepare miniblocks from body
 func (mp *miniblocksProcessor) PrepareDBMiniblocks(header data.HeaderHandler, body *block.Body) []*types.Miniblock {
 	headerHash, err := mp.calculateHash(header)
 	if err != nil {

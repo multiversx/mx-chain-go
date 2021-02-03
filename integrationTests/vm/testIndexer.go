@@ -152,8 +152,17 @@ func (ti *testIndexer) SaveTransaction(
 		},
 	}
 
-	txsPool := map[string]data.TransactionHandler{
-		string(txHash): tx,
+	pool := &types.Pool{
+		Invalid: make(map[string]data.TransactionHandler),
+		Txs:     make(map[string]data.TransactionHandler),
+		Scrs:    make(map[string]data.TransactionHandler),
+	}
+
+	switch mbType {
+	case block.InvalidBlock:
+		pool.Invalid[string(txHash)] = tx
+	case block.TxBlock:
+		pool.Txs[string(txHash)] = tx
 	}
 
 	for _, intTx := range intermediateTxs {
@@ -171,14 +180,19 @@ func (ti *testIndexer) SaveTransaction(
 
 		blk.MiniBlocks = append(blk.MiniBlocks, mb)
 
-		txsPool[string(intTxHash)] = intTx
+		pool.Scrs[string(intTxHash)] = intTx
 	}
 
 	header := &block.Header{
 		ShardID: ti.shardCoordinator.SelfId(),
 	}
 
-	ti.indexer.SaveBlock(blk, header, txsPool, nil, nil, nil)
+	args := &types.ArgsSaveBlockData{
+		TransactionsPool: pool,
+		Body:             blk,
+		Header:           header,
+	}
+	ti.indexer.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:

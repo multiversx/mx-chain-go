@@ -16,9 +16,9 @@ type ElasticProcessorStub struct {
 	RemoveMiniblocksCalled           func(header data.HeaderHandler, body *block.Body) error
 	RemoveTransactionsCalled         func(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocksCalled             func(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
-	SaveTransactionsCalled           func(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
-	SaveValidatorsRatingCalled       func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
-	SaveRoundsInfoCalled             func(infos []types.RoundInfo) error
+	SaveTransactionsCalled           func(body *block.Body, header data.HeaderHandler, pool *types.Pool, mbsInDb map[string]bool) error
+	SaveValidatorsRatingCalled       func(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error
+	SaveRoundsInfoCalled             func(infos []*types.RoundInfo) error
 	SaveShardValidatorsPubKeysCalled func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessorCalled         func(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveAccountsCalled               func(acc []*types.AccountEGLD) error
@@ -73,15 +73,15 @@ func (eim *ElasticProcessorStub) SaveMiniblocks(header data.HeaderHandler, body 
 }
 
 // SaveTransactions -
-func (eim *ElasticProcessorStub) SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error {
+func (eim *ElasticProcessorStub) SaveTransactions(body *block.Body, header data.HeaderHandler, pool *types.Pool, mbsInDb map[string]bool) error {
 	if eim.SaveTransactionsCalled != nil {
-		return eim.SaveTransactionsCalled(body, header, txPool, selfShardID, mbsInDb)
+		return eim.SaveTransactionsCalled(body, header, pool, mbsInDb)
 	}
 	return nil
 }
 
 // SaveValidatorsRating -
-func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error {
 	if eim.SaveValidatorsRatingCalled != nil {
 		return eim.SaveValidatorsRatingCalled(index, validatorsRatingInfo)
 	}
@@ -89,7 +89,7 @@ func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRa
 }
 
 // SaveRoundsInfo -
-func (eim *ElasticProcessorStub) SaveRoundsInfo(info []types.RoundInfo) error {
+func (eim *ElasticProcessorStub) SaveRoundsInfo(info []*types.RoundInfo) error {
 	if eim.SaveRoundsInfoCalled != nil {
 		return eim.SaveRoundsInfoCalled(info)
 	}

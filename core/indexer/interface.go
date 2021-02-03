@@ -22,14 +22,12 @@ type DataIndexerFactory interface {
 // This could be an elastic search index, a MySql database or any other external services.
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
-	//SaveBlock TODO add a structure instead of these params
-	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler,
-		signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
+	SaveBlock(args *types.ArgsSaveBlockData)
 	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfo(roundsInfos []types.RoundInfo)
+	SaveRoundsInfo(roundsInfos []*types.RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRating(indexID string, infoRating []types.ValidatorRatingInfo)
+	SaveValidatorsRating(indexID string, infoRating []*types.ValidatorRatingInfo)
 	SaveAccounts(acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool
@@ -52,9 +50,9 @@ type ElasticProcessor interface {
 	RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error
 	RemoveTransactions(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
-	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
-	SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
-	SaveRoundsInfo(infos []types.RoundInfo) error
+	SaveTransactions(body *block.Body, header data.HeaderHandler, pool *types.Pool, mbsInDb map[string]bool) error
+	SaveValidatorsRating(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error
+	SaveRoundsInfo(infos []*types.RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveAccounts(accountsEGLD []*types.AccountEGLD) error

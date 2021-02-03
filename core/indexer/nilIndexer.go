@@ -18,7 +18,7 @@ func NewNilIndexer() *NilIndexer {
 }
 
 // SaveBlock will do nothing
-func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
+func (ni *NilIndexer) SaveBlock(_ *types.ArgsSaveBlockData) {
 }
 
 // RevertIndexedBlock will do nothing
@@ -30,7 +30,7 @@ func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDataba
 }
 
 // SaveRoundsInfo will do nothing
-func (ni *NilIndexer) SaveRoundsInfo(_ []types.RoundInfo) {
+func (ni *NilIndexer) SaveRoundsInfo(_ []*types.RoundInfo) {
 }
 
 // UpdateTPS will do nothing
@@ -38,7 +38,7 @@ func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsRating --
-func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []types.ValidatorRatingInfo) {
+func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []*types.ValidatorRatingInfo) {
 }
 
 // SaveValidatorsPubKeys will do nothing

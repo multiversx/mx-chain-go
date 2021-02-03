@@ -51,7 +51,7 @@ type DBTransactionsHandler interface {
 	PrepareTransactionsForDatabase(
 		body *block.Body,
 		header data.HeaderHandler,
-		txPool map[string]data.TransactionHandler,
+		pool *types.Pool,
 	) *types.PreparedResults
 	GetRewardsTxsHashesHexEncoded(header data.HeaderHandler, body *block.Body) []string
 
@@ -75,12 +75,12 @@ type DBGeneralInfoHandler interface {
 	PrepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) (*types.TPS, []*types.TPS)
 
 	SerializeGeneralInfo(genInfo *types.TPS, shardsInfo []*types.TPS, index string) *bytes.Buffer
-	SerializeRoundsInfo(roundsInfo []types.RoundInfo) *bytes.Buffer
+	SerializeRoundsInfo(roundsInfo []*types.RoundInfo) *bytes.Buffer
 }
 
 // DBValidatorsHandler defines the actions that a validators handler should do
 type DBValidatorsHandler interface {
 	PrepareValidatorsPublicKeys(shardValidatorsPubKeys [][]byte) *types.ValidatorsPublicKeys
 	SerializeValidatorsPubKeys(validatorsPubKeys *types.ValidatorsPublicKeys) (*bytes.Buffer, error)
-	SerializeValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) ([]*bytes.Buffer, error)
+	SerializeValidatorsRating(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) ([]*bytes.Buffer, error)
 }

@@ -164,19 +164,30 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		},
 	}
 	header := &block.Header{}
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1):  tx1,
-		string(txHash2):  tx2,
-		string(txHash3):  tx3,
-		string(txHash4):  tx4,
-		string(txHash5):  tx5,
-		string(rTx1Hash): rTx1,
-		string(rTx2Hash): rTx2,
-		string(recHash1): rec1,
-		string(recHash2): rec2,
-		string(scHash1):  scResult1,
-		string(scHash2):  scResult2,
-		string(scHash3):  scResult3,
+
+	pool := &types.Pool{
+		Txs: map[string]data.TransactionHandler{
+			string(txHash1): tx1,
+			string(txHash2): tx2,
+			string(txHash3): tx3,
+			string(txHash4): tx4,
+		},
+		Scrs: map[string]data.TransactionHandler{
+			string(scHash1): scResult1,
+			string(scHash2): scResult2,
+			string(scHash3): scResult3,
+		},
+		Rewards: map[string]data.TransactionHandler{
+			string(rTx1Hash): rTx1,
+			string(rTx2Hash): rTx2,
+		},
+		Invalid: map[string]data.TransactionHandler{
+			string(txHash5): tx5,
+		},
+		Receipts: map[string]data.TransactionHandler{
+			string(recHash1): rec1,
+			string(recHash2): rec2,
+		},
 	}
 
 	txDbProc := NewTransactionsProcessor(
@@ -190,7 +201,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, pool)
 	assert.Equal(t, 7, len(results.Transactions))
 
 }
@@ -283,11 +294,16 @@ func TestRelayedTransactions(t *testing.T) {
 	}
 
 	header := &block.Header{}
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1): tx1,
-		string(scHash1): scResult1,
-		string(scHash2): scResult2,
-		string(scHash3): scResult3,
+
+	pool := &types.Pool{
+		Txs: map[string]data.TransactionHandler{
+			string(txHash1): tx1,
+		},
+		Scrs: map[string]data.TransactionHandler{
+			string(scHash1): scResult1,
+			string(scHash2): scResult2,
+			string(scHash3): scResult3,
+		},
 	}
 
 	txDbProc := NewTransactionsProcessor(
@@ -301,7 +317,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, pool)
 	assert.Equal(t, 1, len(results.Transactions))
 	assert.Equal(t, 3, len(results.Transactions[0].SmartContractResults))
 	assert.Equal(t, transaction.TxStatusSuccess.String(), results.Transactions[0].Status)
@@ -438,13 +454,20 @@ func TestAlteredAddresses(t *testing.T) {
 	}
 
 	hdr := &block.Header{}
-	txPool := map[string]data.TransactionHandler{
-		string(tx1Hash):    tx1,
-		string(tx2Hash):    tx2,
-		string(rwdTx1Hash): rwdTx1,
-		string(rwdTx2Hash): rwdTx2,
-		string(scr1Hash):   scr1,
-		string(scr2Hash):   scr2,
+
+	pool := &types.Pool{
+		Txs: map[string]data.TransactionHandler{
+			string(tx1Hash): tx1,
+			string(tx2Hash): tx2,
+		},
+		Scrs: map[string]data.TransactionHandler{
+			string(scr1Hash): scr1,
+			string(scr2Hash): scr2,
+		},
+		Rewards: map[string]data.TransactionHandler{
+			string(rwdTx1Hash): rwdTx1,
+			string(rwdTx2Hash): rwdTx2,
+		},
 	}
 
 	shardCoordinator := &mock.ShardCoordinatorMock{
@@ -469,7 +492,7 @@ func TestAlteredAddresses(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	results := txDbProc.PrepareTransactionsForDatabase(body, hdr, txPool)
+	results := txDbProc.PrepareTransactionsForDatabase(body, hdr, pool)
 	require.Equal(t, len(expectedAlteredAccounts), len(results.AlteredAccounts))
 
 	for addrActual := range results.AlteredAccounts {
@@ -552,12 +575,16 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 
 	header := &block.Header{}
 
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1):  tx1,
-		string(recHash1): rec1,
+	pool := &types.Pool{
+		Invalid: map[string]data.TransactionHandler{
+			string(txHash1): tx1,
+		},
+		Receipts: map[string]data.TransactionHandler{
+			string(recHash1): rec1,
+		},
 	}
 
-	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, pool)
 	require.Len(t, results.Transactions, 1)
 	require.Equal(t, tx1.GasLimit, results.Transactions[0].GasUsed)
 }
@@ -602,12 +629,16 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 
 	header := &block.Header{}
 
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1):    tx1,
-		string(scResHash1): scRes1,
+	pool := &types.Pool{
+		Txs: map[string]data.TransactionHandler{
+			string(txHash1): tx1,
+		},
+		Scrs: map[string]data.TransactionHandler{
+			string(scResHash1): scRes1,
+		},
 	}
 
-	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, pool)
 	require.Len(t, results.Transactions, 1)
 	require.Equal(t, tx1.GasLimit, results.Transactions[0].GasUsed)
 }

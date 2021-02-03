@@ -9,7 +9,7 @@ import (
 )
 
 // SerializeGeneralInfo will serialize general information
-func (gip *generalInfoProcessor) SerializeGeneralInfo(genInfo *types.TPS, shardsInfo []*types.TPS, index string) *bytes.Buffer {
+func (gip *infoProcessor) SerializeGeneralInfo(genInfo *types.TPS, shardsInfo []*types.TPS, index string) *bytes.Buffer {
 	buff := serializeGeneralInfo(genInfo, index)
 
 	for _, shardInfo := range shardsInfo {
@@ -68,7 +68,7 @@ func serializeShardInfo(buff *bytes.Buffer, shardTPS *types.TPS, index string) {
 }
 
 // SerializeRoundsInfo will serialize information about rounds
-func (gip *generalInfoProcessor) SerializeRoundsInfo(roundsInfo []types.RoundInfo) *bytes.Buffer {
+func (gip *infoProcessor) SerializeRoundsInfo(roundsInfo []*types.RoundInfo) *bytes.Buffer {
 	buff := &bytes.Buffer{}
 	for _, info := range roundsInfo {
 		serializedRoundInfo, meta := serializeRoundInfo(info)
@@ -88,7 +88,7 @@ func (gip *generalInfoProcessor) SerializeRoundsInfo(roundsInfo []types.RoundInf
 	return buff
 }
 
-func serializeRoundInfo(info types.RoundInfo) ([]byte, []byte) {
+func serializeRoundInfo(info *types.RoundInfo) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
 		info.ShardId, info.Index, "_doc", "\n"))
 

@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 // Block is a structure containing all the fields that need
 //  to be saved for a block. It has all the default fields
@@ -37,4 +41,23 @@ type Miniblock struct {
 	ReceiverBlockHash string        `json:"receiverBlockHash"`
 	Type              string        `json:"type"`
 	Timestamp         time.Duration `json:"timestamp"`
+}
+
+// ArgsSaveBlockData will contains all information that are needed to save block data
+type ArgsSaveBlockData struct {
+	HeaderHash             []byte
+	Body                   data.BodyHandler
+	Header                 data.HeaderHandler
+	SignersIndexes         []uint64
+	NotarizedHeadersHashes []string
+	TransactionsPool       *Pool
+}
+
+// Pool will holds all types of transaction
+type Pool struct {
+	Txs      map[string]data.TransactionHandler
+	Scrs     map[string]data.TransactionHandler
+	Rewards  map[string]data.TransactionHandler
+	Invalid  map[string]data.TransactionHandler
+	Receipts map[string]data.TransactionHandler
 }

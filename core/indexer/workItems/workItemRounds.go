@@ -6,11 +6,11 @@ import (
 
 type itemRounds struct {
 	indexer    saveRounds
-	roundsInfo []types.RoundInfo
+	roundsInfo []*types.RoundInfo
 }
 
 // NewItemRounds will create a new instance of itemRounds
-func NewItemRounds(indexer saveRounds, roundsInfo []types.RoundInfo) WorkItemHandler {
+func NewItemRounds(indexer saveRounds, roundsInfo []*types.RoundInfo) WorkItemHandler {
 	return &itemRounds{
 		indexer:    indexer,
 		roundsInfo: roundsInfo,

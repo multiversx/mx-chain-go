@@ -221,7 +221,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.Rounder().Index()
 
-	roundInfo := indexerTypes.RoundInfo{
+	roundInfo := &indexerTypes.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -229,7 +229,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.indexer.SaveRoundsInfo([]indexerTypes.RoundInfo{roundInfo})
+	sr.indexer.SaveRoundsInfo([]*indexerTypes.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

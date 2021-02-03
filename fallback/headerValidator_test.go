@@ -120,7 +120,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 	prevHash := []byte("prev_hash")
 	headersPool := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-			if bytes.Equal(hash, prevHash)  {
+			if bytes.Equal(hash, prevHash) {
 				return &block.MetaBlock{}, nil
 			}
 			return nil, errors.New("error")

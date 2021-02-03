@@ -15,16 +15,16 @@ const (
 
 var log = logger.GetOrCreate("indexer/process/generalInfo")
 
-type generalInfoProcessor struct {
+type infoProcessor struct {
 }
 
 // NewGeneralInfoProcessor will create a new instance of general info processor
-func NewGeneralInfoProcessor() *generalInfoProcessor {
-	return &generalInfoProcessor{}
+func NewGeneralInfoProcessor() *infoProcessor {
+	return &infoProcessor{}
 }
 
 // PrepareGeneralInfo will prepare and general information about chain
-func (gip *generalInfoProcessor) PrepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) (*types.TPS, []*types.TPS) {
+func (gip *infoProcessor) PrepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) (*types.TPS, []*types.TPS) {
 	generalInfo := &types.TPS{
 		LiveTPS:               tpsBenchmark.LiveTPS(),
 		PeakTPS:               tpsBenchmark.PeakTPS(),

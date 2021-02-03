@@ -2,7 +2,6 @@ package process
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -11,10 +10,8 @@ import (
 	"math/big"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/block"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/generalInfo"
@@ -25,13 +22,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/require"
 )
@@ -299,7 +292,8 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	arguments.TxProc = txDbProc
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	err := elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
+	pool := &types.Pool{Txs: txPool}
+	err := elasticDatabase.SaveTransactions(body, header, pool, map[string]bool{})
 	require.Equal(t, localErr, err)
 }
 
@@ -321,7 +315,7 @@ func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
 
 	err := elasticProc.SaveValidatorsRating(
 		docID,
-		[]types.ValidatorRatingInfo{
+		[]*types.ValidatorRatingInfo{
 			{
 				PublicKey: blsKey,
 				Rating:    100,
@@ -435,7 +429,7 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
-	roundInfo := types.RoundInfo{
+	roundInfo := &types.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
 	arguments := createMockElasticProcessorArgs()
@@ -447,12 +441,12 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]*types.RoundInfo{roundInfo})
 	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
-	roundInfo := types.RoundInfo{}
+	roundInfo := &types.RoundInfo{}
 	localError := errors.New("local err")
 	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
@@ -462,355 +456,9 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]*types.RoundInfo{roundInfo})
 	require.Equal(t, localError, err)
 
-}
-
-func TestUpdateMiniBlock(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("./testdata/noKibana", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := &ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-		EnabledIndexes: map[string]struct{}{
-			"miniblocks": {},
-		},
-	}
-
-	esDatabase, err := NewElasticProcessor(args)
-	require.Nil(t, err)
-
-	header1 := &dataBlock.Header{
-		ShardID: 0,
-	}
-	body1 := &dataBlock.Body{
-		MiniBlocks: []*dataBlock.MiniBlock{
-			{SenderShardID: 1, ReceiverShardID: 0, TxHashes: [][]byte{[]byte("hash12")}},
-			{SenderShardID: 0, ReceiverShardID: 1, TxHashes: [][]byte{[]byte("hash1")}},
-		},
-	}
-
-	header2 := &dataBlock.Header{
-		ShardID: 1,
-	}
-
-	// insert
-	_, _ = esDatabase.SaveMiniblocks(header1, body1)
-	// update
-	_, _ = esDatabase.SaveMiniblocks(header2, body1)
-}
-
-func TestSaveRoundsInfo(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := &ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-	}
-
-	esDatabase, _ := NewElasticProcessor(args)
-
-	roundInfo1 := types.RoundInfo{
-		Index: 1, ShardId: 0, BlockWasProposed: true,
-	}
-	roundInfo2 := types.RoundInfo{
-		Index: 2, ShardId: 0, BlockWasProposed: true,
-	}
-	roundInfo3 := types.RoundInfo{
-		Index: 3, ShardId: 0, BlockWasProposed: true,
-	}
-
-	_ = esDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo1, roundInfo2, roundInfo3})
-}
-
-func TestUpdateTransaction(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-		EnabledIndexes: map[string]struct{}{
-			"transactions": {},
-		},
-	}
-
-	esDatabase, err := NewElasticProcessor(&args)
-	require.Nil(t, err)
-
-	txHash1 := []byte("txHash1")
-	tx1 := &transaction.Transaction{
-		GasPrice: 10,
-		GasLimit: 500,
-	}
-	txHash2 := []byte("txHash2")
-	sndAddr := []byte("snd")
-	tx2 := &transaction.Transaction{
-		GasPrice: 10,
-		GasLimit: 500,
-		SndAddr:  sndAddr,
-	}
-	txHash3 := []byte("txHash3")
-	tx3 := &transaction.Transaction{}
-
-	recHash1 := []byte("recHash1")
-	rec1 := &receipt.Receipt{
-		Value:  big.NewInt(100),
-		TxHash: txHash1,
-	}
-
-	scHash1 := []byte("scHash1")
-	scResult1 := &smartContractResult.SmartContractResult{
-		OriginalTxHash: txHash1,
-	}
-
-	scHash2 := []byte("scHash2")
-	scResult2 := &smartContractResult.SmartContractResult{
-		OriginalTxHash: txHash2,
-		RcvAddr:        sndAddr,
-		GasLimit:       500,
-		GasPrice:       1,
-		Value:          big.NewInt(150),
-	}
-
-	rTx1Hash := []byte("rTxHash1")
-	rTx1 := &rewardTx.RewardTx{
-		Round: 1113,
-	}
-	rTx2Hash := []byte("rTxHash2")
-	rTx2 := &rewardTx.RewardTx{
-		Round: 1114,
-	}
-
-	body := &dataBlock.Body{
-		MiniBlocks: []*dataBlock.MiniBlock{
-			{
-				TxHashes: [][]byte{txHash1, txHash2},
-				Type:     dataBlock.TxBlock,
-			},
-			{
-				TxHashes: [][]byte{txHash3},
-				Type:     dataBlock.TxBlock,
-			},
-			{
-				Type:     dataBlock.RewardsBlock,
-				TxHashes: [][]byte{rTx1Hash, rTx2Hash},
-			},
-			{
-				TxHashes: [][]byte{recHash1},
-				Type:     dataBlock.ReceiptBlock,
-			},
-			{
-				TxHashes: [][]byte{scHash1, scHash2},
-				Type:     dataBlock.SmartContractResultBlock,
-			},
-		},
-	}
-	header := &dataBlock.Header{}
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1):  tx1,
-		string(txHash2):  tx2,
-		string(txHash3):  tx3,
-		string(recHash1): rec1,
-		string(rTx1Hash): rTx1,
-		string(rTx2Hash): rTx2,
-	}
-
-	body.MiniBlocks[0].ReceiverShardID = 1
-	// insert
-	_ = esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
-
-	fmt.Println(hex.EncodeToString(txHash1))
-
-	header.TimeStamp = 1234
-	txPool = map[string]data.TransactionHandler{
-		string(txHash1): tx1,
-		string(txHash2): tx2,
-		string(scHash1): scResult1,
-		string(scHash2): scResult2,
-	}
-
-	body.MiniBlocks[0].TxHashes = append(body.MiniBlocks[0].TxHashes, txHash3)
-
-	// update
-	_ = esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
-}
-
-func TestGetMultiple(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-	}
-
-	es, _ := NewElasticProcessor(&args)
-
-	hashes := []string{
-		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
-		"9a3beb87930e42b820cbcb5e73b224ebfc707308aa377905eda18d4589e2b093",
-	}
-	response, _ := es.getExistingObjMap(hashes, "transactions")
-	fmt.Println(response)
-}
-
-func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-	}
-
-	esDatabase, _ := NewElasticProcessor(&args)
-
-	txHash1 := []byte("txHash1")
-	tx1 := &transaction.Transaction{
-		GasPrice: 10,
-		GasLimit: 500,
-	}
-	txHash2 := []byte("txHash2")
-	sndAddr := []byte("snd")
-	tx2 := &transaction.Transaction{
-		GasPrice: 10,
-		GasLimit: 500,
-		SndAddr:  sndAddr,
-	}
-
-	header := &dataBlock.Header{}
-	txPool := map[string]data.TransactionHandler{
-		string(txHash1): tx1,
-		string(txHash2): tx2,
-	}
-	body := &dataBlock.Body{
-		MiniBlocks: []*dataBlock.MiniBlock{
-			{
-				TxHashes: [][]byte{txHash1, txHash2},
-				Type:     dataBlock.TxBlock,
-			},
-		},
-	}
-	body.MiniBlocks[0].ReceiverShardID = 2
-	body.MiniBlocks[0].SenderShardID = 1
-	isMBSInDB, _ := esDatabase.SaveMiniblocks(header, body)
-	_ = esDatabase.SaveTransactions(body, header, txPool, 2, isMBSInDB)
-
-	txPool = map[string]data.TransactionHandler{
-		string(txHash1): tx1,
-		string(txHash2): tx2,
-	}
-
-	header.ShardID = 1
-	isMBSInDB, _ = esDatabase.SaveMiniblocks(header, body)
-	_ = esDatabase.SaveTransactions(body, header, txPool, 0, isMBSInDB)
-}
-
-func TestDoBulkRequestLimit(t *testing.T) {
-	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
-
-	tpr := NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-
-	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-	}
-
-	esDatabase, _ := NewElasticProcessor(&args)
-	//Generate transaction and hashes
-	numTransactions := 1
-	dataSize := 900001
-	for i := 0; i < 1000; i++ {
-		txs, hashes := generateTransactions(numTransactions, dataSize)
-
-		header := &dataBlock.Header{}
-		txsPool := make(map[string]data.TransactionHandler)
-		for j := 0; j < numTransactions; j++ {
-			txsPool[hashes[j]] = &txs[j]
-		}
-
-		miniblock := &dataBlock.MiniBlock{
-			TxHashes: make([][]byte, numTransactions),
-			Type:     dataBlock.TxBlock,
-		}
-		for j := 0; j < numTransactions; j++ {
-			miniblock.TxHashes[j] = []byte(hashes[j])
-		}
-
-		body := &dataBlock.Body{
-			MiniBlocks: []*dataBlock.MiniBlock{
-				miniblock,
-			},
-		}
-		body.MiniBlocks[0].ReceiverShardID = 2
-		body.MiniBlocks[0].SenderShardID = 1
-
-		_ = esDatabase.SaveTransactions(body, header, txsPool, 2, map[string]bool{})
-	}
-}
-
-//nolint
-func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
-	txs := make([]transaction.Transaction, numTxs)
-	hashes := make([]string, numTxs)
-
-	randomByteArray := make([]byte, datFieldSize)
-	_, _ = rand.Read(randomByteArray)
-
-	for i := 0; i < numTxs; i++ {
-		txs[i] = transaction.Transaction{
-			Nonce:     uint64(i),
-			Value:     big.NewInt(int64(i)),
-			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			GasPrice:  200000000000,
-			GasLimit:  20000,
-			Data:      randomByteArray,
-			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d"),
-		}
-		hashes[i] = fmt.Sprintf("%v", time.Now())
-	}
-
-	return txs, hashes
 }
 
 func TestElasticProcessor_RemoveTransactions(t *testing.T) {

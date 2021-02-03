@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -398,8 +399,13 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	header data.HeaderHandler,
 	persisters *persistersHolder,
 	mbHashes [][]byte,
-) (*block.Body, map[string]data.TransactionHandler, error) {
-	txPool := make(map[string]data.TransactionHandler)
+) (*block.Body, *types.Pool, error) {
+	txPool := &types.Pool{
+		Txs:     map[string]data.TransactionHandler{},
+		Scrs:    map[string]data.TransactionHandler{},
+		Invalid: map[string]data.TransactionHandler{},
+		Rewards: map[string]data.TransactionHandler{},
+	}
 	mbUnit := persisters.miniBlocksPersister
 
 	blockBody := &block.Body{}
@@ -492,7 +498,7 @@ func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash
 func (dr *dataReplayer) processTransactionsForMiniBlock(
 	persisters *persistersHolder,
 	txHashes [][]byte,
-	txPool map[string]data.TransactionHandler,
+	pool *types.Pool,
 	mbType block.Type,
 ) error {
 	for _, txHash := range txHashes {
@@ -518,11 +524,23 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 		if tx == nil {
 			return fmt.Errorf("transaction recovered from storage with hash %s is nil", hex.EncodeToString(txHash))
 		}
-
-		txPool[string(txHash)] = tx
+		putTxInPool(pool, mbType, tx, txHash)
 	}
 
 	return nil
+}
+
+func putTxInPool(pool *types.Pool, mbType block.Type, tx data.TransactionHandler, txHash []byte) {
+	switch mbType {
+	case block.TxBlock:
+		pool.Txs[string(txHash)] = tx
+	case block.InvalidBlock:
+		pool.Invalid[string(txHash)] = tx
+	case block.RewardsBlock:
+		pool.Rewards[string(txHash)] = tx
+	case block.ReceiptBlock:
+		pool.Receipts[string(txHash)] = tx
+	}
 }
 
 func (dr *dataReplayer) getRegularTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {

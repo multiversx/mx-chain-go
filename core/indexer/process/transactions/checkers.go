@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -44,9 +45,7 @@ func stringValueToBigInt(strValue string) *big.Int {
 }
 
 func isRelayedTx(tx *types.Transaction) bool {
-	relayedTxData := "relayedTx"
-
-	return strings.HasPrefix(string(tx.Data), relayedTxData) && len(tx.SmartContractResults) > 0
+	return strings.HasPrefix(string(tx.Data), core.RelayedTransaction) && len(tx.SmartContractResults) > 0
 }
 
 func isCrossShardDstMe(tx *types.Transaction, selfShardID uint32) bool {

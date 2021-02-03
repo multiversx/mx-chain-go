@@ -14,12 +14,12 @@ func TestItemRounds_Save(t *testing.T) {
 	called := false
 	itemRounds := workItems.NewItemRounds(
 		&testscommon.ElasticProcessorStub{
-			SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+			SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 				called = true
 				return nil
 			},
 		},
-		[]types.RoundInfo{
+		[]*types.RoundInfo{
 			{},
 		},
 	)
@@ -34,11 +34,11 @@ func TestItemRounds_SaveRoundsShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemRounds := workItems.NewItemRounds(
 		&testscommon.ElasticProcessorStub{
-			SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+			SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 				return localErr
 			},
 		},
-		[]types.RoundInfo{
+		[]*types.RoundInfo{
 			{},
 		},
 	)

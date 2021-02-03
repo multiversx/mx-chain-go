@@ -37,66 +37,112 @@ func newTxGrouper(
 	}
 }
 
-func (tg *txGrouper) groupNormalTxsAndRewards(
-	body *block.Body,
-	txPool map[string]data.TransactionHandler,
+func (tg *txGrouper) groupNormalTxs(
+	mb *block.MiniBlock,
 	header data.HeaderHandler,
+	txs map[string]data.TransactionHandler,
 	alteredAddresses map[string]*types.AlteredAccount,
-) (
-	map[string]*types.Transaction,
-	[]*types.Transaction,
-) {
+) map[string]*types.Transaction {
 	transactions := make(map[string]*types.Transaction)
-	rewardsTxs := make([]*types.Transaction, 0)
 
-	for _, mb := range body.MiniBlocks {
-		mbHash, err := core.CalculateHash(tg.marshalizer, tg.hasher, mb)
-		if err != nil {
+	mbHash, err := core.CalculateHash(tg.marshalizer, tg.hasher, mb)
+	if err != nil {
+		log.Warn("txGrouper.groupNormalTxs cannot calculate miniblock hash", "error", err)
+		return nil
+	}
+
+	mbStatus := computeStatus(tg.selfShardID, mb.ReceiverShardID)
+	for _, txHash := range mb.TxHashes {
+		txHandler, okGet := txs[string(txHash)]
+		if !okGet {
 			continue
 		}
 
-		mbStatus := computeStatus(tg.selfShardID, mb.ReceiverShardID)
-
-		switch mb.Type {
-		case block.TxBlock:
-			txs := getTransactions(txPool, mb.TxHashes)
-			for hash, tx := range txs {
-				dbTx := tg.txBuilder.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbStatus)
-				addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, false)
-				if tg.shouldIndex(mb.ReceiverShardID) {
-					transactions[hash] = dbTx
-				}
-				delete(txPool, hash)
-			}
-		case block.InvalidBlock:
-			txs := getTransactions(txPool, mb.TxHashes)
-			for hash, tx := range txs {
-				dbTx := tg.txBuilder.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
-				addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, false)
-
-				dbTx.GasUsed = dbTx.GasLimit
-				fee := tg.txBuilder.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, dbTx.GasUsed)
-				dbTx.Fee = fee.String()
-
-				transactions[hash] = dbTx
-				delete(txPool, hash)
-			}
-		case block.RewardsBlock:
-			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
-			for hash, rtx := range rTxs {
-				dbTx := tg.txBuilder.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbStatus)
-				addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, true)
-				if tg.shouldIndex(mb.ReceiverShardID) {
-					rewardsTxs = append(rewardsTxs, dbTx)
-				}
-				delete(txPool, hash)
-			}
-		default:
+		tx, okCast := txHandler.(*transaction.Transaction)
+		if !okCast {
 			continue
+		}
+
+		dbTx := tg.txBuilder.buildTransaction(tx, txHash, mbHash, mb, header, mbStatus)
+		addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, false)
+		if tg.shouldIndex(mb.ReceiverShardID) {
+			transactions[string(txHash)] = dbTx
 		}
 	}
 
-	return transactions, rewardsTxs
+	return transactions
+}
+
+func (tg *txGrouper) groupRewardsTxs(
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txs map[string]data.TransactionHandler,
+	alteredAddresses map[string]*types.AlteredAccount,
+) map[string]*types.Transaction {
+	rewardsTxs := make(map[string]*types.Transaction)
+	mbHash, err := core.CalculateHash(tg.marshalizer, tg.hasher, mb)
+	if err != nil {
+		log.Warn("txGrouper.groupRewardsTxs cannot calculate miniblock hash", "error", err)
+		return nil
+	}
+
+	mbStatus := computeStatus(tg.selfShardID, mb.ReceiverShardID)
+	for _, txHash := range mb.TxHashes {
+		txHandler, okGet := txs[string(txHash)]
+		if !okGet {
+			continue
+		}
+
+		rtx, okCast := txHandler.(*rewardTx.RewardTx)
+		if !okCast {
+			continue
+		}
+
+		dbTx := tg.txBuilder.buildRewardTransaction(rtx, txHash, mbHash, mb, header, mbStatus)
+		addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, true)
+		if tg.shouldIndex(mb.ReceiverShardID) {
+			rewardsTxs[string(txHash)] = dbTx
+		}
+	}
+
+	return rewardsTxs
+}
+
+func (tg *txGrouper) groupInvalidTxs(
+	mb *block.MiniBlock,
+	header data.HeaderHandler,
+	txs map[string]data.TransactionHandler,
+	alteredAddresses map[string]*types.AlteredAccount,
+) map[string]*types.Transaction {
+	transactions := make(map[string]*types.Transaction)
+	mbHash, err := core.CalculateHash(tg.marshalizer, tg.hasher, mb)
+	if err != nil {
+		log.Warn("txGrouper.groupInvalidTxs cannot calculate miniblock hash", "error", err)
+		return nil
+	}
+
+	for _, txHash := range mb.TxHashes {
+		txHandler, okGet := txs[string(txHash)]
+		if !okGet {
+			continue
+		}
+
+		tx, okCast := txHandler.(*transaction.Transaction)
+		if !okCast {
+			continue
+		}
+
+		dbTx := tg.txBuilder.buildTransaction(tx, txHash, mbHash, mb, header, transaction.TxStatusInvalid.String())
+		addToAlteredAddresses(dbTx, alteredAddresses, mb, tg.selfShardID, false)
+
+		dbTx.GasUsed = dbTx.GasLimit
+		fee := tg.txBuilder.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, dbTx.GasUsed)
+		dbTx.Fee = fee.String()
+
+		transactions[string(txHash)] = dbTx
+	}
+
+	return transactions
 }
 
 func (tg *txGrouper) shouldIndex(destinationShardID uint32) bool {
@@ -116,7 +162,6 @@ func (tg *txGrouper) groupReceipts(header data.HeaderHandler, txPool map[string]
 		}
 
 		receipts[hash] = rec
-		delete(txPool, hash)
 	}
 
 	dbReceipts := make([]*types.Receipt, 0)
@@ -146,44 +191,6 @@ func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[st
 	}
 
 	return scResults
-}
-
-func getTransactions(txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*transaction.Transaction {
-	transactions := make(map[string]*transaction.Transaction)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
-		if !ok {
-			continue
-		}
-
-		tx, ok := txHandler.(*transaction.Transaction)
-		if !ok {
-			continue
-		}
-		transactions[string(txHash)] = tx
-	}
-	return transactions
-}
-
-func getRewardsTransaction(txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*rewardTx.RewardTx {
-	rewardsTxs := make(map[string]*rewardTx.RewardTx)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
-		if !ok {
-			continue
-		}
-
-		reward, ok := txHandler.(*rewardTx.RewardTx)
-		if !ok {
-			continue
-		}
-		rewardsTxs[string(txHash)] = reward
-	}
-	return rewardsTxs
 }
 
 func convertMapTxsToSlice(txs map[string]*types.Transaction) []*types.Transaction {

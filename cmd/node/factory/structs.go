@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -701,7 +702,12 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 
 	if !args.indexer.IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+		argsSaveBlock := &types.ArgsSaveBlockData{
+			Body:       &dataBlock.Body{},
+			Header:     genesisBlockHeader,
+			HeaderHash: genesisBlockHash,
+		}
+		args.indexer.SaveBlock(argsSaveBlock)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

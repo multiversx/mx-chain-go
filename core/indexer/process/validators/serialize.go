@@ -32,7 +32,7 @@ func (vp *validatorsProcessor) SerializeValidatorsPubKeys(validatorsPubKeys *typ
 // SerializeValidatorsRating will serialize validators rating
 func (vp *validatorsProcessor) SerializeValidatorsRating(
 	index string,
-	validatorsRatingInfo []types.ValidatorRatingInfo,
+	validatorsRatingInfo []*types.ValidatorRatingInfo,
 ) ([]*bytes.Buffer, error) {
 	buffSlice := types.NewBufferSlice()
 

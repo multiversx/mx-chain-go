@@ -10,13 +10,12 @@ import (
 
 // ElasticIndexerStub -
 type ElasticIndexerStub struct {
-	SetTxLogsProcessorCalled func(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveBlockCalled          func(body data.BodyHandler, header data.HeaderHandler,
-		txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
-	SaveRoundsInfosCalled       func(roundsInfos []indexerTypes.RoundInfo)
+	SetTxLogsProcessorCalled    func(txLogsProc process.TransactionLogProcessorDatabase)
+	SaveBlockCalled             func(args *indexerTypes.ArgsSaveBlockData)
+	SaveRoundsInfosCalled       func(roundsInfos []*indexerTypes.RoundInfo)
 	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []indexerTypes.ValidatorRatingInfo)
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexerTypes.ValidatorRatingInfo)
 }
 
 // SetTxLogsProcessor -
@@ -27,15 +26,14 @@ func (e *ElasticIndexerStub) SetTxLogsProcessor(txLogsProc process.TransactionLo
 }
 
 // SaveBlock -
-func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte) {
+func (e *ElasticIndexerStub) SaveBlock(args *indexerTypes.ArgsSaveBlockData) {
 	if e.SaveBlockCalled != nil {
-		e.SaveBlockCalled(body, header, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
+		e.SaveBlockCalled(args)
 	}
 }
 
 // SaveRoundsInfo -
-func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []indexerTypes.RoundInfo) {
+func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []*indexerTypes.RoundInfo) {
 	if e.SaveRoundsInfosCalled != nil {
 		e.SaveRoundsInfosCalled(roundsInfos)
 	}
@@ -56,7 +54,7 @@ func (e *ElasticIndexerStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32]
 }
 
 // SaveValidatorsRating -
-func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []indexerTypes.ValidatorRatingInfo) {
+func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []*indexerTypes.ValidatorRatingInfo) {
 	if e.SaveValidatorsRatingCalled != nil {
 		e.SaveValidatorsRatingCalled(indexID, infoRating)
 	}

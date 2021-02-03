@@ -1,29 +1,19 @@
 package indexer
 
 import (
-	"crypto/rand"
-	"fmt"
-	"math/big"
 	"sync"
 	"testing"
-	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
-	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	dataProcess "github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -154,8 +144,15 @@ func TestDataIndexer_SaveBlock(t *testing.T) {
 	}
 	ei, _ := NewDataIndexer(arguments)
 
-	ei.SaveBlock(&dataBlock.Body{MiniBlocks: []*dataBlock.MiniBlock{}}, nil,
-		nil, nil, nil, []byte("hash"))
+	args := &types.ArgsSaveBlockData{
+		HeaderHash:             []byte("hash"),
+		Body:                   &dataBlock.Body{MiniBlocks: []*dataBlock.MiniBlock{}},
+		Header:                 nil,
+		SignersIndexes:         nil,
+		NotarizedHeadersHashes: nil,
+		TransactionsPool:       nil,
+	}
+	ei.SaveBlock(args)
 	require.True(t, called)
 }
 
@@ -173,7 +170,7 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 	ei, _ := NewDataIndexer(arguments)
 	_ = ei.Close()
 
-	ei.SaveRoundsInfo([]types.RoundInfo{})
+	ei.SaveRoundsInfo([]*types.RoundInfo{})
 	require.True(t, called)
 }
 
@@ -209,7 +206,7 @@ func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
 	}
 	ei, _ := NewDataIndexer(arguments)
 
-	ei.SaveValidatorsRating("ID", []types.ValidatorRatingInfo{
+	ei.SaveValidatorsRating("ID", []*types.ValidatorRatingInfo{
 		{Rating: 1}, {Rating: 2},
 	})
 	require.True(t, called)
@@ -336,102 +333,4 @@ func TestDataIndexer_EpochChangeValidators(t *testing.T) {
 	epochChangeNotifier.NotifyAll(&dataBlock.Header{Nonce: 10, Epoch: 2})
 	wg.Wait()
 	assert.True(t, secondEpochCalled)
-}
-
-func TestDataIndexer(t *testing.T) {
-	t.Skip("this is not a short test")
-
-	testCreateIndexer(t)
-}
-
-//nolint
-func testCreateIndexer(t *testing.T) {
-	reader := process.NewTemplatesAndPoliciesReader("", false)
-	indexTemplates, indexPolicies, _ := reader.GetElasticTemplatesAndPolicies()
-
-	dispatcher, _ := NewDataDispatcher(100)
-	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-		Username:  "",
-		Password:  "",
-	})
-
-	elasticIndexer, _ := process.NewElasticProcessor(&process.ArgElasticProcessor{
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-		DBClient:       dbClient,
-	})
-
-	di, err := NewDataIndexer(ArgDataIndexer{
-		Marshalizer:        &marshal.JsonMarshalizer{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		DataDispatcher:     dispatcher,
-		ElasticProcessor:   elasticIndexer,
-	})
-	if err != nil {
-		fmt.Println(err)
-		t.Fail()
-	}
-
-	// Generate transaction and hashes
-	numTransactions := 10
-	dataSize := 1000
-	signers := []uint64{395, 207, 16, 99, 358, 292, 258, 362, 161, 247, 1, 137, 91, 309, 30, 92, 166, 361, 158, 301, 218, 80, 108, 392, 153, 343, 110, 133, 351, 316, 5, 305, 248, 123,
-		327, 322, 97, 86, 215, 212, 289, 250, 229, 13, 237, 20, 269, 37, 243, 29, 236, 155, 338, 257, 375, 142, 129, 93, 234, 195, 377, 311, 170}
-	for i := 0; i < 100; i++ {
-		txs, hashes := generateTransactions(numTransactions, dataSize)
-
-		header := &dataBlock.Header{
-			Nonce: uint64(i),
-		}
-		txsPool := make(map[string]data.TransactionHandler)
-		for j := 0; j < numTransactions; j++ {
-			txsPool[hashes[j]] = &txs[j]
-		}
-
-		miniblock := &dataBlock.MiniBlock{
-			TxHashes: make([][]byte, numTransactions),
-			Type:     dataBlock.TxBlock,
-		}
-		for j := 0; j < numTransactions; j++ {
-			miniblock.TxHashes[j] = []byte(hashes[j])
-		}
-
-		body := &dataBlock.Body{
-			MiniBlocks: []*dataBlock.MiniBlock{
-				miniblock,
-			},
-		}
-		body.MiniBlocks[0].ReceiverShardID = 2
-		body.MiniBlocks[0].SenderShardID = 1
-
-		di.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"}, []byte("hash"))
-	}
-
-	time.Sleep(100 * time.Second)
-}
-
-//nolint
-func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
-	txs := make([]transaction.Transaction, numTxs)
-	hashes := make([]string, numTxs)
-
-	randomByteArray := make([]byte, datFieldSize)
-	_, _ = rand.Read(randomByteArray)
-
-	for i := 0; i < numTxs; i++ {
-		txs[i] = transaction.Transaction{
-			Nonce:     uint64(i),
-			Value:     big.NewInt(int64(i)),
-			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			GasPrice:  200000000000,
-			GasLimit:  20000,
-			Data:      randomByteArray,
-			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-		}
-		hashes[i] = fmt.Sprintf("%v", time.Now())
-	}
-
-	return txs, hashes
 }

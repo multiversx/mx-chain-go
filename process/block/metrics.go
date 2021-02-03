@@ -205,7 +205,7 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := indexerTypes.RoundInfo{
+	roundInfo := &indexerTypes.RoundInfo{
 		Index:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
@@ -214,7 +214,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		indexerHandler.SaveRoundsInfo([]indexerTypes.RoundInfo{roundInfo})
+		indexerHandler.SaveRoundsInfo([]*indexerTypes.RoundInfo{roundInfo})
 		return
 	}
 
@@ -222,7 +222,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]indexerTypes.RoundInfo, 0)
+	roundsInfo := make([]*indexerTypes.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -235,7 +235,7 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = indexerTypes.RoundInfo{
+		roundInfo = &indexerTypes.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
@@ -265,11 +265,11 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]indexerTypes.ValidatorRatingInfo)
+	shardValidatorsRating := make(map[string][]*indexerTypes.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
-		validatorsInfos := make([]indexerTypes.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]*indexerTypes.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, indexerTypes.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, &indexerTypes.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
@@ -284,7 +284,7 @@ func indexValidatorsRating(
 
 func indexShardValidatorsRating(
 	indexerHandler indexer.Indexer,
-	shardValidatorsRating map[string][]indexerTypes.ValidatorRatingInfo,
+	shardValidatorsRating map[string][]*indexerTypes.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
 		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)

@@ -16,11 +16,11 @@ type WorkItemHandler interface {
 type saveBlockIndexer interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
-	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
+	SaveTransactions(body *block.Body, header data.HeaderHandler, pool *types.Pool, mbsInDb map[string]bool) error
 }
 
 type saveRatingIndexer interface {
-	SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
+	SaveValidatorsRating(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error
 }
 
 type removeIndexer interface {
@@ -30,7 +30,7 @@ type removeIndexer interface {
 }
 
 type saveRounds interface {
-	SaveRoundsInfo(infos []types.RoundInfo) error
+	SaveRoundsInfo(infos []*types.RoundInfo) error
 }
 
 type saveTpsBenchmark interface {

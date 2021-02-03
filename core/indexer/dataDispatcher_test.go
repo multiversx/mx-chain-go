@@ -44,7 +44,7 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &testscommon.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 			called = true
 			wg.Done()
 			return nil
@@ -53,22 +53,22 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 			time.Sleep(7 * time.Second)
 			return nil
 		},
-		SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+		SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error {
 			time.Sleep(6 * time.Second)
 			return nil
 		},
 	}
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 	wg.Wait()
 
 	require.True(t, called)
 
 	dispatcher.Add(workItems.NewItemAccounts(elasticProc, nil))
 	wg.Add(1)
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 	dispatcher.Add(workItems.NewItemRating(elasticProc, "", nil))
 	wg.Add(1)
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 	err = dispatcher.Close()
 	require.NoError(t, err)
 }
@@ -84,7 +84,7 @@ func TestDataDispatcher_Add(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &testscommon.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
 				return fmt.Errorf("%w: wrapped error", client.ErrBackOff)
@@ -97,7 +97,7 @@ func TestDataDispatcher_Add(t *testing.T) {
 	}
 
 	start := time.Now()
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 	wg.Wait()
 
 	timePassed := time.Since(start)
@@ -120,7 +120,7 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &testscommon.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
 				return errors.New("generic error")
@@ -133,7 +133,7 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 	}
 
 	start := time.Now()
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 	wg.Wait()
 
 	timePassed := time.Since(start)
@@ -153,7 +153,7 @@ func TestDataDispatcher_Close(t *testing.T) {
 	dispatcher.StartIndexData()
 
 	elasticProc := &testscommon.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []*types.RoundInfo) error {
 			time.Sleep(1000*time.Millisecond + 200*time.Microsecond)
 			return nil
 		},
@@ -173,7 +173,7 @@ func TestDataDispatcher_Close(t *testing.T) {
 				if count == 105 {
 					w.Done()
 				}
-				dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+				dispatcher.Add(workItems.NewItemRounds(elasticProc, []*types.RoundInfo{}))
 				time.Sleep(50 * time.Millisecond)
 			}
 		}

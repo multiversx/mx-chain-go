@@ -67,28 +67,47 @@ func NewTransactionsProcessor(
 func (tdp *txDatabaseProcessor) PrepareTransactionsForDatabase(
 	body *block.Body,
 	header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
+	pool *types.Pool,
 ) *types.PreparedResults {
 	alteredAddresses := make(map[string]*types.AlteredAccount)
-	transactions, rewardsTxs := tdp.txGrouper.groupNormalTxsAndRewards(body, txPool, header, alteredAddresses)
+	normalTxs := make(map[string]*types.Transaction)
+	rewardsTxs := make(map[string]*types.Transaction)
+	invalidTxs := make(map[string]*types.Transaction)
 
-	transactions = tdp.setTransactionSearchOrder(transactions)
+	for _, mb := range body.MiniBlocks {
+		switch mb.Type {
+		case block.TxBlock:
+			mergeTxsMaps(normalTxs, tdp.txGrouper.groupNormalTxs(mb, header, pool.Txs, alteredAddresses))
+		case block.RewardsBlock:
+			mergeTxsMaps(rewardsTxs, tdp.txGrouper.groupRewardsTxs(mb, header, pool.Rewards, alteredAddresses))
+		case block.InvalidBlock:
+			mergeTxsMaps(invalidTxs, tdp.txGrouper.groupInvalidTxs(mb, header, pool.Invalid, alteredAddresses))
+		default:
+			continue
+		}
+	}
 
-	dbReceipts := tdp.txGrouper.groupReceipts(header, txPool)
+	normalTxs = tdp.setTransactionSearchOrder(normalTxs)
 
-	dbSCResults, countScResults := tdp.iterateSCRSAndConvert(txPool, header, transactions)
+	dbReceipts := tdp.txGrouper.groupReceipts(header, pool.Receipts)
+
+	dbSCResults, countScResults := tdp.iterateSCRSAndConvert(pool.Scrs, header, normalTxs)
 
 	tdp.txBuilder.addScrsReceiverToAlteredAccounts(alteredAddresses, dbSCResults)
 
-	tdp.setStatusOfTxsWithSCRS(transactions, countScResults)
+	tdp.setStatusOfTxsWithSCRS(normalTxs, countScResults)
 
-	tdp.addTxsLogsIfNeeded(transactions)
+	tdp.addTxsLogsIfNeeded(normalTxs)
 
 	tdp.mutex.RLock()
 	tdp.txLogsProcessor.Clean()
 	tdp.mutex.RUnlock()
 
-	txsSlice := append(convertMapTxsToSlice(transactions), rewardsTxs...)
+	sliceNormalTxs := convertMapTxsToSlice(normalTxs)
+	sliceRewardsTxs := convertMapTxsToSlice(rewardsTxs)
+	sliceInvalidTxs := convertMapTxsToSlice(invalidTxs)
+
+	txsSlice := append(sliceNormalTxs, append(sliceRewardsTxs, sliceInvalidTxs...)...)
 
 	return &types.PreparedResults{
 		Transactions:    txsSlice,
@@ -286,4 +305,10 @@ func (tdp *txDatabaseProcessor) GetRewardsTxsHashesHexEncoded(header data.Header
 	}
 
 	return encodedTxsHashes
+}
+
+func mergeTxsMaps(m1, m2 map[string]*types.Transaction) {
+	for key, value := range m2 {
+		m1[key] = value
+	}
 }

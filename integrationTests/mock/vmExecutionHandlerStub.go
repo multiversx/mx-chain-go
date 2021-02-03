@@ -20,7 +20,6 @@ func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[s
 	}
 }
 
-
 // RunSmartContractCreate --
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCreateCalled == nil {

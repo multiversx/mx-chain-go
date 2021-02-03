@@ -5,11 +5,11 @@ import "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 type itemRating struct {
 	indexer    saveRatingIndexer
 	indexID    string
-	infoRating []types.ValidatorRatingInfo
+	infoRating []*types.ValidatorRatingInfo
 }
 
 // NewItemRating will create a new instance of itemRating
-func NewItemRating(indexer saveRatingIndexer, indexID string, infoRating []types.ValidatorRatingInfo) WorkItemHandler {
+func NewItemRating(indexer saveRatingIndexer, indexID string, infoRating []*types.ValidatorRatingInfo) WorkItemHandler {
 	return &itemRating{
 		indexer:    indexer,
 		indexID:    indexID,

@@ -15,7 +15,7 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
+func (im *IndexerMock) SaveBlock(_ *indexerTypes.ArgsSaveBlockData) {
 	panic("implement me")
 }
 
@@ -34,7 +34,7 @@ func (im *IndexerMock) Close() error {
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexerTypes.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexerTypes.ValidatorRatingInfo) {
 
 }
 
@@ -44,7 +44,7 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfo -
-func (im *IndexerMock) SaveRoundsInfo(_ []indexerTypes.RoundInfo) {
+func (im *IndexerMock) SaveRoundsInfo(_ []*indexerTypes.RoundInfo) {
 	panic("implement me")
 }
 

@@ -1144,7 +1144,7 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
-	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
 	roundDuration := 4
 
 	stakingV2EnableEpoch := uint32(0)

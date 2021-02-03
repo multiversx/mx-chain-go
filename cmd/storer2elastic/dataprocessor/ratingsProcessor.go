@@ -114,7 +114,7 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	return nil
 }
 
-func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]indexerTypes.ValidatorRatingInfo) {
+func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]*indexerTypes.ValidatorRatingInfo) {
 	for shardID, validators := range validatorsRatingData {
 		index := fmt.Sprintf("%d_%d", shardID, epoch)
 		rp.elasticIndexer.SaveValidatorsRating(index, validators)
@@ -175,8 +175,8 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]indexerTypes.ValidatorRatingInfo, error) {
-	validatorsRatingInfo := make(map[uint32][]indexerTypes.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]*indexerTypes.ValidatorRatingInfo, error) {
+	validatorsRatingInfo := make(map[uint32][]*indexerTypes.ValidatorRatingInfo)
 	for pa := range leavesChannel {
 		peerAccount, err := unmarshalPeer(pa.Value(), rp.marshalizer)
 		if err != nil {
@@ -184,7 +184,7 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan cor
 		}
 
 		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
-			indexerTypes.ValidatorRatingInfo{
+			&indexerTypes.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
 				Rating:    float32(peerAccount.GetRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -193,13 +193,13 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan cor
 	return validatorsRatingInfo, nil
 }
 
-func (rp *ratingsProcessor) getGenesisRating() map[uint32][]indexerTypes.ValidatorRatingInfo {
-	ratingsForGenesis := make(map[uint32][]indexerTypes.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getGenesisRating() map[uint32][]*indexerTypes.ValidatorRatingInfo {
+	ratingsForGenesis := make(map[uint32][]*indexerTypes.ValidatorRatingInfo)
 
 	eligible, waiting := rp.genesisNodesConfig.InitialNodesInfo()
 	for shardID, nodesInShard := range eligible {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], indexerTypes.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], &indexerTypes.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -207,7 +207,7 @@ func (rp *ratingsProcessor) getGenesisRating() map[uint32][]indexerTypes.Validat
 	}
 	for shardID, nodesInShard := range waiting {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], indexerTypes.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], &indexerTypes.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})

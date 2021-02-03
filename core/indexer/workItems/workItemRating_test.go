@@ -15,14 +15,14 @@ func TestItemRating_Save(t *testing.T) {
 	called := false
 	itemRating := workItems.NewItemRating(
 		&testscommon.ElasticProcessorStub{
-			SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+			SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error {
 				require.Equal(t, id, index)
 				called = true
 				return nil
 			},
 		},
 		id,
-		[]types.ValidatorRatingInfo{
+		[]*types.ValidatorRatingInfo{
 			{PublicKey: "pub-key", Rating: 100},
 		},
 	)
@@ -38,12 +38,12 @@ func TestItemRating_SaveShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemRating := workItems.NewItemRating(
 		&testscommon.ElasticProcessorStub{
-			SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+			SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []*types.ValidatorRatingInfo) error {
 				return localErr
 			},
 		},
 		id,
-		[]types.ValidatorRatingInfo{
+		[]*types.ValidatorRatingInfo{
 			{PublicKey: "pub-key", Rating: 100},
 		},
 	)
