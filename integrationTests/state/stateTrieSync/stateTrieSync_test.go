@@ -62,7 +62,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}
 
 	_ = resolverTrie.Commit()
-	rootHash, _ := resolverTrie.Root()
+	rootHash, _ := resolverTrie.RootHash()
 
 	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash, context.Background())
 	numLeaves := 0
@@ -72,7 +72,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	nilRootHash, _ := requesterTrie.Root()
+	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
@@ -119,7 +119,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Nil(t, err)
 	cancel()
 
-	newRootHash, _ := requesterTrie.Root()
+	newRootHash, _ := requesterTrie.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
@@ -182,7 +182,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	nilRootHash, _ := requesterTrie.Root()
+	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
