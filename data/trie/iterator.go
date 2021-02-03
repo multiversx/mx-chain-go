@@ -22,7 +22,8 @@ func NewIterator(trie data.Trie) (*iterator, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	nextNodes, err := pmt.root.getChildren(trie.Database())
+	trieStorage := trie.GetStorageManager()
+	nextNodes, err := pmt.root.getChildren(trieStorage.Database())
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +31,7 @@ func NewIterator(trie data.Trie) (*iterator, error) {
 	return &iterator{
 		currentNode: pmt.root,
 		nextNodes:   nextNodes,
-		db:          trie.Database(),
+		db:          trieStorage.Database(),
 	}, nil
 }
 

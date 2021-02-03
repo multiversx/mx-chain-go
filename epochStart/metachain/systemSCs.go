@@ -991,7 +991,7 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandle
 func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 
-	rootHash, err := userValidatorAccount.DataTrie().Root()
+	rootHash, err := userValidatorAccount.DataTrie().RootHash()
 	if err != nil {
 		return nil, err
 	}
