@@ -419,6 +419,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		genesisFeeHandler,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		genesisFeeHandler,
+		txTypeHandler,
+		generalConfig.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
