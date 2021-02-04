@@ -252,8 +252,8 @@ func TestAPIRoutesToml(t *testing.T) {
 
 	expectedCfg := ApiRoutesConfig{
 		Logging: ApiLoggingConfig{
-			LoggingEnabled:         true,
-			ThresholdInNanoSeconds: loggingThreshold,
+			LoggingEnabled:          true,
+			ThresholdInMicroSeconds: loggingThreshold,
 		},
 		APIPackages: map[string]APIPackageConfig{
 			package0: {
@@ -273,7 +273,7 @@ func TestAPIRoutesToml(t *testing.T) {
 	testString := `
 [Logging]
     LoggingEnabled = true
-    ThresholdInNanoSeconds = 10
+    ThresholdInMicroSeconds = 10
 
      # API routes configuration
 [APIPackages]

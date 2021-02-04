@@ -430,8 +430,8 @@ type ApiRoutesConfig struct {
 
 // ApiLoggingConfig holds the configuration related to API requests logging
 type ApiLoggingConfig struct {
-	LoggingEnabled         bool
-	ThresholdInNanoSeconds int
+	LoggingEnabled          bool
+	ThresholdInMicroSeconds int
 }
 
 // APIPackageConfig holds the configuration for the routes of each package

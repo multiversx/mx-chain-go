@@ -4,9 +4,9 @@
     # a log will be printed
     LoggingEnabled = false
 
-    # ThresholdNanoSeconds represents the maximum duration to consider a request as normal. Above this, if the LoggingEnabled
+    # ThresholdInMicroSeconds represents the maximum duration to consider a request as normal. Above this, if the LoggingEnabled
     # flag is set to true, then a log will be printed
-    ThresholdInNanoSeconds = 1
+    ThresholdInMicroSeconds = 100
 
  # API routes configuration
 [APIPackages]

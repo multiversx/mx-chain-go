@@ -217,7 +217,7 @@ func (nf *nodeFacade) startRest() {
 		)
 
 		if nf.apiRoutesConfig.Logging.LoggingEnabled {
-			responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(nf.apiRoutesConfig.Logging.ThresholdInNanoSeconds) * time.Nanosecond)
+			responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(nf.apiRoutesConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
 			limiters = append(limiters, responseLoggerMiddleware)
 		}
 
