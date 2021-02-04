@@ -176,7 +176,7 @@ func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []by
 func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
 	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
-		currHash, err := savedTrie.Root()
+		currHash, err := savedTrie.RootHash()
 		if err == nil && bytes.Equal(currHash, rootHash) {
 			return true
 		}
