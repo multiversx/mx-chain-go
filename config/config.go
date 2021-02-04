@@ -424,7 +424,14 @@ type AntifloodDebugConfig struct {
 
 // ApiRoutesConfig holds the configuration related to Rest API routes
 type ApiRoutesConfig struct {
+	Logging     ApiLoggingConfig
 	APIPackages map[string]APIPackageConfig
+}
+
+// ApiLoggingConfig holds the configuration related to API requests logging
+type ApiLoggingConfig struct {
+	LoggingEnabled         bool
+	ThresholdInNanoSeconds int
 }
 
 // APIPackageConfig holds the configuration for the routes of each package

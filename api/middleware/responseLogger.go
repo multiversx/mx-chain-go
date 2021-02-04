@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -17,17 +18,22 @@ const prefixInternalError = "[internal error]"
 
 type responseLoggerMiddleware struct {
 	thresholdDurationForLoggingRequest time.Duration
+	printRequestFunc                   func(title string, path string, duration time.Duration, status int, request string, response string)
 }
 
 // NewResponseLoggerMiddleware returns a new instance of responseLoggerMiddleware
 func NewResponseLoggerMiddleware(thresholdDurationForLoggingRequest time.Duration) *responseLoggerMiddleware {
-	return &responseLoggerMiddleware{
+	rlm := &responseLoggerMiddleware{
 		thresholdDurationForLoggingRequest: thresholdDurationForLoggingRequest,
 	}
+
+	rlm.printRequestFunc = rlm.printRequest
+
+	return rlm
 }
 
 // MonitoringMiddleware logs detail about a request if it is not successful or it's duration is higher than a threshold
-func (rl *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
+func (rlm *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
 
@@ -38,19 +44,21 @@ func (rl *responseLoggerMiddleware) MiddlewareHandlerFunc() gin.HandlerFunc {
 
 		latency := time.Since(t)
 		status := c.Writer.Status()
-		if latency > rl.thresholdDurationForLoggingRequest || c.Writer.Status() != http.StatusOK {
+
+		shouldLogRequest := latency > rlm.thresholdDurationForLoggingRequest || c.Writer.Status() != http.StatusOK
+		if shouldLogRequest {
 			responseBodyString := removeWhitespacesFromString(bw.body.String())
-			logRequestAndResponse(c, latency, status, responseBodyString)
+			rlm.logRequestAndResponse(c, latency, status, responseBodyString)
 		}
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rl *responseLoggerMiddleware) IsInterfaceNil() bool {
-	return rl == nil
+func (rlm *responseLoggerMiddleware) IsInterfaceNil() bool {
+	return rlm == nil
 }
 
-func logRequestAndResponse(c *gin.Context, duration time.Duration, status int, response string) {
+func (rlm *responseLoggerMiddleware) logRequestAndResponse(c *gin.Context, duration time.Duration, status int, response string) {
 	request := "n/a"
 
 	if c.Request.Body != nil {
@@ -66,15 +74,27 @@ func logRequestAndResponse(c *gin.Context, duration time.Duration, status int, r
 		}
 	}
 
+	title := rlm.computeLogTitle(status)
+
+	rlm.printRequestFunc(title, c.Request.RequestURI, duration, status, request, response)
+}
+
+func (rlm *responseLoggerMiddleware) computeLogTitle(status int) string {
 	logPrefix := prefixDurationTooLong
 	if status == http.StatusBadRequest {
 		logPrefix = prefixBadRequest
 	} else if status == http.StatusInternalServerError {
 		logPrefix = prefixInternalError
+	} else if status != http.StatusOK {
+		logPrefix = fmt.Sprintf("http code %d", status)
 	}
 
-	log.Warn(logPrefix+" api request",
-		"path", c.Request.RequestURI,
+	return fmt.Sprintf("%s api request", logPrefix)
+}
+
+func (rlm *responseLoggerMiddleware) printRequest(title string, path string, duration time.Duration, status int, request string, response string) {
+	log.Debug(title,
+		"path", path,
 		"duration", duration,
 		"status", status,
 		"request", request,

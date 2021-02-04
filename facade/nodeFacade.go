@@ -40,10 +40,6 @@ const DefaultRestInterface = "localhost:8080"
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
-// thresholdDurationForLoggingRequests - if a request exceeds this value, then a detailed log should be displayed
-// TODO: after calculating this 'magic number', replace this const value
-const thresholdDurationForLoggingRequests = 1 * time.Nanosecond
-
 var _ = address.FacadeHandler(&nodeFacade{})
 var _ = hardfork.FacadeHandler(&nodeFacade{})
 var _ = node.FacadeHandler(&nodeFacade{})
@@ -220,8 +216,10 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(thresholdDurationForLoggingRequests)
-		limiters = append(limiters, responseLoggerMiddleware)
+		if nf.apiRoutesConfig.Logging.LoggingEnabled {
+			responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(nf.apiRoutesConfig.Logging.ThresholdInNanoSeconds) * time.Nanosecond)
+			limiters = append(limiters, responseLoggerMiddleware)
+		}
 
 		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
 		if err != nil {
