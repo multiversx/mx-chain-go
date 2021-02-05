@@ -103,14 +103,8 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
 
-		tx.Status = (&transaction.StatusComputer{
-			MiniblockType:    miniblock.Type,
-			SourceShard:      tx.SourceShard,
-			DestinationShard: tx.DestinationShard,
-			Receiver:         tx.Tx.GetRcvAddr(),
-			TransactionData:  tx.Data,
-			SelfShard:        bap.selfShardID,
-		}).ComputeStatusWhenInStorageKnowingMiniblock()
+		statusComputer := transaction.NewStatusComputer(bap.selfShardID)
+		tx.Status = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
 
 		txs = append(txs, tx)
 	}

@@ -78,26 +78,20 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
+	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId())
 
-	if ok := (&transaction.StatusComputer{
-		SelfShard:                n.shardCoordinator.SelfId(),
-		Store:                    n.store,
-		Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
-		MiniblockType:            block.Type(miniblockMetadata.Type),
-		HeaderHash:               miniblockMetadata.HeaderHash,
-		HeaderNonce:              miniblockMetadata.HeaderNonce,
-	}).SetStatusIfIsRewardReverted(tx); ok {
+	if ok := statusComputer.SetStatusIfIsRewardReverted(
+		tx,
+		block.Type(miniblockMetadata.Type),
+		miniblockMetadata.HeaderNonce,
+		miniblockMetadata.HeaderHash,
+		n.uint64ByteSliceConverter,
+		n.store); ok {
 		return tx, nil
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:        block.Type(miniblockMetadata.Type),
-		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
-		DestinationShard:     tx.DestinationShard,
-		Receiver:             tx.Tx.GetRcvAddr(),
-		TransactionData:      tx.Data,
-		SelfShard:            n.shardCoordinator.SelfId(),
-	}).ComputeStatusWhenInStorageKnowingMiniblock()
+	tx.Status = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(
+		block.Type(miniblockMetadata.Type),tx)
 
 	if withResults {
 		n.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
@@ -136,14 +130,10 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 		return nil, err
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		// TODO: take care of this when integrating the adaptivity
-		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
-		Receiver:         tx.Tx.GetRcvAddr(),
-		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
-	}).ComputeStatusWhenInStorageNotKnowingMiniblock()
+	// TODO: take care of this when integrating the adaptivity
+	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId())
+	tx.Status = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
+		n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()), tx)
 
 	return tx, nil
 }

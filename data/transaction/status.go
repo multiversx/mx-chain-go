@@ -35,25 +35,29 @@ func (tx TxStatus) String() string {
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
-	MiniblockType            block.Type
-	IsMiniblockFinalized     bool
-	SourceShard              uint32
-	DestinationShard         uint32
-	Receiver                 []byte
-	TransactionData          []byte
-	SelfShard                uint32
-	HeaderNonce              uint64
-	HeaderHash               []byte
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	Store                    dataRetriever.StorageService
+	SelfShard	uint32
+}
+
+func NewStatusComputer(selfShard uint32) *StatusComputer {
+	statusComputer := &StatusComputer{
+		SelfShard: selfShard}
+
+	return statusComputer
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
-func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus {
-	if sc.isMiniblockInvalid() {
+func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
+	miniblockType block.Type,
+	tx *ApiTransactionResult) TxStatus {
+	isMiniblockFinalized := tx.NotarizedAtDestinationInMetaNonce > 0
+	destinationShard := tx.DestinationShard
+	receiver := tx.Tx.GetRcvAddr()
+	transactionData := tx.Data
+
+	if sc.isMiniblockInvalid(miniblockType) {
 		return TxStatusInvalid
 	}
-	if sc.IsMiniblockFinalized || sc.isDestinationMe() || sc.isContractDeploy() {
+	if isMiniblockFinalized || sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver,transactionData) {
 		return TxStatusSuccess
 	}
 
@@ -63,8 +67,14 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
 // Limitation: in this case, since we do not know the miniblock type, we cannot know if a transaction is actually, "invalid".
 // However, when "dblookupext" indexing is enabled, this function is not used.
-func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
-	if sc.isDestinationMe() || sc.isContractDeploy() {
+func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
+	destinationShard uint32,
+	tx *ApiTransactionResult,
+	) TxStatus {
+	receiver := tx.Tx.GetRcvAddr()
+	transactionData := tx.Data
+
+	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver,transactionData) {
 		return TxStatusSuccess
 	}
 
@@ -72,21 +82,29 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStat
 	return TxStatusPending
 }
 
-func (sc *StatusComputer) isMiniblockInvalid() bool {
-	return sc.MiniblockType == block.InvalidBlock
+func (sc *StatusComputer) isMiniblockInvalid(miniblockType block.Type) bool {
+	return miniblockType == block.InvalidBlock
 }
 
-func (sc *StatusComputer) isDestinationMe() bool {
-	return sc.SelfShard == sc.DestinationShard
+func (sc *StatusComputer) isDestinationMe(destinationShard uint32) bool {
+	return sc.SelfShard == destinationShard
 }
 
-func (sc *StatusComputer) isContractDeploy() bool {
-	return core.IsEmptyAddress(sc.Receiver) && len(sc.TransactionData) > 0
+func (sc *StatusComputer) isContractDeploy(receiver []byte, transactionData []byte) bool {
+	return core.IsEmptyAddress(receiver) && len(transactionData) > 0
 }
 
 // SetStatusIfIsRewardReverted will compute and set status for a reverted reward transaction
-func (sc *StatusComputer) SetStatusIfIsRewardReverted(tx *ApiTransactionResult) bool {
-	if sc.MiniblockType != block.RewardsBlock {
+func (sc *StatusComputer) SetStatusIfIsRewardReverted(
+	tx *ApiTransactionResult,
+	miniblockType block.Type,
+	headerNonce uint64,
+	headerHash []byte,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	store dataRetriever.StorageService,
+	) bool {
+
+	if miniblockType != block.RewardsBlock {
 		return false
 	}
 
@@ -99,14 +117,14 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(tx *ApiTransactionResult) 
 		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(selfShardID)
 	}
 
-	nonceToByteSlice := sc.Uint64ByteSliceConverter.ToByteSlice(sc.HeaderNonce)
-	headerHash, err := sc.Store.Get(storerUnit, nonceToByteSlice)
+	nonceToByteSlice := uint64ByteSliceConverter.ToByteSlice(headerNonce)
+	headerHashFromStorage, err := store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		log.Warn("cannot get header hash by nonce", "error", err.Error())
 		return false
 	}
 
-	if bytes.Equal(headerHash, sc.HeaderHash) {
+	if bytes.Equal(headerHashFromStorage, headerHash) {
 		return false
 	}
 
