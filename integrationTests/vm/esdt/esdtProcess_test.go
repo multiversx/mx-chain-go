@@ -570,6 +570,135 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	checkSavedCallBackData(t, firstScAddress, nodes, 1, tokenIdentifier, big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
 }
 
+func TestCallbackPaymentEgld(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	//----------------- send token issue
+	initialSupply := int64(10000000000)
+	issueTestToken(nodes, initialSupply)
+	tokenIssuer := nodes[0]
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(initialSupply))
+
+	//------------- deploy the smart contracts
+
+	secondScCode := arwen.GetSCCode("./testdata/vault.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(secondScCode),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
+	assert.Nil(t, err)
+
+	firstScCode := arwen.GetSCCode("./testdata/forwarder-raw.wasm")
+	firstScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(firstScCode),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(firstScAddress)
+	assert.Nil(t, err)
+
+	//// call first sc with esdt, and first sc automatically calls second sc
+	valueToSendToSc := int64(1000)
+	txData := "forward_call_half_payment@" +
+		hex.EncodeToString(secondScAddress) + "@" +
+		hex.EncodeToString([]byte("accept_funds"))
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(valueToSendToSc), firstScAddress, txData, integrationTests.AdditionalGasLimit)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// TODO: check same balances, but for EGLD
+	//checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(initialSupply-valueToSendToSc))
+	//checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/2))
+	//checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/2))
+
+	checkNumCallBacks(t, firstScAddress, nodes, 1)
+	checkSavedCallBackData(t, firstScAddress, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
+
+	//// call first sc to ask the second one to send it back some esdt
+	valueToRequest := valueToSendToSc / 4
+	txData = "forward_call@" +
+		hex.EncodeToString(secondScAddress) + "@" +
+		hex.EncodeToString([]byte("retrieve_funds")) + "@" +
+		hex.EncodeToString([]byte("EGLD")) + "@" +
+		hex.EncodeToString(big.NewInt(valueToRequest).Bytes())
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
+
+	time.Sleep(time.Second)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// TODO: check same balances, but for EGLD
+	//checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc*3/4))
+	//checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/4))
+
+	checkNumCallBacks(t, firstScAddress, nodes, 2)
+	checkSavedCallBackData(t, firstScAddress, nodes, 1, "EGLD", big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
+}
+
 func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
