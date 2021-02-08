@@ -11,7 +11,8 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -stake-type $GENESIS_STAKE_TYPE
+    -stake-type $GENESIS_STAKE_TYPE \
+    -hysteresis $HYSTERESIS
   popd
 }
 

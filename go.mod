@@ -5,13 +5,14 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v1.1.0
 	github.com/ElrondNetwork/concurrent-map v0.1.3
+	github.com/ElrondNetwork/elastic-indexer-go v0.0.0-20210205133807-18493825ad60
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/elastic/go-elasticsearch/v7 v7.1.0
+	github.com/elastic/go-elasticsearch/v7 v7.10.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.6.3
@@ -35,7 +36,7 @@ require (
 	github.com/pelletier/go-toml v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee

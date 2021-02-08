@@ -3,11 +3,11 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
-	"path"
 	"sync"
 	"testing"
 	"time"
 
+	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -44,7 +44,7 @@ func CreateTestIndexer(
 		mutex:       sync.RWMutex{},
 	}
 
-	dispatcher, err := indexer.NewDataDispatcher(100)
+	dispatcher, err := elasticIndexer.NewDataDispatcher(100)
 	require.Nil(t, err)
 
 	dispatcher.StartIndexData()
@@ -54,9 +54,9 @@ func CreateTestIndexer(
 
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
-	arguments := indexer.ArgDataIndexer{
+	arguments := elasticIndexer.ArgDataIndexer{
 		Marshalizer: testMarshalizer,
-		Options: &indexer.Options{
+		Options: &elasticIndexer.Options{
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
@@ -67,7 +67,7 @@ func CreateTestIndexer(
 		DataDispatcher:     dispatcher,
 	}
 
-	testIndexer, err := indexer.NewDataIndexer(arguments)
+	testIndexer, err := elasticIndexer.NewDataIndexer(arguments)
 	require.Nil(t, err)
 
 	ti.indexer = testIndexer
@@ -83,12 +83,10 @@ func CreateTestIndexer(
 func (ti *testIndexer) createElasticProcessor(
 	shardCoordinator sharding.Coordinator,
 	transactionFeeCalculator process.TransactionFeeCalculator,
-) indexer.ElasticProcessor {
+) elasticIndexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient()
 
-	templatesPath := path.Join("../../../cmd/node/config/elasticIndexTemplates", "noKibana")
-
-	indexTemplates, indexPolicies, _ := indexer.GetElasticTemplatesAndPolicies(templatesPath, false)
+	indexTemplates, indexPolicies, _ := elasticIndexer.GetElasticTemplatesAndPolicies(false)
 
 	enabledIndexes := []string{"transactions"}
 	enabledIndexesMap := make(map[string]struct{})
@@ -96,14 +94,14 @@ func (ti *testIndexer) createElasticProcessor(
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	esIndexerArgs := indexer.ArgElasticProcessor{
+	esIndexerArgs := elasticIndexer.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              testMarshalizer,
 		Hasher:                   testHasher,
 		AddressPubkeyConverter:   pubkeyConv,
 		ValidatorPubkeyConverter: pubkeyConv,
-		Options: &indexer.Options{
+		Options: &elasticIndexer.Options{
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
@@ -116,7 +114,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ShardCoordinator:         shardCoordinator,
 	}
 
-	esProcessor, _ := indexer.NewElasticProcessor(esIndexerArgs)
+	esProcessor, _ := elasticIndexer.NewElasticProcessor(esIndexerArgs)
 
 	return esProcessor
 }
@@ -181,7 +179,7 @@ func (ti *testIndexer) SaveTransaction(
 	}
 }
 
-func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
+func (ti *testIndexer) createDatabaseClient() elasticIndexer.DatabaseClientHandler {
 	doBulkRequest := func(buff *bytes.Buffer, index string) error {
 		ti.mutex.Lock()
 		defer ti.mutex.Unlock()
@@ -199,7 +197,7 @@ func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
 }
 
 // GetIndexerPreparedTransaction -
-func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexer.Transaction {
+func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *elasticIndexer.Transaction {
 	ti.mutex.RLock()
 	txData, ok := ti.indexerData["transactions"]
 	ti.mutex.RUnlock()
@@ -209,7 +207,7 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexer.Tran
 	split := bytes.Split(txData.Bytes(), []byte("\n"))
 	require.True(t, len(split) > 2)
 
-	newTx := &indexer.Transaction{}
+	newTx := &elasticIndexer.Transaction{}
 	err := json.Unmarshal(split[1], newTx)
 	require.Nil(t, err)
 
