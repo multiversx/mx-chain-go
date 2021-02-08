@@ -21,10 +21,11 @@ type Marshalizer interface {
 type StatusComputerHandler interface {
 	ComputeStatusWhenInStorageKnowingMiniblock(miniblockType block.Type, tx *ApiTransactionResult) TxStatus
 	ComputeStatusWhenInStorageNotKnowingMiniblock(destinationShard uint32, tx *ApiTransactionResult) TxStatus
-	SetStatusIfIsRewardReverted(tx *ApiTransactionResult,
+	SetStatusIfIsRewardReverted(
+		tx *ApiTransactionResult,
 		miniblockType block.Type,
 		headerNonce uint64,
 		headerHash []byte,
 		uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-		store dataRetriever.StorageService,) bool
+		store dataRetriever.StorageService) bool
 }

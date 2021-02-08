@@ -109,7 +109,6 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	txA := &ApiTransactionResult{Status: TxStatusSuccess}
 
 	isRewardReverted := (&StatusComputer{
-		//MiniblockType: block.TxBlock,
 	}).SetStatusIfIsRewardReverted(txA,block.TxBlock,0,nil,nil,nil)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txA.Status)
@@ -138,7 +137,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 
 	isRewardReverted = (&StatusComputer{
-		SelfShard:                0,
+		SelfShard:	0,
 	}).SetStatusIfIsRewardReverted(txC,block.RewardsBlock,headerNonce,headerHash,uint64Converter,chainStorer)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txC.Status)
@@ -153,7 +152,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	wrongHash := []byte("wrong")
 	isRewardReverted = (&StatusComputer{
-		SelfShard:                core.MetachainShardId,
+		SelfShard:	core.MetachainShardId,
 	}).SetStatusIfIsRewardReverted(txD,block.RewardsBlock,headerNonce,wrongHash,uint64Converter,chainStorer)
 	require.True(t, isRewardReverted)
 	require.Equal(t, TxStatusRewardReverted, txD.Status)
