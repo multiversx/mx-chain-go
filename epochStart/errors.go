@@ -248,9 +248,6 @@ var ErrSystemDelegationCall = errors.New("delegation system sc call returned wit
 // ErrExecutingSystemScCode signals that an error occurred while executing system SC code
 var ErrExecutingSystemScCode = errors.New("error executing system SC code")
 
-// ErrNilValue signals that a nil value was retrieved
-var ErrNilValue = errors.New("nil value")
-
 // ErrNilSystemVmInstance signals that a nil system VM instance was provided
 var ErrNilSystemVmInstance = errors.New("nil system VM instance")
 
@@ -286,3 +283,9 @@ var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
 
 // ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
 var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
+
+// ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
+var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
+var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")

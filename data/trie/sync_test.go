@@ -26,6 +26,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 		Topic:                          "trieNodes",
 		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
 		TimeoutBetweenTrieNodesCommits: time.Second * 10,
+		MaxHardCapForMissingNodes:      500,
 	}
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
@@ -68,6 +69,7 @@ func TestTrieSync_InterceptedNodeTimedOut(t *testing.T) {
 		Topic:                          "trieNodes",
 		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
 		TimeoutBetweenTrieNodesCommits: timeout,
+		MaxHardCapForMissingNodes:      500,
 	}
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
@@ -114,6 +116,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		Topic:                          "trieNodes",
 		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
 		TimeoutBetweenTrieNodesCommits: timeout,
+		MaxHardCapForMissingNodes:      500,
 	}
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)

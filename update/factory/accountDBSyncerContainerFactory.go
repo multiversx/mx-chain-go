@@ -17,30 +17,32 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
-const numConcurrentTrieSyncers = 50
-
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
 type ArgsNewAccountsDBSyncersContainerFactory struct {
-	TrieCacher            storage.Cacher
-	RequestHandler        update.RequestHandler
-	ShardCoordinator      sharding.Coordinator
-	Hasher                hashing.Hasher
-	Marshalizer           marshal.Marshalizer
-	TrieStorageManager    data.StorageManager
-	TimoutGettingTrieNode time.Duration
-	MaxTrieLevelInMemory  uint
+	TrieCacher                storage.Cacher
+	RequestHandler            update.RequestHandler
+	ShardCoordinator          sharding.Coordinator
+	Hasher                    hashing.Hasher
+	Marshalizer               marshal.Marshalizer
+	TrieStorageManager        data.StorageManager
+	TimoutGettingTrieNode     time.Duration
+	MaxTrieLevelInMemory      uint
+	NumConcurrentTrieSyncers  int
+	MaxHardCapForMissingNodes int
 }
 
 type accountDBSyncersContainerFactory struct {
-	trieCacher             storage.Cacher
-	requestHandler         update.RequestHandler
-	container              update.AccountsDBSyncContainer
-	shardCoordinator       sharding.Coordinator
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	timeoutGettingTrieNode time.Duration
-	trieStorageManager     data.StorageManager
-	maxTrieLevelinMemory   uint
+	trieCacher                storage.Cacher
+	requestHandler            update.RequestHandler
+	container                 update.AccountsDBSyncContainer
+	shardCoordinator          sharding.Coordinator
+	hasher                    hashing.Hasher
+	marshalizer               marshal.Marshalizer
+	timeoutGettingTrieNode    time.Duration
+	trieStorageManager        data.StorageManager
+	maxTrieLevelinMemory      uint
+	numConcurrentTrieSyncers  int
+	maxHardCapForMissingNodes int
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -63,16 +65,24 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.TrieStorageManager) {
 		return nil, update.ErrNilStorageManager
 	}
+	if args.NumConcurrentTrieSyncers < 1 {
+		return nil, update.ErrInvalidNumConcurrentTrieSyncers
+	}
+	if args.MaxHardCapForMissingNodes < 1 {
+		return nil, update.ErrInvalidMaxHardCapForMissingNodes
+	}
 
 	t := &accountDBSyncersContainerFactory{
-		shardCoordinator:       args.ShardCoordinator,
-		trieCacher:             args.TrieCacher,
-		requestHandler:         args.RequestHandler,
-		hasher:                 args.Hasher,
-		marshalizer:            args.Marshalizer,
-		trieStorageManager:     args.TrieStorageManager,
-		timeoutGettingTrieNode: args.TimoutGettingTrieNode,
-		maxTrieLevelinMemory:   args.MaxTrieLevelInMemory,
+		shardCoordinator:          args.ShardCoordinator,
+		trieCacher:                args.TrieCacher,
+		requestHandler:            args.RequestHandler,
+		hasher:                    args.Hasher,
+		marshalizer:               args.Marshalizer,
+		trieStorageManager:        args.TrieStorageManager,
+		timeoutGettingTrieNode:    args.TimoutGettingTrieNode,
+		maxTrieLevelinMemory:      args.MaxTrieLevelInMemory,
+		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 	}
 
 	return t, nil
@@ -103,20 +113,21 @@ func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContai
 }
 
 func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint32) error {
-	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(a.numConcurrentTrieSyncers))
 	if err != nil {
 		return err
 	}
 
 	args := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               a.hasher,
-			Marshalizer:          a.marshalizer,
-			TrieStorageManager:   a.trieStorageManager,
-			RequestHandler:       a.requestHandler,
-			Timeout:              a.timeoutGettingTrieNode,
-			Cacher:               a.trieCacher,
-			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
+			Hasher:                    a.hasher,
+			Marshalizer:               a.marshalizer,
+			TrieStorageManager:        a.trieStorageManager,
+			RequestHandler:            a.requestHandler,
+			Timeout:                   a.timeoutGettingTrieNode,
+			Cacher:                    a.trieCacher,
+			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
+			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 		},
 		ShardId:   shardId,
 		Throttler: thr,
@@ -133,13 +144,14 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               a.hasher,
-			Marshalizer:          a.marshalizer,
-			TrieStorageManager:   a.trieStorageManager,
-			RequestHandler:       a.requestHandler,
-			Timeout:              a.timeoutGettingTrieNode,
-			Cacher:               a.trieCacher,
-			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
+			Hasher:                    a.hasher,
+			Marshalizer:               a.marshalizer,
+			TrieStorageManager:        a.trieStorageManager,
+			RequestHandler:            a.requestHandler,
+			Timeout:                   a.timeoutGettingTrieNode,
+			Cacher:                    a.trieCacher,
+			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
+			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)
