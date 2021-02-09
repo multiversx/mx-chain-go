@@ -75,7 +75,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	assert.NotNil(t, pids)
 	assert.NotNil(t, pks)
 
-	// we need this time sleep as to allow the code coverage deterministically compute the code coverage
+	// we need this time sleep as to allow the code coverage tool to deterministically compute the code coverage
 	//on the go routines that are automatically launched
 	time.Sleep(time.Second * 2)
 }
