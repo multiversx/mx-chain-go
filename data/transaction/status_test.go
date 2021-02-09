@@ -1,17 +1,18 @@
 package transaction
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T) {
 	statusComputer := &StatusComputer{
-		SelfShard:12,
+		SelfShardId: 12,
 	}
 
 	// Invalid miniblock
@@ -49,7 +50,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.RewardsBlock,tx))
 
 	// Contract deploy
-	statusComputer.SelfShard = 13
+	statusComputer.SelfShardId = 13
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
@@ -59,7 +60,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 
 func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {
 	statusComputer := &StatusComputer{
-		SelfShard:12,
+		SelfShardId: 12,
 	}
 
 	// Invalid miniblock
@@ -89,7 +90,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
 
 	// Contract deploy
-	statusComputer.SelfShard = 13
+	statusComputer.SelfShardId = 13
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
@@ -122,7 +123,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 
 	isRewardReverted = (&StatusComputer{
-		SelfShard:	core.MetachainShardId,
+		SelfShardId: core.MetachainShardId,
 
 	}).SetStatusIfIsRewardReverted(txB,block.RewardsBlock,headerNonce,headerHash,uint64Converter,chainStorer)
 	require.False(t, isRewardReverted)
@@ -137,7 +138,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 
 	isRewardReverted = (&StatusComputer{
-		SelfShard:	0,
+		SelfShardId: 0,
 	}).SetStatusIfIsRewardReverted(txC,block.RewardsBlock,headerNonce,headerHash,uint64Converter,chainStorer)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txC.Status)
@@ -152,7 +153,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	wrongHash := []byte("wrong")
 	isRewardReverted = (&StatusComputer{
-		SelfShard:	core.MetachainShardId,
+		SelfShardId: core.MetachainShardId,
 	}).SetStatusIfIsRewardReverted(txD,block.RewardsBlock,headerNonce,wrongHash,uint64Converter,chainStorer)
 	require.True(t, isRewardReverted)
 	require.Equal(t, TxStatusRewardReverted, txD.Status)

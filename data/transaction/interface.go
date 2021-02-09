@@ -18,6 +18,7 @@ type Marshalizer interface {
 	IsInterfaceNil() bool
 }
 
+// StatusComputerHandler computes a transaction status
 type StatusComputerHandler interface {
 	ComputeStatusWhenInStorageKnowingMiniblock(miniblockType block.Type, tx *ApiTransactionResult) TxStatus
 	ComputeStatusWhenInStorageNotKnowingMiniblock(destinationShard uint32, tx *ApiTransactionResult) TxStatus
@@ -27,5 +28,6 @@ type StatusComputerHandler interface {
 		headerNonce uint64,
 		headerHash []byte,
 		uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-		store dataRetriever.StorageService) bool
+		store dataRetriever.StorageService,
+) bool
 }

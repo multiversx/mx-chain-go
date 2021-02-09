@@ -35,12 +35,13 @@ func (tx TxStatus) String() string {
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
-	SelfShard	uint32
+	SelfShardId uint32
 }
 
-func NewStatusComputer(selfShard uint32) *StatusComputer {
+// Create a new instance of StatusComputer
+func NewStatusComputer(selfShardId uint32) *StatusComputer {
 	statusComputer := &StatusComputer{
-		SelfShard: selfShard}
+		SelfShardId: selfShardId}
 
 	return statusComputer
 }
@@ -48,16 +49,15 @@ func NewStatusComputer(selfShard uint32) *StatusComputer {
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
 func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 	miniblockType block.Type,
-	tx *ApiTransactionResult) TxStatus {
+	tx *ApiTransactionResult,
+) TxStatus {
 	isMiniblockFinalized := tx.NotarizedAtDestinationInMetaNonce > 0
-	destinationShard := tx.DestinationShard
 	receiver := tx.Tx.GetRcvAddr()
-	transactionData := tx.Data
 
 	if sc.isMiniblockInvalid(miniblockType) {
 		return TxStatusInvalid
 	}
-	if isMiniblockFinalized || sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver,transactionData) {
+	if isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver,tx.Data) {
 		return TxStatusSuccess
 	}
 
@@ -70,7 +70,7 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
 	destinationShard uint32,
 	tx *ApiTransactionResult,
-	) TxStatus {
+) TxStatus {
 	receiver := tx.Tx.GetRcvAddr()
 	transactionData := tx.Data
 
@@ -87,7 +87,7 @@ func (sc *StatusComputer) isMiniblockInvalid(miniblockType block.Type) bool {
 }
 
 func (sc *StatusComputer) isDestinationMe(destinationShard uint32) bool {
-	return sc.SelfShard == destinationShard
+	return sc.SelfShardId == destinationShard
 }
 
 func (sc *StatusComputer) isContractDeploy(receiver []byte, transactionData []byte) bool {
@@ -102,7 +102,7 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 	headerHash []byte,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	store dataRetriever.StorageService,
-	) bool {
+) bool {
 
 	if miniblockType != block.RewardsBlock {
 		return false
@@ -110,7 +110,7 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 
 	var storerUnit dataRetriever.UnitType
 
-	selfShardID := sc.SelfShard
+	selfShardID := sc.SelfShardId
 	if selfShardID == core.MetachainShardId {
 		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
 	} else {
