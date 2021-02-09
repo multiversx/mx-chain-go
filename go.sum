@@ -30,6 +30,7 @@ github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113120119-5f3406f2d6b5/go.mod h
 github.com/ElrondNetwork/elrond-go v1.1.20-0.20210113193709-f7adf072467d/go.mod h1:4T8DWFCkq5L64jErqk55dbhWnvtskcDZ1OY8myf6nbM=
 github.com/ElrondNetwork/elrond-go v1.1.20-0.20210114103504-80fe266bb56c/go.mod h1:Oa1ZRqb96DVXmng/TAkn3lz3BJXWVn4iOYWAOVloc8g=
 github.com/ElrondNetwork/elrond-go v1.1.22/go.mod h1:WkAd+T3C2weVhRZF1cB1w91IpCMgIuuzNyXYTpjGF4s=
+github.com/ElrondNetwork/elrond-go v1.1.24/go.mod h1:jxN2o6npJpJyllc4NGT1LTkB5kXYfOzjboClXeBHBCs=
 github.com/ElrondNetwork/elrond-go-logger v1.0.2/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jxwk/QTivRwSZSTAQ=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=

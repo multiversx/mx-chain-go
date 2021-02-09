@@ -575,9 +575,9 @@ func TestCallbackPaymentEgld(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -1181,7 +1181,7 @@ func checkSavedCallBackData(
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments: [][]byte{
-				[]byte{byte(callbackIndex)},
+				{byte(callbackIndex)},
 			},
 		}
 		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
