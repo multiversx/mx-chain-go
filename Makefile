@@ -1,3 +1,6 @@
+CURRENT_DIRECTORY := $(shell pwd)
+TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/)
+
 build:
 	go build ./...
 
@@ -55,6 +58,10 @@ test-miniblocks-sc-v:
 
 test-arwen:
 	go test -count=1 -v ./integrationTests/vm/arwen/...
+
+test-coverage:
+	@echo "Running unit tests"
+	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
