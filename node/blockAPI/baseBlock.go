@@ -103,7 +103,8 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
 
-		statusComputer := transaction.NewStatusComputer(bap.selfShardID)
+		// TODO : should check if tx is reward reverted
+		statusComputer := transaction.NewStatusComputer(bap.selfShardID,bap.uint64ByteSliceConverter,bap.store)
 		tx.Status = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
 
 		txs = append(txs, tx)

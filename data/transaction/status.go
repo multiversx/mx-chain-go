@@ -36,12 +36,21 @@ func (tx TxStatus) String() string {
 // StatusComputer computes a transaction status
 type StatusComputer struct {
 	SelfShardId uint32
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	Store dataRetriever.StorageService
 }
 
 // Create a new instance of StatusComputer
-func NewStatusComputer(selfShardId uint32) *StatusComputer {
+func NewStatusComputer(
+	selfShardId uint32,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	store dataRetriever.StorageService,
+) *StatusComputer {
 	statusComputer := &StatusComputer{
-		SelfShardId: selfShardId}
+		SelfShardId: selfShardId,
+		Uint64ByteSliceConverter : uint64ByteSliceConverter,
+		Store : store,
+	}
 
 	return statusComputer
 }
@@ -100,8 +109,6 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 	miniblockType block.Type,
 	headerNonce uint64,
 	headerHash []byte,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-	store dataRetriever.StorageService,
 ) bool {
 
 	if miniblockType != block.RewardsBlock {
@@ -117,8 +124,8 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(selfShardID)
 	}
 
-	nonceToByteSlice := uint64ByteSliceConverter.ToByteSlice(headerNonce)
-	headerHashFromStorage, err := store.Get(storerUnit, nonceToByteSlice)
+	nonceToByteSlice := sc.Uint64ByteSliceConverter.ToByteSlice(headerNonce)
+	headerHashFromStorage, err := sc.Store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		log.Warn("cannot get header hash by nonce", "error", err.Error())
 		return false

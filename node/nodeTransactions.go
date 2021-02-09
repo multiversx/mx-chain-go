@@ -78,15 +78,13 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
-	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId())
+	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId(),n.uint64ByteSliceConverter,n.store)
 
 	if ok := statusComputer.SetStatusIfIsRewardReverted(
 		tx,
 		block.Type(miniblockMetadata.Type),
 		miniblockMetadata.HeaderNonce,
-		miniblockMetadata.HeaderHash,
-		n.uint64ByteSliceConverter,
-		n.store); ok {
+		miniblockMetadata.HeaderHash); ok {
 		return tx, nil
 	}
 
@@ -131,7 +129,7 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 	}
 
 	// TODO: take care of this when integrating the adaptivity
-	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId())
+	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId(),n.uint64ByteSliceConverter,n.store)
 	tx.Status = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
 		n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()), tx)
 
