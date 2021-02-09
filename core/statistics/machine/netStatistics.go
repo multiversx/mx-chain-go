@@ -48,6 +48,10 @@ func (ns *NetStatistics) ComputeStatistics() {
 		return
 	}
 
+	ns.processStatistics(nStart, nEnd)
+}
+
+func (ns *NetStatistics) processStatistics(nStart []net.IOCountersStat, nEnd []net.IOCountersStat) {
 	isLessRecv := nEnd[0].BytesRecv < nStart[0].BytesRecv
 	isLessSent := nEnd[0].BytesSent < nStart[0].BytesSent
 	if isLessRecv || isLessSent {
