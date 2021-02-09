@@ -10,7 +10,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ElrondNetwork/elrond-go)](https://goreportcard.com/report/github.com/ElrondNetwork/elrond-go)
 [![LoC](https://tokei.rs/b1/github/ElrondNetwork/elrond-go?category=code)](https://github.com/ElrondNetwork/elrond-go)
 [![API Reference](https://godoc.org/github.com/ElrondNetwork/elrond-go?status.svg)](https://godoc.org/github.com/ElrondNetwork/elrond-go)
-[![riot.im](https://img.shields.io/badge/riot.im-JOIN%20CHAT-green.svg)](https://riot.im/app/#/room/#elrond:matrix.org)
+[![codecov](https://codecov.io/gh/ElrondNetwork/elrond-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/ElrondNetwork/elrond-go)
 
 # Elrond go
 
