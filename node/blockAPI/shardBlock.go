@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -16,6 +17,8 @@ type shardAPIBlockProcessor struct {
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
+	statusComputer := transaction.NewStatusComputer(arg.SelfShardID,arg.Uint64ByteSliceConverter,arg.Store)
+
 	return &shardAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
@@ -25,6 +28,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
+			txStatusComputer: 		  statusComputer,
 		},
 	}
 }

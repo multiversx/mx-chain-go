@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -17,6 +18,8 @@ type metaAPIBlockProcessor struct {
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
 func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
+	statusComputer := transaction.NewStatusComputer(arg.SelfShardID,arg.Uint64ByteSliceConverter,arg.Store)
+
 	return &metaAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
 			hasDbLookupExtensions:    hasDbLookupExtensions,
@@ -26,6 +29,7 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
+			txStatusComputer: 		  statusComputer,
 		},
 	}
 }
