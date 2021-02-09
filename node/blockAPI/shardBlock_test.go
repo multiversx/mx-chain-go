@@ -15,36 +15,55 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShardAPIBlockProcessor_GetBlockByHash_InvalidHashShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardID := uint32(3)
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	shardAPIBlockProcessor := NewShardApiBlockProcessor(
+func createMockShardAPIProcessor(
+	shardId uint32,
+	blockHeaderHash []byte,
+	storerMock *mock.StorerMock,
+	withHistory bool,
+	withKey bool,
+) *shardAPIBlockProcessor {
+	return NewShardApiBlockProcessor(
 		&APIBlockProcessorArg{
-			SelfShardID: shardID,
+			SelfShardID: shardId,
 			Marshalizer: &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return storerMock
 				},
 				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
+					if withKey {
+						return storerMock.Get(key)
+					}
+					return blockHeaderHash, nil
 				},
 			},
-			Uint64ByteSliceConverter: uint64Converter,
+			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
 				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 					return 1, nil
 				},
+				IsEnabledCalled: func() bool {
+					return withHistory
+				},
 			},
 		},
+	)
+}
+
+func TestShardAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(3)
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := mock.NewStorerMock()
+
+	shardAPIBlockProcessor := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	blk, err := shardAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
@@ -52,33 +71,20 @@ func TestShardAPIBlockProcessor_GetBlockByHash_InvalidHashShouldErr(t *testing.T
 	assert.Error(t, err)
 }
 
-func TestShardAPIBlockProcessor_GetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
+func TestShardAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardID := uint32(3)
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	shardAPIBlockProcessor := NewShardApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return false
-				},
-			},
-		},
+
+	shardAPIBlockProcessor := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	blk, err := shardAPIBlockProcessor.GetBlockByNonce(100, false)
@@ -98,22 +104,13 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromNormalNode(t *testing.T) {
 
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
-	shardAPIBlockProcessor := NewShardApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return storerMock.Get(key)
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return false
-				},
-			},
-		},
+
+	shardAPIBlockProcessor := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		false,
+		true,
 	)
 
 	header := &block.Header{
@@ -166,29 +163,13 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	shardAPIBlockProcessor := NewShardApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
-				},
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	shardAPIBlockProcessor := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	header := &block.Header{
@@ -227,7 +208,7 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
+func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
@@ -239,28 +220,13 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNode_StatusReverted(t *
 
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
-	shardAPIBlockProcessor := NewShardApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: shardID,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return storerMock.Get(key)
-				},
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	shardAPIBlockProcessor := createMockShardAPIProcessor(
+		shardID,
+		headerHash,
+		storerMock,
+		true,
+		true,
 	)
 
 	header := &block.Header{

@@ -16,14 +16,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMetaAPIBlockProcessor_GetBlockByHash_InvalidHashShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
-	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	metaAPIBlockProcessor := NewMetaApiBlockProcessor(
+func createMockMetaAPIProcessor(
+	blockHeaderHash []byte,
+	storerMock *mock.StorerMock,
+	withHistory bool,
+	withKey bool,
+) *metaAPIBlockProcessor {
+	return NewMetaApiBlockProcessor(
 		&APIBlockProcessorArg{
 			SelfShardID: core.MetachainShardId,
 			Marshalizer: &mock.MarshalizerFake{},
@@ -32,19 +31,37 @@ func TestMetaAPIBlockProcessor_GetBlockByHash_InvalidHashShouldErr(t *testing.T)
 					return storerMock
 				},
 				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
+					if withKey {
+						return storerMock.Get(key)
+					}
+					return blockHeaderHash, nil
 				},
 			},
-			Uint64ByteSliceConverter: uint64Converter,
+			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
 				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 					return 1, nil
 				},
+				IsEnabledCalled: func() bool {
+					return withHistory
+				},
 			},
 		},
+	)
+}
+
+func TestMetaAPIBlockProcessor_GetBlockByHashInvalidHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := mock.NewStorerMock()
+
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash([]byte("invalidHash"), false)
@@ -52,35 +69,18 @@ func TestMetaAPIBlockProcessor_GetBlockByHash_InvalidHashShouldErr(t *testing.T)
 	assert.Error(t, err)
 }
 
-func TestMetaAPIBlockProcessor_GetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
+func TestMetaAPIBlockProcessor_GetBlockByNonceInvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	metaAPIBlockProcessor := NewMetaApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: core.MetachainShardId,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	blk, err := metaAPIBlockProcessor.GetBlockByNonce(100, false)
@@ -99,28 +99,12 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
-	metaAPIBlockProcessor := NewMetaApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: core.MetachainShardId,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	header := &block.MetaBlock{
@@ -179,29 +163,12 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 
 	storerMock := mock.NewStorerMock()
-	uint64Converter := mock.NewNonceHashConverterMock()
-	metaAPIBlockProcessor := NewMetaApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: core.MetachainShardId,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return headerHash, nil
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
 	)
 
 	header := &block.MetaBlock{
@@ -248,7 +215,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
+func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
@@ -259,28 +226,12 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode_StatusReverted(t *t
 
 	storerMock := mock.NewStorerMock()
 	uint64Converter := mock.NewNonceHashConverterMock()
-	metaAPIBlockProcessor := NewMetaApiBlockProcessor(
-		&APIBlockProcessorArg{
-			SelfShardID: core.MetachainShardId,
-			Marshalizer: &mock.MarshalizerFake{},
-			Store: &mock.ChainStorerMock{
-				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-					return storerMock
-				},
-				GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-					return storerMock.Get(key)
-				},
-			},
-			Uint64ByteSliceConverter: uint64Converter,
-			HistoryRepo: &testscommon.HistoryRepositoryStub{
-				IsEnabledCalled: func() bool {
-					return true
-				},
-				GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-					return 1, nil
-				},
-			},
-		},
+
+	metaAPIBlockProcessor := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		true,
 	)
 
 	header := &block.MetaBlock{
