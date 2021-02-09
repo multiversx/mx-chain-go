@@ -2,8 +2,6 @@ package transaction
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 // Encoder represents a byte slice to string encoder
@@ -27,7 +25,5 @@ type StatusComputerHandler interface {
 		miniblockType block.Type,
 		headerNonce uint64,
 		headerHash []byte,
-		uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-		store dataRetriever.StorageService,
 ) bool
 }
