@@ -630,14 +630,16 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	}
 
 	var wg sync.WaitGroup
-	//wgStartOnNotarizedBlocks is used to synchronize the 2 go routines: the second go routine should
-	// start after the first iteration is done by the first go routine. Otherwise the code coverage can have
+	//wgStartRecordBlock is used to synchronize the 2 go routines: the first go routine should
+	// start after the first iteration is done by the second go routine. Otherwise the code coverage can have
 	// unpredictible values in the getMiniblockMetadataByMiniblockHash method, L247-L249
-	var wgStartOnNotarizedBlocks sync.WaitGroup
+	var wgStartRecordBlock sync.WaitGroup
 	wg.Add(2)
-	wgStartOnNotarizedBlocks.Add(1)
+	wgStartRecordBlock.Add(1)
 
 	go func() {
+		wgStartRecordBlock.Wait()
+
 		// Simulate commit & rollback
 		for i := 0; i < 500; i++ {
 			_ = repo.RecordBlock([]byte("fooBlock"),
@@ -648,21 +650,19 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 					},
 				}, nil, nil,
 			)
-
-			if i == 0 {
-				wgStartOnNotarizedBlocks.Done()
-			}
 		}
 
 		wg.Done()
 	}()
 
 	go func() {
-		wgStartOnNotarizedBlocks.Wait()
-
 		// Receive less notifications (to test more aggressively)
 		for i := 0; i < 50; i++ {
 			repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+
+			if i == 0 {
+				wgStartRecordBlock.Done()
+			}
 		}
 
 		wg.Done()
