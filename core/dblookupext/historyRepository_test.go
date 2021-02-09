@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -594,6 +596,31 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 	require.Nil(t, orphanedMetadata.NotarizedAtDestinationInMetaHash)
 }
 
+func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	hr := &historyRepository{
+		epochByHashIndex: newHashToEpochIndex(
+			&mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("{}"), nil
+				},
+			},
+			&mock.MarshalizerMock{},
+		),
+		miniblocksMetadataStorer: &mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
+	}
+
+	mbMetadata, err := hr.getMiniblockMetadataByMiniblockHash([]byte("hash"))
+	assert.Nil(t, mbMetadata)
+	assert.Equal(t, err, expectedErr)
+}
+
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t)
@@ -630,16 +657,9 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	}
 
 	var wg sync.WaitGroup
-	//wgStartRecordBlock is used to synchronize the 2 go routines: the first go routine should
-	// start after the first iteration is done by the second go routine. Otherwise the code coverage can have
-	// unpredictible values in the getMiniblockMetadataByMiniblockHash method, L247-L249
-	var wgStartRecordBlock sync.WaitGroup
 	wg.Add(2)
-	wgStartRecordBlock.Add(1)
 
 	go func() {
-		wgStartRecordBlock.Wait()
-
 		// Simulate commit & rollback
 		for i := 0; i < 500; i++ {
 			_ = repo.RecordBlock([]byte("fooBlock"),
@@ -659,10 +679,6 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 		// Receive less notifications (to test more aggressively)
 		for i := 0; i < 50; i++ {
 			repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
-
-			if i == 0 {
-				wgStartRecordBlock.Done()
-			}
 		}
 
 		wg.Done()
