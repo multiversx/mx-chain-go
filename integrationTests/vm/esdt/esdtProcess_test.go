@@ -441,9 +441,7 @@ func TestESDTcallsSC(t *testing.T) {
 }
 
 func TestScCallsScWithEsdtIntraShard(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("test is not yet ready")
 
 	numOfShards := 2
 	nodesPerShard := 2
@@ -691,9 +689,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 }
 
 func TestScCallsScWithEsdtCrossShard(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("test is not ready yet")
 
 	numOfShards := 2
 	nodesPerShard := 2
