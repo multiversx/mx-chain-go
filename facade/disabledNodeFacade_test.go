@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledNodeFacade_AllMethodes(t *testing.T) {
+func TestDisabledNodeFacade_AllMethodes_ShouldNotPanic(t *testing.T) {
 	t.Parallel()
 	defer func() {
 		r := recover()
@@ -17,130 +17,127 @@ func TestDisabledNodeFacade_AllMethodes(t *testing.T) {
 		}
 	}()
 
-	dnf, _ := NewDisableNodeFacade()
+	dnf := NewDisabledNodeFacade()
+
 	dnf.SetSyncer(nil)
 	dnf.SetTpsBenchmark(nil)
 	r := dnf.TpsBenchmark()
 	assert.Nil(t, r)
 	dnf.StartBackgroundServices()
 	b := dnf.RestAPIServerDebugMode()
-	assert.Equal(t, b, false)
+	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()
-	assert.Equal(t, s1, emptStr)
+	assert.Equal(t, emptyString, s1)
 	s1, s2, err := dnf.GetESDTBalance("", "")
-	assert.Equal(t, s1+s2, emptStr)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, emptyString, s1+s2)
+	assert.Equal(t, errNodeStarting, err)
 	v, err := dnf.GetBalance("")
 	assert.Nil(t, v)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	s1, err = dnf.GetUsername("")
-	assert.Equal(t, s1, "")
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, emptyString, s1)
+	assert.Equal(t, errNodeStarting, err)
 
 	s1, err = dnf.GetValueForKey("", "")
-	assert.Equal(t, s1, "")
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, emptyString, s1)
+	assert.Equal(t, errNodeStarting, err)
 
 	s3, err := dnf.GetAllESDTTokens("")
 	assert.Nil(t, s3)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	n1, n2, err := dnf.CreateTransaction(0, "", "", "", 0, 0, nil, "", "", 0, 0)
 	assert.Nil(t, n1)
 	assert.Nil(t, n2)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	err = dnf.ValidateTransaction(nil)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	err = dnf.ValidateTransactionForSimulation(nil)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	v1, err := dnf.ValidatorStatisticsApi()
 	assert.Nil(t, v1)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	u1, err := dnf.SendBulkTransactions(nil)
-	assert.Equal(t, u1, uint64(0))
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, uint64(0), u1)
+	assert.Equal(t, errNodeStarting, err)
 
 	u2, err := dnf.SimulateTransactionExecution(nil)
 	assert.Nil(t, u2)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	t1, err := dnf.GetTransaction("", false)
 	assert.Nil(t, t1)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	u1, err = dnf.ComputeTransactionGasLimit(nil)
-	assert.Equal(t, u1, uint64(0))
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, uint64(0), u1)
+	assert.Equal(t, errNodeStarting, err)
 
 	uac, err := dnf.GetAccount("")
 	assert.Nil(t, uac)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	hi, err := dnf.GetHeartbeats()
 	assert.Nil(t, hi)
-	assert.NotNil(t, err, errNodeStarting)
+	assert.NotNil(t, errNodeStarting, err)
 
 	sm := dnf.StatusMetrics()
 	assert.Nil(t, sm)
 
 	vo, err := dnf.ExecuteSCQuery(nil)
 	assert.Nil(t, vo)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	b = dnf.PprofEnabled()
-	assert.Equal(t, b, false)
+	assert.Equal(t, false, b)
 
 	err = dnf.Trigger(0, false)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	b = dnf.IsSelfTrigger()
-	assert.Equal(t, b, false)
+	assert.Equal(t, false, b)
 
 	s1, err = dnf.EncodeAddressPubkey(nil)
-	assert.Equal(t, s1, emptStr)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, emptyString, s1)
+	assert.Equal(t, errNodeStarting, err)
 
 	ba, err := dnf.DecodeAddressPubkey("")
 	assert.Nil(t, ba)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	qh, err := dnf.GetQueryHandler("")
 	assert.Nil(t, qh)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	qp, err := dnf.GetPeerInfo("")
 	assert.Nil(t, qp)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	th, b := dnf.GetThrottlerForEndpoint("")
 	assert.Nil(t, th)
-	assert.Equal(t, b, false)
+	assert.Equal(t, false, b)
 
 	ab, err := dnf.GetBlockByHash("", false)
 	assert.Nil(t, ab)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	ab, err = dnf.GetBlockByNonce(0, false)
 	assert.Nil(t, ab)
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	err = dnf.Close()
-	assert.Equal(t, err, errNodeStarting)
+	assert.Equal(t, errNodeStarting, err)
 
 	u32 := dnf.GetNumCheckpointsFromAccountState()
-	assert.Equal(t, u32, uint32(0))
+	assert.Equal(t, uint32(0), u32)
 
 	u32 = dnf.GetNumCheckpointsFromPeerState()
-	assert.Equal(t, u32, uint32(0))
-
-	vmoa := dnf.convertVmOutputToApiResponse(nil)
-	assert.Nil(t, vmoa)
+	assert.Equal(t, uint32(0), u32)
 
 	assert.False(t, check.IfNil(dnf))
-
 }
