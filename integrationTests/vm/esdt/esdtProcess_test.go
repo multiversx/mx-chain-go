@@ -567,7 +567,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/4))
 
 	checkNumCallBacks(t, firstScAddress, nodes, 2)
-	checkSavedCallBackData(t, firstScAddress, nodes, 1, tokenIdentifier, big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
+	checkSavedCallBackData(t, firstScAddress, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
 }
 
 func TestCallbackPaymentEgld(t *testing.T) {
@@ -670,11 +670,6 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	// TODO: check same balances, but for EGLD
-	//checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(initialSupply-valueToSendToSc))
-	//checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/2))
-	//checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/2))
-
 	checkNumCallBacks(t, firstScAddress, nodes, 1)
 	checkSavedCallBackData(t, firstScAddress, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
 
@@ -691,12 +686,8 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	// TODO: check same balances, but for EGLD
-	//checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc*3/4))
-	//checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc/4))
-
 	checkNumCallBacks(t, firstScAddress, nodes, 2)
-	checkSavedCallBackData(t, firstScAddress, nodes, 1, "EGLD", big.NewInt(valueToSendToSc), vmcommon.Ok, [][]byte{})
+	checkSavedCallBackData(t, firstScAddress, nodes, 2, "EGLD", big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
 }
 
 func TestScCallsScWithEsdtCrossShard(t *testing.T) {
