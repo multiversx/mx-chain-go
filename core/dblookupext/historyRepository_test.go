@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -592,6 +594,31 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 	require.Nil(t, orphanedMetadata.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtDestinationInMetaNonce))
 	require.Nil(t, orphanedMetadata.NotarizedAtDestinationInMetaHash)
+}
+
+func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	hr := &historyRepository{
+		epochByHashIndex: newHashToEpochIndex(
+			&mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("{}"), nil
+				},
+			},
+			&mock.MarshalizerMock{},
+		),
+		miniblocksMetadataStorer: &mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
+	}
+
+	mbMetadata, err := hr.getMiniblockMetadataByMiniblockHash([]byte("hash"))
+	assert.Nil(t, mbMetadata)
+	assert.Equal(t, err, expectedErr)
 }
 
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {
