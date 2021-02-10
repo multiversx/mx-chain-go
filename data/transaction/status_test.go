@@ -21,33 +21,44 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		DestinationShard: 12,
 		Tx: &Transaction{},
 	}
-	require.Equal(t, TxStatusInvalid, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.InvalidBlock,tx))
+	responseStatus, err := statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.InvalidBlock,tx)
+	require.Equal(t, TxStatusInvalid, responseStatus)
+	require.Nil(t, err)
 
 	// Intra-shard
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx))
-
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	// Cross, at source
 	tx.DestinationShard = 13
-	require.Equal(t, TxStatusPending, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	require.Equal(t, TxStatusPending, responseStatus)
+	require.Nil(t, err)
 
 	// Cross, at source, but knowing that it has been fully notarized (through DatabaseLookupExtensions)
 	tx.DestinationShard = 13
 	tx.SourceShard = 12
 	tx.NotarizedAtDestinationInMetaNonce = 1
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 
 	// Cross, destination me
 	tx.DestinationShard = 12
 	tx.SourceShard = 13
 	tx.NotarizedAtDestinationInMetaNonce = 0
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	tx.SourceShard = core.MetachainShardId
 	tx.DestinationShard = 12
 	tx.NotarizedAtDestinationInMetaNonce = 0
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.RewardsBlock,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.RewardsBlock,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	// Contract deploy
 	statusComputer.SelfShardId = 13
@@ -55,7 +66,13 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
 	tx.Data = []byte("deployingAContract")
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
+
+	// Nil parameters
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	require.Equal(t, ErrNilApiTransactionResult, err)
 }
 
 func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {

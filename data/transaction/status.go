@@ -5,6 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -59,18 +60,23 @@ func NewStatusComputer(
 func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 	miniblockType block.Type,
 	tx *ApiTransactionResult,
-) TxStatus {
+) (TxStatus, error) {
+
+	if check.IfNilReflect(tx) {
+		return TxStatusInvalid, ErrNilApiTransactionResult
+	}
+
 	isMiniblockFinalized := tx.NotarizedAtDestinationInMetaNonce > 0
 	receiver := tx.Tx.GetRcvAddr()
 
 	if sc.isMiniblockInvalid(miniblockType) {
-		return TxStatusInvalid
+		return TxStatusInvalid, nil
 	}
 	if isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver,tx.Data) {
-		return TxStatusSuccess
+		return TxStatusSuccess, nil
 	}
 
-	return TxStatusPending
+	return TxStatusPending, nil
 }
 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage

@@ -88,7 +88,7 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 		return tx, nil
 	}
 
-	tx.Status = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(
 		block.Type(miniblockMetadata.Type),tx)
 
 	if withResults {

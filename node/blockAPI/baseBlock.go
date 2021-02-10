@@ -105,7 +105,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 		tx.DestinationShard = miniblock.ReceiverShardID
 
 		// TODO : should check if tx is reward reverted
-		tx.Status = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
+		tx.Status, _ = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
 
 		txs = append(txs, tx)
 	}
