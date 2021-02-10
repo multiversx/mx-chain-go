@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -74,6 +75,62 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+1,
 		expectedBalance)
+}
+
+func TestVmSCDeployFactory(t *testing.T) {
+	senderAddressBytes := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(0)
+	senderBalance := big.NewInt(100000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000)
+	transferOnCalls := big.NewInt(0)
+
+	scCode := arwen.GetSCCode("../testdata/misc/deploy-two-contracts.wasm")
+
+	tx := vm.CreateTx(
+		senderAddressBytes,
+		vm.CreateEmptyAddress(),
+		senderNonce,
+		transferOnCalls,
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode),
+	)
+
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.ArwenVirtualMachine)
+	fmt.Println(hex.EncodeToString(scAddressBytes))
+
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	for i := 0; i < 5; i++ {
+		senderNonce++
+		tx = vm.CreateTx(senderAddressBytes, scAddressBytes, senderNonce, big.NewInt(0), gasPrice, gasLimit, "deployContract")
+
+		returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, err)
+		require.Equal(t, vmcommon.Ok, returnCode)
+	}
+
+	senderNonce++
+	tx = vm.CreateTx(senderAddressBytes, scAddressBytes, senderNonce, big.NewInt(0), gasPrice, gasLimit, "deployTwoContracts")
+
+	returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
