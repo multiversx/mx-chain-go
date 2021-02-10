@@ -10,24 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNetStatistics(t *testing.T) {
-	t.Parallel()
-
-	ns := &NetStatistics{}
-
-	ns.ComputeStatistics()
-	bpsRecv := ns.BpsRecv()
-	bpsSent := ns.BpsSent()
-	bpsRecvPeak := ns.BpsRecvPeak()
-	bpsSentPeak := ns.BpsSentPeak()
-	bpsRecvPercent := ns.PercentSent()
-	bpsSentPercent := ns.PercentRecv()
-
-	fmt.Printf("Recv: %s/s, sent: %s/s\n", core.ConvertBytes(bpsRecv), core.ConvertBytes(bpsSent))
-	fmt.Printf("Peak recv: %s/s, sent: %s/s\n", core.ConvertBytes(bpsRecvPeak), core.ConvertBytes(bpsSentPeak))
-	fmt.Printf("Recv usage: %d%%, sent: %d%%\n", bpsRecvPercent, bpsSentPercent)
-}
-
 func TestNetStatistics_ResetShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -48,6 +30,10 @@ func TestNetStatistics_ResetShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), bpsSentPeak)
 	assert.Equal(t, uint64(0), bpsRecvPercent)
 	assert.Equal(t, uint64(0), bpsSentPercent)
+
+	fmt.Printf("Recv: %s/s, sent: %s/s\n", core.ConvertBytes(bpsRecv), core.ConvertBytes(bpsSent))
+	fmt.Printf("Peak recv: %s/s, sent: %s/s\n", core.ConvertBytes(bpsRecvPeak), core.ConvertBytes(bpsSentPeak))
+	fmt.Printf("Recv usage: %d%%, sent: %d%%\n", bpsRecvPercent, bpsSentPercent)
 }
 
 func TestNetStatistics_processStatistics(t *testing.T) {
