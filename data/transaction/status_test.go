@@ -71,7 +71,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	require.Nil(t, err)
 
 	// Nil parameters
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
 
@@ -125,7 +125,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	require.Nil(t, err)
 
 	// Nil parameters
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
 
@@ -201,7 +201,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	require.Nil(t, err)
 
 	//nil parameters
-	isRewardReverted, err = (&StatusComputer{
+	_, err = (&StatusComputer{
 		SelfShardId: 			  core.MetachainShardId,
 		Uint64ByteSliceConverter: uint64Converter,
 		Store: 					  chainStorer,
