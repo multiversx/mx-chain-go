@@ -22,10 +22,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitResponses = time.Second * 2
@@ -674,6 +677,48 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 	}
 
 	assert.Fail(t, "Returned address is not valid!")
+}
+
+func TestLibp2pMessenger_PeerAddressNotConnectedShouldReturnFromPeerstore(t *testing.T) {
+	netw := mocknet.New(context.Background())
+	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+
+	networkHandler := &mock.NetworkStub{
+		ConnsCalled: func() []network.Conn {
+			return nil
+		},
+	}
+
+	peerstoreHandler := &mock.PeerstoreStub{
+		AddrsCalled: func(p peer.ID) []multiaddr.Multiaddr {
+			return []multiaddr.Multiaddr{
+				&mock.MultiaddrStub{
+					StringCalled: func() string {
+						return "multiaddress 1"
+					},
+				},
+				&mock.MultiaddrStub{
+					StringCalled: func() string {
+						return "multiaddress 2"
+					},
+				},
+			}
+		},
+	}
+
+	mes.SetHost(&mock.ConnectableHostStub{
+		NetworkCalled: func() network.Network {
+			return networkHandler
+		},
+		PeerstoreCalled: func() peerstore.Peerstore {
+			return peerstoreHandler
+		},
+	})
+
+	addresses := mes.PeerAddresses("pid")
+	require.Equal(t, 2, len(addresses))
+	assert.Equal(t, addresses[0], "multiaddress 1")
+	assert.Equal(t, addresses[1], "multiaddress 2")
 }
 
 func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {

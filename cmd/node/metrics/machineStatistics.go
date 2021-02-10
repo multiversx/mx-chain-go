@@ -56,7 +56,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 }
 
 func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier sharding.EpochStartEventNotifier) error {
-	netStats := &machine.NetStatistics{}
+	netStats := machine.NewNetStatistics()
 	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
 		for {
