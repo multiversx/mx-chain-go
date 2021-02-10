@@ -35,7 +35,7 @@ require (
 	github.com/pelletier/go-toml v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
