@@ -37,7 +37,7 @@ var emptyString string = ""
 type disabledNodeFacade struct {
 }
 
-// NewDisabledNodeFacade creates a new Facade with a NodeWrapper
+// NewDisabledNodeFacade is the disabled implementation of the facade interface
 func NewDisabledNodeFacade() *disabledNodeFacade {
 	return &disabledNodeFacade{}
 }
