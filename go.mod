@@ -18,7 +18,7 @@ require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2
-	github.com/google/gops v0.3.6
+	github.com/google/gops v0.3.14
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/herumi/bls-go-binary v0.0.0-20200324054641-17de9ae04665
@@ -34,7 +34,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/pelletier/go-toml v1.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/shirou/gopsutil v2.20.4+incompatible
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.4
