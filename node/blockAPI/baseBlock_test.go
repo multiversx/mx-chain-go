@@ -13,8 +13,8 @@ import (
 )
 
 func createMockArgumentsWithTx(
-	srcShardId uint32,
-	destShardId uint32,
+	srcShardID uint32,
+	destShardID uint32,
 	recvAddress string,
 	miniblockBytes []byte,
 	miniblockType block.Type,
@@ -23,7 +23,7 @@ func createMockArgumentsWithTx(
 	marshalizer *mock.MarshalizerFake,
 ) baseAPIBockProcessor {
 	return baseAPIBockProcessor{
-		selfShardID: srcShardId,
+		selfShardID: srcShardID,
 		marshalizer: marshalizer,
 		store: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -51,8 +51,8 @@ func createMockArgumentsWithTx(
 				Nonce:            unmarshalledTx.Nonce,
 				Hash:             txHash,
 				MiniBlockType:    string(miniblockType),
-				SourceShard:      srcShardId,
-				DestinationShard: destShardId,
+				SourceShard:      srcShardID,
+				DestinationShard: destShardID,
 				Receiver:         recvAddress,
 				Data:             []byte{},
 			}, nil
@@ -65,8 +65,8 @@ func TestBaseApiBlockProcessor_GetNormalTxFromMiniBlock(t *testing.T) {
 
 	epoch := uint32(1)
 	nonce := uint64(0)
-	sourceShardId := uint32(1)
-	destSahrdId := uint32(1)
+	sourceShardID := uint32(1)
+	destShardID := uint32(1)
 	marshalizer := &mock.MarshalizerFake{}
 
 	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
@@ -94,8 +94,8 @@ func TestBaseApiBlockProcessor_GetNormalTxFromMiniBlock(t *testing.T) {
 	mbBytes, _ := marshalizer.Marshal(&mb)
 
 	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardId,
-		destSahrdId,
+		sourceShardID,
+		destShardID,
 		recvAddress,
 		mbBytes,
 		mbType,
@@ -116,8 +116,8 @@ func TestBaseApiBlockProcessor_GetRewardsTxFromMiniBlock(t *testing.T) {
 
 	epoch := uint32(1)
 	nonce := uint64(0)
-	sourceShardId := uint32(1)
-	destSahrdId := uint32(1)
+	sourceShardID := uint32(1)
+	destShardID := uint32(1)
 	marshalizer := &mock.MarshalizerFake{}
 
 	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
@@ -145,8 +145,8 @@ func TestBaseApiBlockProcessor_GetRewardsTxFromMiniBlock(t *testing.T) {
 	mbBytes, _ := marshalizer.Marshal(&mb)
 
 	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardId,
-		destSahrdId,
+		sourceShardID,
+		destShardID,
 		recvAddress,
 		mbBytes,
 		mbType,
@@ -167,8 +167,8 @@ func TestBaseApiBlockProcessor_GetUnsignedTxFromMiniBlock(t *testing.T) {
 
 	epoch := uint32(1)
 	nonce := uint64(0)
-	sourceShardId := uint32(1)
-	destSahrdId := uint32(1)
+	sourceShardID := uint32(1)
+	destShardID := uint32(1)
 	marshalizer := &mock.MarshalizerFake{}
 
 	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
@@ -196,8 +196,8 @@ func TestBaseApiBlockProcessor_GetUnsignedTxFromMiniBlock(t *testing.T) {
 	mbBytes, _ := marshalizer.Marshal(&mb)
 
 	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardId,
-		destSahrdId,
+		sourceShardID,
+		destShardID,
 		recvAddress,
 		mbBytes,
 		mbType,
@@ -218,8 +218,8 @@ func TestBaseApiBlockProcessor_GetInvalidTxFromMiniBlock(t *testing.T) {
 
 	epoch := uint32(1)
 	nonce := uint64(0)
-	sourceShardId := uint32(1)
-	destSahrdId := uint32(1)
+	sourceShardID := uint32(1)
+	destShardID := uint32(1)
 	marshalizer := &mock.MarshalizerFake{}
 
 	txHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
@@ -247,8 +247,8 @@ func TestBaseApiBlockProcessor_GetInvalidTxFromMiniBlock(t *testing.T) {
 	mbBytes, _ := marshalizer.Marshal(&mb)
 
 	baseAPIBlock := createMockArgumentsWithTx(
-		sourceShardId,
-		destSahrdId,
+		sourceShardID,
+		destShardID,
 		recvAddress,
 		mbBytes,
 		mbType,

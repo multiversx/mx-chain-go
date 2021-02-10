@@ -16,7 +16,7 @@ import (
 )
 
 func createMockShardAPIProcessor(
-	shardId uint32,
+	shardID uint32,
 	blockHeaderHash []byte,
 	storerMock *mock.StorerMock,
 	withHistory bool,
@@ -24,7 +24,7 @@ func createMockShardAPIProcessor(
 ) *shardAPIBlockProcessor {
 	return NewShardApiBlockProcessor(
 		&APIBlockProcessorArg{
-			SelfShardID: shardId,
+			SelfShardID: shardID,
 			Marshalizer: &mock.MarshalizerFake{},
 			Store: &mock.ChainStorerMock{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
