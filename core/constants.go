@@ -523,6 +523,9 @@ const DefaultShardString = "Shard"
 // MetachainShardName is the string identifier of the metachain shard
 const MetachainShardName = "metachain"
 
+// TemporaryPath is the default temporary path directory
+const TemporaryPath = "temp"
+
 // SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
 const SecondsToWaitForP2PBootstrap = 20
 

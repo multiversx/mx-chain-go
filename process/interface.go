@@ -549,7 +549,6 @@ type rewardsHandler interface {
 	MaxInflationRate(year uint32) float64
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
-	IsInterfaceNil() bool
 }
 
 // RewardsHandler will return information about rewards
@@ -577,13 +576,11 @@ type feeHandler interface {
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
-	GenesisTotalSupply() *big.Int
 	MinGasLimit() uint64
 	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessing() uint64
-	IsInterfaceNil() bool
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -617,13 +614,6 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
-	IsInterfaceNil() bool
-}
-
-// EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
-type EndOfEpochEconomics interface {
-	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error
 	IsInterfaceNil() bool
 }
 

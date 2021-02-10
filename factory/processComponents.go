@@ -101,7 +101,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
-	EconomicsData             process.EconomicsHandler
+	EconomicsData             process.EconomicsDataHandler
 	GasSchedule               core.GasScheduleNotifier
 	RoundHandler              consensus.RoundHandler
 	ShardCoordinator          sharding.Coordinator
@@ -143,7 +143,7 @@ type processComponentsFactory struct {
 	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             process.EconomicsHandler
+	economicsData             process.EconomicsDataHandler
 	gasSchedule               core.GasScheduleNotifier
 	roundHandler              consensus.RoundHandler
 	shardCoordinator          sharding.Coordinator
@@ -565,6 +565,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
 		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
