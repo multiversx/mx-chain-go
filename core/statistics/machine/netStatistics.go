@@ -11,8 +11,8 @@ import (
 	"github.com/shirou/gopsutil/net"
 )
 
-// NetStatistics can compute the network statistics
-type NetStatistics struct {
+// netStatistics can compute the network statistics
+type netStatistics struct {
 	bpsSent                   uint64
 	bpsRecv                   uint64
 	bpsSentPeak               uint64
@@ -21,12 +21,20 @@ type NetStatistics struct {
 	percentRecv               uint64
 	totalBytesSentInEpoch     uint64
 	totalBytesReceivedInEpoch uint64
+	getStatisticsHandler      func() ([]net.IOCountersStat, error)
+}
+
+// NewNetStatistics returns a new instance of the netStatistics
+func NewNetStatistics() *netStatistics {
+	return &netStatistics{
+		getStatisticsHandler: getStatistics,
+	}
 }
 
 // ComputeStatistics computes the current network statistics usage.
 // It should be called on a go routine as it is a blocking call for a bounded time (1 second)
-func (ns *NetStatistics) ComputeStatistics() {
-	nStart, err := net.IOCounters(false)
+func (ns *netStatistics) ComputeStatistics() {
+	nStart, err := ns.getStatisticsHandler()
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
@@ -38,7 +46,7 @@ func (ns *NetStatistics) ComputeStatistics() {
 
 	time.Sleep(durationSecond)
 
-	nEnd, err := net.IOCounters(false)
+	nEnd, err := ns.getStatisticsHandler()
 	if err != nil {
 		ns.setZeroStatsAndWait()
 		return
@@ -48,6 +56,14 @@ func (ns *NetStatistics) ComputeStatistics() {
 		return
 	}
 
+	ns.processStatistics(nStart, nEnd)
+}
+
+func getStatistics() ([]net.IOCountersStat, error) {
+	return net.IOCounters(false)
+}
+
+func (ns *netStatistics) processStatistics(nStart []net.IOCountersStat, nEnd []net.IOCountersStat) {
 	isLessRecv := nEnd[0].BytesRecv < nStart[0].BytesRecv
 	isLessSent := nEnd[0].BytesSent < nStart[0].BytesSent
 	if isLessRecv || isLessSent {
@@ -92,7 +108,7 @@ func (ns *NetStatistics) ComputeStatistics() {
 }
 
 // EpochStartEventHandler -
-func (ns *NetStatistics) EpochStartEventHandler() epochStart.ActionHandler {
+func (ns *netStatistics) EpochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
 		atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
@@ -101,7 +117,7 @@ func (ns *NetStatistics) EpochStartEventHandler() epochStart.ActionHandler {
 	return subscribeHandler
 }
 
-func (ns *NetStatistics) setZeroStatsAndWait() {
+func (ns *netStatistics) setZeroStatsAndWait() {
 	atomic.StoreUint64(&ns.bpsSent, 0)
 	atomic.StoreUint64(&ns.bpsRecv, 0)
 	atomic.StoreUint64(&ns.percentSent, 0)
@@ -110,41 +126,41 @@ func (ns *NetStatistics) setZeroStatsAndWait() {
 }
 
 // BpsSent bytes sent per second on all interfaces
-func (ns *NetStatistics) BpsSent() uint64 {
+func (ns *netStatistics) BpsSent() uint64 {
 	return atomic.LoadUint64(&ns.bpsSent)
 }
 
 // BpsRecv bytes received per second on all interfaces
-func (ns *NetStatistics) BpsRecv() uint64 {
+func (ns *netStatistics) BpsRecv() uint64 {
 	return atomic.LoadUint64(&ns.bpsRecv)
 }
 
 // BpsSentPeak peak bytes sent per second on all interfaces
-func (ns *NetStatistics) BpsSentPeak() uint64 {
+func (ns *netStatistics) BpsSentPeak() uint64 {
 	return atomic.LoadUint64(&ns.bpsSentPeak)
 }
 
 // BpsRecvPeak peak bytes received per second on all interfaces
-func (ns *NetStatistics) BpsRecvPeak() uint64 {
+func (ns *netStatistics) BpsRecvPeak() uint64 {
 	return atomic.LoadUint64(&ns.bpsRecvPeak)
 }
 
 // PercentSent BpsSent / BpsSentPeak * 100
-func (ns *NetStatistics) PercentSent() uint64 {
+func (ns *netStatistics) PercentSent() uint64 {
 	return atomic.LoadUint64(&ns.percentSent)
 }
 
 // PercentRecv BpsRecv / BpsRecvPeak * 100
-func (ns *NetStatistics) PercentRecv() uint64 {
+func (ns *netStatistics) PercentRecv() uint64 {
 	return atomic.LoadUint64(&ns.percentRecv)
 }
 
 // TotalBytesSentInCurrentEpoch returns the number of bytes sent in current epoch
-func (ns *NetStatistics) TotalBytesSentInCurrentEpoch() uint64 {
+func (ns *netStatistics) TotalBytesSentInCurrentEpoch() uint64 {
 	return atomic.LoadUint64(&ns.totalBytesSentInEpoch)
 }
 
 // TotalBytesReceivedInCurrentEpoch returns the number of bytes received in current epoch
-func (ns *NetStatistics) TotalBytesReceivedInCurrentEpoch() uint64 {
+func (ns *netStatistics) TotalBytesReceivedInCurrentEpoch() uint64 {
 	return atomic.LoadUint64(&ns.totalBytesReceivedInEpoch)
 }
