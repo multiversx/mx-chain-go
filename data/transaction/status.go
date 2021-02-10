@@ -36,9 +36,9 @@ func (tx TxStatus) String() string {
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
-	SelfShardId uint32
+	SelfShardId              uint32
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	Store dataRetriever.StorageService
+	Store                    dataRetriever.StorageService
 }
 
 // Create a new instance of StatusComputer
@@ -48,9 +48,9 @@ func NewStatusComputer(
 	store dataRetriever.StorageService,
 ) *StatusComputer {
 	statusComputer := &StatusComputer{
-		SelfShardId: selfShardId,
-		Uint64ByteSliceConverter : uint64ByteSliceConverter,
-		Store : store,
+		SelfShardId:              selfShardId,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		Store:                    store,
 	}
 
 	return statusComputer
@@ -72,7 +72,7 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 	if sc.isMiniblockInvalid(miniblockType) {
 		return TxStatusInvalid, nil
 	}
-	if isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver,tx.Data) {
+	if isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver, tx.Data) {
 		return TxStatusSuccess, nil
 	}
 
@@ -93,7 +93,7 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
 		return TxStatusInvalid, ErrNilApiTransactionResult
 	}
 
-	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver,transactionData) {
+	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver, transactionData) {
 		return TxStatusSuccess, nil
 	}
 

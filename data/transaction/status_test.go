@@ -17,22 +17,22 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 
 	// Invalid miniblock
 	tx := &ApiTransactionResult{
-		SourceShard: 12,
+		SourceShard:      12,
 		DestinationShard: 12,
-		Tx: &Transaction{},
+		Tx:               &Transaction{},
 	}
-	responseStatus, err := statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.InvalidBlock,tx)
+	responseStatus, err := statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.InvalidBlock, tx)
 	require.Equal(t, TxStatusInvalid, responseStatus)
 	require.Nil(t, err)
 
 	// Intra-shard
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	// Cross, at source
 	tx.DestinationShard = 13
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, tx)
 	require.Equal(t, TxStatusPending, responseStatus)
 	require.Nil(t, err)
 
@@ -40,23 +40,22 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	tx.DestinationShard = 13
 	tx.SourceShard = 12
 	tx.NotarizedAtDestinationInMetaNonce = 1
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
-
 
 	// Cross, destination me
 	tx.DestinationShard = 12
 	tx.SourceShard = 13
 	tx.NotarizedAtDestinationInMetaNonce = 0
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	tx.SourceShard = core.MetachainShardId
 	tx.DestinationShard = 12
 	tx.NotarizedAtDestinationInMetaNonce = 0
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.RewardsBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.RewardsBlock, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
@@ -66,12 +65,12 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
 	tx.Data = []byte("deployingAContract")
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	// Nil parameters
-	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, nil)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
 
@@ -82,35 +81,35 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 
 	// Invalid miniblock
 	tx := &ApiTransactionResult{
-		SourceShard: 12,
+		SourceShard:      12,
 		DestinationShard: 12,
-		Tx: &Transaction{},
+		Tx:               &Transaction{},
 	}
 
 	// Intra shard
 	tx.DestinationShard = 12
-	tx.SourceShard =12
-	responseStatus, err := statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	tx.SourceShard = 12
+	responseStatus, err := statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	// Cross, at source
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard, tx)
 	require.Equal(t, TxStatusPending, responseStatus)
 	require.Nil(t, err)
 
 	// Cross, destination me
 	tx.SourceShard = 13
 	tx.DestinationShard = 12
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	tx.SourceShard = core.MetachainShardId
 	tx.DestinationShard = 12
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
@@ -120,15 +119,14 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
 	tx.Data = []byte("deployingAContract")
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard, tx)
 	require.Equal(t, TxStatusSuccess, responseStatus)
 	require.Nil(t, err)
 
 	// Nil parameters
-	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	_, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, nil)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
-
 
 func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	t.Parallel()
@@ -141,8 +139,8 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	isRewardReverted, err := (&StatusComputer{
 		Uint64ByteSliceConverter: uint64Converter,
-		Store: chainStorer,
-	}).SetStatusIfIsRewardReverted(txA,block.TxBlock,0,nil)
+		Store:                    chainStorer,
+	}).SetStatusIfIsRewardReverted(txA, block.TxBlock, 0, nil)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txA.Status)
 	require.Nil(t, err)
@@ -156,11 +154,10 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 
 	isRewardReverted, err = (&StatusComputer{
-		SelfShardId: 			  core.MetachainShardId,
+		SelfShardId:              core.MetachainShardId,
 		Uint64ByteSliceConverter: uint64Converter,
-		Store: 					  chainStorer,
-
-	}).SetStatusIfIsRewardReverted(txB,block.RewardsBlock,headerNonce,headerHash)
+		Store:                    chainStorer,
+	}).SetStatusIfIsRewardReverted(txB, block.RewardsBlock, headerNonce, headerHash)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txB.Status)
 	require.Nil(t, err)
@@ -174,10 +171,10 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 
 	isRewardReverted, err = (&StatusComputer{
-		SelfShardId: 			  0,
+		SelfShardId:              0,
 		Uint64ByteSliceConverter: uint64Converter,
-		Store: 					  chainStorer,
-	}).SetStatusIfIsRewardReverted(txC,block.RewardsBlock,headerNonce,headerHash)
+		Store:                    chainStorer,
+	}).SetStatusIfIsRewardReverted(txC, block.RewardsBlock, headerNonce, headerHash)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txC.Status)
 	require.Nil(t, err)
@@ -192,19 +189,19 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	wrongHash := []byte("wrong")
 	isRewardReverted, err = (&StatusComputer{
-		SelfShardId: 			  core.MetachainShardId,
+		SelfShardId:              core.MetachainShardId,
 		Uint64ByteSliceConverter: uint64Converter,
-		Store: 					  chainStorer,
-	}).SetStatusIfIsRewardReverted(txD,block.RewardsBlock,headerNonce,wrongHash)
+		Store:                    chainStorer,
+	}).SetStatusIfIsRewardReverted(txD, block.RewardsBlock, headerNonce, wrongHash)
 	require.True(t, isRewardReverted)
 	require.Equal(t, TxStatusRewardReverted, txD.Status)
 	require.Nil(t, err)
 
 	//nil parameters
 	_, err = (&StatusComputer{
-		SelfShardId: 			  core.MetachainShardId,
+		SelfShardId:              core.MetachainShardId,
 		Uint64ByteSliceConverter: uint64Converter,
-		Store: 					  chainStorer,
-	}).SetStatusIfIsRewardReverted(nil,block.RewardsBlock,headerNonce,wrongHash)
+		Store:                    chainStorer,
+	}).SetStatusIfIsRewardReverted(nil, block.RewardsBlock, headerNonce, wrongHash)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }

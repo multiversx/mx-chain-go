@@ -33,7 +33,7 @@ type baseAPIBockProcessor struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
 	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
-	txStatusComputer		 transaction.StatusComputerHandler
+	txStatusComputer         transaction.StatusComputerHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
