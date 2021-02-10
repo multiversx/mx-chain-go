@@ -119,10 +119,14 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 	miniblockType block.Type,
 	headerNonce uint64,
 	headerHash []byte,
-) bool {
+) (bool, error) {
+
+	if check.IfNilReflect(tx) {
+		return false, ErrNilApiTransactionResult
+	}
 
 	if miniblockType != block.RewardsBlock {
-		return false
+		return false, nil
 	}
 
 	var storerUnit dataRetriever.UnitType
@@ -138,13 +142,13 @@ func (sc *StatusComputer) SetStatusIfIsRewardReverted(
 	headerHashFromStorage, err := sc.Store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		log.Warn("cannot get header hash by nonce", "error", err.Error())
-		return false
+		return false, nil
 	}
 
 	if bytes.Equal(headerHashFromStorage, headerHash) {
-		return false
+		return false, nil
 	}
 
 	tx.Status = TxStatusRewardReverted
-	return true
+	return true, nil
 }

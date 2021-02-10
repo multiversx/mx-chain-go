@@ -25,5 +25,5 @@ type StatusComputerHandler interface {
 		miniblockType block.Type,
 		headerNonce uint64,
 		headerHash []byte,
-) bool
+) (bool, error)
 }

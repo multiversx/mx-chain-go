@@ -80,7 +80,7 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId(),n.uint64ByteSliceConverter,n.store)
 
-	if ok := statusComputer.SetStatusIfIsRewardReverted(
+	if ok,_ := statusComputer.SetStatusIfIsRewardReverted(
 		tx,
 		block.Type(miniblockMetadata.Type),
 		miniblockMetadata.HeaderNonce,
