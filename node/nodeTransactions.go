@@ -130,7 +130,7 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer := transaction.NewStatusComputer(n.shardCoordinator.SelfId(),n.uint64ByteSliceConverter,n.store)
-	tx.Status = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
 		n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()), tx)
 
 	return tx, nil

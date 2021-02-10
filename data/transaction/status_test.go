@@ -90,21 +90,29 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	// Intra shard
 	tx.DestinationShard = 12
 	tx.SourceShard =12
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
+	responseStatus, err := statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	// Cross, at source
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
-	require.Equal(t, TxStatusPending, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	require.Equal(t, TxStatusPending, responseStatus)
+	require.Nil(t, err)
 
 	// Cross, destination me
 	tx.SourceShard = 13
 	tx.DestinationShard = 12
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	tx.SourceShard = core.MetachainShardId
 	tx.DestinationShard = 12
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
 	// Contract deploy
 	statusComputer.SelfShardId = 13
@@ -112,8 +120,13 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
 	tx.Data = []byte("deployingAContract")
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx)
+	require.Equal(t, TxStatusSuccess, responseStatus)
+	require.Nil(t, err)
 
-	require.Equal(t, TxStatusSuccess, statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(tx.DestinationShard,tx))
+	// Nil parameters
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock,nil)
+	require.Equal(t, ErrNilApiTransactionResult, err)
 }
 
 

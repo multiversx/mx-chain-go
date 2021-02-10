@@ -19,7 +19,7 @@ type Marshalizer interface {
 // StatusComputerHandler computes a transaction status
 type StatusComputerHandler interface {
 	ComputeStatusWhenInStorageKnowingMiniblock(miniblockType block.Type, tx *ApiTransactionResult) (TxStatus, error)
-	ComputeStatusWhenInStorageNotKnowingMiniblock(destinationShard uint32, tx *ApiTransactionResult) TxStatus
+	ComputeStatusWhenInStorageNotKnowingMiniblock(destinationShard uint32, tx *ApiTransactionResult) (TxStatus, error)
 	SetStatusIfIsRewardReverted(
 		tx *ApiTransactionResult,
 		miniblockType block.Type,

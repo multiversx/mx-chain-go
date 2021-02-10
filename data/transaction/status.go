@@ -85,16 +85,20 @@ func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
 	destinationShard uint32,
 	tx *ApiTransactionResult,
-) TxStatus {
+) (TxStatus, error) {
 	receiver := tx.Tx.GetRcvAddr()
 	transactionData := tx.Data
 
+	if check.IfNilReflect(tx) {
+		return TxStatusInvalid, ErrNilApiTransactionResult
+	}
+
 	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver,transactionData) {
-		return TxStatusSuccess
+		return TxStatusSuccess, nil
 	}
 
 	// At least partially executed (since in source's storage)
-	return TxStatusPending
+	return TxStatusPending, nil
 }
 
 func (sc *StatusComputer) isMiniblockInvalid(miniblockType block.Type) bool {
