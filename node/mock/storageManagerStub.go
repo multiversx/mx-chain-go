@@ -9,14 +9,12 @@ type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
 	SetCheckpointCalled               func([]byte)
-	PruneCalled                       func([]byte)
-	CancelPruneCalled                 func([]byte)
+	PruneCalled                       func(rootHash []byte, identifier data.TriePruningIdentifier)
+	CancelPruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
 	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
-	EnterSnapshotModeCalled           func()
-	ExitSnapshotModeCalled            func()
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
 	IsInterfaceNilCalled              func() bool
@@ -31,23 +29,31 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 }
 
 // TakeSnapshot --
-func (sms *StorageManagerStub) TakeSnapshot([]byte) {
-
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte) {
+	if sms.TakeSnapshotCalled != nil {
+		sms.TakeSnapshotCalled(rootHash)
+	}
 }
 
 // SetCheckpoint --
-func (sms *StorageManagerStub) SetCheckpoint([]byte) {
-
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte) {
+	if sms.SetCheckpointCalled != nil {
+		sms.SetCheckpointCalled(rootHash)
+	}
 }
 
 // Prune --
-func (sms *StorageManagerStub) Prune([]byte, data.TriePruningIdentifier) {
-
+func (sms *StorageManagerStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	if sms.PruneCalled != nil {
+		sms.PruneCalled(rootHash, identifier)
+	}
 }
 
 // CancelPrune --
-func (sms *StorageManagerStub) CancelPrune([]byte, data.TriePruningIdentifier) {
-
+func (sms *StorageManagerStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	if sms.CancelPruneCalled != nil {
+		sms.CancelPruneCalled(rootHash, identifier)
+	}
 }
 
 // MarkForEviction --
@@ -75,42 +81,23 @@ func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// EnterSnapshotMode --
-func (sms *StorageManagerStub) EnterSnapshotMode() {
-	if sms.EnterSnapshotModeCalled != nil {
-		sms.EnterSnapshotModeCalled()
-	}
-}
-
-// ExitSnapshotMode --
-func (sms *StorageManagerStub) ExitSnapshotMode() {
-	if sms.ExitSnapshotModeCalled != nil {
-		sms.ExitSnapshotModeCalled()
-	}
-}
-
-// GetSnapshotDbBatchDelay -
-func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
-	return 0
-}
-
-// Close -
-func (sms *StorageManagerStub) Close() error {
-	return nil
-}
-
-// EnterPruningBufferingMode -
+// EnterPruningBufferingMode --
 func (sms *StorageManagerStub) EnterPruningBufferingMode() {
 	if sms.EnterPruningBufferingModeCalled != nil {
 		sms.EnterPruningBufferingModeCalled()
 	}
 }
 
-// ExitPruningBufferingMode -
+// ExitPruningBufferingMode --
 func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 	if sms.ExitPruningBufferingModeCalled != nil {
 		sms.ExitPruningBufferingModeCalled()
 	}
+}
+
+// GetSnapshotDbBatchDelay -
+func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
+	return 0
 }
 
 // IsInterfaceNil --

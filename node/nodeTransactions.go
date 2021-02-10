@@ -79,6 +79,17 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
+	if ok := (&transaction.StatusComputer{
+		SelfShard:                n.shardCoordinator.SelfId(),
+		Store:                    n.store,
+		Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
+		MiniblockType:            block.Type(miniblockMetadata.Type),
+		HeaderHash:               miniblockMetadata.HeaderHash,
+		HeaderNonce:              miniblockMetadata.HeaderNonce,
+	}).SetStatusIfIsRewardReverted(tx); ok {
+		return tx, nil
+	}
+
 	tx.Status = (&transaction.StatusComputer{
 		MiniblockType:        block.Type(miniblockMetadata.Type),
 		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
@@ -287,31 +298,35 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (
 
 func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeNormal),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
-		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeNormal),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
 func (n *Node) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeInvalid),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
-		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeInvalid),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
@@ -329,7 +344,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 }
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
@@ -345,5 +360,10 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		OriginalSender:          n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}, nil
+	}
+	if len(tx.GetOriginalSender()) == n.addressPubkeyConverter.Len() {
+		txResult.OriginalSender = n.addressPubkeyConverter.Encode(tx.GetOriginalSender())
+	}
+
+	return txResult, nil
 }

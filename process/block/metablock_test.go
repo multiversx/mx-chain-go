@@ -2659,3 +2659,115 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	expectedAddedNonces := []uint64{6, 7}
 	assert.Equal(t, expectedAddedNonces, addedNonces)
 }
+
+func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash1")
+	hdrHash1Bytes := []byte("hdr_hash1")
+	hrdHash2Bytes := []byte("hdr_hash2")
+	hasher := &mock.HasherStub{}
+	hasher.ComputeCalled = func(s string) []byte {
+		return hash
+	}
+	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
+	dPool := initDataPool([]byte("tx_hash"))
+	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return testscommon.NewShardedDataStub()
+	}
+	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
+		}
+		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
+			if bytes.Equal(hdrHash1Bytes, key) {
+				return &block.Header{
+					PrevHash:         []byte("hash1"),
+					Nonce:            1,
+					Round:            1,
+					PrevRandSeed:     []byte("roothash"),
+					MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1"), SenderShardID: 1}},
+				}, nil
+			}
+			if bytes.Equal(hrdHash2Bytes, key) {
+				return &block.Header{Nonce: 2, Round: 2}, nil
+			}
+			return nil, errors.New("err")
+		}
+		cs.LenCalled = func() int {
+			return 0
+		}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return []uint64{1, 2}
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
+		return cs
+	}
+
+	txCoordinator := &mock.TransactionCoordinatorMock{
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
+		},
+	}
+
+	arguments := createMockMetaArguments()
+	arguments.DataPool = dPool
+	arguments.TxCoordinator = txCoordinator
+	arguments.Hasher = hasher
+
+	calledSaveNodesCoordinator := false
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
+			calledSaveNodesCoordinator = true
+			return true, nil
+		},
+	}
+
+	toggleCalled := false
+	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+		ToggleUnStakeUnBondCalled: func(value bool) error {
+			toggleCalled = true
+			assert.Equal(t, value, true)
+			return nil
+		},
+	}
+	blkc := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{
+				Nonce:                  0,
+				AccumulatedFeesInEpoch: big.NewInt(0),
+				DevFeesInEpoch:         big.NewInt(0),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{{}},
+					Economics:            block.Economics{},
+				},
+			}
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return hash
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
+	arguments.BlockChain = blkc
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	metaHdr := &block.MetaBlock{}
+	headerHandler, bodyHandler, err := mp.CreateBlock(metaHdr, func() bool { return true })
+	assert.Nil(t, err)
+	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
+
+	headerHandler.SetRound(uint64(1))
+	headerHandler.SetNonce(1)
+	headerHandler.SetPrevHash(hash)
+	headerHandler.SetAccumulatedFees(big.NewInt(0))
+
+	toggleCalled = false
+	calledSaveNodesCoordinator = false
+	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	assert.Nil(t, err)
+	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
+}

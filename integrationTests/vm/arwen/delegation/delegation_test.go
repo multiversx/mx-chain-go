@@ -102,19 +102,19 @@ func TestDelegation_Claims(t *testing.T) {
 	context.TakeAccountBalanceSnapshot(&context.Bob)
 	context.TakeAccountBalanceSnapshot(&context.Carol)
 
-	context.GasLimit = 20000000
+	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15627613, int(context.LastConsumedFee))
+	require.Equal(t, 22356926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15186613, int(context.LastConsumedFee))
+	require.Equal(t, 21915926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
-	require.Equal(t, errors.New("unknown caller"), err)
+	require.Equal(t, errors.New("user error"), err)
 }
 
 func TestDelegation_WithManyUsers_Claims(t *testing.T) {
@@ -163,10 +163,10 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	for _, user := range context.Participants {
 		context.TakeAccountBalanceSnapshot(user)
 
-		context.GasLimit = 20000000
+		context.GasLimit = 30000000
 		err = context.ExecuteSC(user, "claimRewards")
 		require.Nil(t, err)
-		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)
+		require.LessOrEqual(t, int(context.LastConsumedFee), 25000000)
 		RequireAlmostEquals(t, NewBalance(10000/numUsers), NewBalanceBig(context.GetAccountBalanceDelta(user)))
 	}
 }
@@ -201,20 +201,12 @@ func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
 	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
 }
 
-func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, false, 100, 1)
-}
-
 func TestDelegationProcessManyAotInProcess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -222,7 +214,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -230,10 +222,10 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -243,7 +235,16 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		gasSchedule,
+		outOfProcess,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
+
 	defer testContext.Close()
 
 	value := big.NewInt(10)
@@ -260,12 +261,12 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 		gasPrice,
 		gasLimit,
 		arwen.CreateDeployTxData(scCode)+
-			"@"+hex.EncodeToString(systemVm.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
+			"@"+hex.EncodeToString(systemVm.ValidatorSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
 			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
 			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -374,7 +375,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 	}
 }
 
-func printGasConsumed(testContext vm.VMTestContext, functionName string, gasLimit uint64) {
+func printGasConsumed(testContext *vm.VMTestContext, functionName string, gasLimit uint64) {
 	gasRemaining := testContext.GetGasRemaining()
 	fmt.Printf("%s was executed, consumed %d gas\n", functionName, gasLimit-gasRemaining)
 }

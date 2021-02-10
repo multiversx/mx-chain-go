@@ -2,8 +2,9 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"time"
 
-	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
@@ -29,7 +30,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 }
 
 // GetBlockByNonce will return a shard APIBlock by nonce
-func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error) {
+func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
 
 	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(nonce)
@@ -47,16 +48,23 @@ func (sbp *shardAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (
 }
 
 // GetBlockByHash will return a shard APIBlock by hash
-func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*apiBlock.APIBlock, error) {
+func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error) {
 	blockBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	blockAPI, err := sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+
+	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
 
-func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*apiBlock.APIBlock, error) {
+func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
 	blockHeader := &block.Header{}
 	err := sbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
@@ -66,7 +74,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	headerEpoch := blockHeader.Epoch
 
 	numOfTxs := uint32(0)
-	miniblocks := make([]*apiBlock.APIMiniBlock, 0)
+	miniblocks := make([]*api.MiniBlock, 0)
 	for _, mb := range blockHeader.MiniBlockHeaders {
 		if mb.Type == block.PeerBlock {
 			continue
@@ -74,27 +82,32 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 
 		numOfTxs += mb.TxCount
 
-		miniblockAPI := &apiBlock.APIMiniBlock{
+		miniblockAPI := &api.MiniBlock{
 			Hash:             hex.EncodeToString(mb.Hash),
 			Type:             mb.Type.String(),
 			SourceShard:      mb.SenderShardID,
 			DestinationShard: mb.ReceiverShardID,
 		}
 		if withTxs {
-			miniblockAPI.Transactions = sbp.getTxsByMb(&mb, headerEpoch)
+			miniBlockCopy := mb
+			miniblockAPI.Transactions = sbp.getTxsByMb(&miniBlockCopy, headerEpoch)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	return &apiBlock.APIBlock{
-		Nonce:         blockHeader.Nonce,
-		Round:         blockHeader.Round,
-		Epoch:         blockHeader.Epoch,
-		Shard:         blockHeader.ShardID,
-		Hash:          hex.EncodeToString(hash),
-		PrevBlockHash: hex.EncodeToString(blockHeader.PrevHash),
-		NumTxs:        numOfTxs,
-		MiniBlocks:    miniblocks,
+	return &api.Block{
+		Nonce:           blockHeader.Nonce,
+		Round:           blockHeader.Round,
+		Epoch:           blockHeader.Epoch,
+		Shard:           blockHeader.ShardID,
+		Hash:            hex.EncodeToString(hash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:          numOfTxs,
+		MiniBlocks:      miniblocks,
+		AccumulatedFees: blockHeader.AccumulatedFees.String(),
+		DeveloperFees:   blockHeader.DeveloperFees.String(),
+		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
+		Status:          BlockStatusOnChain,
 	}, nil
 }

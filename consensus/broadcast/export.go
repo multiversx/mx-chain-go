@@ -48,6 +48,7 @@ func CreateDelayBroadcastDataForValidator(
 	}
 }
 
+// CreateValidatorHeaderBroadcastData creates a validatorHeaderBroadcastData object from the given parameters
 func CreateValidatorHeaderBroadcastData(
 	headerHash []byte,
 	header data.HeaderHandler,

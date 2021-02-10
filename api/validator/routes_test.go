@@ -155,7 +155,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"validator": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/statistics", Open: true},
 				},
 			},

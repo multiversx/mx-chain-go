@@ -2,6 +2,7 @@ package external
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -16,6 +17,7 @@ type ApiResolverArgs struct {
 	TxCostHandler  TransactionCostHandler
 	VmFactory      process.VirtualMachinesContainerFactory
 	VmContainer    process.VirtualMachinesContainer
+	StakedValueHandler TotalStakedValueHandler
 }
 
 // NodeApiResolver can resolve API requests
@@ -25,6 +27,7 @@ type NodeApiResolver struct {
 	txCostHandler        TransactionCostHandler
 	vmContainer          process.VirtualMachinesContainer
 	vmFactory            process.VirtualMachinesContainerFactory
+	totalStakedValueHandler TotalStakedValueHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
@@ -38,13 +41,17 @@ func NewNodeApiResolver(args ApiResolverArgs) (*NodeApiResolver, error) {
 	if check.IfNil(args.TxCostHandler) {
 		return nil, ErrNilTransactionCostHandler
 	}
+	if check.IfNil(args.StakedValueHandler) {
+		return nil, ErrNilTotalStakedValueHandler
+	}
 
 	return &NodeApiResolver{
-		scQueryService:       args.ScQueryService,
-		statusMetricsHandler: args.StatusMetrics,
-		txCostHandler:        args.TxCostHandler,
+		scQueryService:          args.ScQueryService,
+		statusMetricsHandler:    args.StatusMetrics,
+		txCostHandler:           args.TxCostHandler,
 		vmContainer:          args.VmContainer,
 		vmFactory:            args.VmFactory,
+		totalStakedValueHandler: args.StakedValueHandler,
 	}, nil
 }
 
@@ -76,6 +83,11 @@ func (nar *NodeApiResolver) Close() error {
 		return fmt.Errorf("err closing vmContainer: %v, err closing vmFactory: %v", err1, err2)
 	}
 	return nil
+}
+
+// GetTotalStakedValue will return total staked value
+func (nar *NodeApiResolver) GetTotalStakedValue() (*big.Int, error) {
+	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

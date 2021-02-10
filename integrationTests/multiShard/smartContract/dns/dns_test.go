@@ -74,15 +74,16 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 10
+	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	_ = sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
+	newUserNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
+	checkUserNamesAreDeleted(t, nodes, newUserNames, sortedDNSAddresses)
 }
 
 func TestDNSandRelayedTxNormal(t *testing.T) {
@@ -284,7 +285,32 @@ func checkUserNamesAreSetCorrectly(
 			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
 		}
 	}
+}
 
+func checkUserNamesAreDeleted(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	userNames []string,
+	sortedDNSAddresses []string,
+) {
+	for _, userName := range userNames {
+		dnsAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
+
+		dnsSHId := nodes[0].ShardCoordinator.ComputeId([]byte(dnsAddress))
+		for _, node := range nodes {
+			if node.ShardCoordinator.SelfId() != dnsSHId {
+				continue
+			}
+
+			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
+			dnsAcc, _ := acnt.(state.UserAccountHandler)
+
+			keyFromTrie := "value_state" + string(keccak.Keccak{}.Compute(userName))
+			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
+			assert.Nil(t, err)
+			assert.Nil(t, value)
+		}
+	}
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
@@ -293,7 +319,7 @@ func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) 
 }
 
 func generateNewUserName() string {
-	return RandStringBytes(10)
+	return RandStringBytes(10) + ".elrond"
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"

@@ -1,6 +1,8 @@
 package node
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -294,10 +296,22 @@ func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 	}
 }
 
-// WithSignatureSize sets up a signatureSize option for the Node
-func WithSignatureSize(signatureSize int) Option {
+// WithAddressSignatureSize sets up an addressSignatureSize option for the Node
+func WithAddressSignatureSize(signatureSize int) Option {
 	return func(n *Node) error {
-		n.signatureSize = signatureSize
+		n.addressSignatureSize = signatureSize
+		emptyByteSlice := bytes.Repeat([]byte{0}, signatureSize)
+		hexEncodedEmptyByteSlice := hex.EncodeToString(emptyByteSlice)
+		n.addressSignatureHexSize = len(hexEncodedEmptyByteSlice)
+
+		return nil
+	}
+}
+
+// WithValidatorSignatureSize sets up a validatorSignatureSize option for the Node
+func WithValidatorSignatureSize(signatureSize int) Option {
+	return func(n *Node) error {
+		n.validatorSignatureSize = signatureSize
 		return nil
 	}
 }
@@ -326,6 +340,36 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 	return func(n *Node) error {
 		n.enableSignTxWithHashEpoch = enableSignTxWithHashEpoch
+		return nil
+	}
+}
+
+// WithTxSignHasher sets up a transaction sign hasher for the node
+func WithTxSignHasher(txSignHasher hashing.Hasher) Option {
+	return func(n *Node) error {
+		if check.IfNil(txSignHasher) {
+			return ErrNilHasher
+		}
+		n.txSignHasher = txSignHasher
+		return nil
+	}
+}
+
+// WithTxVersionChecker sets up a transaction version checker for the node
+func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(txVersionChecker) {
+			return ErrNilTransactionVersionChecker
+		}
+		n.txVersionChecker = txVersionChecker
+		return nil
+	}
+}
+
+// WithImportMode sets up the flag if the node is running in import mode
+func WithImportMode(importMode bool) Option {
+	return func(n *Node) error {
+		n.isInImportMode = importMode
 		return nil
 	}
 }

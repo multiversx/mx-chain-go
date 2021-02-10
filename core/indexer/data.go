@@ -24,13 +24,47 @@ type Transaction struct {
 	GasPrice             uint64        `json:"gasPrice"`
 	GasLimit             uint64        `json:"gasLimit"`
 	GasUsed              uint64        `json:"gasUsed"`
+	Fee                  string        `json:"fee"`
 	Data                 []byte        `json:"data"`
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
 	SearchOrder          uint32        `json:"searchOrder"`
 	SmartContractResults []ScResult    `json:"scResults,omitempty"`
+	SenderUserName       []byte        `json:"senderUsername,omitempty"`
+	ReceiverUserName     []byte        `json:"receiverUsername,omitempty"`
 	Log                  TxLog         `json:"-"`
+	rcvAddrBytes         []byte
+}
+
+// GetGasLimit will return transaction gas limit
+func (t *Transaction) GetGasLimit() uint64 {
+	return t.GasLimit
+}
+
+// GetGasPrice will return transaction gas price
+func (t *Transaction) GetGasPrice() uint64 {
+	return t.GasPrice
+}
+
+// GetData will return transaction data field
+func (t *Transaction) GetData() []byte {
+	return t.Data
+}
+
+// GetRcvAddr will return transaction receiver address
+func (t *Transaction) GetRcvAddr() []byte {
+	return t.rcvAddrBytes
+}
+
+// GetValue wil return transaction value
+func (t *Transaction) GetValue() *big.Int {
+	bigIntValue, ok := big.NewInt(0).SetString(t.Value, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return bigIntValue
 }
 
 // TxLog holds all the data needed for a log structure

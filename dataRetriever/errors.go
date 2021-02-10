@@ -185,6 +185,9 @@ var ErrNilConfig = errors.New("nil config provided")
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 
+// ErrNilTxGasHandler signals that a nil tx gas handler was provided
+var ErrNilTxGasHandler = errors.New("nil tx gas handler provided")
+
 // ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
 var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
 

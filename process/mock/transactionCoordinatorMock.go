@@ -10,7 +10,7 @@ import (
 
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
-	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) process.TransactionType
+	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
@@ -31,6 +31,7 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
 	CreateMarshalizedReceiptsCalled             func() ([]byte, error)
+	VerifyCreatedMiniBlocksCalled               func(hdr data.HeaderHandler, body *block.Body) error
 }
 
 // CreatePostProcessMiniBlocks -
@@ -47,9 +48,9 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
+func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0
+		return 0, 0
 	}
 
 	return tcm.ComputeTransactionTypeCalled(tx)
@@ -193,6 +194,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, erro
 	}
 
 	return tcm.CreateMarshalizedReceiptsCalled()
+}
+
+// VerifyCreatedMiniBlocks -
+func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error {
+	if tcm.VerifyCreatedMiniBlocksCalled == nil {
+		return nil
+	}
+
+	return tcm.VerifyCreatedMiniBlocksCalled(hdr, body)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

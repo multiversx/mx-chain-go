@@ -27,7 +27,7 @@ func (inhs *InitialNodesHandlerStub) MinNumberOfNodes() uint32 {
 	return 0
 }
 
-// MinShardHysteresisNodes -
+// MinNumberOfNodesWithHysteresis -
 func (inhs *InitialNodesHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
 	if inhs.MinNumberOfNodesWithHysteresisCalled != nil {
 		return inhs.MinNumberOfNodesWithHysteresisCalled()

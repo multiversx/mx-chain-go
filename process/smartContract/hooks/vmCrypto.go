@@ -3,7 +3,7 @@ package hooks
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"golang.org/x/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160" //nolint TODO:deprecated
 )
 
 // VMCryptoHook is a wrapper used in vm implementation

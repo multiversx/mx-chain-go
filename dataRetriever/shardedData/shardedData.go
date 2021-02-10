@@ -45,7 +45,7 @@ type shardStore struct {
 
 // NewShardedData is responsible for creating an empty pool of data
 func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, error) {
-	log.Info("NewShardedData", "name", name, "config", config.String())
+	log.Debug("NewShardedData", "name", name, "config", config.String())
 
 	configPrototype := immunitycache.CacheConfig{
 		Name:                        untitledCacheName,

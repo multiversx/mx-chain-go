@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -71,8 +71,11 @@ type Node struct {
 	txSentCounter  uint32
 	txAcumulator   core.Accumulator
 
-	signatureSize int
-	publicKeySize int
+	addressSignatureSize    int
+	addressSignatureHexSize int
+	encodedAddressLength    int
+	validatorSignatureSize  int
+	publicKeySize           int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
@@ -91,6 +94,7 @@ type Node struct {
 
 	closableComponents []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
+	isInImportMode            bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -261,7 +265,7 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	rootHash, err := userAccount.DataTrie().Root()
+	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +563,9 @@ func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
 	receiver string,
+	receiverUsername []byte,
 	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	dataField []byte,
@@ -571,8 +577,8 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" {
-		return nil, nil, ErrInvalidChainID
+	if chainID == "" || len(chainID) > len(string(n.chainID)) {
+		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	if check.IfNil(addrPubKeyConverter) {
@@ -580,6 +586,24 @@ func (n *Node) CreateTransaction(
 	}
 	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, nil, ErrNilAccountsAdapter
+	}
+	if len(signatureHex) > n.addressSignatureHexSize {
+		return nil, nil, ErrInvalidSignatureLength
+	}
+	if len(receiver) > n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
+	}
+	if len(sender) > n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if len(senderUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidSenderUsernameLength
+	}
+	if len(receiverUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidReceiverUsernameLength
+	}
+	if len(dataField) > core.MegabyteSize {
+		return nil, nil, ErrDataFieldTooBig
 	}
 
 	receiverAddress, err := addrPubKeyConverter.Decode(receiver)
@@ -597,23 +621,29 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
+	if len(value) > len(n.feeHandler.GenesisTotalSupply().String())+1 {
+		return nil, nil, ErrTransactionValueLengthTooBig
+	}
+
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
 		return nil, nil, ErrInvalidValue
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:     nonce,
-		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress,
-		SndAddr:   senderAddress,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      dataField,
-		Signature: signatureBytes,
-		ChainID:   []byte(chainID),
-		Version:   version,
-		Options:   options,
+		Nonce:       nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: receiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: senderUsername,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        dataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(chainID),
+		Version:     version,
+		Options:     options,
 	}
 
 	var txHash []byte
@@ -653,6 +683,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	}
 
 	return account, nil
+}
+
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account.GetCodeHash())
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
