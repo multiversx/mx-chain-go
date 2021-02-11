@@ -62,7 +62,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}
 
 	_ = resolverTrie.Commit()
-	rootHash, _ := resolverTrie.Root()
+	rootHash, _ := resolverTrie.RootHash()
 
 	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash, context.Background())
 	numLeaves := 0
@@ -72,7 +72,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	nilRootHash, _ := requesterTrie.Root()
+	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
@@ -99,6 +99,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             tss,
 		TimeoutBetweenTrieNodesCommits: timeout,
+		MaxHardCapForMissingNodes:      500,
 	}
 	trieSyncer, _ := trie.NewTrieSyncer(arg)
 
@@ -119,7 +120,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Nil(t, err)
 	cancel()
 
-	newRootHash, _ := requesterTrie.Root()
+	newRootHash, _ := requesterTrie.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
@@ -182,7 +183,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	nilRootHash, _ := requesterTrie.Root()
+	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
@@ -202,13 +203,14 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               integrationTests.TestHasher,
-			Marshalizer:          integrationTests.TestMarshalizer,
-			TrieStorageManager:   nRequester.TrieStorageManagers[factory2.UserAccountTrie],
-			RequestHandler:       requestHandler,
-			Timeout:              time.Second * 10,
-			Cacher:               nRequester.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory: 5,
+			Hasher:                    integrationTests.TestHasher,
+			Marshalizer:               integrationTests.TestMarshalizer,
+			TrieStorageManager:        nRequester.TrieStorageManagers[factory2.UserAccountTrie],
+			RequestHandler:            requestHandler,
+			Timeout:                   time.Second * 10,
+			Cacher:                    nRequester.DataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      5,
+			MaxHardCapForMissingNodes: 500,
 		},
 		ShardId:   shardID,
 		Throttler: thr,

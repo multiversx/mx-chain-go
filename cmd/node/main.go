@@ -2146,6 +2146,8 @@ func createHardForkTrigger(
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		TxSignHasher:              coreData.TxSignHasher,
 		EpochNotifier:             epochNotifier,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2659,14 +2661,17 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
-		vmFactory, err = shard.NewVMContainerFactory(
-			queryVirtualMachineConfig,
-			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasScheduleNotifier,
-			argsHook,
-			generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config:                         queryVirtualMachineConfig,
+			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			GasSchedule:                    gasScheduleNotifier,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+		}
+
+		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, err
 		}
