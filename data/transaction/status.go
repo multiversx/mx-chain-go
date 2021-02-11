@@ -85,11 +85,11 @@ func (sc *statusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
 	destinationShard uint32,
 	tx *ApiTransactionResult,
 ) (TxStatus, error) {
-	receiver := tx.Tx.GetRcvAddr()
-
 	if tx == nil {
 		return "", ErrNilApiTransactionResult
 	}
+
+	receiver := tx.Tx.GetRcvAddr()
 
 	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver, tx.Data) {
 		return TxStatusSuccess, nil
