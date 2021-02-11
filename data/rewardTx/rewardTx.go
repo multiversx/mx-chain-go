@@ -63,5 +63,15 @@ func (_ *RewardTx) GetRcvUserName() []byte {
 }
 
 func (rtx *RewardTx) CheckIntegrity() error {
+	if len(rtx.RcvAddr) == 0 {
+		return data.ErrNilRcvAddr
+	}
+	if rtx.Value == nil {
+		return data.ErrNilValue
+	}
+	if rtx.Value.Sign() < 0 {
+		return data.ErrNegativeValue
+	}
+
 	return nil
 }

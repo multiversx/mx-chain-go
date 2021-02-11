@@ -96,16 +96,9 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 
 // integrity checks for not nil fields and negative value
 func (inRTx *InterceptedRewardTransaction) integrity() error {
-	if len(inRTx.rTx.RcvAddr) == 0 {
-		return process.ErrNilRcvAddr
-	}
-
-	if inRTx.rTx.Value == nil {
-		return process.ErrNilValue
-	}
-
-	if inRTx.rTx.Value.Cmp(big.NewInt(0)) < 0 {
-		return process.ErrNegativeValue
+	err := inRTx.rTx.CheckIntegrity()
+	if err != nil {
+		return err
 	}
 
 	return nil

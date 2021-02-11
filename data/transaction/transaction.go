@@ -4,6 +4,7 @@ package transaction
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -83,5 +84,21 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 }
 
 func (tx *Transaction) CheckIntegrity() error {
+	if tx.Signature == nil {
+		return data.ErrNilSignature
+	}
+	if tx.Value == nil {
+		return data.ErrNilValue
+	}
+	if tx.Value.Sign() < 0 {
+		return data.ErrNegativeValue
+	}
+	if len(tx.RcvUserName) > core.MaxUserNameLength {
+		return data.ErrInvalidUserNameLength
+	}
+	if len(tx.SndUserName) > core.MaxUserNameLength {
+		return data.ErrInvalidUserNameLength
+	}
+
 	return nil
 }
