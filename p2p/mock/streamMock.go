@@ -135,3 +135,21 @@ func (sm *streamMock) ID() string {
 func (sm *streamMock) SetID(id string) {
 	sm.id = id
 }
+
+// CloseWrite -
+func (sm *streamMock) CloseWrite() error {
+	sm.mutData.Lock()
+	defer sm.mutData.Unlock()
+
+	sm.streamClosed = true
+	return nil
+}
+
+// CloseRead -
+func (sm *streamMock) CloseRead() error {
+	sm.mutData.Lock()
+	defer sm.mutData.Unlock()
+
+	sm.streamClosed = true
+	return nil
+}
