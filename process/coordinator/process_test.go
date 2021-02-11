@@ -34,7 +34,7 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-var TxHash = []byte("tx_hash1")
+var txHash = []byte("tx_hash1")
 
 func FeeHandlerMock() *mock.FeeHandlerStub {
 	return &mock.FeeHandlerStub{
@@ -588,7 +588,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 
 	scrs := make([]data.TransactionHandler, 0)
 	body := &block.Body{}
-	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, TxHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, txHash))
 
 	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99), PrevTxHash: []byte("txHash")}
 	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
@@ -1002,7 +1002,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
@@ -1021,7 +1021,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *testing.T) {
 	t.Parallel()
 	totalGasConsumed := uint64(0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.MiniBlockPool = tdp.MiniBlocks()
 	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock())
@@ -1047,7 +1047,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 
 	nrShards := uint32(5)
 	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
@@ -1085,7 +1085,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	nrShards := uint32(5)
 	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
@@ -1139,7 +1139,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	nrShards := uint32(5)
 	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
@@ -1196,7 +1196,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	nrShards := uint32(5)
 	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
@@ -1254,7 +1254,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 
 	nrShards := uint32(5)
 	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
@@ -1300,7 +1300,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	nrShards := uint32(5)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
@@ -1322,8 +1322,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T) {
 	t.Parallel()
 
-	txHashInPool := TxHash
-	tdp := initDataPool(txHashInPool)
+	tdp := initDataPool(txHash)
 	nrShards := uint32(5)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
@@ -1335,7 +1334,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 
 	body := &block.Body{}
 	txHashToAsk := []byte("tx_hashnotinPool")
-	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashInPool, txHashToAsk}}
+	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash, txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	tc.RequestBlockTransactions(body)
 
@@ -1353,7 +1352,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool(TxHash)
+	tdp := initDataPool(txHash)
 	nrShards := uint32(5)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
@@ -1373,7 +1372,6 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 func TestTransactionCoordinator_SaveTxsToStorage(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	tdp := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
@@ -1407,7 +1405,6 @@ func TestTransactionCoordinator_SaveTxsToStorage(t *testing.T) {
 func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	tdp := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
@@ -1448,7 +1445,6 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	dataPool := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
@@ -1474,7 +1470,6 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	dataPool := initDataPool(txHash)
 
 	accounts := initAccountsMock()
@@ -1550,7 +1545,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	dataPool := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
@@ -1591,7 +1585,6 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	dataPool := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	nrCalled := 0
@@ -2062,7 +2055,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 func TestTransactionCoordinator_SaveTxsToStorageSaveIntermediateTxsErrors(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	tdp := initDataPool(txHash)
 	retError := errors.New("save error")
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -2102,7 +2094,6 @@ func TestTransactionCoordinator_SaveTxsToStorageSaveIntermediateTxsErrors(t *tes
 func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	tdp := initDataPool(txHash)
 	intermediateTxWereSaved := false
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -2145,7 +2136,6 @@ func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing
 func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *testing.T) {
 	t.Parallel()
 
-	txHash := TxHash
 	dataPool := initDataPool(txHash)
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
