@@ -1761,9 +1761,10 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:       fundKey,
-		UnStakedFunds:    [][]byte{},
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -1842,9 +1843,10 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:       fundKey,
-		UnStakedFunds:    [][]byte{},
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -2350,12 +2352,13 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{
-			CurrentEpochCalled: func() uint32 {
-				return 2
-			},
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 2
 		},
+	}
+	eei, _ := NewVMContext(
+		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
@@ -2368,9 +2371,10 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 
 	fundKey := []byte{1}
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:        fundKey,
-		RewardsCheckpoint: 0,
-		UnClaimedRewards:  big.NewInt(0),
+		ActiveFund:            fundKey,
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveFund(fundKey, &Fund{
@@ -2404,6 +2408,27 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(135), delegatorData.TotalCumulatedRewards.Uint64())
+
+	blockChainHook.CurrentEpochCalled = func() uint32 {
+		return 3
+	}
+
+	_ = d.saveRewardData(3, &RewardComputationData{
+		RewardsToDistribute: big.NewInt(100),
+		TotalActive:         big.NewInt(2000),
+		ServiceFee:          10000,
+	})
+
+	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	_, delegatorData, _ = d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(135), delegatorData.TotalCumulatedRewards.Uint64())
+	lastValue := eei.output[len(eei.output)-1]
+	assert.Equal(t, big.NewInt(0).SetBytes(lastValue).Uint64(), uint64(180))
 }
 
 func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
@@ -2440,9 +2465,10 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 
 	fundKey := []byte{1}
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:        fundKey,
-		RewardsCheckpoint: 0,
-		UnClaimedRewards:  big.NewInt(0),
+		ActiveFund:            fundKey,
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveFund(fundKey, &Fund{
@@ -2610,9 +2636,10 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 
 	fundKey := []byte{1}
 	_ = d.saveDelegatorData(delegatorAddr, &DelegatorData{
-		ActiveFund:        fundKey,
-		RewardsCheckpoint: 0,
-		UnClaimedRewards:  big.NewInt(0),
+		ActiveFund:            fundKey,
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveFund(fundKey, &Fund{
@@ -3531,8 +3558,9 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 
 	fundKey := []byte{2}
 	dData := &DelegatorData{
-		ActiveFund:       fundKey,
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	}
 
 	rewards := big.NewInt(1000)
@@ -3570,8 +3598,9 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 
 	fundKey := []byte{2}
 	dData := &DelegatorData{
-		ActiveFund:       fundKey,
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	}
 
 	rewards := big.NewInt(1000)
@@ -3670,8 +3699,9 @@ func TestDelegation_getDelegatorFundsDataCannotLoadFundsShouldErr(t *testing.T) 
 
 	fundKey := []byte{2}
 	_ = d.saveDelegatorData(delegatorAddress, &DelegatorData{
-		ActiveFund:       fundKey,
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
@@ -3702,8 +3732,9 @@ func TestDelegation_getDelegatorFundsDataCannotFindConfigShouldErr(t *testing.T)
 	fundKey := []byte{2}
 	fundValue := big.NewInt(150)
 	_ = d.saveDelegatorData(delegatorAddress, &DelegatorData{
-		ActiveFund:       fundKey,
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveFund(fundKey, &Fund{
@@ -3733,8 +3764,9 @@ func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 	fundKey := []byte{2}
 	fundValue := big.NewInt(150)
 	_ = d.saveDelegatorData(delegatorAddress, &DelegatorData{
-		ActiveFund:       fundKey,
-		UnClaimedRewards: big.NewInt(0),
+		ActiveFund:            fundKey,
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 
 	_ = d.saveFund(fundKey, &Fund{

@@ -231,6 +231,12 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getDelegatorFundsData(args)
 	case "getDelegatorList":
 		return d.getDelegatorList(args)
+	case "getTotalCumulatedRewardsForUser":
+		return d.getTotalCumulatedRewardsForUser(args)
+	case "setIdentifier":
+		return d.setIdentifier(args)
+	case "getIdentifier":
+		return d.getIdentifier(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -1456,6 +1462,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
@@ -2074,6 +2081,32 @@ func (d *delegation) getDelegatorList(args *vmcommon.ContractCallInput) vmcommon
 	return vmcommon.Ok
 }
 
+func (d *delegation) getTotalCumulatedRewardsForUser(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.computeAndUpdateRewards(args.Arguments[0], delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	totalCumulatedRewards := big.NewInt(0).Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
+	d.eei.Finish(totalCumulatedRewards.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) setIdentifier(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
+}
+
+func (d *delegation) getIdentifier(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
+}
+
 func (d *delegation) executeOnValidatorSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
 	validatorCall := function
 	for _, key := range args {
@@ -2141,7 +2174,8 @@ func (d *delegation) saveDelegationStatus(status *DelegationContractStatus) erro
 
 func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
 	dData := &DelegatorData{
-		UnClaimedRewards: big.NewInt(0),
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	}
 	marshaledData := d.eei.GetStorage(address)
 	if len(marshaledData) == 0 {

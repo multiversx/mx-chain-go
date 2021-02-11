@@ -29,6 +29,8 @@ message DelegationConfig {
   uint64 UnBondPeriod         = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
 }
 
+
+
 message DelegationContractStatus {
   repeated bytes     Delegators    = 1 [(gogoproto.jsontag) = "Delegators"];
   repeated NodesData StakedKeys    = 2 [(gogoproto.jsontag) = "StakedKeys"];
@@ -44,11 +46,11 @@ message Fund {
 }
 
 message DelegatorData {
-  bytes          ActiveFund        = 1 [(gogoproto.jsontag) = "ActiveFund"];
-  repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
-  uint32         RewardsCheckpoint = 3 [(gogoproto.jsontag) = "RewardsCheckpoint"];
-  bytes          UnClaimedRewards  = 4 [(gogoproto.jsontag) = "UnClaimedRewards", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-
+  bytes          ActiveFund              = 1 [(gogoproto.jsontag) = "ActiveFund"];
+  repeated bytes UnStakedFunds           = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
+  uint32         RewardsCheckpoint       = 3 [(gogoproto.jsontag) = "RewardsCheckpoint"];
+  bytes          UnClaimedRewards        = 4 [(gogoproto.jsontag) = "UnClaimedRewards", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes          TotalCumulatedRewards = 5 [(gogoproto.jsontag) = "TotalCumulatedRewards", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message GlobalFundData {
