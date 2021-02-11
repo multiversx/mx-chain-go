@@ -293,6 +293,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedHeartbeatComponents,
 			managedConsensusComponents,
 			flagsConfig.BootstrapRoundIndex,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
@@ -328,6 +329,7 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
+	apiWorkingDir := filepath.Join(configs.FlagsConfig.WorkingDir, core.TemporaryPath)
 	apiResolver, err := mainFactory.CreateApiResolver(
 		configs.GeneralConfig,
 		currentNode.stateComponents.AccountsAdapter(),
@@ -348,7 +350,7 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 		configs.SystemSCConfig,
 		currentNode.coreComponents.Rater(),
 		currentNode.coreComponents.EpochNotifier(),
-		configs.FlagsConfig.WorkingDir,
+		apiWorkingDir,
 	)
 	if err != nil {
 		return nil, err
@@ -412,6 +414,9 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, managedCoreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, managedCoreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
 
 	return nil
 }
@@ -471,6 +476,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ProcessComponents:   managedProcessComponents,
 		StateComponents:     managedStateComponents,
 		StatusComponents:    managedStatusComponents,
+		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -596,7 +602,7 @@ func (nr *nodeRunner) logInformation(
 		"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	sessionInfoFileOutput += nr.configs.FlagsConfig.SessionInfoFileOutput
 
 	nr.logSessionInformation(nr.configs.FlagsConfig.WorkingDir, sessionInfoFileOutput, managedCoreComponents)

@@ -74,7 +74,7 @@ type coreComponents struct {
 	alarmScheduler                core.TimersScheduler
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
-	economicsData                 process.EconomicsHandler
+	economicsData                 process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
@@ -210,6 +210,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      &ccf.economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: ccf.config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    ccf.config.GeneralSettings.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
@@ -241,13 +242,24 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		genesisNodesConfig.MinNumberOfShardNodes(),
-		genesisNodesConfig.MinNumberOfMetaNodes(),
-		genesisNodesConfig.GetHysteresis(),
-		genesisNodesConfig.GetAdaptivity(),
-		true,
-	)
+	err = economicsData.SetStatusHandler(statusHandlersInfo.StatusHandler())
+	if err != nil {
+		log.Debug("cannot set status handler to economicsData", "error", err)
+	}
+
+	argsNodesShuffler := &sharding.NodesShufflerArgs{
+		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:           genesisNodesConfig.GetHysteresis(),
+		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: ccf.config.GeneralSettings.MaxNodesChangeEnableEpoch,
+	}
+
+	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	if err != nil {
+		return nil, err
+	}
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 

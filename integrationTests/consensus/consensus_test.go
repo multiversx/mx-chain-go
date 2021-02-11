@@ -124,6 +124,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			ProcessComponents:   n.node.GetProcessComponents(),
 			StateComponents:     n.node.GetStateComponents(),
 			StatusComponents:    statusComponents,
+			IsInImportMode:      n.node.IsInImportMode(),
 		}
 
 		consensusFactory, err := factory.NewConsensusComponentsFactory(consensusArgs)

@@ -92,7 +92,7 @@ type Node struct {
 	stateComponents     mainFactory.StateComponentsHolder
 	statusComponents    mainFactory.StatusComponentsHolder
 
-	closableComponents []mainFactory.Closer
+	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -577,7 +577,7 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" || len(chainID) > len(string(n.chainID)) {
+	if chainID == "" || len(chainID) > len(n.coreComponents.ChainID()) {
 		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
@@ -621,7 +621,7 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
-	if len(value) > len(n.feeHandler.GenesisTotalSupply().String())+1 {
+	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
 		return nil, nil, ErrTransactionValueLengthTooBig
 	}
 
@@ -687,7 +687,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 
 // GetCode returns the code for the given account
 func (n *Node) GetCode(account state.UserAccountHandler) []byte {
-	return n.accounts.GetCode(account.GetCodeHash())
+	return n.stateComponents.AccountsAdapter().GetCode(account.GetCodeHash())
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
@@ -910,6 +910,11 @@ func (n *Node) Close() error {
 	time.Sleep(time.Second * 5)
 
 	return closeError
+}
+
+// Returns true if the node is in import mode
+func (n *Node) IsInImportMode() bool {
+	return n.isInImportMode
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

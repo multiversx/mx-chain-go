@@ -581,6 +581,8 @@ type feeHandler interface {
 	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessing() uint64
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
 }
 
 // TxGasHandler handles a transaction gas and gas cost

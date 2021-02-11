@@ -103,7 +103,7 @@ type CoreComponentsHolder interface {
 	AlarmScheduler() core.TimersScheduler
 	SyncTimer() ntp.SyncTimer
 	RoundHandler() consensus.RoundHandler
-	EconomicsData() process.EconomicsHandler
+	EconomicsData() process.EconomicsDataHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
