@@ -18,7 +18,7 @@ type metaAPIBlockProcessor struct {
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
 func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
-	statusComputer := transaction.NewStatusComputer(arg.SelfShardID,arg.Uint64ByteSliceConverter,arg.Store)
+	statusComputer := transaction.NewStatusComputer(arg.SelfShardID, arg.Uint64ByteSliceConverter, arg.Store)
 
 	return &metaAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
@@ -29,7 +29,7 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor 
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
-			txStatusComputer: 		  statusComputer,
+			txStatusComputer:         statusComputer,
 		},
 	}
 }
