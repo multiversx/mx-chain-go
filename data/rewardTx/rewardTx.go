@@ -61,3 +61,7 @@ func (_ *RewardTx) SetSndAddr(addr []byte) {
 func (_ *RewardTx) GetRcvUserName() []byte {
 	return nil
 }
+
+func (rtx *RewardTx) CheckIntegrity() error {
+	return nil
+}

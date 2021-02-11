@@ -81,3 +81,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 
 	return marshalizer.Marshal(ftx)
 }
+
+func (tx *Transaction) CheckIntegrity() error {
+	return nil
+}

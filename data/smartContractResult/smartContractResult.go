@@ -48,3 +48,7 @@ func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
 	copy(ret, in)
 	return ret
 }
+
+func (scr *SmartContractResult) CheckIntegrity() error {
+	return nil
+}

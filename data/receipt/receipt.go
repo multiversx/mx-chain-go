@@ -57,3 +57,7 @@ func (rpt *Receipt) SetSndAddr(addr []byte) {
 func (_ *Receipt) GetRcvUserName() []byte {
 	return nil
 }
+
+func (rpt *Receipt) CheckIntegrity() error {
+	return nil
+}
