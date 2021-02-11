@@ -92,9 +92,6 @@ var ErrNilStorageManager = errors.New("nil storage manager")
 // ErrNilRequestHandler signals that nil request handler has been provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrInvalidWaitTime signals that invalid wait time has been provided
-var ErrInvalidWaitTime = errors.New("invalid wait time")
-
 // ErrNilCacher signals that nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
@@ -115,3 +112,6 @@ var ErrNilMapOfHashes = errors.New("nil map of hashes")
 
 // ErrInvalidRootHash signals that the provided root hash is invalid
 var ErrInvalidRootHash = errors.New("invalid root hash")
+
+// ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
+var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")

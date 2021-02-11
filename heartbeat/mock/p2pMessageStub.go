@@ -9,7 +9,7 @@ type P2PMessageStub struct {
 	FromField      []byte
 	DataField      []byte
 	SeqNoField     []byte
-	TopicsField    []string
+	TopicField     string
 	SignatureField []byte
 	KeyField       []byte
 	PeerField      core.PeerID
@@ -32,9 +32,9 @@ func (msg *P2PMessageStub) SeqNo() []byte {
 	return msg.SeqNoField
 }
 
-// Topics -
-func (msg *P2PMessageStub) Topics() []string {
-	return msg.TopicsField
+// Topic -
+func (msg *P2PMessageStub) Topic() string {
+	return msg.TopicField
 }
 
 // Signature -
