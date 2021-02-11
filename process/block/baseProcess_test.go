@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"reflect"
 	"sort"
@@ -341,6 +342,29 @@ func CreateMockArguments(
 	}
 
 	return arguments
+}
+
+func createMockTransactionCoordinatorArguments(
+	accountAdapter state.AccountsAdapter,
+	poolsHolder dataRetriever.PoolsHolder,
+	preProcessorsContainer process.PreProcessorsContainer,
+) coordinator.ArgTransactionCoordinator {
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             accountAdapter,
+		MiniBlockPool:        poolsHolder.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        preProcessorsContainer,
+		InterProcessors:      &mock.InterimProcessorContainerMock{},
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+	}
+
+	return argsTransactionCoordinator
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {

@@ -489,23 +489,12 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	)
 	container, _ := factory.Create()
 
-	tc, err := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		accounts,
-		tdp.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{
-			InitCalled: func() {
-			},
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
+	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+		InitCalled: func() {
 		},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	}
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
@@ -718,27 +707,16 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	container, _ := factory.Create()
 
 	totalGasConsumed := uint64(0)
-	tc, _ := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		accounts,
-		tdp.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{
-			InitCalled: func() {
-				totalGasConsumed = 0
-			},
-			TotalGasConsumedCalled: func() uint64 {
-				return totalGasConsumed
-			},
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accounts, tdp, container)
+	argsTransactionCoordinator.GasHandler = &mock.GasHandlerMock{
+		InitCalled: func() {
+			totalGasConsumed = 0
 		},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+		TotalGasConsumedCalled: func() uint64 {
+			return totalGasConsumed
+		},
+	}
+	tc, _ := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = tdp
@@ -2298,20 +2276,8 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	)
 	container, _ := factory.Create()
 
-	tc, err := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		initAccountsMock(),
-		tdp.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
@@ -2414,20 +2380,8 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	)
 	container, _ := factory.Create()
 
-	tc, err := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		initAccountsMock(),
-		tdp.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), tdp, container)
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
@@ -2499,20 +2453,9 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		},
 	}
 
-	tc, _ := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		initAccountsMock(),
-		datapool.MiniBlocks(),
-		requestHandler,
-		&mock.PreProcessorContainerMock{},
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, &mock.PreProcessorContainerMock{})
+	argsTransactionCoordinator.RequestHandler = requestHandler
+	tc, _ := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = datapool
@@ -2577,20 +2520,9 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		},
 	}
 
-	tc, _ := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		initAccountsMock(),
-		datapool.MiniBlocks(),
-		requestHandler,
-		&mock.PreProcessorContainerMock{},
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, &mock.PreProcessorContainerMock{})
+	argsTransactionCoordinator.RequestHandler = requestHandler
+	tc, _ := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = datapool
@@ -2836,20 +2768,8 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	)
 	container, _ := factory.Create()
 
-	tc, err := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		accntAdapter,
-		datapool.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accntAdapter, datapool, container)
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
@@ -3024,20 +2944,8 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	)
 	container, _ := factory.Create()
 
-	tc, err := coordinator.NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		initAccountsMock(),
-		datapool.MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		container,
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.BlockSizeComputationStub{},
-		&mock.BalanceComputationStub{},
-	)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), datapool, container)
+	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()

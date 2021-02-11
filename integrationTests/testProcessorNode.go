@@ -1186,20 +1186,21 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
-	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
-		TestHasher,
-		TestMarshalizer,
-		tpn.ShardCoordinator,
-		tpn.AccntState,
-		tpn.DataPool.MiniBlocks(),
-		tpn.RequestHandler,
-		tpn.PreProcessorsContainer,
-		tpn.InterimProcContainer,
-		tpn.GasHandler,
-		tpn.FeeAccumulator,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
-	)
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               TestHasher,
+		Marshalizer:          TestMarshalizer,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		Accounts:             tpn.AccntState,
+		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
+		RequestHandler:       tpn.RequestHandler,
+		PreProcessors:        tpn.PreProcessorsContainer,
+		InterProcessors:      tpn.InterimProcContainer,
+		GasHandler:           tpn.GasHandler,
+		FeeHandler:           tpn.FeeAccumulator,
+		BlockSizeComputation: TestBlockSizeComputationHandler,
+		BalanceComputation:   TestBalanceComputationHandler,
+	}
+	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors() {
@@ -1365,20 +1366,21 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
-	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(
-		TestHasher,
-		TestMarshalizer,
-		tpn.ShardCoordinator,
-		tpn.AccntState,
-		tpn.DataPool.MiniBlocks(),
-		tpn.RequestHandler,
-		tpn.PreProcessorsContainer,
-		tpn.InterimProcContainer,
-		tpn.GasHandler,
-		tpn.FeeAccumulator,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
-	)
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               TestHasher,
+		Marshalizer:          TestMarshalizer,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		Accounts:             tpn.AccntState,
+		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
+		RequestHandler:       tpn.RequestHandler,
+		PreProcessors:        tpn.PreProcessorsContainer,
+		InterProcessors:      tpn.InterimProcContainer,
+		GasHandler:           tpn.GasHandler,
+		FeeHandler:           tpn.FeeAccumulator,
+		BlockSizeComputation: TestBlockSizeComputationHandler,
+		BalanceComputation:   TestBalanceComputationHandler,
+	}
+	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {
