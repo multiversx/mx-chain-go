@@ -31,7 +31,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.3.3
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.2.0
-	github.com/multiformats/go-multiaddr v0.2.2
+	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/pelletier/go-toml v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
