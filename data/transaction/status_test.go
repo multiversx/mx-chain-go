@@ -58,7 +58,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 	require.Nil(t, err)
 
 	// Contract deploy
-	statusComputer.selfShardId = 13
+	statusComputer.selfShardID = 13
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))
@@ -110,7 +110,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	require.Nil(t, err)
 
 	// Contract deploy
-	statusComputer.selfShardId = 13
+	statusComputer.selfShardID = 13
 	tx.SourceShard = 12
 	tx.DestinationShard = 13
 	tx.Tx.SetRcvAddr(make([]byte, 32))

@@ -35,19 +35,19 @@ func (tx TxStatus) String() string {
 
 // statusComputer computes a transaction status
 type statusComputer struct {
-	selfShardId              uint32
+	selfShardID              uint32
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	store                    dataRetriever.StorageService
 }
 
 // Create a new instance of statusComputer
 func NewStatusComputer(
-	selfShardId uint32,
+	selfShardID uint32,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	store dataRetriever.StorageService,
 ) *statusComputer {
 	statusComputer := &statusComputer{
-		selfShardId:              selfShardId,
+		selfShardID:              selfShardID,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		store:                    store,
 	}
@@ -104,7 +104,7 @@ func (sc *statusComputer) isMiniblockInvalid(miniblockType block.Type) bool {
 }
 
 func (sc *statusComputer) isDestinationMe(destinationShard uint32) bool {
-	return sc.selfShardId == destinationShard
+	return sc.selfShardID == destinationShard
 }
 
 func (sc *statusComputer) isContractDeploy(receiver []byte, transactionData []byte) bool {
@@ -129,7 +129,7 @@ func (sc *statusComputer) SetStatusIfIsRewardReverted(
 
 	var storerUnit dataRetriever.UnitType
 
-	selfShardID := sc.selfShardId
+	selfShardID := sc.selfShardID
 	if selfShardID == core.MetachainShardId {
 		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
 	} else {
