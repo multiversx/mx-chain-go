@@ -354,7 +354,7 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "total delegation cap reached, no more space to accept"))
+	assert.True(t, strings.Contains(eei.returnMessage, "total delegation cap reached"))
 }
 
 func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
@@ -404,7 +404,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(dStatus.StakedKeys))
 	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
-	assert.Equal(t, 1, len(dStatus.Delegators))
+	assert.Equal(t, uint64(1), dStatus.NumUsers)
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	ownerFund, err := d.getFund(fundKey)
@@ -1473,7 +1473,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodesNotDelegatorShouldErr(t *testing.T
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
 	args.Eei = eei
 	vmInput := getDefaultVmInputForFunc("unJailNodes", [][]byte{blsKey1, blsKey2})
-
+	vmInput.CallerAddr = []byte("notDelegator")
 	key1 := &NodesData{BLSKey: blsKey1}
 	key2 := &NodesData{BLSKey: blsKey2}
 	d, _ := NewDelegationSystemSC(args)
@@ -1507,6 +1507,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("unJailNodes", [][]byte{blsKey1, blsKey2})
 	vmInput.CallValue = big.NewInt(20)
+	vmInput.CallerAddr = []byte("delegator")
 
 	key1 := &NodesData{BLSKey: blsKey1}
 	key2 := &NodesData{BLSKey: blsKey2}
@@ -1514,9 +1515,11 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		StakedKeys:   []*NodesData{key1},
 		UnStakedKeys: []*NodesData{key2},
-		Delegators:   [][]byte{vmInput.CallerAddr},
+		NumUsers:     1,
 	})
 	addValidatorAndStakingScToVmContext(eei)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{ActiveFund: []byte("someFund"), UnClaimedRewards: big.NewInt(0), TotalCumulatedRewards: big.NewInt(0)})
 
 	validatorMap := map[string][]byte{}
 	registrationDataValidator := &ValidatorDataV2{
@@ -1641,7 +1644,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "total delegation cap reached, no more space to accept"))
+	assert.True(t, strings.Contains(eei.returnMessage, "total delegation cap reached"))
 
 	_ = d.saveGlobalFundData(&GlobalFundData{
 		TotalActive: big.NewInt(0),
@@ -1661,8 +1664,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 	assert.Equal(t, fundKey, dGlobalFund.ActiveFunds[0])
 
 	dStatus, _ := d.getDelegationStatus()
-	assert.Equal(t, 1, len(dStatus.Delegators))
-	assert.Equal(t, delegator1, dStatus.Delegators[0])
+	assert.Equal(t, uint64(1), dStatus.NumUsers)
 
 	_, dData, _ := d.getOrCreateDelegatorData(delegator1)
 	assert.Equal(t, fundKey, dData.ActiveFund)
@@ -2804,7 +2806,7 @@ func TestDelegation_ExecuteGetNumUsers(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
-		Delegators: [][]byte{[]byte("delegator1"), []byte("delegator2"), []byte("delegator3")},
+		NumUsers: 3,
 	})
 
 	output := d.Execute(vmInput)
@@ -3784,7 +3786,7 @@ func TestDelegation_getDelegatorFundsDataShouldWork(t *testing.T) {
 	assert.Equal(t, fundValue.Bytes(), eei.output[0])
 }
 
-func TestDelegation_getDelegatorListCannotFindDelegationStatusShouldErr(t *testing.T) {
+func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -3795,58 +3797,62 @@ func TestDelegation_getDelegatorListCannotFindDelegationStatusShouldErr(t *testi
 	)
 	args.Eei = eei
 
-	vmInput := getDefaultVmInputForFunc("getDelegatorList", nil)
 	d, _ := NewDelegationSystemSC(args)
 
-	retCode := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Contains(t, eei.returnMessage, vm.ErrDataNotFoundUnderKey.Error())
-}
-
-func TestDelegation_getDelegatorListNonZeroLengthArgumentsShouldErr(t *testing.T) {
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getDelegatorList", [][]byte{[]byte("arg")})
-	d, _ := NewDelegationSystemSC(args)
-
-	retCode := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Contains(t, eei.returnMessage, vm.ErrInvalidNumOfArguments.Error())
-}
-
-func TestDelegation_getDelegatorListShouldWork(t *testing.T) {
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getDelegatorList", nil)
-	d, _ := NewDelegationSystemSC(args)
-
-	delegators := [][]byte{
-		[]byte("delegator0"),
-		[]byte("delegator1"),
-	}
-	delegationStatus := &DelegationContractStatus{
-		Delegators: delegators,
-	}
-
-	_ = d.saveDelegationStatus(delegationStatus)
-
+	vmInput := getDefaultVmInputForFunc("setMetaData", [][]byte{[]byte("name"), []byte("description"), []byte("URI")})
+	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
 	retCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
-	assert.Equal(t, delegators, eei.output)
+
+	vmInputGet := getDefaultVmInputForFunc("getMetaData", [][]byte{})
+	retCode = d.Execute(vmInputGet)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	assert.Equal(t, eei.output[0], vmInput.Arguments[0])
+	assert.Equal(t, eei.output[1], vmInput.Arguments[1])
+	assert.Equal(t, eei.output[2], vmInput.Arguments[2])
+}
+
+func TestDelegation_setAutomaticActivation(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationContractConfig(&DelegationConfig{})
+
+	vmInput := getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("yes")})
+	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
+	retCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dConfig, _ := d.getDelegationContractConfig()
+	assert.Equal(t, dConfig.AutomaticActivation, true)
+
+	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("no")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dConfig, _ = d.getDelegationContractConfig()
+	assert.Equal(t, dConfig.AutomaticActivation, false)
+
+	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("yes")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dConfig, _ = d.getDelegationContractConfig()
+	assert.Equal(t, dConfig.CheckCapOnReDelegateRewards, true)
+
+	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("no")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	dConfig, _ = d.getDelegationContractConfig()
+	assert.Equal(t, dConfig.CheckCapOnReDelegateRewards, false)
 }

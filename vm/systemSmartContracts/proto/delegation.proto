@@ -21,21 +21,26 @@ message DelegationContractList {
 }
 
 message DelegationConfig {
-  bytes  MaxDelegationCap     = 1 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  InitialOwnerFunds    = 2 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bool   AutomaticActivation  = 3 [(gogoproto.jsontag) = "AutomaticActivation"];
-  bool   ChangeableServiceFee = 4 [(gogoproto.jsontag) = "ChangeableServiceFee"];
-  uint64 CreatedNonce         = 5 [(gogoproto.jsontag) = "CreatedNonce"];
-  uint64 UnBondPeriod         = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
+  bytes  MaxDelegationCap            = 1 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  InitialOwnerFunds           = 2 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bool   AutomaticActivation         = 3 [(gogoproto.jsontag) = "AutomaticActivation"];
+  bool   ChangeableServiceFee        = 4 [(gogoproto.jsontag) = "ChangeableServiceFee"];
+  uint64 CreatedNonce                = 5 [(gogoproto.jsontag) = "CreatedNonce"];
+  uint64 UnBondPeriod                = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
+  bool   CheckCapOnReDelegateRewards = 7 [(gogoproto.jsontag) = "CheckCapOnReDelegateRewards"];
 }
 
-
+message DelegationMetaData {
+  bytes Name        = 1 [(gogoproto.jsontag) = "Name"];
+  bytes Description = 2 [(gogoproto.jsontag) = "Description"];
+  bytes URI         = 3 [(gogoproto.jsontag) = "URI"];
+}
 
 message DelegationContractStatus {
-  repeated bytes     Delegators    = 1 [(gogoproto.jsontag) = "Delegators"];
-  repeated NodesData StakedKeys    = 2 [(gogoproto.jsontag) = "StakedKeys"];
-  repeated NodesData NotStakedKeys = 3 [(gogoproto.jsontag) = "NotStakedKeys"];
-  repeated NodesData UnStakedKeys  = 4 [(gogoproto.jsontag) = "UnStakedKeys"];
+  repeated NodesData StakedKeys    = 1 [(gogoproto.jsontag) = "StakedKeys"];
+  repeated NodesData NotStakedKeys = 2 [(gogoproto.jsontag) = "NotStakedKeys"];
+  repeated NodesData UnStakedKeys  = 3 [(gogoproto.jsontag) = "UnStakedKeys"];
+  uint64             NumUsers      = 4 [(gogoproto.jsontag) = "NumUsers"];
 }
 
 message Fund {
