@@ -1649,39 +1649,48 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
-	if !d.isOwner(args.CallerAddr) && isDelegatorWithoutFunds {
-		err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
-		if delegator.UnClaimedRewards.Cmp(zero) == 0 {
-			d.eei.SetStorage(args.CallerAddr, nil)
-
-			dStatus, errGet := d.getDelegationStatus()
-			if errGet != nil {
-				d.eei.AddReturnMessage(errGet.Error())
-				return vmcommon.UserError
-			}
-
-			if dStatus.NumUsers > 0 {
-				dStatus.NumUsers--
-			}
-
-			err = d.saveDelegationStatus(dStatus)
-			if err != nil {
-				d.eei.AddReturnMessage(err.Error())
-				return vmcommon.UserError
-			}
-		}
+	err = d.deleteDelegatorIfNeeded(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
 }
 
-func (d *delegation) deleteDelegatorIfNeeded() error {
+func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *DelegatorData) error {
+	if d.isOwner(address) {
+		return nil
+	}
+
+	isDelegatorWithoutFunds := len(delegator.ActiveFund) == 0 && len(delegator.UnStakedFunds) == 0
+	if !isDelegatorWithoutFunds {
+		return nil
+	}
+
+	err := d.computeAndUpdateRewards(address, delegator)
+	if err != nil {
+		return err
+	}
+
+	if delegator.UnClaimedRewards.Cmp(zero) == 0 {
+		d.eei.SetStorage(address, nil)
+
+		dStatus, errGet := d.getDelegationStatus()
+		if errGet != nil {
+			return errGet
+		}
+
+		if dStatus.NumUsers > 0 {
+			dStatus.NumUsers--
+		}
+
+		err = d.saveDelegationStatus(dStatus)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
