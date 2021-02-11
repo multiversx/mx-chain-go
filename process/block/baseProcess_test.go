@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"math/big"
 	"reflect"
 	"sort"
@@ -25,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"

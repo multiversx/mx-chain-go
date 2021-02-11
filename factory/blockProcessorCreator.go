@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
