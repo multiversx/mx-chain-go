@@ -211,8 +211,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
-	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
+	verifyDelegatorIsDeleted(t, tpn, delegators[:numDelegators-2], delegationScAddress)
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
@@ -1097,6 +1096,26 @@ func verifyDelegatorsStake(
 	for i := range addresses {
 		delegActiveStake := viewFuncSingleResult(t, tpn, delegationAddr, funcName, [][]byte{addresses[i]})
 		assert.Equal(t, expectedRes, big.NewInt(0).SetBytes(delegActiveStake))
+	}
+}
+
+func verifyDelegatorIsDeleted(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	addresses [][]byte,
+	delegationAddr []byte,
+) {
+	for _, address := range addresses {
+		query := &process.SCQuery{
+			ScAddress:  delegationAddr,
+			FuncName:   "isDelegator",
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{address},
+		}
+		_, err := tpn.SCQueryService.ExecuteQuery(query)
+		assert.NotNil(t, err)
+		assert.Equal(t, err.Error(), "error running vm func: code: 4, user error (view function works only for existing delegators)")
 	}
 }
 
