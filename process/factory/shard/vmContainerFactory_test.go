@@ -41,14 +41,16 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(
-		config.VirtualMachineConfig{},
-		10000,
-		nil,
-		createMockVMAccountsArguments(),
-		0,
-		0,
-	)
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         config.VirtualMachineConfig{},
+		BlockGasLimit:                  10000,
+		GasSchedule:                    nil,
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilGasSchedule, err)
@@ -57,14 +59,16 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(
-		config.VirtualMachineConfig{},
-		10000,
-		mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		createMockVMAccountsArguments(),
-		0,
-		0,
-	)
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         config.VirtualMachineConfig{},
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -74,14 +78,16 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	vmf, err := NewVMContainerFactory(
-		config.VirtualMachineConfig{},
-		10000,
-		mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
-		createMockVMAccountsArguments(),
-		0,
-		0,
-	)
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         config.VirtualMachineConfig{},
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
 

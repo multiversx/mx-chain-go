@@ -397,17 +397,19 @@ func CreateVMAndBlockchainHook(
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: outOfProcess,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
-		maxGasLimitPerBlock,
-		mock.NewGasScheduleNotifierMock(actualGasSchedule),
-		args,
-		0,
-		0,
-	)
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		ArgBlockChainHook:              args,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		log.LogIfError(err)
 	}
