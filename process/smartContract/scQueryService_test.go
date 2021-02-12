@@ -174,7 +174,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
-func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
+func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	mockVM := &mock.VMExecutionHandlerStub{
