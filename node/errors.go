@@ -231,3 +231,6 @@ var ErrNilTransactionVersionChecker = errors.New("nil transaction version checke
 
 // ErrNilDataTrie signals that user account has a nil data trie
 var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrNilStatusComputer signals that user account has a nil data trie
+var ErrNilStatusComputer = errors.New("nil transaction status computer")

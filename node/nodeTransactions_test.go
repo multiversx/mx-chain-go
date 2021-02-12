@@ -227,6 +227,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			return resultHashesByTxHash, nil
 		},
 	}
+	uint64Converter := mock.NewNonceHashConverterMock()
 
 	n, _ := NewNode(
 		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
@@ -235,6 +236,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		WithHistoryRepository(historyRepo),
 		WithDataPool(testscommon.NewPoolsHolderMock()),
 		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		WithUint64ByteSliceConverter(uint64Converter),
 	)
 
 	expectedTx := &transaction.ApiTransactionResult{

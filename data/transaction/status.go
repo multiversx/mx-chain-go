@@ -5,6 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -45,14 +46,21 @@ func NewStatusComputer(
 	selfShardID uint32,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	store dataRetriever.StorageService,
-) *statusComputer {
+) (*statusComputer, error) {
+	if check.IfNil(uint64ByteSliceConverter) {
+		return nil, ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(store) {
+		return nil, ErrNiStorageService
+	}
+
 	statusComputer := &statusComputer{
 		selfShardID:              selfShardID,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		store:                    store,
 	}
 
-	return statusComputer
+	return statusComputer, nil
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction

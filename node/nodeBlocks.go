@@ -15,18 +15,25 @@ func (n *Node) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 		return nil, err
 	}
 
-	apiBlockProcessor := n.createAPIBlockProcessor()
+	apiBlockProcessor, err := n.createAPIBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
+
 	return apiBlockProcessor.GetBlockByHash(decodedHash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
 func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
-	apiBlockProcessor := n.createAPIBlockProcessor()
+	apiBlockProcessor, err := n.createAPIBlockProcessor()
+	if err != nil {
+		return nil, err
+	}
 
 	return apiBlockProcessor.GetBlockByNonce(nonce, withTxs)
 }
 
-func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
+func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 	if n.shardCoordinator.SelfId() != core.MetachainShardId {
 		return blockAPI.NewShardApiBlockProcessor(
 			&blockAPI.APIBlockProcessorArg{

@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/api"
@@ -15,9 +16,12 @@ type shardAPIBlockProcessor struct {
 }
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
-func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
+func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) (*shardAPIBlockProcessor, error) {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
-	statusComputer := transaction.NewStatusComputer(arg.SelfShardID, arg.Uint64ByteSliceConverter, arg.Store)
+	statusComputer, err := transaction.NewStatusComputer(arg.SelfShardID, arg.Uint64ByteSliceConverter, arg.Store)
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
 
 	return &shardAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
@@ -30,7 +34,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			unmarshalTx:              arg.UnmarshalTx,
 			txStatusComputer:         statusComputer,
 		},
-	}
+	}, nil
 }
 
 // GetBlockByNonce will return a shard APIBlock by nonce

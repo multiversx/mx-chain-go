@@ -11,7 +11,10 @@ import (
 )
 
 func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T) {
-	statusComputer := NewStatusComputer(12, nil, nil)
+	chainStorer := genericmocks.NewChainStorerMock(0)
+	uint64Converter := mock.NewNonceHashConverterMock()
+	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
 	// Invalid miniblock
 	tx := &ApiTransactionResult{
@@ -73,7 +76,10 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 }
 
 func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {
-	statusComputer := NewStatusComputer(12, nil, nil)
+	chainStorer := genericmocks.NewChainStorerMock(0)
+	uint64Converter := mock.NewNonceHashConverterMock()
+	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
 	// Invalid miniblock
 	tx := &ApiTransactionResult{
@@ -129,12 +135,13 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	chainStorer := genericmocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
+	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
 	// not reward transaction should not set status
 	txA := &ApiTransactionResult{Status: TxStatusSuccess}
 
-	isRewardReverted, err := NewStatusComputer(12, uint64Converter,
-		chainStorer).SetStatusIfIsRewardReverted(txA, block.TxBlock, 0, nil)
+	isRewardReverted, err := statusComputer.SetStatusIfIsRewardReverted(txA, block.TxBlock, 0, nil)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txA.Status)
 	require.Nil(t, err)
@@ -146,9 +153,10 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerNonce := uint64(10)
 	nonceBytes := uint64Converter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	statusComputer, err = NewStatusComputer(core.MetachainShardId, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
-	isRewardReverted, err = NewStatusComputer(core.MetachainShardId, uint64Converter,
-		chainStorer).SetStatusIfIsRewardReverted(txB, block.RewardsBlock, headerNonce, headerHash)
+	isRewardReverted, err = statusComputer.SetStatusIfIsRewardReverted(txB, block.RewardsBlock, headerNonce, headerHash)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txB.Status)
 	require.Nil(t, err)
@@ -160,9 +168,9 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	statusComputer, err = NewStatusComputer(0, uint64Converter, chainStorer)
 
-	isRewardReverted, err = NewStatusComputer(0, uint64Converter,
-		chainStorer).SetStatusIfIsRewardReverted(txC, block.RewardsBlock, headerNonce, headerHash)
+	isRewardReverted, err = statusComputer.SetStatusIfIsRewardReverted(txC, block.RewardsBlock, headerNonce, headerHash)
 	require.False(t, isRewardReverted)
 	require.Equal(t, TxStatusSuccess, txC.Status)
 	require.Nil(t, err)
@@ -174,16 +182,17 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	headerNonce = uint64(12)
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+	statusComputer, err = NewStatusComputer(core.MetachainShardId, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
 	wrongHash := []byte("wrong")
-	isRewardReverted, err = NewStatusComputer(core.MetachainShardId, uint64Converter,
-		chainStorer).SetStatusIfIsRewardReverted(txD, block.RewardsBlock, headerNonce, wrongHash)
+	isRewardReverted, err = statusComputer.SetStatusIfIsRewardReverted(txD, block.RewardsBlock, headerNonce, wrongHash)
 	require.True(t, isRewardReverted)
 	require.Equal(t, TxStatusRewardReverted, txD.Status)
 	require.Nil(t, err)
 
 	//nil parameters
-	_, err = NewStatusComputer(core.MetachainShardId, uint64Converter,
-		chainStorer).SetStatusIfIsRewardReverted(nil, block.RewardsBlock, headerNonce, wrongHash)
+	statusComputer, err = NewStatusComputer(core.MetachainShardId, uint64Converter, chainStorer)
+	_, err = statusComputer.SetStatusIfIsRewardReverted(nil, block.RewardsBlock, headerNonce, wrongHash)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
