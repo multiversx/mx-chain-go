@@ -257,11 +257,11 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
 	assert.Nil(t, err)
-	resV1, ok := pairs[string(k1)]
+	resV1, ok := pairs[hex.EncodeToString(k1)]
 	assert.True(t, ok)
 	assert.Equal(t, hex.EncodeToString(v1), resV1)
 
-	resV2, ok := pairs[string(k2)]
+	resV2, ok := pairs[hex.EncodeToString(k2)]
 	assert.True(t, ok)
 	assert.Equal(t, hex.EncodeToString(v2), resV2)
 }
