@@ -97,11 +97,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 	}
 
-	err = service.checkVMOutput(vmOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	return vmOutput, nil
 }
 
