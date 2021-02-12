@@ -169,6 +169,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 	statusComputer, err = NewStatusComputer(0, uint64Converter, chainStorer)
+	require.Nil(t, err)
 
 	isRewardReverted, err = statusComputer.SetStatusIfIsRewardReverted(txC, block.RewardsBlock, headerNonce, headerHash)
 	require.False(t, isRewardReverted)
@@ -193,6 +194,7 @@ func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 
 	//nil parameters
 	statusComputer, err = NewStatusComputer(core.MetachainShardId, uint64Converter, chainStorer)
+	require.Nil(t, err)
 	_, err = statusComputer.SetStatusIfIsRewardReverted(nil, block.RewardsBlock, headerNonce, wrongHash)
 	require.Equal(t, ErrNilApiTransactionResult, err)
 }
