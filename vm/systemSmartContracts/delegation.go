@@ -445,9 +445,9 @@ func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vm
 	}
 
 	switch string(args.Arguments[0]) {
-	case "yes":
+	case "true":
 		dConfig.AutomaticActivation = true
-	case "no":
+	case "false":
 		dConfig.AutomaticActivation = false
 	default:
 		d.eei.AddReturnMessage("invalid argument")
@@ -493,9 +493,9 @@ func (d *delegation) setCheckCapOnReDelegateRewards(args *vmcommon.ContractCallI
 	}
 
 	switch string(args.Arguments[0]) {
-	case "yes":
+	case "true":
 		dConfig.CheckCapOnReDelegateRewards = true
-	case "no":
+	case "false":
 		dConfig.CheckCapOnReDelegateRewards = false
 	default:
 		d.eei.AddReturnMessage("invalid argument")

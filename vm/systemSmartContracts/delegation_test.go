@@ -3921,7 +3921,7 @@ func TestDelegation_setAutomaticActivation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 
-	vmInput := getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("yes")})
+	vmInput := getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("true")})
 	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
 	retCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -3929,21 +3929,29 @@ func TestDelegation_setAutomaticActivation(t *testing.T) {
 	dConfig, _ := d.getDelegationContractConfig()
 	assert.Equal(t, dConfig.AutomaticActivation, true)
 
-	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("no")})
+	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("abcd")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("false")})
 	retCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	dConfig, _ = d.getDelegationContractConfig()
 	assert.Equal(t, dConfig.AutomaticActivation, false)
 
-	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("yes")})
+	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("true")})
 	retCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
+
+	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("abcd")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
 
 	dConfig, _ = d.getDelegationContractConfig()
 	assert.Equal(t, dConfig.CheckCapOnReDelegateRewards, true)
 
-	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("no")})
+	vmInput = getDefaultVmInputForFunc("setCheckCapOnReDelegateRewards", [][]byte{[]byte("false")})
 	retCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
