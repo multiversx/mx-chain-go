@@ -115,6 +115,10 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				SnapshotsBufferLen: 10,
 				MaxSnapshots:       2,
 			},
+			TrieSync: config.TrieSyncConfig{
+				NumConcurrentTrieSyncers:  50,
+				MaxHardCapForMissingNodes: 500,
+			},
 		},
 		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
 		SingleSigner:               &mock.SignerStub{},
@@ -174,6 +178,28 @@ func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, epochStartProvider)
 	assert.True(t, errors.Is(err, epochStart.ErrNilEpochNotifier))
+}
+
+func TestNewEpochStartBootstrap_InvalidMaxHardCapForMissingNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartBootstrapArgs()
+	args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes = 0
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, epochStartProvider)
+	assert.True(t, errors.Is(err, epochStart.ErrInvalidMaxHardCapForMissingNodes))
+}
+
+func TestNewEpochStartBootstrap_InvalidNumConcurrentTrieSyncersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartBootstrapArgs()
+	args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers = 0
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, epochStartProvider)
+	assert.True(t, errors.Is(err, epochStart.ErrInvalidNumConcurrentTrieSyncers))
 }
 
 func TestIsStartInEpochZero(t *testing.T) {

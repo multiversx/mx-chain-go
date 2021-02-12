@@ -15,7 +15,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	from := []byte("from")
 	data := []byte("data")
 	seqNo := []byte("seq no")
-	topics := []string{"topic 1", "topic 2"}
+	topic := "topic"
 	sig := []byte("sig")
 	key := []byte("key")
 	peer := core.PeerID("peer")
@@ -24,7 +24,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 		FromField:      from,
 		DataField:      data,
 		SeqNoField:     seqNo,
-		TopicsField:    topics,
+		TopicField:     topic,
 		SignatureField: sig,
 		KeyField:       key,
 		PeerField:      peer,
@@ -34,7 +34,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	assert.Equal(t, from, msg.From())
 	assert.Equal(t, data, msg.Data())
 	assert.Equal(t, seqNo, msg.SeqNo())
-	assert.Equal(t, topics, msg.Topics())
+	assert.Equal(t, topic, msg.Topic())
 	assert.Equal(t, sig, msg.Signature())
 	assert.Equal(t, key, msg.Key())
 	assert.Equal(t, peer, msg.Peer())
