@@ -56,7 +56,7 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 
 // GetKeyValuesPairs -
 func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
-	if ns.GetValueForKeyCalled != nil {
+	if ns.GetKeyValuePairsCalled != nil {
 		return ns.GetKeyValuePairsCalled(address)
 	}
 
