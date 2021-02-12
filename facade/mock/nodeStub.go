@@ -42,6 +42,7 @@ type NodeStub struct {
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                         func(address string) ([]string, error)
+	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 }
 
 // GetUsername -
@@ -51,6 +52,15 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// GetKeyValuesPairs -
+func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
+	if ns.GetValueForKeyCalled != nil {
+		return ns.GetKeyValuePairsCalled(address)
+	}
+
+	return nil, nil
 }
 
 // GetValueForKey -
