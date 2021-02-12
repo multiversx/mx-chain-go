@@ -576,7 +576,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
 	// set automatic activation on
-	txData = "setAutomaticActivation@796573"
+	txData = "setAutomaticActivation@" + hex.EncodeToString([]byte("true"))
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
