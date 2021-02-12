@@ -1884,6 +1884,88 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
 }
 
+func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
+	t.Parallel()
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	addValidatorAndStakingScToVmContext(eei)
+
+	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{100}})
+	d, _ := NewDelegationSystemSC(args)
+
+	vmInput.CallerAddr = []byte("ownerAsDelegator")
+	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
+	_ = d.saveDelegationContractConfig(&DelegationConfig{InitialOwnerFunds: big.NewInt(100), MaxDelegationCap: big.NewInt(0)})
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		UnStakedFunds: [][]byte{},
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+		ActiveFunds:   [][]byte{fundKey},
+	})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{StakedKeys: []*NodesData{{BLSKey: []byte("blsKey"), SignedMsg: []byte("someMsg")}}})
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	vmInput.Arguments = [][]byte{{50}}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	vmInput.Arguments = [][]byte{{100}}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	dFund, _ := d.getFund(fundKey)
+	assert.Nil(t, dFund)
+
+	dFund, _ = d.getFund(nextFundKey)
+	assert.Equal(t, big.NewInt(100), dFund.Value)
+	assert.Equal(t, unStaked, dFund.Type)
+	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
+
+	globalFund, _ := d.getGlobalFundData()
+	assert.Equal(t, 1, len(globalFund.UnStakedFunds))
+	assert.Equal(t, nextFundKey, globalFund.UnStakedFunds[0])
+	assert.Equal(t, big.NewInt(0), globalFund.TotalActive)
+	assert.Equal(t, big.NewInt(100), globalFund.TotalUnStaked)
+	assert.Equal(t, 0, len(globalFund.ActiveFunds))
+
+	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, 1, len(dData.UnStakedFunds))
+	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
+
+	managementData := &DelegationManagement{MinDeposit: big.NewInt(10)}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	vmInput.Function = "delegate"
+	vmInput.Arguments = [][]byte{}
+	vmInput.CallValue = big.NewInt(1000)
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
 func TestDelegationSystemSC_ExecuteWithdrawUserErrors(t *testing.T) {
 	t.Parallel()
 
@@ -1969,7 +2051,9 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		UnStakedFunds: [][]byte{fundKey1, fundKey2},
+		UnStakedFunds:         [][]byte{fundKey1, fundKey2},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey1, &Fund{
 		Value:   big.NewInt(60),
@@ -2006,6 +2090,14 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 
 	fundKey, _ := d.getFund(fundKey1)
 	assert.Nil(t, fundKey)
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	currentNonce = 150
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	isNew, _, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.True(t, isNew)
 }
 
 func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
@@ -3493,28 +3585,30 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	createdNonce := uint64(100)
 	unBondPeriod := uint64(144000)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		MaxDelegationCap:     maxDelegationCap,
-		InitialOwnerFunds:    initialOwnerFunds,
-		AutomaticActivation:  false,
-		ChangeableServiceFee: true,
-		CreatedNonce:         createdNonce,
-		UnBondPeriod:         unBondPeriod,
+		MaxDelegationCap:            maxDelegationCap,
+		InitialOwnerFunds:           initialOwnerFunds,
+		AutomaticActivation:         true,
+		ChangeableServiceFee:        true,
+		CheckCapOnReDelegateRewards: true,
+		CreatedNonce:                createdNonce,
+		UnBondPeriod:                unBondPeriod,
 	})
 	eei.SetStorage([]byte(ownerKey), ownerAddress)
 	eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(serviceFee).Bytes())
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-	require.Equal(t, 9, len(eei.output))
+	require.Equal(t, 10, len(eei.output))
 	assert.Equal(t, ownerAddress, eei.output[0])
 	assert.Equal(t, big.NewInt(0).SetUint64(serviceFee), big.NewInt(0).SetBytes(eei.output[1]))
 	assert.Equal(t, maxDelegationCap, big.NewInt(0).SetBytes(eei.output[2]))
 	assert.Equal(t, initialOwnerFunds, big.NewInt(0).SetBytes(eei.output[3]))
-	assert.Equal(t, []byte("false"), eei.output[4])
+	assert.Equal(t, []byte("true"), eei.output[4])
 	assert.Equal(t, []byte("true"), eei.output[5])
 	assert.Equal(t, []byte("true"), eei.output[6])
-	assert.Equal(t, big.NewInt(0).SetUint64(createdNonce), big.NewInt(0).SetBytes(eei.output[7]))
-	assert.Equal(t, big.NewInt(0).SetUint64(unBondPeriod), big.NewInt(0).SetBytes(eei.output[8]))
+	assert.Equal(t, []byte("true"), eei.output[7])
+	assert.Equal(t, big.NewInt(0).SetUint64(createdNonce), big.NewInt(0).SetBytes(eei.output[8]))
+	assert.Equal(t, big.NewInt(0).SetUint64(unBondPeriod), big.NewInt(0).SetBytes(eei.output[9]))
 }
 
 func TestDelegation_ExecuteUnknownFunc(t *testing.T) {

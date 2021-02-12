@@ -584,6 +584,7 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
 	listToVerify := append(status.StakedKeys, status.NotStakedKeys...)
 	listToVerify = append(listToVerify, status.UnStakedKeys...)
 	foundOne := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
@@ -1897,6 +1898,11 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 		changeableServiceFee = "true"
 	}
 
+	checkCapOnReDelegate := "false"
+	if delegationConfig.CheckCapOnReDelegateRewards {
+		checkCapOnReDelegate = "true"
+	}
+
 	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
 	serviceFee := d.eei.GetStorage([]byte(serviceFeeKey))
 
@@ -1907,6 +1913,7 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	d.eei.Finish([]byte(automaticActivation))
 	d.eei.Finish([]byte(withDelegationCap))
 	d.eei.Finish([]byte(changeableServiceFee))
+	d.eei.Finish([]byte(checkCapOnReDelegate))
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.CreatedNonce).Bytes())
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.UnBondPeriod).Bytes())
 
