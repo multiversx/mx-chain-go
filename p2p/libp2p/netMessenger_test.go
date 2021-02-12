@@ -1231,7 +1231,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 			From:                 []byte(pid),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
-			TopicIDs:             nil,
+			Topic:                nil,
 			Signature:            nil,
 			Key:                  nil,
 			XXX_NoUnkeyedLiteral: struct{}{},
@@ -1301,7 +1301,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 			From:                 []byte("not a valid pid"),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
-			TopicIDs:             nil,
+			Topic:                nil,
 			Signature:            nil,
 			Key:                  nil,
 			XXX_NoUnkeyedLiteral: struct{}{},
@@ -1357,12 +1357,13 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		Version:   libp2p.CurrentTopicMessageVersion,
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
+	topic := "topic"
 	msg := &pubsub.Message{
 		Message: &pubsub_pb.Message{
 			From:                 []byte(mes.ID()),
 			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
-			TopicIDs:             nil,
+			Topic:                &topic,
 			Signature:            nil,
 			Key:                  nil,
 			XXX_NoUnkeyedLiteral: struct{}{},
