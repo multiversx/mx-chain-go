@@ -2144,6 +2144,8 @@ func createHardForkTrigger(
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		TxSignHasher:              coreData.TxSignHasher,
 		EpochNotifier:             epochNotifier,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
