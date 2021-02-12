@@ -48,18 +48,19 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		trieSyncers:          make(map[string]data.TrieSyncer),
-		dataTries:            make(map[string]data.Trie),
-		trieStorageManager:   args.TrieStorageManager,
-		requestHandler:       args.RequestHandler,
-		timeout:              args.Timeout,
-		shardId:              args.ShardId,
-		cacher:               args.Cacher,
-		rootHash:             nil,
-		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
-		name:                 fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
+		hasher:                    args.Hasher,
+		marshalizer:               args.Marshalizer,
+		trieSyncers:               make(map[string]data.TrieSyncer),
+		dataTries:                 make(map[string]data.Trie),
+		trieStorageManager:        args.TrieStorageManager,
+		requestHandler:            args.RequestHandler,
+		timeout:                   args.Timeout,
+		shardId:                   args.ShardId,
+		cacher:                    args.Cacher,
+		rootHash:                  nil,
+		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
+		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
+		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 	}
 
 	u := &userAccountsSyncer{
@@ -165,6 +166,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             ssh,
 		TimeoutBetweenTrieNodesCommits: u.timeout,
+		MaxHardCapForMissingNodes:      u.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {
@@ -185,7 +187,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 }
 
 func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie, ctx context.Context) ([][]byte, error) {
-	mainRootHash, err := mainTrie.Root()
+	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err
 	}

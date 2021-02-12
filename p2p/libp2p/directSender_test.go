@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -76,7 +77,7 @@ func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
 		return nil
 	})
 
-	assert.Nil(t, ds)
+	assert.True(t, check.IfNil(ds))
 	assert.Equal(t, p2p.ErrNilContext, err)
 }
 
@@ -85,14 +86,14 @@ func TestNewDirectSender_NilHostShouldErr(t *testing.T) {
 		return nil
 	})
 
-	assert.Nil(t, ds)
+	assert.True(t, check.IfNil(ds))
 	assert.Equal(t, p2p.ErrNilHost, err)
 }
 
 func TestNewDirectSender_NilMessageHandlerShouldErr(t *testing.T) {
 	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), nil)
 
-	assert.Nil(t, ds)
+	assert.True(t, check.IfNil(ds))
 	assert.Equal(t, p2p.ErrNilDirectSendMessageHandler, err)
 }
 
@@ -101,7 +102,7 @@ func TestNewDirectSender_OkValsShouldWork(t *testing.T) {
 		return nil
 	})
 
-	assert.NotNil(t, ds)
+	assert.False(t, check.IfNil(ds))
 	assert.Nil(t, err)
 }
 
@@ -151,31 +152,11 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = nil
+	msg.Topic = nil
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
-}
-
-func TestDirectSender_ProcessReceivedDirectMessageEmptyTopicIdsShouldErr(t *testing.T) {
-	ds, _ := libp2p.NewDirectSender(
-		context.Background(),
-		generateHostStub(),
-		blankMessageHandler,
-	)
-
-	id, _ := createLibP2PCredentialsDirectSender()
-
-	msg := &pubsub_pb.Message{}
-	msg.Data = []byte("data")
-	msg.Seqno = []byte("111")
-	msg.From = []byte(id)
-	msg.TopicIDs = make([]string, 0)
-
-	err := ds.ProcessReceivedDirectMessage(msg, id)
-
-	assert.Equal(t, p2p.ErrEmptyTopicList, err)
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *testing.T) {
@@ -191,7 +172,8 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = []string{"topic"}
+	topic := "topic"
+	msg.Topic = &topic
 
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 	ds.SeenMessages().Add(msgId)
@@ -214,7 +196,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = []string{"topic"}
+	topic := "topic"
+	msg.Topic = &topic
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
 
@@ -239,7 +222,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = []string{"topic"}
+	topic := "topic"
+	msg.Topic = &topic
 
 	_ = ds.ProcessReceivedDirectMessage(msg, id)
 
@@ -263,7 +247,8 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = []string{"topic"}
+	topic := "topic"
+	msg.Topic = &topic
 
 	err := ds.ProcessReceivedDirectMessage(msg, id)
 
@@ -421,8 +406,8 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, receivedMsg.Data, data)
-	assert.Equal(t, receivedMsg.TopicIDs[0], topic)
+	assert.Equal(t, data, receivedMsg.Data)
+	assert.Equal(t, topic, *receivedMsg.Topic)
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *testing.T) {
@@ -488,8 +473,8 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, receivedMsg.Data, data)
-	assert.Equal(t, receivedMsg.TopicIDs[0], topic)
+	assert.Equal(t, data, receivedMsg.Data)
+	assert.Equal(t, topic, *receivedMsg.Topic)
 }
 
 //------- received messages tests
@@ -556,7 +541,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	assert.NotNil(t, receivedMsg)
 	assert.Equal(t, data, receivedMsg.Data)
-	assert.Equal(t, []string{topic}, receivedMsg.TopicIDs)
+	assert.Equal(t, topic, *receivedMsg.Topic)
 }
 
 func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPeerShouldErr(t *testing.T) {
@@ -572,7 +557,8 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = []string{"topic"}
+	topic := "topic"
+	msg.Topic = &topic
 
 	err := ds.ProcessReceivedDirectMessage(msg, "not the same peer id")
 
