@@ -394,8 +394,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorIsDeleted(t, tpn, firstTwoDelegators, delegationScAddresses[i])
 	}
 }
 
@@ -723,8 +722,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 	}
@@ -739,8 +736,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
@@ -751,8 +746,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6982)
