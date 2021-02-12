@@ -71,7 +71,9 @@ func (sc *statusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
 	if sc.isMiniblockInvalid(miniblockType) {
 		return TxStatusInvalid, nil
 	}
-	if isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver, tx.Data) {
+
+	isSuccess := isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver, tx.Data)
+	if isSuccess {
 		return TxStatusSuccess, nil
 	}
 
@@ -91,7 +93,8 @@ func (sc *statusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
 
 	receiver := tx.Tx.GetRcvAddr()
 
-	if sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver, tx.Data) {
+	isSuccess := sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver, tx.Data)
+	if isSuccess {
 		return TxStatusSuccess, nil
 	}
 
