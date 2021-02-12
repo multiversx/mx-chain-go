@@ -1558,14 +1558,16 @@ func newShardBlockProcessor(
 		WorkingDir:         workingDir,
 		NilCompiledSCStore: false,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachine.Execution,
-		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-		gasSchedule,
-		argsHook,
-		config.GeneralSettings.SCDeployEnableEpoch,
-		config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-	)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         config.VirtualMachine.Execution,
+		BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+		GasSchedule:                    gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
+		AheadOfTimeGasUsageEnableEpoch: config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+		ArwenV3EnableEpoch:             config.GeneralSettings.RepairCallbackEnableEpoch,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}
