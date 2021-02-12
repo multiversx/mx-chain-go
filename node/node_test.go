@@ -266,6 +266,31 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(v2), resV2)
 }
 
+func TestNode_GetValueForKey(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	k1, v1 := []byte("key1"), []byte("value1")
+	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
+
+	accDB := &mock.AccountsStub{}
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
+	assert.NoError(t, err)
+	assert.Equal(t, hex.EncodeToString(v1), value)
+}
+
 func TestNode_GetESDTBalance(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"

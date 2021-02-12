@@ -469,7 +469,7 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 
 	mapToReturn := make(map[string]string)
 	for leaf := range chLeaves {
-		mapToReturn[string(leaf.Key())] = hex.EncodeToString(leaf.Value())
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
 	}
 
 	return mapToReturn, nil

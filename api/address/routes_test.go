@@ -605,6 +605,41 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
 }
 
+func TestGetKeyValuePairs_InvalidAppContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetKeyValuePairs_WithEmptyAddressShoudReturnError(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+
+	emptyAddress := ""
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", emptyAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.NotEmpty(t, response)
+	assert.True(t, strings.Contains(response.Error,
+		fmt.Sprintf("%s: %s", apiErrors.ErrGetKeyValuePairs.Error(), apiErrors.ErrEmptyAddress.Error()),
+	))
+}
+
 func TestGetKeyValuePairs_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
