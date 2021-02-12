@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,4 +27,38 @@ func TestRewardTx_GettersAndSetters(t *testing.T) {
 	assert.Equal(t, uint64(0), rwdTx.GetGasLimit())
 	assert.Equal(t, uint64(0), rwdTx.GetGasPrice())
 	assert.Equal(t, uint64(0), rwdTx.GetNonce())
+}
+
+func TestRewardTx_CheckIntegrityShouldWork(t *testing.T) {
+	t.Parallel()
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   19,
+		RcvAddr: []byte("rcv-address"),
+		Value:   big.NewInt(10),
+	}
+
+	err := rwdTx.CheckIntegrity()
+	assert.Nil(t, err)
+}
+
+func TestRewardTx_CheckIntegrityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rwdTx := &rewardTx.RewardTx{
+		Round: 19,
+	}
+
+	err := rwdTx.CheckIntegrity()
+	assert.Equal(t, data.ErrNilRcvAddr, err)
+
+	rwdTx.RcvAddr = []byte("rcv-address")
+
+	err = rwdTx.CheckIntegrity()
+	assert.Equal(t, data.ErrNilValue, err)
+
+	rwdTx.Value = big.NewInt(-1)
+
+	err = rwdTx.CheckIntegrity()
+	assert.Equal(t, data.ErrNegativeValue, err)
 }
