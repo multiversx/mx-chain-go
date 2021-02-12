@@ -49,6 +49,7 @@ func TrimSlicePtr(in []*SmartContractResult) []*SmartContractResult {
 	return ret
 }
 
+// CheckIntegrity checks for not nil fields and negative value
 func (scr *SmartContractResult) CheckIntegrity() error {
 	if len(scr.RcvAddr) == 0 {
 		return data.ErrNilRcvAddr

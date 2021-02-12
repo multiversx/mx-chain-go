@@ -83,6 +83,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 	return marshalizer.Marshal(ftx)
 }
 
+// CheckIntegrity checks for not nil fields and negative value
 func (tx *Transaction) CheckIntegrity() error {
 	if tx.Signature == nil {
 		return data.ErrNilSignature

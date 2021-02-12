@@ -62,6 +62,7 @@ func (_ *RewardTx) GetRcvUserName() []byte {
 	return nil
 }
 
+// CheckIntegrity checks for not nil fields and negative value
 func (rtx *RewardTx) CheckIntegrity() error {
 	if len(rtx.RcvAddr) == 0 {
 		return data.ErrNilRcvAddr
