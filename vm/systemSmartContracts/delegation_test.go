@@ -2091,13 +2091,16 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	fundKey, _ := d.getFund(fundKey1)
 	assert.Nil(t, fundKey)
 
-	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 2})
 	currentNonce = 150
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
 	isNew, _, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.True(t, isNew)
+
+	dStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, uint64(1), dStatus.NumUsers)
 }
 
 func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
@@ -3897,6 +3900,10 @@ func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
 	retCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)
+
+	vmInputErr := getDefaultVmInputForFunc("setMetaData", [][]byte{[]byte("one")})
+	retCode = d.Execute(vmInputErr)
+	assert.Equal(t, vmcommon.UserError, retCode)
 
 	vmInputGet := getDefaultVmInputForFunc("getMetaData", [][]byte{})
 	retCode = d.Execute(vmInputGet)
