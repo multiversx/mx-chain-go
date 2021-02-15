@@ -123,7 +123,7 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.syncTimer) {
 		return errors.ErrNilSyncTimer
 	}
-	if check.IfNil(mcc.RoundHandler()) {
+	if check.IfNil(mcc.coreComponents.RoundHandler) {
 		return errors.ErrNilRoundHandler
 	}
 	if check.IfNil(mcc.economicsData) {
