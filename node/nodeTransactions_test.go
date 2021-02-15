@@ -401,6 +401,31 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualH.Type)
 	require.Equal(t, transaction.TxStatusRewardReverted, actualH.Status)
+
+}
+
+func TestNode_lookupHistoricalTransaction_NilSliceConverter_ShouldError(t *testing.T) {
+
+	node, nodeStorer, _, nodeHistoryRepo := createNode(t, 42, true)
+	tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	_ = nodeStorer.Transactions.PutWithMarshalizer([]byte("a"), tx, node.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(nodeHistoryRepo, block.TxBlock, 1, 2, 42, nil, 0)
+	node.uint64ByteSliceConverter = nil
+	actual, err := node.GetTransaction(hex.EncodeToString([]byte("a")), false)
+	require.Nil(t, actual)
+	require.NotNil(t, err)
+}
+
+func TestNode_getTransactionFromStorage_NilSliceConverter_ShouldError(t *testing.T) {
+
+	node, nodeStorer, _, nodeHistoryRepo := createNode(t, 42, false)
+	tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	_ = nodeStorer.Transactions.PutWithMarshalizer([]byte("a"), tx, node.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(nodeHistoryRepo, block.TxBlock, 1, 2, 42, nil, 0)
+	node.uint64ByteSliceConverter = nil
+	actual, err := node.GetTransaction(hex.EncodeToString([]byte("a")), false)
+	require.Nil(t, actual)
+	require.NotNil(t, err)
 }
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {

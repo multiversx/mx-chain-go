@@ -229,6 +229,31 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
+func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	nonce := uint64(1)
+	uint64Converter := mock.NewNonceHashConverterMock()
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
+		node.WithHistoryRepository(historyProc),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithUint64ByteSliceConverter(uint64Converter),
+	)
+
+	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+}
+
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
