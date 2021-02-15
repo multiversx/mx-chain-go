@@ -151,9 +151,9 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 	require.Nil(t, err)
 
 	// Nil parameters
-	responseStatus, err = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(block.TxBlock, nil)
+	responseStatus, err = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(0, nil)
 	require.Equal(t, ErrNilApiTransactionResult, err)
-	require.Equal(t, responseStatus,"")
+	require.True(t, responseStatus == "")
 }
 
 func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
