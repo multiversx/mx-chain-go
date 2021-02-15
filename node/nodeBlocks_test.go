@@ -28,6 +28,63 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 	assert.Nil(t, blk)
 }
 
+func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	uint64Converter := mock.NewNonceHashConverterMock()
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
+		node.WithHistoryRepository(historyProc),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithUint64ByteSliceConverter(uint64Converter),
+	)
+
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+}
+
+func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	storerMock := mock.NewStorerMock()
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
+		node.WithHistoryRepository(historyProc),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithDataStore(&mock.ChainStorerMock{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+				return storerMock
+			},
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				return headerHash, nil
+			},
+		}),
+	)
+
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+}
+
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 

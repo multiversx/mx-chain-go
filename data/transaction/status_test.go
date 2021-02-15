@@ -10,6 +10,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewStatusComputer(t *testing.T) {
+	chainStorer := genericmocks.NewChainStorerMock(0)
+	uint64Converter := mock.NewNonceHashConverterMock()
+	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
+
+	require.Nil(t, err)
+	require.NotNil(t, statusComputer)
+}
+
+func TestNewStatusComputer_NilStoreShouldError(t *testing.T) {
+	chainStorer := genericmocks.NewChainStorerMock(0)
+	statusComputer, err := NewStatusComputer(12, nil, chainStorer)
+
+	require.NotNil(t, err)
+	require.Nil(t, statusComputer)
+}
+
+func TestNewStatusComputer_NilUint64ConverterShouldError(t *testing.T) {
+	uint64Converter := mock.NewNonceHashConverterMock()
+	statusComputer, err := NewStatusComputer(12, uint64Converter, nil)
+
+	require.NotNil(t, err)
+	require.Nil(t, statusComputer)
+}
+
 func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T) {
 	chainStorer := genericmocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
