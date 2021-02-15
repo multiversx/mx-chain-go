@@ -953,6 +953,14 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxValueLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
 	coreComponents.ChainIdCalled = func() string {
 		return chainID
 	}

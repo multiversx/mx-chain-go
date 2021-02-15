@@ -29,6 +29,7 @@ func testTransactionGasCostWithMissingFields(tb testing.TB, node *integrationTes
 		GasPrice: 100,
 		Version:  1,
 		ChainID:  "T",
+
 	}
 
 	jsonBytes, _ := json.Marshal(tx)

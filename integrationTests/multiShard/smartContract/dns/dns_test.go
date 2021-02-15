@@ -305,7 +305,7 @@ func checkUserNamesAreDeleted(
 			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
-			keyFromTrie := "value_state" + string(keccak.Keccak{}.Compute(userName))
+			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
 			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)

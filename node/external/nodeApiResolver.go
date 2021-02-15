@@ -44,6 +44,12 @@ func NewNodeApiResolver(args ApiResolverArgs) (*NodeApiResolver, error) {
 	if check.IfNil(args.StakedValueHandler) {
 		return nil, ErrNilTotalStakedValueHandler
 	}
+	if check.IfNil(args.VmContainer) {
+		return nil, ErrNilVmContainer
+	}
+	if check.IfNil(args.VmFactory){
+		return nil, ErrNilVmFactory
+	}
 
 	return &NodeApiResolver{
 		scQueryService:          args.ScQueryService,

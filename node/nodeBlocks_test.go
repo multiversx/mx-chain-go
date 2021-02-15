@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
@@ -410,8 +411,8 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	assert.Equal(t, expectedBlock, blk)
 }
 
-func getDefaultCoreComponents() *mock.CoreComponentsMock {
-	return &mock.CoreComponentsMock{
+func getDefaultCoreComponents() *factory.CoreComponentsMock {
+	return &factory.CoreComponentsMock{
 		IntMarsh:            &testscommon.MarshalizerMock{},
 		TxMarsh:             &testscommon.MarshalizerMock{},
 		VmMarsh:             &testscommon.MarshalizerMock{},
@@ -472,8 +473,8 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 	}
 }
 
-func getDefaultDataComponents() *mock.DataComponentsMock {
-	return &mock.DataComponentsMock{
+func getDefaultDataComponents() *factory.DataComponentsMock {
+	return &factory.DataComponentsMock{
 		BlockChain: &mock.ChainHandlerStub{},
 		Store:      &mock.ChainStorerStub{},
 		DataPool:   &testscommon.PoolsHolderMock{},

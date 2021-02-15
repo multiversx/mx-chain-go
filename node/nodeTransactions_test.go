@@ -322,10 +322,9 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, transaction.TxStatusInvalid, actualInvalid.Status)
 
 	// Reward transactions
-
 	headerHash := []byte("hash")
 	headerNonce := uint64(1)
-	nonceBytes := n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
+	nonceBytes := n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
@@ -398,10 +397,10 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	wrongHeaderHash := []byte("wrong-hash")
 	headerHash = []byte("hash")
 	headerNonce = uint64(1)
-	nonceBytes = n.uint64ByteSliceConverter.ToByteSlice(headerNonce)
+	nonceBytes = n.GetCoreComponents().Uint64ByteSliceConverter().ToByteSlice(headerNonce)
 	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
 	txH := &rewardTx.RewardTx{Round: 50, RcvAddr: []byte("alice")}
-	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.internalMarshalizer)
+	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("h"), txH, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42, wrongHeaderHash, headerNonce)
 
 	actualH, err := n.GetTransaction(hex.EncodeToString([]byte("h")), false)
@@ -456,6 +455,7 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = marshalizer
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+	coreComponents.UInt64ByteSliceConv = mock.NewNonceHashConverterMock()
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	dataComponents.Store = chainStorer
@@ -467,7 +467,6 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 	)
 
 	require.Nil(t, err)
@@ -526,10 +525,15 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: []byte("invalid original sender"),
 	}
 
-	n := Node{}
-	n.addressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize)
+	coreComponents:= getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize)
 
-	scrResult1, err := n.prepareUnsignedTx(scr1)
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+	)
+	assert.Nil(t, err)
+
+	scrResult1, err := n.PrepareUnsignedTx(scr1)
 	assert.Nil(t, err)
 	expectedScr1 := &transaction.ApiTransactionResult{
 		Tx:             scr1,
@@ -550,7 +554,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
 	}
 
-	scrResult2, err := n.prepareUnsignedTx(scr2)
+	scrResult2, err := n.PrepareUnsignedTx(scr2)
 	assert.Nil(t, err)
 	expectedScr2 := &transaction.ApiTransactionResult{
 		Tx:             scr2,

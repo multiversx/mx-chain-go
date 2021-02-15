@@ -112,14 +112,14 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	argsTotaltakedHandler := &totalStakedAPI.ArgsTotalStakedValueHandler{
+	totaltakedHandlerArgs := &totalStakedAPI.ArgsTotalStakedValueHandler{
 		ShardID:                     args.ProcessComponents.ShardCoordinator().SelfId(),
 		RoundDurationInMilliseconds: args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		InternalMarshalizer:         args.CoreComponents.InternalMarshalizer(),
 		Accounts:                    args.StateComponents.AccountsAdapter(),
 	}
 
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(argsTotaltakedHandler)
+	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
 	if err != nil {
 		return nil, err
 	}

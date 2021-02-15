@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	factory2 "github.com/ElrondNetwork/elrond-go/node/mock/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -381,8 +382,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	mutRecoveredTransactions.RUnlock()
 }
 
-func getDefaultCryptoComponents() *mock.CryptoComponentsMock {
-	return &mock.CryptoComponentsMock{
+func getDefaultCryptoComponents() *factory2.CryptoComponentsMock {
+	return &factory2.CryptoComponentsMock{
 		PubKey:          &mock.PublicKeyMock{},
 		PrivKey:         &mock.PrivateKeyStub{},
 		PubKeyString:    "pubKey",
@@ -407,8 +408,8 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	}
 }
 
-func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
-	return &mock.NetworkComponentsMock{
+func getDefaultNetworkComponents() *factory2.NetworkComponentsMock {
+	return &factory2.NetworkComponentsMock{
 		Messenger:       &mock.MessengerStub{},
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},

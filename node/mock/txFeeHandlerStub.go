@@ -6,25 +6,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+/*
+	RewardsTopUpGradientPoint() *big.Int
+	RewardsTopUpFactor() float64
+	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx TransactionWithFeeHandler) uint64
+	MinGasPriceForProcessing() uint64
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
+*/
+
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
-	MaxGasLimitPerBlockCalled              func() uint64
-	SetMinGasPriceCalled                   func(minasPrice uint64)
-	SetMinGasLimitCalled                   func(minGasLimit uint64)
-	ComputeGasLimitCalled                  func(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
-	ComputeTxFeeCalled                     func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled            func(tx process.TransactionWithFeeHandler) error
-	DeveloperPercentageCalled              func() float64
-	MinGasPriceCalled                      func() uint64
-	LeaderPercentageCalled                 func() float64
-	ProtocolSustainabilityPercentageCalled func() float64
-	ProtocolSustainabilityAddressCalled    func() string
-	MinInflationRateCalled                 func() float64
-	MaxInflationRateCalled                 func(year uint32) float64
-	GasPriceModifierCalled                 func() float64
-	ComputeFeeForProcessingCalled          func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
-	GenesisTotalSupplyCalled               func() *big.Int
+	MaxGasLimitPerBlockCalled                    func() uint64
+	SetMinGasPriceCalled                         func(minasPrice uint64)
+	SetMinGasLimitCalled                         func(minGasLimit uint64)
+	ComputeGasLimitCalled                        func(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFeeCalled                  func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled                           func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled                  func(tx process.TransactionWithFeeHandler) error
+	DeveloperPercentageCalled                    func() float64
+	MinGasPriceCalled                            func() uint64
+	LeaderPercentageCalled                       func() float64
+	ProtocolSustainabilityPercentageCalled       func() float64
+	ProtocolSustainabilityAddressCalled          func() string
+	MinInflationRateCalled                       func() float64
+	MaxInflationRateCalled                       func(year uint32) float64
+	GasPriceModifierCalled                       func() float64
+	ComputeFeeForProcessingCalled                func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	GenesisTotalSupplyCalled                     func() *big.Int
+	RewardsTopUpGradientPointCalled              func() *big.Int
+	RewardsTopUpFactorCalled                     func() float64
+	SplitTxGasInCategoriesCalled                 func(tx process.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessingCalled                  func(tx process.TransactionWithFeeHandler) uint64
+	GasPriceForMoveCalled                        func(tx process.TransactionWithFeeHandler) uint64
+	MinGasPriceForProcessingCalled               func() uint64
+	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 }
 
 // ComputeFeeForProcessing -
@@ -142,6 +161,70 @@ func (ehs *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
 		return ehs.GenesisTotalSupplyCalled()
 	}
 
+	return big.NewInt(0)
+}
+
+// RewardsTopUpGradientPoint -
+func (ehs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	if ehs.RewardsTopUpGradientPointCalled != nil {
+		return ehs.RewardsTopUpGradientPointCalled()
+	}
+	return big.NewInt(0)
+}
+
+// RewardsTopUpFactor -
+func (ehs *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
+	if ehs.RewardsTopUpFactorCalled != nil {
+		return ehs.RewardsTopUpFactorCalled()
+	}
+	return 0
+}
+
+// SplitTxGasInCategories -
+func (ehs *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+	if ehs.SplitTxGasInCategoriesCalled != nil {
+		return ehs.SplitTxGasInCategoriesCalled(tx)
+	}
+	return 0, 0
+}
+
+// GasPriceForProcessing -
+func (ehs *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+	if ehs.GasPriceForProcessingCalled != nil {
+		return ehs.GasPriceForProcessingCalled(tx)
+	}
+	return 0
+}
+
+// GasPriceForMove -
+func (ehs *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	if ehs.GasPriceForMoveCalled != nil {
+		return ehs.GasPriceForMoveCalled(tx)
+	}
+	return 0
+}
+
+// MinGasPriceForProcessing -
+func (ehs *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
+	if ehs.MinGasPriceForProcessingCalled != nil {
+		return ehs.MinGasPriceForProcessingCalled()
+	}
+	return 0
+}
+
+// ComputeGasUsedAndFeeBasedOnRefundValue -
+func (ehs *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+	if ehs.ComputeGasUsedAndFeeBasedOnRefundValueCalled != nil {
+		return ehs.ComputeGasUsedAndFeeBasedOnRefundValueCalled(tx, refundValue)
+	}
+	return 0, big.NewInt(0)
+}
+
+// ComputeTxFeeBasedOnGasUsed -
+func (ehs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+	if ehs.ComputeTxFeeBasedOnGasUsedCalled != nil {
+		return ehs.ComputeTxFeeBasedOnGasUsedCalled(tx, gasUsed)
+	}
 	return big.NewInt(0)
 }
 
