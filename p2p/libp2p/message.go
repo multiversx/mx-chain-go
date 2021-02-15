@@ -19,12 +19,18 @@ func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Mess
 	if check.IfNil(marshalizer) {
 		return nil, p2p.ErrNilMarshalizer
 	}
+	if msg == nil {
+		return nil, p2p.ErrNilMessage
+	}
+	if msg.Topic == nil {
+		return nil, p2p.ErrNilTopic
+	}
 
 	newMsg := &message.Message{
 		FromField:      msg.From,
 		PayloadField:   msg.Data,
 		SeqNoField:     msg.Seqno,
-		TopicsField:    msg.TopicIDs,
+		TopicField:     *msg.Topic,
 		SignatureField: msg.Signature,
 		KeyField:       msg.Key,
 	}

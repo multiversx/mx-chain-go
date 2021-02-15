@@ -49,7 +49,6 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
-const numConcurrentTrieSyncers = 50
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -107,6 +106,8 @@ type epochStartBootstrap struct {
 	enableSignTxWithHashEpoch  uint32
 	txSignHasher               hashing.Hasher
 	epochNotifier              process.EpochNotifier
+	numConcurrentTrieSyncers   int
+	maxHardCapForMissingNodes  int
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -222,6 +223,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		txSignHasher:               args.TxSignHasher,
 		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		epochNotifier:              args.EpochNotifier,
+		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -836,20 +839,21 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
-	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(e.numConcurrentTrieSyncers))
 	if err != nil {
 		return err
 	}
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.hasher,
-			Marshalizer:          e.marshalizer,
-			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
-			RequestHandler:       e.requestHandler,
-			Timeout:              timeoutGettingTrieNode,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			Hasher:                    e.hasher,
+			Marshalizer:               e.marshalizer,
+			TrieStorageManager:        e.trieStorageManagers[factory.UserAccountTrie],
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		},
 		ShardId:   e.shardCoordinator.SelfId(),
 		Throttler: thr,
@@ -915,13 +919,14 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.hasher,
-			Marshalizer:          e.marshalizer,
-			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
-			RequestHandler:       e.requestHandler,
-			Timeout:              timeoutGettingTrieNode,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			Hasher:                    e.hasher,
+			Marshalizer:               e.marshalizer,
+			TrieStorageManager:        e.trieStorageManagers[factory.PeerAccountTrie],
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

@@ -29,18 +29,19 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		trieSyncers:          make(map[string]data.TrieSyncer),
-		dataTries:            make(map[string]data.Trie),
-		trieStorageManager:   args.TrieStorageManager,
-		requestHandler:       args.RequestHandler,
-		timeout:              args.Timeout,
-		shardId:              core.MetachainShardId,
-		cacher:               args.Cacher,
-		rootHash:             nil,
-		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
-		name:                 "peer accounts",
+		hasher:                    args.Hasher,
+		marshalizer:               args.Marshalizer,
+		trieSyncers:               make(map[string]data.TrieSyncer),
+		dataTries:                 make(map[string]data.Trie),
+		trieStorageManager:        args.TrieStorageManager,
+		requestHandler:            args.RequestHandler,
+		timeout:                   args.Timeout,
+		shardId:                   core.MetachainShardId,
+		cacher:                    args.Cacher,
+		rootHash:                  nil,
+		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
+		name:                      "peer accounts",
+		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 	}
 
 	u := &validatorAccountsSyncer{
