@@ -88,7 +88,7 @@ func createUtx(marshalizer marshal.Marshalizer, uTxBuff []byte) (*smartContractR
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
 func (inUTx *InterceptedUnsignedTransaction) CheckValidity() error {
-	err := inUTx.integrity()
+	err := inUTx.uTx.CheckIntegrity()
 	if err != nil {
 		return err
 	}
@@ -105,16 +105,6 @@ func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte
 	isForCurrentShardRecv := inUTx.rcvShard == inUTx.coordinator.SelfId()
 	isForCurrentShardSender := inUTx.sndShard == inUTx.coordinator.SelfId()
 	inUTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender
-
-	return nil
-}
-
-// integrity checks for not nil fields and negative value
-func (inUTx *InterceptedUnsignedTransaction) integrity() error {
-	err := inUTx.uTx.CheckIntegrity()
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
