@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -156,7 +156,7 @@ func createMockArgument(
 	gasMap := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
 	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
-	ted := &economicsmocks.EconomicsHandlerStub{
+	ted := &economicsMocks.EconomicsHandlerStub{
 		GenesisTotalSupplyCalled: func() *big.Int {
 			return entireSupply
 		},
@@ -164,16 +164,7 @@ func createMockArgument(
 			return math.MaxUint64
 		},
 	}
-
-	ted.SetTotalSupply(entireSupply)
-	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
 	arg.Economics = ted
-
-	arg.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return mock.NewStorerMock()
-		},
-	}
 
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,

@@ -12,21 +12,21 @@ import (
 
 // ApiResolverArgs holds the arguments for a node API resolver
 type ApiResolverArgs struct {
-	ScQueryService SCQueryService
-	StatusMetrics  StatusMetricsHandler
-	TxCostHandler  TransactionCostHandler
-	VmFactory      process.VirtualMachinesContainerFactory
-	VmContainer    process.VirtualMachinesContainer
+	ScQueryService     SCQueryService
+	StatusMetrics      StatusMetricsHandler
+	TxCostHandler      TransactionCostHandler
+	VmFactory          process.VirtualMachinesContainerFactory
+	VmContainer        process.VirtualMachinesContainer
 	StakedValueHandler TotalStakedValueHandler
 }
 
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
-	scQueryService       SCQueryService
-	statusMetricsHandler StatusMetricsHandler
-	txCostHandler        TransactionCostHandler
-	vmContainer          process.VirtualMachinesContainer
-	vmFactory            process.VirtualMachinesContainerFactory
+	scQueryService          SCQueryService
+	statusMetricsHandler    StatusMetricsHandler
+	txCostHandler           TransactionCostHandler
+	vmContainer             process.VirtualMachinesContainer
+	vmFactory               process.VirtualMachinesContainerFactory
 	totalStakedValueHandler TotalStakedValueHandler
 }
 
@@ -49,8 +49,8 @@ func NewNodeApiResolver(args ApiResolverArgs) (*NodeApiResolver, error) {
 		scQueryService:          args.ScQueryService,
 		statusMetricsHandler:    args.StatusMetrics,
 		txCostHandler:           args.TxCostHandler,
-		vmContainer:          args.VmContainer,
-		vmFactory:            args.VmFactory,
+		vmContainer:             args.VmContainer,
+		vmFactory:               args.VmFactory,
 		totalStakedValueHandler: args.StakedValueHandler,
 	}, nil
 }

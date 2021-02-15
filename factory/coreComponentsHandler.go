@@ -382,7 +382,7 @@ func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 }
 
 // EconomicsData returns the configured economics data
-func (mcc *managedCoreComponents) EconomicsData() process.EconomicsHandler {
+func (mcc *managedCoreComponents) EconomicsData() process.EconomicsDataHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

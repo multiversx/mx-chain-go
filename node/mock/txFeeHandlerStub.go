@@ -66,11 +66,6 @@ func (ehs *EconomicsHandlerStub) DeveloperPercentage() float64 {
 	return ehs.DeveloperPercentageCalled()
 }
 
-// GenesisTotalSupply -
-func (ehs *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
-	return big.NewInt(0)
-}
-
 // MaxGasLimitPerBlock -
 func (ehs *EconomicsHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
 	return ehs.MaxGasLimitPerBlockCalled()
@@ -142,7 +137,7 @@ func (ehs *EconomicsHandlerStub) MaxInflationRate(year uint32) float64 {
 }
 
 // GenesisTotalSupply -
-func (ehs *FeeHandlerStub) GenesisTotalSupply() *big.Int {
+func (ehs *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
 	if ehs.GenesisTotalSupplyCalled != nil {
 		return ehs.GenesisTotalSupplyCalled()
 	}

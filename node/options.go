@@ -344,28 +344,6 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 	}
 }
 
-// WithTxSignHasher sets up a transaction sign hasher for the node
-func WithTxSignHasher(txSignHasher hashing.Hasher) Option {
-	return func(n *Node) error {
-		if check.IfNil(txSignHasher) {
-			return ErrNilHasher
-		}
-		n.txSignHasher = txSignHasher
-		return nil
-	}
-}
-
-// WithTxVersionChecker sets up a transaction version checker for the node
-func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(txVersionChecker) {
-			return ErrNilTransactionVersionChecker
-		}
-		n.txVersionChecker = txVersionChecker
-		return nil
-	}
-}
-
 // WithImportMode sets up the flag if the node is running in import mode
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {

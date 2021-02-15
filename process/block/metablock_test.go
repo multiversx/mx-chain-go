@@ -2663,6 +2663,7 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testing.T) {
 	t.Parallel()
 
+	coreComponents, dataComponents := createMockComponentHolders()
 	hash := []byte("hash1")
 	hdrHash1Bytes := []byte("hdr_hash1")
 	hrdHash2Bytes := []byte("hdr_hash2")
@@ -2670,6 +2671,8 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	hasher.ComputeCalled = func(s string) []byte {
 		return hash
 	}
+	coreComponents.TxSignHasherField = hasher
+
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
@@ -2712,27 +2715,6 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 		},
 	}
 
-	arguments := createMockMetaArguments()
-	arguments.DataPool = dPool
-	arguments.TxCoordinator = txCoordinator
-	arguments.Hasher = hasher
-
-	calledSaveNodesCoordinator := false
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
-			calledSaveNodesCoordinator = true
-			return true, nil
-		},
-	}
-
-	toggleCalled := false
-	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-		ToggleUnStakeUnBondCalled: func(value bool) error {
-			toggleCalled = true
-			assert.Equal(t, value, true)
-			return nil
-		},
-	}
 	blkc := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{
@@ -2752,7 +2734,27 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 			return &block.Header{Nonce: 0}
 		},
 	}
-	arguments.BlockChain = blkc
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents)
+	arguments.TxCoordinator = txCoordinator
+	dataComponents.DataPool = dPool
+	dataComponents.BlockChain = blkc
+	calledSaveNodesCoordinator := false
+	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
+			calledSaveNodesCoordinator = true
+			return true, nil
+		},
+	}
+
+	toggleCalled := false
+	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+		ToggleUnStakeUnBondCalled: func(value bool) error {
+			toggleCalled = true
+			assert.Equal(t, value, true)
+			return nil
+		},
+	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	metaHdr := &block.MetaBlock{}

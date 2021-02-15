@@ -40,7 +40,7 @@ type CoreComponentsMock struct {
 	MinTransactionVersionCalled func() uint32
 	mutIntMarshalizer           sync.RWMutex
 	RoundHandlerField           consensus.RoundHandler
-	EconomicsHandler            process.EconomicsHandler
+	EconomicsHandler            process.EconomicsDataHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
@@ -172,7 +172,7 @@ func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 }
 
 // EconomicsData -
-func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsHandler {
+func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	return ccm.EconomicsHandler
 }
 

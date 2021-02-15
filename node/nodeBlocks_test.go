@@ -55,6 +55,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	uint64Converter := mock.NewNonceHashConverterMock()
 	storerMock := mock.NewStorerMock()
 	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
 	processComponentsMock := getDefaultProcessComponents()
 	processComponentsMock.HistoryRepositoryInternal = historyProc
 	dataComponentsMock := getDefaultDataComponents()
@@ -65,14 +66,12 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
 			return headerHash, nil
 		},
-	}),
-}
+	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponentsMock),
 		node.WithProcessComponents(processComponentsMock),
 		node.WithDataComponents(dataComponentsMock),
-		node.WithUint64ByteSliceConverter(uint64Converter),
 	)
 
 	header := &block.Header{
@@ -126,6 +125,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
 	storerMock := mock.NewStorerMock()
 	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
 	processComponentsMock := getDefaultProcessComponents()
 	processComponentsMock.ShardCoord = &mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}
 	processComponentsMock.HistoryRepositoryInternal = &testscommon.HistoryRepositoryStub{
@@ -144,7 +144,6 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		node.WithCoreComponents(coreComponentsMock),
 		node.WithProcessComponents(processComponentsMock),
 		node.WithDataComponents(dataComponentsMock),
-		node.WithUint64ByteSliceConverter(uint64Converter),
 	)
 
 	header := &block.MetaBlock{
@@ -289,8 +288,9 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 				MiniBlockHeaders: []block.MiniBlockHeader{
 					{Hash: miniblockHeader},
 				},
-			AccumulatedFees: big.NewInt(1000),
-					DeveloperFees:   big.NewInt(50),}
+				AccumulatedFees: big.NewInt(1000),
+				DeveloperFees:   big.NewInt(50),
+			}
 			blockBytes, _ := json.Marshal(blk)
 			return blockBytes, nil
 		},
@@ -346,23 +346,28 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	epoch := uint32(1)
 	shardID := uint32(5)
 	miniblockHeader := []byte("mbHash")
-	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
-
+	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
 	uint64Converter := mock.NewNonceHashConverterMock()
 	storerMock := mock.NewStorerMock()
+	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
+	processComponentsMock := getDefaultProcessComponents()
+	dataComponentsMock := getDefaultDataComponents()
+	dataComponentsMock.Store = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return storerMock
+		},
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return storerMock.Get(key)
+		},
+	}
+
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryRepository(historyProc),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return storerMock
-			},
-			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-				return storerMock.Get(key)
-			},
-		}),
-		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithCoreComponents(coreComponentsMock),
+		node.WithDataComponents(dataComponentsMock),
+		node.WithProcessComponents(processComponentsMock),
 	)
 
 	header := &block.Header{
@@ -377,7 +382,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		DeveloperFees:   big.NewInt(55),
 	}
 	blockBytes, _ := json.Marshal(header)
-	_ = storerMock.Put(headerHash, blockBytes)
+	_ = storerMock.Put([]byte(headerHash), blockBytes)
 
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	correctHash := []byte("correct-hash")
@@ -388,7 +393,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Round: round,
 		Shard: shardID,
 		Epoch: epoch,
-		Hash:  hex.EncodeToString(headerHash),
+		Hash:  hex.EncodeToString([]byte(headerHash)),
 		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
@@ -400,7 +405,7 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 		Status:          blockAPI.BlockStatusReverted,
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	blk, err := n.GetBlockByHash(hex.EncodeToString([]byte(headerHash)), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

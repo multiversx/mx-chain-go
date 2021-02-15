@@ -329,29 +329,19 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
-	apiWorkingDir := filepath.Join(configs.FlagsConfig.WorkingDir, core.TemporaryPath)
-	apiResolver, err := mainFactory.CreateApiResolver(
-		configs.GeneralConfig,
-		currentNode.stateComponents.AccountsAdapter(),
-		currentNode.stateComponents.PeerAccounts(),
-		currentNode.coreComponents.AddressPubKeyConverter(),
-		currentNode.dataComponents.StorageService(),
-		currentNode.dataComponents.Datapool(),
-		currentNode.dataComponents.Blockchain(),
-		currentNode.coreComponents.InternalMarshalizer(),
-		currentNode.coreComponents.Hasher(),
-		currentNode.coreComponents.Uint64ByteSliceConverter(),
-		currentNode.bootstrapComponents.ShardCoordinator(),
-		currentNode.coreComponents.StatusHandlerUtils().Metrics(),
-		gasScheduleNotifier,
-		currentNode.coreComponents.EconomicsData(),
-		currentNode.cryptoComponents.MessageSignVerifier(),
-		currentNode.coreComponents.GenesisNodesSetup(),
-		configs.SystemSCConfig,
-		currentNode.coreComponents.Rater(),
-		currentNode.coreComponents.EpochNotifier(),
-		apiWorkingDir,
-	)
+
+	 apiResolverArgs := &mainFactory.ApiResolverArgs{
+		 Configs:             configs,
+		 CoreComponents:      currentNode.coreComponents,
+		 DataComponents:      currentNode.dataComponents,
+		 StateComponents:     currentNode.stateComponents,
+		 BootstrapComponents: currentNode.bootstrapComponents,
+		 CryptoComponents:    currentNode.cryptoComponents,
+		 ProcessComponents:   currentNode.processComponents,
+		 GasScheduleNotifier: gasScheduleNotifier,
+	 }
+
+	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
 	if err != nil {
 		return nil, err
 	}

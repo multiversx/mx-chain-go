@@ -80,9 +80,9 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
 	if ok := (&transaction.StatusComputer{
-		SelfShard:                n.shardCoordinator.SelfId(),
-		Store:                    n.store,
-		Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
+		SelfShard:                n.processComponents.ShardCoordinator().SelfId(),
+		Store:                    n.dataComponents.StorageService(),
+		Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
 		MiniblockType:            block.Type(miniblockMetadata.Type),
 		HeaderHash:               miniblockMetadata.HeaderHash,
 		HeaderNonce:              miniblockMetadata.HeaderNonce,
@@ -361,8 +361,8 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		OriginalSender:          n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 	}
-	if len(tx.GetOriginalSender()) == n.addressPubkeyConverter.Len() {
-		txResult.OriginalSender = n.addressPubkeyConverter.Encode(tx.GetOriginalSender())
+	if len(tx.GetOriginalSender()) == n.coreComponents.AddressPubKeyConverter().Len() {
+		txResult.OriginalSender = n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender())
 	}
 
 	return txResult, nil

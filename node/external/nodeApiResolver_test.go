@@ -21,7 +21,7 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 		ScQueryService: nil,
 		StatusMetrics:  &mock.StatusMetricsStub{},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Staked: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -37,7 +37,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  nil,
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Staked: totalStakedAPIHandler
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -53,7 +53,7 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
 		TxCostHandler:  nil,
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -64,7 +64,15 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 	t.Parallel()
 
-	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{}, nil)
+	args := external.ApiResolverArgs{
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: nil,
+	}
+	nar, err := external.NewNodeApiResolver(args)
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilTotalStakedValueHandler, err)
@@ -78,7 +86,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 		}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -144,7 +152,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 		},
 		StatusMetrics:  &mock.StatusMetricsStub{},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -171,7 +179,7 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 			},
 		},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -194,7 +202,7 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 			},
 		},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -217,7 +225,7 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 			},
 		},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
@@ -239,7 +247,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 			},
 		},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().StatusP2pMetricsMap()
@@ -261,7 +269,7 @@ func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 			},
 		},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		Stake: totalStakedAPIHandler,
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().NetworkMetrics()

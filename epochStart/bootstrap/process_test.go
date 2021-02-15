@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -134,7 +134,7 @@ func createMockEpochStartBootstrapArgs(
 				MaxSnapshots:       2,
 			},
 		},
-		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
+		EconomicsData:              &economicsMocks.EconomicsHandlerStub{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},

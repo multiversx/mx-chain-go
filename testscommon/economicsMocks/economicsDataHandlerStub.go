@@ -1,4 +1,4 @@
-package economicsmocks
+package economicsMocks
 
 import (
 	"math/big"

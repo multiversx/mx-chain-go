@@ -654,7 +654,8 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	signature := "-"
 
 	coreComponents.AddrPubKeyConv = nil
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), 1, 0)
+	chainID := coreComponents.ChainID()
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -694,7 +695,21 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	stateComponents.Accounts = nil
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	tx, txHash, err := n.CreateTransaction(
+		nonce,
+		value.String(),
+		receiver,
+		nil,
+		sender,
+		nil,
+		gasPrice,
+		gasLimit,
+		txData,
+		signature,
+		coreComponents.ChainID(),
+		1,
+		0,
+	)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -756,13 +771,13 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-	EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
 
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
@@ -770,9 +785,7 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
-		node.WithChainID([]byte(chainID)),
 		node.WithAddressSignatureSize(10),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}
 	)
 
 	nonce := uint64(0)
@@ -816,13 +829,13 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
-	EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
 
@@ -906,7 +919,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
 		node.WithAddressSignatureSize(10),
-		)
+	)
 
 	nonce := uint64(0)
 	value := new(big.Int).SetInt64(10)
@@ -935,33 +948,32 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	maxValueLength := 7
 	signatureLength := 10
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxValueLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(signatureLength),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
 	)
 
 	nonce := uint64(0)
@@ -994,34 +1006,40 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	maxLength := 7
 	chainID := "chain id"
 	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return encodedAddressLen
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -1052,34 +1070,40 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	maxLength := 7
 	chainID := "chain id"
 	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return encodedAddressLen
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -1109,30 +1133,39 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1159,30 +1192,39 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1209,33 +1251,41 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
-
 	nonce := uint64(0)
 	value := "1" + strings.Repeat("0", maxLength+1)
 	receiver := "rcv"
@@ -1257,30 +1307,39 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1349,7 +1408,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithBootstrapComponents(bootstrapComponents),
 		node.WithAddressSignatureSize(10),
-		)
+	)
 
 	nonce := uint64(0)
 	value := new(big.Int).SetInt64(10)
@@ -1451,7 +1510,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
 		node.WithAddressSignatureSize(10),
-		)
+	)
 
 	nonce := uint64(0)
 	value := new(big.Int).SetInt64(10)

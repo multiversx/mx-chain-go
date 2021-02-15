@@ -604,6 +604,7 @@ type TransactionFeeCalculator interface {
 	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	MinGasLimit() uint64
+	IsInterfaceNil() bool
 }
 
 // FeeHandler is able to perform some economics calculation on a provided transaction

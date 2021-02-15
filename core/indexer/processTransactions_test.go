@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -128,7 +128,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -146,7 +146,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -237,7 +237,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -266,7 +266,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -456,7 +456,7 @@ func TestAlteredAddresses(t *testing.T) {
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
-			txFeeCalculator:        &economicsmocks.EconomicsHandlerStub{},
+			txFeeCalculator:        &economicsMocks.EconomicsHandlerStub{},
 			shardCoordinator:       shardCoordinator,
 		},
 		marshalizer:      &mock.MarshalizerMock{},
@@ -516,7 +516,7 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -565,7 +565,7 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&economicsmocks.EconomicsHandlerStub{},
+		&economicsMocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)

@@ -88,14 +88,39 @@ func (fh *FeeHandler) GetDeveloperFees() *big.Int {
 	return big.NewInt(0)
 }
 
-// GenesisTotalSupply -
-func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
-	return big.NewInt(0)
-}
-
 // GasPerDataByte -
 func (fh *FeeHandler) GasPerDataByte() uint64 {
 	return 0
+}
+
+// SplitTxGasInCategories -
+func (fh *FeeHandler) SplitTxGasInCategories(_ process.TransactionWithFeeHandler) (uint64, uint64){
+	return 0, 0
+}
+
+// GasPriceForProcessing
+func (fh *FeeHandler) GasPriceForProcessing(_ process.TransactionWithFeeHandler) uint64 {
+	return 0
+}
+
+// GasPriceForMove -
+func (fh *FeeHandler) GasPriceForMove(_ process.TransactionWithFeeHandler) uint64 {
+	return 0
+}
+
+// MinGasPriceForProcessing -
+func (fh *FeeHandler) MinGasPriceForProcessing() uint64 {
+	return 0
+}
+
+// ComputeGasUsedAndFeeBasedOnRefundValue -
+func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValue(_ process.TransactionWithFeeHandler, _ *big.Int) (uint64, *big.Int){
+	return 0, big.NewInt(0)
+}
+
+// ComputeTxFeeBasedOnGasUsed -
+func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ process.TransactionWithFeeHandler, _ uint64) *big.Int {
+	return big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

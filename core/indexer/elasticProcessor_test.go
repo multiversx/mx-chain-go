@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/assert"
@@ -62,7 +62,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
 		AccountsDB:               &mock.AccountsStub{},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 	}
 }
@@ -480,7 +480,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		},
 		AccountsDB:               &mock.AccountsStub{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
 	}
 
 	esDatabase, err := NewElasticProcessor(args)
@@ -560,7 +560,7 @@ func TestUpdateTransaction(t *testing.T) {
 			UseKibana:        false,
 			IndexerCacheSize: 10000,
 		},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
 		EnabledIndexes: map[string]struct{}{
 			"transactions": {},
 		},
