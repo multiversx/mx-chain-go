@@ -842,6 +842,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	err = economicsData.SetStatusHandler(coreComponents.StatusHandler)
+	if err != nil {
+		log.Debug("cannot set status handler to economicsData", "error", err)
+	}
+
 	log.Trace("creating ratings data components")
 
 	ratingDataArgs := rating.RatingsDataArg{
@@ -1138,7 +1143,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
 		if flagValue != "" {
@@ -1649,7 +1654,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
@@ -1661,13 +1666,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
+		fmt.Printf("Could not copy %s\n", source.Name())
 	}
 }
 
@@ -2141,6 +2146,8 @@ func createHardForkTrigger(
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		TxSignHasher:              coreData.TxSignHasher,
 		EpochNotifier:             epochNotifier,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2654,14 +2661,17 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
-		vmFactory, err = shard.NewVMContainerFactory(
-			queryVirtualMachineConfig,
-			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasScheduleNotifier,
-			argsHook,
-			generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config:                         queryVirtualMachineConfig,
+			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			GasSchedule:                    gasScheduleNotifier,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+		}
+
+		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, err
 		}

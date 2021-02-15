@@ -169,6 +169,7 @@ type Config struct {
 	Versions              VersionsConfig
 	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
+	TrieSync              TrieSyncConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -228,9 +229,11 @@ type GeneralSettingsConfig struct {
 	MetaProtectionEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch         uint32
 	GasPriceModifierEnableEpoch            uint32
+	RepairCallbackEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
+	BlockGasAndFeesReCheckEnableEpoch      uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -458,4 +461,10 @@ type GasScheduleByEpochs struct {
 // GasScheduleConfig represents the versioning config area for the gas schedule toml
 type GasScheduleConfig struct {
 	GasScheduleByEpochs []GasScheduleByEpochs
+}
+
+// TrieSyncConfig represents the trie synchronization configuration area
+type TrieSyncConfig struct {
+	NumConcurrentTrieSyncers  int
+	MaxHardCapForMissingNodes int
 }

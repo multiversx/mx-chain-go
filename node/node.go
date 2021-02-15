@@ -513,7 +513,7 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	rootHash, err := userAccount.DataTrie().Root()
+	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
 		return nil, err
 	}

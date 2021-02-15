@@ -30,22 +30,27 @@ type vmContainerFactory struct {
 	builtinFunctions               vmcommon.FunctionNames
 	deployEnableEpoch              uint32
 	aheadOfTimeGasUsageEnableEpoch uint32
+	arwenV3EnableEpoch             uint32
+}
+
+// ArgVMContainerFactory defines the arguments needed to the new VM factory
+type ArgVMContainerFactory struct {
+	Config                         config.VirtualMachineConfig
+	BlockGasLimit                  uint64
+	GasSchedule                    core.GasScheduleNotifier
+	ArgBlockChainHook              hooks.ArgBlockChainHook
+	DeployEnableEpoch              uint32
+	AheadOfTimeGasUsageEnableEpoch uint32
+	ArwenV3EnableEpoch             uint32
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
-func NewVMContainerFactory(
-	config config.VirtualMachineConfig,
-	blockGasLimit uint64,
-	gasSchedule core.GasScheduleNotifier,
-	argBlockChainHook hooks.ArgBlockChainHook,
-	deployEnableEpoch uint32,
-	aheadOfTimeGasUsageEnableEpoch uint32,
-) (*vmContainerFactory, error) {
-	if check.IfNil(gasSchedule) {
+func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, error) {
+	if check.IfNil(args.GasSchedule) {
 		return nil, process.ErrNilGasSchedule
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
@@ -54,14 +59,15 @@ func NewVMContainerFactory(
 	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
 	return &vmContainerFactory{
-		config:                         config,
+		config:                         args.Config,
 		blockChainHookImpl:             blockChainHookImpl,
 		cryptoHook:                     cryptoHook,
-		blockGasLimit:                  blockGasLimit,
-		gasSchedule:                    gasSchedule,
+		blockGasLimit:                  args.BlockGasLimit,
+		gasSchedule:                    args.GasSchedule,
 		builtinFunctions:               builtinFunctions,
-		deployEnableEpoch:              deployEnableEpoch,
-		aheadOfTimeGasUsageEnableEpoch: aheadOfTimeGasUsageEnableEpoch,
+		deployEnableEpoch:              args.DeployEnableEpoch,
+		aheadOfTimeGasUsageEnableEpoch: args.AheadOfTimeGasUsageEnableEpoch,
+		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
 	}, nil
 }
 
@@ -92,7 +98,7 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
 	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
@@ -113,6 +119,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 				AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
 				DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+				ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -123,7 +130,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createInProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
@@ -136,6 +143,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 			AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
 			DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+			ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 		},
 	)
 }

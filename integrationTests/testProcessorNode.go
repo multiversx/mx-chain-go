@@ -230,7 +230,7 @@ type TestProcessorNode struct {
 	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            process.SmartContractProcessor
+	ScProcessor            *smartContract.TestScProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
@@ -277,15 +277,16 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler                  update.ExportHandler
-	WaitTime                       time.Duration
-	HistoryRepository              dblookupext.HistoryRepository
-	EpochNotifier                  process.EpochNotifier
-	BuiltinEnableEpoch             uint32
-	DeployEnableEpoch              uint32
-	RelayedTxEnableEpoch           uint32
-	PenalizedTooMuchGasEnableEpoch uint32
-	UseValidVmBlsSigVerifier       bool
+	ExportHandler                     update.ExportHandler
+	WaitTime                          time.Duration
+	HistoryRepository                 dblookupext.HistoryRepository
+	EpochNotifier                     process.EpochNotifier
+	BuiltinEnableEpoch                uint32
+	DeployEnableEpoch                 uint32
+	RelayedTxEnableEpoch              uint32
+	PenalizedTooMuchGasEnableEpoch    uint32
+	BlockGasAndFeesReCheckEnableEpoch uint32
+	UseValidVmBlsSigVerifier          bool
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -476,7 +477,15 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
-	tpn.initEconomicsData()
+	economicsConfig := tpn.createDefaultEconomicsConfig()
+	economicsConfig.GlobalSettings.YearSettings = append(
+		economicsConfig.GlobalSettings.YearSettings,
+		&config.YearSetting{
+			Year:             1,
+			MaximumInflation: 0.01,
+		},
+	)
+	tpn.initEconomicsData(economicsConfig)
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -592,19 +601,20 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         tpn.PeerState,
-		PubkeyConv:          TestValidatorPubkeyConverter,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		DataPool:            tpn.DataPool,
-		StorageService:      tpn.Storage,
-		Marshalizer:         TestMarshalizer,
-		Rater:               rater,
-		MaxComputableRounds: 1000,
-		RewardsHandler:      tpn.EconomicsData,
-		NodesSetup:          tpn.NodesSetup,
-		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		PeerAdapter:          tpn.PeerState,
+		PubkeyConv:           TestValidatorPubkeyConverter,
+		NodesCoordinator:     tpn.NodesCoordinator,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		DataPool:             tpn.DataPool,
+		StorageService:       tpn.Storage,
+		Marshalizer:          TestMarshalizer,
+		Rater:                rater,
+		MaxComputableRounds:  1000,
+		RewardsHandler:       tpn.EconomicsData,
+		NodesSetup:           tpn.NodesSetup,
+		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: StakingV2Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -617,7 +627,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -666,7 +676,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(trieStore)
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -793,17 +803,19 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
-		vmFactory, _ = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig{
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: true,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			},
-			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			gasSchedule,
-			argsHook,
-			0,
-			0,
-		)
+			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:                    gasSchedule,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              0,
+			AheadOfTimeGasUsageEnableEpoch: 0,
+			ArwenV3EnableEpoch:             0,
+		}
+		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
 
 	vmContainer, _ := vmFactory.Create()
@@ -858,44 +870,49 @@ func (tpn *TestProcessorNode) initChainHandler() {
 	}
 }
 
-func (tpn *TestProcessorNode) initEconomicsData() {
-	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
-	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
-	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
-
+func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics: &config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply: "2000000000000000000000",
-				MinimumInflation:   0,
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				TopUpFactor:                   0.25,
-				TopUpGradientPoint:            "300000000000000000000",
-			},
-			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        0.01,
-			},
-		},
+		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
+}
+
+func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsConfig {
+	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
+	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
+
+	return &config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			GenesisTotalSupply: "2000000000000000000000",
+			MinimumInflation:   0,
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             0,
+					MaximumInflation: 0.01,
+				},
+			},
+		},
+		RewardsSettings: config.RewardsSettings{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+			TopUpFactor:                      0.25,
+			TopUpGradientPoint:               "300000000000000000000",
+			ProtocolSustainabilityPercentage: 0.1,
+		},
+		FeeSettings: config.FeeSettings{
+			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+			MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+			MinGasPrice:             minGasPrice,
+			MinGasLimit:             minGasLimit,
+			GasPerDataByte:          "1",
+			GasPriceModifier:        0.01,
+		},
+	}
 }
 
 func (tpn *TestProcessorNode) initRatingsData() {
@@ -1249,17 +1266,19 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NilCompiledSCStore: true,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, _ := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
-		maxGasLimitPerBlock,
-		gasSchedule,
-		argsHook,
-		0,
-		0,
-	)
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
 	var err error
 	tpn.VMContainer, err = vmFactory.Create()
@@ -1309,7 +1328,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1344,7 +1364,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,
-		tpn.ScProcessor.(process.SmartContractResultProcessor),
+		tpn.ScProcessor,
 		tpn.RewardsProcessor,
 		tpn.EconomicsData,
 		tpn.GasHandler,
@@ -1367,6 +1387,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 
@@ -1521,7 +1544,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = scProcessor
+	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:           TestHasher,
 		Marshalizer:      TestMarshalizer,
@@ -1568,6 +1591,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 

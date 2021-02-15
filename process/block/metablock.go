@@ -1808,7 +1808,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 				log.Warn("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader", "error", err.Error())
 				continue
 			}
-			if bytes.Compare(hash, shardData.HeaderHash) != 0 {
+			if !bytes.Equal(hash, shardData.HeaderHash) {
 				log.Warn("genesis hash missmatch",
 					"last notarized nonce", lastCrossNotarizedHeaderForShard.GetNonce(),
 					"last notarized hash", hash,
