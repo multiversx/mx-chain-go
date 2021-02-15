@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -34,6 +35,7 @@ type ConsensusCoreMock struct {
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
+	nodeRedundancyHandler   redundancy.NodeRedundancyHandler
 }
 
 // GetAntiFloodHandler -
@@ -209,6 +211,16 @@ func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeader
 // SetFallbackHeaderValidator -
 func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
 	ccm.fallbackHeaderValidator = fallbackHeaderValidator
+}
+
+// NodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) NodeRedundancyHandler() redundancy.NodeRedundancyHandler {
+	return ccm.nodeRedundancyHandler
+}
+
+// SetNodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler redundancy.NodeRedundancyHandler) {
+	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

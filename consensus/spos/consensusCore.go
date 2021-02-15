@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -34,6 +35,7 @@ type ConsensusCore struct {
 	peerHonestyHandler            consensus.PeerHonestyHandler
 	headerSigVerifier             consensus.HeaderSigVerifier
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
+	nodeRedundancyHandler         redundancy.NodeRedundancyHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -57,6 +59,7 @@ type ConsensusCoreArgs struct {
 	PeerHonestyHandler            consensus.PeerHonestyHandler
 	HeaderSigVerifier             consensus.HeaderSigVerifier
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
+	NodeRedundancyHandler         redundancy.NodeRedundancyHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -83,6 +86,7 @@ func NewConsensusCore(
 		peerHonestyHandler:            args.PeerHonestyHandler,
 		headerSigVerifier:             args.HeaderSigVerifier,
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
+		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -186,6 +190,11 @@ func (cc *ConsensusCore) HeaderSigVerifier() consensus.HeaderSigVerifier {
 // FallbackHeaderValidator will return the fallback header validator which will be used in subrounds
 func (cc *ConsensusCore) FallbackHeaderValidator() consensus.FallbackHeaderValidator {
 	return cc.fallbackHeaderValidator
+}
+
+// NodeRedundancyHandler will return the node redundancy handler which will be used in subrounds
+func (cc *ConsensusCore) NodeRedundancyHandler() redundancy.NodeRedundancyHandler {
+	return cc.nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

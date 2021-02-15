@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"io"
 	"io/ioutil"
 	"math"
@@ -372,6 +373,13 @@ VERSION:
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+
+	// redundancyLevel defines a flag that specifies the level of redundancy for the current instance (0 = master)
+	redundancyLevel = cli.Uint64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (0 = master, 1 = first slave, 2 = second slave, etc.)",
+		Value: 0,
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -439,6 +447,7 @@ func main() {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		redundancyLevel,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -1361,6 +1370,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(ctx.GlobalUint64(redundancyLevel.Name))
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1392,6 +1406,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		fallbackHeaderValidator,
 		isInImportMode,
+		nodeRedundancy,
 	)
 	if err != nil {
 		return err
@@ -2207,6 +2222,7 @@ func createNode(
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 	isInImportDbMode bool,
+	nodeRedundancyHandler redundancy.NodeRedundancyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2336,6 +2352,7 @@ func createNode(
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
 		node.WithImportMode(isInImportDbMode),
+		node.WithNodeRedundancyHandler(nodeRedundancyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

@@ -1497,7 +1497,7 @@ func TestWithTxVersionChecker_NilTxVersionCheckerShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilTransactionVersionChecker, err)
 }
 
-func TestWithTxVersionChecker_OkTxVersionCheckerShoulWork(t *testing.T) {
+func TestWithTxVersionChecker_OkTxVersionCheckerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
@@ -1507,5 +1507,29 @@ func TestWithTxVersionChecker_OkTxVersionCheckerShoulWork(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, txVersionChecker, node.txVersionChecker)
+	assert.Nil(t, err)
+}
+
+func TestWithNodeRedundancyHandler_NilNodeRedundancyHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodeRedundancyHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
+}
+
+func TestWithNodeRedundancyHandler_OkNodeRedundancyHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	opt := WithNodeRedundancyHandler(nodeRedundancyHandler)
+	err := opt(node)
+
+	assert.Equal(t, nodeRedundancyHandler, node.nodeRedundancyHandler)
 	assert.Nil(t, err)
 }

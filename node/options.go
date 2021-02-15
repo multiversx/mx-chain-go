@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -788,6 +789,17 @@ func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Opti
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
+		return nil
+	}
+}
+
+// WithNodeRedundancyHandler sets up a node redundancy handler for the node
+func WithNodeRedundancyHandler(nodeRedundancyHandler redundancy.NodeRedundancyHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(nodeRedundancyHandler) {
+			return ErrNilNodeRedundancyHandler
+		}
+		n.nodeRedundancyHandler = nodeRedundancyHandler
 		return nil
 	}
 }

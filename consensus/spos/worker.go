@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"sync"
 	"time"
 
@@ -70,6 +71,7 @@ type Worker struct {
 
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
+	nodeRedundancyHandler     redundancy.NodeRedundancyHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -95,6 +97,7 @@ type WorkerArgs struct {
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
+	NodeRedundancyHandler    redundancy.NodeRedundancyHandler
 }
 
 // NewWorker creates a new Worker object
@@ -139,6 +142,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
+		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -226,6 +230,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
+	}
+	if check.IfNil(args.NodeRedundancyHandler) {
+		return ErrNilNodeRedundancyHandler
 	}
 
 	return nil
@@ -336,6 +343,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
 		return err
+	}
+
+	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
+		//TODO: Add code for redundancy mechanism
 	}
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)

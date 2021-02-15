@@ -95,6 +95,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		PoolAdder:                poolAdder,
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 	}
 
 	return workerArgs
@@ -344,6 +345,17 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilPoolAdder, err)
+}
+
+func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.NodeRedundancyHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
