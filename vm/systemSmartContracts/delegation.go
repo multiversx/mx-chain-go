@@ -96,6 +96,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if args.DelegationSCConfig.MinServiceFee > args.DelegationSCConfig.MaxServiceFee {
 		return nil, fmt.Errorf("%w minServiceFee bigger than maxServiceFee", vm.ErrInvalidDelegationSCConfig)
 	}
+	if args.DelegationSCConfig.MaxServiceFee < 1 {
+		return nil, fmt.Errorf("%w maxServiceFee must be more than 0", vm.ErrInvalidDelegationSCConfig)
+	}
 
 	d := &delegation{
 		eei:                    args.Eei,
