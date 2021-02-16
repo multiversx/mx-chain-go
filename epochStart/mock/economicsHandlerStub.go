@@ -6,8 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-
-
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
 	MaxGasLimitPerBlockCalled                    func() uint64
@@ -32,8 +30,8 @@ type EconomicsHandlerStub struct {
 	MinGasPriceForProcessingCalled               func() uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
-	RewardsTopUpGradientPointCalled func() *big.Int
-	RewardsTopUpFactorCalled func() float64
+	RewardsTopUpGradientPointCalled              func() *big.Int
+	RewardsTopUpFactorCalled                     func() float64
 }
 
 // MinGasPrice -
@@ -199,16 +197,16 @@ func (fhs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.Transacti
 }
 
 // RewardsTopUpGradientPoint -
-func (fhs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int{
-	if fhs.RewardsTopUpGradientPointCalled!=nil{
+func (fhs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	if fhs.RewardsTopUpGradientPointCalled != nil {
 		return fhs.RewardsTopUpGradientPointCalled()
 	}
 	return big.NewInt(0)
 }
 
 // RewardsTopUpFactor -
-func (fhs *EconomicsHandlerStub) RewardsTopUpFactor() float64{
-	if fhs.RewardsTopUpFactorCalled != nil{
+func (fhs *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
+	if fhs.RewardsTopUpFactorCalled != nil {
 		return fhs.RewardsTopUpFactorCalled()
 	}
 	return 0
