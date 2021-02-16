@@ -1239,10 +1239,10 @@ func addDelegationData(
 ) {
 	delegatorSC := loadSCAccount(accountsDB, delegation)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
-		Delegators:    make([][]byte, 0),
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
 		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
 		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+		NumUsers:      0,
 	}
 
 	for _, stakedKey := range stakedKeys {
@@ -1331,10 +1331,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
-		Delegators:    make([][]byte, 0),
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
 		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
 		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+		NumUsers:      0,
 	}
 	_ = args.Marshalizer.Unmarshal(dStatus, marshalledData)
 
