@@ -70,7 +70,7 @@ type coreComponents struct {
 	statusHandlersUtils           factory.StatusHandlersUtils
 	pathHandler                   storage.PathManagerHandler
 	syncTimer                     ntp.SyncTimer
-	RoundHandler                  consensus.RoundHandler
+	roundHandler                  consensus.RoundHandler
 	alarmScheduler                core.TimersScheduler
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
@@ -275,7 +275,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		statusHandlersUtils:           statusHandlersInfo,
 		pathHandler:                   pathHandler,
 		syncTimer:                     syncer,
-		RoundHandler:                  roundHandler,
+		roundHandler:                  roundHandler,
 		alarmScheduler:                alarmScheduler,
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,

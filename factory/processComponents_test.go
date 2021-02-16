@@ -172,13 +172,25 @@ func getProcessArgs(
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
 				UnBondPeriod:                         0,
-				StakingV2Epoch:                   0,
+				StakingV2Epoch:                       0,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "100",
+				MinCreationDeposit: "100",
+				EnabledEpoch:       0,
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "100",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  100,
 			},
 		},
 		Version:                 "v1.0.0",
@@ -220,6 +232,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
+	gasMap["DelegationMgrOps"] = value
+	gasMap["GetAllNodeStates"] = value
 
 	return gasMap
 }
