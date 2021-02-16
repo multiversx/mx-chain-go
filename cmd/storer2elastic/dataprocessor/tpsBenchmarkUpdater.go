@@ -2,9 +2,9 @@ package dataprocessor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -12,13 +12,13 @@ const numMillisecondsInASecond = 1000
 
 type tpsBenchmarkUpdater struct {
 	tpsBenchmark   statistics.TPSBenchmark
-	elasticIndexer indexer.Indexer
+	elasticIndexer process.Indexer
 }
 
 // NewTPSBenchmarkUpdater returns a new instance of tpsBenchmarkUpdater
 func NewTPSBenchmarkUpdater(
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 ) (*tpsBenchmarkUpdater, error) {
 	if check.IfNil(genesisNodesConfig) {
 		return nil, ErrNilGenesisNodesSetup

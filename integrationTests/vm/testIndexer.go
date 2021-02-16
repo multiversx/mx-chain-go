@@ -9,7 +9,6 @@ import (
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,7 +20,7 @@ import (
 )
 
 type testIndexer struct {
-	indexer          indexer.Indexer
+	indexer          process.Indexer
 	indexerData      map[string]*bytes.Buffer
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher

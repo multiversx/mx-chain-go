@@ -10,7 +10,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -198,7 +197,7 @@ func countMetaAcceptedSignedBlocks(
 }
 
 func indexRoundInfo(
-	indexerHandler indexer.Indexer,
+	indexerHandler process.Indexer,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
@@ -250,7 +249,7 @@ func indexRoundInfo(
 }
 
 func indexValidatorsRating(
-	indexerHandler indexer.Indexer,
+	indexerHandler process.Indexer,
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
@@ -283,7 +282,7 @@ func indexValidatorsRating(
 }
 
 func indexShardValidatorsRating(
-	indexerHandler indexer.Indexer,
+	indexerHandler process.Indexer,
 	shardValidatorsRating map[string][]workItems.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {

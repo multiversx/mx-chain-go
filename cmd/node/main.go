@@ -32,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -1694,7 +1693,7 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
@@ -2028,7 +2027,7 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
-) (indexer.Indexer, error) {
+) (process.Indexer, error) {
 
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
@@ -2195,7 +2194,7 @@ func createNode(
 	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
-	esIndexer indexer.Indexer,
+	esIndexer process.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,

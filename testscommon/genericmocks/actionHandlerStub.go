@@ -1,4 +1,4 @@
-package mock
+package genericmocks
 
 import "github.com/ElrondNetwork/elrond-go/data"
 

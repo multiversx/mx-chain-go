@@ -10,13 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 )
@@ -30,7 +30,7 @@ type RatingProcessorArgs struct {
 	GeneralConfig            config.Config
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
-	ElasticIndexer           indexer.Indexer
+	ElasticIndexer           process.Indexer
 	RatingsConfig            config.RatingsConfig
 }
 
@@ -41,7 +41,7 @@ type ratingsProcessor struct {
 	dbPathWithChainID        string
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
-	elasticIndexer           indexer.Indexer
+	elasticIndexer           process.Indexer
 	peerAdapter              state.AccountsAdapter
 	genesisNodesConfig       sharding.GenesisNodesSetupHandler
 	ratingsConfig            config.RatingsConfig
