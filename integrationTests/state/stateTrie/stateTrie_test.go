@@ -1597,6 +1597,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
 		)
+		time.Sleep(time.Second)
 	}
 
 	numDelayRounds := uint32(6)
