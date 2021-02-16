@@ -115,6 +115,7 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
+	EncodedAddressLen() uint32
 	IsInterfaceNil() bool
 }
 

@@ -589,10 +589,10 @@ func (n *Node) CreateTransaction(
 	if len(signatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
-	if len(receiver) > n.coreComponents.AddressPubKeyConverter().Len() {
+	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
-	if len(sender) > n.coreComponents.AddressPubKeyConverter().Len() {
+	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
 	}
 	if len(senderUsername) > core.MaxUserNameLength {

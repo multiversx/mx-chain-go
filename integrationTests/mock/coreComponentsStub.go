@@ -206,6 +206,11 @@ func (ccs *CoreComponentsStub) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccs.TxVersionCheckField
 }
 
+// EncodedAddressLen -
+func (ccs *CoreComponentsStub) EncodedAddressLen() uint32 {
+	return uint32(ccs.AddressPubKeyConverter().Len()*2)
+}
+
 // ChanStopNodeProcess -
 func (ccs *CoreComponentsStub) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccs.ChanStopNodeProcessField

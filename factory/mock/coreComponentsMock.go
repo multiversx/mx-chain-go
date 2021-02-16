@@ -166,6 +166,11 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheckHandler
 }
 
+// EncodedAddressLen -
+func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
+	return uint32(ccm.AddressPubKeyConverter().Len()*2)
+}
+
 // RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundHandlerField

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -85,6 +86,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
+	encodedAddressLen             uint32
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -134,6 +136,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
+
 	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
@@ -290,6 +293,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
+		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 	}, nil
 }
 
@@ -308,4 +312,10 @@ func (cc *coreComponents) Close() error {
 		}
 	}
 	return nil
+}
+
+func computeEncodedAddressLen(converter core.PubkeyConverter) uint32 {
+	emptyAddress := bytes.Repeat([]byte{0}, converter.Len())
+	encodedEmptyAddress := converter.Encode(emptyAddress)
+	return uint32(len(encodedEmptyAddress))
 }

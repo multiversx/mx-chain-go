@@ -206,6 +206,11 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheckHandler
 }
 
+// EncodedAddressLen -
+func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
+	return uint32(ccm.AddressPubKeyConverter().Len()*2)
+}
+
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
