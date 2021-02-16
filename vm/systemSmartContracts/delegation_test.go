@@ -2463,6 +2463,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	)
 	args.Eei = eei
 
+	args.DelegationSCConfig.MaxServiceFee = 10000
 	vmInput := getDefaultVmInputForFunc("claimRewards", [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
 
@@ -2481,13 +2482,13 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	_ = d.saveRewardData(0, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(1000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	_ = d.saveRewardData(1, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(2000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	output := d.Execute(vmInput)
@@ -2514,7 +2515,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	_ = d.saveRewardData(3, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(2000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	vmInput = getDefaultVmInputForFunc("getTotalCumulatedRewardsForUser", [][]byte{vmInput.CallerAddr})
@@ -2550,7 +2551,7 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 	}})
 
 	args.Eei = eei
-
+	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
@@ -2575,13 +2576,13 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 	_ = d.saveRewardData(0, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(1000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	_ = d.saveRewardData(1, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(2000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 	vmInput = getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
 	vmInput.CallerAddr = []byte("stakingProvider")
@@ -2726,7 +2727,7 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-
+	args.DelegationSCConfig.MaxServiceFee = 10000
 	delegatorAddr := []byte("address")
 	vmInput := getDefaultVmInputForFunc("getClaimableRewards", [][]byte{delegatorAddr})
 	d, _ := NewDelegationSystemSC(args)
@@ -2746,13 +2747,13 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 	_ = d.saveRewardData(0, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(1000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	_ = d.saveRewardData(1, &RewardComputationData{
 		RewardsToDistribute: big.NewInt(100),
 		TotalActive:         big.NewInt(2000),
-		ServiceFee:          10000,
+		ServiceFee:          1000,
 	})
 
 	output := d.Execute(vmInput)

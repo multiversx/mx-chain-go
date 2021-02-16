@@ -27,8 +27,6 @@ const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
 
-const percentageDenominator = uint64(100000)
-
 const (
 	active   = uint32(0)
 	unStaked = uint32(1)
@@ -97,9 +95,6 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if args.DelegationSCConfig.MinServiceFee > args.DelegationSCConfig.MaxServiceFee {
 		return nil, fmt.Errorf("%w minServiceFee bigger than maxServiceFee", vm.ErrInvalidDelegationSCConfig)
-	}
-	if args.DelegationSCConfig.MaxServiceFee > percentageDenominator {
-		return nil, fmt.Errorf("%w maxServiceFee bigger than %d", vm.ErrInvalidDelegationSCConfig, percentageDenominator)
 	}
 
 	d := &delegation{
@@ -1426,7 +1421,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		}
 
 		var rewardsForOwner *big.Int
-		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
+		percentage := float64(rewardData.ServiceFee) / float64(d.maxServiceFee)
 		if d.stakingV2Enabled.IsSet() {
 			rewardsForOwner = core.GetIntTrimmedPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		} else {
