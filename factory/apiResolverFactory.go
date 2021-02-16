@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
+// ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
 	Configs             *config.Configs
 	CoreComponents      CoreComponentsHolder
@@ -36,7 +37,7 @@ type ApiResolverArgs struct {
 	GasScheduleNotifier core.GasScheduleNotifier
 }
 
-type ScQueryServiceArgs struct {
+type scQueryServiceArgs struct {
 	generalConfig       *config.Config
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
@@ -48,7 +49,7 @@ type ScQueryServiceArgs struct {
 	workingDir          string
 }
 
-type ScQueryElementArgs struct {
+type scQueryElementArgs struct {
 	generalConfig       *config.Config
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
@@ -65,12 +66,12 @@ type ScQueryElementArgs struct {
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, core.TemporaryPath)
-	argsSCQuery := &ScQueryServiceArgs{
+	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:       args.Configs.GeneralConfig,
-		coreComponents: args.CoreComponents,
-		dataComponents: args.DataComponents,
-		stateComponents: args.StateComponents,
-		processComponents: args.ProcessComponents,
+		coreComponents:      args.CoreComponents,
+		dataComponents:      args.DataComponents,
+		stateComponents:     args.StateComponents,
+		processComponents:   args.ProcessComponents,
 		gasScheduleNotifier: args.GasScheduleNotifier,
 		messageSigVerifier:  args.CryptoComponents.MessageSignVerifier(),
 		systemSCConfig:      args.Configs.SystemSCConfig,
@@ -137,19 +138,19 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 }
 
 func createScQueryService(
-	args *ScQueryServiceArgs,
+	args *scQueryServiceArgs,
 ) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
 	numConcurrentVms := args.generalConfig.VirtualMachine.Querying.NumConcurrentVMs
 	if numConcurrentVms < 1 {
 		return nil, nil, nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
 	}
 
-	argsQueryElem := &ScQueryElementArgs{
+	argsQueryElem := &scQueryElementArgs{
 		generalConfig:       args.generalConfig,
-		coreComponents: args.coreComponents,
-		dataComponents: args.dataComponents,
-		stateComponents: args.stateComponents,
-		processComponents: args.processComponents,
+		coreComponents:      args.coreComponents,
+		dataComponents:      args.dataComponents,
+		stateComponents:     args.stateComponents,
+		processComponents:   args.processComponents,
 		gasScheduleNotifier: args.gasScheduleNotifier,
 		messageSigVerifier:  args.messageSigVerifier,
 		systemSCConfig:      args.systemSCConfig,
@@ -182,7 +183,7 @@ func createScQueryService(
 }
 
 func createScQueryElement(
-	args *ScQueryElementArgs,
+	args *scQueryElementArgs,
 ) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -269,7 +270,7 @@ func createScQueryElement(
 		args.coreComponents.EconomicsData(),
 		vmFactory.BlockChainHookImpl(),
 		args.dataComponents.Blockchain(),
-		)
+	)
 
 	return scQueryService, vmFactory, vmContainer, err
 }

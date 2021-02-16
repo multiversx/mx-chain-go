@@ -9,27 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
-/*
-	Get(key []byte) ([]byte, error)
-	Update(key, value []byte) error
-	Delete(key []byte) error
-	RootHash() ([]byte, error)
-	Commit() error
-	Recreate(root []byte) (Trie, error)
-	String() string
-	ResetOldHashes() [][]byte
-	AppendToOldHashes([][]byte)
-	GetDirtyHashes() (ModifiedHashes, error)
-	SetNewHashes(ModifiedHashes)
-	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
-	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
-	GetAllHashes() ([][]byte, error)
-	GetProof(key []byte) ([][]byte, error)
-	VerifyProof(key []byte, proof [][]byte) (bool, error)
-	GetStorageManager() StorageManager
-	IsInterfaceNil() bool
-*/
-
 // TrieStub -
 type TrieStub struct {
 	GetCalled                   func(key []byte) ([]byte, error)

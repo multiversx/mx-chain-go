@@ -6,21 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-/*
-	RewardsTopUpGradientPoint() *big.Int
-	RewardsTopUpFactor() float64
-	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx TransactionWithFeeHandler) uint64
-	MinGasPriceForProcessing() uint64
-	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
-	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
-*/
-
 // EconomicsHandlerStub -
 type EconomicsHandlerStub struct {
 	MaxGasLimitPerBlockCalled                    func() uint64
-	SetMinGasPriceCalled                         func(minasPrice uint64)
+	SetMinGasPriceCalled                         func(minGasPrice uint64)
 	SetMinGasLimitCalled                         func(minGasLimit uint64)
 	ComputeGasLimitCalled                        func(tx process.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFeeCalled                  func(tx process.TransactionWithFeeHandler) *big.Int

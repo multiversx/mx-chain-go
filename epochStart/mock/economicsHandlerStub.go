@@ -198,6 +198,7 @@ func (fhs *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsed(tx process.Transacti
 	return big.NewInt(0)
 }
 
+// RewardsTopUpGradientPoint -
 func (fhs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int{
 	if fhs.RewardsTopUpGradientPointCalled!=nil{
 		return fhs.RewardsTopUpGradientPointCalled()
@@ -205,6 +206,7 @@ func (fhs *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int{
 	return big.NewInt(0)
 }
 
+// RewardsTopUpFactor -
 func (fhs *EconomicsHandlerStub) RewardsTopUpFactor() float64{
 	if fhs.RewardsTopUpFactorCalled != nil{
 		return fhs.RewardsTopUpFactorCalled()
