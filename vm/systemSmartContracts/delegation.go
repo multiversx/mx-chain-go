@@ -522,7 +522,7 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
-	if newTotalDelegationCap.Cmp(globalFund.TotalActive) < 0 {
+	if newTotalDelegationCap.Cmp(globalFund.TotalActive) < 0 && newTotalDelegationCap.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage("cannot make total delegation cap smaller than active")
 		return vmcommon.UserError
 	}
