@@ -1106,9 +1106,10 @@ func verifyDelegatorIsDeleted(
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{address},
 		}
-		_, err := tpn.SCQueryService.ExecuteQuery(query)
-		assert.NotNil(t, err)
-		assert.Equal(t, err.Error(), "error running vm func: code: 4, user error (view function works only for existing delegators)")
+		vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+		assert.Nil(t, err)
+		assert.Equal(t, vmOutput.ReturnMessage, "view function works only for existing delegators")
+		assert.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
 	}
 }
 
