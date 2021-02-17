@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -21,7 +20,7 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	indexer process.Indexer
+	indexer spos.ConsensusDataIndexer
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -70,7 +69,7 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetIndexer method set indexer
-func (sr *subroundStartRound) SetIndexer(indexer process.Indexer) {
+func (sr *subroundStartRound) SetIndexer(indexer spos.ConsensusDataIndexer) {
 	sr.indexer = indexer
 }
 

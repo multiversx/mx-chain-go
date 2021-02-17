@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -32,7 +31,7 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer      process.Indexer
+	ElasticIndexer      StorageDataIndexer
 	DataReplayer        DataReplayerHandler
 	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
@@ -46,7 +45,7 @@ type ArgsDataProcessor struct {
 
 type dataProcessor struct {
 	startTime           time.Time
-	elasticIndexer      process.Indexer
+	elasticIndexer      StorageDataIndexer
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
 	ratingConfig        config.RatingsConfig

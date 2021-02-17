@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -18,7 +17,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
-	indexer          process.Indexer
+	indexer          spos.ConsensusDataIndexer
 	chainID          []byte
 	currentPid       core.PeerID
 }
@@ -87,7 +86,7 @@ func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 }
 
 // SetIndexer method will update the value of the factory's indexer
-func (fct *factory) SetIndexer(indexer process.Indexer) {
+func (fct *factory) SetIndexer(indexer spos.ConsensusDataIndexer) {
 	fct.indexer = indexer
 }
 
