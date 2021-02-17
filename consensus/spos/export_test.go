@@ -2,6 +2,7 @@ package spos
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -71,6 +72,10 @@ func (wrk *Worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
 
 func (wrk *Worker) Rounder() consensus.Rounder {
 	return wrk.rounder
+}
+
+func (wrk *Worker) SetNodeRedundancyHandler(nodeRedundancyHandler redundancy.NodeRedundancyHandler) {
+	wrk.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
 func (wrk *Worker) SetRounder(rounder consensus.Rounder) {

@@ -121,7 +121,11 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	if sr.NodeRedundancyHandler().IsRedundancyNode() {
-		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(sr.SelfPubKey(), sr.ConsensusGroup(), sr.Rounder().Index())
+		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(
+			sr.SelfPubKey(),
+			sr.ConsensusGroup(),
+			sr.Rounder().Index(),
+		)
 		if sr.NodeRedundancyHandler().IsMasterMachineActive() {
 			return false
 		}

@@ -524,6 +524,25 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 	assert.Equal(t, spos.ErrNilDataToProcess, err)
 }
 
+func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeeded(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	var wasCalled bool
+	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+		ResetInactivityIfNeededCalled: func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID) {
+			wasCalled = true
+		},
+	}
+	wrk.SetNodeRedundancyHandler(nodeRedundancyMock)
+	buff, _ := wrk.Marshalizer().Marshal(&consensus.Message{})
+	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+
+	assert.True(t, wasCalled)
+}
+
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
