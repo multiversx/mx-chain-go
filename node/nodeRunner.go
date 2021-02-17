@@ -1137,6 +1137,7 @@ func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, confi
 	}
 }
 
+// TODO: add some unit tests
 func copyDirectory(source string, destination string) error {
 	fileDescriptors, err := ioutil.ReadDir(source)
 	if err != nil {
