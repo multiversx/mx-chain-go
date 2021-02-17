@@ -218,6 +218,79 @@ func TestGetUsername(t *testing.T) {
 	assert.Equal(t, string(expectedUsername), username)
 }
 
+func TestNode_GetKeyValuePairs(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	k1, v1 := []byte("key1"), []byte("value1")
+	k2, v2 := []byte("key2"), []byte("value2")
+
+	accDB := &mock.AccountsStub{}
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					ch <- trieLeaf
+
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					ch <- trieLeaf2
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
+	assert.Nil(t, err)
+	resV1, ok := pairs[hex.EncodeToString(k1)]
+	assert.True(t, ok)
+	assert.Equal(t, hex.EncodeToString(v1), resV1)
+
+	resV2, ok := pairs[hex.EncodeToString(k2)]
+	assert.True(t, ok)
+	assert.Equal(t, hex.EncodeToString(v2), resV2)
+}
+
+func TestNode_GetValueForKey(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	k1, v1 := []byte("key1"), []byte("value1")
+	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
+
+	accDB := &mock.AccountsStub{}
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
+	assert.NoError(t, err)
+	assert.Equal(t, hex.EncodeToString(v1), value)
+}
+
 func TestNode_GetESDTBalance(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"
@@ -1820,7 +1893,16 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithBlockChain(chainHandler),
@@ -1945,7 +2027,17 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			return &mock.HeaderResolverStub{}, nil
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	localErr := errors.New("err")
 	n, _ := node.NewNode(
@@ -2031,7 +2123,16 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{
@@ -2115,7 +2216,16 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{
