@@ -346,7 +346,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
-		//TODO: Add code for redundancy mechanism
+		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(wrk.consensusState.SelfPubKey(), string(cnsMsg.PubKey), message.Peer())
 	}
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)

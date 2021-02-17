@@ -107,10 +107,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	if sr.NodeRedundancyHandler().IsRedundancyNode() {
-		//TODO: Add code for redundancy mechanism
-	}
-
 	sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
@@ -122,6 +118,13 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.RoundCanceled = true
 
 		return false
+	}
+
+	if sr.NodeRedundancyHandler().IsRedundancyNode() {
+		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(sr.SelfPubKey(), sr.ConsensusGroup(), sr.Rounder().Index())
+		if sr.NodeRedundancyHandler().IsMasterMachineActive() {
+			return false
+		}
 	}
 
 	leader, err := sr.GetLeader()
@@ -146,10 +149,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		"messsage", msg)
 
 	pubKeys := sr.ConsensusGroup()
-
-	if sr.NodeRedundancyHandler().IsRedundancyNode() {
-		//TODO: Add code for redundancy mechanism
-	}
 
 	sr.indexRoundIfNeeded(pubKeys)
 

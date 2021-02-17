@@ -1370,7 +1370,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	nodeRedundancy, err := redundancy.NewNodeRedundancy(ctx.GlobalUint64(redundancyLevel.Name))
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(ctx.GlobalUint64(redundancyLevel.Name), networkComponents.NetMessenger)
 	if err != nil {
 		return err
 	}
