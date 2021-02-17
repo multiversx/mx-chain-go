@@ -4,7 +4,7 @@
     #the node might loose rating (even facing penalties) due to the fact that
     #the indexer is called synchronously and might block due to external causes.
     #Strongly suggested to activate this on a regular observer node.
-    Enabled           = true
+    Enabled           = false
     IndexerCacheSize  = 100
     URL               = "http://localhost:9200"
     UseKibana         = false
