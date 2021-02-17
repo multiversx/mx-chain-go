@@ -94,7 +94,7 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
-	//logGoroutinesNumber(0)
+	logGoroutinesNumber(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
@@ -626,7 +626,7 @@ func logGoroutinesNumber(goRoutinesNumberStart int) {
 		"start", goRoutinesNumberStart,
 		"end", runtime.NumGoroutine())
 
-	log.Warn(buffer.String())
+	log.Debug(buffer.String())
 }
 
 // CreateManagedStatusComponents is the managed status components factory
