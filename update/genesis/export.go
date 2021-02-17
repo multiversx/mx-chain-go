@@ -263,7 +263,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	rootHash, err := trie.Root()
+	rootHash, err := trie.RootHash()
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ const (
 	getAccountPath  = "/:address"
 	getBalancePath  = "/:address/balance"
 	getUsernamePath = "/:address/username"
+	getKeysPath     = "/:address/keys"
 	getKeyPath      = "/:address/key/:key"
 	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
@@ -31,6 +32,7 @@ type FacadeHandler interface {
 	GetCode(account state.UserAccountHandler) []byte
 	GetESDTBalance(address string, key string) (string, string, error)
 	GetAllESDTTokens(address string) ([]string, error)
+	GetKeyValuePairs(address string) (map[string]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -56,6 +58,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
 	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
 	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
+	router.RegisterHandler(http.MethodGet, getKeysPath, GetKeyValuePairs)
 	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
 	router.RegisterHandler(http.MethodGet, getESDTTokens, GetESDTTokens)
 }
@@ -257,6 +260,49 @@ func GetValueForKey(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"value": value},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetKeyValuePairs returns all the key-value pairs for the given address
+func GetKeyValuePairs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetKeyValuePairs.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	value, err := facade.GetKeyValuePairs(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetKeyValuePairs.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"pairs": value},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

@@ -21,20 +21,21 @@ type trieNodeInfo struct {
 }
 
 type trieSyncer struct {
-	rootFound               bool
-	shardId                 uint32
-	topic                   string
-	rootHash                []byte
-	nodesForTrie            map[string]trieNodeInfo
-	waitTimeBetweenRequests time.Duration
-	trie                    *patriciaMerkleTrie
-	requestHandler          RequestHandler
-	interceptedNodes        storage.Cacher
-	mutOperation            sync.RWMutex
-	handlerID               string
-	trieSyncStatistics      data.SyncStatisticsHandler
-	lastSyncedTrieNode      time.Time
-	timeoutBetweenCommits   time.Duration
+	rootFound                 bool
+	shardId                   uint32
+	topic                     string
+	rootHash                  []byte
+	nodesForTrie              map[string]trieNodeInfo
+	waitTimeBetweenRequests   time.Duration
+	trie                      *patriciaMerkleTrie
+	requestHandler            RequestHandler
+	interceptedNodes          storage.Cacher
+	mutOperation              sync.RWMutex
+	handlerID                 string
+	trieSyncStatistics        data.SyncStatisticsHandler
+	lastSyncedTrieNode        time.Time
+	timeoutBetweenCommits     time.Duration
+	maxHardCapForMissingNodes int
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -49,6 +50,7 @@ type ArgTrieSyncer struct {
 	Topic                          string
 	TrieSyncStatistics             data.SyncStatisticsHandler
 	TimeoutBetweenTrieNodesCommits time.Duration
+	MaxHardCapForMissingNodes      int
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -72,6 +74,9 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, fmt.Errorf("%w provided: %v, minimum %v",
 			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
 	}
+	if arg.MaxHardCapForMissingNodes < 1 {
+		return nil, fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
+	}
 
 	pmt, ok := arg.Trie.(*patriciaMerkleTrie)
 	if !ok {
@@ -79,16 +84,17 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	}
 
 	ts := &trieSyncer{
-		requestHandler:          arg.RequestHandler,
-		interceptedNodes:        arg.InterceptedNodes,
-		trie:                    pmt,
-		nodesForTrie:            make(map[string]trieNodeInfo),
-		topic:                   arg.Topic,
-		shardId:                 arg.ShardId,
-		waitTimeBetweenRequests: time.Second,
-		handlerID:               core.UniqueIdentifier(),
-		trieSyncStatistics:      arg.TrieSyncStatistics,
-		timeoutBetweenCommits:   arg.TimeoutBetweenTrieNodesCommits,
+		requestHandler:            arg.RequestHandler,
+		interceptedNodes:          arg.InterceptedNodes,
+		trie:                      pmt,
+		nodesForTrie:              make(map[string]trieNodeInfo),
+		topic:                     arg.Topic,
+		shardId:                   arg.ShardId,
+		waitTimeBetweenRequests:   time.Second,
+		handlerID:                 core.UniqueIdentifier(),
+		trieSyncStatistics:        arg.TrieSyncStatistics,
+		timeoutBetweenCommits:     arg.TimeoutBetweenTrieNodesCommits,
+		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
 	return ts, nil
@@ -172,8 +178,18 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			log.Trace("loaded children for node", "hash", currentNode.getHash())
 
 			if len(currentMissingNodes) > 0 {
+				hardcapReached := false
 				for _, hash := range currentMissingNodes {
 					missingNodes[string(hash)] = struct{}{}
+					if len(missingNodes) > ts.maxHardCapForMissingNodes {
+						hardcapReached = true
+						break
+					}
+				}
+
+				if hardcapReached {
+					newElement = false
+					break
 				}
 
 				nextNodes = append(nextNodes, currentNode)
@@ -187,7 +203,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.trie.Database())
+			nextNodes, err = currentNode.getChildren(ts.trie.trieStorage.Database())
 			if err != nil {
 				return false, err
 			}
@@ -197,7 +213,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			err = encodeNodeAndCommitToDB(currentNode, ts.trie.Database())
+			err = encodeNodeAndCommitToDB(currentNode, ts.trie.trieStorage.Database())
 			if err != nil {
 				return false, err
 			}
@@ -272,7 +288,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return trieNode(n)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.Database(), ts.trie.marshalizer, ts.trie.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.trieStorage.Database(), ts.trie.marshalizer, ts.trie.hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
