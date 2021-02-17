@@ -118,7 +118,7 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 }
 
 // Indexer gets the indexer object
-func (fct *factory) Indexer() process.Indexer {
+func (fct *factory) Indexer() spos.ConsensusDataIndexer {
 	return fct.indexer
 }
 
