@@ -26,9 +26,11 @@ func (s *snapshotDb) DecreaseNumReferences() {
 
 	if s.numReferences == 0 && s.shouldBeRemoved {
 		removeSnapshot(s.DBWriteCacher, s.path)
+		return
 	}
 	if s.numReferences == 0 && s.shouldBeDisconnected {
 		disconnectSnapshot(s.DBWriteCacher)
+		return
 	}
 }
 

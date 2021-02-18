@@ -32,15 +32,15 @@ const (
 type trieStorageManager struct {
 	db data.DBWriteCacher
 
-	snapshots           []data.SnapshotDbHandler
-	snapshotId          int
-	snapshotDbCfg       config.DBConfig
-	snapshotReq         chan *snapshotsQueueEntry
-	pruningBuffer       atomicBuffer
-	pruningBlockingOps  uint32
-	maxSnapshots        uint32
-	keepSnapshotsOnDisk bool
-	cancelFunc          context.CancelFunc
+	snapshots          []data.SnapshotDbHandler
+	snapshotId         int
+	snapshotDbCfg      config.DBConfig
+	snapshotReq        chan *snapshotsQueueEntry
+	pruningBuffer      atomicBuffer
+	pruningBlockingOps uint32
+	maxSnapshots       uint32
+	keepSnapshots      bool
+	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -90,7 +90,7 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		pruningBlockingOps:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
-		keepSnapshotsOnDisk:   generalConfig.KeepSnapshotsOnDisk,
+		keepSnapshots:         generalConfig.KeepSnapshots,
 		cancelFunc:            cancelFunc,
 	}
 
@@ -451,11 +451,12 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 		return nil
 	}
 
-	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots && tsm.keepSnapshotsOnDisk == false {
-		tsm.removeSnapshot()
-	}
-	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots && tsm.keepSnapshotsOnDisk == true {
-		tsm.disconnectSnapshot()
+	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
+		if tsm.keepSnapshots == true {
+			tsm.disconnectSnapshot()
+		} else {
+			tsm.removeSnapshot()
+		}
 	}
 
 	return db
