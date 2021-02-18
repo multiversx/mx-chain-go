@@ -34,31 +34,31 @@ func TestIsRedundancyNode_ShouldWork(t *testing.T) {
 	assert.True(t, nr.IsRedundancyNode())
 }
 
-func TestIsMasterMachineActive_ShouldWork(t *testing.T) {
+func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nr, _ := redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
-	assert.False(t, nr.IsMasterMachineActive())
+	assert.False(t, nr.IsMainMachineActive())
 
 	maxRoundsOfInactivityAccepted := nr.GetMaxRoundsOfInactivityAccepted()
 
 	nr, _ = redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
-	assert.True(t, nr.IsMasterMachineActive())
+	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
-	assert.True(t, nr.IsMasterMachineActive())
+	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
-	assert.False(t, nr.IsMasterMachineActive())
+	assert.False(t, nr.IsMainMachineActive())
 
 	nr, _ = redundancy.NewNodeRedundancy(2, &mock.MessengerStub{})
-	assert.True(t, nr.IsMasterMachineActive())
+	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted*2 - 1)
-	assert.True(t, nr.IsMasterMachineActive())
+	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted * 2)
-	assert.False(t, nr.IsMasterMachineActive())
+	assert.False(t, nr.IsMainMachineActive())
 }
 
 func TestAdjustInactivityIfNeeded_ShouldReturnWhenGivenRoundIndexWasAlreadyChecked(t *testing.T) {

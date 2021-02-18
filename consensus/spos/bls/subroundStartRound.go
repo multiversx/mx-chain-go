@@ -126,7 +126,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.Rounder().Index(),
 		)
-		if sr.NodeRedundancyHandler().IsMasterMachineActive() {
+		if sr.NodeRedundancyHandler().IsMainMachineActive() {
 			return false
 		}
 	}

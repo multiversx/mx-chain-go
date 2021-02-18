@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -35,7 +34,7 @@ type ConsensusCore struct {
 	peerHonestyHandler            consensus.PeerHonestyHandler
 	headerSigVerifier             consensus.HeaderSigVerifier
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
-	nodeRedundancyHandler         redundancy.NodeRedundancyHandler
+	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -59,7 +58,7 @@ type ConsensusCoreArgs struct {
 	PeerHonestyHandler            consensus.PeerHonestyHandler
 	HeaderSigVerifier             consensus.HeaderSigVerifier
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
-	NodeRedundancyHandler         redundancy.NodeRedundancyHandler
+	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -193,7 +192,7 @@ func (cc *ConsensusCore) FallbackHeaderValidator() consensus.FallbackHeaderValid
 }
 
 // NodeRedundancyHandler will return the node redundancy handler which will be used in subrounds
-func (cc *ConsensusCore) NodeRedundancyHandler() redundancy.NodeRedundancyHandler {
+func (cc *ConsensusCore) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return cc.nodeRedundancyHandler
 }
 

@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -57,7 +56,7 @@ type ConsensusCoreHandler interface {
 	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
 	FallbackHeaderValidator() consensus.FallbackHeaderValidator
 	// NodeRedundancyHandler returns the node redundancy handler which will be used in subrounds
-	NodeRedundancyHandler() redundancy.NodeRedundancyHandler
+	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

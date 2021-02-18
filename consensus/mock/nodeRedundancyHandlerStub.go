@@ -7,7 +7,7 @@ import (
 // NodeRedundancyHandlerStub -
 type NodeRedundancyHandlerStub struct {
 	IsRedundancyNodeCalled         func() bool
-	IsMasterMachineActiveCalled    func() bool
+	IsMainMachineActiveCalled      func() bool
 	AdjustInactivityIfNeededCalled func(selfPubKey string, consensusPubKeys []string, roundIndex int64)
 	ResetInactivityIfNeededCalled  func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
 }
@@ -20,10 +20,10 @@ func (nrhs *NodeRedundancyHandlerStub) IsRedundancyNode() bool {
 	return false
 }
 
-// IsMasterMachineActive -
-func (nrhs *NodeRedundancyHandlerStub) IsMasterMachineActive() bool {
-	if nrhs.IsMasterMachineActiveCalled != nil {
-		return nrhs.IsMasterMachineActiveCalled()
+// IsMainMachineActive -
+func (nrhs *NodeRedundancyHandlerStub) IsMainMachineActive() bool {
+	if nrhs.IsMainMachineActiveCalled != nil {
+		return nrhs.IsMainMachineActiveCalled()
 	}
 	return true
 }

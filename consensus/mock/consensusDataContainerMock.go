@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -35,7 +34,7 @@ type ConsensusCoreMock struct {
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
-	nodeRedundancyHandler   redundancy.NodeRedundancyHandler
+	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 }
 
 // GetAntiFloodHandler -
@@ -214,12 +213,12 @@ func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator
 }
 
 // NodeRedundancyHandler -
-func (ccm *ConsensusCoreMock) NodeRedundancyHandler() redundancy.NodeRedundancyHandler {
+func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return ccm.nodeRedundancyHandler
 }
 
 // SetNodeRedundancyHandler -
-func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler redundancy.NodeRedundancyHandler) {
+func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 

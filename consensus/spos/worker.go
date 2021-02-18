@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"sync"
 	"time"
 
@@ -71,7 +70,7 @@ type Worker struct {
 
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
-	nodeRedundancyHandler     redundancy.NodeRedundancyHandler
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -97,7 +96,7 @@ type WorkerArgs struct {
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
-	NodeRedundancyHandler    redundancy.NodeRedundancyHandler
+	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 }
 
 // NewWorker creates a new Worker object

@@ -374,10 +374,10 @@ VERSION:
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
 
-	// redundancyLevel defines a flag that specifies the level of redundancy for the current instance (0 = master)
+	// redundancyLevel defines a flag that specifies the level of redundancy for the current instance (0 = main instance)
 	redundancyLevel = cli.Uint64Flag{
 		Name:  "redundancy-level",
-		Usage: "This flag specifies the level of redundancy used by the current instance for the node (0 = master, 1 = first slave, 2 = second slave, etc.)",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (0 = main instance, 1 = first backup instance, 2 = second backup instance, etc.)",
 		Value: 0,
 	}
 )
@@ -2219,7 +2219,7 @@ func createNode(
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 	isInImportDbMode bool,
-	nodeRedundancyHandler redundancy.NodeRedundancyHandler,
+	nodeRedundancyHandler consensus.NodeRedundancyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32

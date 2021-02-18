@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"math/big"
 	"sort"
 	"strings"
@@ -168,7 +167,7 @@ type Node struct {
 	txSignHasher              hashing.Hasher
 	txVersionChecker          process.TxVersionCheckerHandler
 	isInImportMode            bool
-	nodeRedundancyHandler     redundancy.NodeRedundancyHandler
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

@@ -327,7 +327,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	assert.False(t, r)
 }
 
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenMasterMachineIsActive(t *testing.T) {
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenMainMachineIsActive(t *testing.T) {
 	t.Parallel()
 
 	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{

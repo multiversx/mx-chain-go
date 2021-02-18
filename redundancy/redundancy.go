@@ -9,7 +9,7 @@ import (
 
 var log = logger.GetOrCreate("redundancy")
 
-// maxRoundsOfInactivityAccepted defines the maximum rounds of inactivity accepted, after which the master or lower
+// maxRoundsOfInactivityAccepted defines the maximum rounds of inactivity accepted, after which the main or lower
 // level redundancy machines will be considered inactive
 const maxRoundsOfInactivityAccepted = 5
 
@@ -40,15 +40,15 @@ func (nr *nodeRedundancy) IsRedundancyNode() bool {
 	return nr.redundancyLevel > 0
 }
 
-// IsMasterMachineActive returns true if the master or lower level redundancy machines are active
-func (nr *nodeRedundancy) IsMasterMachineActive() bool {
+// IsMainMachineActive returns true if the main or lower level redundancy machines are active
+func (nr *nodeRedundancy) IsMainMachineActive() bool {
 	nr.mutNodeRedundancy.RLock()
 	defer nr.mutNodeRedundancy.RUnlock()
 
-	return nr.isMasterMachineActive()
+	return nr.isMainMachineActive()
 }
 
-// AdjustInactivityIfNeeded increments rounds of inactivity for master or lower level redundancy machines if needed
+// AdjustInactivityIfNeeded increments rounds of inactivity for main or lower level redundancy machines if needed
 func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64) {
 	nr.mutNodeRedundancy.Lock()
 	defer nr.mutNodeRedundancy.Unlock()
@@ -57,13 +57,13 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 		return
 	}
 
-	if nr.isMasterMachineActive() {
-		log.Debug("master or lower level redundancy machines are active", "node redundancy level", nr.redundancyLevel)
+	if nr.isMainMachineActive() {
+		log.Debug("main or lower level redundancy machines are active", "node redundancy level", nr.redundancyLevel)
 	} else {
-		log.Warn("master or lower level redundancy machines are inactive", "node redundancy level", nr.redundancyLevel)
+		log.Warn("main or lower level redundancy machines are inactive", "node redundancy level", nr.redundancyLevel)
 	}
 
-	log.Debug("rounds of inactivity for master or lower level redundancy machines",
+	log.Debug("rounds of inactivity for main or lower level redundancy machines",
 		"num", nr.roundsOfInactivity)
 
 	for _, pubKey := range consensusPubKeys {
@@ -76,7 +76,7 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 	nr.lastRoundIndexCheck = roundIndex
 }
 
-// ResetInactivityIfNeeded resets rounds of inactivity for master or lower level redundancy machines if needed
+// ResetInactivityIfNeeded resets rounds of inactivity for main or lower level redundancy machines if needed
 func (nr *nodeRedundancy) ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID) {
 	if selfPubKey != consensusMsgPubKey {
 		return
@@ -90,7 +90,7 @@ func (nr *nodeRedundancy) ResetInactivityIfNeeded(selfPubKey string, consensusMs
 	nr.mutNodeRedundancy.Unlock()
 }
 
-func (nr *nodeRedundancy) isMasterMachineActive() bool {
+func (nr *nodeRedundancy) isMainMachineActive() bool {
 	return nr.roundsOfInactivity < maxRoundsOfInactivityAccepted*nr.redundancyLevel
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -793,7 +792,7 @@ func WithImportMode(importMode bool) Option {
 }
 
 // WithNodeRedundancyHandler sets up a node redundancy handler for the node
-func WithNodeRedundancyHandler(nodeRedundancyHandler redundancy.NodeRedundancyHandler) Option {
+func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(nodeRedundancyHandler) {
 			return ErrNilNodeRedundancyHandler
