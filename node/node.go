@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -127,7 +126,7 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                 indexer.Indexer
+	indexer                 process.Indexer
 	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
