@@ -2930,3 +2930,39 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	assert.Equal(t, expected, vals)
 }
+
+func TestNode_ValidateTransactionForSimulation_BypassSignatureTrue(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
+		node.WithAddressPubkeyConverter(mock.NewPubkeyConverterMock(3)),
+		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 10),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithTxSignMarshalizer(&mock.MarshalizerFake{}),
+		node.WithHasher(&mock.HasherMock{}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
+		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
+		node.WithChainID([]byte("a")),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(0)),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     11,
+		Value:     big.NewInt(25),
+		RcvAddr:   []byte("rec"),
+		SndAddr:   []byte("snd"),
+		GasPrice:  6,
+		GasLimit:  12,
+		Data:      []byte(""),
+		Signature: []byte("sig1"),
+		ChainID:   []byte("a"),
+	}
+
+	err := n.ValidateTransactionForSimulation(tx, true)
+	require.NoError(t, err)
+}
