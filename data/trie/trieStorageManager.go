@@ -456,6 +456,22 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	return db
 }
 
+func (tsm *trieStorageManager) disconnectSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+	snapshot := tsm.snapshots[0]
+	tsm.snapshots = tsm.snapshots[1:]
+
+	if snapshot.IsInUse() {
+		snapshot.MarkForDisconnection()
+		log.Debug("can't disconnect, snapshot is still in use")
+		return
+	}
+
+	disconnectSnapshot(snapshot)
+}
+
 func (tsm *trieStorageManager) removeSnapshot() {
 	if len(tsm.snapshots) <= 0 {
 		return
@@ -478,10 +494,19 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removeSnapshot(snapshot, removePath)
 }
 
-func removeSnapshot(db data.DBWriteCacher, path string) {
+func disconnectSnapshot(db data.DBWriteCacher) error {
 	err := db.Close()
 	if err != nil {
-		log.Error("trie storage manager: removeSnapshot", "error", err.Error())
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func removeSnapshot(db data.DBWriteCacher, path string) {
+	err := disconnectSnapshot(db)
+	if err != nil {
 		return
 	}
 
