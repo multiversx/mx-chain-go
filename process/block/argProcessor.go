@@ -3,7 +3,6 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -39,7 +38,7 @@ type ArgBaseProcessor struct {
 	BlockChain              data.ChainHandler
 	StateCheckpointModulus  uint
 	BlockSizeThrottler      process.BlockSizeThrottler
-	Indexer                 indexer.Indexer
+	Indexer                 process.Indexer
 	TpsBenchmark            statistics.TPSBenchmark
 	HistoryRepository       dblookupext.HistoryRepository
 	EpochNotifier           process.EpochNotifier

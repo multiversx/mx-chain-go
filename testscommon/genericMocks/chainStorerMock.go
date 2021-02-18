@@ -1,4 +1,4 @@
-package genericmocks
+package genericMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
