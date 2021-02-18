@@ -261,7 +261,9 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// we need a slightly more time than 1 second in order to also properly test the select branches
+	timeout := time.Second + time.Millisecond*500
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()
 	assert.NoError(t, err)

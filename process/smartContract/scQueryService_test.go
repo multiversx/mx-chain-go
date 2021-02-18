@@ -174,7 +174,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
-func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
+func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	mockVM := &mock.VMExecutionHandlerStub{
@@ -208,10 +208,9 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 
 	returnedData, err := target.ExecuteQuery(&query)
 
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error running vm func")
-	assert.Contains(t, err.Error(), "add more gas")
-	assert.Nil(t, returnedData)
+	assert.Nil(t, err)
+	assert.NotNil(t, returnedData)
+	assert.Contains(t, returnedData.ReturnMessage, "add more gas")
 }
 
 func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {

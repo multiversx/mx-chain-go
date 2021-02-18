@@ -3,6 +3,7 @@ package processor_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -189,11 +190,22 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	}
 
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
+	chanCalled := make(chan struct{}, 1)
+	hip.RegisterHandler(func(topic string, hash []byte, data interface{}) {
+		chanCalled <- struct{}{}
+	})
 
 	err := hip.Save(hdrInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
+
+	timeout := time.Second * 2
+	select {
+	case <-chanCalled:
+	case <-time.After(timeout):
+		assert.Fail(t, "save did not notify handler in a timely fashion")
+	}
 }
 
 //------- IsInterfaceNil
