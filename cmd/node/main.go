@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
@@ -30,8 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -1191,7 +1191,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	elasticIndexer, err := createElasticIndexer(
+	esIndexer, err := createElasticIndexer(
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1204,7 +1204,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		economicsData,
 		isInImportMode,
-		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -1307,7 +1306,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		importStartHandler,
 		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
-		elasticIndexer,
+		esIndexer,
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
@@ -1356,8 +1355,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+	if !esIndexer.IsNilIndexer() {
+		esIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
@@ -1382,7 +1381,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
-		elasticIndexer,
+		esIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListRequest,
@@ -1407,7 +1406,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
+		indexValidatorsListIfNeeded(esIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -1694,7 +1693,7 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
@@ -2028,8 +2027,7 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
-	elasticSearchTemplatesPath string,
-) (indexer.Indexer, error) {
+) (process.Indexer, error) {
 
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
@@ -2044,12 +2042,11 @@ func createElasticIndexer(
 		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		TemplatesPath:            elasticSearchTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
 		TransactionFeeCalculator: economicsHandler,
-		Options: &indexer.Options{
+		Options: &elasticIndexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
 		IsInImportDBMode: isInImportDBMode,
@@ -2197,7 +2194,7 @@ func createNode(
 	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
-	indexer indexer.Indexer,
+	esIndexer process.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
@@ -2302,7 +2299,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler),
-		node.WithIndexer(indexer),
+		node.WithIndexer(esIndexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
