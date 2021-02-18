@@ -31,9 +31,9 @@ message DelegationConfig {
 }
 
 message DelegationMetaData {
-  bytes Name        = 1 [(gogoproto.jsontag) = "Name"];
-  bytes Description = 2 [(gogoproto.jsontag) = "Description"];
-  bytes URI         = 3 [(gogoproto.jsontag) = "URI"];
+  bytes Name       = 1 [(gogoproto.jsontag) = "Name"];
+  bytes Website    = 2 [(gogoproto.jsontag) = "Website"];
+  bytes Identifier = 3 [(gogoproto.jsontag) = "Identifier"];
 }
 
 message DelegationContractStatus {
