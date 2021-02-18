@@ -33,7 +33,7 @@ type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
-	ValidateTransactionForSimulation(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
@@ -165,6 +165,19 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
+	bypassSignature, err := getQueryParameterBypassSignature(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
 	tx, txHash, err := facade.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
@@ -192,7 +205,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransactionForSimulation(tx)
+	err = facade.ValidateTransactionForSimulation(tx, bypassSignature)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -531,4 +544,13 @@ func getQueryParamWithResults(c *gin.Context) (bool, error) {
 	}
 
 	return strconv.ParseBool(withResultsStr)
+}
+
+func getQueryParameterBypassSignature(c *gin.Context) (bool, error) {
+	bypassSignatureStr := c.Request.URL.Query().Get("bypassSignature")
+	if bypassSignatureStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(bypassSignatureStr)
 }

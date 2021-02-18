@@ -594,7 +594,7 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return nil, nil, expectedErr
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -645,7 +645,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return expectedErr
 		},
 	}
@@ -687,7 +687,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -736,7 +736,7 @@ func TestSimulateTransaction(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
