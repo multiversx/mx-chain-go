@@ -58,9 +58,9 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 	}
 
 	if nr.isMasterMachineActive() {
-		log.Debug("master or lower level redundancy machines are active")
+		log.Debug("master or lower level redundancy machines are active", "node redundancy level", nr.redundancyLevel)
 	} else {
-		log.Warn("master or lower level redundancy machines are inactive")
+		log.Warn("master or lower level redundancy machines are inactive", "node redundancy level", nr.redundancyLevel)
 	}
 
 	log.Debug("rounds of inactivity for master or lower level redundancy machines",
