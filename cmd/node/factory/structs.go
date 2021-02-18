@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -169,7 +168,7 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
@@ -218,7 +217,7 @@ func NewProcessComponentsFactoryArgs(
 	importStartHandler update.ImportStartHandler,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	workingDir string,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
@@ -589,7 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
-func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer process.Indexer, marshalizer marshal.Marshalizer) error {
 	if indexer.IsNilIndexer() {
 		return nil
 	}
@@ -1512,7 +1511,7 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	smartContractParser genesis.InitialSmartContractParser,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,
@@ -1846,7 +1845,7 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,
