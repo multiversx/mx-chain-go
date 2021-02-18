@@ -75,6 +75,16 @@ type esdtTokensResponse struct {
 	Code  string
 }
 
+type keyValuePairsResponseData struct {
+	Pairs map[string]string `json:"pairs"`
+}
+
+type keyValuePairsResponse struct {
+	Data  keyValuePairsResponseData `json:"data"`
+	Error string                    `json:"error"`
+	Code  string
+}
+
 type usernameResponseData struct {
 	Username string `json:"username"`
 }
@@ -595,6 +605,90 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
 }
 
+func TestGetKeyValuePairs_InvalidAppContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetKeyValuePairs_WithEmptyAddressShoudReturnError(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+
+	emptyAddress := ""
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", emptyAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.NotEmpty(t, response)
+	assert.True(t, strings.Contains(response.Error,
+		fmt.Sprintf("%s: %s", apiErrors.ErrGetKeyValuePairs.Error(), apiErrors.ErrEmptyAddress.Error()),
+	))
+}
+
+func TestGetKeyValuePairs_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetKeyValuePairsCalled: func(_ string) (map[string]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pairs := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+	testAddress := "address"
+	facade := mock.Facade{
+		GetKeyValuePairsCalled: func(_ string) (map[string]string, error) {
+			return pairs, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := keyValuePairsResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, pairs, response.Data.Pairs)
+}
+
 func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -603,6 +697,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
+					{Name: "/:address/keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
