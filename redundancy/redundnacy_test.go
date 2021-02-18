@@ -12,7 +12,6 @@ func TestNewNodeRedundancy_ShouldErrNilMessenger(t *testing.T) {
 	t.Parallel()
 
 	nr, err := redundancy.NewNodeRedundancy(0, nil)
-
 	assert.Nil(t, nr)
 	assert.Equal(t, redundancy.ErrNilMessenger, err)
 }
@@ -21,7 +20,6 @@ func TestNewNodeRedundancy_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nr, err := redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
-
 	assert.NotNil(t, nr)
 	assert.Nil(t, err)
 }
@@ -71,7 +69,6 @@ func TestAdjustInactivityIfNeeded_ShouldReturnWhenGivenRoundIndexWasAlreadyCheck
 	consensusPubKeys := []string{"1", "2", "3"}
 
 	nr.AdjustInactivityIfNeeded(selfPubKey, consensusPubKeys, 0)
-
 	assert.Equal(t, uint64(0), nr.GetRoundsOfInactivity())
 }
 
@@ -122,7 +119,6 @@ func TestResetInactivityIfNeeded_ShouldNotResetIfSelfPubKeyIsNotTheSameWithTheCo
 	t.Parallel()
 
 	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
-
 	selfPubKey := "1"
 	consensusMsgPubKey := "2"
 	consensusMsgPeerID := core.PeerID("PeerID_2")
