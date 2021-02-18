@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,10 +24,10 @@ func TestManualEpochStartNotifier_RegisterHandler(t *testing.T) {
 	mesn := NewManualEpochStartNotifier()
 	assert.Equal(t, 0, len(mesn.Handlers()))
 
-	mesn.RegisterHandler(&genericmocks.ActionHandlerStub{})
+	mesn.RegisterHandler(&genericMocks.ActionHandlerStub{})
 	assert.Equal(t, 1, len(mesn.Handlers()))
 
-	mesn.RegisterHandler(&genericmocks.ActionHandlerStub{})
+	mesn.RegisterHandler(&genericMocks.ActionHandlerStub{})
 	assert.Equal(t, 2, len(mesn.Handlers()))
 }
 
@@ -37,7 +37,7 @@ func TestManualEpochStartNotifier_NewEpochWorks(t *testing.T) {
 	newEpoch := uint32(6483)
 	calledEpoch := uint32(0)
 	mesn := NewManualEpochStartNotifier()
-	mesn.RegisterHandler(&genericmocks.ActionHandlerStub{
+	mesn.RegisterHandler(&genericMocks.ActionHandlerStub{
 		EpochStartActionCalled: func(hdr data.HeaderHandler) {
 			atomic.StoreUint32(&calledEpoch, hdr.GetEpoch())
 		},
@@ -54,7 +54,7 @@ func TestManualEpochStartNotifier_NewEpochLowerValueShouldNotCallUpdate(t *testi
 	newEpoch := uint32(6483)
 	calledEpoch := uint32(0)
 	mesn := NewManualEpochStartNotifier()
-	mesn.RegisterHandler(&genericmocks.ActionHandlerStub{
+	mesn.RegisterHandler(&genericMocks.ActionHandlerStub{
 		EpochStartActionCalled: func(hdr data.HeaderHandler) {
 			atomic.StoreUint32(&calledEpoch, hdr.GetEpoch())
 		},
