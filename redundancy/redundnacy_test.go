@@ -1,11 +1,12 @@
 package redundancy_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/redundancy/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewNodeRedundancy_ShouldErrNilMessenger(t *testing.T) {
@@ -27,7 +28,10 @@ func TestNewNodeRedundancy_ShouldWork(t *testing.T) {
 func TestIsRedundancyNode_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
+	nr, _ := redundancy.NewNodeRedundancy(-1, &mock.MessengerStub{})
+	assert.True(t, nr.IsRedundancyNode())
+
+	nr, _ = redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
 	assert.False(t, nr.IsRedundancyNode())
 
 	nr, _ = redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
@@ -37,10 +41,25 @@ func TestIsRedundancyNode_ShouldWork(t *testing.T) {
 func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
+	maxRoundsOfInactivityAccepted := redundancy.GetMaxRoundsOfInactivityAccepted()
+
+	nr, _ := redundancy.NewNodeRedundancy(-1, &mock.MessengerStub{})
+	assert.True(t, nr.IsMainMachineActive())
+
+	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
+	assert.True(t, nr.IsMainMachineActive())
+
+	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
+	assert.True(t, nr.IsMainMachineActive())
+
+	nr, _ = redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
 	assert.False(t, nr.IsMainMachineActive())
 
-	maxRoundsOfInactivityAccepted := nr.GetMaxRoundsOfInactivityAccepted()
+	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
+	assert.False(t, nr.IsMainMachineActive())
+
+	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
+	assert.False(t, nr.IsMainMachineActive())
 
 	nr, _ = redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
 	assert.True(t, nr.IsMainMachineActive())
@@ -82,7 +101,7 @@ func TestAdjustInactivityIfNeeded_ShouldNotAdjustIfSelfPubKeyIsNotContainedInCon
 	nr.AdjustInactivityIfNeeded(selfPubKey, consensusPubKeys, 1)
 	assert.Equal(t, uint64(0), nr.GetRoundsOfInactivity())
 
-	roundsOfInactivity := nr.GetMaxRoundsOfInactivityAccepted()
+	roundsOfInactivity := redundancy.GetMaxRoundsOfInactivityAccepted()
 	nr.SetRoundsOfInactivity(roundsOfInactivity)
 
 	nr.AdjustInactivityIfNeeded(selfPubKey, consensusPubKeys, 2)

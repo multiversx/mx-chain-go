@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"io"
 	"io/ioutil"
 	"math"
@@ -76,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -374,10 +374,10 @@ VERSION:
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
 
-	// redundancyLevel defines a flag that specifies the level of redundancy for the current instance (0 = main instance)
-	redundancyLevel = cli.Uint64Flag{
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
 		Name:  "redundancy-level",
-		Usage: "This flag specifies the level of redundancy used by the current instance for the node (0 = main instance, 1 = first backup instance, 2 = second backup instance, etc.)",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
 		Value: 0,
 	}
 )
@@ -705,6 +705,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
+	}
+
+	if ctx.IsSet(redundancyLevel.Name) {
+		preferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
@@ -1369,7 +1373,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	nodeRedundancy, err := redundancy.NewNodeRedundancy(ctx.GlobalUint64(redundancyLevel.Name), networkComponents.NetMessenger)
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(preferencesConfig.Preferences.RedundancyLevel, networkComponents.NetMessenger)
 	if err != nil {
 		return err
 	}

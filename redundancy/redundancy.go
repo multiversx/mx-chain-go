@@ -1,10 +1,11 @@
 package redundancy
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"sync"
 )
 
 var log = logger.GetOrCreate("redundancy")
@@ -14,7 +15,7 @@ var log = logger.GetOrCreate("redundancy")
 const maxRoundsOfInactivityAccepted = 5
 
 type nodeRedundancy struct {
-	redundancyLevel     uint64
+	redundancyLevel     int64
 	lastRoundIndexCheck int64
 	roundsOfInactivity  uint64
 	mutNodeRedundancy   sync.RWMutex
@@ -22,7 +23,7 @@ type nodeRedundancy struct {
 }
 
 // NewNodeRedundancy creates a node redundancy object which implements NodeRedundancyHandler interface
-func NewNodeRedundancy(redundancyLevel uint64, messenger P2PMessenger) (*nodeRedundancy, error) {
+func NewNodeRedundancy(redundancyLevel int64, messenger P2PMessenger) (*nodeRedundancy, error) {
 	if check.IfNil(messenger) {
 		return nil, ErrNilMessenger
 	}
@@ -37,7 +38,7 @@ func NewNodeRedundancy(redundancyLevel uint64, messenger P2PMessenger) (*nodeRed
 
 // IsRedundancyNode returns true if the current instance is used as a redundancy node
 func (nr *nodeRedundancy) IsRedundancyNode() bool {
-	return nr.redundancyLevel > 0
+	return nr.redundancyLevel != 0
 }
 
 // IsMainMachineActive returns true if the main or lower level redundancy machines are active
@@ -91,7 +92,11 @@ func (nr *nodeRedundancy) ResetInactivityIfNeeded(selfPubKey string, consensusMs
 }
 
 func (nr *nodeRedundancy) isMainMachineActive() bool {
-	return nr.roundsOfInactivity < maxRoundsOfInactivityAccepted*nr.redundancyLevel
+	if nr.redundancyLevel < 0 {
+		return true
+	}
+
+	return int64(nr.roundsOfInactivity) < maxRoundsOfInactivityAccepted*nr.redundancyLevel
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

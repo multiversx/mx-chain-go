@@ -1,7 +1,7 @@
 package redundancy
 
 // GetMaxRoundsOfInactivityAccepted -
-func (nr *nodeRedundancy) GetMaxRoundsOfInactivityAccepted() uint64 {
+func GetMaxRoundsOfInactivityAccepted() uint64 {
 	return maxRoundsOfInactivityAccepted
 }
 
