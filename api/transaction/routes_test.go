@@ -694,7 +694,7 @@ func TestSimulateTransaction_CannotParseParameterShouldErr(t *testing.T) {
 	}
 	jsonBytes, _ := json.Marshal(tx)
 
-	req, _ := http.NewRequest("POST", "/transaction/simulate?bypassSignature=tttt", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest("POST", "/transaction/simulate?checkSignature=tttt", bytes.NewBuffer(jsonBytes))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)

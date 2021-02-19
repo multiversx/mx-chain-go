@@ -961,8 +961,8 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
-func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
-	txValidator, intTx, err := n.commonTransactionValidation(tx, bypassSignature)
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	txValidator, intTx, err := n.commonTransactionValidation(tx, checkSignature)
 	if err != nil {
 		return err
 	}
@@ -976,7 +976,7 @@ func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, byp
 	return err
 }
 
-func (n *Node) commonTransactionValidation(tx *transaction.Transaction, bypassSignature bool) (process.TxValidator, process.TxValidatorHandler, error) {
+func (n *Node) commonTransactionValidation(tx *transaction.Transaction, checkSignature bool) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
@@ -999,7 +999,7 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction, bypassSi
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
 	txSingleSigner := n.txSingleSigner
-	if bypassSignature {
+	if checkSignature {
 		txSingleSigner = &disabledSig.DisabledSingleSig{}
 	}
 
