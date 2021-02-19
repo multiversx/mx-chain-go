@@ -123,7 +123,7 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.syncTimer) {
 		return errors.ErrNilSyncTimer
 	}
-	if check.IfNil(mcc.RoundHandler()) {
+	if check.IfNil(mcc.roundHandler) {
 		return errors.ErrNilRoundHandler
 	}
 	if check.IfNil(mcc.economicsData) {
@@ -438,7 +438,7 @@ func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.RoundHandler
+	return mcc.coreComponents.roundHandler
 }
 
 // NodesShuffler returns the nodes shuffler
