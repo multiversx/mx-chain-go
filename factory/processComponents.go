@@ -134,7 +134,6 @@ type ProcessComponentsFactoryArgs struct {
 	Indexer                   indexer.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
-	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 }
 
@@ -226,7 +225,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		epochNotifier:             args.EpochNotifier,
+		epochNotifier:             args.CoreData.EpochNotifier(),
 	}, nil
 }
 
@@ -1322,7 +1321,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.CoreData.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
 	}
 

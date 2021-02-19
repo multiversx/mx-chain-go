@@ -197,7 +197,6 @@ func getProcessArgs(
 		Indexer:                 &mock.IndexerMock{},
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

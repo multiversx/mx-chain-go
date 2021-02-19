@@ -777,8 +777,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
@@ -820,7 +818,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Indexer:                   managedStatusComponents.ElasticIndexer(),
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
-		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
 	}
