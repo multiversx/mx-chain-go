@@ -73,7 +73,11 @@ func (fhs *FeeHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *b
 
 // CheckValidityTxValues -
 func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
-	return fhs.CheckValidityTxValuesCalled(tx)
+	if fhs.CheckValidityTxValuesCalled != nil {
+		return fhs.CheckValidityTxValuesCalled(tx)
+	}
+
+	return nil
 }
 
 // GenesisTotalSupply -

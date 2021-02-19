@@ -102,6 +102,7 @@ updateNodeConfig() {
 copyProxyConfig() {
   pushd $TESTNETDIR
 
+  cp -r $PROXYDIR/config/apiConfig ./proxy/config/
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/

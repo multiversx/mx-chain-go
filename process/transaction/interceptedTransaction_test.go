@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
@@ -1416,4 +1418,95 @@ func TestRelayTransaction_NotAddedToWhitelistUntilIntegrityChecked(t *testing.T)
 	err = txi.CheckValidity()
 	require.Nil(t, err)
 	require.True(t, whiteListHandler.IsWhiteListed(txi))
+}
+
+func TestInterceptedTransaction_Type(t *testing.T) {
+	t.Parallel()
+
+	expectedType := "intercepted tx"
+
+	intx := &transaction.InterceptedTransaction{}
+
+	assert.Equal(t, expectedType, intx.Type())
+}
+
+func TestInterceptedTransaction_Fee(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:    1,
+		GasLimit: 3,
+		GasPrice: 4,
+		RcvAddr:  nil,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+
+	txin, _ := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("T"),
+		false,
+		mock.HasherMock{},
+		versioning.NewTxVersionChecker(0),
+	)
+
+	assert.Equal(t, big.NewInt(0), txin.Fee())
+}
+
+func TestInterceptedTransaction_String(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	value := big.NewInt(150)
+	sndAddr := []byte("snd")
+	rcvAdrr := []byte("rcv")
+
+	tx := &dataTransaction.Transaction{
+		Nonce:   nonce,
+		RcvAddr: rcvAdrr,
+		SndAddr: sndAddr,
+		Value:   value,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+
+	txin, _ := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("T"),
+		false,
+		mock.HasherMock{},
+		versioning.NewTxVersionChecker(0),
+	)
+
+	expectedFormat := fmt.Sprintf(
+		"sender=%s, nonce=%d, value=%s, recv=%s",
+		logger.DisplayByteSlice(sndAddr), nonce, value.String(), logger.DisplayByteSlice(rcvAdrr),
+	)
+
+	assert.Equal(t, expectedFormat, txin.String())
 }
