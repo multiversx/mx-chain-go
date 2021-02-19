@@ -999,7 +999,7 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction, checkSig
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
 	txSingleSigner := n.txSingleSigner
-	if checkSignature {
+	if !checkSignature {
 		txSingleSigner = &disabledSig.DisabledSingleSig{}
 	}
 

@@ -2931,7 +2931,7 @@ func TestNode_ShouldWork(t *testing.T) {
 	assert.Equal(t, expected, vals)
 }
 
-func TestNode_ValidateTransactionForSimulation_BypassSignatureTrue(t *testing.T) {
+func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
@@ -2963,6 +2963,6 @@ func TestNode_ValidateTransactionForSimulation_BypassSignatureTrue(t *testing.T)
 		ChainID:   []byte("a"),
 	}
 
-	err := n.ValidateTransactionForSimulation(tx, true)
+	err := n.ValidateTransactionForSimulation(tx, false)
 	require.NoError(t, err)
 }
