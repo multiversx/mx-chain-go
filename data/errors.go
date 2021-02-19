@@ -39,3 +39,24 @@ var ErrTimeIsOut = errors.New("time is out")
 
 // ErrLeafSizeTooBig signals that the value size of the leaf is too big
 var ErrLeafSizeTooBig = errors.New("leaf size too big")
+
+// ErrNilValue signals the value is nil
+var ErrNilValue = errors.New("nil value")
+
+// ErrNilSignature signals that a operation has been attempted with a nil signature
+var ErrNilSignature = errors.New("nil signature")
+
+// ErrNegativeValue signals that a negative value has been detected and it is not allowed
+var ErrNegativeValue = errors.New("negative value")
+
+// ErrInvalidUserNameLength signals that provided user name length is invalid
+var ErrInvalidUserNameLength = errors.New("invalid user name length")
+
+// ErrNilTxHash signals that an operation has been attempted with a nil hash
+var ErrNilTxHash = errors.New("nil transaction hash")
+
+// ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
+var ErrNilRcvAddr = errors.New("nil receiver address")
+
+// ErrNilSndAddr signals that an operation has been attempted to or with a nil sender address
+var ErrNilSndAddr = errors.New("nil sender address")
