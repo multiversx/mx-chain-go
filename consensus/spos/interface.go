@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -58,34 +59,34 @@ type ConsensusCoreHandler interface {
 	IsInterfaceNil() bool
 }
 
-//ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
-//and will be used in the sposWorker
+// ConsensusService encapsulates the methods specifically for a consensus type (bls, bn)
+// and will be used in the sposWorker
 type ConsensusService interface {
-	//InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
+	// InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 	InitReceivedMessages() map[consensus.MessageType][]*consensus.Message
-	//GetStringValue gets the name of the messageType
+	// GetStringValue gets the name of the messageType
 	GetStringValue(consensus.MessageType) string
-	//GetSubroundName gets the subround name for the subround id provided
+	// GetSubroundName gets the subround name for the subround id provided
 	GetSubroundName(int) string
-	//GetMessageRange provides the MessageType range used in checks by the consensus
+	// GetMessageRange provides the MessageType range used in checks by the consensus
 	GetMessageRange() []consensus.MessageType
-	//CanProceed returns if the current messageType can proceed further if previous subrounds finished
+	// CanProceed returns if the current messageType can proceed further if previous subrounds finished
 	CanProceed(*ConsensusState, consensus.MessageType) bool
-	//IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
+	// IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
 	IsMessageWithBlockBodyAndHeader(consensus.MessageType) bool
-	//IsMessageWithBlockBody returns if the current messageType is about block body
+	// IsMessageWithBlockBody returns if the current messageType is about block body
 	IsMessageWithBlockBody(consensus.MessageType) bool
-	//IsMessageWithBlockHeader returns if the current messageType is about block header
+	// IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
-	//IsMessageWithSignature returns if the current messageType is about signature
+	// IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
-	//IsMessageWithFinalInfo returns if the current messageType is about header final info
+	// IsMessageWithFinalInfo returns if the current messageType is about header final info
 	IsMessageWithFinalInfo(consensus.MessageType) bool
-	//IsMessageTypeValid returns if the current messageType is valid
+	// IsMessageTypeValid returns if the current messageType is valid
 	IsMessageTypeValid(consensus.MessageType) bool
-	//IsSubroundSignature returns if the current subround is about signature
+	// IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
-	//IsSubroundStartRound returns if the current subround is about start round
+	// IsSubroundStartRound returns if the current subround is about start round
 	IsSubroundStartRound(int) bool
 	// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round
 	GetMaxMessagesInARoundPerPeer() uint32
@@ -93,38 +94,38 @@ type ConsensusService interface {
 	IsInterfaceNil() bool
 }
 
-//SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
-//for different consensus types
+// SubroundsFactory encapsulates the methods specifically for a subrounds factory type (bls, bn)
+// for different consensus types
 type SubroundsFactory interface {
 	GenerateSubrounds() error
 	IsInterfaceNil() bool
 }
 
-//WorkerHandler represents the interface for the SposWorker
+// WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
 	Close() error
 	StartWorking()
-	//AddReceivedMessageCall adds a new handler function for a received message type
+	// AddReceivedMessageCall adds a new handler function for a received message type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
-	//AddReceivedHeaderHandler adds a new handler function for a received header
+	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
-	//RemoveAllReceivedMessagesCalls removes all the functions handlers
+	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
-	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
+	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	//Extend does an extension for the subround with subroundId
+	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
-	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
 	GetConsensusStateChangedChannel() chan bool
-	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	// ExecuteStoredMessages tries to execute all the messages received which are valid for execution
 	ExecuteStoredMessages()
-	//DisplayStatistics method displays statistics of worker at the end of the round
+	// DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
-	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
+	// SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
 	SetAppStatusHandler(ash core.AppStatusHandler) error
-	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -145,5 +146,11 @@ type RandSeedVerifier interface {
 // HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// ConsensusDataIndexer defines the actions that a consensus data indexer has to do
+type ConsensusDataIndexer interface {
+	SaveRoundsInfo(roundsInfos []workItems.RoundInfo)
 	IsInterfaceNil() bool
 }
