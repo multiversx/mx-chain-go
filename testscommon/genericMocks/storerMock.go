@@ -1,4 +1,4 @@
-package genericmocks
+package genericMocks
 
 import (
 	"encoding/hex"
