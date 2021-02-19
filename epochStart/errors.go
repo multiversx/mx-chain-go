@@ -289,3 +289,21 @@ var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for mi
 
 // ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
 var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")
+
+// ErrInvalidInflationRate signals usage of an invalid inflation rate
+var ErrInvalidInflationRate = errors.New("inflation rate is invalid")
+
+// ErrInvalidAccumulatedFees signals that the accumulated fees are invalid
+var ErrInvalidAccumulatedFees = errors.New("accumulated rewards are invalid")
+
+// ErrInvalidEstimatedProtocolSustainabilityRewards signals that the estimated protocol sustainability rewards are invalid
+var ErrInvalidEstimatedProtocolSustainabilityRewards = errors.New("estimated protocol sustainability rewards are invalid")
+
+// ErrInvalidAmountMintedTokens signals that the amount of minted tokens is invalid
+var ErrInvalidAmountMintedTokens = errors.New("amount of minted tokens is invalid")
+
+// ErrInvalidTotalToDistribute signals that the computed total rewards to be distributed is invalid
+var ErrInvalidTotalToDistribute = errors.New("invalid total to distribute")
+
+// ErrInvalidRewardsPerBlock signals that the computed rewards per block are invalid
+var ErrInvalidRewardsPerBlock = errors.New("invalid rewards per block")

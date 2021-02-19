@@ -22,7 +22,7 @@ type NodeStub struct {
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
-	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
@@ -115,8 +115,8 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation -
-func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	return ns.ValidateTransactionForSimulationCalled(tx)
+func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
+	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
 }
 
 // GetTransaction -
