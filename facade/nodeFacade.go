@@ -275,6 +275,11 @@ func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string
 	return nf.node.GetESDTBalance(address, key)
 }
 
+// GetKeyValuePairs returns all the key-value pairs under the provided address
+func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error) {
+	return nf.node.GetKeyValuePairs(address)
+}
+
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 	return nf.node.GetAllESDTTokens(address)
