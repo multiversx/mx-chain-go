@@ -2,9 +2,11 @@ package node
 
 import (
 	"encoding/hex"
+	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 )
 
@@ -34,6 +36,11 @@ func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 }
 
 func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
+	statusComputer, err := transaction.NewStatusComputer(n.shardCoordinator.SelfId(), n.uint64ByteSliceConverter, n.store)
+	if err != nil {
+		return nil, errors.New("error creating transaction status computer " + err.Error())
+	}
+
 	if n.shardCoordinator.SelfId() != core.MetachainShardId {
 		return blockAPI.NewShardApiBlockProcessor(
 			&blockAPI.APIBlockProcessorArg{
@@ -43,8 +50,9 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 				Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
 				HistoryRepo:              n.historyRepository,
 				UnmarshalTx:              n.unmarshalTransaction,
+				StatusComputer:           statusComputer,
 			},
-		)
+		), nil
 	}
 
 	return blockAPI.NewMetaApiBlockProcessor(
@@ -55,6 +63,7 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 			Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
 			HistoryRepo:              n.historyRepository,
 			UnmarshalTx:              n.unmarshalTransaction,
+			StatusComputer:           statusComputer,
 		},
-	)
+	), nil
 }

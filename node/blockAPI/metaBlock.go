@@ -2,13 +2,11 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
@@ -17,12 +15,8 @@ type metaAPIBlockProcessor struct {
 }
 
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
-func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) (*metaAPIBlockProcessor, error) {
+func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
 	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
-	statusComputer, err := transaction.NewStatusComputer(arg.SelfShardID, arg.Uint64ByteSliceConverter, arg.Store)
-	if err != nil {
-		return nil, errors.New("error creating transaction status computer " + err.Error())
-	}
 
 	return &metaAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
@@ -33,9 +27,9 @@ func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) (*metaAPIBlockProcessor
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
 			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
-			txStatusComputer:         statusComputer,
+			txStatusComputer:         arg.StatusComputer,
 		},
-	}, nil
+	}
 }
 
 // GetBlockByNonce wil return a meta APIBlock by nonce
