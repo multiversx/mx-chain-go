@@ -952,7 +952,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx, false)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, true)
 	if err != nil {
 		return err
 	}
