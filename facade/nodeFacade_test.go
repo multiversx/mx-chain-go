@@ -672,3 +672,21 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedPairs, res)
 }
+
+func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		ValidateTransactionForSimulationCalled: func(tx *transaction.Transaction, bypassSignature bool) error {
+			called = true
+			return nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	err := nf.ValidateTransactionForSimulation(&transaction.Transaction{}, false)
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
