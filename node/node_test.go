@@ -2945,7 +2945,11 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithTxSignMarshalizer(&mock.MarshalizerFake{}),
 		node.WithHasher(&mock.HasherMock{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+				return nil, nil
+			},
+		}),
 		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
 		node.WithChainID([]byte("a")),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(0)),
