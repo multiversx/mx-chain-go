@@ -169,6 +169,7 @@ type Node struct {
 	txSignHasher              hashing.Hasher
 	txVersionChecker          process.TxVersionCheckerHandler
 	isInImportMode            bool
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -328,6 +329,7 @@ func (n *Node) StartConsensus() error {
 		PoolAdder:                n.dataPool.MiniBlocks(),
 		SignatureSize:            n.validatorSignatureSize,
 		PublicKeySize:            n.publicKeySize,
+		NodeRedundancyHandler:    n.nodeRedundancyHandler,
 	}
 
 	worker, err := spos.NewWorker(workerArgs)
@@ -366,6 +368,7 @@ func (n *Node) StartConsensus() error {
 		PeerHonestyHandler:            n.peerHonestyHandler,
 		HeaderSigVerifier:             n.headerSigVerifier,
 		FallbackHeaderValidator:       n.fallbackHeaderValidator,
+		NodeRedundancyHandler:         n.nodeRedundancyHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

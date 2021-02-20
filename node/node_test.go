@@ -2316,6 +2316,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
 		node.WithIndexer(elasticIndexer.NewNilIndexer()),
+		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
 	)
 
 	err := n.StartConsensus()

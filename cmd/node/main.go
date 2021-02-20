@@ -75,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -372,6 +373,13 @@ VERSION:
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
+		Value: 0,
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -439,6 +447,7 @@ func main() {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		redundancyLevel,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -696,6 +705,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
+	}
+
+	if ctx.IsSet(redundancyLevel.Name) {
+		preferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
@@ -1360,6 +1373,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(preferencesConfig.Preferences.RedundancyLevel, networkComponents.NetMessenger)
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1391,6 +1409,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		fallbackHeaderValidator,
 		isInImportMode,
+		nodeRedundancy,
 	)
 	if err != nil {
 		return err
@@ -2204,6 +2223,7 @@ func createNode(
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 	isInImportDbMode bool,
+	nodeRedundancyHandler consensus.NodeRedundancyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2333,6 +2353,7 @@ func createNode(
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
 		node.WithImportMode(isInImportDbMode),
+		node.WithNodeRedundancyHandler(nodeRedundancyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

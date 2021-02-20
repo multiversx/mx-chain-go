@@ -423,6 +423,7 @@ func createConsensusOnlyNode(
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 		node.WithPeerSignatureHandler(peerSigHandler),
 		node.WithIndexer(indexer.NewNilIndexer()),
+		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
 	)
 
 	if err != nil {
