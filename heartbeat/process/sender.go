@@ -30,6 +30,7 @@ type ArgHeartbeatSender struct {
 	KeyBaseIdentity      string
 	HardforkTrigger      heartbeat.HardforkTrigger
 	CurrentBlockProvider heartbeat.CurrentBlockProvider
+	RedundancyHandler    heartbeat.NodeRedundancyHandler
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
@@ -37,6 +38,8 @@ type Sender struct {
 	peerMessenger        heartbeat.P2PMessenger
 	peerSignatureHandler crypto.PeerSignatureHandler
 	privKey              crypto.PrivateKey
+	publicKey            crypto.PublicKey
+	observerPublicKey    crypto.PublicKey
 	marshalizer          marshal.Marshalizer
 	shardCoordinator     sharding.Coordinator
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
@@ -47,6 +50,7 @@ type Sender struct {
 	keyBaseIdentity      string
 	hardforkTrigger      heartbeat.HardforkTrigger
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	redundancy           heartbeat.NodeRedundancyHandler
 }
 
 // NewSender will create a new sender instance
@@ -78,6 +82,9 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.CurrentBlockProvider) {
 		return nil, heartbeat.ErrNilCurrentBlockProvider
 	}
+	if check.IfNil(arg.RedundancyHandler) {
+		return nil, heartbeat.ErrNilRedundancyHandler
+	}
 	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
 	if err != nil {
 		return nil, err
@@ -87,6 +94,8 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		peerMessenger:        arg.PeerMessenger,
 		peerSignatureHandler: arg.PeerSignatureHandler,
 		privKey:              arg.PrivKey,
+		publicKey:            arg.PrivKey.GeneratePublic(),
+		observerPublicKey:    arg.RedundancyHandler.ObserverPrivateKey().GeneratePublic(),
 		marshalizer:          arg.Marshalizer,
 		topic:                arg.Topic,
 		shardCoordinator:     arg.ShardCoordinator,
@@ -97,6 +106,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		keyBaseIdentity:      arg.KeyBaseIdentity,
 		hardforkTrigger:      arg.HardforkTrigger,
 		currentBlockProvider: arg.CurrentBlockProvider,
+		redundancy:           arg.RedundancyHandler,
 	}
 
 	return sender, nil
@@ -134,9 +144,31 @@ func (s *Sender) SendHeartbeat() error {
 		}
 	}
 
-	log.Debug("broadcasting message", "is hardfork triggered", isHardforkTriggered)
+	err := s.finalizeMessageConstruction(hb)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("broadcasting message heartbeat message",
+		"is hardfork triggered", isHardforkTriggered,
+		"hex public key", hb.Pubkey,
+	)
+
+	buffToSend, err := s.marshalizer.Marshal(hb)
+	if err != nil {
+		return err
+	}
+
+	s.peerMessenger.Broadcast(s.topic, buffToSend)
+
+	return nil
+}
+
+func (s *Sender) finalizeMessageConstruction(hb *heartbeatData.Heartbeat) error {
+	sk, pk := s.getCurrentPrivateAndPublicKeys()
+
 	var err error
-	hb.Pubkey, err = s.privKey.GeneratePublic().ToByteArray()
+	hb.Pubkey, err = pk.ToByteArray()
 	if err != nil {
 		return err
 	}
@@ -149,19 +181,18 @@ func (s *Sender) SendHeartbeat() error {
 		trimLengths(hb)
 	}
 
-	hb.Signature, err = s.peerSignatureHandler.GetPeerSignature(s.privKey, hb.Pid)
-	if err != nil {
-		return err
+	hb.Signature, err = s.peerSignatureHandler.GetPeerSignature(sk, hb.Pid)
+
+	return err
+}
+
+func (s *Sender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.PublicKey) {
+	shouldUseOriginalKeys := !s.redundancy.IsRedundancyNode() || (s.redundancy.IsRedundancyNode() && !s.redundancy.IsMainMachineActive())
+	if shouldUseOriginalKeys {
+		return s.privKey, s.publicKey
 	}
 
-	buffToSend, err := s.marshalizer.Marshal(hb)
-	if err != nil {
-		return err
-	}
-
-	s.peerMessenger.Broadcast(s.topic, buffToSend)
-
-	return nil
+	return s.redundancy.ObserverPrivateKey(), s.observerPublicKey
 }
 
 func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {

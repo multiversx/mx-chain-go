@@ -1235,6 +1235,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		SizeCheckDelta:           n.sizeCheckDelta,
 		ValidatorsProvider:       n.validatorsProvider,
 		CurrentBlockProvider:     n.blkc,
+		RedundancyHandler:        n.nodeRedundancyHandler,
 	}
 
 	var err error

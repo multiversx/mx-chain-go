@@ -48,6 +48,7 @@ func createMockArgument() ArgHeartbeat {
 		SizeCheckDelta:           0,
 		ValidatorsProvider:       &mock.ValidatorsProviderStub{},
 		CurrentBlockProvider:     &mock.CurrentBlockProviderStub{},
+		RedundancyHandler:        &mock.RedundancyHandlerStub{},
 	}
 
 	return arg

@@ -101,3 +101,6 @@ var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHand
 
 // ErrNilCurrentBlockProvider signals that a nil current block provider
 var ErrNilCurrentBlockProvider = errors.New("nil current block provider")
+
+// ErrNilRedundancyHandler signals that a nil redundancy handler was provided
+var ErrNilRedundancyHandler = errors.New("nil redundancy handler")
