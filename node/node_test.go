@@ -15,6 +15,7 @@ import (
 	"time"
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -734,7 +735,7 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 
 	for i := 1; i < len(chainID); i++ {
 		newChainID := strings.Repeat("c", i)
-		_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0)
+		_, _, err = n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0)
 		assert.NoError(t, err)
 	}
 
@@ -2930,4 +2931,50 @@ func TestNode_ShouldWork(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, vals)
+}
+
+// TODO remove or move this when integrating with soft-restart branch
+func TestNode_StartHeartbeat(t *testing.T) {
+	t.Parallel()
+
+	hbConfig := config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 2,
+		MaxTimeToWaitBetweenBroadcastsInSec: 3,
+		DurationToConsiderUnresponsiveInSec: 10,
+		HeartbeatRefreshIntervalInSec:       1,
+		HideInactiveValidatorIntervalInSec:  20,
+	}
+
+	prefsConfig := config.PreferencesConfig{
+		DestinationShardAsObserver: "0",
+		NodeDisplayName:            "node name",
+		Identity:                   "identity",
+	}
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 100),
+		node.WithMessenger(&mock.MessengerStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithAppStatusHandler(&mock.AppStatusHandlerStub{}),
+		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
+		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
+		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithValidatorPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
+		node.WithGenesisTime(time.Now()),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
+		node.WithBlockChain(&mock.BlockChainMock{}),
+		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
+	)
+
+	err := n.StartHeartbeat(hbConfig, "1.0", prefsConfig)
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second)
 }
