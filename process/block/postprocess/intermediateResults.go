@@ -239,27 +239,15 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 }
 
 func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *smartContractResult.SmartContractResult) error {
-	if len(scr.RcvAddr) == 0 {
-		return process.ErrNilRcvAddr
-	}
-	if len(scr.SndAddr) == 0 {
-		return process.ErrNilSndAddr
+	err := scr.CheckIntegrity()
+	if err != nil {
+		return err
 	}
 
 	sndShId, dstShId := irp.getShardIdsFromAddresses(scr.SndAddr, scr.RcvAddr)
 	isInShardSCR := dstShId == irp.shardCoordinator.SelfId()
 	if isInShardSCR {
 		return nil
-	}
-
-	if scr.Value == nil {
-		return process.ErrNilValue
-	}
-	if scr.Value.Sign() < 0 {
-		return process.ErrNegativeValue
-	}
-	if len(scr.PrevTxHash) == 0 {
-		return process.ErrNilTxHash
 	}
 
 	if sndShId != irp.shardCoordinator.SelfId() && dstShId != irp.shardCoordinator.SelfId() {

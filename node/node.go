@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
@@ -41,6 +42,7 @@ import (
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -954,7 +956,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.whiteListerVerifiedTxs, n.whiteListRequest, true)
 	if err != nil {
 		return err
 	}
@@ -963,8 +965,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
-func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	disabledWhiteListHandler := disabled.NewDisabledWhiteListDataVerifier()
+	txValidator, intTx, err := n.commonTransactionValidation(tx, disabledWhiteListHandler, disabledWhiteListHandler, checkSignature)
 	if err != nil {
 		return err
 	}
@@ -978,11 +981,16 @@ func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) err
 	return err
 }
 
-func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
+func (n *Node) commonTransactionValidation(
+	tx *transaction.Transaction,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	checkSignature bool,
+) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListRequest,
+		whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -1000,6 +1008,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 	currentEpoch := n.epochStartTrigger.Epoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
+	txSingleSigner := n.txSingleSigner
+	if !checkSignature {
+		txSingleSigner = &disabledSig.DisabledSingleSig{}
+	}
+
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
@@ -1007,11 +1020,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.txSignMarshalizer,
 		n.hasher,
 		n.keyGenForAccounts,
-		n.txSingleSigner,
+		txSingleSigner,
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
-		n.whiteListerVerifiedTxs,
+		whiteListerVerifiedTxs,
 		argumentParser,
 		n.chainID,
 		enableSignWithTxHash,
