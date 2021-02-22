@@ -342,8 +342,8 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return err
 	}
 
-	account, errLoad := s.peerAccountsDB.GetExistingAccount(blsKey)
-	if errLoad != nil {
+	account, errExists := s.peerAccountsDB.GetExistingAccount(blsKey)
+	if errExists != nil {
 		return nil
 	}
 
