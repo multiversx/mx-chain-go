@@ -24,6 +24,7 @@ type SCQueryService struct {
 	blockChainHook process.BlockChainHookHandler
 	blockChain     data.ChainHandler
 	numQueries     int
+	gasForQuery    uint64
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -51,6 +52,7 @@ func NewSCQueryService(
 		economicsFee:   economicsFee,
 		blockChain:     blockChain,
 		blockChainHook: blockChainHook,
+		gasForQuery:    math.MaxUint64,
 	}, nil
 }
 
@@ -115,7 +117,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.CallerAddr,
 		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
-		GasProvided: math.MaxUint64,
+		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -161,7 +163,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	}
 
 	moveBalanceGasLimit := service.economicsFee.ComputeGasLimit(tx)
-	gasConsumedExecution := math.MaxUint64 - vmOutput.GasRemaining
+	gasConsumedExecution := service.gasForQuery - vmOutput.GasRemaining
 
 	gasLimit := moveBalanceGasLimit + gasConsumedExecution
 

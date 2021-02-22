@@ -92,7 +92,6 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.BuiltInFunctionCall:
 		return tce.computeScCallGasLimit(tx)
 	case process.RelayedTx:
-		// TODO for relayed txs not working yet
 		return 0, errors.New("cannot compute cost of the relayed transaction")
 	default:
 		return 0, process.ErrWrongTransaction

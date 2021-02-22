@@ -813,7 +813,7 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 
 	gasLimit, err := scQueryService.ComputeScCallGasLimit(tx)
 	if err != nil {
-		fmt.Println("ERROR at ComputeScCallGasLimit()", err)
+		log.Error("error at ComputeScCallGasLimit()", err)
 		return 0
 	}
 
