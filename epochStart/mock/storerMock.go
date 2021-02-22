@@ -82,8 +82,9 @@ func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 }
 
 // Remove -
-func (sm *StorerMock) Remove(_ []byte) error {
-	return errors.New("not implemented")
+func (sm *StorerMock) Remove(key []byte) error {
+	delete(sm.data, string(key))
+	return nil
 }
 
 // ClearCache -

@@ -109,7 +109,7 @@ func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.Roun
 		return ErrNilHandlerFunc
 	}
 
-	errChan := make(chan error, 0)
+	errChan := make(chan error)
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 
@@ -315,7 +315,8 @@ func (dr *dataReplayer) processMetaBlock(
 
 	shardsHeaderData := make(map[uint32][]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
-		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
+		shardInfoCopy := shardInfo
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfoCopy, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
 		if errProcessShardInfo != nil {
 			log.Warn("cannot process shard info", "error", errProcessShardInfo)
 			return nil, errProcessShardInfo
@@ -391,16 +392,6 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.Hea
 		Body:             body,
 		BodyTransactions: txPool,
 	}, nil
-}
-
-func (dr *dataReplayer) getShardIDs() []uint32 {
-	shardIDs := make([]uint32, 0)
-	for shard := uint32(0); shard < dr.shardCoordinator.NumberOfShards(); shard++ {
-		shardIDs = append(shardIDs, shard)
-	}
-	shardIDs = append(shardIDs, core.MetachainShardId)
-
-	return shardIDs
 }
 
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(

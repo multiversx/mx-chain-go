@@ -68,6 +68,7 @@ func (chunk *immunityChunk) getItemNoLock(key string) (*cacheItem, bool) {
 	return wrapper.item, true
 }
 
+// AddItem add an item to the chunk
 func (chunk *immunityChunk) AddItem(item *cacheItem) (has, added bool) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
@@ -182,6 +183,7 @@ func (chunk *immunityChunk) trackNumBytesOnAddNoLock(item *cacheItem) {
 	chunk.numBytes += item.size
 }
 
+// GetItem gets an item from the chunk
 func (chunk *immunityChunk) GetItem(key string) (*cacheItem, bool) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()

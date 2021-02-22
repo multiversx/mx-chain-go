@@ -4,6 +4,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -23,8 +24,11 @@ const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
-const minLengthForTokenName = 10
+const minLengthForInitTokenName = 10
+const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
+const minNumberOfDecimals = 0
+const maxNumberOfDecimals = 18
 const configKeyPrefix = "esdtConfig"
 const allIssuedTokens = "allIssuedTokens"
 const burnable = "canBurn"
@@ -38,29 +42,31 @@ const upgradable = "canUpgrade"
 const conversionBase = 10
 
 type esdt struct {
-	eei                 vm.SystemEI
-	gasCost             vm.GasCost
-	baseIssuingCost     *big.Int
-	ownerAddress        []byte
-	eSDTSCAddress       []byte
-	endOfEpochSCAddress []byte
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	enabledEpoch        uint32
-	flagEnabled         atomic.Flag
-	mutExecution        sync.RWMutex
+	eei                    vm.SystemEI
+	gasCost                vm.GasCost
+	baseIssuingCost        *big.Int
+	ownerAddress           []byte
+	eSDTSCAddress          []byte
+	endOfEpochSCAddress    []byte
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	enabledEpoch           uint32
+	flagEnabled            atomic.Flag
+	mutExecution           sync.RWMutex
+	addressPubKeyConverter core.PubkeyConverter
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
 type ArgsNewESDTSmartContract struct {
-	Eei                 vm.SystemEI
-	GasCost             vm.GasCost
-	ESDTSCConfig        config.ESDTSystemSCConfig
-	ESDTSCAddress       []byte
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	EpochNotifier       vm.EpochNotifier
-	EndOfEpochSCAddress []byte
+	Eei                    vm.SystemEI
+	GasCost                vm.GasCost
+	ESDTSCConfig           config.ESDTSystemSCConfig
+	ESDTSCAddress          []byte
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	EpochNotifier          vm.EpochNotifier
+	EndOfEpochSCAddress    []byte
+	AddressPubKeyConverter core.PubkeyConverter
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -77,6 +83,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, vm.ErrNilAddressPubKeyConverter
+	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
@@ -84,15 +93,16 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 
 	e := &esdt{
-		eei:                 args.Eei,
-		gasCost:             args.GasCost,
-		baseIssuingCost:     baseIssuingCost,
-		ownerAddress:        []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:       args.ESDTSCAddress,
-		hasher:              args.Hasher,
-		marshalizer:         args.Marshalizer,
-		enabledEpoch:        args.ESDTSCConfig.EnabledEpoch,
-		endOfEpochSCAddress: args.EndOfEpochSCAddress,
+		eei:                    args.Eei,
+		gasCost:                args.GasCost,
+		baseIssuingCost:        baseIssuingCost,
+		ownerAddress:           []byte(args.ESDTSCConfig.OwnerAddress),
+		eSDTSCAddress:          args.ESDTSCAddress,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		enabledEpoch:           args.ESDTSCConfig.EnabledEpoch,
+		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
+		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -156,7 +166,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	err := e.saveESDTConfig(scConfig)
@@ -168,7 +178,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 3 {
+	if len(args.Arguments) < 4 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -182,7 +192,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < minLengthForTickerName ||
+	if len(args.Arguments[0]) < minLengthForTokenName ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
@@ -253,6 +263,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
+// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	tokenName := arguments[0]
 	if !isTokenNameHumanReadable(tokenName) {
@@ -269,6 +280,16 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		return vm.ErrNegativeOrZeroInitialSupply
 	}
 
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(arguments[3]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		return fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		)
+	}
+
 	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return err
@@ -278,11 +299,12 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		OwnerAddress: owner,
 		TokenName:    tokenName,
 		TickerName:   tickerName,
+		NumDecimals:  numOfDecimals,
 		MintedValue:  initialSupply,
 		BurntValue:   big.NewInt(0),
 		Upgradable:   true,
 	}
-	err = upgradeProperties(newESDTToken, arguments[3:])
+	err = upgradeProperties(newESDTToken, arguments[4:])
 	if err != nil {
 		return err
 	}
@@ -376,9 +398,17 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 	if !token.Burnable {
+		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[1])
+		err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
 		e.eei.AddReturnMessage("token is not burnable")
-		return vmcommon.UserError
+		return vmcommon.Ok
 	}
+
 	token.BurntValue.Add(token.BurntValue, burntValue)
 
 	err = e.saveToken(args.Arguments[0], token)
@@ -455,6 +485,11 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 		return vmcommon.UserError
 	}
 
+	if !e.isAddressValid(args.Arguments[1]) {
+		e.eei.AddReturnMessage("invalid address to freeze/unfreeze")
+		return vmcommon.UserError
+	}
+
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
@@ -478,8 +513,8 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("cannot wipe")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
+	if !e.isAddressValid(args.Arguments[1]) {
+		e.eei.AddReturnMessage("invalid address to wipe")
 		return vmcommon.UserError
 	}
 
@@ -657,6 +692,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish(esdtToken.OwnerAddress)
 	e.eei.Finish([]byte(esdtToken.MintedValue.String()))
 	e.eei.Finish([]byte(esdtToken.BurntValue.String()))
+	e.eei.Finish([]byte(fmt.Sprintf("NumDecimals-%d", esdtToken.NumDecimals)))
 	e.eei.Finish([]byte("IsPaused-" + getStringFromBool(esdtToken.IsPaused)))
 	e.eei.Finish([]byte("CanUpgrade-" + getStringFromBool(esdtToken.Upgradable)))
 	e.eei.Finish([]byte("CanMint-" + getStringFromBool(esdtToken.Mintable)))
@@ -716,8 +752,8 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 		e.eei.AddReturnMessage("cannot change owner of the token")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("destination address of invalid length")
+	if !e.isAddressValid(args.Arguments[1]) {
+		e.eei.AddReturnMessage("destination address is invalid")
 		return vmcommon.UserError
 	}
 
@@ -770,13 +806,13 @@ func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 }
 
 func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenIdentifier)
-	if len(marshalledData) == 0 {
+	marshaledData := e.eei.GetStorage(tokenIdentifier)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrNoTickerWithGivenName
 	}
 
 	token := &ESDTData{}
-	err := e.marshalizer.Unmarshal(token, marshalledData)
+	err := e.marshalizer.Unmarshal(token, marshaledData)
 	return token, err
 }
 
@@ -784,7 +820,7 @@ func (e *esdt) getESDTConfig() (*ESDTConfig, error) {
 	esdtConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	marshalledData := e.eei.GetStorage([]byte(configKeyPrefix))
@@ -817,6 +853,22 @@ func (e *esdt) SetNewGasCost(gasCost vm.GasCost) {
 	e.mutExecution.Lock()
 	e.gasCost = gasCost
 	e.mutExecution.Unlock()
+}
+
+func (e *esdt) isAddressValid(addressBytes []byte) bool {
+	isLengthOk := len(addressBytes) == e.addressPubKeyConverter.Len()
+	if !isLengthOk {
+		return false
+	}
+
+	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
+
+	return encodedAddress != ""
+}
+
+// CanUseContract returns true if contract can be used
+func (e *esdt) CanUseContract() bool {
+	return true
 }
 
 // IsInterfaceNil returns true if underlying object is nil

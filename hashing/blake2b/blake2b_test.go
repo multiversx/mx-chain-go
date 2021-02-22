@@ -40,21 +40,24 @@ func TestBlake2b_Empty(t *testing.T) {
 	require.NoError(t, err)
 
 	var nilStr string
-	nilRes := hasher.Compute(nilStr)
-	assert.Equal(t, 64, len(nilRes))
+	resNil := hasher.Compute(nilStr)
+	assert.Equal(t, 64, len(resNil))
 
-	emptyRes := hasher.Compute("")
-	assert.Equal(t, 64, len(emptyRes))
+	resEmpty := hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, emptyRes, nilRes)
+	assert.Equal(t, resEmpty, resNil)
 
 	// force recompute
 	hasher, _ = blake2b.NewBlake2bWithSize(64)
 
-	emptyRes = hasher.Compute("")
-	assert.Equal(t, 64, len(emptyRes))
+	resEmpty = hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, emptyRes, nilRes)
+	resEmpty = hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
+
+	assert.Equal(t, resEmpty, resNil)
 }
 
 func TestBlake2b_Size(t *testing.T) {

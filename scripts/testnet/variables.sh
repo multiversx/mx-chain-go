@@ -46,10 +46,6 @@ export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=60
 
-# Types of keys to generate
-export TX_SIGN_FORMAT="bech32"
-export BLOCK_SIGN_FORMAT="hex"
-
 export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stake
 
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network

@@ -101,7 +101,7 @@ type ProcessComponentsFactoryArgs struct {
 	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
-	EconomicsData             process.EconomicsHandler
+	EconomicsData             process.EconomicsDataHandler
 	GasSchedule               core.GasScheduleNotifier
 	RoundHandler              consensus.RoundHandler
 	ShardCoordinator          sharding.Coordinator
@@ -134,7 +134,6 @@ type ProcessComponentsFactoryArgs struct {
 	Indexer                   indexer.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
-	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 }
 
@@ -143,7 +142,7 @@ type processComponentsFactory struct {
 	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             process.EconomicsHandler
+	economicsData             process.EconomicsDataHandler
 	gasSchedule               core.GasScheduleNotifier
 	roundHandler              consensus.RoundHandler
 	shardCoordinator          sharding.Coordinator
@@ -226,7 +225,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		epochNotifier:             args.EpochNotifier,
+		epochNotifier:             args.CoreData.EpochNotifier(),
 	}, nil
 }
 
@@ -565,6 +564,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
 		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1321,7 +1321,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.CoreData.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
 	}
 

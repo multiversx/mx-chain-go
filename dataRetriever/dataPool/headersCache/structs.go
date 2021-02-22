@@ -2,8 +2,9 @@ package headersCache
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // this structure is only used for sorting

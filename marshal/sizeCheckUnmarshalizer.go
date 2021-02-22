@@ -29,9 +29,9 @@ func (scu *sizeCheckUnmarshalizer) Unmarshal(obj interface{}, buff []byte) error
 	var objSize int
 	result, ok := obj.(Sizer)
 	if !ok {
-		out, err := scu.Marshal(obj)
-		if err != nil {
-			return err
+		out, errMarshal := scu.Marshal(obj)
+		if errMarshal != nil {
+			return errMarshal
 		}
 
 		objSize = len(out)

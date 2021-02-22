@@ -263,6 +263,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
+	if err != nil {
+		return err
+	}
+
 	err = sp.verifyFees(header)
 	if err != nil {
 		return err
@@ -1787,6 +1792,11 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
 	shardHeader.MetaBlockHashes = metaBlockHashes[core.MetachainShardId]
+
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody)
+	if err != nil {
+		return nil, err
+	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))

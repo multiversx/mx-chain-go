@@ -48,10 +48,10 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 }
 
 // GetCache -
-func (ptp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
-	ptp.lock.RLock()
-	defer ptp.lock.RUnlock()
-	return ptp.cache
+func (vp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
+	vp.lock.RLock()
+	defer vp.lock.RUnlock()
+	return vp.cache
 }
 
 // UpdateShardDataPeerState -

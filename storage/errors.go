@@ -120,3 +120,7 @@ var ErrNegativeSizeInBytes = errors.New("negative size in bytes")
 
 // ErrNilTimeCache signals that a nil time cache has been provided
 var ErrNilTimeCache = errors.New("nil time cache")
+
+// ErrNilTxGasHandler signals that a nil tx gas handler was provided
+var ErrNilTxGasHandler = errors.New("nil tx gas handler")
+

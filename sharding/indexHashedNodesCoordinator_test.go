@@ -75,7 +75,16 @@ func createArguments() ArgNodesCoordinator {
 	nbShards := uint32(1)
 	eligibleMap := createDummyNodesMap(10, nbShards, "eligible")
 	waitingMap := createDummyNodesMap(3, nbShards, "waiting")
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -209,7 +218,18 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -254,7 +274,17 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 
 	eligibleMap := createDummyNodesMap(5, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -313,7 +343,17 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	nodesMap := make(map[uint32][]Validator)
 	nodesMap[0] = list
 	nodesMap[core.MetachainShardId] = tmp[core.MetachainShardId]
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -344,7 +384,17 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewHashValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           nodesPerShard,
+		NodesMeta:            nodesPerShard,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -404,7 +454,17 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewHashValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           nodesPerShard,
+		NodesMeta:            nodesPerShard,
+		Hysteresis:           0,
+		Adaptivity:           false,
+		ShuffleBetweenShards: false,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -487,7 +547,18 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewHashValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           nodesPerShard,
+		NodesMeta:            nodesPerShard,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -535,7 +606,17 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewHashValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           nodesPerShard,
+		NodesMeta:            nodesPerShard,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(b, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -568,7 +649,17 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(b, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -603,7 +694,17 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 
 func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(b, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -638,7 +739,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	m2 := runtime.MemStats{}
 	runtime.ReadMemStats(&m2)
 
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 }
 
 func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400RecomputeEveryGroup(b *testing.B) {
@@ -728,7 +829,17 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	eligibleMap[core.MetachainShardId] = listMeta
 	eligibleMap[0] = listShard0
 	eligibleMap[1] = listShard1
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -796,7 +907,17 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	eligibleMap[core.MetachainShardId] = listMeta
 	eligibleMap[shardZeroId] = listShard0
 	eligibleMap[shardOneId] = listShard1
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -855,7 +976,18 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	waitingMap[core.MetachainShardId] = listMeta
 	waitingMap[shardZeroId] = listShard0
 	waitingMap[shardOneId] = listShard1
-	nodeShuffler := NewHashValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -1073,7 +1205,17 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	}
 	eligibleMap[core.MetachainShardId] = list
 
-	nodeShuffler := NewHashValidatorsShuffler(2, 2, hysteresis, adaptivity, shuffleBetweenShards)
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           2,
+		NodesMeta:            2,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 

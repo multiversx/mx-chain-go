@@ -27,7 +27,7 @@ type txListForSender struct {
 	accountNonce        atomic.Uint64
 	totalBytes          atomic.Counter
 	totalGas            atomic.Counter
-	totalFee            atomic.Counter
+	totalFeeScore       atomic.Counter
 	numFailedSelections atomic.Counter
 	onScoreChange       scoreChangeCallback
 
@@ -49,7 +49,7 @@ func newTxListForSender(sender string, constraints *senderConstraints, onScoreCh
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler TxGasHandler, txFeeHelper feeHelper) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -65,7 +65,7 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]b
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
-	listForSender.onAddedTransaction(tx)
+	listForSender.onAddedTransaction(tx, gasHandler, txFeeHelper)
 	evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
 	return true, evicted
@@ -101,10 +101,10 @@ func (listForSender *txListForSender) isCapacityExceeded() bool {
 	return tooManyBytes || tooManyTxs
 }
 
-func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
+func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction, gasHandler TxGasHandler, txFeeHelper feeHelper) {
 	listForSender.totalBytes.Add(tx.Size)
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
-	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
+	listForSender.totalFeeScore.Add(int64(estimateTxFeeScore(tx, gasHandler, txFeeHelper)))
 }
 
 func (listForSender *txListForSender) triggerScoreChange() {
@@ -114,12 +114,11 @@ func (listForSender *txListForSender) triggerScoreChange() {
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
-	fee := listForSender.totalFee.GetUint64()
+	fee := listForSender.totalFeeScore.GetUint64()
 	gas := listForSender.totalGas.GetUint64()
-	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
 
-	return senderScoreParams{count: count, size: size, fee: fee, gas: gas}
+	return senderScoreParams{count: count, feeScore: fee, gas: gas}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -176,7 +175,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 	listForSender.totalBytes.Subtract(value.Size)
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
-	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
+	listForSender.totalFeeScore.Subtract(int64(value.TxFeeScoreNormalized))
 }
 
 // This function should only be used in critical section (listForSender.mutex)

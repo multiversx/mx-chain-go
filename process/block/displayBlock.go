@@ -134,7 +134,7 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 		return lines
 	}
 
-	part := fmt.Sprintf("MetaBlockHashes")
+	part := "MetaBlockHashes"
 	for i := 0; i < len(header.MetaBlockHashes); i++ {
 		if i == 0 || i >= len(header.MetaBlockHashes)-1 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -146,8 +146,9 @@ func (txc *transactionCounter) displayMetaHashesIncluded(
 		} else if i == 1 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
-				fmt.Sprintf("..."),
-				fmt.Sprintf("...")}))
+				"...",
+				"...",
+			}))
 
 			part = ""
 		}
@@ -187,8 +188,9 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
-					fmt.Sprintf("..."),
-					fmt.Sprintf("...")}))
+					"...",
+					"...",
+				}))
 
 				part = ""
 			}
