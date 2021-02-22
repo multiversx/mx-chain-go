@@ -315,23 +315,24 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		pcf.coreData.Hasher(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.shardCoordinator,
-		pcf.state.AccountsAdapter(),
-		pcf.data.Datapool().MiniBlocks(),
-		requestHandler,
-		preProcContainer,
-		interimProcContainer,
-		gasHandler,
-		txFeeHandler,
-		blockSizeComputationHandler,
-		balanceComputationHandler,
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:     pcf.shardCoordinator,
+		Accounts:             pcf.state.AccountsAdapter(),
+		MiniBlockPool:        pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:       requestHandler,
+		PreProcessors:        preProcContainer,
+		InterProcessors:      interimProcContainer,
+		GasHandler:           gasHandler,
+		FeeHandler:           txFeeHandler,
+		BlockSizeComputation: blockSizeComputationHandler,
+		BalanceComputation:   balanceComputationHandler,
 		pcf.economicsData,
 		txTypeHandler,
 		pcf.config.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
-	)
+	}
+	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -599,23 +600,24 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		pcf.coreData.Hasher(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.shardCoordinator,
-		pcf.state.AccountsAdapter(),
-		pcf.data.Datapool().MiniBlocks(),
-		requestHandler,
-		preProcContainer,
-		interimProcContainer,
-		gasHandler,
-		txFeeHandler,
-		blockSizeComputationHandler,
-		balanceComputationHandler,
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               pcf.coreData.Hasher(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:     pcf.shardCoordinator,
+		Accounts:             pcf.state.AccountsAdapter(),
+		MiniBlockPool:        pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:       requestHandler,
+		PreProcessors:        preProcContainer,
+		InterProcessors:      interimProcContainer,
+		GasHandler:           gasHandler,
+		FeeHandler:           txFeeHandler,
+		BlockSizeComputation: blockSizeComputationHandler,
+		BalanceComputation:   balanceComputationHandler,
 		pcf.economicsData,
 		txTypeHandler,
 		generalSettingsConfig.BlockGasAndFeesReCheckEnableEpoch,
-	)
+	}
+	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}

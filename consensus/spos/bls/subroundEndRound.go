@@ -192,7 +192,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
-	// broadcast section
+	// broadcast header and final info section
 
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
