@@ -1184,6 +1184,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 		RewardAddress:   []byte("rewardAddress"),
 		AccumulatedFees: big.NewInt(0),
 	})
+	for _, vInfo := range validatorInfos[0] {
+		jailedAcc, _ := args.PeerAccountsDB.LoadAccount(vInfo.PublicKey)
+		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
+	}
 
 	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
@@ -1321,6 +1325,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 		RewardAddress:   delegationAddr,
 		AccumulatedFees: big.NewInt(0),
 	})
+	for _, vInfo := range validatorInfos[0] {
+		jailedAcc, _ := args.PeerAccountsDB.LoadAccount(vInfo.PublicKey)
+		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
+	}
 
 	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
