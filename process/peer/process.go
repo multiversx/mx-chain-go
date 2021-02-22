@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -52,6 +53,7 @@ type ArgValidatorStatisticsProcessor struct {
 	RatingEnableEpoch               uint32
 	SwitchJailWaitingEnableEpoch    uint32
 	BelowSignedThresholdEnableEpoch uint32
+	StakingV2EnableEpoch            uint32
 	EpochNotifier                   process.EpochNotifier
 }
 
@@ -73,7 +75,9 @@ type validatorStatistics struct {
 	lastFinalizedRootHash           []byte
 	jailedEnableEpoch               uint32
 	belowSignedThresholdEnableEpoch uint32
+	stakingV2EnableEpoch            uint32
 	flagJailedEnabled               atomic.Flag
+	flagStakingV2Enabled            atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -132,6 +136,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingEnableEpoch:               arguments.RatingEnableEpoch,
 		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
 		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
+		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
 	}
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
@@ -146,71 +151,80 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 // saveNodesCoordinatorUpdates is called at the first block after start in epoch to update the state trie according to
 // the shuffling and changes done by the nodesCoordinator at the end of the epoch
-func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
+func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
 	log.Debug("save nodes coordinator updates ", "epoch", epoch)
 
 	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
+	var tmpNodeForcedToRemain, nodeForcedToRemain bool
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	nodesMap, err = vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
-	return nil
+	return nodeForcedToRemain, nil
 }
 
 func (vs *validatorStatistics) saveUpdatesForNodesMap(
 	nodesMap map[uint32][][]byte,
 	peerType core.PeerType,
-) error {
+) (bool, error) {
+	nodeForcedToRemain := false
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
-		err := vs.saveUpdatesForList(nodesMap[shardID], shardID, peerType)
+		tmpNodeForcedToRemain, err := vs.saveUpdatesForList(nodesMap[shardID], shardID, peerType)
 		if err != nil {
-			return err
+			return false, err
 		}
+
+		nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 	}
 
-	err := vs.saveUpdatesForList(nodesMap[core.MetachainShardId], core.MetachainShardId, peerType)
+	tmpNodeForcedToRemain, err := vs.saveUpdatesForList(nodesMap[core.MetachainShardId], core.MetachainShardId, peerType)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
+	return nodeForcedToRemain, nil
 }
 
 func (vs *validatorStatistics) saveUpdatesForList(
 	pks [][]byte,
 	shardID uint32,
 	peerType core.PeerType,
-) error {
+) (bool, error) {
+	nodeForcedToStay := false
 	for index, pubKey := range pks {
 		peerAcc, err := vs.loadPeerAccount(pubKey)
 		if err != nil {
 			log.Debug("error getting peer account", "error", err, "key", pubKey)
-			return err
+			return false, err
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
@@ -226,11 +240,13 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
-			return err
+			return false, err
 		}
+
+		nodeForcedToStay = nodeForcedToStay || isNodeLeaving
 	}
 
-	return nil
+	return nodeForcedToStay, nil
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
@@ -286,6 +302,17 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	return nil
 }
 
+// SaveNodesCoordinatorUpdates saves the results from the nodes coordinator changes after end of epoch
+func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	nodeForcedToRemain, err := vs.saveNodesCoordinatorUpdates(epoch)
+	if err != nil {
+		log.Error("could not update info from nodesCoordinator")
+		return nodeForcedToRemain, err
+	}
+
+	return nodeForcedToRemain, nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
@@ -307,17 +334,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	}
 
 	epoch := computeEpoch(header)
-
-	var err error
-	if previousHeader.IsStartOfEpochBlock() {
-		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
-		if err != nil {
-			log.Warn("could not update info from nodesCoordinator")
-			return nil, err
-		}
-	}
-
-	err = vs.checkForMissedBlocks(
+	err := vs.checkForMissedBlocks(
 		header.GetRound(),
 		previousHeader.GetRound(),
 		previousHeader.GetRandSeed(),
@@ -358,7 +375,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
-		previousHeader.GetShardID())
+		previousHeader.GetShardID(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -530,17 +548,6 @@ func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandle
 	return peerAccount, nil
 }
 
-func (vs *validatorStatistics) convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	newLeaves := make([][]byte, len(leaves))
-	i := 0
-	for _, pa := range leaves {
-		newLeaves[i] = pa
-		i++
-	}
-
-	return newLeaves
-}
-
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
 func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 	sw := core.NewStopWatch()
@@ -580,8 +587,14 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			if validator.List != string(core.EligibleList) {
-				continue
+			if !vs.flagStakingV2Enabled.IsSet() {
+				if validator.List != string(core.EligibleList) {
+					continue
+				}
+			} else {
+				if validator.List != string(core.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
+					continue
+				}
 			}
 
 			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId, epoch)
@@ -982,7 +995,13 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
-			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			var leaderAccumulatedFees *big.Int
+			if vs.flagStakingV2Enabled.IsSet() {
+				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			} else {
+				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			}
+
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
@@ -1129,7 +1148,7 @@ func (vs *validatorStatistics) decreaseAll(
 		return nil
 	}
 
-	log.Trace("ValidatorStatistics decreasing all", "shardID", shardID, "missedRounds", missedRounds)
+	log.Debug("ValidatorStatistics decreasing all", "shardID", shardID, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardID)
 	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
@@ -1215,4 +1234,6 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
+	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)
+	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
 }

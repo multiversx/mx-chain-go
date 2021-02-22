@@ -14,6 +14,11 @@ type UserAccountStub struct {
 	AddToBalanceCalled func(value *big.Int) error
 }
 
+// HasNewCode -
+func (u *UserAccountStub) HasNewCode() bool {
+	return false
+}
+
 // SetUserName -
 func (u *UserAccountStub) SetUserName(_ []byte) {
 }
@@ -90,11 +95,6 @@ func (u *UserAccountStub) SetCode(_ []byte) {
 
 }
 
-// GetCode -
-func (u *UserAccountStub) GetCode() []byte {
-	return nil
-}
-
 // SetCodeMetadata -
 func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 }
@@ -141,5 +141,5 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return false
+	return u == nil
 }

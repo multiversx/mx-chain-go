@@ -159,8 +159,9 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
-					fmt.Sprintf("..."),
-					fmt.Sprintf("...")}))
+					"...",
+					"...",
+				}))
 			}
 		}
 
@@ -199,8 +200,9 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
-					fmt.Sprintf("..."),
-					fmt.Sprintf("...")}))
+					"...",
+					"...",
+				}))
 
 				part = ""
 			}

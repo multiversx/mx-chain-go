@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // BlockChainHookStub -
@@ -29,6 +30,7 @@ type BlockChainHookStub struct {
 	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
 	IsPayableCalled               func(address []byte) (bool, error)
 	NumberOfShardsCalled          func() uint32
+	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
 	CloseCalled                   func() error
 }
 
@@ -48,6 +50,14 @@ func (b *BlockChainHookStub) NewAddress(creatorAddress []byte, creatorNonce uint
 	return []byte("newAddress"), nil
 }
 
+// GetCode -
+func (b *BlockChainHookStub) GetCode(account vmcommon.UserAccountHandler) []byte {
+	if b.GetCodeCalled != nil {
+		return b.GetCodeCalled(account)
+	}
+	return nil
+}
+
 // GetStorageData -
 func (b *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
 	if b.GetStorageDataCalled != nil {
@@ -62,7 +72,7 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 		return b.GetUserAccountCalled(address)
 	}
 
-	return nil, nil
+	return state.NewUserAccount(address)
 }
 
 // GetShardOfAddress -

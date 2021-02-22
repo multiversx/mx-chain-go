@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -341,6 +342,32 @@ func CreateMockArguments(
 	}
 
 	return arguments
+}
+
+func createMockTransactionCoordinatorArguments(
+	accountAdapter state.AccountsAdapter,
+	poolsHolder dataRetriever.PoolsHolder,
+	preProcessorsContainer process.PreProcessorsContainer,
+) coordinator.ArgTransactionCoordinator {
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:                            &mock.HasherMock{},
+		Marshalizer:                       &mock.MarshalizerMock{},
+		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:                          accountAdapter,
+		MiniBlockPool:                     poolsHolder.MiniBlocks(),
+		RequestHandler:                    &mock.RequestHandlerStub{},
+		PreProcessors:                     preProcessorsContainer,
+		InterProcessors:                   &mock.InterimProcessorContainerMock{},
+		GasHandler:                        &mock.GasHandlerMock{},
+		FeeHandler:                        &mock.FeeAccumulatorStub{},
+		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
+		BalanceComputation:                &mock.BalanceComputationStub{},
+		EconomicsFee:                      &mock.FeeHandlerStub{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
+	}
+
+	return argsTransactionCoordinator
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {

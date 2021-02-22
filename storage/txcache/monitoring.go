@@ -101,8 +101,8 @@ func (cache *TxCache) monitorSweepingEnd(numTxs uint32, numSenders uint32, stopW
 }
 
 func (cache *TxCache) displaySendersHistogram() {
-	txListBySenderMap := cache.txListBySender.backingMap
-	log.Debug("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+	backingMap := cache.txListBySender.backingMap
+	log.Debug("TxCache.sendersHistogram:", "chunks", backingMap.ChunksCounts(), "scoreChunks", backingMap.ScoreChunksCounts())
 }
 
 // evictionJournal keeps a short journal about the eviction process
@@ -144,7 +144,7 @@ func (cache *TxCache) diagnoseShallowly() {
 	sw.Stop("diagnose")
 	duration := sw.GetMeasurement("diagnose")
 
-	fine := (numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks)
+	fine := numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks
 	fine = fine && (len(sendersKeys) == len(sendersKeysSorted) && len(sendersKeys) == len(sendersSnapshot))
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))

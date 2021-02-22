@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -96,6 +97,7 @@ func NewTrieStorageManager(
 	return tsm, nil
 }
 
+//nolint
 func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
@@ -364,6 +366,11 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
+		log.Trace("should not snapshot an empty trie")
+		return
+	}
+
 	tsm.EnterPruningBufferingMode()
 
 	snapshotEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: true}
@@ -374,6 +381,11 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
+		log.Trace("should not set checkpoint for empty trie")
+		return
+	}
+
 	tsm.EnterPruningBufferingMode()
 
 	checkpointEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: false}
@@ -381,10 +393,7 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
-	select {
-	case tsm.snapshotReq <- entry:
-		return
-	}
+	tsm.snapshotReq <- entry
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
@@ -507,18 +516,7 @@ func newSnapshotNode(
 		return nil, err
 	}
 
-	trieStorage := &trieStorageManager{
-		db: db,
-	}
-
-	snapshotPmt := &patriciaMerkleTrie{
-		root:        newRoot,
-		trieStorage: trieStorage,
-		marshalizer: msh,
-		hasher:      hsh,
-	}
-
-	return snapshotPmt.root, nil
+	return newRoot, nil
 }
 
 func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {

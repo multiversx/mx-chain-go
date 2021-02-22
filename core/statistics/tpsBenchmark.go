@@ -250,15 +250,15 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			return ErrInvalidShardId
 		}
 
-		totalTxsForTPS, totalTxsForCount := getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(shardInfo.ShardID, shardInfo.ShardMiniBlockHeaders)
+		shardTotalTxsForTPS, shardTotalTxsForCount := getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(shardInfo.ShardID, shardInfo.ShardMiniBlockHeaders)
 
 		shardPeakTPS := shardStat.PeakTPS()
-		currentShardTPS := float64(totalTxsForTPS / s.roundTime)
+		currentShardTPS := float64(shardTotalTxsForTPS / s.roundTime)
 		if currentShardTPS > shardStat.PeakTPS() {
 			shardPeakTPS = currentShardTPS
 		}
 
-		bigTxCount := big.NewInt(0).SetUint64(totalTxsForCount)
+		bigTxCount := big.NewInt(0).SetUint64(shardTotalTxsForCount)
 		newTotalProcessedTxCount := big.NewInt(0).Add(shardStat.TotalProcessedTxCount(), bigTxCount)
 		roundsPassed := big.NewInt(int64(header.Round))
 		newAverageTPS := big.NewInt(0).Quo(newTotalProcessedTxCount, roundsPassed)
@@ -271,7 +271,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 
 			averageTPS:       newAverageTPS,
 			peakTPS:          shardPeakTPS,
-			lastBlockTxCount: uint32(totalTxsForTPS),
+			lastBlockTxCount: uint32(shardTotalTxsForTPS),
 		}
 
 		log.Debug("TpsBenchmark.updateStatistics",

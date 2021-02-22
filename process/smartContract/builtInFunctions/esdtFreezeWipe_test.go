@@ -108,9 +108,26 @@ func TestESDTFreezeWipe_ProcessBuiltInFunction(t *testing.T) {
 	esdtUserData = ESDTUserMetadataFromBytes(esdtToken.Properties)
 	assert.False(t, esdtUserData.Frozen)
 
+	// cannot wipe if account is not frozen
 	wipe, _ := NewESDTFreezeWipeFunc(marshalizer, false, true)
 	_, err = wipe.ProcessBuiltinFunction(nil, acnt, input)
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrCannotWipeAccountNotFrozen, err)
+
+	marshaledData, _ = acnt.DataTrieTracker().RetrieveValue(esdtKey)
+	assert.NotEqual(t, 0, len(marshaledData))
+
+	// can wipe as account is frozen
+	metaData := ESDTUserMetadata{Frozen: true}
+	esdtToken = &esdt.ESDigitalToken{
+		Properties: metaData.ToBytes(),
+	}
+	esdtTokenBytes, _ := marshalizer.Marshal(esdtToken)
+	err = acnt.DataTrieTracker().SaveKeyValue(esdtKey, esdtTokenBytes)
+	assert.NoError(t, err)
+
+	wipe, _ = NewESDTFreezeWipeFunc(marshalizer, false, true)
+	_, err = wipe.ProcessBuiltinFunction(nil, acnt, input)
+	assert.NoError(t, err)
 
 	marshaledData, _ = acnt.DataTrieTracker().RetrieveValue(esdtKey)
 	assert.Equal(t, 0, len(marshaledData))

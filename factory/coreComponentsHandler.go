@@ -333,6 +333,18 @@ func (mcc *managedCoreComponents) TxVersionChecker() process.TxVersionCheckerHan
 	return mcc.coreComponents.txVersionChecker
 }
 
+// EncodedAddressLen returns the length of the encoded address
+func (mcc *managedCoreComponents) EncodedAddressLen() uint32 {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return 0
+	}
+
+	return mcc.coreComponents.encodedAddressLen
+}
+
 // AlarmScheduler returns the alarm scheduler
 func (mcc *managedCoreComponents) AlarmScheduler() core.TimersScheduler {
 	mcc.mutCoreComponents.RLock()
@@ -382,7 +394,7 @@ func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 }
 
 // EconomicsData returns the configured economics data
-func (mcc *managedCoreComponents) EconomicsData() process.EconomicsHandler {
+func (mcc *managedCoreComponents) EconomicsData() process.EconomicsDataHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

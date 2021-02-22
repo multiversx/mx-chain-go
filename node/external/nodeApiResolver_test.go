@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,10 +16,14 @@ import (
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	args := external.ApiResolverArgs{
-		ScQueryService: nil,
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		ScQueryService:     nil,
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -29,10 +34,14 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	args := external.ApiResolverArgs{
-		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  nil,
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      nil,
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, err := external.NewNodeApiResolver(args)
 
@@ -43,25 +52,86 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
-	args := external.ApiResolverArgs{
-		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  nil,
-	}
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+		args := external.ApiResolverArgs{
+			ScQueryService:     &mock.SCQueryServiceStub{},
+			StatusMetrics:      &mock.StatusMetricsStub{},
+			TxCostHandler:      nil,
+			VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+			VmContainer:        &mock.VMContainerMock{},
+			StakedValueHandler: totalStakedAPIHandler,
+		}
 	nar, err := external.NewNodeApiResolver(args)
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
 }
 
-func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
+func TestNewNodeApiResolver_NilVmFactory(t *testing.T) {
+	t.Parallel()
+
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	args := external.ApiResolverArgs{
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:         nil,
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
+	}
+	nar, err := external.NewNodeApiResolver(args)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilVmFactory, err)
+}
+
+func TestNewNodeApiResolver_NilVmContainer(t *testing.T) {
+	t.Parallel()
+
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	args := external.ApiResolverArgs{
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        nil,
+		StakedValueHandler: totalStakedAPIHandler,
+	}
+	nar, err := external.NewNodeApiResolver(args)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilVmContainer, err)
+}
+
+func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 	t.Parallel()
 
 	args := external.ApiResolverArgs{
-		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: nil,
 	}
+	nar, err := external.NewNodeApiResolver(args)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilTotalStakedValueHandler, err)
+}
+
+func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+		args := external.ApiResolverArgs{
+			ScQueryService:     &mock.SCQueryServiceStub{},
+			StatusMetrics:      &mock.StatusMetricsStub{},
+			TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+			VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+			VmContainer:        &mock.VMContainerMock{},
+			StakedValueHandler: totalStakedAPIHandler,
+		}
 	nar, err := external.NewNodeApiResolver(args)
 
 	assert.Nil(t, err)
@@ -72,6 +142,7 @@ func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	calledClose := false
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
@@ -83,6 +154,7 @@ func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
 				return nil
 			},
 		},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -95,6 +167,7 @@ func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
 func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
@@ -105,6 +178,7 @@ func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
 				return fmt.Errorf("error")
 			},
 		},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 
@@ -115,6 +189,7 @@ func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{
@@ -123,8 +198,11 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 				return &vmcommon.VMOutput{}, nil
 			},
 		},
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -140,16 +218,20 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{
+		StatusMetrics: &mock.StatusMetricsStub{
 			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -161,16 +243,20 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{
+		StatusMetrics: &mock.StatusMetricsStub{
 			StatusP2pMetricsMapCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 
 	nar, _ := external.NewNodeApiResolver(args)
@@ -182,16 +268,20 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{
+		StatusMetrics: &mock.StatusMetricsStub{
 			StatusMetricsMapWithoutP2PCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().StatusMetricsMapWithoutP2P()
@@ -202,16 +292,20 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{
+		StatusMetrics: &mock.StatusMetricsStub{
 			StatusP2pMetricsMapCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().StatusP2pMetricsMap()
@@ -222,16 +316,20 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
+	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
 	wasCalled := false
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{
+		StatusMetrics: &mock.StatusMetricsStub{
 			NetworkMetricsCalled: func() map[string]interface{} {
 				wasCalled = true
 				return nil
 			},
 		},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
 	}
 	nar, _ := external.NewNodeApiResolver(args)
 	_ = nar.StatusMetrics().NetworkMetrics()

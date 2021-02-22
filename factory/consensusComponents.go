@@ -30,6 +30,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	StateComponents     StateComponentsHolder
 	StatusComponents    StatusComponentsHolder
+	IsInImportMode      bool
 }
 
 type consensusComponentsFactory struct {
@@ -43,6 +44,7 @@ type consensusComponentsFactory struct {
 	processComponents   ProcessComponentsHolder
 	stateComponents     StateComponentsHolder
 	statusComponents    StatusComponentsHolder
+	isInImportMode      bool
 }
 
 type consensusComponents struct {
@@ -93,6 +95,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:   args.ProcessComponents,
 		stateComponents:     args.StateComponents,
 		statusComponents:    args.StatusComponents,
+		isInImportMode:      args.IsInImportMode,
 	}, nil
 }
 
@@ -198,7 +201,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
 
-	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	// apply consensus group size on the input antiflooder just before consensus creation topic
 	ccf.networkComponents.InputAntiFloodHandler().ApplyConsensusSize(
 		ccf.processComponents.NodesCoordinator().ConsensusGroupSize(
 			ccf.processComponents.ShardCoordinator().SelfId()),
@@ -290,6 +293,11 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	if !ccf.statusComponents.ElasticIndexer().IsNilIndexer() {
 		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
+		wd = &watchdog.DisabledWatchdog{}
+	}
+	if ccf.isInImportMode {
+		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
+			"it is incompatible with the import-db process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}
 

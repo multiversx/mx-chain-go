@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message StakedDataV1 {
+message StakedDataV1_0 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
@@ -22,7 +22,7 @@ message StakedDataV1 {
 	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
 }
 
-message StakedDataV2 {
+message StakedDataV1_1 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
@@ -37,6 +37,24 @@ message StakedDataV2 {
 	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
 	uint32   NumJailed     = 13 [(gogoproto.jsontag) = "NumJailed"];
 	bytes    SlashValue    = 14 [(gogoproto.jsontag) = "SlashValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message StakedDataV2_0 {
+	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
+	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
+	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
+	uint64   UnStakedNonce = 4 [(gogoproto.jsontag) = "UnStakedNonce"];
+	uint32   UnStakedEpoch = 5 [(gogoproto.jsontag) = "UnStakedEpoch"];
+	bytes    RewardAddress = 6 [(gogoproto.jsontag) = "RewardAddress"];
+	bytes    StakeValue    = 7 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64   JailedRound   = 8 [(gogoproto.jsontag) = "JailedRound"];
+	uint64   JailedNonce   = 9 [(gogoproto.jsontag) = "JailedNonce"];
+	uint64   UnJailedNonce = 10 [(gogoproto.jsontag) = "UnJailedNonce"];
+	bool     Jailed        = 11 [(gogoproto.jsontag) = "Jailed"];
+	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
+	uint32   NumJailed     = 13 [(gogoproto.jsontag) = "NumJailed"];
+	bytes    SlashValue    = 14 [(gogoproto.jsontag) = "SlashValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes    OwnerAddress  = 15 [(gogoproto.jsontag) = "OwnerAddress"];
 }
 
 message StakingNodesConfig {

@@ -11,8 +11,6 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -tx-sign-key-format $TX_SIGN_FORMAT                   \
-    -block-sign-key-format $BLOCK_SIGN_FORMAT             \
     -stake-type $GENESIS_STAKE_TYPE
   popd
 }
@@ -169,10 +167,10 @@ generateProxyObserverList() {
     for _ in $(seq $SHARD_OBSERVERCOUNT); do
       (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
 
-      echo -n "[[Observers]]" >> config_edit.toml
-      echo -n "   ShardId = $SHARD" >> config_edit.toml
-      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo -n ""$'\n' >> config_edit.toml
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $SHARD" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
 
       (( OBSERVER_INDEX++ ))
     done
@@ -181,10 +179,10 @@ generateProxyObserverList() {
   for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
     (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX ))
 
-      echo -n "[[Observers]]" >> config_edit.toml
-      echo -n "   ShardId = $METASHARD_ID" >> config_edit.toml
-      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo -n ""$'\n' >> config_edit.toml
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
 
       (( OBSERVER_INDEX++ ))
     done

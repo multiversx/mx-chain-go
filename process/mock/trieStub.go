@@ -15,31 +15,41 @@ type TrieStub struct {
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
 	RecreateCalled              func(root []byte) (data.Trie, error)
-	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
 	ResetOldHashesCalled        func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
-	SnapshotCalled              func() error
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
-	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetProofCalled              func(key []byte) ([][]byte, error)
+	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled     func() data.StorageManager
 }
 
-// EnterPruningBufferingMode -
-func (ts *TrieStub) EnterPruningBufferingMode() {
+// GetStorageManager -
+func (ts *TrieStub) GetStorageManager() data.StorageManager {
+	if ts.GetStorageManagerCalled != nil {
+		return ts.GetStorageManagerCalled()
+	}
+
+	return nil
 }
 
-// ExitPruningBufferingMode -
-func (ts *TrieStub) ExitPruningBufferingMode() {
+// GetProof -
+func (ts *TrieStub) GetProof(key []byte) ([][]byte, error) {
+	if ts.GetProofCalled != nil {
+		return ts.GetProofCalled(key)
+	}
+
+	return nil, nil
 }
 
-// TakeSnapshot -
-func (ts *TrieStub) TakeSnapshot(_ []byte) {
-}
+// VerifyProof -
+func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+	if ts.VerifyProofCalled != nil {
+		return ts.VerifyProofCalled(key, proof)
+	}
 
-// SetCheckpoint -
-func (ts *TrieStub) SetCheckpoint(_ []byte) {
+	return false, nil
 }
 
 // GetAllLeavesOnChannel -
@@ -57,6 +67,11 @@ func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (c
 // IsPruningEnabled -
 func (ts *TrieStub) IsPruningEnabled() bool {
 	return false
+}
+
+// ClosePersister -
+func (ts *TrieStub) ClosePersister() error {
+	return nil
 }
 
 // Get -
@@ -86,8 +101,8 @@ func (ts *TrieStub) Delete(key []byte) error {
 	return errNotImplemented
 }
 
-// Root -
-func (ts *TrieStub) Root() ([]byte, error) {
+// RootHash -
+func (ts *TrieStub) RootHash() ([]byte, error) {
 	if ts.RootCalled != nil {
 		return ts.RootCalled()
 	}
@@ -123,20 +138,6 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil
 }
 
-// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (ts *TrieStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if ts.CancelPruneCalled != nil {
-		ts.CancelPruneCalled(rootHash, identifier)
-	}
-}
-
-// Prune removes from the database all the old hashes that correspond to the given root hash
-func (ts *TrieStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if ts.PruneCalled != nil {
-		ts.PruneCalled(rootHash, identifier)
-	}
-}
-
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (ts *TrieStub) ResetOldHashes() [][]byte {
 	if ts.ResetOldHashesCalled != nil {
@@ -153,28 +154,12 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 	}
 }
 
-// Snapshot -
-func (ts *TrieStub) Snapshot() error {
-	if ts.SnapshotCalled != nil {
-		return ts.SnapshotCalled()
-	}
-	return nil
-}
-
 // GetSerializedNodes -
 func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	if ts.GetSerializedNodesCalled != nil {
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
 	}
 	return nil, 0, nil
-}
-
-// Database -
-func (ts *TrieStub) Database() data.DBWriteCacher {
-	if ts.DatabaseCalled != nil {
-		return ts.DatabaseCalled()
-	}
-	return nil
 }
 
 // GetDirtyHashes -
@@ -193,9 +178,4 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	}
 
 	return nil, nil
-}
-
-// GetSnapshotDbBatchDelay -
-func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
-	return 0
 }

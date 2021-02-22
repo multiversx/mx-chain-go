@@ -96,7 +96,7 @@ func (cache *DisabledCache) MaxSize() int {
 func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}), string) {
 }
 
-// RegisterHandler does nothing
+// UnRegisterHandler does nothing
 func (cache *DisabledCache) UnRegisterHandler(string) {
 }
 

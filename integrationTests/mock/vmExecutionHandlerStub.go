@@ -20,6 +20,7 @@ func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[s
 	}
 }
 
+
 // RunSmartContractCreate --
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCreateCalled == nil {
@@ -32,7 +33,7 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.Contrac
 	return vm.RunSmartContractCreateCalled(input)
 }
 
-// RunSmartContractCall Computes the result of a smart contract call and how the system must change after the execution
+// RunSmartContractCall computes the result of a smart contract call and how the system must change after the execution
 func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCallCalled == nil {
 		return &vmcommon.VMOutput{

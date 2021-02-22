@@ -103,7 +103,7 @@ type CoreComponentsHolder interface {
 	AlarmScheduler() core.TimersScheduler
 	SyncTimer() ntp.SyncTimer
 	RoundHandler() consensus.RoundHandler
-	EconomicsData() process.EconomicsHandler
+	EconomicsData() process.EconomicsDataHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
@@ -115,6 +115,7 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
+	EncodedAddressLen() uint32
 	IsInterfaceNil() bool
 }
 
@@ -163,25 +164,6 @@ type CryptoComponentsHandler interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	IsInterfaceNil() bool
-}
-
-// EconomicsHandler provides some economics related computation and read access to economics data
-type EconomicsHandler interface {
-	LeaderPercentage() float64
-	ProtocolSustainabilityPercentage() float64
-	ProtocolSustainabilityAddress() string
-	MinInflationRate() float64
-	MaxInflationRate(year uint32) float64
-	DeveloperPercentage() float64
-	GenesisTotalSupply() *big.Int
-	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
-	MinGasPrice() uint64
-	MinGasLimit() uint64
-	GasPerDataByte() uint64
 	IsInterfaceNil() bool
 }
 
@@ -437,4 +419,25 @@ type ShuffleOutCloser interface {
 	EndOfProcessingHandler(event endProcess.ArgEndProcess) error
 	IsInterfaceNil() bool
 	Close() error
+}
+
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	LeaderPercentage() float64
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
+	MinInflationRate() float64
+	MaxInflationRate(year uint32) float64
+	DeveloperPercentage() float64
+	GenesisTotalSupply() *big.Int
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+	GasPerDataByte() uint64
+	GasPriceModifier() float64
+	ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	IsInterfaceNil() bool
 }

@@ -251,7 +251,7 @@ func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConver
 			return err
 		}
 
-		data = append(data, string(buf.Bytes()))
+		data = append(data, buf.String())
 	}
 
 	log.Info(strings.Join(data, ""))

@@ -44,7 +44,7 @@ func createMockArguments() ArgNodeFacade {
 		},
 		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
 			"node": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "status"},
 				},
 			},
@@ -489,7 +489,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _, _ uint32) (*transaction.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ []byte, _ string, _ []byte, _ uint64, _ uint64, _ []byte, _ string, _ string, _, _ uint32) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
@@ -498,7 +498,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0", "chainID", 1, 0)
+	_, _, _ = nf.CreateTransaction(0, "0", "0", nil, "0", nil, 0, 0, []byte("0"), "0", "chainID", 1, 0)
 
 	assert.True(t, nodeCreateTxWasCalled)
 }

@@ -98,6 +98,9 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 
 		indexesProposers := testBlock.GetBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+
+		time.Sleep(integrationTests.StepDelay)
+
 		round++
 		nonce++
 	}
@@ -359,7 +362,7 @@ func verifyRewardsForShards(
 			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
 			expectedBalance.Add(expectedBalance, totalFees)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressBytes(), expectedBalance))
+			fmt.Printf("checking account %s has balance %d\n", acc.AddressBytes(), expectedBalance)
 			assert.Equal(t, expectedBalance, acc.(state.UserAccountHandler).GetBalance())
 		}
 	}
