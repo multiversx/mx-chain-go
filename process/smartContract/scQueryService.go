@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -155,9 +156,19 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	gasConsumed := service.economicsFee.MaxGasLimitPerBlock(0) - vmOutput.GasRemaining
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return 0, errors.New(vmOutput.ReturnMessage)
+	}
 
-	return gasConsumed, nil
+	feeMoveBalance := service.economicsFee.ComputeMoveBalanceFee(tx)
+	gasUnitsMoveBalanceBig := feeMoveBalance.Quo(feeMoveBalance, big.NewInt(0).SetUint64(tx.GasPrice))
+	gasUnitsMoveBalance := gasUnitsMoveBalanceBig.Uint64()
+
+	gasConsumedExecution := math.MaxUint64 - vmOutput.GasRemaining
+
+	gasLimit := gasUnitsMoveBalance + gasConsumedExecution
+
+	return gasLimit, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
