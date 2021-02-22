@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -391,4 +392,42 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	cost, err := target.ComputeScCallGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, consumedGas, cost)
+}
+
+func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
+	t.Parallel()
+
+	message := "function not found"
+	consumedGas := uint64(10000)
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				GasRemaining:  uint64(math.MaxUint64) - consumedGas,
+				ReturnCode:    vmcommon.FunctionNotFound,
+				ReturnMessage: message,
+			}, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
+	)
+
+	tx := &transaction.Transaction{
+		RcvAddr: []byte(DummyScAddress),
+		Data:    []byte("incrementaaaa"),
+	}
+	_, err := target.ComputeScCallGasLimit(tx)
+	require.Equal(t, errors.New(message), err)
 }

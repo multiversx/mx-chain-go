@@ -137,3 +137,23 @@ func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost)
 }
+
+func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
+	tce, _ := NewTransactionCostEstimator(
+		&mock.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.RelayedTx, process.RelayedTx
+			},
+		},
+		&mock.FeeHandlerStub{},
+		&mock.ScQueryStub{},
+		gasSchedule,
+	)
+
+	tx := &transaction.Transaction{}
+	_, err := tce.ComputeTransactionGasLimit(tx)
+	require.Error(t, err)
+}
