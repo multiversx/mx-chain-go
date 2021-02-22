@@ -560,6 +560,23 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	assert.Equal(t, int32(2), throttler.EndProcessingCount())
 }
 
+func TestMultiDataInterceptor_RegisterHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	wasCalled := false
+	arg.Processor = &mock.InterceptorProcessorStub{
+		RegisterHandlerCalled: func(handler func(topic string, hash []byte, data interface{})) {
+			wasCalled = true
+		},
+	}
+
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	mdi.RegisterHandler(nil)
+
+	assert.True(t, wasCalled)
+}
+
 //------- IsInterfaceNil
 
 func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {

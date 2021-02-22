@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -430,7 +429,7 @@ func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 }
 
 // WithIndexer sets up a indexer for the Node
-func WithIndexer(indexer indexer.Indexer) Option {
+func WithIndexer(indexer process.Indexer) Option {
 	return func(n *Node) error {
 		n.indexer = indexer
 		return nil
@@ -788,6 +787,17 @@ func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Opti
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
+		return nil
+	}
+}
+
+// WithNodeRedundancyHandler sets up a node redundancy handler for the node
+func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(nodeRedundancyHandler) {
+			return ErrNilNodeRedundancyHandler
+		}
+		n.nodeRedundancyHandler = nodeRedundancyHandler
 		return nil
 	}
 }

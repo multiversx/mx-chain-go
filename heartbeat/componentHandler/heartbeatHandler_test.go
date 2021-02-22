@@ -134,6 +134,9 @@ func TestNewHeartbeatHandler_ShouldWork(t *testing.T) {
 	require.NotNil(t, hbh.Monitor())
 	require.NotNil(t, hbh.Sender())
 
+	// wait for the sending go routine start
+	time.Sleep(time.Second)
+
 	err = hbh.Close()
 	assert.Nil(t, err)
 }

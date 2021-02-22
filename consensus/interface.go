@@ -127,3 +127,12 @@ type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
+
+// NodeRedundancyHandler provides functionality to handle the redundancy mechanism for a node
+type NodeRedundancyHandler interface {
+	IsRedundancyNode() bool
+	IsMainMachineActive() bool
+	AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64)
+	ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
+	IsInterfaceNil() bool
+}

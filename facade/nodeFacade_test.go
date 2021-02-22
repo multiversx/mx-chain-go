@@ -654,3 +654,39 @@ func TestNodeFacade_GetThrottlerForEndpointShouldFindAndReturn(t *testing.T) {
 	assert.NotNil(t, thr)
 	assert.True(t, ok)
 }
+
+func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
+	t.Parallel()
+
+	expectedPairs := map[string]string{"k": "v"}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetKeyValuePairsCalled: func(address string) (map[string]string, error) {
+			return expectedPairs, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetKeyValuePairs("addr")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedPairs, res)
+}
+
+func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		ValidateTransactionForSimulationCalled: func(tx *transaction.Transaction, bypassSignature bool) error {
+			called = true
+			return nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	err := nf.ValidateTransactionForSimulation(&transaction.Transaction{}, false)
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
