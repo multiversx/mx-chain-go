@@ -1449,43 +1449,45 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey0"),
-		List:            string(core.JailedList),
+		List:            string(core.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey1"),
-		List:            string(core.JailedList),
+		List:            string(core.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey2"),
-		List:            string(core.JailedList),
+		List:            string(core.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
 	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
 		PublicKey:       []byte("stakedPubKey3"),
-		List:            string(core.JailedList),
+		List:            string(core.EligibleList),
 		RewardAddress:   []byte("ownerKey"),
 		AccumulatedFees: big.NewInt(0),
 	})
+
+	for _, vInfo := range validatorInfos[0] {
+		jailedAcc, _ := args.PeerAccountsDB.LoadAccount(vInfo.PublicKey)
+		_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
+	}
 
 	s.flagSetOwnerEnabled.Unset()
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
-	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
-	assert.Nil(t, err)
-	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
-	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	_, err = s.peerAccountsDB.GetExistingAccount([]byte("waitingPubKey"))
+	assert.NotNil(t, err)
 
-	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))
-	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
-
-	assert.Equal(t, string(core.LeavingList), validatorInfos[0][1].List)
-
-	assert.Equal(t, 5, len(validatorInfos[0]))
-	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
+	assert.Equal(t, 4, len(validatorInfos[0]))
+	for _, vInfo := range validatorInfos[0] {
+		assert.Equal(t, vInfo.List, string(core.LeavingList))
+		peerAcc, _ := s.getPeerAccount(vInfo.PublicKey)
+		assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+	}
 }

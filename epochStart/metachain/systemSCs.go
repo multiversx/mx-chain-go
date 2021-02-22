@@ -302,7 +302,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
-			log.Debug("unStaked nodes which was already jailed", "blsKey", blsKey)
+			log.Debug("unStaked nodes which was in waiting only", "blsKey", blsKey)
 			continue
 		}
 
@@ -342,9 +342,14 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return err
 	}
 
-	peerAccount, errGet := s.getPeerAccount(blsKey)
-	if errGet != nil {
-		return errGet
+	account, errLoad := s.peerAccountsDB.GetExistingAccount(blsKey)
+	if errLoad != nil {
+		return nil
+	}
+
+	peerAccount, ok := account.(state.PeerAccountHandler)
+	if !ok {
+		return epochStart.ErrWrongTypeAssertion
 	}
 
 	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())
