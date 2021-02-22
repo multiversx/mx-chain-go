@@ -36,7 +36,7 @@ func (ptps *PendingTransactionProcessorStub) Commit() ([]byte, error) {
 	return nil, nil
 }
 
-// IsInterfaceNil-
+// IsInterfaceNil -
 func (ptps *PendingTransactionProcessorStub) IsInterfaceNil() bool {
 	return ptps == nil
 }

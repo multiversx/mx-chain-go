@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -123,9 +122,6 @@ func TestManagedDataComponents_Close_ShouldWork(t *testing.T) {
 }
 
 func getDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsFactoryArgs {
-	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
-	testEconomics.SetMinGasPrice(200000000000)
-
 	return factory.DataComponentsFactoryArgs{
 		Config:                        testscommon.GetGeneralConfig(),
 		ShardCoordinator:              shardCoordinator,

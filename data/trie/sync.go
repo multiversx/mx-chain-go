@@ -187,7 +187,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.trie.Database())
+			nextNodes, err = currentNode.getChildren(ts.trie.trieStorage.Database())
 			if err != nil {
 				return false, err
 			}
@@ -197,7 +197,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			err = encodeNodeAndCommitToDB(currentNode, ts.trie.Database())
+			err = encodeNodeAndCommitToDB(currentNode, ts.trie.trieStorage.Database())
 			if err != nil {
 				return false, err
 			}
@@ -272,7 +272,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return trieNode(n)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.Database(), ts.trie.marshalizer, ts.trie.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.trieStorage.Database(), ts.trie.marshalizer, ts.trie.hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}

@@ -83,7 +83,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              process.EconomicsHandler
+	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
@@ -143,7 +143,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              process.EconomicsHandler
+	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	StorageUnitOpener          storage.UnitOpenerHandler

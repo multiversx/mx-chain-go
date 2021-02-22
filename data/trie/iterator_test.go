@@ -72,7 +72,7 @@ func TestIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	it, _ := trie.NewIterator(tr)
 
 	hash, err := it.GetHash()

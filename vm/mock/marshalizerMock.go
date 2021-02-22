@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// ErrMockMarshalizer -
 var ErrMockMarshalizer = errors.New("MarshalizerMock generic error")
 
 // MarshalizerMock that will be used for testing

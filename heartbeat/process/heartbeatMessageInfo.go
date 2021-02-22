@@ -24,7 +24,7 @@ type heartbeatMessageInfo struct {
 	peerType                    string
 	receivedShardID             uint32
 	computedShardID             uint32
-	updateMutex                 sync.Mutex
+	updateMutex                 sync.RWMutex
 	getTimeHandler              func() time.Time
 	isActive                    bool
 	nonce                       uint64

@@ -120,7 +120,6 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 
 	context.ScAddress = childAddress
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
-	parentAddress = context.ScAddress
 }
 
 func TestUpgrades_UpgradeDelegationContract(t *testing.T) {

@@ -10,6 +10,7 @@ type ChainStorerMock struct {
 	Transactions *StorerMock
 	Rewards      *StorerMock
 	Unsigned     *StorerMock
+	HdrNonce     *StorerMock
 }
 
 // NewChainStorerMock -
@@ -18,6 +19,7 @@ func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 		Transactions: NewStorerMock("Transactions", epoch),
 		Rewards:      NewStorerMock("Rewards", epoch),
 		Unsigned:     NewStorerMock("Unsigned", epoch),
+		HdrNonce:     NewStorerMock("HeaderNonce", epoch),
 	}
 }
 
@@ -27,7 +29,7 @@ func (sm *ChainStorerMock) CloseAll() error {
 }
 
 // AddStorer -
-func (sm *ChainStorerMock) AddStorer(key dataRetriever.UnitType, s storage.Storer) {
+func (sm *ChainStorerMock) AddStorer(_ dataRetriever.UnitType, _ storage.Storer) {
 	panic("not supported")
 }
 
@@ -43,11 +45,11 @@ func (sm *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 		return sm.Unsigned
 	}
 
-	panic("storer missing, add it")
+	return sm.HdrNonce
 }
 
 // Has -
-func (sm *ChainStorerMock) Has(unitType dataRetriever.UnitType, key []byte) error {
+func (sm *ChainStorerMock) Has(_ dataRetriever.UnitType, _ []byte) error {
 	return nil
 }
 
@@ -62,12 +64,12 @@ func (sm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, valu
 }
 
 // GetAll -
-func (sm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+func (sm *ChainStorerMock) GetAll(_ dataRetriever.UnitType, _ [][]byte) (map[string][]byte, error) {
 	panic("not supported")
 }
 
 // SetEpochForPutOperation -
-func (sm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+func (sm *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 	panic("not supported")
 }
 

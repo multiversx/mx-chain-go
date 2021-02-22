@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -29,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -83,7 +86,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      process.SmartContractProcessor
+	ScProcessor      *smartContract.TestScProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -147,14 +150,45 @@ func (context *TestContext) initFeeHandlers() {
 		},
 	}
 
-	context.EconomicsFee = &mock.FeeHandlerStub{
-		DeveloperPercentageCalled: func() float64 {
-			return 0.0
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	minGasPrice := strconv.FormatUint(1, 10)
+	minGasLimit := strconv.FormatUint(1, 10)
+	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
+			},
+			RewardsSettings: config.RewardsSettings{
+				LeaderPercentage:                 0.1,
+				DeveloperPercentage:              0.0,
+				ProtocolSustainabilityPercentage: 0,
+				ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+				TopUpGradientPoint:               "1000000",
+				TopUpFactor:                      0,
+			},
+			FeeSettings: config.FeeSettings{
+				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
+				GasPerDataByte:          "1",
+				GasPriceModifier:        1.0,
+			},
 		},
-		MaxGasLimitPerBlockCalled: func() uint64 {
-			return maxGasLimit
-		},
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
+
+	context.EconomicsFee = economicsData
 }
 
 func (context *TestContext) initVMAndBlockchainHook() {
@@ -236,19 +270,19 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:    context.VMContainer,
-		ArgsParser:     smartContract.NewArgumentParser(),
-		Hasher:         hasher,
-		Marshalizer:    marshalizer,
-		AccountsDB:     context.Accounts,
-		BlockChainHook: context.BlockchainHook,
-		PubkeyConv:     pkConverter,
-		Coordinator:    oneShardCoordinator,
-		ScrForwarder:   context.SCRForwarder,
-		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:   context.UnsignexTxHandler,
-		EconomicsFee:   context.EconomicsFee,
-		TxTypeHandler:  txTypeHandler,
+		VmContainer:      context.VMContainer,
+		ArgsParser:       smartContract.NewArgumentParser(),
+		Hasher:           hasher,
+		Marshalizer:      marshalizer,
+		AccountsDB:       context.Accounts,
+		BlockChainHook:   context.BlockchainHook,
+		PubkeyConv:       pkConverter,
+		ShardCoordinator: oneShardCoordinator,
+		ScrForwarder:     context.SCRForwarder,
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:     context.UnsignexTxHandler,
+		EconomicsFee:     context.EconomicsFee,
+		TxTypeHandler:    txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -257,8 +291,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
-
-	context.ScProcessor, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	context.ScProcessor = smartContract.NewTestScProcessor(sc)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
@@ -324,6 +358,7 @@ func (context *TestContext) createAccount(participant *testParticipant) {
 	require.Nil(context.T, err)
 }
 
+// InitAdditionalParticipants -
 func (context *TestContext) InitAdditionalParticipants(num int) {
 	context.Participants = make([]*testParticipant, 0, num)
 
@@ -346,10 +381,12 @@ func createDummyAddress(addressTag int) []byte {
 	return address
 }
 
+// TakeAccountBalanceSnapshot -
 func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticipant) {
 	participant.BalanceSnapshot = context.GetAccountBalance(participant)
 }
 
+// GetAccountBalance -
 func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
 	account, err := context.Accounts.GetExistingAccount(participant.Address)
 	require.Nil(context.T, err)
@@ -357,6 +394,7 @@ func (context *TestContext) GetAccountBalance(participant *testParticipant) *big
 	return accountAsUser.GetBalance()
 }
 
+// GetAccountBalanceDelta -
 func (context *TestContext) GetAccountBalanceDelta(participant *testParticipant) *big.Int {
 	account, err := context.Accounts.GetExistingAccount(participant.Address)
 	require.Nil(context.T, err)
@@ -604,7 +642,7 @@ func (context *TestContext) GoToEpoch(epoch int) {
 
 // GetLatestError -
 func (context *TestContext) GetLatestError() error {
-	return smartContract.GetLatestTestError(context.ScProcessor)
+	return context.ScProcessor.GetLatestTestError()
 }
 
 // FormatHexNumber -
@@ -644,7 +682,7 @@ func (b Balance) ToHex() string {
 	return "00" + hex.EncodeToString(b.Value.Bytes())
 }
 
-// AlmostEquals -
+// RequireAlmostEquals -
 func RequireAlmostEquals(t *testing.T, expected Balance, actual Balance) {
 	precision := big.NewInt(0)
 	_, _ = precision.SetString("100000000000", 10)

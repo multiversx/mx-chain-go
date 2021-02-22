@@ -778,3 +778,18 @@ func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 
 	return hashes, nil
 }
+
+func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
+	if len(key) == 0 || bn.isInterfaceNil() {
+		return false, nil, nil
+	}
+
+	wantHash := bn.EncodedChildren[key[0]]
+	nextKey := key[1:]
+
+	return false, wantHash, nextKey
+}
+
+func (bn *branchNode) isInterfaceNil() bool {
+	return bn == nil
+}

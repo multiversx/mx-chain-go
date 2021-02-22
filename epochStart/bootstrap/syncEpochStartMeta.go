@@ -36,7 +36,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	RequestHandler          RequestHandler
 	Messenger               Messenger
 	ShardCoordinator        sharding.Coordinator
-	EconomicsData           process.EconomicsHandler
+	EconomicsData           process.EconomicsDataHandler
 	WhitelistHandler        process.WhiteListHandler
 	StartInEpochConfig      config.EpochStartConfig
 	ArgsParser              process.ArgumentsParser

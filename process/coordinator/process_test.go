@@ -211,6 +211,9 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		BlockSizeComputation: &mock.BlockSizeComputationStub{},
 		BalanceComputation:   &mock.BalanceComputationStub{},
+	EconomicsFee: 		&mock.FeeHandlerStub{},
+		TxTypeHandler: &mock.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
 	}
 
 	return argsTransactionCoordinator
@@ -346,6 +349,30 @@ func TestNewTransactionCoordinator_NilBalanceComputation(t *testing.T) {
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilEconomicsFee(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.EconomicsFee = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilTxTypeHandler(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.TxTypeHandler = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilTxTypeHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -1777,7 +1804,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		return true
 	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, haveTime)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -1910,7 +1937,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		return true
 	}
 	preproc := tc.getPreProcessor(block.TxBlock)
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, haveTime)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)
@@ -2286,18 +2313,52 @@ func TestTransactionCoordinator_GetNumOfCrossShardScCallsShouldWork(t *testing.T
 	allTxs := make(map[string]data.TransactionHandler)
 
 	mb.ReceiverShardID = 0
-	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	mb.ReceiverShardID = 1
-	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
-		RcvAddr: make([]byte, 0),
+		RcvAddr:     make([]byte, 0),
+		RcvUserName: make([]byte, 0),
 	}
-	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
-		RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+		RcvAddr:     make([]byte, core.NumInitCharactersForScAddress+1),
+		RcvUserName: make([]byte, 0),
 	}
-	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 }
+
+func TestTransactionCoordinator_GetNumOfCrossShardSpecialTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mb := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("txHash1")},
+	}
+
+	allTxs := make(map[string]data.TransactionHandler)
+
+	mb.ReceiverShardID = 0
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	mb.ReceiverShardID = 1
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr:     make([]byte, 0),
+		RcvUserName: make([]byte, 0),
+	}
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr:     make([]byte, 0),
+		RcvUserName: []byte("username"),
+	}
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+}
+
+//TODO: Unit tests for methods: VerifyCreatedMiniBlocks, verifyGasLimit, checkGasConsumedByMiniBlockInReceiverShard,
+//verifyFees and getMaxAccumulatedAndDeveloperFees should be added

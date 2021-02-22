@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -293,6 +294,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedHeartbeatComponents,
 			managedConsensusComponents,
 			flagsConfig.BootstrapRoundIndex,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
@@ -328,28 +330,19 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
-	apiResolver, err := mainFactory.CreateApiResolver(
-		configs.GeneralConfig,
-		currentNode.stateComponents.AccountsAdapter(),
-		currentNode.stateComponents.PeerAccounts(),
-		currentNode.coreComponents.AddressPubKeyConverter(),
-		currentNode.dataComponents.StorageService(),
-		currentNode.dataComponents.Datapool(),
-		currentNode.dataComponents.Blockchain(),
-		currentNode.coreComponents.InternalMarshalizer(),
-		currentNode.coreComponents.Hasher(),
-		currentNode.coreComponents.Uint64ByteSliceConverter(),
-		currentNode.bootstrapComponents.ShardCoordinator(),
-		currentNode.coreComponents.StatusHandlerUtils().Metrics(),
-		gasScheduleNotifier,
-		currentNode.coreComponents.EconomicsData(),
-		currentNode.cryptoComponents.MessageSignVerifier(),
-		currentNode.coreComponents.GenesisNodesSetup(),
-		configs.SystemSCConfig,
-		currentNode.coreComponents.Rater(),
-		currentNode.coreComponents.EpochNotifier(),
-		configs.FlagsConfig.WorkingDir,
-	)
+
+	apiResolverArgs := &mainFactory.ApiResolverArgs{
+		Configs:             configs,
+		CoreComponents:      currentNode.coreComponents,
+		DataComponents:      currentNode.dataComponents,
+		StateComponents:     currentNode.stateComponents,
+		BootstrapComponents: currentNode.bootstrapComponents,
+		CryptoComponents:    currentNode.cryptoComponents,
+		ProcessComponents:   currentNode.processComponents,
+		GasScheduleNotifier: gasScheduleNotifier,
+	}
+
+	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -412,6 +405,9 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, managedCoreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, managedCoreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
 
 	return nil
 }
@@ -471,6 +467,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ProcessComponents:   managedProcessComponents,
 		StateComponents:     managedStateComponents,
 		StatusComponents:    managedStatusComponents,
+		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -596,7 +593,7 @@ func (nr *nodeRunner) logInformation(
 		"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	sessionInfoFileOutput += nr.configs.FlagsConfig.SessionInfoFileOutput
 
 	nr.logSessionInformation(nr.configs.FlagsConfig.WorkingDir, sessionInfoFileOutput, managedCoreComponents)
@@ -629,7 +626,7 @@ func logGoroutinesNumber(goRoutinesNumberStart int) {
 		"start", goRoutinesNumberStart,
 		"end", runtime.NumGoroutine())
 
-	log.Warn(buffer.String())
+	log.Debug(buffer.String())
 }
 
 // CreateManagedStatusComponents is the managed status components factory
@@ -683,6 +680,7 @@ func (nr *nodeRunner) logSessionInformation(
 	configurationPaths := nr.configs.ConfigurationPathsHolder
 	copyConfigToStatsFolder(
 		statsFolder,
+		configurationPaths.GasScheduleDirectoryName,
 		[]string{
 			configurationPaths.MainConfig,
 			configurationPaths.Economics,
@@ -694,7 +692,6 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.ApiRoutes,
 			configurationPaths.External,
 			configurationPaths.SystemSC,
-			configurationPaths.GasScheduleDirectoryName,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -780,8 +777,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
@@ -823,7 +818,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Indexer:                   managedStatusComponents.ElasticIndexer(),
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
-		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
 	}
@@ -1128,13 +1122,46 @@ func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
 	return nil
 }
 
-func copyConfigToStatsFolder(statsFolder string, configs []string) {
+func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
 	err := os.MkdirAll(statsFolder, os.ModePerm)
+	log.LogIfError(err)
+
+	err = copyDirectory(gasScheduleFolder, statsFolder)
 	log.LogIfError(err)
 
 	for _, configFile := range configs {
 		copySingleFile(statsFolder, configFile)
 	}
+}
+
+// TODO: add some unit tests
+func copyDirectory(source string, destination string) error {
+	fileDescriptors, err := ioutil.ReadDir(source)
+	if err != nil {
+		return err
+	}
+
+	sourceInfo, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(destination, sourceInfo.Mode())
+	if err != nil {
+		return err
+	}
+
+	for _, fd := range fileDescriptors {
+		srcFilePath := path.Join(source, fd.Name())
+		dstFilePath := path.Join(destination, fd.Name())
+		if fd.IsDir() {
+			err = copyDirectory(srcFilePath, dstFilePath)
+			log.LogIfError(err)
+		} else {
+			copySingleFile(dstFilePath, srcFilePath)
+		}
+	}
+	return nil
 }
 
 func copySingleFile(folder string, configFile string) {
@@ -1147,7 +1174,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			log.Warn("copySingleFile", "Could not close file", source.Name())
+			log.Warn("copySingleFile", "Could not close file", source.Name(), "error", err.Error())
 		}
 	}()
 
@@ -1159,13 +1186,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			log.Warn("copySingleFile", "Could not close file", source.Name())
+			log.Warn("copySingleFile", "Could not close file", source.Name(), "error", err.Error())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		log.Warn("copySingleFile", "Could not copy file", source.Name())
+		log.Warn("copySingleFile", "Could not copy file", source.Name(), "error", err.Error())
 	}
 }
 

@@ -19,7 +19,6 @@ type vmContext struct {
 	inputParser         vm.ArgumentsParser
 	chanceComputer      sharding.ChanceComputer
 	scAddress           []byte
-	shardCoordinator    sharding.Coordinator
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
@@ -75,9 +74,41 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
+func (host *vmContext) getCodeFromAddress(address []byte) []byte {
+	userAcc, err := host.blockChainHook.GetUserAccount(address)
+	if err != nil {
+		// backward compatibility
+		return address
+	}
+
+	code := host.blockChainHook.GetCode(userAcc)
+	if len(code) == 0 {
+		return address
+	}
+
+	return code
+}
+
+// GetContract gets the actual system contract from address and code
+func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, error) {
+	code := host.getCodeFromAddress(address)
+	contract, err := host.systemContracts.Get(code)
+	if err != nil {
+		return nil, err
+	}
+
+	if !contract.CanUseContract() {
+		// backward compatibility
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	return contract, nil
+}
+
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
-	if storageAdrMap, ok := host.storageUpdate[string(address)]; ok {
+	storageAdrMap, exists := host.storageUpdate[string(address)]
+	if exists {
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
 			return value
 		}
@@ -99,7 +130,8 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 // SetStorageForAddress saves the key value storage under the address
 func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
 	strAdr := string(address)
-	if _, ok := host.storageUpdate[strAdr]; !ok {
+	_, exists := host.storageUpdate[strAdr]
+	if !exists {
 		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
 
@@ -116,7 +148,8 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	strAdr := string(addr)
-	if outAcc, ok := host.outputAccounts[strAdr]; ok {
+	outAcc, exists := host.outputAccounts[strAdr]
+	if exists {
 		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
 		return actualBalance
 	}
@@ -165,10 +198,16 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
+func (host *vmContext) Transfer(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
 
-	senderAcc, ok := host.outputAccounts[string(sender)]
-	if !ok {
+	senderAcc, exists := host.outputAccounts[string(sender)]
+	if !exists {
 		senderAcc = &vmcommon.OutputAccount{
 			Address:      sender,
 			BalanceDelta: big.NewInt(0),
@@ -177,8 +216,8 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		host.outputAccounts[string(senderAcc.Address)] = senderAcc
 	}
 
-	destAcc, ok := host.outputAccounts[string(destination)]
-	if !ok {
+	destAcc, exists := host.outputAccounts[string(destination)]
+	if !exists {
 		destAcc = &vmcommon.OutputAccount{
 			Address:      destination,
 			BalanceDelta: big.NewInt(0),
@@ -212,12 +251,13 @@ func (host *vmContext) copyToNewContext() *vmContext {
 	return &newContext
 }
 
-func (host *vmContext) copyFromContext(currContext *vmContext) {
+func (host *vmContext) mergeContext(currContext *vmContext) {
 	host.output = append(host.output, currContext.output...)
 	host.AddReturnMessage(currContext.returnMessage)
 
 	for key, storageUpdate := range currContext.storageUpdate {
-		if _, ok := host.storageUpdate[key]; !ok {
+		_, exists := host.storageUpdate[key]
+		if !exists {
 			host.storageUpdate[key] = storageUpdate
 			continue
 		}
@@ -227,73 +267,157 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 		}
 	}
 
-	host.outputAccounts = currContext.outputAccounts
+	for _, rightAccount := range currContext.outputAccounts {
+		leftAccount, exist := host.outputAccounts[string(rightAccount.Address)]
+		if !exist {
+			leftAccount = &vmcommon.OutputAccount{}
+			host.outputAccounts[string(rightAccount.Address)] = leftAccount
+		}
+		leftAccount.MergeOutputAccounts(rightAccount)
+	}
 	host.scAddress = currContext.scAddress
 }
 
-func (host *vmContext) createContractCallInput(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.ContractCallInput, error) {
+func (host *vmContext) createContractCallInput(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	data []byte,
+) (*vmcommon.ContractCallInput, error) {
 	function, arguments, err := host.inputParser.ParseData(string(data))
 	if err != nil {
 		return nil, err
 	}
 
+	return createDirectCallInput(destination, sender, value, function, arguments), nil
+}
+
+func createDirectCallInput(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	function string,
+	arguments [][]byte,
+) *vmcommon.ContractCallInput {
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  sender,
-			Arguments:   arguments,
-			CallValue:   value,
-			GasPrice:    0,
-			GasProvided: 0,
+			CallerAddr: sender,
+			Arguments:  arguments,
+			CallValue:  value,
 		},
 		RecipientAddr: destination,
 		Function:      function,
 	}
+	return input
+}
 
-	return input, nil
+// DeploySystemSC will deploy a smart contract according to the input
+// will call the init function and merge the vmOutputs
+// will add to the system smart contracts container the new address
+func (host *vmContext) DeploySystemSC(
+	baseContract []byte,
+	newAddress []byte,
+	ownerAddress []byte,
+	value *big.Int,
+	input [][]byte,
+) (vmcommon.ReturnCode, error) {
+
+	if check.IfNil(host.systemContracts) {
+		return vmcommon.ExecutionFailed, vm.ErrUnknownSystemSmartContract
+	}
+
+	callInput := createDirectCallInput(newAddress, ownerAddress, value, core.SCDeployInitFunctionName, input)
+	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
+	contract, err := host.systemContracts.Get(baseContract)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
+	oldSCAddress := host.scAddress
+	host.SetSCAddress(callInput.RecipientAddr)
+	returnCode := contract.Execute(callInput)
+	host.SetSCAddress(oldSCAddress)
+	host.addContractDeployToOutput(newAddress, ownerAddress, baseContract)
+
+	return returnCode, nil
+}
+
+func (host *vmContext) addContractDeployToOutput(
+	contractAddress []byte,
+	ownerAddress []byte,
+	code []byte,
+) {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	outAcc, exists := host.outputAccounts[string(contractAddress)]
+	if !exists {
+		outAcc = &vmcommon.OutputAccount{
+			Address:      contractAddress,
+			BalanceDelta: big.NewInt(0),
+			Balance:      big.NewInt(0),
+		}
+		host.outputAccounts[string(outAcc.Address)] = outAcc
+	}
+
+	outAcc.CodeMetadata = codeMetaData.ToBytes()
+	outAcc.Code = code
+	outAcc.CodeDeployerAddress = ownerAddress
+	host.outputAccounts[string(outAcc.Address)] = outAcc
 }
 
 // ExecuteOnDestContext executes the input data in the destinations context
-func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.VMOutput, error) {
+func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	if check.IfNil(host.systemContracts) {
 		return nil, vm.ErrUnknownSystemSmartContract
 	}
 
-	input, err := host.createContractCallInput(destination, sender, value, data)
+	callInput, err := host.createContractCallInput(destination, sender, value, input)
 	if err != nil {
 		return nil, err
 	}
 
-	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil, 0)
+	err = host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
 	if err != nil {
 		return nil, err
 	}
 
+	vmOutput := &vmcommon.VMOutput{}
 	currContext := host.copyToNewContext()
 	defer func() {
 		host.output = make([][]byte, 0)
-		host.copyFromContext(currContext)
+		host.mergeContext(currContext)
 	}()
 
 	host.softCleanCache()
-	host.SetSCAddress(input.RecipientAddr)
+	host.SetSCAddress(callInput.RecipientAddr)
 
-	contract, err := host.systemContracts.Get(input.RecipientAddr)
+	contract, err := host.GetContract(callInput.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	if input.Function == core.SCDeployInitFunctionName {
+	if callInput.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: "cannot call smart contract init function",
 		}, nil
 	}
 
-	returnCode := contract.Execute(input)
+	returnCode := contract.Execute(callInput)
 
-	vmOutput := &vmcommon.VMOutput{}
 	if returnCode == vmcommon.Ok {
 		vmOutput = host.CreateVMOutput()
+	} else {
+		// all changes must be deleted
+		host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	}
 	vmOutput.ReturnCode = returnCode
 	vmOutput.ReturnMessage = host.returnMessage
@@ -353,6 +477,11 @@ func (host *vmContext) UseGas(gasToConsume uint64) error {
 	return nil
 }
 
+// GasLeft returns the remaining gas
+func (host *vmContext) GasLeft() uint64 {
+	return host.gasRemaining
+}
+
 func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
@@ -365,7 +494,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	outAccs := make(map[string]*vmcommon.OutputAccount)
 	for addr, updates := range host.storageUpdate {
-		if _, ok := outAccs[addr]; !ok {
+		_, exists := outAccs[addr]
+		if !exists {
 			outAccs[addr] = &vmcommon.OutputAccount{
 				Address:        []byte(addr),
 				StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
@@ -384,7 +514,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	// add balances
 	for addr, outAcc := range host.outputAccounts {
-		if _, ok := outAccs[addr]; !ok {
+		_, exists := outAccs[addr]
+		if !exists {
 			outAccs[addr] = &vmcommon.OutputAccount{}
 		}
 
@@ -397,6 +528,18 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
+
+		// backward compatibility - genesis was done without this
+		if host.blockChainHook.CurrentNonce() > 0 {
+			if len(outAcc.CodeDeployerAddress) > 0 {
+				outAccs[addr].CodeDeployerAddress = outAcc.CodeDeployerAddress
+			}
+
+			if len(outAcc.CodeMetadata) > 0 {
+				outAccs[addr].CodeMetadata = outAcc.CodeMetadata
+			}
+		}
+
 		outAccs[addr].OutputTransfers = outAcc.OutputTransfers
 	}
 
@@ -421,8 +564,8 @@ func (host *vmContext) SetSCAddress(addr []byte) {
 
 // AddCode adds the input code to the address
 func (host *vmContext) AddCode(address []byte, code []byte) {
-	newSCAcc, ok := host.outputAccounts[string(address)]
-	if !ok {
+	newSCAcc, exists := host.outputAccounts[string(address)]
+	if !exists {
 		host.outputAccounts[string(address)] = &vmcommon.OutputAccount{
 			Address:        address,
 			Nonce:          0,
@@ -437,8 +580,8 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
 func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
-	destAcc, ok := host.outputAccounts[string(scAddress)]
-	if !ok {
+	destAcc, exists := host.outputAccounts[string(scAddress)]
+	if !exists {
 		destAcc = &vmcommon.OutputAccount{
 			Address:      scAddress,
 			BalanceDelta: big.NewInt(0),
@@ -456,8 +599,8 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 
@@ -467,6 +610,21 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 	return isValidator
 }
 
+// StatusFromValidatorStatistics returns the list in which the validator is present
+func (host *vmContext) StatusFromValidatorStatistics(blsKey []byte) string {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return string(core.InactiveList)
+	}
+
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
+		return string(core.InactiveList)
+	}
+
+	return validatorAccount.GetList()
+}
+
 // CanUnJail returns true if the validator is jailed in the validator statistics
 func (host *vmContext) CanUnJail(blsKey []byte) bool {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
@@ -474,8 +632,8 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 
@@ -489,8 +647,8 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 

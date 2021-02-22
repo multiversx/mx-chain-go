@@ -551,7 +551,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"node": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/status", Open: true},
 					{Name: "/metrics", Open: true},
 					{Name: "/statistics", Open: true},

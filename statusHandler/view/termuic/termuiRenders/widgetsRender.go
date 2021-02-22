@@ -296,7 +296,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	syncStatus := wr.presenter.GetIsSyncing()
 	switch syncStatus {
 	case 1:
-		rows[6] = []string{fmt.Sprintf("Consensus round state: N/A (syncing)")}
+		rows[6] = []string{"Consensus round state: N/A (syncing)"}
 	case 0:
 		instanceType := wr.presenter.GetNodeType()
 		if instanceType == string(core.NodeTypeObserver) {

@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -34,6 +37,12 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	exportBaseDirectory, err := ioutil.TempDir("", "export*")
+	require.Nil(t, err)
+	defer func() {
+		_ = os.RemoveAll(exportBaseDirectory)
+	}()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -96,16 +105,10 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
-	defer func() {
-		for _, node := range nodes {
-			_ = os.RemoveAll(node.ExportFolder)
-		}
-	}()
-
 	log.Info("doing hardfork...")
-	exportStorageConfigs := hardForkExport(t, nodes, epoch)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch, exportBaseDirectory)
 	for id, node := range nodes {
-		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		node.ExportFolder = path.Join(exportBaseDirectory, fmt.Sprintf("%d", id))
 	}
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
@@ -115,6 +118,12 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	exportBaseDirectory, err := ioutil.TempDir("", "export*")
+	require.Nil(t, err)
+	defer func() {
+		_ = os.RemoveAll(exportBaseDirectory)
+	}()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -220,16 +229,9 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
-	defer func() {
-		for _, node := range nodes {
-			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.RemoveAll("./Static")
-		}
-	}()
-
-	exportStorageConfigs := hardForkExport(t, nodes, epoch)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch, exportBaseDirectory)
 	for id, node := range nodes {
-		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		node.ExportFolder = path.Join(exportBaseDirectory, fmt.Sprintf("%d", id))
 	}
 
 	hardForkImport(t, nodes, exportStorageConfigs)
@@ -240,6 +242,12 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	exportBaseDirectory, err := ioutil.TempDir("", "export*")
+	require.Nil(t, err)
+	defer func() {
+		_ = os.RemoveAll(exportBaseDirectory)
+	}()
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -319,7 +327,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	for i := uint64(0); i < numRoundsBeforeHardfork+roundsForEarlyStartOfEpoch; i++ {
 		if i == numRoundsBeforeHardfork {
 			log.Info("triggering hardfork (with early end of epoch)")
-			err := hardforkTriggerNode.Node.DirectTrigger(1, true)
+			err = hardforkTriggerNode.Node.DirectTrigger(1, true)
 			log.LogIfError(err)
 		}
 
@@ -348,27 +356,22 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	time.Sleep(time.Second)
 	currentEpoch := uint32(1)
 
-	defer func() {
-		for _, node := range consensusNodes {
-			_ = os.RemoveAll(node.ExportFolder)
-			_ = os.RemoveAll("./Static")
-		}
-	}()
-
-	exportStorageConfigs := hardForkExport(t, consensusNodes, currentEpoch)
+	exportStorageConfigs := hardForkExport(t, consensusNodes, currentEpoch, exportBaseDirectory)
 	for id, node := range consensusNodes {
-		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		node.ExportFolder = filepath.Join(exportBaseDirectory, fmt.Sprintf("%d", id))
 	}
 
 	hardForkImport(t, consensusNodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, consensusNodes)
 }
 
-func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) map[uint32][]config.StorageConfig {
-	exportStorageConfigs := createHardForkExporter(t, nodes)
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32, exportBaseDirectory string) map[uint32][]config.StorageConfig {
+	exportStorageConfigs := createHardForkExporter(t, nodes, exportBaseDirectory)
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
-		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
+		log.Warn("starting to export for node with shard",
+			"id", node.ShardCoordinator.SelfId(),
+			"base directory", exportBaseDirectory)
 		err := node.ExportHandler.ExportAll(epoch)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
@@ -432,7 +435,7 @@ func hardForkImport(
 			Data:                 dataComponents,
 			Accounts:             node.AccntState,
 			InitialNodesSetup:    node.NodesSetup,
-			Economics:            node.EconomicsData.EconomicsData,
+			Economics:            node.EconomicsData,
 			ShardCoordinator:     node.ShardCoordinator,
 			ValidatorAccounts:    node.PeerState,
 			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
@@ -466,14 +469,25 @@ func hardForkImport(
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					AuctionEnableEpoch:                   1000000,
+					StakingV2Epoch:                       1000000,
 					StakeEnableEpoch:                     0,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
 					MaxNumberOfNodesForStake:             100,
-					NodesToSelectInAuction:               100,
 					ActivateBLSPubKeyMessageVerification: false,
+					MinUnstakeTokensValue:                "1",
+				},
+				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+					BaseIssuingCost:    "100",
+					MinCreationDeposit: "100",
+					EnabledEpoch:       0,
+				},
+				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+					MinStakeAmount: "100",
+					EnabledEpoch:   0,
+					MinServiceFee:  0,
+					MaxServiceFee:  100,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
@@ -513,6 +527,7 @@ func hardForkImport(
 func createHardForkExporter(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
+	exportBaseDirectory string,
 ) map[uint32][]config.StorageConfig {
 	returnedConfigs := make(map[uint32][]config.StorageConfig)
 
@@ -521,7 +536,7 @@ func createHardForkExporter(
 		accountsDBs[state.UserAccountsState] = node.AccntState
 		accountsDBs[state.PeerAccountsState] = node.PeerState
 
-		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		node.ExportFolder = path.Join(exportBaseDirectory, fmt.Sprintf("%d", id))
 		exportConfig := config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 100000,
@@ -529,7 +544,7 @@ func createHardForkExporter(
 				Shards:   1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "ExportState" + fmt.Sprintf("%d", id),
+				FilePath:          "ExportState",
 				Type:              "LvlDBSerial",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -543,7 +558,7 @@ func createHardForkExporter(
 				Shards:   1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "ExportKeys" + fmt.Sprintf("%d", id),
+				FilePath:          "ExportKeys",
 				Type:              "LvlDBSerial",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -591,7 +606,7 @@ func createHardForkExporter(
 					Shards:   1,
 				},
 				DB: config.DBConfig{
-					FilePath:          "ExportTrie" + fmt.Sprintf("%d", id),
+					FilePath:          "ExportTrie",
 					Type:              "MemoryDB",
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,

@@ -37,7 +37,6 @@ type InterceptedTransaction struct {
 	argsParser             process.ArgumentsParser
 	txVersionChecker       process.TxVersionCheckerHandler
 	chainID                []byte
-	minTransactionVersion  uint32
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool
@@ -250,11 +249,11 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if tx.Signature == nil {
 		return process.ErrNilSignature
 	}
-	if tx.RcvAddr == nil {
-		return process.ErrNilRcvAddr
+	if len(tx.RcvAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidRcvAddr
 	}
-	if tx.SndAddr == nil {
-		return process.ErrNilSndAddr
+	if len(tx.SndAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidSndAddr
 	}
 	if tx.Value == nil {
 		return process.ErrNilValue
@@ -262,10 +261,10 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if tx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
-	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
+	if len(inTx.tx.RcvUserName) > core.MaxUserNameLength {
 		return process.ErrInvalidUserNameLength
 	}
-	if len(inTx.tx.SndUserName) > 0 && len(inTx.tx.SndUserName) != inTx.hasher.Size() {
+	if len(inTx.tx.SndUserName) > core.MaxUserNameLength {
 		return process.ErrInvalidUserNameLength
 	}
 

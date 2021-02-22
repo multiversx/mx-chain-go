@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,37 +23,8 @@ var log = logger.GetOrCreate("api/block")
 
 // BlockService interface defines methods that can be used from `elrondFacade` context variable
 type BlockService interface {
-	GetBlockByHash(hash string, withTxs bool) (*APIBlock, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*APIBlock, error)
-}
-
-// APIBlock represents the structure for block that is returned by api routes
-type APIBlock struct {
-	Nonce           uint64               `json:"nonce"`
-	Round           uint64               `json:"round"`
-	Hash            string               `json:"hash"`
-	PrevBlockHash   string               `json:"prevBlockHash"`
-	Epoch           uint32               `json:"epoch"`
-	Shard           uint32               `json:"shard"`
-	NumTxs          uint32               `json:"numTxs"`
-	NotarizedBlocks []*APINotarizedBlock `json:"notarizedBlocks,omitempty"`
-	MiniBlocks      []*APIMiniBlock      `json:"miniBlocks,omitempty"`
-}
-
-// APINotarizedBlock represents a notarized block
-type APINotarizedBlock struct {
-	Hash  string `json:"hash"`
-	Nonce uint64 `json:"nonce"`
-	Shard uint32 `json:"shard"`
-}
-
-// APIMiniBlock represents the structure for a miniblock
-type APIMiniBlock struct {
-	Hash             string                              `json:"hash"`
-	Type             string                              `json:"type"`
-	SourceShard      uint32                              `json:"sourceShard"`
-	DestinationShard uint32                              `json:"destinationShard"`
-	Transactions     []*transaction.ApiTransactionResult `json:"transactions,omitempty"`
+	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 }
 
 // Routes defines block related routes
@@ -63,9 +34,8 @@ func Routes(routes *wrapper.RouterWrapper) {
 }
 
 func getBlockByNonce(c *gin.Context) {
-	ef, ok := c.MustGet("facade").(BlockService)
+	ef, ok := getFacade(c)
 	if !ok {
-		shared.RespondWithInvalidAppContext(c)
 		return
 	}
 
@@ -104,9 +74,8 @@ func getBlockByNonce(c *gin.Context) {
 }
 
 func getBlockByHash(c *gin.Context) {
-	ef, ok := c.MustGet("facade").(BlockService)
+	ef, ok := getFacade(c)
 	if !ok {
-		shared.RespondWithInvalidAppContext(c)
 		return
 	}
 
@@ -159,4 +128,34 @@ func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	}
 
 	return strconv.ParseUint(nonceStr, 10, 64)
+}
+
+func getFacade(c *gin.Context) (BlockService, bool) {
+	facadeObj, ok := c.Get("facade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	facade, ok := facadeObj.(BlockService)
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	return facade, true
 }
