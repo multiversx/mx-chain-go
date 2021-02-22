@@ -351,7 +351,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch: arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -407,21 +407,21 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               arg.Core.Hasher(),
-		Marshalizer:          arg.Core.InternalMarshalizer(),
-		ShardCoordinator:     arg.ShardCoordinator,
-		Accounts:             arg.Accounts,
-		MiniBlockPool:        arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:       disabledRequestHandler,
-		PreProcessors:        preProcContainer,
-		InterProcessors:      interimProcContainer,
-		GasHandler:           gasHandler,
-		FeeHandler:           genesisFeeHandler,
-		BlockSizeComputation: disabledBlockSizeComputationHandler,
-		BalanceComputation:   disabledBalanceComputationHandler,
-		genesisFeeHandler,
-		txTypeHandler,
-		generalConfig.BlockGasAndFeesReCheckEnableEpoch,
+		Hasher:                            arg.Core.Hasher(),
+		Marshalizer:                       arg.Core.InternalMarshalizer(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		Accounts:                          arg.Accounts,
+		MiniBlockPool:                     arg.Data.Datapool().MiniBlocks(),
+		RequestHandler:                    disabledRequestHandler,
+		PreProcessors:                     preProcContainer,
+		InterProcessors:                   interimProcContainer,
+		GasHandler:                        gasHandler,
+		FeeHandler:                        genesisFeeHandler,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
+		BalanceComputation:                disabledBalanceComputationHandler,
+		EconomicsFee:                      genesisFeeHandler,
+		TxTypeHandler:                     txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch: generalConfig.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

@@ -316,21 +316,21 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               pcf.coreData.Hasher(),
-		Marshalizer:          pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:     pcf.shardCoordinator,
-		Accounts:             pcf.state.AccountsAdapter(),
-		MiniBlockPool:        pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:       requestHandler,
-		PreProcessors:        preProcContainer,
-		InterProcessors:      interimProcContainer,
-		GasHandler:           gasHandler,
-		FeeHandler:           txFeeHandler,
-		BlockSizeComputation: blockSizeComputationHandler,
-		BalanceComputation:   balanceComputationHandler,
-		pcf.economicsData,
-		txTypeHandler,
-		pcf.config.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
+		Hasher:                            pcf.coreData.Hasher(),
+		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:                  pcf.shardCoordinator,
+		Accounts:                          pcf.state.AccountsAdapter(),
+		MiniBlockPool:                     pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:                    requestHandler,
+		PreProcessors:                     preProcContainer,
+		InterProcessors:                   interimProcContainer,
+		GasHandler:                        gasHandler,
+		FeeHandler:                        txFeeHandler,
+		BlockSizeComputation:              blockSizeComputationHandler,
+		BalanceComputation:                balanceComputationHandler,
+		EconomicsFee:                      pcf.economicsData,
+		TxTypeHandler:                     txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch: pcf.config.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -601,21 +601,21 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               pcf.coreData.Hasher(),
-		Marshalizer:          pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:     pcf.shardCoordinator,
-		Accounts:             pcf.state.AccountsAdapter(),
-		MiniBlockPool:        pcf.data.Datapool().MiniBlocks(),
-		RequestHandler:       requestHandler,
-		PreProcessors:        preProcContainer,
-		InterProcessors:      interimProcContainer,
-		GasHandler:           gasHandler,
-		FeeHandler:           txFeeHandler,
-		BlockSizeComputation: blockSizeComputationHandler,
-		BalanceComputation:   balanceComputationHandler,
-		pcf.economicsData,
-		txTypeHandler,
-		generalSettingsConfig.BlockGasAndFeesReCheckEnableEpoch,
+		Hasher:                            pcf.coreData.Hasher(),
+		Marshalizer:                       pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:                  pcf.shardCoordinator,
+		Accounts:                          pcf.state.AccountsAdapter(),
+		MiniBlockPool:                     pcf.data.Datapool().MiniBlocks(),
+		RequestHandler:                    requestHandler,
+		PreProcessors:                     preProcContainer,
+		InterProcessors:                   interimProcContainer,
+		GasHandler:                        gasHandler,
+		FeeHandler:                        txFeeHandler,
+		BlockSizeComputation:              blockSizeComputationHandler,
+		BalanceComputation:                balanceComputationHandler,
+		EconomicsFee:                      pcf.economicsData,
+		TxTypeHandler:                     txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch: generalSettingsConfig.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
