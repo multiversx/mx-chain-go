@@ -2770,7 +2770,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(accntAdapter, datapool, container)
 	tc, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = datapool
@@ -2779,7 +2779,8 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accntAdapter
 	arguments.TxCoordinator = tc
-	bp, _ := blproc.NewShardProcessor(arguments)
+	bp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
 
 	blockBody, err := bp.CreateMiniBlocks(func() bool { return true })
 

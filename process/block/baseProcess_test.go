@@ -350,18 +350,21 @@ func createMockTransactionCoordinatorArguments(
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               &mock.HasherMock{},
-		Marshalizer:          &mock.MarshalizerMock{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:             accountAdapter,
-		MiniBlockPool:        poolsHolder.MiniBlocks(),
-		RequestHandler:       &mock.RequestHandlerStub{},
-		PreProcessors:        preProcessorsContainer,
-		InterProcessors:      &mock.InterimProcessorContainerMock{},
-		GasHandler:           &mock.GasHandlerMock{},
-		FeeHandler:           &mock.FeeAccumulatorStub{},
-		BlockSizeComputation: &mock.BlockSizeComputationStub{},
-		BalanceComputation:   &mock.BalanceComputationStub{},
+		Hasher:                            &mock.HasherMock{},
+		Marshalizer:                       &mock.MarshalizerMock{},
+		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:                          accountAdapter,
+		MiniBlockPool:                     poolsHolder.MiniBlocks(),
+		RequestHandler:                    &mock.RequestHandlerStub{},
+		PreProcessors:                     preProcessorsContainer,
+		InterProcessors:                   &mock.InterimProcessorContainerMock{},
+		GasHandler:                        &mock.GasHandlerMock{},
+		FeeHandler:                        &mock.FeeAccumulatorStub{},
+		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
+		BalanceComputation:                &mock.BalanceComputationStub{},
+		EconomicsFee:                      &mock.FeeHandlerStub{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
+		BlockGasAndFeesReCheckEnableEpoch: 0,
 	}
 
 	return argsTransactionCoordinator
