@@ -693,3 +693,63 @@ func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 }
+
+func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
+	t.Parallel()
+	nrOfSnapshots := 5
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = true
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		key := strconv.Itoa(i) + "doe"
+		value := strconv.Itoa(i) + "reindeer"
+		_ = tr.Update([]byte(key), []byte(value))
+		_ = tr.Commit()
+		rootHash, _ := tr.Root()
+		tr.TakeSnapshot(rootHash)
+		time.Sleep(snapshotDelay)
+	}
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+
+		assert.NotNil(t, folderInfo)
+		assert.Nil(t, err)
+	}
+
+	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)
+	assert.Nil(t, err)
+}
+
+func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
+	t.Parallel()
+	nrOfSnapshots := 5
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = false
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		key := strconv.Itoa(i) + "doe"
+		value := strconv.Itoa(i) + "reindeer"
+		_ = tr.Update([]byte(key), []byte(value))
+		_ = tr.Commit()
+		rootHash, _ := tr.Root()
+		tr.TakeSnapshot(rootHash)
+		time.Sleep(snapshotDelay)
+	}
+
+	for i := 0; i < int(trieStorage.maxSnapshots); i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+		if i < int(trieStorage.maxSnapshots) {
+			assert.Nil(t, folderInfo)
+			assert.NotNil(t, err)
+		} else {
+			assert.NotNil(t, folderInfo)
+			assert.Nil(t, err)
+		}
+	}
+
+	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)
+	assert.Nil(t, err)
+}
