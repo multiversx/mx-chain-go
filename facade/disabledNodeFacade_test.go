@@ -47,7 +47,8 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 	assert.Nil(t, s3)
 	assert.Equal(t, errNodeStarting, err)
 
-	n1, n2, err := dnf.CreateTransaction(0, "", "", "", 0, 0, nil, "", "", 0, 0)
+	n1, n2, err := dnf.CreateTransaction(uint64(0), "", "", []byte{0}, "",
+		[]byte{0}, uint64(0), uint64(0), []byte{0}, "", "", uint32(0), uint32(0))
 	assert.Nil(t, n1)
 	assert.Nil(t, n2)
 	assert.Equal(t, errNodeStarting, err)
@@ -125,6 +126,9 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 	ab, err := dnf.GetBlockByHash("", false)
 	assert.Nil(t, ab)
 	assert.Equal(t, errNodeStarting, err)
+
+	c := dnf.GetCode(nil)
+	assert.Nil(t, c)
 
 	ab, err = dnf.GetBlockByNonce(0, false)
 	assert.Nil(t, ab)

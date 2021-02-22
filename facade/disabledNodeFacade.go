@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/block"
+	_ "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -100,15 +101,16 @@ func (nf *disabledNodeFacade) CreateTransaction(
 	_ uint64,
 	_ string,
 	_ string,
+	_ []byte,
 	_ string,
+	_ []byte,
 	_ uint64,
 	_ uint64,
 	_ []byte,
 	_ string,
 	_ string,
 	_ uint32,
-	_ uint32,
-) (*transaction.Transaction, []byte, error) {
+	_ uint32) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 
@@ -150,6 +152,11 @@ func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 // GetAccount returns nil and error
 func (nf *disabledNodeFacade) GetAccount(_ string) (state.UserAccountHandler, error) {
 	return nil, errNodeStarting
+}
+
+// GetCode returns nil and error
+func (nf *disabledNodeFacade) GetCode(_ state.UserAccountHandler) []byte {
+	return nil
 }
 
 // GetHeartbeats returns nil and error
@@ -208,12 +215,12 @@ func (nf *disabledNodeFacade) GetThrottlerForEndpoint(_ string) (core.Throttler,
 }
 
 // GetBlockByHash return nil and error
-func (nf *disabledNodeFacade) GetBlockByHash(_ string, _ bool) (*block.APIBlock, error) {
+func (nf *disabledNodeFacade) GetBlockByHash(_ string, _ bool) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
 // GetBlockByNonce returns nil and error
-func (nf *disabledNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*block.APIBlock, error) {
+func (nf *disabledNodeFacade) GetBlockByNonce(_ uint64, _ bool) (*api.Block, error) {
 	return nil, errNodeStarting
 }
 
