@@ -302,7 +302,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
-			log.Debug("unStaked nodes which was in waiting only", "blsKey", blsKey)
+			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
 		}
 
