@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -73,4 +74,11 @@ type DatabaseClientHandler interface {
 	CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error
 
 	IsInterfaceNil() bool
+}
+
+// FeesProcessorHandler defines the interface for the transaction fees processor
+type FeesProcessorHandler interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValueStr string) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeMoveBalanceGasUsed(tx process.TransactionWithFeeHandler) uint64
 }

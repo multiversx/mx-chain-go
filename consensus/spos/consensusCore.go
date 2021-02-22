@@ -143,7 +143,7 @@ func (cc *ConsensusCore) RoundHandler() consensus.RoundHandler {
 	return cc.roundHandler
 }
 
-// ShardCoordinator gets the Coordinator stored in the ConsensusCore
+// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cc.shardCoordinator
 }

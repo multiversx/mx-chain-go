@@ -59,6 +59,7 @@ func TestPutRemove(t *testing.T) {
 	}
 }
 
+//nolint
 func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	m := make(map[string][]byte)
 	for i := 0; i < numPuts; i++ {
@@ -74,6 +75,7 @@ func generateValues(numPuts int, valuesPayloadSize int) map[string][]byte {
 	return m
 }
 
+//nolint
 func putValues(store storage.Storer, values map[string][]byte, rmv map[int][][]byte, idx int) {
 	hashes := make([][]byte, 0, len(rmv))
 	for key, val := range values {
@@ -85,6 +87,7 @@ func putValues(store storage.Storer, values map[string][]byte, rmv map[int][][]b
 	rmv[idx] = hashes
 }
 
+//nolint
 func removeOld(store storage.Storer, rmv map[int][][]byte, idx int) {
 	hashes, found := rmv[idx-2]
 	if !found {

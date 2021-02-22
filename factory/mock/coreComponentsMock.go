@@ -40,7 +40,7 @@ type CoreComponentsMock struct {
 	MinTransactionVersionCalled func() uint32
 	mutIntMarshalizer           sync.RWMutex
 	RoundHandlerField           consensus.RoundHandler
-	EconomicsHandler            process.EconomicsHandler
+	EconomicsHandler            process.EconomicsDataHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
@@ -166,13 +166,18 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheckHandler
 }
 
+// EncodedAddressLen -
+func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
+	return uint32(ccm.AddressPubKeyConverter().Len()*2)
+}
+
 // RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundHandlerField
 }
 
 // EconomicsData -
-func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsHandler {
+func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 	return ccm.EconomicsHandler
 }
 

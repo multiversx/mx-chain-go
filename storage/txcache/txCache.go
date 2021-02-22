@@ -29,7 +29,7 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
 	log.Info("NewTxCache", "config", config.String())
 	storage.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -37,15 +37,19 @@ func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(txGasHandler) {
+		return nil, storage.ErrNilTxGasHandler
+	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
-	senderConstraints := config.getSenderConstraints()
-	scoreComputer := newDefaultScoreComputer(config.MinGasPriceNanoErd)
+	senderConstraintsObj := config.getSenderConstraints()
+	txFeeHelper := newFeeComputationHelper(txGasHandler.MinGasPrice(), txGasHandler.MinGasLimit(), txGasHandler.MinGasPriceForProcessing())
+	scoreComputerObj := newDefaultScoreComputer(txFeeHelper)
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunks, senderConstraints, scoreComputer),
+		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler, txFeeHelper),
 		txByHash:        newTxByHashMap(numChunks),
 		config:          config,
 		evictionJournal: evictionJournal{},
@@ -232,7 +236,7 @@ func (cache *TxCache) Has(key []byte) bool {
 }
 
 // Peek gets a transaction (unwrapped) by hash
-// Implemented for compatibiltiy reasons (see transactions.go, common.go).
+// Implemented for compatibility reasons (see transactions.go, common.go).
 func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {

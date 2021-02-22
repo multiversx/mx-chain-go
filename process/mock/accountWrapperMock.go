@@ -12,7 +12,6 @@ type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          data.Trie
 	nonce             uint64
-	consecutiveMisses uint32
 	code              []byte
 	codeMetadata      []byte
 	codeHash          []byte
@@ -31,6 +30,11 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 		address:           adr,
 		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
 	}
+}
+
+// HasNewCode -
+func (awm *AccountWrapMock) HasNewCode() bool {
+	return false
 }
 
 // SetUserName -
@@ -102,11 +106,6 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
-// GetCode -
-func (awm *AccountWrapMock) GetCode() []byte {
-	return awm.code
-}
-
 // SetCodeMetadata -
 func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
 	awm.codeMetadata = codeMetadata
@@ -156,16 +155,6 @@ func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 // GetNonce -
 func (awm *AccountWrapMock) GetNonce() uint64 {
 	return awm.nonce
-}
-
-// GetConsecutiveProposerMisses -
-func (awm *AccountWrapMock) GetConsecutiveProposerMisses() uint32 {
-	return awm.consecutiveMisses
-}
-
-// SetConsecutiveProposerMisses -
-func (awm *AccountWrapMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
-	awm.consecutiveMisses = consecutiveMisses
 }
 
 // IsInterfaceNil -

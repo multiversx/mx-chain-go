@@ -106,7 +106,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
-	_, cancelFunc := context.WithCancel(context.Background())
 	var err error
 	var resMon *statistics.ResourceMonitor
 	log.Trace("initializing stats file")
@@ -160,6 +159,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
+	_, cancelFunc := context.WithCancel(context.Background())
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
@@ -211,7 +211,7 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		FeeConfig:                &scf.economicsConfig.FeeSettings,
+		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},

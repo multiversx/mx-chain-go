@@ -35,7 +35,7 @@ func NewPeerAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
-	numCheckpoints := getNumCheckpoints(trie)
+	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
@@ -46,6 +46,9 @@ func NewPeerAccountsDB(
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
 			numCheckpoints: numCheckpoints,
+			loadCodeMeasurements: &loadingMeasurements{
+				identifier: "load code",
+			},
 		},
 	}, nil
 }
@@ -53,9 +56,11 @@ func NewPeerAccountsDB(
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
-	adb.mainTrie.TakeSnapshot(rootHash)
-	adb.mainTrie.ExitPruningBufferingMode()
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+
+	trieStorageManager.EnterPruningBufferingMode()
+	trieStorageManager.TakeSnapshot(rootHash)
+	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }
@@ -63,9 +68,11 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
 // SetStateCheckpoint triggers the checkpointing process of the state trie
 func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte, _ context.Context) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
-	adb.mainTrie.SetCheckpoint(rootHash)
-	adb.mainTrie.ExitPruningBufferingMode()
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+
+	trieStorageManager.EnterPruningBufferingMode()
+	trieStorageManager.SetCheckpoint(rootHash)
+	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }

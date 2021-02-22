@@ -473,6 +473,10 @@ func TestCreateDBFromConfWrongType(t *testing.T) {
 }
 
 func TestCreateDBFromConfWrongFileNameLvlDB(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	arg := storageUnit.ArgDB{
 		DBType:            storageUnit.LvlDB,
 		Path:              "",

@@ -91,6 +91,12 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	uint64Map[core.MetricNumShardHeadersProcessed] = persister.GetUint64(metricsMap[core.MetricNumShardHeadersProcessed])
 	uint64Map[core.MetricRoundAtEpochStart] = persister.GetUint64(metricsMap[core.MetricRoundAtEpochStart])
 	uint64Map[core.MetricNonceAtEpochStart] = persister.GetUint64(metricsMap[core.MetricNonceAtEpochStart])
+	uint64Map[core.MetricEpochForEconomicsData] = persister.GetUint64(metricsMap[core.MetricEpochForEconomicsData])
+
+	stringMap[core.MetricTotalSupply] = persister.GetString(metricsMap[core.MetricTotalSupply])
+	stringMap[core.MetricTotalFees] = persister.GetString(metricsMap[core.MetricTotalFees])
+	stringMap[core.MetricDevRewards] = persister.GetString(metricsMap[core.MetricDevRewards])
+	stringMap[core.MetricInflation] = persister.GetString(metricsMap[core.MetricInflation])
 
 	return uint64Map, stringMap
 }

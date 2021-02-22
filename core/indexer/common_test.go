@@ -15,15 +15,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/stretchr/testify/require"
 )
 
-func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProcessor {
+func createCommonProcessor() commonProcessor {
 	return commonProcessor{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		gasPerDataByte:           gasPerDataByte,
-		minGasLimit:              minGasLimit,
+		txFeeCalculator: &economicsMocks.EconomicsHandlerStub{
+			ComputeTxFeeBasedOnGasUsedCalled: func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+				return big.NewInt(100)
+			},
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 500
+			},
+		},
+		shardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
 
@@ -37,40 +46,44 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 	status := "Success"
 	gasPrice := uint64(1000)
 	gasLimit := uint64(1000)
-	minGasLimit := uint64(100)
-	gasPerDataByte := uint64(10)
-	cp := createCommonProcessor(minGasLimit, gasPerDataByte)
+	cp := createCommonProcessor()
 
 	tx := &transaction.Transaction{
-		Nonce:     1,
-		Value:     big.NewInt(1000),
-		RcvAddr:   []byte("receiver"),
-		SndAddr:   []byte("sender"),
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      []byte("data"),
-		ChainID:   []byte("1"),
-		Version:   1,
-		Signature: []byte("signature"),
+		Nonce:       1,
+		Value:       big.NewInt(1000),
+		RcvAddr:     []byte("receiver"),
+		SndAddr:     []byte("sender"),
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        []byte("data"),
+		ChainID:     []byte("1"),
+		Version:     1,
+		Signature:   []byte("signature"),
+		RcvUserName: []byte("rcv"),
+		SndUserName: []byte("snd"),
 	}
 
 	expectedTx := &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		Nonce:         tx.Nonce,
-		Round:         header.Round,
-		Value:         tx.Value.String(),
-		Receiver:      cp.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:        cp.addressPubkeyConverter.Encode(tx.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      gasPrice,
-		GasLimit:      gasLimit,
-		GasUsed:       minGasLimit + uint64(len(tx.Data))*gasPerDataByte,
-		Data:          tx.Data,
-		Signature:     hex.EncodeToString(tx.Signature),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        status,
+		Hash:             hex.EncodeToString(txHash),
+		MBHash:           hex.EncodeToString(mbHash),
+		Nonce:            tx.Nonce,
+		Round:            header.Round,
+		Value:            tx.Value.String(),
+		Receiver:         cp.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:           cp.addressPubkeyConverter.Encode(tx.SndAddr),
+		ReceiverShard:    mb.ReceiverShardID,
+		SenderShard:      mb.SenderShardID,
+		GasPrice:         gasPrice,
+		GasLimit:         gasLimit,
+		GasUsed:          uint64(500),
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
+		Timestamp:        time.Duration(header.GetTimeStamp()),
+		Status:           status,
+		rcvAddrBytes:     []byte("receiver"),
+		Fee:              "100",
+		ReceiverUserName: []byte("rcv"),
+		SenderUserName:   []byte("snd"),
 	}
 
 	dbTx := cp.buildTransaction(tx, txHash, mbHash, mb, header, status)
@@ -80,7 +93,7 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 func TestGetTransactionByType_SC(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor(0, 0)
+	cp := createCommonProcessor()
 
 	nonce := uint64(10)
 	txHash := []byte("txHash")
@@ -117,7 +130,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 func TestGetTransactionByType_RewardTx(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor(0, 0)
+	cp := createCommonProcessor()
 
 	round := uint64(10)
 	rcvAddr := []byte("receiver")

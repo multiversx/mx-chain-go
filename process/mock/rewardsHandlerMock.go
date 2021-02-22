@@ -1,5 +1,7 @@
 package mock
 
+import "math/big"
+
 // RewardsHandlerMock -
 type RewardsHandlerMock struct {
 	MaxInflationRateCalled                 func() float64
@@ -7,6 +9,8 @@ type RewardsHandlerMock struct {
 	LeaderPercentageCalled                 func() float64
 	ProtocolSustainabilityPercentageCalled func() float64
 	ProtocolSustainabilityAddressCalled    func() string
+	RewardsTopUpGradientPointCalled        func() *big.Int
+	RewardsTopUpFactorCalled               func() float64
 }
 
 // LeaderPercentage -
@@ -32,6 +36,16 @@ func (rhm *RewardsHandlerMock) MinInflationRate() float64 {
 // MaxInflationRate -
 func (rhm *RewardsHandlerMock) MaxInflationRate(uint32) float64 {
 	return rhm.MaxInflationRateCalled()
+}
+
+// RewardsTopUpGradientPoint -
+func (rhm *RewardsHandlerMock) RewardsTopUpGradientPoint() *big.Int {
+	return rhm.RewardsTopUpGradientPointCalled()
+}
+
+// RewardsTopUpFactor -
+func (rhm *RewardsHandlerMock) RewardsTopUpFactor() float64 {
+	return rhm.RewardsTopUpFactorCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

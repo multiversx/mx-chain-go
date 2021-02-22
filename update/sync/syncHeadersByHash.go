@@ -91,6 +91,7 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 		for hash, shardId := range mapHashesToRequest {
 			if _, ok := m.mapHeaders[hash]; ok {
 				delete(mapHashesToRequest, hash)
+				continue
 			}
 
 			m.mapHashes[hash] = struct{}{}
@@ -109,15 +110,15 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 
 			m.requestHandler.RequestShardHeader(shardId, []byte(hash))
 		}
-		m.mutMissingHdrs.Unlock()
 
 		if requestedHdrs == 0 {
-			m.mutMissingHdrs.Lock()
 			m.stopSyncing = true
 			m.syncedAll = true
 			m.mutMissingHdrs.Unlock()
 			return nil
 		}
+
+		m.mutMissingHdrs.Unlock()
 
 		select {
 		case <-m.chReceivedAll:

@@ -142,6 +142,7 @@ func CreateNode(
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
+	isInImportMode bool,
 ) (*Node, error) {
 	var err error
 
@@ -200,9 +201,11 @@ func CreateNode(
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
 		WithTxAccumulator(txAccumulator),
 		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
-		WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
+		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
+		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
+		WithImportMode(isInImportMode),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

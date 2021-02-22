@@ -106,7 +106,7 @@ func TestSignatureOnStaking(t *testing.T) {
 	integrationTests.PlayerSendsTransaction(
 		nodes,
 		stakingWalletAccount,
-		vm.AuctionSCAddress,
+		vm.ValidatorSCAddress,
 		nodePrice,
 		txData,
 		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
@@ -116,7 +116,7 @@ func TestSignatureOnStaking(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 

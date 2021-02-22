@@ -357,7 +357,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"vm-values": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/hex", Open: true},
 					{Name: "/string", Open: true},
 					{Name: "/int", Open: true},
