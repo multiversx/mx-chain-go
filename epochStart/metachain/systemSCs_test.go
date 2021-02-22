@@ -683,14 +683,45 @@ func prepareStakingContractWithData(
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
+	_ = accountsDB.SaveAccount(stakingSCAcc)
 
-	stakedData = &systemSmartContracts.StakedDataV2_0{
+	saveOneKeyToWaitingList(accountsDB, waitingKey, marshalizer, rewardAddress, ownerAddress)
+
+	validatorSC := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
+	validatorData := &systemSmartContracts.ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   rewardAddress,
+		TotalStakeValue: big.NewInt(10000000000),
+		LockedStake:     big.NewInt(10000000000),
+		TotalUnstaked:   big.NewInt(0),
+		NumRegistered:   2,
+		BlsPubKeys:      [][]byte{stakedKey, waitingKey},
+	}
+
+	marshaledData, _ = marshalizer.Marshal(validatorData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue(rewardAddress, marshaledData)
+
+	_ = accountsDB.SaveAccount(validatorSC)
+	_, err := accountsDB.Commit()
+	log.LogIfError(err)
+}
+
+func saveOneKeyToWaitingList(
+	accountsDB state.AccountsAdapter,
+	waitingKey []byte,
+	marshalizer marshal.Marshalizer,
+	rewardAddress []byte,
+	ownerAddress []byte,
+) {
+	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
 		RewardAddress: rewardAddress,
 		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
-	marshaledData, _ = marshalizer.Marshal(stakedData)
+	marshaledData, _ := marshalizer.Marshal(stakedData)
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
 
 	waitingKeyInList := []byte("w_" + string(waitingKey))
@@ -711,25 +742,6 @@ func prepareStakingContractWithData(
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
-
-	validatorSC := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
-	validatorData := &systemSmartContracts.ValidatorDataV2{
-		RegisterNonce:   0,
-		Epoch:           0,
-		RewardAddress:   rewardAddress,
-		TotalStakeValue: big.NewInt(10000000000),
-		LockedStake:     big.NewInt(10000000000),
-		TotalUnstaked:   big.NewInt(0),
-		NumRegistered:   2,
-		BlsPubKeys:      [][]byte{stakedKey, waitingKey},
-	}
-
-	marshaledData, _ = marshalizer.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue(rewardAddress, marshaledData)
-
-	_ = accountsDB.SaveAccount(validatorSC)
-	_, err := accountsDB.Commit()
-	log.LogIfError(err)
 }
 
 func createAccountsDB(
@@ -1417,4 +1429,63 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
 	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("ownerKey"), args.Marshalizer)
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey1"), []byte("ownerKey"), args.Marshalizer)
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey2"), []byte("ownerKey"), args.Marshalizer)
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey3"), []byte("ownerKey"), args.Marshalizer)
+	saveOneKeyToWaitingList(args.UserAccountsDB, []byte("waitingPubKey"), args.Marshalizer, []byte("ownerKey"), []byte("ownerKey"))
+	addValidatorData(args.UserAccountsDB, []byte("ownerKey"), [][]byte{[]byte("stakedPubKey0"), []byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3"), []byte("waitingPubKey")}, big.NewInt(0), args.Marshalizer)
+	_, _ = args.UserAccountsDB.Commit()
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            string(core.JailedList),
+		RewardAddress:   []byte("ownerKey"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            string(core.JailedList),
+		RewardAddress:   []byte("ownerKey"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey2"),
+		List:            string(core.JailedList),
+		RewardAddress:   []byte("ownerKey"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey3"),
+		List:            string(core.JailedList),
+		RewardAddress:   []byte("ownerKey"),
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	s.flagSetOwnerEnabled.Unset()
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+
+	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))
+	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+
+	assert.Equal(t, string(core.LeavingList), validatorInfos[0][1].List)
+
+	assert.Equal(t, 5, len(validatorInfos[0]))
+	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
 }
