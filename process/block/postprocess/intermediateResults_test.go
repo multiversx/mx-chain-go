@@ -222,14 +222,14 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 		return shardC.SelfId()
 	}
 	err = irp.AddIntermediateTransactions(txs)
-	assert.Nil(t, err)
+	assert.Equal(t, process.ErrNegativeValue, err)
 
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
 		return shardC.SelfId() + 1
 	}
 
 	err = irp.AddIntermediateTransactions(txs)
-	assert.Equal(t, err, process.ErrNegativeValue)
+	assert.Equal(t, process.ErrNegativeValue, err)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *testing.T) {

@@ -327,6 +327,23 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	assert.False(t, r)
 }
 
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenMainMachineIsActive(t *testing.T) {
+	t.Parallel()
+
+	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+	}
+	container := mock.InitConsensusCore()
+	container.SetNodeRedundancyHandler(nodeRedundancyMock)
+
+	srStartRound := *initSubroundStartRoundWithContainer(container)
+
+	r := srStartRound.InitCurrentRound()
+	assert.False(t, r)
+}
+
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 

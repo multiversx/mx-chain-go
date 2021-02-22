@@ -28,6 +28,9 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
 
+	// GetKeyValuePairs returns the key-value pairs under a given address
+	GetKeyValuePairs(address string) (map[string]string, error)
+
 	// GetESDTBalance returns the esdt balance and properties from a given account
 	GetESDTBalance(address string, key string) (string, string, error)
 
@@ -40,7 +43,7 @@ type NodeHandler interface {
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
-	ValidateTransactionForSimulation(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
