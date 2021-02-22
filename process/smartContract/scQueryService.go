@@ -160,13 +160,10 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, errors.New(vmOutput.ReturnMessage)
 	}
 
-	feeMoveBalance := service.economicsFee.ComputeMoveBalanceFee(tx)
-	gasUnitsMoveBalanceBig := feeMoveBalance.Quo(feeMoveBalance, big.NewInt(0).SetUint64(tx.GasPrice))
-	gasUnitsMoveBalance := gasUnitsMoveBalanceBig.Uint64()
-
+	moveBalanceGasLimit := service.economicsFee.ComputeGasLimit(tx)
 	gasConsumedExecution := math.MaxUint64 - vmOutput.GasRemaining
 
-	gasLimit := gasUnitsMoveBalance + gasConsumedExecution
+	gasLimit := moveBalanceGasLimit + gasConsumedExecution
 
 	return gasLimit, nil
 }
