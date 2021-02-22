@@ -10,6 +10,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
@@ -803,17 +803,19 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
-		vmFactory, _ = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig{
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: true,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			},
-			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			gasSchedule,
-			argsHook,
-			0,
-			0,
-		)
+			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:                    gasSchedule,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              0,
+			AheadOfTimeGasUsageEnableEpoch: 0,
+			ArwenV3EnableEpoch:             0,
+		}
+		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
 
 	vmContainer, _ := vmFactory.Create()
@@ -1264,17 +1266,19 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NilCompiledSCStore: true,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, _ := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
-		maxGasLimitPerBlock,
-		gasSchedule,
-		argsHook,
-		0,
-		0,
-	)
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
 	var err error
 	tpn.VMContainer, err = vmFactory.Create()

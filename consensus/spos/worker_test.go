@@ -95,6 +95,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		PoolAdder:                poolAdder,
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 	}
 
 	return workerArgs
@@ -346,6 +347,17 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilPoolAdder, err)
 }
 
+func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.NodeRedundancyHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
+}
+
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -373,7 +385,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	workerArgs.AntifloodHandler = antifloodHandler
 	wrk, _ := spos.NewWorker(workerArgs)
 
-	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicsField: []string{"topic1"}}
+	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicField: "topic1"}
 	err := wrk.ProcessReceivedMessage(msg, "peer")
 	assert.Equal(t, expectedErr, err)
 }
@@ -510,6 +522,25 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
 	assert.Equal(t, spos.ErrNilDataToProcess, err)
+}
+
+func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeeded(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	var wasCalled bool
+	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+		ResetInactivityIfNeededCalled: func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID) {
+			wasCalled = true
+		},
+	}
+	wrk.SetNodeRedundancyHandler(nodeRedundancyMock)
+	buff, _ := wrk.Marshalizer().Marshal(&consensus.Message{})
+	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+
+	assert.True(t, wasCalled)
 }
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {

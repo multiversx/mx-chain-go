@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -122,7 +122,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
 	t.Parallel()
 
-	chainStorer := genericmocks.NewChainStorerMock(0)
+	chainStorer := genericMocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
 
 	// not reward transaction should not set status
