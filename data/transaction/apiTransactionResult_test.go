@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,8 +16,8 @@ func TestCostResponseStructure(t *testing.T) {
 	}
 
 	costResponseBytes, err := json.Marshal(costResponse)
-	assert.Nil(t, err)
-	assert.NotNil(t, costResponseBytes)
+	require.Nil(t, err)
+	require.NotNil(t, costResponseBytes)
 
 	costResponseMap := make(map[string]interface{})
 	err = json.Unmarshal(costResponseBytes, &costResponseMap)
