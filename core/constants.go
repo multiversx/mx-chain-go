@@ -484,8 +484,14 @@ const BuiltInFunctionESDTUnPause = "ESDTUnPause"
 // BuiltInFunctionSetESDTRole is the key for the elrond standard digital token set built-in function
 const BuiltInFunctionSetESDTRole = "ESDTSetRole"
 
-// BuiltInFunctionUnSetESDTRole is the key for the elrond standard digital token unset built-in funciton
+// BuiltInFunctionUnSetESDTRole is the key for the elrond standard digital token unset built-in function
 const BuiltInFunctionUnSetESDTRole = "ESDTUnSetRole"
+
+// BuiltInFunctionESDTLocalMint is the key for the elrond standard digital token local mint built-in function
+const BuiltInFunctionESDTLocalMint = "ESDTLocalMint"
+
+// BuiltInFunctionESDTLocalBurn is the key for the elrond standard digital token local burn built-in function
+const BuiltInFunctionESDTLocalBurn = "ESDTLocalBurn"
 
 // ESDTRoleLocalMint is the constant string for the local role of mint for ESDT tokens
 const ESDTRoleLocalMint = "ESDTRoleLocalMint"
@@ -519,6 +525,9 @@ const DelegationSystemSCKey = "delegation"
 
 // ESDTKeyIdentifier is the key prefix for esdt tokens
 const ESDTKeyIdentifier = "esdt"
+
+// ESDTRoleIdentifier is the key prefix for esdt role identifier
+const ESDTRoleIdentifier = "role"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10

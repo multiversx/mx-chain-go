@@ -946,3 +946,6 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
+
+// ErrActionNotAllowed signals that action is not allowed
+var ErrActionNotAllowed = errors.New("action is not allowed")
