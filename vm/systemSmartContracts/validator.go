@@ -1730,7 +1730,6 @@ func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCa
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
 	topUp.Sub(topUp, stakeForNodes)
 	if topUp.Cmp(zero) < 0 {
-		log.Warn("topup value is less than 0")
 		topUp.Set(zero)
 	}
 
