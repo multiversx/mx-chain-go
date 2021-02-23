@@ -149,6 +149,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		CallerAddr: tx.SndAddr,
 		FuncName:   function,
 		Arguments:  arguments,
+		CallValue:  tx.Value,
 	}
 
 	service.mutRunSc.Lock()
