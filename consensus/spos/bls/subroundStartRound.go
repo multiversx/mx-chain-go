@@ -120,6 +120,17 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
+	if sr.NodeRedundancyHandler().IsRedundancyNode() {
+		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(
+			sr.SelfPubKey(),
+			sr.ConsensusGroup(),
+			sr.Rounder().Index(),
+		)
+		if sr.NodeRedundancyHandler().IsMainMachineActive() {
+			return false
+		}
+	}
+
 	leader, err := sr.GetLeader()
 	if err != nil {
 		log.Debug("initCurrentRound.GetLeader", "error", err.Error())
