@@ -481,6 +481,18 @@ const BuiltInFunctionESDTPause = "ESDTPause"
 // BuiltInFunctionESDTUnPause is the key for the elrond standard digital token unpause built-in function
 const BuiltInFunctionESDTUnPause = "ESDTUnPause"
 
+// BuiltInFunctionSetESDTRole is the key for the elrond standard digital token set built-in function
+const BuiltInFunctionSetESDTRole = "ESDTSetRole"
+
+// BuiltInFunctionUnSetESDTRole is the key for the elrond standard digital token unset built-in funciton
+const BuiltInFunctionUnSetESDTRole = "ESDTUnSetRole"
+
+// ESDTRoleLocalMint is the constant string for the local role of mint for ESDT tokens
+const ESDTRoleLocalMint = "ESDTRoleLocalMint"
+
+// ESDTRoleLocalBurn is the constant string for the local role of burn for ESDT tokens
+const ESDTRoleLocalBurn = "ESDTRoleLocalBurn"
+
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 
