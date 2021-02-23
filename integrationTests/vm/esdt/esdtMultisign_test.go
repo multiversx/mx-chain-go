@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,7 +97,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	tokenIdentifier := getTokenIdentifier(nodes)
 	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply)
 
-	//logger.SetLogLevel("*:DEBUG,process:TRACE")
+	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
 	//----- transfer ESDT token
 	destinationAddress, _ := integrationTests.TestAddressPubkeyConverter.Decode("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5")
@@ -119,13 +120,34 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	performActionID(nodes, multisignContractAddress, actionID, 0)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)
 	expectedBalance.Sub(expectedBalance, transferValue)
 	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance)
 	checkAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue)
+}
+
+func checkCallBackWasSaved(t *testing.T, nodes []*integrationTests.TestProcessorNode, contract []byte) {
+	contractID := nodes[0].ShardCoordinator.ComputeId(contract)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != contractID {
+			continue
+		}
+
+		scQuery := &process.SCQuery{
+			ScAddress:  contract,
+			FuncName:   "callback_log",
+			CallerAddr: contract,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		}
+		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		assert.Nil(t, err)
+		assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+		assert.Equal(t, 1, len(vmOutput.ReturnData))
+	}
 }
 
 func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, ownerIdx int, proposersIndexes ...int) []byte {
@@ -135,7 +157,7 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 		Readable:    true,
 	}
 
-	contractBytes, err := ioutil.ReadFile("./testdata/multisig.wasm")
+	contractBytes, err := ioutil.ReadFile("./testdata/multisig-callback.wasm")
 	require.Nil(t, err)
 	proposers := make([]string, 0, len(proposersIndexes)+1)
 	proposers = append(proposers, hex.EncodeToString(nodes[ownerIdx].OwnAccount.Address))

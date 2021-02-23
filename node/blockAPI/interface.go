@@ -1,9 +1,11 @@
 package blockAPI
 
-import apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
+import (
+	"github.com/ElrondNetwork/elrond-go/data/api"
+)
 
 // APIBlockHandler defines the behavior of a component able to return api blocks
 type APIBlockHandler interface {
-	GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error)
-	GetBlockByHash(hash []byte, withTxs bool) (*apiBlock.APIBlock, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
+	GetBlockByHash(hash []byte, withTxs bool) (*api.Block, error)
 }

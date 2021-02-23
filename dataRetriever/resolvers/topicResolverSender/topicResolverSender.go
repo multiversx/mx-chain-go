@@ -180,9 +180,9 @@ func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
 
 func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
 	msg := &message.Message{
-		DataField:   buff,
-		PeerField:   peer,
-		TopicsField: []string{topic},
+		DataField:  buff,
+		PeerField:  peer,
+		TopicField: topic,
 	}
 
 	err := trs.outputAntiflooder.CanProcessMessage(msg, peer)

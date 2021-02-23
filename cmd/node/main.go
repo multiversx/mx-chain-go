@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
@@ -30,8 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -75,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -372,6 +373,13 @@ VERSION:
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
+		Value: 0,
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -439,6 +447,7 @@ func main() {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		redundancyLevel,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -698,6 +707,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
+	if ctx.IsSet(redundancyLevel.Name) {
+		preferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
+	}
+
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
 	if err != nil {
 		return err
@@ -840,6 +853,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
 		return err
+	}
+
+	err = economicsData.SetStatusHandler(coreComponents.StatusHandler)
+	if err != nil {
+		log.Debug("cannot set status handler to economicsData", "error", err)
 	}
 
 	log.Trace("creating ratings data components")
@@ -1138,7 +1156,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
 		if flagValue != "" {
@@ -1186,7 +1204,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	elasticIndexer, err := createElasticIndexer(
+	esIndexer, err := createElasticIndexer(
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1199,7 +1217,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		economicsData,
 		isInImportMode,
-		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -1302,7 +1319,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		importStartHandler,
 		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
-		elasticIndexer,
+		esIndexer,
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
@@ -1351,9 +1368,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+	if !esIndexer.IsNilIndexer() {
+		esIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
+	}
+
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(preferencesConfig.Preferences.RedundancyLevel, networkComponents.NetMessenger)
+	if err != nil {
+		return err
 	}
 
 	log.Trace("creating node structure")
@@ -1377,7 +1399,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
-		elasticIndexer,
+		esIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListRequest,
@@ -1387,6 +1409,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		fallbackHeaderValidator,
 		isInImportMode,
+		nodeRedundancy,
 	)
 	if err != nil {
 		return err
@@ -1402,7 +1425,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
+		indexValidatorsListIfNeeded(esIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -1649,7 +1672,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
@@ -1661,13 +1684,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
+		fmt.Printf("Could not copy %s\n", source.Name())
 	}
 }
 
@@ -1689,7 +1712,7 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
@@ -2023,8 +2046,7 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
-	elasticSearchTemplatesPath string,
-) (indexer.Indexer, error) {
+) (process.Indexer, error) {
 
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
@@ -2039,12 +2061,11 @@ func createElasticIndexer(
 		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		TemplatesPath:            elasticSearchTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
 		TransactionFeeCalculator: economicsHandler,
-		Options: &indexer.Options{
+		Options: &elasticIndexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
 		IsInImportDBMode: isInImportDBMode,
@@ -2141,6 +2162,8 @@ func createHardForkTrigger(
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		TxSignHasher:              coreData.TxSignHasher,
 		EpochNotifier:             epochNotifier,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2190,7 +2213,7 @@ func createNode(
 	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
-	indexer indexer.Indexer,
+	esIndexer process.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
@@ -2200,6 +2223,7 @@ func createNode(
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 	isInImportDbMode bool,
+	nodeRedundancyHandler consensus.NodeRedundancyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2295,7 +2319,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler),
-		node.WithIndexer(indexer),
+		node.WithIndexer(esIndexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
@@ -2329,6 +2353,7 @@ func createNode(
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
 		node.WithImportMode(isInImportDbMode),
+		node.WithNodeRedundancyHandler(nodeRedundancyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2654,14 +2679,17 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
-		vmFactory, err = shard.NewVMContainerFactory(
-			queryVirtualMachineConfig,
-			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasScheduleNotifier,
-			argsHook,
-			generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config:                         queryVirtualMachineConfig,
+			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			GasSchedule:                    gasScheduleNotifier,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+		}
+
+		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, err
 		}

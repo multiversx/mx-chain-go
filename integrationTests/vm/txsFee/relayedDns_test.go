@@ -13,11 +13,12 @@ import (
 )
 
 func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployDNS(t, &testContext, "../../multiShard/smartContract/dns/dns.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -51,9 +52,9 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5002290", indexerTx.Fee)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", sndAddrUserName)
 	dnsUserNameAddr := ret.ReturnData[0]
@@ -85,9 +86,9 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5002290", indexerTx.Fee)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit = 10
 	innerTx = vm.CreateTransaction(1, big.NewInt(0), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
@@ -111,5 +112,5 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2250", indexerTx.Fee)
+	require.Equal(t, "2530", indexerTx.Fee)
 }

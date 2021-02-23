@@ -218,13 +218,18 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 
 func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{}) {
 	for key, value := range metricsMap {
-		if key == core.MetricAverageBlockTxCount {
-			log.Trace("setting metric value", "key", key, "value string", value.(string))
-			shi.StatusHandler.SetStringValue(key, value.(string))
+		stringValue, isString := value.(string)
+		if isString {
+			log.Trace("setting metric value", "key", key, "value string", stringValue)
+			shi.StatusHandler.SetStringValue(key, stringValue)
 			continue
 		}
-		log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
-		shi.StatusHandler.SetUInt64Value(key, value.(uint64))
+
+		uint64Value, isUint64 := value.(uint64)
+		if isUint64 {
+			log.Trace("setting metric value", "key", key, "value uint64", uint64Value)
+			shi.StatusHandler.SetUInt64Value(key, uint64Value)
+		}
 	}
 }
 

@@ -57,3 +57,8 @@ func (rpt *Receipt) SetSndAddr(addr []byte) {
 func (_ *Receipt) GetRcvUserName() []byte {
 	return nil
 }
+
+// CheckIntegrity checks for not nil fields and negative value
+func (rpt *Receipt) CheckIntegrity() error {
+	return nil
+}

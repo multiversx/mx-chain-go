@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
@@ -212,8 +211,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
-	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
+	verifyDelegatorIsDeleted(t, tpn, delegators[:numDelegators-2], delegationScAddress)
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
@@ -396,8 +394,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorIsDeleted(t, tpn, firstTwoDelegators, delegationScAddresses[i])
 	}
 }
 
@@ -579,7 +576,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
 	// set automatic activation on
-	txData = "setAutomaticActivation@796573"
+	txData = "setAutomaticActivation@" + hex.EncodeToString([]byte("true"))
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
@@ -725,8 +722,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 	}
@@ -741,8 +736,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
@@ -753,8 +746,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6982)
@@ -1101,6 +1092,27 @@ func verifyDelegatorsStake(
 	}
 }
 
+func verifyDelegatorIsDeleted(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	addresses [][]byte,
+	delegationAddr []byte,
+) {
+	for _, address := range addresses {
+		query := &process.SCQuery{
+			ScAddress:  delegationAddr,
+			FuncName:   "isDelegator",
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{address},
+		}
+		vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+		assert.Nil(t, err)
+		assert.Equal(t, vmOutput.ReturnMessage, "view function works only for existing delegators")
+		assert.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
+	}
+}
+
 func deployNewSc(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
@@ -1119,7 +1131,7 @@ func deployNewSc(
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	scrs := smartContract.GetAllSCRs(tpn.ScProcessor)
+	scrs := tpn.ScProcessor.GetAllSCRs()
 	for i := range scrs {
 		tx, isScr := scrs[i].(*smartContractResult.SmartContractResult)
 		if !isScr {

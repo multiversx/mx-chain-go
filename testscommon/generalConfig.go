@@ -261,6 +261,10 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		TrieSync: config.TrieSyncConfig{
+			NumConcurrentTrieSyncers:  50,
+			MaxHardCapForMissingNodes: 500,
+		},
 	}
 }
 

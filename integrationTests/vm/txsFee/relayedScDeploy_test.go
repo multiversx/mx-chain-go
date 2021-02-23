@@ -14,7 +14,8 @@ import (
 )
 
 func TestRelayedScDeployShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -62,7 +63,8 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -85,7 +87,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -112,7 +114,8 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -133,7 +136,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -160,7 +163,8 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")

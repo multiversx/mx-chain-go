@@ -15,11 +15,12 @@ import (
 )
 
 func TestScCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -30,7 +31,7 @@ func TestScCallShouldWork(t *testing.T) {
 
 	for idx := uint64(0); idx < 10; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
-		_, err := testContext.TxProcessor.ProcessTransaction(tx)
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
 		require.Nil(t, testContext.GetLatestError())
 
@@ -61,7 +62,8 @@ func TestScCallShouldWork(t *testing.T) {
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddress := "00000000000000000500dbb53e4b23392b0d6f36cce32deb2d623e9625ab3132"
@@ -99,11 +101,12 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -141,10 +144,11 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -154,7 +158,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrInsufficientGasLimitInTx, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -176,11 +180,12 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
