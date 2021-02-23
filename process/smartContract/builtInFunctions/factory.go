@@ -180,6 +180,42 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
+	newFunc, err = NewESDTRolesFunc(b.marshalizer, false)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionUnSetESDTRole, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	setRoleFunc, err := NewESDTRolesFunc(b.marshalizer, true)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionSetESDTRole, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTBurn, b.marshalizer, pauseFunc, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTLocalBurn, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTLocalMint, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
 	return b.builtInFunctions, nil
 }
 
