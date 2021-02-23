@@ -55,6 +55,8 @@ type ConsensusCoreHandler interface {
 	HeaderSigVerifier() consensus.HeaderSigVerifier
 	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
 	FallbackHeaderValidator() consensus.FallbackHeaderValidator
+	// NodeRedundancyHandler returns the node redundancy handler which will be used in subrounds
+	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
