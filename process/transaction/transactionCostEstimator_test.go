@@ -89,6 +89,29 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
+func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
+	consumedGasUnits := uint64(5000)
+	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return consumedGasUnits
+		},
+	}, &mock.ScQueryStub{
+		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (uint64, error) {
+			return 1000, nil
+		},
+	}, gasSchedule)
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, consumedGasUnits+uint64(1000), cost.GasUnits)
+}
+
 func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 	t.Parallel()
 
