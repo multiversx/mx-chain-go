@@ -114,7 +114,7 @@ type CurrentBlockProvider interface {
 	IsInterfaceNil() bool
 }
 
-// NodeRedundancyHandler defines
+// NodeRedundancyHandler defines the interface responsible for the redundancy management of the node
 type NodeRedundancyHandler interface {
 	IsRedundancyNode() bool
 	IsMainMachineActive() bool

@@ -62,7 +62,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		return nil, heartbeat.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(arg.PrivKey) {
-		return nil, heartbeat.ErrNilPrivateKey
+		return nil, fmt.Errorf("%w for arg.PrivKey", heartbeat.ErrNilPrivateKey)
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return nil, heartbeat.ErrNilMarshalizer
@@ -90,12 +90,17 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		return nil, err
 	}
 
+	observerPrivateKey := arg.RedundancyHandler.ObserverPrivateKey()
+	if check.IfNil(observerPrivateKey) {
+		return nil, fmt.Errorf("%w for arg.RedundancyHandler.ObserverPrivateKey()", heartbeat.ErrNilPrivateKey)
+	}
+
 	sender := &Sender{
 		peerMessenger:        arg.PeerMessenger,
 		peerSignatureHandler: arg.PeerSignatureHandler,
 		privKey:              arg.PrivKey,
 		publicKey:            arg.PrivKey.GeneratePublic(),
-		observerPublicKey:    arg.RedundancyHandler.ObserverPrivateKey().GeneratePublic(),
+		observerPublicKey:    observerPrivateKey.GeneratePublic(),
 		marshalizer:          arg.Marshalizer,
 		topic:                arg.Topic,
 		shardCoordinator:     arg.ShardCoordinator,

@@ -83,7 +83,7 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 	sender, err := process.NewSender(arg)
 
 	assert.Nil(t, sender)
-	assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
 }
 
 func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
@@ -161,6 +161,21 @@ func TestNewSender_NilRedundancyHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, sender)
 	assert.True(t, errors.Is(err, heartbeat.ErrNilRedundancyHandler))
+}
+
+func TestNewSender_RedundancyHandlerReturnsANilObserverPrivateKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
+		ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+			return nil
+		},
+	}
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {
@@ -252,7 +267,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	arg := createMockArgHeartbeatSender()
@@ -274,7 +289,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -301,7 +316,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
 }
 
@@ -319,7 +334,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 
 	arg := createMockArgHeartbeatSender()
 	arg.Marshalizer = &mock.MarshalizerMock{}
@@ -343,7 +358,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -354,7 +369,7 @@ func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 }
 
 func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
@@ -372,7 +387,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 
 	arg := createMockArgHeartbeatSender()
 	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
@@ -415,7 +430,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -426,7 +441,7 @@ func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 }
 
 func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing.T) {
@@ -444,7 +459,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 
 	arg := createMockArgHeartbeatSender()
 	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
@@ -487,7 +502,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -498,7 +513,7 @@ func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 }
 
 func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
@@ -515,7 +530,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	dataPayload := []byte("payload")
@@ -541,7 +556,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -577,7 +592,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
 }
 
@@ -597,7 +612,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	broadcastCalled := false
 	broadcastTriggerCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	arg := createMockArgHeartbeatSender()
@@ -625,7 +640,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -658,6 +673,6 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	assert.True(t, broadcastCalled)
 	assert.True(t, broadcastTriggerCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
 }

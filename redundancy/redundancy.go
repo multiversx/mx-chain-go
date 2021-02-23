@@ -24,7 +24,7 @@ type nodeRedundancy struct {
 	observerPrivateKey  crypto.PrivateKey
 }
 
-// ArgNodeRedundancy represents the DTO structure used nodeRedundancy constructor
+// ArgNodeRedundancy represents the DTO structure used by the nodeRedundancy's constructor
 type ArgNodeRedundancy struct {
 	RedundancyLevel    int64
 	Messenger          P2PMessenger
