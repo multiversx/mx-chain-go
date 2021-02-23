@@ -893,6 +893,9 @@ var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
 // ErrNilPauseHandler signals that nil pause handler has been provided
 var ErrNilPauseHandler = errors.New("nil pause handler")
 
+// ErrNilRolesHandler signals that nil roles handler has been provided
+var ErrNilRolesHandler = errors.New("nil roles handler")
+
 // ErrESDTTokenIsPaused signals that esdt token is paused
 var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 

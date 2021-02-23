@@ -23,12 +23,11 @@ type esdtRoles struct {
 
 // NewESDTRolesFunc returns the esdt change roles built-in function component
 func NewESDTRolesFunc(
-	accounts state.AccountsAdapter,
 	marshalizer marshal.Marshalizer,
 	set bool,
 ) (*esdtRoles, error) {
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
 	}
 
 	e := &esdtRoles{
