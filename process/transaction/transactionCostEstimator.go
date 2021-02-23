@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -75,7 +74,7 @@ func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64)
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
-func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	tce.mutExecution.RLock()
 	defer tce.mutExecution.RUnlock()
 
@@ -84,7 +83,9 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 
 	switch txType {
 	case process.MoveBalance:
-		return tce.feeHandler.ComputeGasLimit(tx), nil
+		return &transaction.CostResponse{
+			GasUnits: tce.feeHandler.ComputeGasLimit(tx),
+		}, nil
 	case process.SCDeployment:
 		return tce.computeScDeployGasLimit(tx)
 	case process.SCInvoking:
@@ -92,26 +93,39 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.BuiltInFunctionCall:
 		return tce.computeScCallGasLimit(tx)
 	case process.RelayedTx:
-		return 0, errors.New("cannot compute cost of the relayed transaction")
+		return &transaction.CostResponse{
+			GasUnits:   0,
+			RetMessage: "cannot compute cost of the relayed transaction",
+		}, nil
 	default:
-		return 0, process.ErrWrongTransaction
+		return &transaction.CostResponse{
+			GasUnits:   0,
+			RetMessage: process.ErrWrongTransaction.Error(),
+		}, nil
 	}
 }
-func (tce *transactionCostEstimator) computeScDeployGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (tce *transactionCostEstimator) computeScDeployGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	scDeployCost := uint64(len(tx.Data)) * (tce.storePerByteCost + tce.compilePerByteCost)
 	baseCost := tce.feeHandler.ComputeGasLimit(tx)
 
-	return baseCost + scDeployCost, nil
+	return &transaction.CostResponse{
+		GasUnits: baseCost + scDeployCost,
+	}, nil
 }
 
-func (tce *transactionCostEstimator) computeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (tce *transactionCostEstimator) computeScCallGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	scCallGasLimit, err := tce.query.ComputeScCallGasLimit(tx)
 	if err != nil {
-		return 0, err
+		return &transaction.CostResponse{
+			GasUnits:   0,
+			RetMessage: err.Error(),
+		}, nil
 	}
 
 	baseCost := tce.feeHandler.ComputeGasLimit(tx)
-	return baseCost + scCallGasLimit, nil
+	return &transaction.CostResponse{
+		GasUnits: baseCost + scCallGasLimit,
+	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

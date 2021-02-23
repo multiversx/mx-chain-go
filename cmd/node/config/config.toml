@@ -12,45 +12,45 @@
    StartInEpochEnabled = true
 
    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-   SCDeployEnableEpoch = 3
+   SCDeployEnableEpoch = 0
 
    # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-   BuiltInFunctionsEnableEpoch = 3
+   BuiltInFunctionsEnableEpoch = 0
 
    # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-   RelayedTransactionsEnableEpoch = 3
+   RelayedTransactionsEnableEpoch = 0
 
    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-   PenalizedTooMuchGasEnableEpoch = 2
+   PenalizedTooMuchGasEnableEpoch = 0
 
    # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-   SwitchJailWaitingEnableEpoch = 2
+   SwitchJailWaitingEnableEpoch = 0
 
    # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-   BelowSignedThresholdEnableEpoch = 2
+   BelowSignedThresholdEnableEpoch = 0
 
    # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
    # also (minimum) hysteresis nodes for the minimum number of nodes
-   SwitchHysteresisForMinNodesEnableEpoch = 2
+   SwitchHysteresisForMinNodesEnableEpoch = 0
 
    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
    # signed with the hash of transaction
-   TransactionSignedWithTxHashEnableEpoch = 4
+   TransactionSignedWithTxHashEnableEpoch = 0
 
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-   MetaProtectionEnableEpoch = 3
+   MetaProtectionEnableEpoch = 0
 
    # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnableEpoch = 3
+   AheadOfTimeGasUsageEnableEpoch = 0
 
    # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
-   GasPriceModifierEnableEpoch = 3
+   GasPriceModifierEnableEpoch = 0
 
    # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
-   RepairCallbackEnableEpoch = 4
+   RepairCallbackEnableEpoch = 0
 
    # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
-   BlockGasAndFeesReCheckEnableEpoch = 4
+   BlockGasAndFeesReCheckEnableEpoch = 0
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch

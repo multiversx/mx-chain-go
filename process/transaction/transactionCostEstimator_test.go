@@ -86,7 +86,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits, cost)
+	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
 func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
@@ -109,7 +109,7 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 	}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, gasLimitBaseTx+uint64(16), cost)
+	require.Equal(t, gasLimitBaseTx+uint64(16), cost.GasUnits)
 }
 
 func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
@@ -135,7 +135,7 @@ func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost)
+	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost.GasUnits)
 }
 
 func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
@@ -154,6 +154,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 	)
 
 	tx := &transaction.Transaction{}
-	_, err := tce.ComputeTransactionGasLimit(tx)
-	require.Error(t, err)
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, "cannot compute cost of the relayed transaction", cost.RetMessage)
 }
