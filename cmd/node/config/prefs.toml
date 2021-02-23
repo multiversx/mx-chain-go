@@ -9,3 +9,7 @@
 
    # Identity represents the keybase's identity
    Identity = ""
+
+   # RedundancyLevel represents the level of redundancy used by the node (-1 = disabled, 0 = main instance (default),
+   # 1 = first backup, 2 = second backup, etc.)
+   RedundancyLevel = 0
