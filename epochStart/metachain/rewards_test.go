@@ -266,7 +266,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd1 := rewardsCreator{
@@ -297,7 +297,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
 		baseRewardsCreator: rwd,
@@ -330,7 +330,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
 		baseRewardsCreator: rwd,
@@ -599,7 +599,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0])
+	cloneMb := &(*miniBlocks[0]) //nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRwdTx := &rewardTx.RewardTx{
 		Round:   0,
@@ -674,7 +674,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	assert.Equal(t, rwdInfo.accumulatedFees.Cmp(big.NewInt(200)), 0)
 	protocolRewards := uint64(valInfo[0][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
 	protocolRewards += uint64(valInfo[core.MetachainShardId][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
-	assert.Equal(t, rwdInfo.protocolRewards.Uint64(), protocolRewards)
+	assert.Equal(t, rwdInfo.rewardsFromProtocol.Uint64(), protocolRewards)
 }
 
 func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing.T) {
@@ -714,7 +714,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0])
+	cloneMb := &(*miniBlocks[0]) //nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,

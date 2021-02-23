@@ -53,6 +53,7 @@ func createGenesisConfig() config.GeneralSettingsConfig {
 		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
 	}
 }
 
@@ -282,14 +283,16 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		CompiledSCPool:     arg.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	vmFactoryImpl, err := shard.NewVMContainerFactory(
-		arg.VirtualMachineConfig,
-		math.MaxUint64,
-		arg.GasSchedule,
-		argsHook,
-		arg.GeneralConfig.SCDeployEnableEpoch,
-		arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
-	)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         arg.VirtualMachineConfig,
+		BlockGasLimit:                  math.MaxUint64,
+		GasSchedule:                    arg.GasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              arg.GeneralConfig.SCDeployEnableEpoch,
+		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
+		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
+	}
+	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +381,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -465,6 +470,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		genesisFeeHandler,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		genesisFeeHandler,
+		txTypeHandler,
+		generalConfig.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

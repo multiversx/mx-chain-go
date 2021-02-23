@@ -14,10 +14,12 @@ import (
 )
 
 func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -86,7 +88,6 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
@@ -109,10 +110,12 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 }
 
 func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -180,7 +183,6 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 

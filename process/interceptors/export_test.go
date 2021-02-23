@@ -7,10 +7,10 @@ func (mdi *MultiDataInterceptor) Topic() string {
 }
 
 func (mdi *MultiDataInterceptor) InterceptedDebugHandler() process.InterceptedDebugger {
-	mdi.mutInterceptedDebugHandler.RLock()
-	defer mdi.mutInterceptedDebugHandler.RUnlock()
+	mdi.mutDebugHandler.RLock()
+	defer mdi.mutDebugHandler.RUnlock()
 
-	return mdi.interceptedDebugHandler
+	return mdi.debugHandler
 }
 
 func (sdi *SingleDataInterceptor) Topic() string {
@@ -18,8 +18,8 @@ func (sdi *SingleDataInterceptor) Topic() string {
 }
 
 func (sdi *SingleDataInterceptor) InterceptedDebugHandler() process.InterceptedDebugger {
-	sdi.mutInterceptedDebugHandler.RLock()
-	defer sdi.mutInterceptedDebugHandler.RUnlock()
+	sdi.mutDebugHandler.RLock()
+	defer sdi.mutDebugHandler.RUnlock()
 
-	return sdi.interceptedDebugHandler
+	return sdi.debugHandler
 }

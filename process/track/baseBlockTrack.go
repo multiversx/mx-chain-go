@@ -619,7 +619,7 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
-	shouldCheckLastMetaNonceProcessed := shardID != core.MetachainShardId && lastShardProcessedMetaNonce > 0
+	shouldCheckLastMetaNonceProcessed := lastShardProcessedMetaNonce > 0
 	if shouldCheckLastMetaNonceProcessed {
 		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
 		numMetaHeaders := len(metaHeaders)

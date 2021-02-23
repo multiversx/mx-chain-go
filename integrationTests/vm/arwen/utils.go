@@ -86,7 +86,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      process.SmartContractProcessor
+	ScProcessor      *smartContract.TestScProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -225,13 +225,16 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(
-		vmFactoryConfig,
-		maxGasLimit,
-		mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		args,
-		0,
-		0)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         vmFactoryConfig,
+		BlockGasLimit:                  maxGasLimit,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		ArgBlockChainHook:              args,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()
@@ -278,8 +281,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
-
-	context.ScProcessor, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	context.ScProcessor = smartContract.NewTestScProcessor(sc)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
@@ -629,7 +632,7 @@ func (context *TestContext) GoToEpoch(epoch int) {
 
 // GetLatestError -
 func (context *TestContext) GetLatestError() error {
-	return smartContract.GetLatestTestError(context.ScProcessor)
+	return context.ScProcessor.GetLatestTestError()
 }
 
 // FormatHexNumber -

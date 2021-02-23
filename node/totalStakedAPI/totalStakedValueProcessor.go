@@ -80,7 +80,7 @@ func (tsp *totalStakedValueProcessor) updateTotalStakedValue() error {
 		return ErrCannotCastAccountHandlerToUserAccount
 	}
 
-	rootHash, err := account.DataTrie().Root()
+	rootHash, err := account.DataTrie().RootHash()
 	if err != nil {
 		return err
 	}

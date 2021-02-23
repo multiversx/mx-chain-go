@@ -213,3 +213,6 @@ var ErrMessageTypeLimitReached = errors.New("consensus message type limit has be
 
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
+// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -169,7 +168,7 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
@@ -218,7 +217,7 @@ func NewProcessComponentsFactoryArgs(
 	importStartHandler update.ImportStartHandler,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	workingDir string,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
@@ -589,7 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
-func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer process.Indexer, marshalizer marshal.Marshalizer) error {
 	if indexer.IsNilIndexer() {
 		return nil
 	}
@@ -1419,6 +1418,7 @@ func newBlockProcessor(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			&processArgs.coreComponents.Config,
+			processArgs.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1491,6 +1491,7 @@ func newBlockProcessor(
 
 func newShardBlockProcessor(
 	config *config.Config,
+	stakingV2EnableEpoch uint32,
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1510,7 +1511,7 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	smartContractParser genesis.InitialSmartContractParser,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,
@@ -1556,14 +1557,16 @@ func newShardBlockProcessor(
 		WorkingDir:         workingDir,
 		NilCompiledSCStore: false,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachine.Execution,
-		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-		gasSchedule,
-		argsHook,
-		config.GeneralSettings.SCDeployEnableEpoch,
-		config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-	)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         config.VirtualMachine.Execution,
+		BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+		GasSchedule:                    gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
+		AheadOfTimeGasUsageEnableEpoch: config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+		ArwenV3EnableEpoch:             config.GeneralSettings.RepairCallbackEnableEpoch,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -1656,8 +1659,10 @@ func newShardBlockProcessor(
 		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             config.GeneralSettings.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      config.GeneralSettings.RepairCallbackEnableEpoch,
 		BadTxForwarder:                 badTxInterim,
 		EpochNotifier:                  epochNotifier,
+		StakingV2EnableEpoch:           stakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1759,6 +1764,9 @@ func newShardBlockProcessor(
 		txFeeHandler,
 		blockSizeComputationHandler,
 		balanceComputationHandler,
+		economics,
+		txTypeHandler,
+		config.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -1837,7 +1845,7 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,
@@ -1975,8 +1983,10 @@ func newMetaBlockProcessor(
 		DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
+		StakingV2EnableEpoch:           systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -2069,6 +2079,9 @@ func newMetaBlockProcessor(
 		txFeeHandler,
 		blockSizeComputationHandler,
 		balanceComputationHandler,
+		economicsData,
+		txTypeHandler,
+		generalConfig.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -2446,6 +2459,7 @@ func newValidatorStatisticsProcessor(
 		EpochNotifier:                   processComponents.epochNotifier,
 		SwitchJailWaitingEnableEpoch:    processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: processComponents.mainConfig.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            processComponents.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

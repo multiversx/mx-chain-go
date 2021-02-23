@@ -30,3 +30,10 @@ func TestReceipt_SettersAndGetters(t *testing.T) {
 	assert.Equal(t, uint64(0), r.GetGasPrice())
 	assert.Equal(t, uint64(0), r.GetGasLimit())
 }
+
+func TestReceipt_CheckIntegrityReturnsNil(t *testing.T) {
+	r := receipt.Receipt{}
+
+	err := r.CheckIntegrity()
+	assert.Nil(t, err)
+}

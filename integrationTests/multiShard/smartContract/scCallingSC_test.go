@@ -597,7 +597,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)

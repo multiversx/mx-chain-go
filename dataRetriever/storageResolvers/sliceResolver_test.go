@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func createMockSliceResolverArg() ArgSliceResolver {
 	return ArgSliceResolver{
 		Messenger:                &mock.MessageHandlerStub{},
 		ResponseTopicName:        "",
-		Storage:                  genericmocks.NewStorerMock("Storage", 0),
+		Storage:                  genericMocks.NewStorerMock("Storage", 0),
 		DataPacker:               &mock.DataPackerStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},

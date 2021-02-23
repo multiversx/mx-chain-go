@@ -10,4 +10,5 @@ type PreferencesConfig struct {
 	DestinationShardAsObserver string
 	NodeDisplayName            string
 	Identity                   string
+	RedundancyLevel            int64
 }

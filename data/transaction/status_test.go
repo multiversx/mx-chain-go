@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -115,4 +117,78 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 		SelfShard:        13,
 	}
 	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+}
+
+func TestStatusComputer_SetStatusIfIsRewardReverted(t *testing.T) {
+	t.Parallel()
+
+	chainStorer := genericMocks.NewChainStorerMock(0)
+	uint64Converter := mock.NewNonceHashConverterMock()
+
+	// not reward transaction should not set status
+	txA := &ApiTransactionResult{Status: TxStatusSuccess}
+
+	isRewardReverted := (&StatusComputer{
+		MiniblockType: block.TxBlock,
+	}).SetStatusIfIsRewardReverted(txA)
+	require.False(t, isRewardReverted)
+	require.Equal(t, TxStatusSuccess, txA.Status)
+
+	// shard - meta : reward transaction
+	txB := &ApiTransactionResult{Status: TxStatusSuccess}
+
+	headerHash := []byte("hash-1")
+	headerNonce := uint64(10)
+	nonceBytes := uint64Converter.ToByteSlice(headerNonce)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+
+	isRewardReverted = (&StatusComputer{
+		HeaderHash:               headerHash,
+		HeaderNonce:              headerNonce,
+		MiniblockType:            block.RewardsBlock,
+		SelfShard:                core.MetachainShardId,
+		Store:                    chainStorer,
+		Uint64ByteSliceConverter: uint64Converter,
+	}).SetStatusIfIsRewardReverted(txB)
+	require.False(t, isRewardReverted)
+	require.Equal(t, TxStatusSuccess, txB.Status)
+
+	// shard 0: reward transaction
+	txC := &ApiTransactionResult{Status: TxStatusSuccess}
+
+	headerHash = []byte("hash-2")
+	headerNonce = uint64(12)
+	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+
+	isRewardReverted = (&StatusComputer{
+		HeaderHash:               headerHash,
+		HeaderNonce:              headerNonce,
+		MiniblockType:            block.RewardsBlock,
+		SelfShard:                0,
+		Store:                    chainStorer,
+		Uint64ByteSliceConverter: uint64Converter,
+	}).SetStatusIfIsRewardReverted(txC)
+	require.False(t, isRewardReverted)
+	require.Equal(t, TxStatusSuccess, txC.Status)
+
+	// shard meta: reverted reward transaction
+	txD := &ApiTransactionResult{Status: TxStatusSuccess}
+
+	headerHash = []byte("hash-3")
+	headerNonce = uint64(12)
+	nonceBytes = uint64Converter.ToByteSlice(headerNonce)
+	_ = chainStorer.HdrNonce.Put(nonceBytes, headerHash)
+
+	wrongHash := []byte("wrong")
+	isRewardReverted = (&StatusComputer{
+		HeaderHash:               wrongHash,
+		HeaderNonce:              headerNonce,
+		MiniblockType:            block.RewardsBlock,
+		SelfShard:                core.MetachainShardId,
+		Store:                    chainStorer,
+		Uint64ByteSliceConverter: uint64Converter,
+	}).SetStatusIfIsRewardReverted(txD)
+	require.True(t, isRewardReverted)
+	require.Equal(t, TxStatusRewardReverted, txD.Status)
 }

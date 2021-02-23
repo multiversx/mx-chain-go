@@ -752,18 +752,19 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:         marshalizer,
-		NodesCoordinator:    &mock.NodesCoordinatorStub{},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
-		DataPool:            &testscommon.PoolsHolderStub{},
-		StorageService:      &mock.ChainStorerStub{},
-		PubkeyConv:          &mock.PubkeyConverterMock{},
-		PeerAdapter:         peerAccountsDB,
-		Rater:               &mock.RaterStub{},
-		RewardsHandler:      &mock.RewardsHandlerStub{},
-		NodesSetup:          &mock.NodesSetupStub{},
-		MaxComputableRounds: 1,
-		EpochNotifier:       epochNotifier,
+		Marshalizer:          marshalizer,
+		NodesCoordinator:     &mock.NodesCoordinatorStub{},
+		ShardCoordinator:     &mock.ShardCoordinatorStub{},
+		DataPool:             &testscommon.PoolsHolderStub{},
+		StorageService:       &mock.ChainStorerStub{},
+		PubkeyConv:           &mock.PubkeyConverterMock{},
+		PeerAdapter:          peerAccountsDB,
+		Rater:                &mock.RaterStub{},
+		RewardsHandler:       &mock.RewardsHandlerStub{},
+		NodesSetup:           &mock.NodesSetupStub{},
+		MaxComputableRounds:  1,
+		EpochNotifier:        epochNotifier,
+		StakingV2EnableEpoch: stakingV2EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -1238,10 +1239,10 @@ func addDelegationData(
 ) {
 	delegatorSC := loadSCAccount(accountsDB, delegation)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
-		Delegators:    make([][]byte, 0),
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
 		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
 		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+		NumUsers:      0,
 	}
 
 	for _, stakedKey := range stakedKeys {
@@ -1330,10 +1331,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
 	dStatus := &systemSmartContracts.DelegationContractStatus{
-		Delegators:    make([][]byte, 0),
 		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
 		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
 		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+		NumUsers:      0,
 	}
 	_ = args.Marshalizer.Unmarshal(dStatus, marshalledData)
 

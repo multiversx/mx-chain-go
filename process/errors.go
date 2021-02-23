@@ -940,3 +940,9 @@ var ErrNilOrEmptyList = errors.New("nil or empty provided list")
 
 // ErrNilScQueryElement signals that a nil sc query service element was provided
 var ErrNilScQueryElement = errors.New("nil SC query service element")
+
+// ErrMaxAccumulatedFeesExceeded signals that max accumulated fees has been exceeded
+var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been exceeded")
+
+// ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
+var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")

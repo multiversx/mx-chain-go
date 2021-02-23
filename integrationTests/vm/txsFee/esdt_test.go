@@ -13,7 +13,8 @@ import (
 )
 
 func TestESDTTransferShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -36,10 +37,10 @@ func TestESDTTransferShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBalanceSnd := big.NewInt(99999900)
-	utils.CheckESDTBalance(t, &testContext, sndAddr, token, expectedBalanceSnd)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, expectedBalanceSnd)
 
 	expectedReceiverBalance := big.NewInt(100)
-	utils.CheckESDTBalance(t, &testContext, rcvAddr, token, expectedReceiverBalance)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
 
 	expectedEGLDBalance := big.NewInt(99999640)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)
@@ -58,7 +59,8 @@ func TestESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -81,10 +83,10 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBalanceSnd := big.NewInt(99999900)
-	utils.CheckESDTBalance(t, &testContext, sndAddr, token, expectedBalanceSnd)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, expectedBalanceSnd)
 
 	expectedReceiverBalance := big.NewInt(100)
-	utils.CheckESDTBalance(t, &testContext, rcvAddr, token, expectedReceiverBalance)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
 
 	expectedEGLDBalance := big.NewInt(99990000)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)
@@ -103,7 +105,8 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 }
 
 func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -125,10 +128,10 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, &testContext, sndAddr, token, egldBalance)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, egldBalance)
 
 	expectedReceiverBalance := big.NewInt(0)
-	utils.CheckESDTBalance(t, &testContext, rcvAddr, token, expectedReceiverBalance)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
 
 	expectedEGLDBalance := big.NewInt(99990000)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)

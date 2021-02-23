@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -112,7 +112,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()

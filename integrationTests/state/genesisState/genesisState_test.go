@@ -81,13 +81,13 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 	strTr1 := tr1.String()
 	fmt.Println(strTr1)
 
-	hash1, _ := tr1.Root()
+	hash1, _ := tr1.RootHash()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
 
 	_ = tr2.Update([]byte(key1), []byte(val))
 	_ = tr2.Update([]byte(key3), []byte(val))
 	_ = tr2.Update([]byte(key2), []byte(val))
-	hash2, _ := tr2.Root()
+	hash2, _ := tr2.RootHash()
 	fmt.Printf("root hash2: %s\n", base64.StdEncoding.EncodeToString(hash2))
 
 	fmt.Println()
@@ -122,7 +122,7 @@ func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	strTr1 := tr1.String()
 	fmt.Println(strTr1)
 
-	hash1, _ := tr1.Root()
+	hash1, _ := tr1.RootHash()
 	fmt.Printf("root hash1: %s\n", base64.StdEncoding.EncodeToString(hash1))
 
 	_ = tr2.Update([]byte(key1), []byte(val))
@@ -136,7 +136,7 @@ func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
 	strTr2 := tr2.String()
 	fmt.Println(strTr2)
 
-	hash2, _ := tr2.Root()
+	hash2, _ := tr2.RootHash()
 	fmt.Printf("root hash2: %s\n", base64.StdEncoding.EncodeToString(hash2))
 
 	assert.Equal(t, hash1, hash2)
@@ -352,14 +352,14 @@ func execute(
 
 		_ = tr.Update(tPair.key, tPair.val)
 	}
-	afterAddRootHash, _ := tr.Root()
+	afterAddRootHash, _ := tr.RootHash()
 
 	for _, idx := range randomRemovablePairsIdx {
 		tPair := totalPairs[idx]
 
 		_ = tr.Delete(tPair.key)
 	}
-	finalRootHash, _ := tr.Root()
+	finalRootHash, _ := tr.RootHash()
 
 	return afterAddRootHash, finalRootHash, randomTotalPairsIdx, randomRemovablePairsIdx
 }

@@ -172,7 +172,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ShouldWork(t *testing.T) 
 			ch := make(chan core.KeyValueHolder)
 
 			go func() {
-				trieLeaf := keyValStorage.NewKeyValStorage(append(rootHash), append(marshalledData, suffix...))
+				trieLeaf := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- trieLeaf
 				close(ch)
 			}()
@@ -214,7 +214,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ValueChange(t *testing.T)
 			ch := make(chan core.KeyValueHolder)
 
 			go func() {
-				trieLeaf := keyValStorage.NewKeyValStorage(append(rootHash), append(marshalledData, suffix...))
+				trieLeaf := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- trieLeaf
 				close(ch)
 			}()
@@ -247,7 +247,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ValueChange(t *testing.T)
 			ch := make(chan core.KeyValueHolder)
 
 			go func() {
-				trieLeaf := keyValStorage.NewKeyValStorage(append(rootHash), append(marshalledData, suffix...))
+				trieLeaf := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
 				ch <- trieLeaf
 				close(ch)
 			}()
