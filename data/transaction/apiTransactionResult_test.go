@@ -22,6 +22,7 @@ func TestCostResponseStructure(t *testing.T) {
 
 	costResponseMap := make(map[string]interface{})
 	err = json.Unmarshal(costResponseBytes, &costResponseMap)
+	require.Nil(t, err)
 
 	// DO NOT CHANGE THIS CONST IN ORDER TO KEEP THE BACKWARDS COMPATIBILITY
 	keyForGasUnits := "txGasUnits"
