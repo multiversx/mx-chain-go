@@ -35,7 +35,7 @@ type Facade struct {
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
@@ -219,7 +219,7 @@ func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
 }
 
 // ComputeTransactionGasLimit --
-func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }
 
