@@ -1373,7 +1373,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	nodeRedundancy, err := redundancy.NewNodeRedundancy(preferencesConfig.Preferences.RedundancyLevel, networkComponents.NetMessenger)
+	observerBLSPrivateKey, observerBLSPublicKey := cryptoComponents.BlockSignKeyGen.GeneratePair()
+	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
+	if err != nil {
+		log.Error("error generating observerBLSPublicKeyBuff", "error", err)
+	} else {
+		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
+			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
+	}
+	arg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:    preferencesConfig.Preferences.RedundancyLevel,
+		Messenger:          networkComponents.NetMessenger,
+		ObserverPrivateKey: observerBLSPrivateKey,
+	}
+
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(arg)
 	if err != nil {
 		return err
 	}

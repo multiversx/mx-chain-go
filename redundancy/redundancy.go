@@ -6,6 +6,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 var log = logger.GetOrCreate("redundancy")
@@ -20,17 +21,29 @@ type nodeRedundancy struct {
 	roundsOfInactivity  uint64
 	mutNodeRedundancy   sync.RWMutex
 	messenger           P2PMessenger
+	observerPrivateKey  crypto.PrivateKey
+}
+
+// ArgNodeRedundancy represents the DTO structure used by the nodeRedundancy's constructor
+type ArgNodeRedundancy struct {
+	RedundancyLevel    int64
+	Messenger          P2PMessenger
+	ObserverPrivateKey crypto.PrivateKey
 }
 
 // NewNodeRedundancy creates a node redundancy object which implements NodeRedundancyHandler interface
-func NewNodeRedundancy(redundancyLevel int64, messenger P2PMessenger) (*nodeRedundancy, error) {
-	if check.IfNil(messenger) {
+func NewNodeRedundancy(arg ArgNodeRedundancy) (*nodeRedundancy, error) {
+	if check.IfNil(arg.Messenger) {
 		return nil, ErrNilMessenger
+	}
+	if check.IfNil(arg.ObserverPrivateKey) {
+		return nil, ErrNilObserverPrivateKey
 	}
 
 	nr := &nodeRedundancy{
-		redundancyLevel: redundancyLevel,
-		messenger:       messenger,
+		redundancyLevel:    arg.RedundancyLevel,
+		messenger:          arg.Messenger,
+		observerPrivateKey: arg.ObserverPrivateKey,
 	}
 
 	return nr, nil
@@ -97,6 +110,12 @@ func (nr *nodeRedundancy) isMainMachineActive() bool {
 	}
 
 	return int64(nr.roundsOfInactivity) < maxRoundsOfInactivityAccepted*nr.redundancyLevel
+}
+
+// ObserverPrivateKey returns the stored private key by this instance. This key will be used whenever a new key,
+// different from the main key is required. Example: sending anonymous heartbeat messages while the node is in backup mode.
+func (nr *nodeRedundancy) ObserverPrivateKey() crypto.PrivateKey {
+	return nr.observerPrivateKey
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
