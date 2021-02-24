@@ -638,7 +638,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	txData := core.BuiltInFunctionESDTTransfer + "@" +
 		hex.EncodeToString([]byte(tokenIdentifier)) + "@" +
 		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
-		hex.EncodeToString([]byte("forward_call_half_payment")) + "@" +
+		hex.EncodeToString([]byte("forward_async_call_half_payment")) + "@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("accept_funds"))
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
@@ -656,7 +656,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	//// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData = "forward_call@" +
+	txData = "forward_async_call@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("retrieve_funds")) + "@" +
 		hex.EncodeToString([]byte(tokenIdentifier)) + "@" +
@@ -672,6 +672,23 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	checkNumCallBacks(t, firstScAddress, nodes, 2)
 	checkSavedCallBackData(t, firstScAddress, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
+
+	//// call first sc to ask the second one to execute a method
+	valueToSendToSc = valueToSendToSc / 4
+	txData = core.BuiltInFunctionESDTTransfer + "@" +
+		hex.EncodeToString([]byte(tokenIdentifier)) + "@" +
+		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
+		hex.EncodeToString([]byte("forward_transf_exec")) + "@" +
+		hex.EncodeToString(secondScAddress) + "@" +
+		hex.EncodeToString([]byte("accept_funds"))
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
+
+	time.Sleep(time.Second)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc*3/4))
+	checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdentifier, big.NewInt(valueToSendToSc*3/4))
 }
 
 func TestCallbackPaymentEgld(t *testing.T) {
@@ -1373,7 +1390,7 @@ func checkNumCallBacks(
 
 		scQuery := &process.SCQuery{
 			ScAddress:  address,
-			FuncName:   "callback_raw_data",
+			FuncName:   "callback_data",
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{},
