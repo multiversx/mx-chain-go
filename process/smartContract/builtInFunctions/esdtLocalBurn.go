@@ -73,7 +73,7 @@ func (e *esdtLocalBurn) ProcessBuiltinFunction(
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.IsAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalBurn))
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalBurn))
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +93,7 @@ func (e *esdtLocalBurn) IsInterfaceNil() bool {
 	return e == nil
 }
 
-func checkInputArgumentsForLocalAction(
-	acntSnd, _ state.UserAccountHandler,
-	vmInput *vmcommon.ContractCallInput,
-	funcGasCost uint64,
-) error {
+func checkBasicESDTArguments(vmInput *vmcommon.ContractCallInput) error {
 	if vmInput == nil {
 		return process.ErrNilVmInput
 	}
@@ -106,6 +102,18 @@ func checkInputArgumentsForLocalAction(
 	}
 	if len(vmInput.Arguments) < 2 {
 		return process.ErrInvalidArguments
+	}
+	return nil
+}
+
+func checkInputArgumentsForLocalAction(
+	acntSnd, _ state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+	funcGasCost uint64,
+) error {
+	err := checkBasicESDTArguments(vmInput)
+	if err != nil {
+		return err
 	}
 	if !bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
 		return process.ErrInvalidRcvAddr

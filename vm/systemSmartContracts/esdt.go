@@ -841,10 +841,13 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		token.SpecialRoles = append(token.SpecialRoles, esdtRole)
 	} else {
 		for _, arg := range args.Arguments[2:] {
-			_, exist := doesRoleExist(esdtRole, arg)
-			if !exist {
-				esdtRole.Roles = append(esdtRole.Roles, arg)
+			index := getRoleIndex(esdtRole, arg)
+			if index < 0 {
+				e.eei.AddReturnMessage("special already exists for given address")
+				return vmcommon.UserError
 			}
+
+			esdtRole.Roles = append(esdtRole.Roles, arg)
 		}
 	}
 
@@ -881,8 +884,8 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	for _, arg := range args.Arguments[2:] {
-		index, exist := doesRoleExist(esdtRole, arg)
-		if !exist {
+		index := getRoleIndex(esdtRole, arg)
+		if index < 0 {
 			e.eei.AddReturnMessage("role does not exist for address")
 			return vmcommon.UserError
 		}
@@ -949,6 +952,7 @@ func checkDuplicates(arguments [][]byte) error {
 		_, found := mapArgs[string(arg)]
 		if !found {
 			mapArgs[string(arg)] = struct{}{}
+			continue
 		}
 		return vm.ErrDuplicatesFoundInArguments
 	}
@@ -983,13 +987,13 @@ func isSpecialRoleValid(argument string) error {
 	}
 }
 
-func doesRoleExist(esdtRoles *ESDTRoles, role []byte) (int, bool) {
+func getRoleIndex(esdtRoles *ESDTRoles, role []byte) int {
 	for i, currentRole := range esdtRoles.Roles {
 		if bytes.Equal(currentRole, role) {
-			return i, true
+			return i
 		}
 	}
-	return -1, false
+	return -1
 }
 
 func getRolesForAddress(token *ESDTData, address []byte) (*ESDTRoles, bool) {

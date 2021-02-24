@@ -207,7 +207,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTLocalMintFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}

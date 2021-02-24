@@ -48,14 +48,9 @@ func (e *esdtRoles) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
-	if vmInput == nil {
-		return nil, process.ErrNilVmInput
-	}
-	if vmInput.CallValue.Cmp(zero) != 0 {
-		return nil, process.ErrBuiltInFunctionCalledWithValue
-	}
-	if len(vmInput.Arguments) < 2 {
-		return nil, process.ErrInvalidArguments
+	err := checkBasicESDTArguments(vmInput)
+	if err != nil {
+		return nil, err
 	}
 	if !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
 		return nil, process.ErrAddressIsNotESDTSystemSC
@@ -128,14 +123,14 @@ func (e *esdtRoles) getESDTRoleForAcnt(acnt state.UserAccountHandler, key []byte
 	return roles, false, nil
 }
 
-// IsAllowedToExecute return error if the account is not allowed to execute the given action
-func (e *esdtRoles) IsAllowedToExecute(acnt state.UserAccountHandler, tokenId []byte, action []byte) error {
-	if check.IfNil(acnt) {
+// IsAllowedToExecute returns error if the account is not allowed to execute the given action
+func (e *esdtRoles) CheckAllowedToExecute(account state.UserAccountHandler, tokenId []byte, action []byte) error {
+	if check.IfNil(account) {
 		return process.ErrNilUserAccount
 	}
 
 	esdtTokenRoleKey := append(e.keyPrefix, tokenId...)
-	roles, isNew, err := e.getESDTRoleForAcnt(acnt, esdtTokenRoleKey)
+	roles, isNew, err := e.getESDTRoleForAcnt(account, esdtTokenRoleKey)
 	if err != nil {
 		return err
 	}

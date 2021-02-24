@@ -23,7 +23,7 @@ type esdtLocalMint struct {
 	mutExecution sync.RWMutex
 }
 
-// NewESDTLocalMintFunc returns the esdt local burn built-in function component
+// NewESDTLocalMintFunc returns the esdt local mint built-in function component
 func NewESDTLocalMintFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
@@ -72,7 +72,7 @@ func (e *esdtLocalMint) ProcessBuiltinFunction(
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.IsAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalMint))
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalMint))
 	if err != nil {
 		return nil, err
 	}
