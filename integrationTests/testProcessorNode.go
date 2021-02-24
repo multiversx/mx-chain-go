@@ -1986,6 +1986,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
 		node.WithTxSignHasher(TestTxSignHasher),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(tpn.MinTransactionVersion)),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 	log.LogIfError(err)
 

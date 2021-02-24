@@ -52,7 +52,7 @@ func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // SaveAccounts -
-func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
+func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // RevertIndexedBlock -
