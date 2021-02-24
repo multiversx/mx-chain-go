@@ -706,7 +706,7 @@ func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
 		value := strconv.Itoa(i) + "reindeer"
 		_ = tr.Update([]byte(key), []byte(value))
 		_ = tr.Commit()
-		rootHash, _ := tr.Root()
+		rootHash, _ := tr.RootHash()
 		trieStorage.TakeSnapshot(rootHash)
 		time.Sleep(snapshotDelay)
 	}
@@ -734,7 +734,7 @@ func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 		value := strconv.Itoa(i) + "reindeer"
 		_ = tr.Update([]byte(key), []byte(value))
 		_ = tr.Commit()
-		rootHash, _ := tr.Root()
+		rootHash, _ := tr.RootHash()
 		trieStorage.TakeSnapshot(rootHash)
 		time.Sleep(snapshotDelay)
 	}
