@@ -512,8 +512,7 @@ func (tsm *trieStorageManager) removeSnapshot() {
 }
 
 func disconnectSnapshot(db data.DBWriteCacher) error {
-	err := db.Close()
-	return err
+	return db.Close()
 }
 
 func removeSnapshot(db data.DBWriteCacher, path string) {
