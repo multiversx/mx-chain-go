@@ -76,5 +76,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	assert.Nil(t, err)
 	container, err := factory.CreateBuiltInFunctionContainer()
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 11)
+	assert.Equal(t, len(container.Keys()), 15)
 }
