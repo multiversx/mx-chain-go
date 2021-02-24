@@ -55,7 +55,11 @@ func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
 
 // GeneratePublic -
 func (sk *PrivateKeyStub) GeneratePublic() crypto.PublicKey {
-	return sk.GeneratePublicHandler()
+	if sk.GeneratePublicHandler != nil {
+		return sk.GeneratePublicHandler()
+	}
+
+	return &PublicKeyMock{}
 }
 
 // Suite -
