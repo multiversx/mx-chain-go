@@ -89,7 +89,7 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 	assert.NotNil(t, errNodeStarting, err)
 
 	sm := dnf.StatusMetrics()
-	assert.Nil(t, sm)
+	assert.NotNil(t, sm)
 
 	vo, err := dnf.ExecuteSCQuery(nil)
 	assert.Nil(t, vo)
