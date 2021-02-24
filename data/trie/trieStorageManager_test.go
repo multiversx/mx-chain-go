@@ -706,7 +706,7 @@ func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
 		_ = tr.Update([]byte(key), []byte(value))
 		_ = tr.Commit()
 		rootHash, _ := tr.Root()
-		tr.TakeSnapshot(rootHash)
+		trieStorage.TakeSnapshot(rootHash)
 		time.Sleep(snapshotDelay)
 	}
 
@@ -734,20 +734,22 @@ func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 		_ = tr.Update([]byte(key), []byte(value))
 		_ = tr.Commit()
 		rootHash, _ := tr.Root()
-		tr.TakeSnapshot(rootHash)
+		trieStorage.TakeSnapshot(rootHash)
 		time.Sleep(snapshotDelay)
 	}
 
-	for i := 0; i < int(trieStorage.maxSnapshots); i++ {
+	for i := 0; i < nrOfSnapshots-int(trieStorage.maxSnapshots); i++ {
 		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
 		folderInfo, err := os.Stat(snapshotPath)
-		if i < int(trieStorage.maxSnapshots) {
-			assert.Nil(t, folderInfo)
-			assert.NotNil(t, err)
-		} else {
-			assert.NotNil(t, folderInfo)
-			assert.Nil(t, err)
-		}
+		assert.Nil(t, folderInfo)
+		assert.NotNil(t, err)
+	}
+	for i := nrOfSnapshots - int(trieStorage.maxSnapshots); i < nrOfSnapshots; i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+		assert.NotNil(t, folderInfo)
+		assert.Nil(t, err)
+
 	}
 
 	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)

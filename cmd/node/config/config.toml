@@ -327,7 +327,7 @@
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
-    KeepSnapshots = true
+    KeepSnapshots = false
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
