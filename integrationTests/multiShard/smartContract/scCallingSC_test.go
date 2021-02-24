@@ -225,6 +225,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	newOwnerAddress := []byte("12345678123456781234567812345678")
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
 	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	time.Sleep(sleepDuration)
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -510,7 +511,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 		vmOutput := &vmcommon.VMOutput{}
 		vmOutput.ReturnCode = vmcommon.Ok
-		vmOutput.GasRemaining = vmInput.GasProvided / 2
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
 			Value:     big.NewInt(0),
@@ -523,6 +523,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 			Address:         vmInput.RecipientAddr,
 			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
+		vmOutput.GasRemaining = vmInput.GasProvided - outTransfer.GasLimit - vmInput.GasLocked
 
 		fmt.Println("OutputAccount recipient", hex.EncodeToString(vmInput.RecipientAddr))
 
@@ -597,7 +598,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
@@ -787,7 +788,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		delegateSCOwner,
 		0,
 		big.NewInt(0),
-		"@"+hex.EncodeToString(systemVm.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
+		"@"+hex.EncodeToString(systemVm.ValidatorSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
@@ -830,7 +831,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
-	// activate the delegation, this involves an async call to auction
+	// activate the delegation, this involves an async call to validatorSC
 	stakeAllAvailableTxData := "stakeAllAvailable"
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, integrationTests.AdditionalGasLimit)
 

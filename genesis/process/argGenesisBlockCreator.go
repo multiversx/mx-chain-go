@@ -46,7 +46,7 @@ type ArgsGenesisBlockCreator struct {
 	Accounts             state.AccountsAdapter
 	ValidatorAccounts    state.AccountsAdapter
 	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            process.EconomicsHandler
+	Economics            process.EconomicsDataHandler
 	ShardCoordinator     sharding.Coordinator
 	AccountsParser       genesis.AccountsParser
 	SmartContractParser  genesis.InitialSmartContractParser

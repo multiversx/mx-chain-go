@@ -1,6 +1,8 @@
 package node
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -238,15 +240,30 @@ func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
 	assert.True(t, node.hardforkTrigger == hardforkTrigger)
 }
 
-func TestWithSignatureSize(t *testing.T) {
+func TestWithAddressSignatureSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	signatureSize := 32
+	opt := WithAddressSignatureSize(signatureSize)
+
+	err := opt(node)
+	assert.Equal(t, signatureSize, node.addressSignatureSize)
+	assert.Nil(t, err)
+
+	expectedHexSize := len(hex.EncodeToString(bytes.Repeat([]byte{0}, signatureSize)))
+	assert.Equal(t, expectedHexSize, node.addressSignatureHexSize)
+}
+
+func TestWithValidatorSignatureSize(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 	signatureSize := 48
-	opt := WithSignatureSize(signatureSize)
+	opt := WithValidatorSignatureSize(signatureSize)
 
 	err := opt(node)
-	assert.Equal(t, signatureSize, node.signatureSize)
+	assert.Equal(t, signatureSize, node.validatorSignatureSize)
 	assert.Nil(t, err)
 }
 

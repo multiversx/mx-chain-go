@@ -472,7 +472,7 @@ func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, [
 	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
 }
 
-// CheckBlockAgainstWhiteList returns if the provided intercepted data (blocks) is whitelisted or not
+// CheckBlockAgainstWhitelist returns if the provided intercepted data (blocks) is whitelisted or not
 func (bbt *baseBlockTrack) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
 	return bbt.whitelistHandler.IsWhiteListed(interceptedData)
 }
@@ -619,7 +619,7 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
-	shouldCheckLastMetaNonceProcessed := shardID != core.MetachainShardId && lastShardProcessedMetaNonce > 0
+	shouldCheckLastMetaNonceProcessed := lastShardProcessedMetaNonce > 0
 	if shouldCheckLastMetaNonceProcessed {
 		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
 		numMetaHeaders := len(metaHeaders)

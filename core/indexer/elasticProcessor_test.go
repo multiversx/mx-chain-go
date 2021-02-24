@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/assert"
@@ -35,7 +35,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
-			arguments.FeeConfig,
+			arguments.TransactionFeeCalculator,
 			arguments.IsInImportDBMode,
 			arguments.ShardCoordinator,
 		),
@@ -61,12 +61,9 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
-		AccountsDB: &mock.AccountsStub{},
-		FeeConfig: &config.FeeSettings{
-			MinGasLimit:    "10",
-			GasPerDataByte: "1",
-		},
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
+		AccountsDB:               &mock.AccountsStub{},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 	}
 }
 
@@ -481,13 +478,9 @@ func TestUpdateMiniBlock(t *testing.T) {
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
-		AccountsDB:       &mock.AccountsStub{},
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
-		FeeConfig: &config.FeeSettings{
-			MinGasLimit:    "10",
-			GasPerDataByte: "100",
-			MinGasPrice:    "1",
-		},
+		AccountsDB:               &mock.AccountsStub{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
 	}
 
 	esDatabase, err := NewElasticProcessor(args)
@@ -567,14 +560,7 @@ func TestUpdateTransaction(t *testing.T) {
 			UseKibana:        false,
 			IndexerCacheSize: 10000,
 		},
-		FeeConfig: &config.FeeSettings{
-			MaxGasLimitPerBlock:     "10000000",
-			MaxGasLimitPerMetaBlock: "10000000",
-			GasPerDataByte:          "1",
-			DataLimitForBaseCalc:    "1",
-			MinGasPrice:             "1",
-			MinGasLimit:             "1",
-		},
+		TransactionFeeCalculator: &economicsMocks.EconomicsHandlerStub{},
 		EnabledIndexes: map[string]struct{}{
 			"transactions": {},
 		},

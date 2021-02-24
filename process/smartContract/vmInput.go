@@ -111,7 +111,7 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, process.ErrInvalidVMInputGasComputation
 	}
 
-	vmCallInput.GasProvided, err = safeSubUint64(vmCallInput.GasProvided, gasLocked)
+	vmCallInput.GasProvided, err = core.SafeSubUint64(vmCallInput.GasProvided, gasLocked)
 	if err != nil {
 		return nil, err
 	}

@@ -20,6 +20,41 @@ import (
 
 var numCheckpointsKey = []byte("state checkpoint")
 
+type loadingMeasurements struct {
+	sync.Mutex
+	numCalls   uint64
+	size       uint64
+	duration   time.Duration
+	identifier string
+}
+
+func (lm *loadingMeasurements) addMeasurement(size int, duration time.Duration) {
+	lm.Lock()
+	lm.numCalls++
+	lm.size += uint64(size)
+	lm.duration += duration
+	lm.Unlock()
+}
+
+func (lm *loadingMeasurements) resetAndPrint() {
+	lm.Lock()
+	numCalls := lm.numCalls
+	lm.numCalls = 0
+
+	size := lm.size
+	lm.size = 0
+
+	duration := lm.duration
+	lm.duration = 0
+	lm.Unlock()
+
+	log.Debug(lm.identifier+" time measurements",
+		"num calls", numCalls,
+		"total size in bytes", size,
+		"total cumulated duration", duration,
+	)
+}
+
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
 	mainTrie       data.Trie
@@ -34,7 +69,8 @@ type AccountsDB struct {
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
 
-	numCheckpoints uint32
+	numCheckpoints       uint32
+	loadCodeMeasurements *loadingMeasurements
 }
 
 var log = logger.GetOrCreate("state")
@@ -59,7 +95,7 @@ func NewAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
-	numCheckpoints := getNumCheckpoints(trie)
+	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -70,11 +106,14 @@ func NewAccountsDB(
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		numCheckpoints:         numCheckpoints,
+		loadCodeMeasurements: &loadingMeasurements{
+			identifier: "load code",
+		},
 	}, nil
 }
 
-func getNumCheckpoints(trie data.Trie) uint32 {
-	val, err := trie.Database().Get(numCheckpointsKey)
+func getNumCheckpoints(trieStorageManager data.StorageManager) uint32 {
+	val, err := trieStorageManager.Database().Get(numCheckpointsKey)
 	if err != nil {
 		return 0
 	}
@@ -85,6 +124,33 @@ func getNumCheckpoints(trie data.Trie) uint32 {
 	}
 
 	return binary.BigEndian.Uint32(val)
+}
+
+//GetCode returns the code for the given account
+func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
+	if len(codeHash) == 0 {
+		return nil
+	}
+
+	var codeEntry CodeEntry
+
+	startTime := time.Now()
+	defer func() {
+		duration := time.Since(startTime)
+		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
+	}()
+
+	val, err := adb.mainTrie.Get(codeHash)
+	if err != nil {
+		return nil
+	}
+
+	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return nil
+	}
+
+	return codeEntry.Code
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -155,12 +221,21 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc AccountHandler) error 
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	// TODO when state splitting is implemented, check how the code should be copied in different shards
 
+	if !newAcc.HasNewCode() {
+		return nil
+	}
+
 	var oldCodeHash []byte
 	if !check.IfNil(oldAcc) {
 		oldCodeHash = oldAcc.GetCodeHash()
 	}
 
-	newCode := newAcc.GetCode()
+	userAcc, ok := newAcc.(*userAccount)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+
+	newCode := userAcc.code
 	var newCodeHash []byte
 	if len(newCode) != 0 {
 		newCodeHash = adb.hasher.Compute(string(newCode))
@@ -354,7 +429,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	rootHash, err := trackableDataTrie.DataTrie().Root()
+	rootHash, err := trackableDataTrie.DataTrie().RootHash()
 	if err != nil {
 		return err
 	}
@@ -505,11 +580,6 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadCode(baseAcc)
-		if err != nil {
-			return nil, err
-		}
-
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {
 			return nil, err
@@ -564,11 +634,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadCode(baseAcc)
-		if err != nil {
-			return nil, err
-		}
-
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {
 			return nil, err
@@ -657,7 +722,10 @@ func (adb *AccountsDB) JournalLen() int {
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
+	defer func() {
+		adb.mutOp.Unlock()
+		adb.loadCodeMeasurements.resetAndPrint()
+	}()
 
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
@@ -705,7 +773,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		return nil, err
 	}
 
-	root, err := adb.mainTrie.Root()
+	root, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
@@ -723,7 +791,7 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	rootHash, err := adb.mainTrie.Root()
+	rootHash, err := adb.mainTrie.RootHash()
 	log.Trace("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,
@@ -820,7 +888,7 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIde
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.mainTrie.Prune(rootHash, identifier)
+	adb.mainTrie.GetStorageManager().Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
@@ -830,7 +898,7 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.mainTrie.CancelPrune(rootHash, identifier)
+	adb.mainTrie.GetStorageManager().CancelPrune(rootHash, identifier)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -838,13 +906,14 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte, ctx context.Context) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
+	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.mainTrie.TakeSnapshot(rootHash)
+		trieStorageManager.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash, ctx)
-		adb.mainTrie.ExitPruningBufferingMode()
+		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
@@ -866,7 +935,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, ctx context.
 		}
 
 		if len(account.RootHash) > 0 {
-			adb.mainTrie.SetCheckpoint(account.RootHash)
+			adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash)
 		}
 	}
 }
@@ -876,27 +945,29 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte, ctx context.Context) 
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
+	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.mainTrie.SetCheckpoint(rootHash)
+		trieStorageManager.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash, ctx)
-		adb.mainTrie.ExitPruningBufferingMode()
+		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
-	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	time.Sleep(time.Duration(trieStorageManager.GetSnapshotDbBatchDelay()) * time.Second)
 	atomic.AddUint32(&adb.numCheckpoints, 1)
 
 	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
 	numCheckpointsVal := make([]byte, 4)
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 
-	err := adb.mainTrie.Database().Put(numCheckpointsKey, numCheckpointsVal)
+	err := trieStorageManager.Database().Put(numCheckpointsKey, numCheckpointsVal)
 	if err != nil {
 		log.Warn("could not add num checkpoints to database", "error", err)
 	}
@@ -904,7 +975,7 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
-	return adb.mainTrie.IsPruningEnabled()
+	return adb.mainTrie.GetStorageManager().IsPruningEnabled()
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash

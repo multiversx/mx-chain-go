@@ -27,6 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
+	txGasHandler                 txcache.TxGasHandler
 }
 
 type txPoolShard struct {
@@ -37,14 +38,12 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
-	log.Info("NewShardedTxPool", "args", args.String())
+	log.Debug("NewShardedTxPool", "args", args.String())
 
 	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
-
-	const oneBillion = 1000000 * 1000
 
 	halfOfSizeInBytes := args.Config.SizeInBytes / 2
 	halfOfCapacity := args.Config.Capacity / 2
@@ -57,7 +56,6 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:       args.Config.SizePerSender,
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
-		MinGasPriceNanoErd:            uint32(args.MinGasPrice / oneBillion),
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
@@ -79,6 +77,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
+		txGasHandler:                 args.TxGasHandler,
 	}
 
 	return shardedTxPoolObject, nil
@@ -135,7 +134,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config)
+		cache, err := txcache.NewTxCache(config, txPool.txGasHandler)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()

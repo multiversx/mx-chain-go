@@ -118,7 +118,7 @@ func (rhs *RequestHandlerStub) RequestRewardTransactions(destShardID uint32, txH
 	rhs.RequestRewardTxHandlerCalled(destShardID, txHashes)
 }
 
-// RequestMiniBlock -
+// RequestMiniBlocks -
 func (rhs *RequestHandlerStub) RequestMiniBlocks(shardId uint32, miniblockHashes [][]byte) {
 	if rhs.RequestMiniBlocksHandlerCalled == nil {
 		return

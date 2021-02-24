@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
@@ -32,7 +31,6 @@ type elasticProcessor struct {
 	accountsDB             state.AccountsAdapter
 	dividerForDenomination float64
 	balancePrecision       float64
-	feeConfig              config.FeeSettings
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -59,7 +57,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
-		arguments.FeeConfig,
+		arguments.TransactionFeeCalculator,
 		arguments.IsInImportDBMode,
 		arguments.ShardCoordinator,
 	)
@@ -113,7 +111,7 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	return nil
 }
 
-func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {
+func (ei *elasticProcessor) initWithKibana(indexTemplates, _ map[string]*bytes.Buffer) error {
 	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err
@@ -162,23 +160,6 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 	err = ei.createAliases()
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
-
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
-	for _, indexPolicyName := range indexesPolicies {
-		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
-		if indexPolicy != nil {
-			err := ei.elasticClient.CheckAndCreatePolicy(indexPolicyName, indexPolicy)
-			if err != nil {
-				log.Error("check and create policy", "policy", indexPolicy, "err", err)
-				return err
-			}
-		}
 	}
 
 	return nil
@@ -516,12 +497,15 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 		return nil
 	}
 
-	accountsToIndex := make([]state.UserAccountHandler, len(accounts))
-	idx := 0
+	accountsToIndex := make([]state.UserAccountHandler, 0)
 	for address := range accounts {
 		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
 		if err != nil {
 			log.Warn("cannot decode address", "address", address, "error", err)
+			continue
+		}
+
+		if ei.shardCoordinator.ComputeId(addressBytes) != ei.shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -537,8 +521,7 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 			continue
 		}
 
-		accountsToIndex[idx] = userAccount
-		idx++
+		accountsToIndex = append(accountsToIndex, userAccount)
 	}
 
 	if len(accountsToIndex) == 0 {
