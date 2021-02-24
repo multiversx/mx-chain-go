@@ -94,23 +94,6 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 	return nil
 }
 
-// integrity checks for not nil fields and negative value
-func (inRTx *InterceptedRewardTransaction) integrity() error {
-	if len(inRTx.rTx.RcvAddr) == 0 {
-		return process.ErrNilRcvAddr
-	}
-
-	if inRTx.rTx.Value == nil {
-		return process.ErrNilValue
-	}
-
-	if inRTx.rTx.Value.Cmp(big.NewInt(0)) < 0 {
-		return process.ErrNegativeValue
-	}
-
-	return nil
-}
-
 // Nonce returns the transaction nonce
 func (inRTx *InterceptedRewardTransaction) Nonce() uint64 {
 	return inRTx.rTx.GetNonce()
@@ -148,7 +131,7 @@ func (inRTx *InterceptedRewardTransaction) Hash() []byte {
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
 func (inRTx *InterceptedRewardTransaction) CheckValidity() error {
-	err := inRTx.integrity()
+	err := inRTx.rTx.CheckIntegrity()
 	if err != nil {
 		return err
 	}

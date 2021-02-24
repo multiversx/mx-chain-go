@@ -134,6 +134,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -156,6 +157,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		peerHonestyHandler:      peerHonestyHandler,
 		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
+		nodeRedundancyHandler:   nodeRedundancyHandler,
 	}
 
 	return container
