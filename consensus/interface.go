@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -134,5 +135,6 @@ type NodeRedundancyHandler interface {
 	IsMainMachineActive() bool
 	AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64)
 	ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
+	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }
