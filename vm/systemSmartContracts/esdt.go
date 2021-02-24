@@ -842,8 +842,8 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	} else {
 		for _, arg := range args.Arguments[2:] {
 			index := getRoleIndex(esdtRole, arg)
-			if index < 0 {
-				e.eei.AddReturnMessage("special already exists for given address")
+			if index >= 0 {
+				e.eei.AddReturnMessage("special role already exists for given address")
 				return vmcommon.UserError
 			}
 
@@ -886,7 +886,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	for _, arg := range args.Arguments[2:] {
 		index := getRoleIndex(esdtRole, arg)
 		if index < 0 {
-			e.eei.AddReturnMessage("role does not exist for address")
+			e.eei.AddReturnMessage("special role does not exist for address")
 			return vmcommon.UserError
 		}
 

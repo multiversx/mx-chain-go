@@ -66,6 +66,9 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	if err != nil {
 		return nil, err
 	}
+	if len(vmInput.Arguments) != 2 {
+		return nil, process.ErrInvalidArguments
+	}
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 	if value.Cmp(zero) <= 0 {
 		return nil, process.ErrNegativeValue
