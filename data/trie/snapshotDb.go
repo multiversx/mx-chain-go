@@ -29,7 +29,8 @@ func (s *snapshotDb) DecreaseNumReferences() {
 		return
 	}
 	if s.numReferences == 0 && s.shouldBeDisconnected {
-		if err := disconnectSnapshot(s.DBWriteCacher); err != nil {
+		err := disconnectSnapshot(s.DBWriteCacher)
+		if err != nil {
 			log.Error("snapshotDb: disconnectSnapshot", "error", err.Error())
 		}
 		return

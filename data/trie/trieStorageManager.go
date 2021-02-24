@@ -483,8 +483,8 @@ func (tsm *trieStorageManager) disconnectSnapshot() {
 		log.Debug("can't disconnect, snapshot is still in use")
 		return
 	}
-
-	if err := disconnectSnapshot(snapshot); err != nil {
+	err := disconnectSnapshot(snapshot)
+	if err != nil {
 		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 	}
 }
@@ -513,16 +513,12 @@ func (tsm *trieStorageManager) removeSnapshot() {
 
 func disconnectSnapshot(db data.DBWriteCacher) error {
 	err := db.Close()
-	/*if err != nil {
-		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
-		return err
-	}*/
-
 	return err
 }
 
 func removeSnapshot(db data.DBWriteCacher, path string) {
-	if err := disconnectSnapshot(db); err != nil {
+	err := disconnectSnapshot(db)
+	if err != nil {
 		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 		return
 	}
