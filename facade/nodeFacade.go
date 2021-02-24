@@ -336,7 +336,7 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
-func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 

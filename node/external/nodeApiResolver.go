@@ -55,8 +55,8 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 	return nar.statusMetricsHandler
 }
 
-//ComputeTransactionGasLimit will calculate how many gas a transaction will consume
-func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+// ComputeTransactionGasLimit will calculate how many gas a transaction will consume
+func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
 }
 
