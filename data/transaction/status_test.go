@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewStatusComputer(t *testing.T) {
-	chainStorer := genericmocks.NewChainStorerMock(0)
+	chainStorer := genericMocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
 	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
 
@@ -20,7 +20,7 @@ func TestNewStatusComputer(t *testing.T) {
 }
 
 func TestNewStatusComputer_NilStoreShouldError(t *testing.T) {
-	chainStorer := genericmocks.NewChainStorerMock(0)
+	chainStorer := genericMocks.NewChainStorerMock(0)
 	statusComputer, err := NewStatusComputer(12, nil, chainStorer)
 
 	require.NotNil(t, err)
@@ -36,7 +36,7 @@ func TestNewStatusComputer_NilUint64ConverterShouldError(t *testing.T) {
 }
 
 func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T) {
-	chainStorer := genericmocks.NewChainStorerMock(0)
+	chainStorer := genericMocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
 	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
 	require.Nil(t, err)
@@ -101,7 +101,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 }
 
 func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {
-	chainStorer := genericmocks.NewChainStorerMock(0)
+	chainStorer := genericMocks.NewChainStorerMock(0)
 	uint64Converter := mock.NewNonceHashConverterMock()
 	statusComputer, err := NewStatusComputer(12, uint64Converter, chainStorer)
 	require.Nil(t, err)
