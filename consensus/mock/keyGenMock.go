@@ -30,7 +30,11 @@ type KeyGenMock struct {
 
 // GeneratePublic mocks generating a public key from the private key
 func (privKey *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
-	return privKey.GeneratePublicMock()
+	if privKey.GeneratePublicMock != nil {
+		return privKey.GeneratePublicMock()
+	}
+
+	return &PublicKeyMock{}
 }
 
 // ToByteArray mocks converting the private key to a byte array
