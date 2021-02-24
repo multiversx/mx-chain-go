@@ -48,6 +48,7 @@ func createMockArgument() ArgHeartbeat {
 		SizeCheckDelta:           0,
 		ValidatorsProvider:       &mock.ValidatorsProviderStub{},
 		CurrentBlockProvider:     &mock.CurrentBlockProviderStub{},
+		RedundancyHandler:        &mock.RedundancyHandlerStub{},
 	}
 
 	return arg
@@ -139,6 +140,9 @@ func TestNewHeartbeatHandler_ShouldWork(t *testing.T) {
 
 	err = hbh.Close()
 	assert.Nil(t, err)
+
+	// let the sending go routine finish
+	time.Sleep(time.Second)
 }
 
 //TODO(next PR) add more tests

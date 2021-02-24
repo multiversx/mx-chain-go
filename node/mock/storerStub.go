@@ -43,7 +43,11 @@ func (ss *StorerStub) Close() error {
 
 // Put -
 func (ss *StorerStub) Put(key, data []byte) error {
-	return ss.PutCalled(key, data)
+	if ss.PutCalled != nil {
+		return ss.PutCalled(key, data)
+	}
+
+	return nil
 }
 
 // PutInEpoch -
@@ -53,7 +57,11 @@ func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32) error {
 
 // Get -
 func (ss *StorerStub) Get(key []byte) ([]byte, error) {
-	return ss.GetCalled(key)
+	if ss.GetCalled != nil {
+		return ss.GetCalled(key)
+	}
+
+	return make([]byte, 0), nil
 }
 
 // Has -

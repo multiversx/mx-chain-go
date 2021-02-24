@@ -189,11 +189,15 @@ func TestTomlEconomicsParser(t *testing.T) {
 func TestTomlPreferencesParser(t *testing.T) {
 	nodeDisplayName := "test-name"
 	destinationShardAsObs := "3"
+	identity := "test-identity"
+	redundancyLevel := int64(0)
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
 			NodeDisplayName:            nodeDisplayName,
 			DestinationShardAsObserver: destinationShardAsObs,
+			Identity:                   identity,
+			RedundancyLevel:            redundancyLevel,
 		},
 	}
 
@@ -201,8 +205,9 @@ func TestTomlPreferencesParser(t *testing.T) {
 [Preferences]
 	NodeDisplayName = "` + nodeDisplayName + `"
 	DestinationShardAsObserver = "` + destinationShardAsObs + `"
+	Identity = "` + identity + `"
+	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
 `
-
 	cfg := Preferences{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
