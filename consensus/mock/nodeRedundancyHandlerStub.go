@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
 // NodeRedundancyHandlerStub -
@@ -10,6 +11,7 @@ type NodeRedundancyHandlerStub struct {
 	IsMainMachineActiveCalled      func() bool
 	AdjustInactivityIfNeededCalled func(selfPubKey string, consensusPubKeys []string, roundIndex int64)
 	ResetInactivityIfNeededCalled  func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
+	ObserverPrivateKeyCalled       func() crypto.PrivateKey
 }
 
 // IsRedundancyNode -
@@ -40,6 +42,15 @@ func (nrhs *NodeRedundancyHandlerStub) ResetInactivityIfNeeded(selfPubKey string
 	if nrhs.ResetInactivityIfNeededCalled != nil {
 		nrhs.ResetInactivityIfNeededCalled(selfPubKey, consensusMsgPubKey, consensusMsgPeerID)
 	}
+}
+
+// ObserverPrivateKey -
+func (nrhs *NodeRedundancyHandlerStub) ObserverPrivateKey() crypto.PrivateKey {
+	if nrhs.ObserverPrivateKeyCalled != nil {
+		return nrhs.ObserverPrivateKeyCalled()
+	}
+
+	return &PrivateKeyMock{}
 }
 
 // IsInterfaceNil -

@@ -526,8 +526,11 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
-		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {
-			return expectedGasLimit, nil
+		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (*tr.CostResponse, error) {
+			return &tr.CostResponse{
+				GasUnits:   expectedGasLimit,
+				RetMessage: "",
+			}, nil
 		},
 	}
 	ws := startNodeServer(&facade)
