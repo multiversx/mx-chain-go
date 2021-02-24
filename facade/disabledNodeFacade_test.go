@@ -17,7 +17,8 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	dnf := NewDisabledNodeFacade()
+	apiInterface := "127.0.0.1:7799"
+	dnf := NewDisabledNodeFacade(apiInterface)
 
 	dnf.SetSyncer(nil)
 	dnf.SetTpsBenchmark(nil)
@@ -27,7 +28,7 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 	b := dnf.RestAPIServerDebugMode()
 	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()
-	assert.Equal(t, emptyString, s1)
+	assert.Equal(t, apiInterface, s1)
 	s1, s2, err := dnf.GetESDTBalance("", "")
 	assert.Equal(t, emptyString, s1+s2)
 	assert.Equal(t, errNodeStarting, err)

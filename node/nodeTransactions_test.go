@@ -245,6 +245,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
+	require.NoError(t, err)
 
 	expectedTx := &transaction.ApiTransactionResult{
 		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
@@ -525,7 +526,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: []byte("invalid original sender"),
 	}
 
-	coreComponents:= getDefaultCoreComponents()
+	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize)
 
 	n, err := node.NewNode(

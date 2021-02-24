@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	_ "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
+	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
@@ -26,21 +27,28 @@ import (
 
 var _ = address.FacadeHandler(&disabledNodeFacade{})
 var _ = hardfork.FacadeHandler(&disabledNodeFacade{})
+var _ = hardfork.FacadeHandler(&disabledNodeFacade{})
 var _ = node.FacadeHandler(&disabledNodeFacade{})
+var _ = network.FacadeHandler(&disabledNodeFacade{})
 var _ = transactionApi.FacadeHandler(&disabledNodeFacade{})
 var _ = validator.FacadeHandler(&disabledNodeFacade{})
 var _ = vmValues.FacadeHandler(&disabledNodeFacade{})
 
 var errNodeStarting = errors.New("node is starting")
-var emptyString string = ""
+var emptyString = ""
 
 // disabledNodeFacade represents a facade with no functionality
 type disabledNodeFacade struct {
+	apiInterface         string
+	statusMetricsHandler external.StatusMetricsHandler
 }
 
 // NewDisabledNodeFacade is the disabled implementation of the facade interface
-func NewDisabledNodeFacade() *disabledNodeFacade {
-	return &disabledNodeFacade{}
+func NewDisabledNodeFacade(apiInterface string) *disabledNodeFacade {
+	return &disabledNodeFacade{
+		apiInterface:         apiInterface,
+		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
+	}
 }
 
 // SetSyncer does nothing
@@ -68,7 +76,7 @@ func (nf *disabledNodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns empty string
 func (nf *disabledNodeFacade) RestApiInterface() string {
-	return emptyString
+	return nf.apiInterface
 }
 
 // GetBalance returns nil and error
@@ -166,7 +174,12 @@ func (nf *disabledNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 
 // StatusMetrics will returns nil
 func (nf *disabledNodeFacade) StatusMetrics() external.StatusMetricsHandler {
-	return nil
+	return nf.statusMetricsHandler
+}
+
+// GetTotalStakedValue returns a total staked value of 0
+func (nf *disabledNodeFacade) GetTotalStakedValue() (*big.Int, error) {
+	return nil, errNodeStarting
 }
 
 // ExecuteSCQuery returns nil and error

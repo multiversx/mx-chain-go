@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
@@ -49,11 +46,6 @@ var _ = validator.FacadeHandler(&nodeFacade{})
 var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
-
-type resetHandler interface {
-	Reset()
-	IsInterfaceNil() bool
-}
 
 // ArgNodeFacade represents the argument for the nodeFacade
 type ArgNodeFacade struct {
@@ -169,11 +161,6 @@ func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 	return nf.tpsBenchmark
 }
 
-// StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (nf *nodeFacade) StartBackgroundServices() {
-	nf.startRest()
-}
-
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
 func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 	return nf.restAPIServerDebugMode
@@ -188,82 +175,6 @@ func (nf *nodeFacade) RestApiInterface() string {
 	}
 
 	return nf.config.RestApiInterface
-}
-
-func (nf *nodeFacade) startRest() {
-	log.Trace("starting REST api server")
-
-	switch nf.RestApiInterface() {
-	case DefaultRestPortOff:
-		log.Debug("web server is off")
-	default:
-		log.Debug("creating web server limiters")
-		limiters, err := nf.CreateMiddlewareLimiters()
-		if err != nil {
-			log.Error("error creating web server limiters",
-				"error", err.Error(),
-			)
-			log.Error("web server is off")
-			return
-		}
-
-		log.Debug("starting web server",
-			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
-			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,
-			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
-		)
-
-		srv, err := api.CreateServer(nf, nf.apiRoutesConfig, limiters...)
-
-		if err != nil {
-			log.Error("could not create webserver", "error", err.Error())
-		}
-
-		go func() {
-			err = srv.ListenAndServe()
-			if err != nil {
-				if err != http.ErrServerClosed {
-					log.Error("could not start webserver",
-						"error", err.Error(),
-					)
-				} else {
-					log.Debug("ListenAndServe - webserver closed")
-				}
-			}
-		}()
-
-		nf.server = srv
-	}
-}
-
-// CreateMiddlewareLimiters will create the middleware limiters used in web server
-func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
-	}
-	go nf.sourceLimiterReset(sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
-}
-
-func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
-	for {
-		select {
-		case <-time.After(betweenResetDuration):
-			log.Trace("calling reset on WS source limiter")
-			reset.Reset()
-		case <-nf.ctx.Done():
-			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
-			return
-		}
-	}
 }
 
 // GetBalance gets the current balance for a specified address
