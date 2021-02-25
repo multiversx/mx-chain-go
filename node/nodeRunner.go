@@ -24,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -274,6 +273,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedProcessComponents,
 			managedConsensusComponents.HardforkTrigger(),
+			nr.NodeRedundancyHandler,
 		)
 
 		if err != nil {
@@ -495,6 +495,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	hardforkTrigger HardforkTrigger,
+	redundancyHandler NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(managedCoreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
@@ -504,6 +505,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		AppVersion:        nr.configs.FlagsConfig.Version,
 		GenesisTime:       genesisTime,
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    managedCoreComponents,
 		DataComponents:    managedDataComponents,
 		NetworkComponents: managedNetworkComponents,
@@ -1197,7 +1199,7 @@ func copySingleFile(folder string, configFile string) {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 ) {

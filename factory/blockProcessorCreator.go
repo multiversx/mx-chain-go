@@ -117,14 +117,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		NilCompiledSCStore: false,
 		ConfigSCStorage:    pcf.config.SmartContractsStorage,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(
-		pcf.config.VirtualMachine.Execution,
-		pcf.economicsData.MaxGasLimitPerBlock(pcf.shardCoordinator.SelfId()),
-		pcf.gasSchedule,
-		argsHook,
-		pcf.config.GeneralSettings.SCDeployEnableEpoch,
-		pcf.config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-	)
+
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         pcf.config.VirtualMachine.Execution,
+		BlockGasLimit:                  pcf.economicsData.MaxGasLimitPerBlock(pcf.shardCoordinator.SelfId()),
+		GasSchedule:                    pcf.gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              pcf.config.GeneralSettings.SCDeployEnableEpoch,
+		AheadOfTimeGasUsageEnableEpoch: pcf.config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+		ArwenV3EnableEpoch:             pcf.config.GeneralSettings.RepairCallbackEnableEpoch,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}

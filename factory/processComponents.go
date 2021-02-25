@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -131,7 +130,7 @@ type ProcessComponentsFactoryArgs struct {
 	Version                   string
 	ImportStartHandler        update.ImportStartHandler
 	WorkingDir                string
-	Indexer                   indexer.Indexer
+	Indexer                   process.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
@@ -172,7 +171,7 @@ type processComponentsFactory struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
@@ -714,7 +713,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.indexer.SaveAccounts(genesisAccounts)
+	pcf.indexer.SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),genesisAccounts)
 	return nil
 }
 

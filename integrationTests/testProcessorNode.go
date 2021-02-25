@@ -2549,11 +2549,14 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 
+	redundancyHandler := &mock.RedundancyHandlerStub{}
+
 	err = tpn.Node.ApplyOptions(
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
+		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -2571,6 +2574,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		},
 		Prefs:             config.Preferences{},
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    tpn.Node.GetCoreComponents(),
 		DataComponents:    tpn.Node.GetDataComponents(),
 		NetworkComponents: tpn.Node.GetNetworkComponents(),

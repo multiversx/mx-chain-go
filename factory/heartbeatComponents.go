@@ -26,6 +26,7 @@ type HeartbeatComponentsFactoryArgs struct {
 	AppVersion        string
 	GenesisTime       time.Time
 	HardforkTrigger   heartbeat.HardforkTrigger
+	RedundancyHandler heartbeat.NodeRedundancyHandler
 	CoreComponents    CoreComponentsHolder
 	DataComponents    DataComponentsHolder
 	NetworkComponents NetworkComponentsHolder
@@ -39,6 +40,7 @@ type heartbeatComponentsFactory struct {
 	version           string
 	GenesisTime       time.Time
 	hardforkTrigger   heartbeat.HardforkTrigger
+	redundancyHandler heartbeat.NodeRedundancyHandler
 	coreComponents    CoreComponentsHolder
 	dataComponents    DataComponentsHolder
 	networkComponents NetworkComponentsHolder
@@ -59,6 +61,9 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 
 	if check.IfNil(args.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.RedundancyHandler){
+		return nil, heartbeat.ErrNilRedundancyHandler
 	}
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
@@ -82,6 +87,7 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 		version:           args.AppVersion,
 		GenesisTime:       args.GenesisTime,
 		hardforkTrigger:   args.HardforkTrigger,
+		redundancyHandler: args.RedundancyHandler,
 		coreComponents:    args.CoreComponents,
 		dataComponents:    args.DataComponents,
 		networkComponents: args.NetworkComponents,

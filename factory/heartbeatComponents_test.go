@@ -70,6 +70,7 @@ func getDefaultHeartbeatComponents(shardCoordinator sharding.Coordinator) factor
 		AppVersion:        "test",
 		GenesisTime:       time.Time{},
 		HardforkTrigger:   &mock.HardforkTriggerStub{},
+		RedundancyHandler: &mock.RedundancyHandlerStub{},
 		CoreComponents:    coreComponents,
 		DataComponents:    dataComponents,
 		NetworkComponents: networkComponents,
