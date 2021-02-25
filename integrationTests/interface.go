@@ -3,7 +3,6 @@ package integrationTests
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	dataApi "github.com/ElrondNetwork/elrond-go/data/api"
@@ -85,6 +84,5 @@ type Facade interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
-	CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error)
 	IsInterfaceNil() bool
 }

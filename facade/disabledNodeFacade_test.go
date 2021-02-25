@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
+func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 	defer func() {
 		r := recover()
