@@ -1,7 +1,6 @@
 package smartContract
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -12,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/pkg/errors"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
@@ -97,11 +95,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 	}
 
-	err = service.checkVMOutput(vmOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	return vmOutput, nil
 }
 
@@ -137,17 +130,6 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 
 func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
 	return vmOutput.ReturnMessage == "allocation error"
-}
-
-func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s (%s)",
-			vmOutput.ReturnCode,
-			vmOutput.ReturnCode,
-			vmOutput.ReturnMessage))
-	}
-
-	return nil
 }
 
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume

@@ -440,6 +440,41 @@ func (n *Node) GetUsername(address string) (string, error) {
 	return string(username), nil
 }
 
+// GetKeyValuePairs returns all the key-value pairs under the address
+func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return map[string]string{}, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mapToReturn := make(map[string]string)
+	for leaf := range chLeaves {
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+	}
+
+	return mapToReturn, nil
+}
+
 // GetValueForKey will return the value for a key from a given account
 func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	keyBytes, err := hex.DecodeString(key)
