@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -454,6 +455,7 @@ func createConsensusOnlyNode(
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
 	if err != nil {

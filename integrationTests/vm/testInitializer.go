@@ -19,8 +19,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
+	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -400,17 +402,19 @@ func CreateVMAndBlockchainHook(
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: outOfProcess,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
-		maxGasLimitPerBlock,
-		mock.NewGasScheduleNotifierMock(actualGasSchedule),
-		args,
-		0,
-		0,
-	)
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		ArgBlockChainHook:              args,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -793,6 +797,30 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	}
 
 	return vmOutput
+}
+
+// ComputeGasLimit -
+func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTx.Transaction) uint64 {
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(testContext.Accounts, gasSchedule, false, oneShardCoordinator)
+	defer func() {
+		_ = vmContainer.Close()
+	}()
+
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, testContext.EconomicsData, blockChainHook, &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				ShardID: testContext.ShardCoordinator.SelfId(),
+			}
+		},
+	})
+
+	gasLimit, err := scQueryService.ComputeScCallGasLimit(tx)
+	if err != nil {
+		log.Error("ComputeScCallGasLimit()", "error", err)
+		return 0
+	}
+
+	return gasLimit
 }
 
 // CreateTransferTokenTx -

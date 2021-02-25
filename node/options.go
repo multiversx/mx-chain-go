@@ -351,3 +351,14 @@ func WithImportMode(importMode bool) Option {
 		return nil
 	}
 }
+
+// WithNodeRedundancyHandler sets up a node redundancy handler for the node
+func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(nodeRedundancyHandler) {
+			return ErrNilNodeRedundancyHandler
+		}
+		n.nodeRedundancyHandler = nodeRedundancyHandler
+		return nil
+	}
+}

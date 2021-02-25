@@ -636,6 +636,8 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
+			MaxHardCapForMissingNodes: 500,
+			NumConcurrentTrieSyncers:  50,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

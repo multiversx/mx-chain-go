@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -66,13 +67,17 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 		},
 	}
 
-	ash := &mock.AppStatusHandlerMock{}
+	ash := mock.NewAppStatusHandlerMock()
 	ctx := context.Background()
 	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)
 	assert.NotNil(t, components.PubKeysCacher)
+
+	// we need this time sleep as to allow the code coverage tool to deterministically compute the code coverage
+	//on the go routines that are automatically launched
+	time.Sleep(time.Second * 2)
 }
 
 func createFloodPreventerConfig() config.FloodPreventerConfig {

@@ -62,7 +62,7 @@
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 4, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 5, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
@@ -795,3 +795,7 @@
 
 [Logs]
     LogFileLifeSpanInSec = 86400
+
+[TrieSync]
+    NumConcurrentTrieSyncers  = 2000
+    MaxHardCapForMissingNodes = 500
