@@ -28,7 +28,7 @@ func (builder *TxDataBuilder) New() *TxDataBuilder {
 	return builder
 }
 
-func (builder *TxDataBuilder) ToString() string {
+func (builder *TxDataBuilder) String() string {
 	data := builder.Function
 	for _, element := range builder.Elements {
 		data = data + builder.Separator + element
