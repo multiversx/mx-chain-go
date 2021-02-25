@@ -46,6 +46,7 @@ func NewESDTLocalMintFunc(
 		pauseHandler: pauseHandler,
 		rolesHandler: rolesHandler,
 		funcGasCost:  funcGasCost,
+		mutExecution: sync.RWMutex{},
 	}
 
 	return e, nil
@@ -60,13 +61,13 @@ func (e *esdtLocalMint) SetNewGasConfig(gasCost *process.GasCost) {
 
 // ProcessBuiltinFunction resolves ESDT change roles function call
 func (e *esdtLocalMint) ProcessBuiltinFunction(
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkInputArgumentsForLocalAction(acntSnd, acntDst, vmInput, e.funcGasCost)
+	err := checkInputArgumentsForLocalAction(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
 	}
