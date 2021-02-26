@@ -310,6 +310,7 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		OwnerAddress: owner,
 		TokenName:    tokenName,
 		TickerName:   tickerName,
+		TokenType:    []byte(core.FungibleESDT),
 		NumDecimals:  numOfDecimals,
 		MintedValue:  initialSupply,
 		BurntValue:   big.NewInt(0),
@@ -702,6 +703,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	e.eei.Finish(esdtToken.TokenName)
+	e.eei.Finish(esdtToken.TokenType)
 	e.eei.Finish(esdtToken.OwnerAddress)
 	e.eei.Finish([]byte(esdtToken.MintedValue.String()))
 	e.eei.Finish([]byte(esdtToken.BurntValue.String()))

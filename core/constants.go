@@ -511,6 +511,15 @@ const (
 	NonFungible
 )
 
+// FungibleESDT defines the string for the token type of fungible ESDT
+const FungibleESDT = "FungibleESDT"
+
+// NonFungibleESDT defines the string for the token type of non fungible ESDT
+const NonFungibleESDT = "NonFungibleESDT"
+
+// SemiFungibleESDT defines the string for the token type of semi fungible ESDT
+const SemiFungibleESDT = "SemiFungibleESDT"
+
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 
