@@ -1,2 +1,0 @@
-ignore:
-  - "*.pb.go"       # wildcards accepted
