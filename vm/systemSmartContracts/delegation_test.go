@@ -2290,7 +2290,6 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 	dConfig, _ := d.getDelegationContractConfig()
 	assert.Equal(t, big.NewInt(1500), dConfig.MaxDelegationCap)
 
-
 	vmInput.Arguments = [][]byte{big.NewInt(0).Bytes()}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -3906,7 +3905,7 @@ func TestDelegation_setAndGetDelegationMetadata(t *testing.T) {
 
 	d, _ := NewDelegationSystemSC(args)
 
-	vmInput := getDefaultVmInputForFunc("setMetaData", [][]byte{[]byte("name"), []byte("description"), []byte("URI")})
+	vmInput := getDefaultVmInputForFunc("setMetaData", [][]byte{[]byte("name"), []byte("website"), []byte("identifier")})
 	d.eei.SetStorage([]byte(ownerKey), vmInput.CallerAddr)
 	retCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, retCode)

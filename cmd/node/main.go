@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
@@ -30,8 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -75,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -372,6 +373,13 @@ VERSION:
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
+		Value: 0,
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -439,6 +447,7 @@ func main() {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		redundancyLevel,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -696,6 +705,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
+	}
+
+	if ctx.IsSet(redundancyLevel.Name) {
+		preferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
@@ -1191,7 +1204,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	elasticIndexer, err := createElasticIndexer(
+	esIndexer, err := createElasticIndexer(
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1204,7 +1217,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		economicsData,
 		isInImportMode,
-		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -1307,7 +1319,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		importStartHandler,
 		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
-		elasticIndexer,
+		esIndexer,
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
@@ -1356,9 +1368,28 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+	if !esIndexer.IsNilIndexer() {
+		esIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
+	}
+
+	observerBLSPrivateKey, observerBLSPublicKey := cryptoComponents.BlockSignKeyGen.GeneratePair()
+	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
+	if err != nil {
+		log.Error("error generating observerBLSPublicKeyBuff", "error", err)
+	} else {
+		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
+			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
+	}
+	arg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:    preferencesConfig.Preferences.RedundancyLevel,
+		Messenger:          networkComponents.NetMessenger,
+		ObserverPrivateKey: observerBLSPrivateKey,
+	}
+
+	nodeRedundancy, err := redundancy.NewNodeRedundancy(arg)
+	if err != nil {
+		return err
 	}
 
 	log.Trace("creating node structure")
@@ -1382,7 +1413,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
-		elasticIndexer,
+		esIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListRequest,
@@ -1392,6 +1423,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		fallbackHeaderValidator,
 		isInImportMode,
+		nodeRedundancy,
 	)
 	if err != nil {
 		return err
@@ -1407,7 +1439,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
+		indexValidatorsListIfNeeded(esIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -1694,7 +1726,7 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
@@ -2028,8 +2060,7 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
-	elasticSearchTemplatesPath string,
-) (indexer.Indexer, error) {
+) (process.Indexer, error) {
 
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
@@ -2044,12 +2075,11 @@ func createElasticIndexer(
 		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		TemplatesPath:            elasticSearchTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
 		TransactionFeeCalculator: economicsHandler,
-		Options: &indexer.Options{
+		Options: &elasticIndexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
 		IsInImportDBMode: isInImportDBMode,
@@ -2197,7 +2227,7 @@ func createNode(
 	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
-	indexer indexer.Indexer,
+	esIndexer process.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
@@ -2207,6 +2237,7 @@ func createNode(
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 	isInImportDbMode bool,
+	nodeRedundancyHandler consensus.NodeRedundancyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2302,7 +2333,7 @@ func createNode(
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler),
-		node.WithIndexer(indexer),
+		node.WithIndexer(esIndexer),
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
@@ -2336,6 +2367,7 @@ func createNode(
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
 		node.WithImportMode(isInImportDbMode),
+		node.WithNodeRedundancyHandler(nodeRedundancyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

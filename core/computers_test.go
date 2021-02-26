@@ -131,6 +131,126 @@ func TestMaxIntShouldReturnB(t *testing.T) {
 	assert.Equal(t, b, core.MaxInt(a, b))
 }
 
+func TestIsInRangeInclusive(t *testing.T) {
+	// positive edges
+	min := big.NewInt(0)
+	max := big.NewInt(100)
+
+	// within boundaries
+	val := big.NewInt(5)
+	inRange := core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+
+	// outside boundaries low
+	val = big.NewInt(-1)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.False(t, inRange)
+
+	// outside boundaries high
+	val = big.NewInt(110)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.False(t, inRange)
+
+	// lower edge
+	val = big.NewInt(0)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+
+	// higher edge
+	val = big.NewInt(100)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+
+	// negative edges
+	min = big.NewInt(-100)
+	max = big.NewInt(-10)
+
+	// within boundaries
+	val = big.NewInt(-50)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+
+	// outside boundaries low
+	val = big.NewInt(-110)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.False(t, inRange)
+
+	// outside boundaries high
+	val = big.NewInt(-5)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.False(t, inRange)
+
+	// lower edge
+	val = big.NewInt(-100)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+
+	// higher edge
+	val = big.NewInt(-10)
+	inRange = core.IsInRangeInclusive(val, min, max)
+	require.True(t, inRange)
+}
+
+func TestIsInRangeInclusiveFloat64(t *testing.T) {
+	// positive edges
+	min := 0.001
+	max := 100.001
+
+	// within boundaries
+	val := 5.001
+	inRange := core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+
+	// outside boundaries low
+	val = -1.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.False(t, inRange)
+
+	// outside boundaries high
+	val = 110.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.False(t, inRange)
+
+	// lower edge
+	val = 0.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+
+	// higher edge
+	val = 100.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+
+	// negative edges
+	min = -100.001
+	max = -10.001
+
+	// within boundaries
+	val = -50.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+
+	// outside boundaries low
+	val = -110.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.False(t, inRange)
+
+	// outside boundaries high
+	val = -5.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.False(t, inRange)
+
+	// lower edge
+	val = -100.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+
+	// higher edge
+	val = -10.001
+	inRange = core.IsInRangeInclusiveFloat64(val, min, max)
+	require.True(t, inRange)
+}
+
 func TestMaxFloat64(t *testing.T) {
 	tests := []struct {
 		a      float64
