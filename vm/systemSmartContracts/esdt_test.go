@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
@@ -2266,4 +2267,553 @@ func getAddress() []byte {
 	key := make([]byte, 32)
 	_, _ = rand.Read(key)
 	return key
+}
+
+func TestEsdt_SetSpecialRoleCheckArgumentsErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+}
+
+func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("1"), []byte("caller"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(1)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.OutOfFunds, retCode)
+}
+
+func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local err")
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller"),
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+			return localErr
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("caller"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_SetSpecialRoleAlreadyExits(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalBurn)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+			return nil
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
+			castedMarshalizer.Fail = true
+			return nil
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+			return nil
+		},
+		SetStorageCalled: func(key []byte, value []byte) {
+			token := &ESDTData{}
+			_ = args.Marshalizer.Unmarshal(token, value)
+			require.Equal(t, [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, token.SpecialRoles[0].Roles)
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleCheckArgumentsErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("1"), []byte("caller"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller2")
+	vmInput.CallValue = big.NewInt(1)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleCheckArgumentsInvalidRoleErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("1"), []byte("caller"), []byte("mirage")}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(1)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleCheckArgumentsDuplicatedRoleInArgsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("1"), []byte("caller"), []byte(core.ESDTRoleLocalBurn), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(1)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("1"), []byte("caller"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(1)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.OutOfFunds, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleNewShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller"),
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("caller"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExitsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalBurn)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local err")
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
+			return localErr
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalMint)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
+			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
+			castedMarshalizer.Fail = true
+			return nil
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalMint)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
+			return nil
+		},
+		SetStorageCalled: func(key []byte, value []byte) {
+			token := &ESDTData{}
+			_ = args.Marshalizer.Unmarshal(token, value)
+			require.Len(t, token.SpecialRoles[0].Roles, 0)
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleLocalMint)}
+	vmInput.CallerAddr = []byte("caller123")
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.GasProvided = 50000000
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_SetNewGasCost(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	e.SetNewGasCost(vm.GasCost{BuiltInCost: vm.BuiltInCost{
+		ChangeOwnerAddress: 10000,
+	}})
+
+	require.Equal(t, uint64(10000), e.gasCost.BuiltInCost.ChangeOwnerAddress)
+}
+
+func TestEsdt_GetAllAddressesAndRolesNoArgumentsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("getAllAddressesAndRoles", [][]byte{})
+	vmInput.Arguments = nil
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_GetAllAddressesAndRoleCallWithValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("getAllAddressesAndRoles", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("arg")}
+	vmInput.CallValue = big.NewInt(0)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestEsdt_GetAllAddressesAndRoleCallGetExistingTokenErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			token := &ESDTData{
+				OwnerAddress: []byte("caller123"),
+				SpecialRoles: []*ESDTRoles{
+					{
+						Address: []byte("myAddress"),
+						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
+					},
+				},
+			}
+			tokenBytes, _ := args.Marshalizer.Marshal(token)
+			return tokenBytes
+		},
+	}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("getAllAddressesAndRoles", [][]byte{})
+	vmInput.Arguments = [][]byte{[]byte("arg")}
+	vmInput.CallValue = big.NewInt(0)
+
+	retCode := e.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestEsdt_CanUseContract(t *testing.T) {
+	args := createMockArgumentsForESDT()
+	eei := &mock.SystemEIStub{}
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	require.True(t, e.CanUseContract())
 }
