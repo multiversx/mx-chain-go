@@ -660,21 +660,10 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	valueToRequest := valueToSendToSc / 4
 	txData.New().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
 
-	fmt.Println(txData.String())
-	fmt.Println("Before transfer ---------------------------")
-	tokenIssuerBalance := getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
-	forwarderBalance := getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
-	vaultBalance := getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
-
-	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
-	fmt.Println("forwarderBalance", forwarderBalance)
-	fmt.Println("vault", vaultBalance)
-	fmt.Println("-------------------------------------------")
-
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.String(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
@@ -684,46 +673,15 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	checkNumCallBacks(t, forwarder, nodes, 2)
 	checkSavedCallBackData(t, forwarder, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
 
-	fmt.Println("After transfer ---------------------------")
-	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
-	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
-	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
-
-	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
-	fmt.Println("forwarderBalance", forwarderBalance)
-	fmt.Println("vault", vaultBalance)
-	fmt.Println("-------------------------------------------")
-
 	//// call first sc to ask the second one to execute a method
 	valueToTransferWithExecSc := valueToSendToSc / 4
 	txData.New().TransferESDT(tokenIdentifier, valueToTransferWithExecSc)
-	txData.Str("forward_async_call").Bytes(vault).Str("accept_funds")
-
-	fmt.Println(txData.String())
-	fmt.Println("Before transfer ---------------------------")
-	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
-	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
-	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
-
-	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
-	fmt.Println("forwarderBalance", forwarderBalance)
-	fmt.Println("vault", vaultBalance)
-	fmt.Println("-------------------------------------------")
+	txData.Str("forward_transf_exec").Bytes(vault).Str("accept_funds")
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.String(), integrationTests.AdditionalGasLimit)
 	time.Sleep(5 * time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(5 * time.Second)
-
-	fmt.Println("After transfer ---------------------------")
-	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
-	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
-	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
-
-	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
-	fmt.Println("forwarderBalance", forwarderBalance)
-	fmt.Println("vault", vaultBalance)
-	fmt.Println("-------------------------------------------")
 
 	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc-250)
 	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, 750)
