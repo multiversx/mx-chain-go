@@ -131,6 +131,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	switch args.Function {
 	case "issue":
 		return e.issue(args)
+	case "issueSemiFungible":
+		return e.registerSemiFungible(args)
+	case "issueNonFungible":
+		return e.registerNonFungible(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
@@ -918,6 +922,14 @@ func (e *esdt) sendRoleChangeData(args *vmcommon.ContractCallInput, builtInFunc 
 
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
 	return err
+}
+
+func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
+}
+
+func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.Ok
 }
 
 func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
