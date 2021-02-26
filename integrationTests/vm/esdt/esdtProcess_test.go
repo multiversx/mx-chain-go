@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -549,6 +550,8 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	logger.SetLogLevel("*:NONE")
+
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
@@ -653,33 +656,78 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	checkNumCallBacks(t, forwarder, nodes, 1)
 	checkSavedCallBackData(t, forwarder, nodes, 1, "EGLD", big.NewInt(0), vmcommon.Ok, [][]byte{})
 
-	//// call first sc to ask the second one to send it back some esdt
+	// //// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
 	txData.New().Func("forward_async_call").Bytes(vault).Str("retrieve_funds").Str(tokenIdentifier).Int64(valueToRequest)
+
+	fmt.Println(txData.String())
+	fmt.Println("Before transfer ---------------------------")
+	tokenIssuerBalance := getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
+	forwarderBalance := getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
+	vaultBalance := getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
+
+	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
+	fmt.Println("forwarderBalance", forwarderBalance)
+	fmt.Println("vault", vaultBalance)
+	fmt.Println("-------------------------------------------")
+
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.String(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
 	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc*3/4)
 	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc/4)
 
 	checkNumCallBacks(t, forwarder, nodes, 2)
 	checkSavedCallBackData(t, forwarder, nodes, 2, tokenIdentifier, big.NewInt(valueToRequest), vmcommon.Ok, [][]byte{})
 
+	fmt.Println("After transfer ---------------------------")
+	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
+	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
+	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
+
+	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
+	fmt.Println("forwarderBalance", forwarderBalance)
+	fmt.Println("vault", vaultBalance)
+	fmt.Println("-------------------------------------------")
+
 	//// call first sc to ask the second one to execute a method
-	valueToSendToSc = valueToSendToSc / 4
-	txData.New().TransferESDT(tokenIdentifier, valueToSendToSc)
-	txData.Str("forward_transf_exec").Bytes(vault).Str("accept_funds")
+	valueToTransferWithExecSc := valueToSendToSc / 4
+	txData.New().TransferESDT(tokenIdentifier, valueToTransferWithExecSc)
+	txData.Str("forward_async_call").Bytes(vault).Str("accept_funds")
+
+	fmt.Println(txData.String())
+	fmt.Println("Before transfer ---------------------------")
+	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
+	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
+	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
+
+	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
+	fmt.Println("forwarderBalance", forwarderBalance)
+	fmt.Println("vault", vaultBalance)
+	fmt.Println("-------------------------------------------")
+
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.String(), integrationTests.AdditionalGasLimit)
-
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 
-	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc*3/4)
-	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc*3/4)
+	fmt.Println("After transfer ---------------------------")
+	tokenIssuerBalance = getESDTTokenData(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier).Value
+	forwarderBalance = getESDTTokenData(t, forwarder, nodes, tokenIdentifier).Value
+	vaultBalance = getESDTTokenData(t, vault, nodes, tokenIdentifier).Value
+
+	fmt.Println("tokenIssuerBalance", tokenIssuerBalance)
+	fmt.Println("forwarderBalance", forwarderBalance)
+	fmt.Println("vault", vaultBalance)
+	fmt.Println("-------------------------------------------")
+
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc-250)
+	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, 750)
+	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, 500)
 }
 
 func TestCallbackPaymentEgld(t *testing.T) {
@@ -773,7 +821,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	//// call first sc with esdt, and first sc automatically calls second sc
 	valueToSendToSc := int64(1000)
-	txData := "forward_call_half_payment@" +
+	txData := "forward_async_call_half_payment@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("accept_funds"))
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(valueToSendToSc), firstScAddress, txData, integrationTests.AdditionalGasLimit)
@@ -787,7 +835,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	//// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData = "forward_call@" +
+	txData = "forward_async_call@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("retrieve_funds")) + "@" +
 		hex.EncodeToString([]byte("EGLD")) + "@" +
@@ -894,7 +942,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	txData := core.BuiltInFunctionESDTTransfer + "@" +
 		hex.EncodeToString([]byte(tokenIdentifier)) + "@" +
 		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
-		hex.EncodeToString([]byte("forward_call_half_payment")) + "@" +
+		hex.EncodeToString([]byte("forward_async_call_half_payment")) + "@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("accept_funds"))
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
@@ -912,7 +960,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 
 	//// call first sc to ask the second one to send it back some esdt
 	valueToRequest := valueToSendToSc / 4
-	txData = "forward_call@" +
+	txData = "forward_async_call@" +
 		hex.EncodeToString(secondScAddress) + "@" +
 		hex.EncodeToString([]byte("retrieve_funds")) + "@" +
 		hex.EncodeToString([]byte(tokenIdentifier)) + "@" +
