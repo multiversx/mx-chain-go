@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,8 +26,8 @@ func createMockHeaderResolverArg() ArgHeaderResolver {
 				return 0, nil
 			},
 		},
-		HdrStorage:               genericmocks.NewStorerMock("Hdr", 0),
-		HeadersNoncesStorage:     genericmocks.NewStorerMock("HeadersNonces", 0),
+		HdrStorage:               genericMocks.NewStorerMock("Hdr", 0),
+		HeadersNoncesStorage:     genericMocks.NewStorerMock("HeadersNonces", 0),
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 	}

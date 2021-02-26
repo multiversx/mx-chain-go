@@ -199,9 +199,6 @@ var ErrNilWatchdog = errors.New("nil watchdog")
 // ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
-// ErrInvalidMaxTransactionValueLength signals that an invalid maximum transaction value length has been provided
-var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction value length")
-
 // ErrTransactionValueLengthTooBig signals that a too big value has been given to a transaction
 var ErrTransactionValueLengthTooBig = errors.New("value length is too big")
 
@@ -229,5 +226,5 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 // ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
 var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
 
-// ErrNilDataTrie signals that user account has a nil data trie
-var ErrNilDataTrie = errors.New("nil data trie")
+// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

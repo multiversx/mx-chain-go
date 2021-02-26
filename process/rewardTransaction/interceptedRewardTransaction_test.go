@@ -1,9 +1,11 @@
 package rewardTransaction_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -312,4 +314,76 @@ func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 
 	err := irt.CheckValidity()
 	assert.Nil(t, err)
+}
+
+func TestInterceptedRewardTransaction_Type(t *testing.T) {
+	t.Parallel()
+
+	expectedType := "intercepted reward tx"
+
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		[]byte{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	assert.Equal(t, expectedType, irt.Type())
+}
+
+func TestInterceptedRewardTransaction_String(t *testing.T) {
+	t.Parallel()
+
+	round := uint64(1)
+	epoch := uint32(1)
+	rcvAddr := []byte("rcv-address")
+	value := big.NewInt(100)
+
+	rewTx := rewardTx.RewardTx{
+		Round:   round,
+		Epoch:   epoch,
+		Value:   value,
+		RcvAddr: rcvAddr,
+	}
+
+	expectedFormat := fmt.Sprintf(
+		"epoch=%d, round=%d, address=%s, value=%s",
+		epoch, round, logger.DisplayByteSlice(rcvAddr), value,
+	)
+
+	marshalizer := &mock.MarshalizerMock{}
+	rewTwBytes, _ := marshalizer.Marshal(&rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		rewTwBytes,
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	assert.Equal(t, expectedFormat, irt.String())
+}
+
+func TestInterceptedRewardTransaction_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	rewTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("addr"),
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(&rewTx)
+	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
+		txBuff,
+		marshalizer,
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	assert.Equal(t, false, irt.IsInterfaceNil())
 }

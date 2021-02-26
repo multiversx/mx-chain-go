@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -169,7 +168,7 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
@@ -218,7 +217,7 @@ func NewProcessComponentsFactoryArgs(
 	importStartHandler update.ImportStartHandler,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	workingDir string,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
@@ -360,7 +359,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = indexGenesisAccounts(args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
+	err = indexGenesisAccounts(args.nodesConfig.GetStartTime(), args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
 	if err != nil {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
@@ -589,7 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
-func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+func indexGenesisAccounts(startTime int64, accountsAdapter state.AccountsAdapter, indexer process.Indexer, marshalizer marshal.Marshalizer) error {
 	if indexer.IsNilIndexer() {
 		return nil
 	}
@@ -616,7 +615,7 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	indexer.SaveAccounts(genesisAccounts)
+	indexer.SaveAccounts(uint64(startTime), genesisAccounts)
 	return nil
 }
 
@@ -1512,7 +1511,7 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	smartContractParser genesis.InitialSmartContractParser,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,
@@ -1846,7 +1845,7 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
-	indexer indexer.Indexer,
+	indexer process.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository dblookupext.HistoryRepository,

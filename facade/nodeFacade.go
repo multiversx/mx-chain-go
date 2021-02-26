@@ -311,8 +311,8 @@ func (nf *nodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for the simulation process
-func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	return nf.node.ValidateTransactionForSimulation(tx)
+func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	return nf.node.ValidateTransactionForSimulation(tx, checkSignature)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
@@ -336,7 +336,7 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
-func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 

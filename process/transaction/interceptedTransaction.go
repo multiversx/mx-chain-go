@@ -243,29 +243,20 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if err != nil {
 		return err
 	}
+
+	err = tx.CheckIntegrity()
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(tx.ChainID, inTx.chainID) {
 		return process.ErrInvalidChainID
-	}
-	if tx.Signature == nil {
-		return process.ErrNilSignature
 	}
 	if len(tx.RcvAddr) != inTx.pubkeyConv.Len() {
 		return process.ErrInvalidRcvAddr
 	}
 	if len(tx.SndAddr) != inTx.pubkeyConv.Len() {
 		return process.ErrInvalidSndAddr
-	}
-	if tx.Value == nil {
-		return process.ErrNilValue
-	}
-	if tx.Value.Sign() < 0 {
-		return process.ErrNegativeValue
-	}
-	if len(inTx.tx.RcvUserName) > core.MaxUserNameLength {
-		return process.ErrInvalidUserNameLength
-	}
-	if len(inTx.tx.SndUserName) > core.MaxUserNameLength {
-		return process.ErrInvalidUserNameLength
 	}
 
 	return inTx.feeHandler.CheckValidityTxValues(tx)

@@ -2161,9 +2161,9 @@ func (d *delegation) setMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	dMetaData := &DelegationMetaData{
-		Name:        args.Arguments[0],
-		Description: args.Arguments[1],
-		URI:         args.Arguments[2],
+		Name:       args.Arguments[0],
+		Website:    args.Arguments[1],
+		Identifier: args.Arguments[2],
 	}
 	marshaledData, err := d.marshalizer.Marshal(dMetaData)
 	if err != nil {
@@ -2196,8 +2196,8 @@ func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	d.eei.Finish(dMetaData.Name)
-	d.eei.Finish(dMetaData.Description)
-	d.eei.Finish(dMetaData.URI)
+	d.eei.Finish(dMetaData.Website)
+	d.eei.Finish(dMetaData.Identifier)
 
 	return vmcommon.Ok
 }
