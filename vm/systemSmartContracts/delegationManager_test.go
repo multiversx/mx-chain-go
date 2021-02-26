@@ -29,7 +29,6 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		},
 		DelegationMgrSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit: "10",
-			BaseIssuingCost:    "10",
 			MinStakeAmount:     "10",
 		},
 		Eei:                    &mock.SystemEIStub{},
@@ -139,17 +138,6 @@ func TestNewDelegationManagerSystemSC_NilEpochNotifierShouldErr(t *testing.T) {
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
 	assert.Equal(t, vm.ErrNilEpochNotifier, err)
-}
-
-func TestNewDelegationManagerSystemSC_InvalidBaseIssuingCostShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegationManager()
-	args.DelegationMgrSCConfig.BaseIssuingCost = "-10"
-
-	dm, err := NewDelegationManagerSystemSC(args)
-	assert.Nil(t, dm)
-	assert.Equal(t, vm.ErrInvalidBaseIssuingCost, err)
 }
 
 func TestNewDelegationManagerSystemSC_InvalidMinCreationDepositShouldErr(t *testing.T) {
@@ -321,10 +309,9 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
 	_ = dm.saveDelegationManagementData(&DelegationManagement{
-		MinDeposit:       big.NewInt(10),
-		BaseIssueingCost: big.NewInt(10),
+		MinDeposit: big.NewInt(10),
 	})
-	vmInput.CallValue = big.NewInt(19)
+	vmInput.CallValue = big.NewInt(9)
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "not enough call value"))
@@ -390,9 +377,8 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: make([][]byte, 0)})
 	_ = dm.saveDelegationManagementData(&DelegationManagement{
-		MinDeposit:       big.NewInt(10),
-		BaseIssueingCost: big.NewInt(10),
-		LastAddress:      vm.FirstDelegationSCAddress,
+		MinDeposit:  big.NewInt(10),
+		LastAddress: vm.FirstDelegationSCAddress,
 	})
 	vmInput.CallValue = big.NewInt(20)
 
@@ -473,69 +459,6 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	assert.Equal(t, vmcommon.Ok, output)
 	assert.Equal(t, 1, len(eei.output))
 	assert.Equal(t, addr2, eei.output[0])
-}
-
-func TestDelegationManagerSystemSC_ExecuteChangeBaseIssuingCostUserErrors(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	dm, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("changeBaseIssuingCost", [][]byte{})
-	vmInput.CallValue = big.NewInt(10)
-
-	output := dm.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
-
-	vmInput.CallValue = big.NewInt(0)
-	output = dm.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
-
-	vmInput.Arguments = [][]byte{{25}}
-	output = dm.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
-
-	vmInput.CallerAddr = configChangeAddress
-	output = dm.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-}
-
-func TestDelegationManagerSystemSC_ExecuteChangeBaseIssuingCost(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegationManager()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	dm, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("changeBaseIssuingCost", [][]byte{{25}})
-	vmInput.CallerAddr = configChangeAddress
-	_ = dm.saveDelegationManagementData(&DelegationManagement{BaseIssueingCost: big.NewInt(0)})
-
-	output := dm.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-
-	dManagementData, _ := dm.getDelegationManagementData()
-	assert.Equal(t, big.NewInt(25), dManagementData.BaseIssueingCost)
 }
 
 func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.T) {
@@ -794,9 +717,8 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 		LastAddress:         []byte("last address"),
 		MinServiceFee:       456,
 		MaxServiceFee:       789,
-		BaseIssueingCost:    big.NewInt(112233),
-		MinDeposit:          big.NewInt(445566),
-		MinDelegationAmount: big.NewInt(778899),
+		MinDeposit:          big.NewInt(112233),
+		MinDelegationAmount: big.NewInt(445566),
 	}
 
 	_ = dm.saveDelegationManagementData(delegationManagement)
@@ -811,7 +733,6 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 	assert.Equal(t, delegationManagement.LastAddress, results.ReturnData[1])
 	assert.Equal(t, big.NewInt(int64(delegationManagement.MinServiceFee)).Bytes(), results.ReturnData[2])
 	assert.Equal(t, big.NewInt(int64(delegationManagement.MaxServiceFee)).Bytes(), results.ReturnData[3])
-	assert.Equal(t, delegationManagement.BaseIssueingCost.Bytes(), results.ReturnData[4])
-	assert.Equal(t, delegationManagement.MinDeposit.Bytes(), results.ReturnData[5])
-	assert.Equal(t, delegationManagement.MinDelegationAmount.Bytes(), results.ReturnData[6])
+	assert.Equal(t, delegationManagement.MinDeposit.Bytes(), results.ReturnData[4])
+	assert.Equal(t, delegationManagement.MinDelegationAmount.Bytes(), results.ReturnData[5])
 }

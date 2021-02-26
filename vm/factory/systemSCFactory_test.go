@@ -59,7 +59,6 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MaxServiceFee: 10000,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:     "10",
 				MinCreationDeposit:  "10",
 				EnabledEpoch:        0,
 				MinStakeAmount:      "10",

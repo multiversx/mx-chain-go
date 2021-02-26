@@ -12,9 +12,8 @@ message DelegationManagement {
   bytes  LastAddress         = 2 [(gogoproto.jsontag) = "LastAddress"];
   uint64 MinServiceFee       = 3 [(gogoproto.jsontag) = "MinServiceFee"];
   uint64 MaxServiceFee       = 4 [(gogoproto.jsontag) = "MaxServiceFee"];
-  bytes  BaseIssueingCost    = 5 [(gogoproto.jsontag) = "BaseIssueingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  MinDeposit          = 6 [(gogoproto.jsontag) = "MinDeposit", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  MinDelegationAmount = 7 [(gogoproto.jsontag) = "MinDelegationAmount", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  MinDeposit          = 5 [(gogoproto.jsontag) = "MinDeposit", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  MinDelegationAmount = 6 [(gogoproto.jsontag) = "MinDelegationAmount", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message DelegationContractList {

@@ -162,7 +162,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:     "100",
 				MinCreationDeposit:  "100",
 				EnabledEpoch:        0,
 				MinStakeAmount:      "100",

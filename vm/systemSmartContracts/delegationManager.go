@@ -31,7 +31,6 @@ type delegationManager struct {
 	marshalizer              marshal.Marshalizer
 	delegationMgrEnabled     atomic.Flag
 	enableDelegationMgrEpoch uint32
-	baseIssuingCost          *big.Int
 	minCreationDeposit       *big.Int
 	minDelegationAmount      *big.Int
 	minFee                   uint64
@@ -77,11 +76,6 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		return nil, vm.ErrNilEpochNotifier
 	}
 
-	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.BaseIssuingCost, conversionBase)
-	if !okConvert || baseIssuingCost.Cmp(zero) < 0 {
-		return nil, vm.ErrInvalidBaseIssuingCost
-	}
-
 	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
 	if !okConvert || minCreationDeposit.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidMinCreationDeposit
@@ -102,7 +96,6 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		marshalizer:              args.Marshalizer,
 		delegationMgrEnabled:     atomic.Flag{},
 		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
-		baseIssuingCost:          baseIssuingCost,
 		minCreationDeposit:       minCreationDeposit,
 		minDelegationAmount:      minDelegationAmount,
 		minFee:                   args.DelegationSCConfig.MinServiceFee,
@@ -139,8 +132,6 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.getAllContractAddresses(args)
 	case "getContractConfig":
 		return d.getContractConfig(args)
-	case "changeBaseIssuingCost":
-		return d.changeBaseIssuingCost(args)
 	case "changeMinDeposit":
 		return d.changeMinDeposit(args)
 	case "changeMinDelegationAmount":
@@ -162,7 +153,6 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 		LastAddress:         vm.FirstDelegationSCAddress,
 		MinServiceFee:       d.minFee,
 		MaxServiceFee:       d.maxFee,
-		BaseIssueingCost:    d.baseIssuingCost,
 		MinDeposit:          d.minCreationDeposit,
 		MinDelegationAmount: d.minDelegationAmount,
 	}
@@ -204,7 +194,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
-	minValue := big.NewInt(0).Add(delegationManagement.MinDeposit, delegationManagement.BaseIssueingCost)
+	minValue := big.NewInt(0).Set(delegationManagement.MinDeposit)
 	if args.CallValue.Cmp(minValue) < 0 {
 		d.eei.AddReturnMessage("not enough call value")
 		return vmcommon.UserError
@@ -216,7 +206,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
-	depositValue := big.NewInt(0).Sub(args.CallValue, delegationManagement.BaseIssueingCost)
+	depositValue := big.NewInt(0).Set(args.CallValue)
 	newAddress := createNewAddress(delegationManagement.LastAddress)
 
 	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, depositValue, args.Arguments)
@@ -261,34 +251,6 @@ func (d *delegationManager) checkConfigChangeInput(args *vmcommon.ContractCallIn
 		return vm.ErrInvalidCaller
 	}
 	return nil
-}
-
-func (d *delegationManager) changeBaseIssuingCost(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	err := d.checkConfigChangeInput(args)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	delegationManagement, err := d.getDelegationManagementData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	baseIssuingCost := big.NewInt(0).SetBytes(args.Arguments[0])
-	if baseIssuingCost.Cmp(zero) < 0 {
-		d.eei.AddReturnMessage("invalid base issuing cost")
-		return vmcommon.UserError
-	}
-	delegationManagement.BaseIssueingCost = baseIssuingCost
-	err = d.saveDelegationManagementData(delegationManagement)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
 }
 
 func (d *delegationManager) changeMinDeposit(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -386,7 +348,6 @@ func (d *delegationManager) getContractConfig(args *vmcommon.ContractCallInput) 
 	d.eei.Finish(cfg.LastAddress)
 	d.eei.Finish(big.NewInt(0).SetUint64(cfg.MinServiceFee).Bytes())
 	d.eei.Finish(big.NewInt(0).SetUint64(cfg.MaxServiceFee).Bytes())
-	d.eei.Finish(cfg.BaseIssueingCost.Bytes())
 	d.eei.Finish(cfg.MinDeposit.Bytes())
 	d.eei.Finish(cfg.MinDelegationAmount.Bytes())
 
