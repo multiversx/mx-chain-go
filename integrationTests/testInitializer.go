@@ -144,7 +144,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 	}
 
 	return libP2PMes
@@ -167,7 +167,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 	}
 
 	return libP2PMes
@@ -184,7 +184,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 	}
 
 	return libP2PMes
@@ -214,7 +214,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 	}
 
 	return libP2PMes
@@ -792,7 +792,7 @@ func PrintShardAccount(accnt state.UserAccountHandler, tag string) {
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.GetCodeHash()))
 	str += fmt.Sprintf("  Root hash: %s\n", base64.StdEncoding.EncodeToString(accnt.GetRootHash()))
 
-	fmt.Println(str)
+	log.Info(str)
 }
 
 // CreateRandomBytes returns a random byte slice with the given size
@@ -821,7 +821,7 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler
 	err := AdbEmulateBalanceTxExecution(accounts, acntSrc, acntDest, value)
 
 	if err != nil {
-		fmt.Printf("Error executing tx (value: %v), reverting...\n", value)
+		log.Error("Error executing tx (value: %v), reverting...\n", value)
 		err = accounts.RevertToSnapshot(snapshot)
 
 		if err != nil {
@@ -970,14 +970,14 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
 func IncrementAndPrintRound(round uint64) uint64 {
 	round++
-	fmt.Printf("#################################### ROUND %d BEGINS ####################################\n\n", round)
+	log.Info(fmt.Sprintf("#################################### ROUND %d BEGINS ####################################", round))
 
 	return round
 }
 
 // ProposeBlock proposes a block for every shard
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
-	fmt.Println("All shards propose blocks...")
+	log.Info("All shards propose blocks...")
 
 	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
 
@@ -992,9 +992,9 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 		n.CommitBlock(body, header)
 	}
 
-	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	log.Info("Delaying for disseminating headers and miniblocks...")
 	time.Sleep(stepDelayAdjustment)
-	fmt.Println(MakeDisplayTable(nodes))
+	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
 // SyncBlock synchronizes the proposed block in all the other shard nodes
@@ -1005,7 +1005,7 @@ func SyncBlock(
 	round uint64,
 ) {
 
-	fmt.Println("All other shard nodes sync the proposed block...")
+	log.Info("All other shard nodes sync the proposed block...")
 	for idx, n := range nodes {
 		if IsIntInSlice(idx, idxProposers) {
 			continue
@@ -1020,7 +1020,7 @@ func SyncBlock(
 	}
 
 	time.Sleep(StepDelay)
-	fmt.Println(MakeDisplayTable(nodes))
+	log.Info("Synchronized block\n" + MakeDisplayTable(nodes))
 }
 
 // IsIntInSlice returns true if idx is found on any position in the provided slice
@@ -1062,7 +1062,7 @@ func checkRootHashInShard(t *testing.T, nodes []*TestProcessorNode, idxProposer 
 			continue
 		}
 
-		fmt.Printf("Testing roothash for node index %d, shard ID %d...\n", i, n.ShardCoordinator.SelfId())
+		log.Info(fmt.Sprintf("Testing roothash for node index %d, shard ID %d...", i, n.ShardCoordinator.SelfId()))
 		nodeRootHash, _ := n.AccntState.RootHash()
 		assert.Equal(t, proposerRootHash, nodeRootHash)
 	}
@@ -1092,7 +1092,7 @@ func CheckTxPresentAndRightNonce(
 			}
 
 			if !found {
-				fmt.Printf("unsigned tx with nonce %d is missing\n", i)
+				log.Info(fmt.Sprintf("unsigned tx with nonce %d is missing", i))
 			}
 		}
 		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfTxs, len(txHashes)))
@@ -1320,18 +1320,18 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
 		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
-		fmt.Printf("Shard ID: %v, pkNode: %s\n",
+		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s\n",
 			n.ShardCoordinator.SelfId(),
-			TestValidatorPubkeyConverter.Encode(pkNode))
+			TestValidatorPubkeyConverter.Encode(pkNode)))
 
-		fmt.Printf("skTx: %s, pkTx: %s\n",
+		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s\n",
 			hex.EncodeToString(skTxBuff),
-			TestAddressPubkeyConverter.Encode(pkTxBuff),
-		)
+			TestAddressPubkeyConverter.Encode(pkTxBuff)))
+
 		_ = n.Messenger.Bootstrap()
 	}
 
-	fmt.Println("Delaying for node bootstrap and topic announcement...")
+	log.Info("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(P2pBootstrapDelay)
 }
 
@@ -1385,7 +1385,7 @@ func CreateSendersWithInitialBalances(
 			1,
 		)
 
-		fmt.Println("Minting sender addresses...")
+		log.Info("Minting sender addresses...")
 		CreateMintingForSenders(
 			nodes,
 			shardId,
@@ -1592,7 +1592,7 @@ func GenerateIntraShardTransactions(
 			nbTxsPerShard,
 		)
 
-		fmt.Println("Minting sender addresses...")
+		log.Info("Minting sender addresses...")
 		CreateMintingForSenders(
 			nodes,
 			shardId,
@@ -1671,7 +1671,7 @@ func CreateAndSendTransactions(
 
 		nodeInShard := nodes[shardId][0]
 
-		fmt.Println("Generating transactions...")
+		log.Info("Generating transactions...")
 		GenerateAndDisseminateTxs(
 			nodeInShard,
 			sendersPrivKeysMap[shardId],
@@ -1684,7 +1684,7 @@ func CreateAndSendTransactions(
 		)
 	}
 
-	fmt.Println("Delaying for disseminating transactions...")
+	log.Info("Delaying for disseminating transactions...")
 	time.Sleep(time.Second)
 }
 
@@ -1733,13 +1733,13 @@ func ProposeBlockSignalsEmptyBlock(
 	nonce uint64,
 ) (data.HeaderHandler, data.BodyHandler, bool) {
 
-	fmt.Println("Proposing block without commit...")
+	log.Info("Proposing block without commit...")
 
 	body, header, txHashes := node.ProposeBlock(round, nonce)
 	node.BroadcastBlock(body, header)
 	isEmptyBlock := len(txHashes) == 0
 
-	fmt.Println("Delaying for disseminating headers and miniblocks...")
+	log.Info("Delaying for disseminating headers and miniblocks...")
 	time.Sleep(StepDelay)
 
 	return header, body, isEmptyBlock
@@ -1920,13 +1920,15 @@ func ProposeAndSyncOneBlock(
 // WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
 // number of peers that each node is connected to
 func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
-	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+	log.Info("Waiting for peer discovery...", "time", durationBootstrapingTime)
 	time.Sleep(durationBootstrapingTime)
 
-	fmt.Println("Connected peers:")
+	strs := []string{"Connected peers:"}
 	for _, peer := range peers {
-		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
+		strs = append(strs, fmt.Sprintf("Peer %s is connected to %d peers", peer.ID().Pretty(), len(peer.ConnectedPeers())))
 	}
+
+	log.Info(strings.Join(strs, "\n"))
 }
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.
@@ -2045,7 +2047,7 @@ func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 		_ = n.Messenger.Bootstrap()
 	}
 
-	fmt.Println("Delaying for nodes p2p bootstrap...")
+	log.Info("Delaying for nodes p2p bootstrap...")
 	time.Sleep(P2pBootstrapDelay)
 }
 
@@ -2096,7 +2098,7 @@ func StartSyncingBlocks(nodes []*TestProcessorNode) {
 		_ = n.StartSync()
 	}
 
-	fmt.Println("Delaying for nodes to start syncing blocks...")
+	log.Info("Delaying for nodes to start syncing blocks...")
 	time.Sleep(StepDelay)
 }
 
@@ -2108,11 +2110,11 @@ func ForkChoiceOneBlock(nodes []*TestProcessorNode, shardId uint32) {
 		}
 		err := n.Bootstrapper.RollBack(false)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err.Error())
 		}
 
 		newNonce := n.BlockChain.GetCurrentBlockHeader().GetNonce()
-		fmt.Printf("Node's id %d is at block height %d\n", idx, newNonce)
+		log.Info(fmt.Sprintf("Node's id %d is at block height %d", idx, newNonce))
 	}
 }
 
