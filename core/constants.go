@@ -499,6 +499,18 @@ const ESDTRoleLocalMint = "ESDTRoleLocalMint"
 // ESDTRoleLocalBurn is the constant string for the local role of burn for ESDT tokens
 const ESDTRoleLocalBurn = "ESDTRoleLocalBurn"
 
+// ESDTType defines the possible types in case of ESDT tokens
+type ESDTType uint32
+
+const (
+	// Fungible defines the token type for ESDT fungible tokens
+	Fungible ESDTType = iota
+	// SemiFungible defines the token type for semi fungible tokens
+	SemiFungible
+	// NonFungible defines the token for non fungible tokens
+	NonFungible
+)
+
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 

@@ -24,6 +24,7 @@ message ESDTRoles {
 // MetaData hold the metadata structure for the ESDT token
 message MetaData {
 	uint64 Nonce      = 1 [(gogoproto.jsontag) = "Nonce"];
-	bytes  URI        = 2 [(gogoproto.jsontag) = "URI"];
-	bytes  Attributes = 3 [(gogoproto.jsontag) = "Attributes"];
+	bytes  Name       = 2 [(gogoproto.jsontag) = "Name"];
+	bytes  URI        = 3 [(gogoproto.jsontag) = "URI"];
+	bytes  Attributes = 4 [(gogoproto.jsontag) = "Attributes"];
 }

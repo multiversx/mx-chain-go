@@ -952,3 +952,6 @@ var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceed
 
 // ErrActionNotAllowed signals that action is not allowed
 var ErrActionNotAllowed = errors.New("action is not allowed")
+
+// ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
+var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")

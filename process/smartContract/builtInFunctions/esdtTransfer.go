@@ -199,6 +199,10 @@ func addToESDTBalance(
 		return err
 	}
 
+	if esdtData.Type != uint32(core.Fungible) {
+		return process.ErrOnlyFungibleTokensHaveBalanceTransfer
+	}
+
 	if !bytes.Equal(senderAddr, vm.ESDTSCAddress) {
 		esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
 		if esdtUserMetaData.Frozen {
@@ -243,7 +247,7 @@ func getESDTDataFromKey(
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil
