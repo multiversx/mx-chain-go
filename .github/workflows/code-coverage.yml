@@ -36,4 +36,4 @@ jobs:
         run: make test-coverage
 
       - name: Upload coverage
-        run: bash <(curl -s https://codecov.io/bash) -f coverage.txt
+        run: bash <(curl -s https://codecov.io/bash) -f coverage.txt -y codecov.yml
