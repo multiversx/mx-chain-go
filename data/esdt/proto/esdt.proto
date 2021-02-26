@@ -10,11 +10,20 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // ESDigitalToken holds the data for a elrond standard digital token transaction
 message ESDigitalToken {
-	bytes Value      = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes Properties = 2 [(gogoproto.jsontag) = "properties"];
+	uint32 Type            = 1 [(gogoproto.jsontag) = "Type"];
+	bytes  Value           = 2 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  Properties      = 3 [(gogoproto.jsontag) = "Properties"];
+	MetaData TokenMetaData = 4 [(gogoproto.jsontag) = "MetaData"];
 }
 
 // ESDTRoles holds the roles for a given token and the given address
 message ESDTRoles {
 	repeated bytes Roles = 1 [(gogoproto.jsontag) = "roles"];
+}
+
+// MetaData hold the metadata structure for the ESDT token
+message MetaData {
+	uint64 Nonce      = 1 [(gogoproto.jsontag) = "Nonce"];
+	bytes  URI        = 2 [(gogoproto.jsontag) = "URI"];
+	bytes  Attributes = 3 [(gogoproto.jsontag) = "Attributes"];
 }

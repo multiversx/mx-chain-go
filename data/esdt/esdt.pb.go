@@ -30,8 +30,10 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // ESDigitalToken holds the data for a elrond standard digital token transaction
 type ESDigitalToken struct {
-	Value      *math_big.Int `protobuf:"bytes,1,opt,name=Value,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"value"`
-	Properties []byte        `protobuf:"bytes,2,opt,name=Properties,proto3" json:"properties"`
+	Type          uint32        `protobuf:"varint,1,opt,name=Type,proto3" json:"Type"`
+	Value         *math_big.Int `protobuf:"bytes,2,opt,name=Value,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Value"`
+	Properties    []byte        `protobuf:"bytes,3,opt,name=Properties,proto3" json:"Properties"`
+	TokenMetaData *MetaData     `protobuf:"bytes,4,opt,name=TokenMetaData,proto3" json:"MetaData"`
 }
 
 func (m *ESDigitalToken) Reset()      { *m = ESDigitalToken{} }
@@ -62,6 +64,13 @@ func (m *ESDigitalToken) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ESDigitalToken proto.InternalMessageInfo
 
+func (m *ESDigitalToken) GetType() uint32 {
+	if m != nil {
+		return m.Type
+	}
+	return 0
+}
+
 func (m *ESDigitalToken) GetValue() *math_big.Int {
 	if m != nil {
 		return m.Value
@@ -72,6 +81,13 @@ func (m *ESDigitalToken) GetValue() *math_big.Int {
 func (m *ESDigitalToken) GetProperties() []byte {
 	if m != nil {
 		return m.Properties
+	}
+	return nil
+}
+
+func (m *ESDigitalToken) GetTokenMetaData() *MetaData {
+	if m != nil {
+		return m.TokenMetaData
 	}
 	return nil
 }
@@ -116,35 +132,99 @@ func (m *ESDTRoles) GetRoles() [][]byte {
 	return nil
 }
 
+// MetaData hold the metadata structure for the ESDT token
+type MetaData struct {
+	Nonce      uint64 `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce"`
+	URI        []byte `protobuf:"bytes,2,opt,name=URI,proto3" json:"URI"`
+	Attributes []byte `protobuf:"bytes,3,opt,name=Attributes,proto3" json:"Attributes"`
+}
+
+func (m *MetaData) Reset()      { *m = MetaData{} }
+func (*MetaData) ProtoMessage() {}
+func (*MetaData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e413e402abc6a34c, []int{2}
+}
+func (m *MetaData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MetaData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *MetaData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MetaData.Merge(m, src)
+}
+func (m *MetaData) XXX_Size() int {
+	return m.Size()
+}
+func (m *MetaData) XXX_DiscardUnknown() {
+	xxx_messageInfo_MetaData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MetaData proto.InternalMessageInfo
+
+func (m *MetaData) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
+}
+
+func (m *MetaData) GetURI() []byte {
+	if m != nil {
+		return m.URI
+	}
+	return nil
+}
+
+func (m *MetaData) GetAttributes() []byte {
+	if m != nil {
+		return m.Attributes
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*ESDigitalToken)(nil), "protoBuiltInFunctions.ESDigitalToken")
 	proto.RegisterType((*ESDTRoles)(nil), "protoBuiltInFunctions.ESDTRoles")
+	proto.RegisterType((*MetaData)(nil), "protoBuiltInFunctions.MetaData")
 }
 
 func init() { proto.RegisterFile("esdt.proto", fileDescriptor_e413e402abc6a34c) }
 
 var fileDescriptor_e413e402abc6a34c = []byte{
-	// 317 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x90, 0x31, 0x4b, 0xc3, 0x40,
-	0x1c, 0xc5, 0x73, 0x6a, 0x85, 0x1e, 0xa5, 0x43, 0x40, 0x28, 0x0e, 0xff, 0x94, 0x4e, 0x1d, 0x6c,
-	0x32, 0x38, 0x0a, 0x82, 0xb1, 0x15, 0xba, 0x14, 0x49, 0x8b, 0x83, 0x5b, 0xd2, 0x9c, 0xd7, 0xa3,
-	0xe9, 0x5d, 0xb9, 0xfc, 0xa3, 0xab, 0x1f, 0xc1, 0x4f, 0x21, 0xe2, 0x27, 0x71, 0xec, 0xd8, 0xa9,
-	0xda, 0xeb, 0x22, 0x9d, 0xfa, 0x11, 0x24, 0x57, 0x90, 0x4e, 0xf7, 0x7f, 0x3f, 0x1e, 0xef, 0x1d,
-	0x8f, 0x52, 0x96, 0xa7, 0xe8, 0xcf, 0xb5, 0x42, 0xe5, 0x9e, 0xd9, 0x27, 0x2c, 0x44, 0x86, 0x7d,
-	0x79, 0x57, 0xc8, 0x31, 0x0a, 0x25, 0xf3, 0xf3, 0x0e, 0x17, 0x38, 0x29, 0x12, 0x7f, 0xac, 0x66,
-	0x01, 0x57, 0x5c, 0x05, 0xd6, 0x96, 0x14, 0x4f, 0x56, 0x59, 0x61, 0xaf, 0x7d, 0x4a, 0xeb, 0x9d,
-	0xd0, 0x7a, 0x6f, 0xd8, 0x15, 0x5c, 0x60, 0x9c, 0x8d, 0xd4, 0x94, 0x49, 0x37, 0xa5, 0x95, 0x87,
-	0x38, 0x2b, 0x58, 0x83, 0x34, 0x49, 0xbb, 0x16, 0x0e, 0xb6, 0x2b, 0xaf, 0xf2, 0x5c, 0x82, 0xcf,
-	0x6f, 0xef, 0x66, 0x16, 0xe3, 0x24, 0x48, 0x04, 0xf7, 0xfb, 0x12, 0xaf, 0x0e, 0xaa, 0x7a, 0x99,
-	0x56, 0x32, 0x1d, 0x30, 0x7c, 0x51, 0x7a, 0x1a, 0x30, 0xab, 0x3a, 0x5c, 0x05, 0x69, 0x8c, 0xb1,
-	0x1f, 0x0a, 0xde, 0x97, 0x78, 0x1b, 0xe7, 0xc8, 0x74, 0xb4, 0x0f, 0x77, 0x7d, 0x4a, 0xef, 0xb5,
-	0x9a, 0x33, 0x8d, 0x82, 0xe5, 0x8d, 0x23, 0x5b, 0x55, 0xdf, 0xae, 0x3c, 0x3a, 0xff, 0xa7, 0xd1,
-	0x81, 0xa3, 0x75, 0x41, 0xab, 0xbd, 0x61, 0x77, 0x14, 0xa9, 0x8c, 0xe5, 0xae, 0x47, 0x2b, 0xf6,
-	0x68, 0x90, 0xe6, 0x71, 0xbb, 0x16, 0x56, 0xcb, 0x2f, 0xea, 0x12, 0x44, 0x7b, 0x1e, 0x5e, 0x2f,
-	0xd6, 0xe0, 0x2c, 0xd7, 0xe0, 0xec, 0xd6, 0x40, 0x5e, 0x0d, 0x90, 0x0f, 0x03, 0xe4, 0xcb, 0x00,
-	0x59, 0x18, 0x20, 0x4b, 0x03, 0xe4, 0xc7, 0x00, 0xf9, 0x35, 0xe0, 0xec, 0x0c, 0x90, 0xb7, 0x0d,
-	0x38, 0x8b, 0x0d, 0x38, 0xcb, 0x0d, 0x38, 0x8f, 0x27, 0xe5, 0xc4, 0xc9, 0xa9, 0x5d, 0xe7, 0xf2,
-	0x2f, 0x00, 0x00, 0xff, 0xff, 0x44, 0x2c, 0xde, 0xf5, 0x71, 0x01, 0x00, 0x00,
+	// 424 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0x31, 0x6f, 0xd3, 0x40,
+	0x18, 0xf5, 0x35, 0x29, 0xb4, 0x47, 0xda, 0xc1, 0x12, 0x92, 0x41, 0xe8, 0x2e, 0xca, 0x94, 0x81,
+	0xda, 0x12, 0x8c, 0x48, 0x48, 0x35, 0x09, 0x52, 0x06, 0x22, 0x74, 0x09, 0x0c, 0x6c, 0xe7, 0xe4,
+	0x70, 0x4f, 0x75, 0xef, 0xa2, 0xf3, 0x67, 0x10, 0x1b, 0x3f, 0x81, 0x95, 0x7f, 0x80, 0xf8, 0x25,
+	0x8c, 0x19, 0x33, 0x19, 0x72, 0x59, 0x90, 0xa7, 0xfe, 0x04, 0xe4, 0x33, 0x05, 0x47, 0xea, 0x72,
+	0xdf, 0x7b, 0x4f, 0x4f, 0xcf, 0xdf, 0xf7, 0x64, 0x8c, 0x45, 0xbe, 0x84, 0x70, 0x65, 0x34, 0x68,
+	0xff, 0xbe, 0x1b, 0x71, 0x21, 0x33, 0x98, 0xa8, 0x97, 0x85, 0x5a, 0x80, 0xd4, 0x2a, 0x7f, 0x78,
+	0x96, 0x4a, 0xb8, 0x28, 0x92, 0x70, 0xa1, 0xaf, 0xa2, 0x54, 0xa7, 0x3a, 0x72, 0xb6, 0xa4, 0x78,
+	0xef, 0x98, 0x23, 0x0e, 0x35, 0x29, 0x83, 0xaf, 0x07, 0xf8, 0x74, 0x3c, 0x1b, 0xc9, 0x54, 0x02,
+	0xcf, 0xe6, 0xfa, 0x52, 0x28, 0xff, 0x11, 0xee, 0xce, 0x3f, 0xad, 0x44, 0x80, 0xfa, 0x68, 0x78,
+	0x12, 0x1f, 0x55, 0x25, 0x75, 0x9c, 0xb9, 0xd7, 0x5f, 0xe2, 0xc3, 0xb7, 0x3c, 0x2b, 0x44, 0x70,
+	0xd0, 0x47, 0xc3, 0x5e, 0x3c, 0xad, 0x4a, 0xda, 0x08, 0xdf, 0x7f, 0xd2, 0xf3, 0x2b, 0x0e, 0x17,
+	0x51, 0x22, 0xd3, 0x70, 0xa2, 0xe0, 0x59, 0x6b, 0x91, 0x71, 0x66, 0xb4, 0x5a, 0x4e, 0x05, 0x7c,
+	0xd4, 0xe6, 0x32, 0x12, 0x8e, 0x9d, 0xa5, 0x3a, 0x5a, 0x72, 0xe0, 0x61, 0x2c, 0xd3, 0x89, 0x82,
+	0x17, 0x3c, 0x07, 0x61, 0x58, 0x93, 0xe5, 0x87, 0x18, 0xbf, 0x36, 0x7a, 0x25, 0x0c, 0x48, 0x91,
+	0x07, 0x1d, 0xf7, 0xa9, 0xd3, 0xaa, 0xa4, 0x2d, 0x95, 0xb5, 0xb0, 0x3f, 0xc3, 0x27, 0x6e, 0xf9,
+	0x57, 0x02, 0xf8, 0x88, 0x03, 0x0f, 0xba, 0x7d, 0x34, 0xbc, 0xf7, 0x84, 0x86, 0xb7, 0x96, 0x14,
+	0xde, 0xd8, 0xe2, 0x5e, 0x55, 0xd2, 0xa3, 0x1b, 0xc6, 0xf6, 0x33, 0x06, 0x8f, 0xf1, 0xf1, 0x78,
+	0x36, 0x9a, 0x33, 0x9d, 0x89, 0xdc, 0xa7, 0xf8, 0xd0, 0x81, 0x00, 0xf5, 0x3b, 0xc3, 0x5e, 0x7c,
+	0x5c, 0xdf, 0x6d, 0x6a, 0x81, 0x35, 0xfa, 0xe0, 0x03, 0xfe, 0x17, 0x54, 0x9b, 0xa7, 0x5a, 0x2d,
+	0x9a, 0x0e, 0xbb, 0x8d, 0xd9, 0x09, 0xac, 0x19, 0xfe, 0x03, 0xdc, 0x79, 0xc3, 0x26, 0x7f, 0x3b,
+	0xbc, 0x5b, 0x95, 0xb4, 0xa6, 0xac, 0x7e, 0xea, 0xd3, 0xcf, 0x01, 0x8c, 0x4c, 0x0a, 0xd8, 0x3f,
+	0xfd, 0xbf, 0xca, 0x5a, 0x38, 0x7e, 0xbe, 0xde, 0x12, 0x6f, 0xb3, 0x25, 0xde, 0xf5, 0x96, 0xa0,
+	0xcf, 0x96, 0xa0, 0x6f, 0x96, 0xa0, 0x1f, 0x96, 0xa0, 0xb5, 0x25, 0x68, 0x63, 0x09, 0xfa, 0x65,
+	0x09, 0xfa, 0x6d, 0x89, 0x77, 0x6d, 0x09, 0xfa, 0xb2, 0x23, 0xde, 0x7a, 0x47, 0xbc, 0xcd, 0x8e,
+	0x78, 0xef, 0xba, 0xf5, 0xdf, 0x94, 0xdc, 0x71, 0x15, 0x3d, 0xfd, 0x13, 0x00, 0x00, 0xff, 0xff,
+	0x2d, 0xf5, 0xb3, 0xa2, 0x5c, 0x02, 0x00, 0x00,
 }
 
 func (this *ESDigitalToken) Equal(that interface{}) bool {
@@ -166,6 +246,9 @@ func (this *ESDigitalToken) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
+	if this.Type != that1.Type {
+		return false
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		if !__caster.Equal(this.Value, that1.Value) {
@@ -173,6 +256,9 @@ func (this *ESDigitalToken) Equal(that interface{}) bool {
 		}
 	}
 	if !bytes.Equal(this.Properties, that1.Properties) {
+		return false
+	}
+	if !this.TokenMetaData.Equal(that1.TokenMetaData) {
 		return false
 	}
 	return true
@@ -206,14 +292,48 @@ func (this *ESDTRoles) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *MetaData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*MetaData)
+	if !ok {
+		that2, ok := that.(MetaData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
+	if !bytes.Equal(this.URI, that1.URI) {
+		return false
+	}
+	if !bytes.Equal(this.Attributes, that1.Attributes) {
+		return false
+	}
+	return true
+}
 func (this *ESDigitalToken) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
+	s := make([]string, 0, 8)
 	s = append(s, "&esdt.ESDigitalToken{")
+	s = append(s, "Type: "+fmt.Sprintf("%#v", this.Type)+",\n")
 	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
 	s = append(s, "Properties: "+fmt.Sprintf("%#v", this.Properties)+",\n")
+	if this.TokenMetaData != nil {
+		s = append(s, "TokenMetaData: "+fmt.Sprintf("%#v", this.TokenMetaData)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -224,6 +344,18 @@ func (this *ESDTRoles) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&esdt.ESDTRoles{")
 	s = append(s, "Roles: "+fmt.Sprintf("%#v", this.Roles)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *MetaData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&esdt.MetaData{")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "URI: "+fmt.Sprintf("%#v", this.URI)+",\n")
+	s = append(s, "Attributes: "+fmt.Sprintf("%#v", this.Attributes)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -255,12 +387,24 @@ func (m *ESDigitalToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.TokenMetaData != nil {
+		{
+			size, err := m.TokenMetaData.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintEsdt(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.Properties) > 0 {
 		i -= len(m.Properties)
 		copy(dAtA[i:], m.Properties)
 		i = encodeVarintEsdt(dAtA, i, uint64(len(m.Properties)))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x1a
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -272,7 +416,12 @@ func (m *ESDigitalToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintEsdt(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0xa
+	dAtA[i] = 0x12
+	if m.Type != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -308,6 +457,48 @@ func (m *ESDTRoles) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *MetaData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MetaData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MetaData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Attributes) > 0 {
+		i -= len(m.Attributes)
+		copy(dAtA[i:], m.Attributes)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.Attributes)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.URI) > 0 {
+		i -= len(m.URI)
+		copy(dAtA[i:], m.URI)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.URI)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Nonce != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintEsdt(dAtA []byte, offset int, v uint64) int {
 	offset -= sovEsdt(v)
 	base := offset
@@ -325,6 +516,9 @@ func (m *ESDigitalToken) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.Type != 0 {
+		n += 1 + sovEsdt(uint64(m.Type))
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.Value)
@@ -332,6 +526,10 @@ func (m *ESDigitalToken) Size() (n int) {
 	}
 	l = len(m.Properties)
 	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	if m.TokenMetaData != nil {
+		l = m.TokenMetaData.Size()
 		n += 1 + l + sovEsdt(uint64(l))
 	}
 	return n
@@ -352,6 +550,26 @@ func (m *ESDTRoles) Size() (n int) {
 	return n
 }
 
+func (m *MetaData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Nonce != 0 {
+		n += 1 + sovEsdt(uint64(m.Nonce))
+	}
+	l = len(m.URI)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	l = len(m.Attributes)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	return n
+}
+
 func sovEsdt(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
@@ -363,8 +581,10 @@ func (this *ESDigitalToken) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&ESDigitalToken{`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
 		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
 		`Properties:` + fmt.Sprintf("%v", this.Properties) + `,`,
+		`TokenMetaData:` + strings.Replace(this.TokenMetaData.String(), "MetaData", "MetaData", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -375,6 +595,18 @@ func (this *ESDTRoles) String() string {
 	}
 	s := strings.Join([]string{`&ESDTRoles{`,
 		`Roles:` + fmt.Sprintf("%v", this.Roles) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *MetaData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&MetaData{`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`URI:` + fmt.Sprintf("%v", this.URI) + `,`,
+		`Attributes:` + fmt.Sprintf("%v", this.Attributes) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -417,6 +649,25 @@ func (m *ESDigitalToken) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
@@ -454,7 +705,7 @@ func (m *ESDigitalToken) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Properties", wireType)
 			}
@@ -486,6 +737,42 @@ func (m *ESDigitalToken) Unmarshal(dAtA []byte) error {
 			m.Properties = append(m.Properties[:0], dAtA[iNdEx:postIndex]...)
 			if m.Properties == nil {
 				m.Properties = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TokenMetaData", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.TokenMetaData == nil {
+				m.TokenMetaData = &MetaData{}
+			}
+			if err := m.TokenMetaData.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:
@@ -572,6 +859,146 @@ func (m *ESDTRoles) Unmarshal(dAtA []byte) error {
 			}
 			m.Roles = append(m.Roles, make([]byte, postIndex-iNdEx))
 			copy(m.Roles[len(m.Roles)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEsdt(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MetaData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEsdt
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MetaData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MetaData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field URI", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.URI = append(m.URI[:0], dAtA[iNdEx:postIndex]...)
+			if m.URI == nil {
+				m.URI = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Attributes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Attributes = append(m.Attributes[:0], dAtA[iNdEx:postIndex]...)
+			if m.Attributes == nil {
+				m.Attributes = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
