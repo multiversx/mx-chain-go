@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -549,8 +548,6 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.SetLogLevel("*:NONE")
 
 	numOfShards := 1
 	nodesPerShard := 1
