@@ -46,7 +46,6 @@ type delegation struct {
 	minServiceFee          uint64
 	maxServiceFee          uint64
 	unBondPeriod           uint64
-	minDelegationAmount    *big.Int
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
@@ -119,10 +118,6 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	var okValue bool
-	d.minDelegationAmount, okValue = big.NewInt(0).SetString(args.DelegationSCConfig.MinStakeAmount, conversionBase)
-	if !okValue || d.minDelegationAmount.Cmp(zero) <= 0 {
-		return nil, vm.ErrInvalidMinStakeValue
-	}
 
 	d.unJailPrice, okValue = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
 	if !okValue || d.unJailPrice.Cmp(zero) <= 0 {
@@ -1100,11 +1095,17 @@ func (d *delegation) finishDelegateUser(
 }
 
 func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(d.minDelegationAmount) < 0 {
-		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + d.minDelegationAmount.String())
+	minDelegationAmount, err := d.getMinDelegationAmount()
+	if err != nil {
+		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
 	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+
+	if args.CallValue.Cmp(minDelegationAmount) < 0 {
+		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + minDelegationAmount.String())
+		return vmcommon.UserError
+	}
+	err = d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -1195,7 +1196,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 	valueToUnDelegate := big.NewInt(0).SetBytes(args.Arguments[0])
-	if valueToUnDelegate.Cmp(d.minDelegationAmount) < 0 {
+	if valueToUnDelegate.Cmp(zero) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
 		return vmcommon.UserError
 	}
@@ -1220,8 +1221,14 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	minDelegationAmount, err := d.getMinDelegationAmount()
+	if err != nil {
+		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
+		return vmcommon.UserError
+	}
+
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
-	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(d.minDelegationAmount) < 0 {
+	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
@@ -2430,6 +2437,21 @@ func (d *delegation) getMinDeposit() (*big.Int, error) {
 	}
 
 	return managementData.MinDeposit, nil
+}
+
+func (d *delegation) getMinDelegationAmount() (*big.Int, error) {
+	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
+	if len(marshaledData) == 0 {
+		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	}
+
+	managementData := &DelegationManagement{}
+	err := d.marshalizer.Unmarshal(managementData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return managementData.MinDelegationAmount, nil
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

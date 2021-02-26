@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -233,6 +235,11 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 }
 
 func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartContract, error) {
+	configChangeAddres, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+	}
+
 	argsDelegationManager := systemSmartContracts.ArgsNewDelegationManager{
 		DelegationMgrSCConfig:  scf.systemSCConfig.DelegationManagerSystemSCConfig,
 		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
@@ -240,6 +247,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		ConfigChangeAddress:    configChangeAddres,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,

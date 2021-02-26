@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
@@ -55,15 +56,16 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "10",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  10000,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 10000,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "10",
-				MinCreationDeposit: "10",
-				EnabledEpoch:       0,
+				BaseIssuingCost:     "10",
+				MinCreationDeposit:  "10",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "10",
+				ConfigChangeAddress: "aabb00",
 			},
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -125,6 +127,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
+	require.NotNil(t, container)
 	assert.Equal(t, 6, container.Len())
 }
 

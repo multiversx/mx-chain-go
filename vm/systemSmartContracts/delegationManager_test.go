@@ -17,21 +17,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var configChangeAddress = []byte("config change address")
+
 func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 	return ArgsNewDelegationManager{
 		DelegationSCConfig: config.DelegationSystemSCConfig{
-			MinStakeAmount: "10",
-			MinServiceFee:  5,
-			MaxServiceFee:  150,
+			MinServiceFee: 5,
+			MaxServiceFee: 150,
 		},
 		DelegationMgrSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit: "10",
 			BaseIssuingCost:    "10",
+			MinStakeAmount:     "10",
 		},
 		Eei:                    &mock.SystemEIStub{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		ConfigChangeAddress:    configChangeAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -315,7 +318,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 
 	argsValidator := createMockArgumentsForValidatorSC()
 	argsValidator.Eei = eei
-	validatorSC, _ := NewValidatorSmartContract(argsValidator)
+	validatorSc, _ := NewValidatorSmartContract(argsValidator)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
 	delegationSCArgs.Eei = eei
@@ -327,7 +330,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 			case string(vm.StakingSCAddress):
 				return stakingSc, nil
 			case string(vm.ValidatorSCAddress):
-				return validatorSC, nil
+				return validatorSc, nil
 			case string(vm.FirstDelegationSCAddress):
 				return delegationSc, nil
 			}
@@ -478,7 +481,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeBaseIssuingCostUserErrors(t *tes
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
 
-	vmInput.CallerAddr = dm.delegationMgrSCAddress
+	vmInput.CallerAddr = configChangeAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
@@ -500,7 +503,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeBaseIssuingCost(t *testing.T) {
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("changeBaseIssuingCost", [][]byte{{25}})
-	vmInput.CallerAddr = dm.delegationMgrSCAddress
+	vmInput.CallerAddr = configChangeAddress
 	_ = dm.saveDelegationManagementData(&DelegationManagement{BaseIssueingCost: big.NewInt(0)})
 
 	output := dm.Execute(vmInput)
@@ -541,7 +544,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
 
-	vmInput.CallerAddr = dm.delegationMgrSCAddress
+	vmInput.CallerAddr = configChangeAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
@@ -563,7 +566,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 
 	dm, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("changeMinDeposit", [][]byte{{25}})
-	vmInput.CallerAddr = dm.delegationMgrSCAddress
+	vmInput.CallerAddr = configChangeAddress
 	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDeposit: big.NewInt(0)})
 
 	output := dm.Execute(vmInput)
