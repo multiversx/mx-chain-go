@@ -53,6 +53,43 @@ func CreateAccountWithESDTBalance(
 	require.Nil(t, err)
 }
 
+// CreateAccountWithESDTBalanceAndRoles -
+func CreateAccountWithESDTBalanceAndRoles(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	pubKey []byte,
+	egldValue *big.Int,
+	tokenIdentifier []byte,
+	esdtValue *big.Int,
+	roles [][]byte,
+) {
+	CreateAccountWithESDTBalance(t, accnts, pubKey, egldValue, tokenIdentifier, esdtValue)
+
+	rolesData := &esdt.ESDTRoles{
+		Roles: roles,
+	}
+
+	rolesDataBytes, err := protoMarshalizer.Marshal(rolesData)
+	require.Nil(t, err)
+
+	account, err := accnts.LoadAccount(pubKey)
+	require.Nil(t, err)
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	key := append([]byte(core.ElrondProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
+	key = append(key, []byte(core.ElrondProtectedKeyPrefix+core.ESDTKeyIdentifier+string(tokenIdentifier))...)
+	err = userAccount.DataTrieTracker().SaveKeyValue(key, rolesDataBytes)
+	require.Nil(t, err)
+
+	err = accnts.SaveAccount(account)
+	require.Nil(t, err)
+
+	_, err = accnts.Commit()
+	require.Nil(t, err)
+}
+
 // CreateESDTTransferTx -
 func CreateESDTTransferTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
 	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
@@ -90,4 +127,38 @@ func CheckESDTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, 
 	require.Nil(t, err)
 
 	require.Equal(t, expectedBalance, esdtToken.Value)
+}
+
+// CreateESDTLocalBurnTx -
+func CreateESDTLocalBurnTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	esdtValueEncoded := hex.EncodeToString(esdtValue.Bytes())
+	txDataField := bytes.Join([][]byte{[]byte(core.BuiltInFunctionESDTLocalBurn), []byte(hexEncodedToken), []byte(esdtValueEncoded)}, []byte("@"))
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
+}
+
+// CreateESDTLocalMintTx -
+func CreateESDTLocalMintTx(nonce uint64, sndAddr, rcvAddr []byte, tokenIdentifier []byte, esdtValue *big.Int, gasPrice, gasLimit uint64) *transaction.Transaction {
+	hexEncodedToken := hex.EncodeToString(tokenIdentifier)
+	esdtValueEncoded := hex.EncodeToString(esdtValue.Bytes())
+	txDataField := bytes.Join([][]byte{[]byte(core.BuiltInFunctionESDTLocalMint), []byte(hexEncodedToken), []byte(esdtValueEncoded)}, []byte("@"))
+
+	return &transaction.Transaction{
+		Nonce:    nonce,
+		SndAddr:  sndAddr,
+		RcvAddr:  rcvAddr,
+		GasLimit: gasLimit,
+		GasPrice: gasPrice,
+		Data:     txDataField,
+		Value:    big.NewInt(0),
+	}
 }
