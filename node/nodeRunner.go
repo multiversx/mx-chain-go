@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
@@ -234,6 +235,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
+
 		)
 		if err != nil {
 			return err
@@ -273,7 +275,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedProcessComponents,
 			managedConsensusComponents.HardforkTrigger(),
-			nr.NodeRedundancyHandler,
+			managedProcessComponents.NodeRedundancyHandler(),
 		)
 
 		if err != nil {
@@ -495,7 +497,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	hardforkTrigger HardforkTrigger,
-	redundancyHandler NodeRedundancyHandler,
+	redundancyHandler consensus.NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(managedCoreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
@@ -785,6 +787,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                    *configs.GeneralConfig,
+		PrefConfigs:               configs.PreferencesConfig.Preferences,
 		ImportDBConfig:            *configs.ImportDbConfig,
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,

@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -47,21 +47,21 @@ func (ni *NilIndexer) IsNilIndexer() bool {
 }
 
 // RevertIndexedBlock -
-func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler){
+func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 
 }
 
 // SaveAccounts -
-func (ni *NilIndexer) SaveAccounts(_ []state.UserAccountHandler){
+func (ni *NilIndexer) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 
 }
 
 // Close -
-func (ni *NilIndexer) Close() error{
+func (ni *NilIndexer) Close() error {
 	return nil
 }
 
 // SaveRoundsInfo -
-func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo){
+func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo) {
 
 }

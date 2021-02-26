@@ -465,6 +465,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
+
 	}
 }
 

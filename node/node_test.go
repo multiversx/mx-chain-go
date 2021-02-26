@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -33,7 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -268,12 +267,17 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 		return acc, nil
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
@@ -299,12 +303,17 @@ func TestNode_GetValueForKey(t *testing.T) {
 		return acc, nil
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
@@ -964,7 +973,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return version
 	}
-	coreComponents.EconomicsHandler = &economicsMocks.EconomicsHandlerMock{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -2680,25 +2689,36 @@ func TestNode_ShouldWork(t *testing.T) {
 func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T) {
 	t.Parallel()
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(3)
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = bootstrapComponents.ShCoordinator
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithAddressPubkeyConverter(mock.NewPubkeyConverterMock(3)),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 10),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithTxSignMarshalizer(&mock.MarshalizerFake{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
-				return nil, nil
-			},
-		}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
-		node.WithChainID([]byte("a")),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(0)),
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 
 	tx := &transaction.Transaction{
@@ -2717,48 +2737,3 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 	require.NoError(t, err)
 }
 
-// TODO remove or move this when integrating with soft-restart branch
-func TestNode_StartHeartbeat(t *testing.T) {
-	t.Parallel()
-
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 2,
-		MaxTimeToWaitBetweenBroadcastsInSec: 3,
-		DurationToConsiderUnresponsiveInSec: 10,
-		HeartbeatRefreshIntervalInSec:       1,
-		HideInactiveValidatorIntervalInSec:  20,
-	}
-
-	prefsConfig := config.PreferencesConfig{
-		DestinationShardAsObserver: "0",
-		NodeDisplayName:            "node name",
-		Identity:                   "identity",
-	}
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 100),
-		node.WithMessenger(&mock.MessengerStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithAppStatusHandler(&mock.AppStatusHandlerStub{}),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
-		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithValidatorPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithGenesisTime(time.Now()),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithBlockChain(&mock.BlockChainMock{}),
-		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
-	)
-
-	err := n.StartHeartbeat(hbConfig, "1.0", prefsConfig)
-	assert.Nil(t, err)
-
-	time.Sleep(time.Second)
-}

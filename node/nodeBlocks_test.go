@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -433,7 +433,7 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		Alarm:               &testscommon.AlarmSchedulerStub{},
 		NtpTimer:            &testscommon.SyncTimerStub{},
 		RoundHandlerField:   &testscommon.RoundHandlerMock{},
-		EconomicsHandler:    &economicsMocks.EconomicsHandlerMock{},
+		EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:       &testscommon.RatingsInfoMock{},
 		RatingHandler:       &testscommon.RaterMock{},
 		NodesConfig:         &testscommon.NodesSetupStub{},

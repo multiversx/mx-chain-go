@@ -14,9 +14,11 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -469,7 +472,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx, n.whiteListerVerifiedTxs, n.whiteListRequest, true)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), true)
 	if err != nil {
 		return err
 	}
@@ -503,7 +506,7 @@ func (n *Node) commonTransactionValidation(
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
-		n.processComponents.WhiteListHandler(),
+		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -521,7 +524,7 @@ func (n *Node) commonTransactionValidation(
 	currentEpoch := n.coreComponents.EpochNotifier().CurrentEpoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
-	txSingleSigner := n.txSingleSigner
+	txSingleSigner := n.cryptoComponents.TxSingleSigner()
 	if !checkSignature {
 		txSingleSigner = &disabledSig.DisabledSingleSig{}
 	}
@@ -533,11 +536,11 @@ func (n *Node) commonTransactionValidation(
 		n.coreComponents.TxMarshalizer(),
 		n.coreComponents.Hasher(),
 		n.cryptoComponents.TxSignKeyGen(),
-		n.cryptoComponents.TxSingleSigner(),
+		txSingleSigner,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
 		n.coreComponents.EconomicsData(),
-		n.processComponents.WhiteListerVerifiedTxs(),
+		whiteListerVerifiedTxs,
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
 		enableSignWithTxHash,

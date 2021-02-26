@@ -5,8 +5,6 @@ import (
 	"os"
 	"runtime"
 
-	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"

@@ -84,7 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -2621,7 +2621,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
 		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsMocks.EconomicsHandlerMock{},
+		EconomicsDataField:     &economicsmocks.EconomicsHandlerMock{},
 		RatingsDataField:       &testscommon.RatingsInfoMock{},
 		RaterField:             &testscommon.RaterMock{},
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},

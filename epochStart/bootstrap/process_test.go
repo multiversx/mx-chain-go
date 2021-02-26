@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -138,7 +138,7 @@ func createMockEpochStartBootstrapArgs(
 				MaxHardCapForMissingNodes: 500,
 			},
 		},
-		EconomicsData:              &economicsMocks.EconomicsHandlerStub{},
+		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
@@ -191,7 +191,8 @@ func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
 func TestNewEpochStartBootstrap_InvalidMaxHardCapForMissingNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes = 0
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
@@ -202,7 +203,8 @@ func TestNewEpochStartBootstrap_InvalidMaxHardCapForMissingNodesShouldErr(t *tes
 func TestNewEpochStartBootstrap_InvalidNumConcurrentTrieSyncersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers = 0
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)

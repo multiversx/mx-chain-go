@@ -351,7 +351,7 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	workerArgs.NodeRedundancyHandler = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
