@@ -649,7 +649,8 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
+	tokenIssuerBalance := initialSupply - valueToSendToSc
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, tokenIssuerBalance)
 	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc/2)
 	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc/2)
 
@@ -666,7 +667,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, tokenIssuerBalance)
 	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc*3/4)
 	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc/4)
 
@@ -683,9 +684,25 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(5 * time.Second)
 
-	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc-250)
-	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, 750)
-	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, 500)
+	tokenIssuerBalance -= valueToTransferWithExecSc
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, tokenIssuerBalance)
+	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc*3/4)
+	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc/2)
+
+	//// call first sc to ask the second one to execute a method that transfers ESDT twice, with execution
+	valueToTransferWithExecSc = valueToSendToSc / 10
+	txData.New().TransferESDT(tokenIdentifier, valueToTransferWithExecSc)
+	txData.Str("forward_transf_exec_twice").Bytes(vault).Str("accept_funds")
+
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.String(), integrationTests.AdditionalGasLimit)
+	time.Sleep(5 * time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	time.Sleep(5 * time.Second)
+
+	tokenIssuerBalance -= valueToTransferWithExecSc
+	checkAddressHasESDTTokensInt64(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, tokenIssuerBalance)
+	checkAddressHasESDTTokensInt64(t, forwarder, nodes, tokenIdentifier, valueToSendToSc*3/4)
+	checkAddressHasESDTTokensInt64(t, vault, nodes, tokenIdentifier, valueToSendToSc/2+valueToTransferWithExecSc)
 }
 
 func TestCallbackPaymentEgld(t *testing.T) {
