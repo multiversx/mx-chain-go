@@ -11,7 +11,8 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -stake-type $GENESIS_STAKE_TYPE
+    -stake-type $GENESIS_STAKE_TYPE \
+    -hysteresis $HYSTERESIS
   popd
 }
 
@@ -101,6 +102,7 @@ updateNodeConfig() {
 copyProxyConfig() {
   pushd $TESTNETDIR
 
+  cp -r $PROXYDIR/config/apiConfig ./proxy/config/
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/

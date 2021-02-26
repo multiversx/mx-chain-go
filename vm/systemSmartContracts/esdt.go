@@ -37,6 +37,7 @@ const canPause = "canPause"
 const canFreeze = "canFreeze"
 const canWipe = "canWipe"
 const canChangeOwner = "canChangeOwner"
+const canAddSpecialRoles = "canAddSpecialRoles"
 const upgradable = "canUpgrade"
 
 const conversionBase = 10
@@ -156,6 +157,12 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.getAllESDTTokens(args)
 	case "getTokenProperties":
 		return e.getTokenProperties(args)
+	case "setSpecialRole":
+		return e.setSpecialRole(args)
+	case "unSetSpecialRole":
+		return e.unSetSpecialRole(args)
+	case "getAllAddressesAndRoles":
+		return e.getAllAddressesAndRoles(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -353,6 +360,8 @@ func upgradeProperties(token *ESDTData, args [][]byte) error {
 			token.Upgradable = val
 		case canChangeOwner:
 			token.CanChangeOwner = val
+		case canAddSpecialRoles:
+			token.CanAddSpecialRoles = val
 		default:
 			return vm.ErrInvalidArgument
 		}
@@ -701,6 +710,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish([]byte("CanPause-" + getStringFromBool(esdtToken.CanPause)))
 	e.eei.Finish([]byte("CanFreeze-" + getStringFromBool(esdtToken.CanFreeze)))
 	e.eei.Finish([]byte("CanWipe-" + getStringFromBool(esdtToken.CanWipe)))
+	e.eei.Finish([]byte("CanAddSpecialRoles-" + getStringFromBool(esdtToken.CanAddSpecialRoles)))
 
 	return vmcommon.Ok
 }
@@ -793,6 +803,210 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) checkArgumentsForSpecialRoleChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 3 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("first argument must be an address")
+		return vmcommon.FunctionWrongSignature
+	}
+	err := validateRoles(args.Arguments[2:])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkArgumentsForSpecialRoleChanges(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	address := args.Arguments[1]
+	esdtRole, isNew := getRolesForAddress(token, address)
+	if isNew {
+		esdtRole.Roles = append(esdtRole.Roles, args.Arguments[2:]...)
+		token.SpecialRoles = append(token.SpecialRoles, esdtRole)
+	} else {
+		for _, arg := range args.Arguments[2:] {
+			index := getRoleIndex(esdtRole, arg)
+			if index >= 0 {
+				e.eei.AddReturnMessage("special role already exists for given address")
+				return vmcommon.UserError
+			}
+
+			esdtRole.Roles = append(esdtRole.Roles, arg)
+		}
+	}
+
+	err := e.sendRoleChangeData(args, core.BuiltInFunctionSetESDTRole)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkArgumentsForSpecialRoleChanges(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	address := args.Arguments[1]
+	esdtRole, isNew := getRolesForAddress(token, address)
+	if isNew {
+		e.eei.AddReturnMessage("address does not have special role")
+		return vmcommon.UserError
+	}
+
+	for _, arg := range args.Arguments[2:] {
+		index := getRoleIndex(esdtRole, arg)
+		if index < 0 {
+			e.eei.AddReturnMessage("special role does not exist for address")
+			return vmcommon.UserError
+		}
+
+		copy(esdtRole.Roles[index:], esdtRole.Roles[index+1:])
+		esdtRole.Roles[len(esdtRole.Roles)-1] = nil
+		esdtRole.Roles = esdtRole.Roles[:len(esdtRole.Roles)-1]
+	}
+
+	err := e.sendRoleChangeData(args, core.BuiltInFunctionUnSetESDTRole)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) sendRoleChangeData(args *vmcommon.ContractCallInput, builtInFunc string) error {
+	esdtSetRoleData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
+	for _, arg := range args.Arguments[2:] {
+		esdtSetRoleData += "@" + hex.EncodeToString(arg)
+	}
+
+	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
+	return err
+}
+
+func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("needs 1 argument")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+
+	token, err := e.getExistingToken(args.Arguments[0])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, esdtRole := range token.SpecialRoles {
+		e.eei.Finish(esdtRole.Address)
+		for _, role := range esdtRole.Roles {
+			e.eei.Finish(role)
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+func checkDuplicates(arguments [][]byte) error {
+	mapArgs := make(map[string]struct{})
+	for _, arg := range arguments {
+		_, found := mapArgs[string(arg)]
+		if !found {
+			mapArgs[string(arg)] = struct{}{}
+			continue
+		}
+		return vm.ErrDuplicatesFoundInArguments
+	}
+
+	return nil
+}
+
+func validateRoles(arguments [][]byte) error {
+	err := checkDuplicates(arguments)
+	if err != nil {
+		return err
+	}
+
+	for _, arg := range arguments {
+		err = isSpecialRoleValid(string(arg))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func isSpecialRoleValid(argument string) error {
+	switch argument {
+	case core.ESDTRoleLocalMint:
+		return nil
+	case core.ESDTRoleLocalBurn:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func getRoleIndex(esdtRoles *ESDTRoles, role []byte) int {
+	for i, currentRole := range esdtRoles.Roles {
+		if bytes.Equal(currentRole, role) {
+			return i
+		}
+	}
+	return -1
+}
+
+func getRolesForAddress(token *ESDTData, address []byte) (*ESDTRoles, bool) {
+	for _, esdtRole := range token.SpecialRoles {
+		if bytes.Equal(address, esdtRole.Address) {
+			return esdtRole, false
+		}
+	}
+
+	esdtRole := &ESDTRoles{
+		Address: address,
+	}
+	return esdtRole, true
 }
 
 func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {

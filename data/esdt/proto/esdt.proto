@@ -13,3 +13,8 @@ message ESDigitalToken {
 	bytes Value      = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes Properties = 2 [(gogoproto.jsontag) = "properties"];
 }
+
+// ESDTRoles holds the roles for a given token and the given address
+message ESDTRoles {
+	repeated bytes Roles = 1 [(gogoproto.jsontag) = "roles"];
+}

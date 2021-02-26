@@ -893,6 +893,9 @@ var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
 // ErrNilPauseHandler signals that nil pause handler has been provided
 var ErrNilPauseHandler = errors.New("nil pause handler")
 
+// ErrNilRolesHandler signals that nil roles handler has been provided
+var ErrNilRolesHandler = errors.New("nil roles handler")
+
 // ErrESDTTokenIsPaused signals that esdt token is paused
 var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 
@@ -946,3 +949,6 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
+
+// ErrActionNotAllowed signals that action is not allowed
+var ErrActionNotAllowed = errors.New("action is not allowed")

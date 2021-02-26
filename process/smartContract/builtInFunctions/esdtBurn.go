@@ -62,11 +62,9 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	if vmInput == nil {
-		return nil, process.ErrNilVmInput
-	}
-	if vmInput.CallValue.Cmp(zero) != 0 {
-		return nil, process.ErrBuiltInFunctionCalledWithValue
+	err := checkBasicESDTArguments(vmInput)
+	if err != nil {
+		return nil, err
 	}
 	if len(vmInput.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
@@ -89,7 +87,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 		return nil, process.ErrNotEnoughGas
 	}
 
-	err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}

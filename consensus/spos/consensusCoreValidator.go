@@ -61,6 +61,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.FallbackHeaderValidator()) {
 		return ErrNilFallbackHeaderValidator
 	}
+	if check.IfNil(container.NodeRedundancyHandler()) {
+		return ErrNilNodeRedundancyHandler
+	}
 
 	return nil
 }
