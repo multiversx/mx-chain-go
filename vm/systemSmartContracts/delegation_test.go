@@ -2702,6 +2702,7 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
 	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(155), delegatorData.TotalCumulatedRewards.Uint64())
 
 	activeFund, _ := d.getFund(delegatorData.ActiveFund)
 	assert.Equal(t, big.NewInt(155+1000), activeFund.Value)
