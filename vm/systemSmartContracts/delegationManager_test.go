@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var configChangeAddress = []byte("config change address")
@@ -105,6 +107,18 @@ func TestNewDelegationManagerSystemSC_InvalidDelegationManagerSCAddressShouldErr
 	assert.Equal(t, expectedErr, err)
 }
 
+func TestNewDelegationManagerSystemSC_InvalidConfigChangeAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	args.ConfigChangeAddress = nil
+
+	dm, err := NewDelegationManagerSystemSC(args)
+	assert.Nil(t, dm)
+	expectedErr := fmt.Errorf("%w for config change address", vm.ErrInvalidAddress)
+	assert.Equal(t, expectedErr, err)
+}
+
 func TestNewDelegationManagerSystemSC_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -147,6 +161,17 @@ func TestNewDelegationManagerSystemSC_InvalidMinCreationDepositShouldErr(t *test
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
 	assert.Equal(t, vm.ErrInvalidMinCreationDeposit, err)
+}
+
+func TestNewDelegationManagerSystemSC_InvalidMinStakeAmountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	args.DelegationMgrSCConfig.MinStakeAmount = "-10"
+
+	dm, err := NewDelegationManagerSystemSC(args)
+	assert.Nil(t, dm)
+	assert.Equal(t, vm.ErrInvalidMinStakeValue, err)
 }
 
 func TestNewDelegationManagerSystemSC(t *testing.T) {
@@ -576,6 +601,112 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 	assert.Equal(t, big.NewInt(25), dManagementData.MinDeposit)
 }
 
+func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput.CallValue = big.NewInt(10)
+
+	output := dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
+
+	vmInput.CallValue = big.NewInt(0)
+	output = dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
+
+	vmInput.Arguments = [][]byte{{25}}
+	output = dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
+
+	vmInput.CallerAddr = configChangeAddress
+	output = dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+
+	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: big.NewInt(25)})
+	vmInput.Arguments = [][]byte{{0}}
+	output = dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid min delegation amount"))
+}
+
+func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput.Arguments = [][]byte{{25}}
+	vmInput.CallerAddr = configChangeAddress
+
+	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: big.NewInt(25)})
+	dm.marshalizer = &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return nil
+		},
+	}
+	output := dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+}
+
+func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
+	t.Parallel()
+
+	newMinDelegationAmount := big.NewInt(224)
+	existingMinDelegationAmount := big.NewInt(25)
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
+	vmInput.Arguments = [][]byte{newMinDelegationAmount.Bytes()}
+	vmInput.CallerAddr = configChangeAddress
+
+	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: existingMinDelegationAmount})
+	output := dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	recovered, err := dm.getDelegationManagementData()
+	require.Nil(t, err)
+	assert.Equal(t, newMinDelegationAmount, recovered.MinDelegationAmount)
+}
+
 func TestCreateNewAddress_NextAddressShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -612,4 +743,75 @@ func TestCreateNewAddress_NextAddressShouldWork(t *testing.T) {
 		assert.Equal(t, test.expectedNextAddress, nextAddress,
 			fmt.Sprintf("expected: %v, got %d", test.expectedNextAddress, nextAddress))
 	}
+}
+
+func TestDelegationManager_GetContractConfigErrors(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("getContractConfig", [][]byte{})
+	vmInput.CallerAddr = []byte("not the correct caller")
+	output := dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
+
+	//missing data
+	vmInput.CallerAddr = vm.DelegationManagerSCAddress
+	output = dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+}
+
+func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+
+	dm, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("getContractConfig", [][]byte{})
+
+	delegationManagement := &DelegationManagement{
+		NumOfContracts:      123,
+		LastAddress:         []byte("last address"),
+		MinServiceFee:       456,
+		MaxServiceFee:       789,
+		BaseIssueingCost:    big.NewInt(112233),
+		MinDeposit:          big.NewInt(445566),
+		MinDelegationAmount: big.NewInt(778899),
+	}
+
+	_ = dm.saveDelegationManagementData(delegationManagement)
+
+	vmInput.CallerAddr = vm.DelegationManagerSCAddress
+	output := dm.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	results := eei.CreateVMOutput()
+	//this test also verify the position in results.ReturnData
+	assert.Equal(t, big.NewInt(int64(delegationManagement.NumOfContracts)).Bytes(), results.ReturnData[0])
+	assert.Equal(t, delegationManagement.LastAddress, results.ReturnData[1])
+	assert.Equal(t, big.NewInt(int64(delegationManagement.MinServiceFee)).Bytes(), results.ReturnData[2])
+	assert.Equal(t, big.NewInt(int64(delegationManagement.MaxServiceFee)).Bytes(), results.ReturnData[3])
+	assert.Equal(t, delegationManagement.BaseIssueingCost.Bytes(), results.ReturnData[4])
+	assert.Equal(t, delegationManagement.MinDeposit.Bytes(), results.ReturnData[5])
+	assert.Equal(t, delegationManagement.MinDelegationAmount.Bytes(), results.ReturnData[6])
 }

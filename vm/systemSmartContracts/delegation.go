@@ -1095,11 +1095,13 @@ func (d *delegation) finishDelegateUser(
 }
 
 func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	minDelegationAmount, err := d.getMinDelegationAmount()
+	delegationManagement, err := d.getDelegationManagement()
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
 	}
+
+	minDelegationAmount := delegationManagement.MinDelegationAmount
 
 	if args.CallValue.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + minDelegationAmount.String())
@@ -1196,7 +1198,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 	valueToUnDelegate := big.NewInt(0).SetBytes(args.Arguments[0])
-	if valueToUnDelegate.Cmp(zero) < 0 {
+	if valueToUnDelegate.Cmp(zero) <= 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
 		return vmcommon.UserError
 	}
@@ -1221,11 +1223,13 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	minDelegationAmount, err := d.getMinDelegationAmount()
+	delegationManagement, err := d.getDelegationManagement()
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
 	}
+
+	minDelegationAmount := delegationManagement.MinDelegationAmount
 
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
 	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
@@ -2407,10 +2411,12 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 		return vm.ErrNotEnoughInitialOwnerFunds
 	}
 
-	minDeposit, err := d.getMinDeposit()
+	delegationManagement, err := d.getDelegationManagement()
 	if err != nil {
 		return err
 	}
+
+	minDeposit := delegationManagement.MinDeposit
 	if callValue.Cmp(minDeposit) < 0 {
 		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
 	}
@@ -2424,7 +2430,7 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	return nil
 }
 
-func (d *delegation) getMinDeposit() (*big.Int, error) {
+func (d *delegation) getDelegationManagement() (*DelegationManagement, error) {
 	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
 	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
@@ -2436,22 +2442,7 @@ func (d *delegation) getMinDeposit() (*big.Int, error) {
 		return nil, err
 	}
 
-	return managementData.MinDeposit, nil
-}
-
-func (d *delegation) getMinDelegationAmount() (*big.Int, error) {
-	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
-	if len(marshaledData) == 0 {
-		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	}
-
-	managementData := &DelegationManagement{}
-	err := d.marshalizer.Unmarshal(managementData, marshaledData)
-	if err != nil {
-		return nil, err
-	}
-
-	return managementData.MinDelegationAmount, nil
+	return managementData, nil
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

@@ -333,7 +333,7 @@ func (d *delegationManager) changeMinDelegationAmount(args *vmcommon.ContractCal
 	}
 
 	minDelegationAmount := big.NewInt(0).SetBytes(args.Arguments[0])
-	if minDelegationAmount.Cmp(zero) < 0 {
+	if minDelegationAmount.Cmp(zero) <= 0 {
 		d.eei.AddReturnMessage("invalid min delegation amount")
 		return vmcommon.UserError
 	}
