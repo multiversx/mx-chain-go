@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
@@ -158,6 +160,57 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-4], "staked")
+}
+
+func TestDelegationChangeConfig(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(1000)
+	numDelegators := 4
+	initialDelegationValue := int64(100)
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+
+	// 4 delegators fill the delegation cap
+	delegators := getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(initialDelegationValue))
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(initialDelegationValue))
+
+	// increase the min delegation stake value
+	newMinDelegationAmount := big.NewInt(101)
+	changeAddress, err := integrationTests.TestAddressPubkeyConverter.Decode(integrationTests.DelegationManagerConfigChangeAddress)
+	require.Nil(t, err)
+	txData := fmt.Sprintf("changeMinDelegationAmount@%s", hex.EncodeToString(newMinDelegationAmount.Bytes()))
+	retCode, err := processTransaction(tpn, changeAddress, vm.DelegationManagerSCAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	//check that the min delegation amount has the correct value
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.DelegationManagerSCAddress,
+		FuncName:   "getContractConfig",
+		CallerAddr: vm.DelegationManagerSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  make([][]byte, 0),
+	}
+	vmOutput, err := tpn.SCQueryService.ExecuteQuery(scQuery)
+	require.Nil(t, err)
+	assert.Equal(t, newMinDelegationAmount.Bytes(), vmOutput.ReturnData[6])
+
+	//try delegate with initialDelegationValue, should fail
+	newDelegator := getAddresses(1)[0]
+	retCode, err = processTransaction(tpn, newDelegator, delegationScAddress, "delegate", big.NewInt(initialDelegationValue))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	//try delegate with the new value
+	delegators = getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", newMinDelegationAmount)
 }
 
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
