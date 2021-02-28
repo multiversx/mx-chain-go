@@ -168,6 +168,10 @@ var SoftwareVersion = []byte("intT")
 
 var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
+// DelegationManagerConfigChangeAddress represents the address that can change the config parameters of the
+// delegation manager system smartcontract
+var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"
+
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
@@ -786,15 +790,15 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					MinUnstakeTokensValue:                "1",
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					BaseIssuingCost:    "100",
-					MinCreationDeposit: "100",
-					EnabledEpoch:       0,
+					MinCreationDeposit:  "100",
+					EnabledEpoch:        0,
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinStakeAmount: "100",
-					EnabledEpoch:   0,
-					MinServiceFee:  0,
-					MaxServiceFee:  100000,
+					EnabledEpoch:  0,
+					MinServiceFee: 0,
+					MaxServiceFee: 100000,
 				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
@@ -1487,15 +1491,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "100",
-				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
+				MinCreationDeposit:  "100",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "100",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  100000,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 100000,
 			},
 		},
 		ValidatorAccountsDB: tpn.PeerState,
