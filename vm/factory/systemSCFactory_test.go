@@ -1,9 +1,7 @@
 package factory
 
 import (
-	"encoding/hex"
-	"fmt"
-	"math/big"
+	"errors"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -13,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
@@ -55,15 +54,15 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "10",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  10000,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 10000,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "10",
-				MinCreationDeposit: "10",
-				EnabledEpoch:       0,
+				MinCreationDeposit:  "10",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "10",
+				ConfigChangeAddress: "aabb00",
 			},
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -80,9 +79,50 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+}
 
-	value, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
-	fmt.Println(hex.EncodeToString(value.Bytes()))
+func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.SigVerifier = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilMessageSignVerifier, err)
+}
+
+func TestNewSystemSCFactory_NilNodesConfigProvider(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.NodesConfigProvider = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilNodesConfigProvider, err)
+}
+
+func TestNewSystemSCFactory_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.Marshalizer = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilMarshalizer, err)
+}
+
+func TestNewSystemSCFactory_NilHasher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.Hasher = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilHasher, err)
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
@@ -94,6 +134,28 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilEconomicsData, err)
+}
+
+func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.SystemSCConfig = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilSystemSCConfig, err)
+}
+
+func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.EpochNotifier = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilEpochNotifier, err)
 }
 
 func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
@@ -117,6 +179,19 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 	assert.NotNil(t, scFactory)
 }
 
+func TestSystemSCFactory_CreateWithBadDelegationManagerConfigChangeAddressShouldError(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.SystemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress = "not a hex string"
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	container, err := scFactory.Create()
+
+	assert.True(t, check.IfNil(container))
+	assert.True(t, errors.Is(err, vm.ErrInvalidAddress))
+}
+
 func TestSystemSCFactory_Create(t *testing.T) {
 	t.Parallel()
 
@@ -125,6 +200,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
+	require.NotNil(t, container)
 	assert.Equal(t, 6, container.Len())
 }
 
