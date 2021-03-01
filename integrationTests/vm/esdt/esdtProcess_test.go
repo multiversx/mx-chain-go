@@ -499,7 +499,7 @@ func TestESDTcallsSC(t *testing.T) {
 	// call sc with esdt
 	valueToSendToSc := int64(10)
 	for _, node := range nodes {
-		txData.Clear().TransferESDT(tokenIdentifier, valueToSend).Str("fund")
+		txData.Clear().TransferESDT(tokenIdentifier, valueToSendToSc).Str("fund")
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), scAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
