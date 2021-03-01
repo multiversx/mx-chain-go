@@ -11,6 +11,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -35,20 +36,22 @@ var log = logger.GetOrCreate("process/block/preprocess")
 
 type transactions struct {
 	*basePreProcess
-	chRcvAllTxs          chan bool
-	onRequestTransaction func(shardID uint32, txHashes [][]byte)
-	txsForCurrBlock      txsForBlock
-	txPool               dataRetriever.ShardedDataCacherNotifier
-	storage              dataRetriever.StorageService
-	txProcessor          process.TransactionProcessor
-	orderedTxs           map[string][]data.TransactionHandler
-	orderedTxHashes      map[string][][]byte
-	mutOrderedTxs        sync.RWMutex
-	blockTracker         BlockTracker
-	blockType            block.Type
-	accountsInfo         map[string]*txShardInfo
-	mutAccountsInfo      sync.RWMutex
-	emptyAddress         []byte
+	chRcvAllTxs                    chan bool
+	onRequestTransaction           func(shardID uint32, txHashes [][]byte)
+	txsForCurrBlock                txsForBlock
+	txPool                         dataRetriever.ShardedDataCacherNotifier
+	storage                        dataRetriever.StorageService
+	txProcessor                    process.TransactionProcessor
+	orderedTxs                     map[string][]data.TransactionHandler
+	orderedTxHashes                map[string][][]byte
+	mutOrderedTxs                  sync.RWMutex
+	blockTracker                   BlockTracker
+	blockType                      block.Type
+	accountsInfo                   map[string]*txShardInfo
+	mutAccountsInfo                sync.RWMutex
+	emptyAddress                   []byte
+	scheduledMiniBlocksEnableEpoch uint32
+	flagScheduledMiniBlocks        atomic.Flag
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -68,6 +71,8 @@ func NewTransactionPreprocessor(
 	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
+	epochNotifier process.EpochNotifier,
+	scheduledMiniBlocksEnableEpoch uint32,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -112,6 +117,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -125,14 +133,15 @@ func NewTransactionPreprocessor(
 		pubkeyConverter:      pubkeyConverter,
 	}
 
-	txs := transactions{
-		basePreProcess:       &bpp,
-		storage:              store,
-		txPool:               txDataPool,
-		onRequestTransaction: onRequestTransaction,
-		txProcessor:          txProcessor,
-		blockTracker:         blockTracker,
-		blockType:            blockType,
+	txs := &transactions{
+		basePreProcess:                 &bpp,
+		storage:                        store,
+		txPool:                         txDataPool,
+		onRequestTransaction:           onRequestTransaction,
+		txProcessor:                    txProcessor,
+		blockTracker:                   blockTracker,
+		blockType:                      blockType,
+		scheduledMiniBlocksEnableEpoch: scheduledMiniBlocksEnableEpoch,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -145,7 +154,9 @@ func NewTransactionPreprocessor(
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
-	return &txs, nil
+	epochNotifier.RegisterNotifyHandler(txs)
+
+	return txs, nil
 }
 
 // waitForTxHashes waits for a call whether all the requested transactions appeared
@@ -447,12 +458,22 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	calculatedMiniBlocks, err := txs.createAndProcessMiniBlocksFromMe(
-		haveTime,
-		isShardStuckFalse,
-		isMaxBlockSizeReachedFalse,
-		txsFromMe,
-	)
+	var calculatedMiniBlocks block.MiniBlockSlice
+	if txs.flagScheduledMiniBlocks.IsSet() {
+		calculatedMiniBlocks, err = txs.createAndProcessMiniBlocksFromMeV2(
+			haveTime,
+			isShardStuckFalse,
+			isMaxBlockSizeReachedFalse,
+			txsFromMe,
+		)
+	} else {
+		calculatedMiniBlocks, err = txs.createAndProcessMiniBlocksFromMe(
+			haveTime,
+			isShardStuckFalse,
+			isMaxBlockSizeReachedFalse,
+			txsFromMe,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -747,12 +768,22 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 	)
 
 	startTime = time.Now()
-	miniBlocks, err := txs.createAndProcessMiniBlocksFromMe(
-		haveTime,
-		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
-		sortedTxs,
-	)
+	var miniBlocks block.MiniBlockSlice
+	if txs.flagScheduledMiniBlocks.IsSet() {
+		miniBlocks, err = txs.createAndProcessMiniBlocksFromMeV2(
+			haveTime,
+			txs.blockTracker.IsShardStuck,
+			txs.blockSizeComputation.IsMaxBlockSizeReached,
+			sortedTxs,
+		)
+	} else {
+		miniBlocks, err = txs.createAndProcessMiniBlocksFromMe(
+			haveTime,
+			txs.blockTracker.IsShardStuck,
+			txs.blockSizeComputation.IsMaxBlockSizeReached,
+			sortedTxs,
+		)
+	}
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to createAndProcessMiniBlocksFromMe",
 		"time [s]", elapsedTime,
@@ -1200,6 +1231,12 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 	txs.txsForCurrBlock.mutTxsForBlock.RUnlock()
 
 	return txPool
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (txs *transactions) EpochConfirmed(epoch uint32) {
+	txs.flagScheduledMiniBlocks.Toggle(epoch > txs.scheduledMiniBlocksEnableEpoch)
+	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -39,6 +39,7 @@ const (
 	SmartContractResultBlock Type = 90
 	InvalidBlock             Type = 120
 	ReceiptBlock             Type = 150
+	ScheduledBlock           Type = 180
 	RewardsBlock             Type = 255
 )
 

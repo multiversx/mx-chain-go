@@ -294,6 +294,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ScheduledMiniBlocksEnableEpoch    uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1381,24 +1382,26 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1586,24 +1589,26 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)

@@ -54,6 +54,7 @@ func createGenesisConfig() config.GeneralSettingsConfig {
 		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
 		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:         unreachableEpoch,
 	}
 }
 
@@ -386,7 +387,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch: arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -431,6 +432,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledEpochNotifier := &disabled.EpochNotifier{}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -450,6 +452,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		disabledBlockTracker,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		disabledEpochNotifier,
+		generalConfig.ScheduledMiniBlocksEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -461,22 +465,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 	}
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               arg.Core.Hasher(),
-		Marshalizer:          arg.Core.InternalMarshalizer(),
-		ShardCoordinator:     arg.ShardCoordinator,
-		Accounts:             arg.Accounts,
-		MiniBlockPool:        arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:       disabledRequestHandler,
-		PreProcessors:        preProcContainer,
-		InterProcessors:      interimProcContainer,
-		GasHandler:           gasHandler,
-		FeeHandler:           genesisFeeHandler,
-		BlockSizeComputation: disabledBlockSizeComputationHandler,
-		BalanceComputation:   disabledBalanceComputationHandler,
-		EconomicsFee: genesisFeeHandler,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            arg.Core.Hasher(),
+		Marshalizer:                       arg.Core.InternalMarshalizer(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		Accounts:                          arg.Accounts,
+		MiniBlockPool:                     arg.Data.Datapool().MiniBlocks(),
+		RequestHandler:                    disabledRequestHandler,
+		PreProcessors:                     preProcContainer,
+		InterProcessors:                   interimProcContainer,
+		GasHandler:                        gasHandler,
+		FeeHandler:                        genesisFeeHandler,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
+		BalanceComputation:                disabledBalanceComputationHandler,
+		EconomicsFee:                      genesisFeeHandler,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: generalConfig.BlockGasAndFeesReCheckEnableEpoch,
-
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
