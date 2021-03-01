@@ -502,6 +502,9 @@ const ESDTRoleLocalBurn = "ESDTRoleLocalBurn"
 // ESDTRoleNFTCreate is the constant string for the local role of create for ESDT NFT tokens
 const ESDTRoleNFTCreate = "ESDTRoleNFTCreate"
 
+// ESDTRoleNFTAddQuantity is the constant string for the local role of adding quantity for existing ESDT NFT tokens
+const ESDTRoleNFTAddQuantity = "ESDTRoleNFTAddQuantity"
+
 // ESDTRoleNFTBurn is the constant string for the local role of burn for ESDT NFT tokens
 const ESDTRoleNFTBurn = "ESDTRoleNFTBurn"
 
@@ -555,6 +558,9 @@ const ESDTKeyIdentifier = "esdt"
 
 // ESDTRoleIdentifier is the key prefix for esdt role identifier
 const ESDTRoleIdentifier = "role"
+
+// ESDTNFTLatestNonceIdentifier is the key prefix for esdt latent nonce identifier
+const ESDTNFTLatestNonceIdentifier = "nonce"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10

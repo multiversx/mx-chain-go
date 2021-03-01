@@ -123,7 +123,7 @@ func (e *esdtRoles) getESDTRoleForAcnt(acnt state.UserAccountHandler, key []byte
 	return roles, false, nil
 }
 
-// IsAllowedToExecute returns error if the account is not allowed to execute the given action
+// CheckAllowedToExecute returns error if the account is not allowed to execute the given action
 func (e *esdtRoles) CheckAllowedToExecute(account state.UserAccountHandler, tokenId []byte, action []byte) error {
 	if check.IfNil(account) {
 		return process.ErrNilUserAccount
