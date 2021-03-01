@@ -79,7 +79,7 @@ func CreateAccountWithESDTBalanceAndRoles(
 	require.True(t, ok)
 
 	key := append([]byte(core.ElrondProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
-	key = append(key, []byte(core.ElrondProtectedKeyPrefix+core.ESDTKeyIdentifier+string(tokenIdentifier))...)
+	key = append(key, tokenIdentifier...)
 	err = userAccount.DataTrieTracker().SaveKeyValue(key, rolesDataBytes)
 	require.Nil(t, err)
 
