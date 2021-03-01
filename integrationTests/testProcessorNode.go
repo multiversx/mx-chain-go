@@ -1389,20 +1389,20 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1594,20 +1594,20 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -2659,6 +2659,17 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
+		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+				return &mock.PrivateKeyMock{}
+			},
+		},
 	}
 }
 

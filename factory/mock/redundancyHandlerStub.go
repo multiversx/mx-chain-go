@@ -1,12 +1,17 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/crypto"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
+)
 
 // RedundancyHandlerStub -
 type RedundancyHandlerStub struct {
-	IsRedundancyNodeCalled    func() bool
-	IsMainMachineActiveCalled func() bool
-	ObserverPrivateKeyCalled  func() crypto.PrivateKey
+	IsRedundancyNodeCalled         func() bool
+	IsMainMachineActiveCalled      func() bool
+	ObserverPrivateKeyCalled       func() crypto.PrivateKey
+	AdjustInactivityIfNeededCalled func(selfPubKey string, consensusPubKeys []string, roundIndex int64)
+	ResetInactivityIfNeededCalled  func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
 }
 
 // IsRedundancyNode -
@@ -36,8 +41,21 @@ func (rhs *RedundancyHandlerStub) ObserverPrivateKey() crypto.PrivateKey {
 	return &PrivateKeyStub{}
 }
 
+// AdjustInactivityIfNeeded -
+func (rhs *RedundancyHandlerStub) AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64) {
+	if rhs.AdjustInactivityIfNeededCalled != nil {
+		rhs.AdjustInactivityIfNeededCalled(selfPubKey, consensusPubKeys, roundIndex)
+	}
+}
+
+// ResetInactivityIfNeeded -
+func (rhs *RedundancyHandlerStub) ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID) {
+	if rhs.ResetInactivityIfNeededCalled != nil {
+		rhs.ResetInactivityIfNeededCalled(selfPubKey, consensusMsgPubKey, consensusMsgPeerID)
+	}
+}
+
 // IsInterfaceNil -
 func (rhs *RedundancyHandlerStub) IsInterfaceNil() bool {
 	return rhs == nil
 }
-

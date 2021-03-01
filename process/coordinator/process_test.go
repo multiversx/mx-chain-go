@@ -2822,7 +2822,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		BalanceComputation:                &mock.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
-				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
+				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()

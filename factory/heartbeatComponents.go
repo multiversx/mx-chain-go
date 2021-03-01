@@ -62,7 +62,7 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 	if check.IfNil(args.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
 	}
-	if check.IfNil(args.RedundancyHandler){
+	if check.IfNil(args.RedundancyHandler) {
 		return nil, heartbeat.ErrNilRedundancyHandler
 	}
 	if check.IfNil(args.CoreComponents) {
@@ -146,6 +146,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
 		HardforkTrigger:      hcf.hardforkTrigger,
 		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
+		RedundancyHandler:    hcf.redundancyHandler,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)

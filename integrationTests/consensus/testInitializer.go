@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -536,6 +535,7 @@ func createNodes(
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
+
 		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList

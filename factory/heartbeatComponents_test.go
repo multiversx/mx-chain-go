@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,10 +18,12 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
-	hcf, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
-	cc, _ := hcf.Create()
+	hcf, err := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
+	require.Nil(t, err)
+	cc, err := hcf.Create()
+	require.Nil(t, err)
 
-	err := cc.Close()
+	err = cc.Close()
 	require.NoError(t, err)
 }
 
@@ -70,7 +73,15 @@ func getDefaultHeartbeatComponents(shardCoordinator sharding.Coordinator) factor
 		AppVersion:        "test",
 		GenesisTime:       time.Time{},
 		HardforkTrigger:   &mock.HardforkTriggerStub{},
-		RedundancyHandler: &mock.RedundancyHandlerStub{},
+		RedundancyHandler: &mock.RedundancyHandlerStub{
+			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+				return  &mock.PrivateKeyStub{
+					GeneratePublicHandler: func() crypto.PublicKey {
+						return &mock.PublicKeyMock{}
+					},
+				}
+			},
+		},
 		CoreComponents:    coreComponents,
 		DataComponents:    dataComponents,
 		NetworkComponents: networkComponents,

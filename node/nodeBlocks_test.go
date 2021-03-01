@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -428,17 +429,18 @@ func getDefaultCoreComponents() *factory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:        &testscommon.AppStatusHandlerStub{},
-		WDTimer:             &testscommon.WatchdogMock{},
-		Alarm:               &testscommon.AlarmSchedulerStub{},
-		NtpTimer:            &testscommon.SyncTimerStub{},
-		RoundHandlerField:   &testscommon.RoundHandlerMock{},
-		EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:       &testscommon.RatingsInfoMock{},
-		RatingHandler:       &testscommon.RaterMock{},
-		NodesConfig:         &testscommon.NodesSetupStub{},
-		StartTime:           time.Time{},
-		EpochChangeNotifier: &mock.EpochNotifierStub{},
+		AppStatusHdl:          &testscommon.AppStatusHandlerStub{},
+		WDTimer:               &testscommon.WatchdogMock{},
+		Alarm:                 &testscommon.AlarmSchedulerStub{},
+		NtpTimer:              &testscommon.SyncTimerStub{},
+		RoundHandlerField:     &testscommon.RoundHandlerMock{},
+		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:         &testscommon.RatingsInfoMock{},
+		RatingHandler:         &testscommon.RaterMock{},
+		NodesConfig:           &testscommon.NodesSetupStub{},
+		StartTime:             time.Time{},
+		EpochChangeNotifier:   &mock.EpochNotifierStub{},
+		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
 	}
 }
 

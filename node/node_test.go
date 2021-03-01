@@ -2730,7 +2730,7 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 		GasLimit:  12,
 		Data:      []byte(""),
 		Signature: []byte("sig1"),
-		ChainID:   []byte("a"),
+		ChainID:   []byte(coreComponents.ChainID()),
 	}
 
 	err := n.ValidateTransactionForSimulation(tx, false)
