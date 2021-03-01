@@ -73,13 +73,14 @@ func (e *esdtLocalBurn) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalBurn))
+	tokenID := vmInput.Arguments[0]
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, tokenID, []byte(core.ESDTRoleLocalBurn))
 	if err != nil {
 		return nil, err
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
+	esdtTokenKey := append(e.keyPrefix, tokenID...)
 	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
