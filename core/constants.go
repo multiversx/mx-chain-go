@@ -499,6 +499,12 @@ const ESDTRoleLocalMint = "ESDTRoleLocalMint"
 // ESDTRoleLocalBurn is the constant string for the local role of burn for ESDT tokens
 const ESDTRoleLocalBurn = "ESDTRoleLocalBurn"
 
+// ESDTRoleNFTCreate is the constant string for the local role of create for ESDT NFT tokens
+const ESDTRoleNFTCreate = "ESDTRoleNFTCreate"
+
+// ESDTRoleNFTBurn is the constant string for the local role of burn for ESDT NFT tokens
+const ESDTRoleNFTBurn = "ESDTRoleNFTBurn"
+
 // ESDTType defines the possible types in case of ESDT tokens
 type ESDTType uint32
 

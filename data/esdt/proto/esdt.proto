@@ -8,7 +8,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-// ESDigitalToken holds the data for a elrond standard digital token transaction
+// ESDigitalToken holds the data for a Elrond standard digital token transaction
 message ESDigitalToken {
 	uint32 Type            = 1 [(gogoproto.jsontag) = "Type"];
 	bytes  Value           = 2 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
@@ -23,8 +23,11 @@ message ESDTRoles {
 
 // MetaData hold the metadata structure for the ESDT token
 message MetaData {
-	uint64 Nonce      = 1 [(gogoproto.jsontag) = "Nonce"];
-	bytes  Name       = 2 [(gogoproto.jsontag) = "Name"];
-	bytes  URI        = 3 [(gogoproto.jsontag) = "URI"];
-	bytes  Attributes = 4 [(gogoproto.jsontag) = "Attributes"];
+	uint64 Nonce         = 1 [(gogoproto.jsontag) = "Nonce"];
+	bytes  Name          = 2 [(gogoproto.jsontag) = "Name"];
+	bytes  Creator       = 3 [(gogoproto.jsontag) = "Creator"];
+	uint32 Royalties     = 4 [(gogoproto.jsontag) = "Royalties"];
+	bytes  Hash          = 5 [(gogoproto.jsontag) = "Hash"];
+	repeated bytes  URIs = 6 [(gogoproto.jsontag) = "URIs"];
+	bytes  Attributes    = 7 [(gogoproto.jsontag) = "Attributes"];
 }
