@@ -130,7 +130,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 // 3 - do a local mint - ESDT balance should not change
 // 4 - set special role (local burn)
 // 5 - do a local burn - should work
-func TestESDTRolesSetRolesAndUsetRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
+func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
