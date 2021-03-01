@@ -1,4 +1,4 @@
-package facade
+package disabled
 
 import (
 	"fmt"
@@ -24,7 +24,6 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	dnf.SetTpsBenchmark(nil)
 	r := dnf.TpsBenchmark()
 	assert.Nil(t, r)
-	dnf.StartBackgroundServices()
 	b := dnf.RestAPIServerDebugMode()
 	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()

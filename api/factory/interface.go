@@ -2,8 +2,8 @@ package factory
 
 import "github.com/gin-gonic/gin"
 
-// HttpServerClosingHandler defines the basic actions of starting and closing that a web server should be able to do
-type HttpServerClosingHandler interface {
+// HttpServerCloser defines the basic actions of starting and closing that a web server should be able to do
+type HttpServerCloser interface {
 	Start()
 	Close() error
 	IsInterfaceNil() bool
@@ -15,17 +15,17 @@ type MiddlewareProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// MainApiHandler interface defines methods that can be used from `elrondFacade` context variable
-type MainApiHandler interface {
+// ApiFacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+type ApiFacadeHandler interface {
 	RestApiInterface() string
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	IsInterfaceNil() bool
 }
 
-// HttpServerHandler defines the actions that a http server need to do
-type HttpServerHandler interface {
-	CreateHttpServer() (HttpServerClosingHandler, error)
-	UpdateFacade(facade MainApiHandler) (HttpServerClosingHandler, error)
+// UpgradeableHttpServerHandler defines the actions that an upgradeable http server need to do
+type UpgradeableHttpServerHandler interface {
+	CreateHttpServer() (HttpServerCloser, error)
+	UpdateFacade(facade ApiFacadeHandler) (HttpServerCloser, error)
 	IsInterfaceNil() bool
 }

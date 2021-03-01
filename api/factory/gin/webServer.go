@@ -1,14 +1,16 @@
-package ginwebserver
+package gin
 
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/factory"
+	"github.com/ElrondNetwork/elrond-go/api/factory/gin/disabled"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/network"
@@ -28,30 +30,31 @@ import (
 
 var log = logger.GetOrCreate("api/factory")
 
-type ginWebServerHandler struct {
-	facade          factory.MainApiHandler
-	apiConfig       config.ApiRoutesConfig
-	antiFloodConfig config.WebServerAntifloodConfig
-	httpServer      factory.HttpServerClosingHandler
-	ctx             context.Context
-	cancelFunc      func()
-}
-
-// ArgsNewGinWebServerHandler holds the arguments needed to create a new instance of ginWebServerHandler
-type ArgsNewGinWebServerHandler struct {
-	Facade          factory.MainApiHandler
+// ArgsNewWebServer holds the arguments needed to create a new instance of webServer
+type ArgsNewWebServer struct {
+	Facade          factory.ApiFacadeHandler
 	ApiConfig       config.ApiRoutesConfig
 	AntiFloodConfig config.WebServerAntifloodConfig
 }
 
-// NewGinWebServerHandler returns a new instance of ginWebServerHandler
-func NewGinWebServerHandler(args ArgsNewGinWebServerHandler) (*ginWebServerHandler, error) {
+type webServer struct {
+	facade          factory.ApiFacadeHandler
+	mutFacadeSwitch sync.RWMutex
+	apiConfig       config.ApiRoutesConfig
+	antiFloodConfig config.WebServerAntifloodConfig
+	httpServer      factory.HttpServerCloser
+	ctx             context.Context
+	cancelFunc      func()
+}
+
+// NewGinWebServerHandler returns a new instance of webServer
+func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	gws := &ginWebServerHandler{
+	gws := &webServer{
 		facade:          args.Facade,
 		antiFloodConfig: args.AntiFloodConfig,
 		apiConfig:       args.ApiConfig,
@@ -64,43 +67,46 @@ func NewGinWebServerHandler(args ArgsNewGinWebServerHandler) (*ginWebServerHandl
 
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
-func (gws *ginWebServerHandler) UpdateFacade(facade factory.MainApiHandler) (factory.HttpServerClosingHandler, error) {
-	if gws.httpServer != nil {
-		err := gws.httpServer.Close()
+func (ws *webServer) UpdateFacade(facade factory.ApiFacadeHandler) (factory.HttpServerCloser, error) {
+	ws.mutFacadeSwitch.Lock()
+	defer ws.mutFacadeSwitch.Unlock()
+
+	if ws.httpServer != nil {
+		err := ws.httpServer.Close()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	gws.facade = facade
-	webServer, err := gws.CreateHttpServer()
+	ws.facade = facade
+	webServer, err := ws.CreateHttpServer()
 	if err != nil {
 		return nil, err
 	}
 
-	gws.httpServer = webServer
+	ws.httpServer = webServer
 
 	return webServer, nil
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
-func (gws *ginWebServerHandler) CreateHttpServer() (factory.HttpServerClosingHandler, error) {
-	if gws.facade.RestApiInterface() == facade.DefaultRestPortOff {
-		return NewDisabledServerClosing(), nil
+func (ws *webServer) CreateHttpServer() (factory.HttpServerCloser, error) {
+	if ws.facade.RestApiInterface() == facade.DefaultRestPortOff {
+		return disabled.NewDisabledServerClosing(), nil
 	}
 
-	var ws *gin.Engine
-	if !gws.facade.RestAPIServerDebugMode() {
+	var gws *gin.Engine
+	if !ws.facade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
 		gin.DefaultErrorWriter = &ginErrorWriter{}
 		gin.DisableConsoleColor()
 		gin.SetMode(gin.ReleaseMode)
 	}
-	ws = gin.Default()
-	ws.Use(cors.Default())
-	ws.Use(middleware.WithFacade(gws.facade))
+	gws = gin.Default()
+	gws.Use(cors.Default())
+	gws.Use(middleware.WithFacade(ws.facade))
 
-	processors, err := gws.createMiddlewareLimiters()
+	processors, err := ws.createMiddlewareLimiters()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +116,7 @@ func (gws *ginWebServerHandler) CreateHttpServer() (factory.HttpServerClosingHan
 			continue
 		}
 
-		ws.Use(proc.MiddlewareHandlerFunc())
+		gws.Use(proc.MiddlewareHandlerFunc())
 	}
 
 	err = registerValidators()
@@ -118,34 +124,34 @@ func (gws *ginWebServerHandler) CreateHttpServer() (factory.HttpServerClosingHan
 		return nil, err
 	}
 
-	gws.registerRoutes(ws)
+	ws.registerRoutes(gws)
 
-	server := &http.Server{Addr: gws.facade.RestApiInterface(), Handler: ws}
-	log.Debug("creating gin web sever", "interface", gws.facade.RestApiInterface())
+	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: gws}
+	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	wrappedServer, err := NewHttpServer(server)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Debug("starting web server",
-		"SimultaneousRequests", gws.antiFloodConfig.SimultaneousRequests,
-		"SameSourceRequests", gws.antiFloodConfig.SameSourceRequests,
-		"SameSourceResetIntervalInSec", gws.antiFloodConfig.SameSourceResetIntervalInSec,
+		"SimultaneousRequests", ws.antiFloodConfig.SimultaneousRequests,
+		"SameSourceRequests", ws.antiFloodConfig.SameSourceRequests,
+		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	gws.httpServer = wrappedServer
+	ws.httpServer = wrappedServer
 
 	return wrappedServer, nil
 }
 
-func (gws *ginWebServerHandler) createMiddlewareLimiters() ([]factory.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(gws.antiFloodConfig.SameSourceRequests)
+func (ws *webServer) createMiddlewareLimiters() ([]factory.MiddlewareProcessor, error) {
+	sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
 	}
-	go gws.sourceLimiterReset(sourceLimiter)
+	go ws.sourceLimiterReset(sourceLimiter)
 
-	globalLimiter, err := middleware.NewGlobalThrottler(gws.antiFloodConfig.SimultaneousRequests)
+	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
 	if err != nil {
 		return nil, err
 	}
@@ -153,81 +159,81 @@ func (gws *ginWebServerHandler) createMiddlewareLimiters() ([]factory.Middleware
 	return []factory.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
-func (gws *ginWebServerHandler) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(gws.antiFloodConfig.SameSourceResetIntervalInSec)
+func (ws *webServer) sourceLimiterReset(reset resetHandler) {
+	betweenResetDuration := time.Second * time.Duration(ws.antiFloodConfig.SameSourceResetIntervalInSec)
 	for {
 		select {
 		case <-time.After(betweenResetDuration):
 			log.Trace("calling reset on WS source limiter")
 			reset.Reset()
-		case <-gws.ctx.Done():
+		case <-ws.ctx.Done():
 			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
 			return
 		}
 	}
 }
 
-func (gws *ginWebServerHandler) registerRoutes(ws *gin.Engine) {
-	routesConfig := gws.apiConfig
-	nodeRoutes := ws.Group("/node")
+func (ws *webServer) registerRoutes(gws *gin.Engine) {
+	routesConfig := ws.apiConfig
+	nodeRoutes := gws.Group("/node")
 	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
 	if err == nil {
 		node.Routes(wrappedNodeRouter)
 	}
 
-	addressRoutes := ws.Group("/address")
+	addressRoutes := gws.Group("/address")
 	wrappedAddressRouter, err := wrapper.NewRouterWrapper("address", addressRoutes, routesConfig)
 	if err == nil {
 		address.Routes(wrappedAddressRouter)
 	}
 
-	networkRoutes := ws.Group("/network")
+	networkRoutes := gws.Group("/network")
 	wrappedNetworkRoutes, err := wrapper.NewRouterWrapper("network", networkRoutes, routesConfig)
 	if err == nil {
 		network.Routes(wrappedNetworkRoutes)
 	}
 
-	txRoutes := ws.Group("/transaction")
+	txRoutes := gws.Group("/transaction")
 	wrappedTransactionRouter, err := wrapper.NewRouterWrapper("transaction", txRoutes, routesConfig)
 	if err == nil {
 		transaction.Routes(wrappedTransactionRouter)
 	}
 
-	vmValuesRoutes := ws.Group("/vm-values")
+	vmValuesRoutes := gws.Group("/vm-values")
 	wrappedVmValuesRouter, err := wrapper.NewRouterWrapper("vm-values", vmValuesRoutes, routesConfig)
 	if err == nil {
 		vmValues.Routes(wrappedVmValuesRouter)
 	}
 
-	validatorRoutes := ws.Group("/validator")
+	validatorRoutes := gws.Group("/validator")
 	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validator", validatorRoutes, routesConfig)
 	if err == nil {
 		valStats.Routes(wrappedValidatorsRouter)
 	}
 
-	hardforkRoutes := ws.Group("/hardfork")
+	hardforkRoutes := gws.Group("/hardfork")
 	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
 	if err == nil {
 		hardfork.Routes(wrappedHardforkRouter)
 	}
 
-	blockRoutes := ws.Group("/block")
+	blockRoutes := gws.Group("/block")
 	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
 	if err == nil {
 		block.Routes(wrappedBlockRouter)
 	}
 
-	if gws.facade.PprofEnabled() {
-		pprof.Register(ws)
+	if ws.facade.PprofEnabled() {
+		pprof.Register(gws)
 	}
 
 	if isLogRouteEnabled(routesConfig) {
 		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
-		registerLoggerWsRoute(ws, marshalizerForLogs)
+		registerLoggerWsRoute(gws, marshalizerForLogs)
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (gws *ginWebServerHandler) IsInterfaceNil() bool {
-	return gws == nil
+func (ws *webServer) IsInterfaceNil() bool {
+	return ws == nil
 }

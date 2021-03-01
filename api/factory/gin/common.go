@@ -1,10 +1,11 @@
-package ginwebserver
+package gin
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,10 +16,27 @@ import (
 	"gopkg.in/go-playground/validator.v8"
 )
 
-func checkArgs(args ArgsNewGinWebServerHandler) error {
-	baseError := errors.New("cannot create gin web server handler")
+type validatorInput struct {
+	Name      string
+	Validator validator.Func
+}
+
+// skValidator validates a secret key from user input for correctness
+func skValidator(
+	_ *validator.Validate,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Value,
+	_ reflect.Type,
+	_ reflect.Kind,
+	_ string,
+) bool {
+	return true
+}
+
+func checkArgs(args ArgsNewWebServer) error {
 	errHandler := func(details string) error {
-		return fmt.Errorf("%w: %s", baseError, details)
+		return fmt.Errorf("%w: %s", apiErrors.ErrCannotCreateGinWebServer, details)
 	}
 
 	if check.IfNil(args.Facade) {
@@ -45,10 +63,14 @@ func isLogRouteEnabled(routesConfig config.ApiRoutesConfig) bool {
 
 func registerValidators() error {
 	validators := []validatorInput{
-		{Name: "skValidator", Validator: skValidator},
+		{
+			Name:      "skValidator",
+			Validator: skValidator,
+		},
 	}
 	for _, validatorFunc := range validators {
-		if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v, ok := binding.Validator.Engine().(*validator.Validate)
+		if ok {
 			err := v.RegisterValidation(validatorFunc.Name, validatorFunc.Validator)
 			if err != nil {
 				return err

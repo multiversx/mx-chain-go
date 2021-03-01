@@ -1,4 +1,4 @@
-package ginwebserver
+package disabled
 
 type disabledServerClosing struct {
 }

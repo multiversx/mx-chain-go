@@ -1,4 +1,4 @@
-package ginwebserver
+package gin
 
 type resetHandler interface {
 	Reset()

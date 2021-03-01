@@ -17,7 +17,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	apiFactory "github.com/ElrondNetwork/elrond-go/api/factory"
-	"github.com/ElrondNetwork/elrond-go/api/factory/ginwebserver"
+	"github.com/ElrondNetwork/elrond-go/api/factory/gin"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -144,7 +145,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		}
 
 		log.Debug("creating disabled API services")
-		httpServerWrapper, closableHttpServer, err := nr.createDisabledHttpServer()
+		httpServerWrapper, closableHttpServer, err := nr.createInitialHttpServer()
 		if err != nil {
 			return err
 		}
@@ -337,7 +338,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
-	httpServer apiFactory.HttpServerHandler,
+	httpServer apiFactory.UpgradeableHttpServerHandler,
 	closableHttpServer closing.Closer,
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (closing.Closer, closing.Closer, error) {
@@ -398,7 +399,7 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, nil, err
 	}
 
-	newClosableHttpServer.Start()
+	go newClosableHttpServer.Start()
 
 	log.Debug("updated node facade and restarted the API services")
 
@@ -407,14 +408,14 @@ func (nr *nodeRunner) createApiFacade(
 	return ef, newClosableHttpServer, nil
 }
 
-func (nr *nodeRunner) createDisabledHttpServer() (apiFactory.HttpServerHandler, closing.Closer, error) {
-	httpServerArgs := ginwebserver.ArgsNewGinWebServerHandler{
-		Facade:          facade.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
+func (nr *nodeRunner) createInitialHttpServer() (apiFactory.UpgradeableHttpServerHandler, closing.Closer, error) {
+	httpServerArgs := gin.ArgsNewWebServer{
+		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
 	}
 
-	httpServerWrapper, err := ginwebserver.NewGinWebServerHandler(httpServerArgs)
+	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -424,7 +425,7 @@ func (nr *nodeRunner) createDisabledHttpServer() (apiFactory.HttpServerHandler, 
 		return nil, nil, err
 	}
 
-	httpSever.Start()
+	go httpSever.Start()
 
 	return httpServerWrapper, httpSever, nil
 }

@@ -1,4 +1,4 @@
-package facade
+package disabled
 
 import (
 	"errors"
@@ -62,10 +62,6 @@ func (nf *disabledNodeFacade) SetTpsBenchmark(_ statistics.TPSBenchmark) {
 // TpsBenchmark returns nil
 func (nf *disabledNodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 	return nil
-}
-
-// StartBackgroundServices does nothing
-func (nf *disabledNodeFacade) StartBackgroundServices() {
 }
 
 // RestAPIServerDebugMode returns false
