@@ -48,7 +48,6 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
-const numConcurrentTrieSyncers = 50
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
 // the same meta block in order to consider it correct
@@ -98,6 +97,8 @@ type epochStartBootstrap struct {
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	enableSignTxWithHashEpoch  uint32
 	epochNotifier              process.EpochNotifier
+	numConcurrentTrieSyncers   int
+	maxHardCapForMissingNodes  int
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -184,6 +185,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
 		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
+		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -819,7 +822,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
-	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(e.numConcurrentTrieSyncers))
 	if err != nil {
 		return err
 	}
@@ -830,13 +833,14 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.coreComponentsHolder.Hasher(),
-			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   trieStorageManager,
-			RequestHandler:       e.requestHandler,
-			Timeout:              timeoutGettingTrieNode,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			Hasher:                    e.coreComponentsHolder.Hasher(),
+			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:        trieStorageManager,
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		},
 		ShardId:   e.shardCoordinator.SelfId(),
 		Throttler: thr,
@@ -924,13 +928,14 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.coreComponentsHolder.Hasher(),
-			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   peerTrieStorageManager,
-			RequestHandler:       e.requestHandler,
-			Timeout:              timeoutGettingTrieNode,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			Hasher:                    e.coreComponentsHolder.Hasher(),
+			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:        peerTrieStorageManager,
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

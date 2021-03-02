@@ -141,3 +141,6 @@ var ErrNodeCloseFailed = errors.New("node closing failed ")
 
 // ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
 var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")
+
+// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

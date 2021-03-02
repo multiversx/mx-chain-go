@@ -96,7 +96,11 @@ func (ehs *EconomicsHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandl
 
 // CheckValidityTxValues -
 func (ehs *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
-	return ehs.CheckValidityTxValuesCalled(tx)
+	if ehs.CheckValidityTxValuesCalled != nil {
+		return ehs.CheckValidityTxValuesCalled(tx)
+	}
+
+	return nil
 }
 
 // LeaderPercentage -

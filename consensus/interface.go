@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -126,5 +127,15 @@ type HeaderSigVerifier interface {
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// NodeRedundancyHandler provides functionality to handle the redundancy mechanism for a node
+type NodeRedundancyHandler interface {
+	IsRedundancyNode() bool
+	IsMainMachineActive() bool
+	AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64)
+	ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
+	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }

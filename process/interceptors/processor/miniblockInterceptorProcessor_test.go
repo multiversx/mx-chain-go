@@ -2,6 +2,7 @@ package processor_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -214,10 +215,20 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksWithReceiverInSameShardShou
 	}
 	mip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
+	chanCalled := make(chan struct{}, 1)
+	mip.RegisterHandler(func(topic string, hash []byte, data interface{}) {
+		chanCalled <- struct{}{}
+	})
 
 	err := mip.Save(inTxBlkBdy, "", "")
-
 	assert.Nil(t, err)
+
+	timeout := time.Second * 2
+	select {
+	case <-chanCalled:
+	case <-time.After(timeout):
+		assert.Fail(t, "save did not notify handler in a timely fashion")
+	}
 }
 
 func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListedShouldNotAdd(t *testing.T) {

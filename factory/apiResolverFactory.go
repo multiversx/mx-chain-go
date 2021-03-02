@@ -242,14 +242,17 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
-		vmFactory, err = shard.NewVMContainerFactory(
-			queryVirtualMachineConfig,
-			args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			args.gasScheduleNotifier,
-			argsHook,
-			args.generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			args.generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config:                         queryVirtualMachineConfig,
+			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:                    args.gasScheduleNotifier,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              args.generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: args.generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             args.generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+		}
+
+		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, nil, nil, err
 		}

@@ -65,19 +65,21 @@ func CreateHardForkTrigger(
 		ExportTriesStorageConfig:  hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig:  hardForkConfig.ExportStateStorageConfig,
 		ExportStateKeysConfig:     hardForkConfig.ExportKeysStorageConfig,
+		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		WhiteListHandler:          process.WhiteListHandler(),
 		WhiteListerVerifiedTxs:    process.WhiteListerVerifiedTxs(),
 		InterceptorsContainer:     process.InterceptorsContainer(),
 		NodesCoordinator:          nodesCoordinator,
 		HeaderSigVerifier:         process.HeaderSigVerifier(),
 		HeaderIntegrityVerifier:   process.HeaderIntegrityVerifier(),
-		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		ValidityAttester:          process.BlockTracker(),
 		InputAntifloodHandler:     network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
-		ValidityAttester:          process.BlockTracker(),
 		RoundHandler:              process.RoundHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 	}
 	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

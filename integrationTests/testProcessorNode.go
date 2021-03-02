@@ -10,6 +10,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
@@ -84,7 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -813,17 +813,19 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
-		vmFactory, _ = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig{
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: true,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			},
-			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			gasSchedule,
-			argsHook,
-			0,
-			0,
-		)
+			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			GasSchedule:                    gasSchedule,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              0,
+			AheadOfTimeGasUsageEnableEpoch: 0,
+			ArwenV3EnableEpoch:             0,
+		}
+		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
 
 	vmContainer, _ := vmFactory.Create()
@@ -1278,17 +1280,19 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		NilCompiledSCStore: true,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, _ := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
-		maxGasLimitPerBlock,
-		gasSchedule,
-		argsHook,
-		0,
-		0,
-	)
+		BlockGasLimit:                  maxGasLimitPerBlock,
+		GasSchedule:                    gasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
 	var err error
 	tpn.VMContainer, err = vmFactory.Create()
@@ -1385,20 +1389,20 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -1590,20 +1594,20 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:               TestHasher,
-		Marshalizer:          TestMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		Accounts:             tpn.AccntState,
-		MiniBlockPool:        tpn.DataPool.MiniBlocks(),
-		RequestHandler:       tpn.RequestHandler,
-		PreProcessors:        tpn.PreProcessorsContainer,
-		InterProcessors:      tpn.InterimProcContainer,
-		GasHandler:           tpn.GasHandler,
-		FeeHandler:           tpn.FeeAccumulator,
-		BlockSizeComputation: TestBlockSizeComputationHandler,
-		BalanceComputation:   TestBalanceComputationHandler,
-		EconomicsFee: tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
+		Hasher:                            TestHasher,
+		Marshalizer:                       TestMarshalizer,
+		ShardCoordinator:                  tpn.ShardCoordinator,
+		Accounts:                          tpn.AccntState,
+		MiniBlockPool:                     tpn.DataPool.MiniBlocks(),
+		RequestHandler:                    tpn.RequestHandler,
+		PreProcessors:                     tpn.PreProcessorsContainer,
+		InterProcessors:                   tpn.InterimProcContainer,
+		GasHandler:                        tpn.GasHandler,
+		FeeHandler:                        tpn.FeeAccumulator,
+		BlockSizeComputation:              TestBlockSizeComputationHandler,
+		BalanceComputation:                TestBalanceComputationHandler,
+		EconomicsFee:                      tpn.EconomicsData,
+		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
@@ -2031,6 +2035,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 	log.LogIfError(err)
 
@@ -2544,11 +2549,14 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 
+	redundancyHandler := &mock.RedundancyHandlerStub{}
+
 	err = tpn.Node.ApplyOptions(
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
+		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -2566,6 +2574,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		},
 		Prefs:             config.Preferences{},
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    tpn.Node.GetCoreComponents(),
 		DataComponents:    tpn.Node.GetDataComponents(),
 		NetworkComponents: tpn.Node.GetNetworkComponents(),
@@ -2612,7 +2621,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
 		RoundHandlerField:      &testscommon.RoundHandlerMock{},
-		EconomicsDataField:     &economicsMocks.EconomicsHandlerMock{},
+		EconomicsDataField:     &economicsmocks.EconomicsHandlerMock{},
 		RatingsDataField:       &testscommon.RatingsInfoMock{},
 		RaterField:             &testscommon.RaterMock{},
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
@@ -2650,6 +2659,17 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
+		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+				return &mock.PrivateKeyMock{}
+			},
+		},
 	}
 }
 

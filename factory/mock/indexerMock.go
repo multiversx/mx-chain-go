@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -59,7 +59,7 @@ func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler){
+func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler){
 
 }
 

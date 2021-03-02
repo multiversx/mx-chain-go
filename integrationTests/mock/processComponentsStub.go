@@ -41,6 +41,7 @@ type ProcessComponentsStub struct {
 	HistoryRepositoryInternal      dblookupext.HistoryRepository
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 }
 
 // Create -
@@ -196,6 +197,11 @@ func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler
 // RequestedItemsHandler -
 func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcs.RequestedItemsHandlerInternal
+}
+
+// NodeRedundancyHandler -
+func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return pcs.NodeRedundancyHandlerInternal
 }
 
 // IsInterfaceNil -
