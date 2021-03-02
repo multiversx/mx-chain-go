@@ -955,3 +955,9 @@ var ErrActionNotAllowed = errors.New("action is not allowed")
 
 // ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
 var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
+
+// ErrNFTTokenDoesNotExist signals that NFT token does not exists
+var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exists")
+
+// ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
+var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
