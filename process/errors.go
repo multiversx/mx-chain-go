@@ -961,3 +961,6 @@ var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exists")
 
 // ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
 var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
+
+// ErrInvalidNFTQuantity signals that invalid nft quantity was provided
+var ErrInvalidNFTQuantity = errors.New("invalid nft quantity")

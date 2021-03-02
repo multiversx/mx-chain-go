@@ -16,8 +16,6 @@ import (
 
 var _ process.BuiltinFunction = (*esdtNFTCreate)(nil)
 
-const keySeparator = "-"
-
 type esdtNFTCreate struct {
 	keyPrefix    []byte
 	noncePrefix  []byte
@@ -75,18 +73,9 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkBasicESDTArguments(vmInput)
+	err := checkESDTCreateAddBurnInput(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
-	}
-	if !bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
-		return nil, process.ErrInvalidRcvAddr
-	}
-	if check.IfNil(acntSnd) {
-		return nil, process.ErrNilUserAccount
-	}
-	if vmInput.GasProvided < e.funcGasCost {
-		return nil, process.ErrNotEnoughGas
 	}
 	if len(vmInput.Arguments) < 7 {
 		return nil, process.ErrInvalidArguments
@@ -109,10 +98,21 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, process.ErrInvalidArguments
 	}
 
+	quantity := big.NewInt(0).SetBytes(vmInput.Arguments[1])
+	if quantity.Cmp(zero) == 0 {
+		return nil, process.ErrInvalidArguments
+	}
+	if quantity.Cmp(big.NewInt(1)) > 0 {
+		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTAddQuantity))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	nextNonce := nonce + 1
 	esdtData := &esdt.ESDigitalToken{
 		Type:  uint32(core.NonFungible),
-		Value: big.NewInt(1),
+		Value: quantity,
 		TokenMetaData: &esdt.MetaData{
 			Nonce:      nextNonce,
 			Name:       vmInput.Arguments[2],
@@ -191,6 +191,10 @@ func getESDTNFTToken(
 		return nil, err
 	}
 
+	if esdtData.TokenMetaData == nil {
+		return nil, process.ErrNFTDoesNotHaveMetadata
+	}
+
 	return esdtData, nil
 }
 
@@ -207,16 +211,35 @@ func saveESDTNFTToken(
 	nonce := esdtData.TokenMetaData.Nonce
 	esdtNFTTokenKey := getESDTNFTTokenKey(esdtTokenKey, nonce)
 
+	if esdtData.Value.Cmp(zero) <= 0 {
+		return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, nil)
+	}
+
 	marshaledData, err := marshalizer.Marshal(esdtData)
 	if err != nil {
 		return err
 	}
 
-	err = acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, marshaledData)
+	return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, marshaledData)
+}
+
+func checkESDTCreateAddBurnInput(
+	account state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+	funcGasCost uint64) error {
+	err := checkBasicESDTArguments(vmInput)
 	if err != nil {
 		return err
 	}
-
+	if !bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
+		return process.ErrInvalidRcvAddr
+	}
+	if check.IfNil(account) {
+		return process.ErrNilUserAccount
+	}
+	if vmInput.GasProvided < funcGasCost {
+		return process.ErrNotEnoughGas
+	}
 	return nil
 }
 
