@@ -149,7 +149,7 @@ func TestEsdtRoles_ProcessBuiltinFunction_SaveFailedShouldErr(t *testing.T) {
 	require.Equal(t, localErr, err)
 }
 
-func TestEsdtRoles_ProcessBuiltinFunction_UnsetRolesDoesNotExitsShouldWork(t *testing.T) {
+func TestEsdtRoles_ProcessBuiltinFunction_UnsetRolesDoesNotExistsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -283,7 +283,7 @@ func TestEsdtRoles_CheckAllowed_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestEsdtRolest_CheckAllowedToExecuteRoleNotFind(t *testing.T) {
+func TestEsdtRoles_CheckAllowedToExecuteRoleNotFind(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}

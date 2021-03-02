@@ -30,7 +30,7 @@ func TestNewESDTLocalBurnFunc(t *testing.T) {
 			exError: process.ErrNilMarshalizer,
 		},
 		{
-			name: "NilPouseHandler",
+			name: "NilPauseHandler",
 			argsFunc: func() (c uint64, m marshal.Marshalizer, p process.ESDTPauseHandler, r process.ESDTRoleHandler) {
 				return 0, &mock.MarshalizerMock{}, nil, &mock.ESDTRoleHandlerStub{}
 			},

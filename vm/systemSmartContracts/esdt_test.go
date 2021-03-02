@@ -2344,7 +2344,7 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_SetSpecialRoleAlreadyExits(t *testing.T) {
+func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -2581,7 +2581,7 @@ func TestEsdt_UnsetSpecialRoleNewShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExitsShouldErr(t *testing.T) {
+func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -2763,7 +2763,7 @@ func TestEsdt_GetAllAddressesAndRolesNoArgumentsShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_GetAllAddressesAndRoleCallWithValueShouldErr(t *testing.T) {
+func TestEsdt_GetAllAddressesAndRolesCallWithValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -2779,7 +2779,7 @@ func TestEsdt_GetAllAddressesAndRoleCallWithValueShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_GetAllAddressesAndRoleCallGetExistingTokenErr(t *testing.T) {
+func TestEsdt_GetAllAddressesAndRolesCallGetExistingTokenErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()

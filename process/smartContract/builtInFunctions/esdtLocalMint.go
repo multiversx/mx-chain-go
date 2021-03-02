@@ -79,8 +79,8 @@ func (e *esdtLocalMint) ProcessBuiltinFunction(
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
-	sdtTokenKey := append(e.keyPrefix, tokenID...)
-	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, sdtTokenKey, big.NewInt(0).Set(value), e.marshalizer, e.pauseHandler)
+	esdtTokenKey := append(e.keyPrefix, tokenID...)
+	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Set(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}
