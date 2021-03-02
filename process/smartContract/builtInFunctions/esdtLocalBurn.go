@@ -47,6 +47,7 @@ func NewESDTLocalBurnFunc(
 		pauseHandler: pauseHandler,
 		rolesHandler: rolesHandler,
 		funcGasCost:  funcGasCost,
+		mutExecution: sync.RWMutex{},
 	}
 
 	return e, nil
@@ -61,24 +62,25 @@ func (e *esdtLocalBurn) SetNewGasConfig(gasCost *process.GasCost) {
 
 // ProcessBuiltinFunction resolves ESDT change roles function call
 func (e *esdtLocalBurn) ProcessBuiltinFunction(
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkInputArgumentsForLocalAction(acntSnd, acntDst, vmInput, e.funcGasCost)
+	err := checkInputArgumentsForLocalAction(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
 	}
 
-	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleLocalBurn))
+	tokenID := vmInput.Arguments[0]
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, tokenID, []byte(core.ESDTRoleLocalBurn))
 	if err != nil {
 		return nil, err
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
+	esdtTokenKey := append(e.keyPrefix, tokenID...)
 	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
@@ -107,7 +109,7 @@ func checkBasicESDTArguments(vmInput *vmcommon.ContractCallInput) error {
 }
 
 func checkInputArgumentsForLocalAction(
-	acntSnd, _ state.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 	funcGasCost uint64,
 ) error {

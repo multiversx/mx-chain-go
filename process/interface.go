@@ -1015,7 +1015,7 @@ type ESDTPauseHandler interface {
 
 // ESDTRoleHandler provides IsAllowedToExecute function for an ESDT
 type ESDTRoleHandler interface {
-	CheckAllowedToExecute(account state.UserAccountHandler, tokenId []byte, action []byte) error
+	CheckAllowedToExecute(account state.UserAccountHandler, tokenID []byte, action []byte) error
 	IsInterfaceNil() bool
 }
 
