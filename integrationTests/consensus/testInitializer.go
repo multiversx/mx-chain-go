@@ -454,6 +454,7 @@ func createConsensusOnlyNode(
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
 	if err != nil {
@@ -534,6 +535,7 @@ func createNodes(
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
+
 		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList

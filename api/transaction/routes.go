@@ -26,6 +26,9 @@ const (
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
+
+	queryParamWithResults    = "withResults"
+	queryParamCheckSignature = "checkSignature"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -33,11 +36,11 @@ type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
-	ValidateTransactionForSimulation(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
@@ -165,6 +168,19 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
+	checkSignature, err := getQueryParameterCheckSignature(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
 	tx, txHash, err := facade.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
@@ -192,7 +208,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransactionForSimulation(tx)
+	err = facade.ValidateTransactionForSimulation(tx, checkSignature)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -517,7 +533,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"txGasUnits": cost},
+			Data:  cost,
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -525,10 +541,19 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 }
 
 func getQueryParamWithResults(c *gin.Context) (bool, error) {
-	withResultsStr := c.Request.URL.Query().Get("withResults")
+	withResultsStr := c.Request.URL.Query().Get(queryParamWithResults)
 	if withResultsStr == "" {
 		return false, nil
 	}
 
 	return strconv.ParseBool(withResultsStr)
+}
+
+func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
+	bypassSignatureStr := c.Request.URL.Query().Get(queryParamCheckSignature)
+	if bypassSignatureStr == "" {
+		return true, nil
+	}
+
+	return strconv.ParseBool(bypassSignatureStr)
 }

@@ -246,9 +246,19 @@ func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	root2 := []byte{6, 7, 8, 9, 10, 0}
 	root3 := []byte{1, 2, 3, 4, 5, 1}
 
-	hashesMap := data.ModifiedHashes{
-		"hash0": {},
-		"hash1": {},
+	hashesMapSlice := []data.ModifiedHashes{
+		{
+			"hash2": {},
+			"hash3": {},
+		},
+		{
+			"hash4": {},
+			"hash5": {},
+		},
+		{
+			"hash0": {},
+			"hash1": {},
+		},
 	}
 	roots := [][]byte{
 		root1,
@@ -257,7 +267,7 @@ func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	}
 
 	for i := range roots {
-		_ = ewl.Put(roots[i], hashesMap)
+		_ = ewl.Put(roots[i], hashesMapSlice[i])
 	}
 
 	present, err := ewl.ShouldKeepHash("hash0", 1)

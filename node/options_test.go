@@ -315,3 +315,27 @@ func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.
 	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
 	assert.Nil(t, err)
 }
+
+func TestWithNodeRedundancyHandler_NilNodeRedundancyHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodeRedundancyHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
+}
+
+func TestWithNodeRedundancyHandler_OkNodeRedundancyHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	opt := WithNodeRedundancyHandler(nodeRedundancyHandler)
+	err := opt(node)
+
+	assert.Equal(t, nodeRedundancyHandler, node.nodeRedundancyHandler)
+	assert.Nil(t, err)
+}

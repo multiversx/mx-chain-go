@@ -73,6 +73,10 @@ func (wrk *Worker) RoundHandler() consensus.RoundHandler {
 	return wrk.roundHandler
 }
 
+func (wrk *Worker) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
+	wrk.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
 func (wrk *Worker) SetRoundHandler(roundHandler consensus.RoundHandler) {
 	wrk.roundHandler = roundHandler
 }

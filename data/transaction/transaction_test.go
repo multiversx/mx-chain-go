@@ -207,3 +207,57 @@ func TestTransaction_GetDataForSigningShouldWork(t *testing.T) {
 	assert.True(t, marshalizerWasCalled)
 	assert.Equal(t, 2, numEncodeCalled)
 }
+
+func TestTransaction_CheckIntegrityShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{
+		Nonce:       1,
+		Value:       big.NewInt(10),
+		GasPrice:    1,
+		GasLimit:    10,
+		Data:        []byte("data"),
+		Signature:   []byte("signature"),
+		RcvUserName: []byte("rcv-username"),
+		SndUserName: []byte("snd-username"),
+	}
+
+	err := tx.CheckIntegrity()
+	assert.Nil(t, err)
+}
+
+func TestTransaction_CheckIntegrityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	invalidUsername := []byte("invalid-username-length-exceeds-max-allowed-length")
+	validUsername := []byte("unittest")
+	tx := &transaction.Transaction{
+		Nonce: 1,
+		Data:  []byte("data"),
+	}
+
+	err := tx.CheckIntegrity()
+	assert.Equal(t, data.ErrNilSignature, err)
+
+	tx.Signature = []byte("signature")
+
+	err = tx.CheckIntegrity()
+	assert.Equal(t, data.ErrNilValue, err)
+
+	tx.Value = big.NewInt(-1)
+
+	err = tx.CheckIntegrity()
+	assert.Equal(t, data.ErrNegativeValue, err)
+
+	tx.Value = big.NewInt(10)
+	tx.RcvUserName = invalidUsername
+
+	err = tx.CheckIntegrity()
+	assert.Equal(t, data.ErrInvalidUserNameLength, err)
+
+	tx.RcvUserName = validUsername
+	tx.SndUserName = invalidUsername
+
+	err = tx.CheckIntegrity()
+	assert.Equal(t, data.ErrInvalidUserNameLength, err)
+}

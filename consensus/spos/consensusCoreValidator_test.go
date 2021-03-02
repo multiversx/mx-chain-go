@@ -25,24 +25,30 @@ func initConsensusDataContainer() *ConsensusCore {
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
+	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
 
 	return &ConsensusCore{
-		blockChain:         blockChain,
-		blockProcessor:     blockProcessorMock,
-		bootstrapper:       bootstrapperMock,
-		broadcastMessenger: broadcastMessengerMock,
-		chronologyHandler:  chronologyHandlerMock,
-		hasher:             hasherMock,
-		marshalizer:        marshalizerMock,
-		blsPrivateKey:      blsPrivateKeyMock,
-		blsSingleSigner:    blsSingleSignerMock,
-		multiSigner:        multiSignerMock,
-		roundHandler:       roundHandlerMock,
-		shardCoordinator:   shardCoordinatorMock,
-		syncTimer:          syncTimerMock,
-		nodesCoordinator:   validatorGroupSelector,
-		antifloodHandler:   antifloodHandler,
-		peerHonestyHandler: peerHonestyHandler,
+		blockChain:              blockChain,
+		blockProcessor:          blockProcessorMock,
+		bootstrapper:            bootstrapperMock,
+		broadcastMessenger:      broadcastMessengerMock,
+		chronologyHandler:       chronologyHandlerMock,
+		hasher:                  hasherMock,
+		marshalizer:             marshalizerMock,
+		blsPrivateKey:           blsPrivateKeyMock,
+		blsSingleSigner:         blsSingleSignerMock,
+		multiSigner:             multiSignerMock,
+		roundHandler:            roundHandlerMock,
+		shardCoordinator:        shardCoordinatorMock,
+		syncTimer:               syncTimerMock,
+		nodesCoordinator:        validatorGroupSelector,
+		antifloodHandler:        antifloodHandler,
+		peerHonestyHandler:      peerHonestyHandler,
+		headerSigVerifier:       headerSigVerifier,
+		fallbackHeaderValidator: fallbackHeaderValidator,
+		nodeRedundancyHandler:   nodeRedundancyHandler,
 	}
 }
 
@@ -198,4 +204,35 @@ func TestConsensusContainerValidator_ValidateNilHeaderSigVerifierShouldFail(t *t
 	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, ErrNilHeaderSigVerifier, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilFallbackHeaderValidatorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.fallbackHeaderValidator = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilFallbackHeaderValidator, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.nodeRedundancyHandler = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
+}
+
+func TestConsensusContainerValidator_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	err := ValidateConsensusCore(container)
+
+	assert.Nil(t, err)
 }

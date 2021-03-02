@@ -249,7 +249,9 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 	}
 	unFinished := make(map[string]*block.MetaBlock)
 	unFinished["firstPending"] = metaBlock
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
+	timeout := time.Second + time.Millisecond*500
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
 	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)
