@@ -1,9 +1,9 @@
 package factory_test
 
 import (
-	"fmt"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("factory/factory_test")
 
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -155,7 +157,6 @@ func getStatusComponents(
 	processComponents factory.ProcessComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 ) factory.StatusComponentsHandler {
-
 	indexerURL := "url"
 	elasticUsername := "user"
 	elasticPassword := "pass"
@@ -170,15 +171,15 @@ func getStatusComponents(
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
 		},
-		EconomicsConfig:      config.EconomicsConfig{},
-		ShardCoordinator:     processComponents.ShardCoordinator(),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
-		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
+		EconomicsConfig:    config.EconomicsConfig{},
+		ShardCoordinator:   processComponents.ShardCoordinator(),
+		NodesCoordinator:   processComponents.NodesCoordinator(),
+		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StateComponents:    stateComponents,
+		IsInImportMode:     false,
 
 		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
 	}
@@ -186,12 +187,12 @@ func getStatusComponents(
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	if err != nil {
-		fmt.Println("getStatusComponents NewManagedStatusComponents", "error", err.Error())
+		log.Error("getStatusComponents NewManagedStatusComponents", "error", err.Error())
 		return nil
 	}
 	err = managedStatusComponents.Create()
 	if err != nil {
-		fmt.Println("getStatusComponents Create", "error", err.Error())
+		log.Error("getStatusComponents Create", "error", err.Error())
 	}
 	return managedStatusComponents
 }
@@ -215,7 +216,7 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 	elasticUsername := "user"
 	elasticPassword := "pass"
 	return factory.StatusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
+		Config: testscommon.GetGeneralConfig(),
 		ExternalConfig: config.ExternalConfig{
 			ElasticSearchConnector: config.ElasticSearchConfig{
 				Enabled:        false,
@@ -261,13 +262,13 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(cryptoArgs)
 	cryptoComponents, err := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	if err != nil {
-		fmt.Println("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
+		log.Error("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
 		return nil
 	}
 
 	err = cryptoComponents.Create()
 	if err != nil {
-		fmt.Println("getCryptoComponents Create", "error", err.Error())
+		log.Error("getCryptoComponents Create", "error", err.Error())
 		return nil
 	}
 	return cryptoComponents
@@ -276,19 +277,20 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 func getStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
 	stateArgs := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, err := factory.NewStateComponentsFactory(stateArgs)
-	if err!=nil{
-		fmt.Println("getStateComponents NewStateComponentsFactory", "error", err.Error())
+	if err != nil {
+		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
 		return nil
 	}
 
 	stateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
-		fmt.Println("getStateComponents NewManagedStateComponents", "error", err.Error())
+		log.Error("getStateComponents NewManagedStateComponents", "error", err.Error())
 		return nil
 	}
 	err = stateComponents.Create()
 	if err != nil {
-		fmt.Println("getStateComponents Create", "error", err.Error())
+		log.Error("getStateComponents Create", "error", err.Error())
+		return nil
 	}
 	return stateComponents
 }
@@ -312,12 +314,13 @@ func getProcessComponents(
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
-		fmt.Println("getProcessComponents NewManagedProcessComponents", "error", err.Error())
+		log.Error("getProcessComponents NewManagedProcessComponents", "error", err.Error())
 		return nil
 	}
 	err = managedProcessComponents.Create()
 	if err != nil {
-		fmt.Println("getProcessComponents Create", "error", err.Error())
+		log.Error("getProcessComponents Create", "error", err.Error())
+		return nil
 	}
 	return managedProcessComponents
 }
