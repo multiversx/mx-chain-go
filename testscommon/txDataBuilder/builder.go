@@ -158,3 +158,8 @@ func (builder *txDataBuilder) CanMint(prop bool) *txDataBuilder {
 func (builder *txDataBuilder) CanBurn(prop bool) *txDataBuilder {
 	return builder.Str("canBurn").Bool(prop)
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (builder *txDataBuilder) IsInterfaceNil() bool {
+	return builder == nil
+}
