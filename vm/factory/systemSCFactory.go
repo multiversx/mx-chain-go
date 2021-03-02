@@ -14,7 +14,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-var log = logger.GetOrCreate("core/forking")
+var log = logger.GetOrCreate("vm/factory")
 
 type systemSCFactory struct {
 	systemEI               vm.ContextHandler
@@ -147,6 +147,7 @@ func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]
 	for _, key := range scf.systemSCsContainer.Keys() {
 		systemSC, err = scf.systemSCsContainer.Get(key)
 		if err != nil {
+			log.Error("error getting system SC", "key", key, "error", err)
 			return
 		}
 
