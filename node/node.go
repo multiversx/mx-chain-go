@@ -62,7 +62,6 @@ type Node struct {
 
 	networkShardingCollector NetworkShardingCollector
 
-	consensusTopic string
 	consensusType  string
 
 	currentSendingGoRoutines int32
@@ -70,7 +69,6 @@ type Node struct {
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	sizeCheckDelta uint32
 	txSentCounter  uint32
 	txAcumulator   core.Accumulator
 
@@ -408,28 +406,30 @@ func (n *Node) printTxSentCounter(ctx context.Context) {
 	totalTxCounter := uint64(0)
 	counterSeconds := 0
 
-	select {
-	case <-time.After(time.Second):
-		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
-		if txSent > maxTxCounter {
-			maxTxCounter = txSent
-		}
-		totalTxCounter += uint64(txSent)
-
-		counterSeconds++
-		if counterSeconds > numSecondsBetweenPrints {
-			counterSeconds = 0
-
-			if maxTxCounter > 0 {
-				log.Info("sent transactions on network",
-					"max/sec", maxTxCounter,
-					"total", totalTxCounter,
-				)
+	for {
+		select {
+		case <-time.After(time.Second):
+			txSent := atomic.SwapUint32(&n.txSentCounter, 0)
+			if txSent > maxTxCounter {
+				maxTxCounter = txSent
 			}
-			maxTxCounter = 0
+			totalTxCounter += uint64(txSent)
+
+			counterSeconds++
+			if counterSeconds > numSecondsBetweenPrints {
+				counterSeconds = 0
+
+				if maxTxCounter > 0 {
+					log.Info("sent transactions on network",
+						"max/sec", maxTxCounter,
+						"total", totalTxCounter,
+					)
+				}
+				maxTxCounter = 0
+			}
+		case <-ctx.Done():
+			return
 		}
-	case <-ctx.Done():
-		return
 	}
 }
 
@@ -755,20 +755,6 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
-}
-
-func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
-	latestHash, err := n.processComponents.ValidatorsStatistics().RootHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	validators, err := n.processComponents.ValidatorsStatistics().GetValidatorInfoForRootHash(latestHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return validators, nil, nil
 }
 
 // DirectTrigger will start the hardfork trigger

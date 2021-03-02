@@ -243,6 +243,9 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
+		if err != nil {
+			return err
+		}
 
 		elasticIndexer := managedStatusComponents.ElasticIndexer()
 		if !elasticIndexer.IsNilIndexer() {

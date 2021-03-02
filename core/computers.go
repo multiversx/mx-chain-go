@@ -115,7 +115,7 @@ func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int
 	percentageString := strconv.FormatFloat(percentage, 'f', -1, 64)
 	exp, fra := splitExponentFraction(percentageString)
 	concatExpFra := exp + fra
-	concatBigInt, _ := big.NewInt(0).SetString(string(concatExpFra), 10)
+	concatBigInt, _ := big.NewInt(0).SetString(concatExpFra, 10)
 	intMultiplier, _ := big.NewInt(0).SetString("1"+strings.Repeat("0", len(fra)), 10)
 	x.Mul(x, concatBigInt)
 	x.Div(x, intMultiplier)

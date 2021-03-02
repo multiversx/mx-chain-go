@@ -2251,10 +2251,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.BlockSizeComputation = &mock.BlockSizeComputationStub{
 		IsMaxBlockSizeWithoutThrottleReachedCalled: func(i int, i2 int) bool {
-			if i+i2 > 4 {
-				return true
-			}
-			return false
+			return i+i2 > 4
 		},
 	}
 	tc, _ := NewTransactionCoordinator(argsTransactionCoordinator)
