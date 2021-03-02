@@ -191,6 +191,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -231,6 +232,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerHonestyHandler:            ccf.networkComponents.PeerHonestyHandler(),
 		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
+		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

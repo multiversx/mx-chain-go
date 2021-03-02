@@ -124,7 +124,7 @@ func (nf *disabledNodeFacade) ValidateTransaction(_ *transaction.Transaction) er
 }
 
 // ValidateTransactionForSimulation returns error
-func (nf *disabledNodeFacade) ValidateTransactionForSimulation(_ *transaction.Transaction) error {
+func (nf *disabledNodeFacade) ValidateTransactionForSimulation(_ *transaction.Transaction, _ bool) error {
 	return errNodeStarting
 }
 
@@ -149,8 +149,8 @@ func (nf *disabledNodeFacade) GetTransaction(_ string, _ bool) (*transaction.Api
 }
 
 // ComputeTransactionGasLimit returns 0 and error
-func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transaction) (uint64, error) {
-	return uint64(0), errNodeStarting
+func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transaction) (*transaction.CostResponse, error){
+	return nil, errNodeStarting
 }
 
 // GetAccount returns nil and error
@@ -246,6 +246,11 @@ func (nf *disabledNodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 // GetNumCheckpointsFromPeerState returns 0
 func (nf *disabledNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return uint32(0)
+}
+
+// GetKeyValuePairs -
+func (nf *disabledNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error){
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

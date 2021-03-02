@@ -175,6 +175,7 @@ type Config struct {
 	Versions              VersionsConfig
 	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
+	TrieSync              TrieSyncConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -501,4 +502,10 @@ type ConfigurationPathsHolder struct {
 	SmartContracts             string
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
+}
+
+// TrieSyncConfig represents the trie synchronization configuration area
+type TrieSyncConfig struct {
+	NumConcurrentTrieSyncers  int
+	MaxHardCapForMissingNodes int
 }

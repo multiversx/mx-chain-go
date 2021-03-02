@@ -19,6 +19,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubpb "github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getRandomID() []byte {
@@ -51,9 +52,11 @@ func TestMessage_ShouldErrBecauseOfFromField(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: from,
-		Data: buff,
+		From:  from,
+		Data:  buff,
+		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
 	m, err := libp2p.NewMessage(pMes, marshalizer)
@@ -72,15 +75,17 @@ func TestMessage_ShouldWork(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Data: buff,
+		From:  getRandomID(),
+		Data:  buff,
+		Topic: &topic,
 	}
 
 	pMes := &pubsub.Message{Message: mes}
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.False(t, check.IfNil(m))
 }
 
@@ -95,14 +100,16 @@ func TestMessage_From(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: from,
-		Data: buff,
+		From:  from,
+		Data:  buff,
+		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
 	m, err := libp2p.NewMessage(pMes, marshalizer)
 
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, m.From(), from)
 }
 
@@ -118,13 +125,16 @@ func TestMessage_Peer(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: id,
-		Data: buff,
+		From:  id,
+		Data:  buff,
+		Topic: &topic,
 	}
 	pMes := &pubsub.Message{Message: mes}
-	m, _ := libp2p.NewMessage(pMes, marshalizer)
+	m, err := libp2p.NewMessage(pMes, marshalizer)
 
+	require.Nil(t, err)
 	assert.Equal(t, core.PeerID(id), m.Peer())
 }
 
@@ -139,9 +149,11 @@ func TestMessage_WrongVersionShouldErr(t *testing.T) {
 		Payload:   []byte("data"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Data: buff,
+		From:  getRandomID(),
+		Data:  buff,
+		Topic: &topic,
 	}
 
 	pMes := &pubsub.Message{Message: mes}
@@ -163,9 +175,11 @@ func TestMessage_PopulatedPkFieldShouldErr(t *testing.T) {
 		Pk:        []byte("p"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Data: buff,
+		From:  getRandomID(),
+		Data:  buff,
+		Topic: &topic,
 	}
 
 	pMes := &pubsub.Message{Message: mes}
@@ -187,9 +201,11 @@ func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
 		SignatureOnPid: []byte("s"),
 	}
 	buff, _ := marshalizer.Marshal(topicMessage)
+	topic := "topic"
 	mes := &pubsubpb.Message{
-		From: getRandomID(),
-		Data: buff,
+		From:  getRandomID(),
+		Data:  buff,
+		Topic: &topic,
 	}
 
 	pMes := &pubsub.Message{Message: mes}
@@ -197,4 +213,39 @@ func TestMessage_PopulatedSigFieldShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(m))
 	assert.True(t, errors.Is(err, p2p.ErrUnsupportedFields))
+}
+
+func TestMessage_NilTopic(t *testing.T) {
+	t.Parallel()
+
+	id := getRandomID()
+	marshalizer := &testscommon.ProtoMarshalizerMock{}
+
+	topicMessage := &data.TopicMessage{
+		Version:   libp2p.CurrentTopicMessageVersion,
+		Timestamp: time.Now().Unix(),
+		Payload:   []byte("data"),
+	}
+	buff, _ := marshalizer.Marshal(topicMessage)
+	mes := &pubsubpb.Message{
+		From:  id,
+		Data:  buff,
+		Topic: nil,
+	}
+	pMes := &pubsub.Message{Message: mes}
+	m, err := libp2p.NewMessage(pMes, marshalizer)
+
+	assert.Equal(t, p2p.ErrNilTopic, err)
+	assert.True(t, check.IfNil(m))
+}
+
+func TestMessage_NilMessage(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &testscommon.ProtoMarshalizerMock{}
+
+	m, err := libp2p.NewMessage(nil, marshalizer)
+
+	assert.Equal(t, p2p.ErrNilMessage, err)
+	assert.True(t, check.IfNil(m))
 }

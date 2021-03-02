@@ -56,7 +56,7 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	err = dnf.ValidateTransaction(nil)
 	assert.Equal(t, errNodeStarting, err)
 
-	err = dnf.ValidateTransactionForSimulation(nil)
+	err = dnf.ValidateTransactionForSimulation(nil, false)
 	assert.Equal(t, errNodeStarting, err)
 
 	v1, err := dnf.ValidatorStatisticsApi()
@@ -75,8 +75,8 @@ func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, t1)
 	assert.Equal(t, errNodeStarting, err)
 
-	u1, err = dnf.ComputeTransactionGasLimit(nil)
-	assert.Equal(t, uint64(0), u1)
+	resp, err := dnf.ComputeTransactionGasLimit(nil)
+	assert.Nil(t, resp)
 	assert.Equal(t, errNodeStarting, err)
 
 	uac, err := dnf.GetAccount("")

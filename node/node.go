@@ -14,9 +14,11 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
@@ -94,6 +97,7 @@ type Node struct {
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -189,6 +193,41 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 	username := userAccount.GetUserName()
 	return string(username), nil
+}
+
+// GetKeyValuePairs returns all the key-value pairs under the address
+func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return map[string]string{}, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mapToReturn := make(map[string]string)
+	for leaf := range chLeaves {
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+	}
+
+	return mapToReturn, nil
 }
 
 // GetValueForKey will return the value for a key from a given account
@@ -433,7 +472,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), true)
 	if err != nil {
 		return err
 	}
@@ -442,8 +481,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
-func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	disabledWhiteListHandler := disabled.NewDisabledWhiteListDataVerifier()
+	txValidator, intTx, err := n.commonTransactionValidation(tx, disabledWhiteListHandler, disabledWhiteListHandler, checkSignature)
 	if err != nil {
 		return err
 	}
@@ -457,11 +497,16 @@ func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) err
 	return err
 }
 
-func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
+func (n *Node) commonTransactionValidation(
+	tx *transaction.Transaction,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	checkSignature bool,
+) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
-		n.processComponents.WhiteListHandler(),
+		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -479,6 +524,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 	currentEpoch := n.coreComponents.EpochNotifier().CurrentEpoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
+	txSingleSigner := n.cryptoComponents.TxSingleSigner()
+	if !checkSignature {
+		txSingleSigner = &disabledSig.DisabledSingleSig{}
+	}
+
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
@@ -486,11 +536,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.coreComponents.TxMarshalizer(),
 		n.coreComponents.Hasher(),
 		n.cryptoComponents.TxSignKeyGen(),
-		n.cryptoComponents.TxSingleSigner(),
+		txSingleSigner,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
 		n.coreComponents.EconomicsData(),
-		n.processComponents.WhiteListerVerifiedTxs(),
+		whiteListerVerifiedTxs,
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
 		enableSignWithTxHash,

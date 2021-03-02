@@ -225,6 +225,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.BlockChainMock{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 
 	sender, _ := process.NewSender(argSender)

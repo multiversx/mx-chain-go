@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	ggio "github.com/gogo/protobuf/io"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -112,11 +111,8 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
-	if message.TopicIDs == nil {
+	if message.Topic == nil {
 		return p2p.ErrNilTopic
-	}
-	if len(message.TopicIDs) == 0 {
-		return p2p.ErrEmptyTopicList
 	}
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
 		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
@@ -182,14 +178,14 @@ func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error 
 	err = w.WriteMsg(msg)
 	if err != nil {
 		_ = stream.Reset()
-		_ = helpers.FullClose(stream)
+		_ = stream.Close()
 		return err
 	}
 
 	err = bufw.Flush()
 	if err != nil {
 		_ = stream.Reset()
-		_ = helpers.FullClose(stream)
+		_ = stream.Close()
 		return err
 	}
 
@@ -245,7 +241,7 @@ func (ds *directSender) createMessage(topic string, buff []byte, conn network.Co
 	seqno := ds.NextSeqno()
 	mes := pubsubPb.Message{}
 	mes.Data = buff
-	mes.TopicIDs = []string{topic}
+	mes.Topic = &topic
 	mes.From = []byte(conn.LocalPeer())
 	mes.Seqno = seqno
 

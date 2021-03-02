@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	indexer "github.com/ElrondNetwork/elastic-indexer-go"
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -23,7 +23,7 @@ import (
 type statusComponents struct {
 	statusHandler   core.AppStatusHandler
 	tpsBenchmark    statistics.TPSBenchmark
-	elasticIndexer  indexer.Indexer
+	elasticIndexer  process.Indexer
 	softwareVersion statistics.SoftwareVersionChecker
 	resourceMonitor statistics.ResourceMonitorHandler
 	cancelFunc      func()
@@ -192,7 +192,7 @@ func (pc *statusComponents) Close() error {
 
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
-func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, error) {
+func (scf *statusComponentsFactory) createElasticIndexer() (process.Indexer, error) {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
@@ -207,7 +207,6 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 		NodesCoordinator:         scf.nodesCoordinator,
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
-		TemplatesPath:            scf.elasticTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
@@ -217,6 +216,8 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 		},
 		IsInImportDBMode: scf.isInImportMode,
 	}
+
+
 
 	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
