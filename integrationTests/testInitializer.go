@@ -1434,7 +1434,7 @@ func CreateAndSendTransaction(
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
-	wasSend := false
+	wasSent := false
 	for _, senderNode := range nodes {
 		if senderNode.ShardCoordinator.SelfId() != senderShardID {
 			continue
@@ -1443,12 +1443,13 @@ func CreateAndSendTransaction(
 		_, err := senderNode.SendTransaction(tx)
 		if err != nil {
 			log.Error("could not send transaction", "address", node.OwnAccount.Address, "error", err)
+		} else {
+			wasSent = true
 		}
-		wasSend = true
 		break
 	}
 
-	if !wasSend {
+	if !wasSent {
 		log.Error("no suitable node found to send the provided transaction", "address", node.OwnAccount.Address)
 	}
 	node.OwnAccount.Nonce++
