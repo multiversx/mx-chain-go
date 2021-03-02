@@ -79,6 +79,7 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
     ]
 
 [StoragePruning]
@@ -561,7 +562,7 @@
 
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
+    RoundsPerEpoch         = 40
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05

@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
 )
+
+var log = logger.GetOrCreate("core/forking")
 
 type systemSCFactory struct {
 	systemEI               vm.ContextHandler
@@ -136,6 +139,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	err := scf.createGasConfig(gasSchedule)
 	if err != nil {
+		log.Error("error changing gas schedule", "error", err)
 		return
 	}
 
@@ -148,6 +152,8 @@ func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]
 
 		systemSC.SetNewGasCost(scf.gasCost)
 	}
+
+	log.Debug("new gas schedule was set")
 }
 
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
