@@ -101,6 +101,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           pcf.state.AccountsAdapter(),

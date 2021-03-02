@@ -276,6 +276,10 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 func getStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
 	stateArgs := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, err := factory.NewStateComponentsFactory(stateArgs)
+	if err!=nil{
+		fmt.Println("getStateComponents NewStateComponentsFactory", "error", err.Error())
+		return nil
+	}
 
 	stateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
