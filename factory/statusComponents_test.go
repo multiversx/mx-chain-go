@@ -193,6 +193,7 @@ func getStatusComponents(
 	err = managedStatusComponents.Create()
 	if err != nil {
 		log.Error("getStatusComponents Create", "error", err.Error())
+		return nil
 	}
 	return managedStatusComponents
 }
