@@ -144,9 +144,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		log.Error(err.Error())
-	}
+	log.LogIfError(err)
 
 	return libP2PMes
 }
@@ -167,9 +165,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		log.Error(err.Error())
-	}
+	log.LogIfError(err)
 
 	return libP2PMes
 }
@@ -184,9 +180,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		log.Error(err.Error())
-	}
+	log.LogIfError(err)
 
 	return libP2PMes
 }
@@ -214,9 +208,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		log.Error(err.Error())
-	}
+	log.LogIfError(err)
 
 	return libP2PMes
 }
@@ -840,7 +832,7 @@ func AdbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.UserAccountHandler
 	err := AdbEmulateBalanceTxExecution(accounts, acntSrc, acntDest, value)
 
 	if err != nil {
-		log.Error("Error executing tx (value: %v), reverting...\n", value)
+		log.Error("Error executing tx (value: %v), reverting...", value)
 		err = accounts.RevertToSnapshot(snapshot)
 
 		if err != nil {
@@ -1339,11 +1331,11 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
 		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
-		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s\n",
+		log.Info(fmt.Sprintf("Shard ID: %v, pkNode: %s",
 			n.ShardCoordinator.SelfId(),
 			TestValidatorPubkeyConverter.Encode(pkNode)))
 
-		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s\n",
+		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s",
 			hex.EncodeToString(skTxBuff),
 			TestAddressPubkeyConverter.Encode(pkTxBuff)))
 
