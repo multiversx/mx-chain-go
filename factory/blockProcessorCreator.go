@@ -307,6 +307,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		balanceComputationHandler,
 		pcf.epochNotifier,
 		generalSettings.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -594,6 +595,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		balanceComputationHandler,
 		pcf.epochNotifier,
 		generalSettingsConfig.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err

@@ -1384,6 +1384,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1591,6 +1592,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestBalanceComputationHandler,
 		tpn.EpochNotifier,
 		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

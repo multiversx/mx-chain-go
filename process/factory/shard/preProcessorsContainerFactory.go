@@ -36,6 +36,7 @@ type preProcessorsContainerFactory struct {
 	balanceComputation             preprocess.BalanceComputationHandler
 	epochNotifier                  process.EpochNotifier
 	scheduledMiniBlocksEnableEpoch uint32
+	txTypeHandler                  process.TxTypeHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -59,6 +60,7 @@ func NewPreProcessorsContainerFactory(
 	balanceComputation preprocess.BalanceComputationHandler,
 	epochNotifier process.EpochNotifier,
 	scheduledMiniBlocksEnableEpoch uint32,
+	txTypeHandler process.TxTypeHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -115,6 +117,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(epochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:               shardCoordinator,
@@ -136,6 +141,7 @@ func NewPreProcessorsContainerFactory(
 		balanceComputation:             balanceComputation,
 		epochNotifier:                  epochNotifier,
 		scheduledMiniBlocksEnableEpoch: scheduledMiniBlocksEnableEpoch,
+		txTypeHandler:                  txTypeHandler,
 	}, nil
 }
 
@@ -205,6 +211,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.balanceComputation,
 		ppcm.epochNotifier,
 		ppcm.scheduledMiniBlocksEnableEpoch,
+		ppcm.txTypeHandler,
 	)
 
 	return txPreprocessor, err

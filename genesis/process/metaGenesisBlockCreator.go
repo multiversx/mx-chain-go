@@ -379,7 +379,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
-	disabledEpochNotifier := &disabled.EpochNotifier{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -397,8 +396,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		arg.Core.AddressPubKeyConverter(),
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
-		disabledEpochNotifier,
+		epochNotifier,
 		generalConfig.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	if err != nil {
 		return nil, err
