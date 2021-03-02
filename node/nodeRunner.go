@@ -16,8 +16,8 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	apiFactory "github.com/ElrondNetwork/elrond-go/api/factory"
-	"github.com/ElrondNetwork/elrond-go/api/factory/gin"
+	"github.com/ElrondNetwork/elrond-go/api/gin"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -338,7 +338,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
-	httpServer apiFactory.UpgradeableHttpServerHandler,
+	httpServer shared.UpgradeableHttpServerHandler,
 	closableHttpServer closing.Closer,
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (closing.Closer, closing.Closer, error) {
@@ -408,7 +408,7 @@ func (nr *nodeRunner) createApiFacade(
 	return ef, newClosableHttpServer, nil
 }
 
-func (nr *nodeRunner) createInitialHttpServer() (apiFactory.UpgradeableHttpServerHandler, closing.Closer, error) {
+func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, closing.Closer, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,

@@ -9,12 +9,12 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
-	"github.com/ElrondNetwork/elrond-go/api/factory"
-	"github.com/ElrondNetwork/elrond-go/api/factory/gin/disabled"
+	"github.com/ElrondNetwork/elrond-go/api/gin/disabled"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
@@ -32,17 +32,17 @@ var log = logger.GetOrCreate("api/factory")
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
-	Facade          factory.ApiFacadeHandler
+	Facade          shared.ApiFacadeHandler
 	ApiConfig       config.ApiRoutesConfig
 	AntiFloodConfig config.WebServerAntifloodConfig
 }
 
 type webServer struct {
-	facade          factory.ApiFacadeHandler
+	facade          shared.ApiFacadeHandler
 	mutFacadeSwitch sync.RWMutex
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
-	httpServer      factory.HttpServerCloser
+	httpServer      shared.HttpServerCloser
 	ctx             context.Context
 	cancelFunc      func()
 }
@@ -67,7 +67,7 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
-func (ws *webServer) UpdateFacade(facade factory.ApiFacadeHandler) (factory.HttpServerCloser, error) {
+func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpServerCloser, error) {
 	ws.mutFacadeSwitch.Lock()
 	defer ws.mutFacadeSwitch.Unlock()
 
@@ -90,21 +90,21 @@ func (ws *webServer) UpdateFacade(facade factory.ApiFacadeHandler) (factory.Http
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
-func (ws *webServer) CreateHttpServer() (factory.HttpServerCloser, error) {
+func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 	if ws.facade.RestApiInterface() == facade.DefaultRestPortOff {
 		return disabled.NewDisabledServerClosing(), nil
 	}
 
-	var gws *gin.Engine
+	var engine *gin.Engine
 	if !ws.facade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
 		gin.DefaultErrorWriter = &ginErrorWriter{}
 		gin.DisableConsoleColor()
 		gin.SetMode(gin.ReleaseMode)
 	}
-	gws = gin.Default()
-	gws.Use(cors.Default())
-	gws.Use(middleware.WithFacade(ws.facade))
+	engine = gin.Default()
+	engine.Use(cors.Default())
+	engine.Use(middleware.WithFacade(ws.facade))
 
 	processors, err := ws.createMiddlewareLimiters()
 	if err != nil {
@@ -116,7 +116,7 @@ func (ws *webServer) CreateHttpServer() (factory.HttpServerCloser, error) {
 			continue
 		}
 
-		gws.Use(proc.MiddlewareHandlerFunc())
+		engine.Use(proc.MiddlewareHandlerFunc())
 	}
 
 	err = registerValidators()
@@ -124,9 +124,9 @@ func (ws *webServer) CreateHttpServer() (factory.HttpServerCloser, error) {
 		return nil, err
 	}
 
-	ws.registerRoutes(gws)
+	ws.registerRoutes(engine)
 
-	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: gws}
+	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	wrappedServer, err := NewHttpServer(server)
 	if err != nil {
@@ -144,7 +144,7 @@ func (ws *webServer) CreateHttpServer() (factory.HttpServerCloser, error) {
 	return wrappedServer, nil
 }
 
-func (ws *webServer) createMiddlewareLimiters() ([]factory.MiddlewareProcessor, error) {
+func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
 	sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (ws *webServer) createMiddlewareLimiters() ([]factory.MiddlewareProcessor, 
 		return nil, err
 	}
 
-	return []factory.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
+	return []shared.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
 func (ws *webServer) sourceLimiterReset(reset resetHandler) {
