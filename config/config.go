@@ -157,6 +157,7 @@ type Config struct {
 	Heartbeat           HeartbeatConfig
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
+	Epoch 				EpochConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
 	TxLogsStorage       StorageConfig
@@ -226,6 +227,26 @@ type GeneralSettingsConfig struct {
 	StartInEpochEnabled                    bool
 	ChainID                                string
 	MinTransactionVersion                  uint32
+	//SCDeployEnableEpoch                    uint32
+	//BuiltInFunctionsEnableEpoch            uint32
+	//RelayedTransactionsEnableEpoch         uint32
+	//PenalizedTooMuchGasEnableEpoch         uint32
+	//SwitchJailWaitingEnableEpoch           uint32
+	//SwitchHysteresisForMinNodesEnableEpoch uint32
+	//BelowSignedThresholdEnableEpoch        uint32
+	//TransactionSignedWithTxHashEnableEpoch uint32
+	//MetaProtectionEnableEpoch              uint32
+	//AheadOfTimeGasUsageEnableEpoch         uint32
+	//GasPriceModifierEnableEpoch            uint32
+	//RepairCallbackEnableEpoch              uint32
+	//MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
+	GenesisString                          string
+	GenesisMaxNumberOfShards               uint32
+	//BlockGasAndFeesReCheckEnableEpoch      uint32
+}
+
+// EpochConfig will hold epoch config information for a node
+type EpochConfig struct {
 	SCDeployEnableEpoch                    uint32
 	BuiltInFunctionsEnableEpoch            uint32
 	RelayedTransactionsEnableEpoch         uint32
@@ -239,8 +260,6 @@ type GeneralSettingsConfig struct {
 	GasPriceModifierEnableEpoch            uint32
 	RepairCallbackEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
-	GenesisString                          string
-	GenesisMaxNumberOfShards               uint32
 	BlockGasAndFeesReCheckEnableEpoch      uint32
 }
 
