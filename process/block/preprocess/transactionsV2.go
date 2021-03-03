@@ -274,9 +274,9 @@ func (txs *transactions) processTransaction(
 	snapshot := txs.accounts.JournalLen()
 
 	gasConsumedByMiniBlockInReceiverShard := mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
-	oldGasConsumedByMiniBlocksInSenderShard := gasConsumedByMiniBlocksInSenderShard
+	oldGasConsumedByMiniBlocksInSenderShard := *gasConsumedByMiniBlocksInSenderShard
 	oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-	oldTotalGasConsumedInSelfShard := totalGasConsumedInSelfShard
+	oldTotalGasConsumedInSelfShard := *totalGasConsumedInSelfShard
 
 	startTime := time.Now()
 	err := txs.computeGasConsumed(
@@ -319,9 +319,9 @@ func (txs *transactions) processTransaction(
 		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 
-		gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		*gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		*totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 	}
 
 	return err
