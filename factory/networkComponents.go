@@ -97,7 +97,14 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
+	defer func() {
+		if err != nil {
+			cancelFunc()
+		}
+	}()
+
+	var antiFloodComponents *antifloodFactory.AntiFloodComponents
+	antiFloodComponents, err = antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
 	if err != nil {
 		return nil, err
 	}
@@ -118,20 +125,24 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
+		err = errors.ErrWrongTypeAssertion
+		return nil, fmt.Errorf("%w when casting input antiflood handler to P2PAntifloodHandler", err)
 	}
 
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
-	if errOutputAntiflood != nil {
-		return nil, errOutputAntiflood
+	var outAntifloodHandler process.P2PAntifloodHandler
+	outAntifloodHandler, err = antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
+		err = errors.ErrWrongTypeAssertion
+		return nil, fmt.Errorf("%w when casting output antiflood handler to P2PAntifloodHandler", err)
 	}
 
-	peerHonestyHandler, err := ncf.createPeerHonestyHandler(
+	var peerHonestyHandler consensus.PeerHonestyHandler
+	peerHonestyHandler, err = ncf.createPeerHonestyHandler(
 		&ncf.mainConfig,
 		ncf.ratingsConfig,
 		antiFloodComponents.PubKeysCacher,

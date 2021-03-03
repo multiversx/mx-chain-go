@@ -92,7 +92,6 @@ type epochStartBootstrap struct {
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
 	roundHandler               epochStart.RoundHandler
-	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	enableSignTxWithHashEpoch  uint32

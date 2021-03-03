@@ -12,3 +12,4 @@ unconvert
 goconst
 gosec
 megacheck
+govet
