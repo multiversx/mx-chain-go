@@ -13,6 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
+// TxType identifies the type of the tx
+type TxType int32
+
+const (
+	nonScTx TxType = 0
+	scTx    TxType = 1
+)
+
 type processedTxsInfo struct {
 	numTxsAdded                        int
 	numTxsBad                          int
@@ -32,18 +40,17 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
 
-	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
 	mapSCTxs := make(map[string]struct{})
 	mapTxsForShard := make(map[uint32]int)
 	mapScsForShard := make(map[uint32]int)
 
-	var processingInfo processedTxsInfo
+	processingInfo := processedTxsInfo{}
 
 	firstInvalidTxFound := false
 	firstCrossShardScCallOrSpecialTxFound := false
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
-	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
+	mapGasConsumedByMiniBlockInReceiverShard := txs.initGasConsumed()
 	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
@@ -54,11 +61,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
-		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, block.TxBlock)
-	}
-
-	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
+	mapMiniBlocks := txs.createEmptyMiniBlocks(block.TxBlock)
 
 	for index := range sortedTxs {
 		if !haveTime() {
@@ -130,8 +133,14 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			continue
 		}
 
+		txType := nonScTx
+		if isReceiverSmartContractAddress {
+			txType = scTx
+		}
+
 		err := txs.processTransaction(
 			tx,
+			txType,
 			txHash,
 			senderShardID,
 			receiverShardID,
@@ -149,7 +158,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		senderAddressToSkip = []byte("")
 
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
-		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
+		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] -= gasRefunded
 		if senderShardID == receiverShardID {
 			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
 			totalGasConsumedInSelfShard -= gasRefunded
@@ -219,6 +228,26 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	return miniBlocks, nil
 }
 
+func (txs *transactions) initGasConsumed() map[uint32]map[TxType]uint64 {
+	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]map[TxType]uint64)
+	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
+		mapGasConsumedByMiniBlockInReceiverShard[shardID] = make(map[TxType]uint64)
+	}
+
+	mapGasConsumedByMiniBlockInReceiverShard[core.MetachainShardId] = make(map[TxType]uint64)
+	return mapGasConsumedByMiniBlockInReceiverShard
+}
+
+func (txs *transactions) createEmptyMiniBlocks(blockType block.Type) map[uint32]*block.MiniBlock {
+	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
+	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
+		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, blockType)
+	}
+
+	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, blockType)
+	return mapMiniBlocks
+}
+
 func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transaction) (bool, bool, *big.Int) {
 	addressHasEnoughBalance := true
 	txMaxTotalCost := big.NewInt(0)
@@ -233,17 +262,18 @@ func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transact
 
 func (txs *transactions) processTransaction(
 	tx *transaction.Transaction,
+	txType TxType,
 	txHash []byte,
 	senderShardID uint32,
 	receiverShardID uint32,
 	gasConsumedByMiniBlocksInSenderShard *uint64,
 	totalGasConsumedInSelfShard *uint64,
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64,
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[TxType]uint64,
 	processingInfo *processedTxsInfo,
 ) error {
 	snapshot := txs.accounts.JournalLen()
 
-	gasConsumedByMiniBlockInReceiverShard := mapGasConsumedByMiniBlockInReceiverShard[receiverShardID]
+	gasConsumedByMiniBlockInReceiverShard := mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
 	oldGasConsumedByMiniBlocksInSenderShard := gasConsumedByMiniBlocksInSenderShard
 	oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
 	oldTotalGasConsumedInSelfShard := totalGasConsumedInSelfShard
@@ -264,7 +294,7 @@ func (txs *transactions) processTransaction(
 		return err
 	}
 
-	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = gasConsumedByMiniBlockInReceiverShard
+	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = gasConsumedByMiniBlockInReceiverShard
 
 	// execute transaction to change the trie root hash
 	startTime = time.Now()
@@ -290,7 +320,7 @@ func (txs *transactions) processTransaction(
 		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 
 		gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
+		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
 		totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 	}
 
@@ -322,29 +352,29 @@ func (txs *transactions) getMiniBlockSliceFromMapV2(
 
 func splitMiniBlockIfNeeded(miniBlock *block.MiniBlock, mapSCTxs map[string]struct{}) block.MiniBlockSlice {
 	splitMiniBlocks := make(block.MiniBlockSlice, 0)
-	notScTxHashes := make([][]byte, 0)
+	nonScTxHashes := make([][]byte, 0)
 	scTxHashes := make([][]byte, 0)
 
 	for _, txHash := range miniBlock.TxHashes {
 		_, isSCTx := mapSCTxs[string(txHash)]
 		if !isSCTx {
-			notScTxHashes = append(notScTxHashes, txHash)
+			nonScTxHashes = append(nonScTxHashes, txHash)
 			continue
 		}
 
 		scTxHashes = append(scTxHashes, txHash)
 	}
 
-	if len(notScTxHashes) > 0 {
-		notScMiniBlock := &block.MiniBlock{
-			TxHashes:        notScTxHashes,
+	if len(nonScTxHashes) > 0 {
+		nonScMiniBlock := &block.MiniBlock{
+			TxHashes:        nonScTxHashes,
 			SenderShardID:   miniBlock.SenderShardID,
 			ReceiverShardID: miniBlock.ReceiverShardID,
 			Type:            miniBlock.Type,
 			Reserved:        miniBlock.Reserved,
 		}
 
-		splitMiniBlocks = append(splitMiniBlocks, notScMiniBlock)
+		splitMiniBlocks = append(splitMiniBlocks, nonScMiniBlock)
 	}
 
 	if len(scTxHashes) > 0 {
@@ -360,44 +390,6 @@ func splitMiniBlockIfNeeded(miniBlock *block.MiniBlock, mapSCTxs map[string]stru
 	}
 
 	return splitMiniBlocks
-}
-
-func (txs *transactions) displayProcessingResults(
-	gasConsumedByMiniBlocksInSenderShard uint64,
-	totalGasConsumedInSelfShard uint64,
-	mapGasConsumedByMiniBlockInReceiverShard map[uint32]uint64,
-	mapTxsForShard map[uint32]int,
-	mapScsForShard map[uint32]int,
-	miniBlocks block.MiniBlockSlice,
-	processingInfo *processedTxsInfo,
-	nbSortedTxs int,
-) {
-	log.Debug("createAndProcessMiniBlocksFromMeV2",
-		"self shard", txs.shardCoordinator.SelfId(),
-		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,
-		"total gas consumed in self shard", totalGasConsumedInSelfShard)
-
-	for _, miniBlock := range miniBlocks {
-		log.Debug("mini block info",
-			"type", miniBlock.Type,
-			"sender shard", miniBlock.SenderShardID,
-			"receiver shard", miniBlock.ReceiverShardID,
-			"gas consumed in receiver shard", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID],
-			"txs added", len(miniBlock.TxHashes),
-			"not sc txs", mapTxsForShard[miniBlock.ReceiverShardID],
-			"sc txs", mapScsForShard[miniBlock.ReceiverShardID])
-	}
-
-	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished",
-		"total txs", nbSortedTxs,
-		"num txs added", processingInfo.numTxsAdded,
-		"num txs bad", processingInfo.numTxsBad,
-		"num txs failed", processingInfo.numTxsFailed,
-		"num txs skipped", processingInfo.numTxsSkipped,
-		"num txs with initial balance consumed", processingInfo.numTxsWithInitialBalanceConsumed,
-		"num cross shard sc calls or special txs", processingInfo.numCrossShardScCallsOrSpecialTxs,
-		"used time for computeGasConsumed", processingInfo.totalTimeUsedForComputeGasConsumed,
-		"used time for processAndRemoveBadTransaction", processingInfo.totalTimeUsedForProcess)
 }
 
 //TODO: Finish implementation of this method which should create all the scheduled mini blocks if needed
@@ -459,12 +451,41 @@ func (txs *transactions) createScheduledMiniBlocks(
 	return miniBlocks
 }
 
-func (txs *transactions) createEmptyMiniBlocks(blockType block.Type) map[uint32]*block.MiniBlock {
-	mapMiniBlocks := make(map[uint32]*block.MiniBlock)
-	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
-		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, blockType)
+func (txs *transactions) displayProcessingResults(
+	gasConsumedByMiniBlocksInSenderShard uint64,
+	totalGasConsumedInSelfShard uint64,
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[TxType]uint64,
+	mapTxsForShard map[uint32]int,
+	mapScsForShard map[uint32]int,
+	miniBlocks block.MiniBlockSlice,
+	processingInfo *processedTxsInfo,
+	nbSortedTxs int,
+) {
+	log.Debug("createAndProcessMiniBlocksFromMeV2",
+		"self shard", txs.shardCoordinator.SelfId(),
+		"gas consumed in sender shard", gasConsumedByMiniBlocksInSenderShard,
+		"total gas consumed in self shard", totalGasConsumedInSelfShard)
+
+	for _, miniBlock := range miniBlocks {
+		log.Debug("mini block info",
+			"type", miniBlock.Type,
+			"sender shard", miniBlock.SenderShardID,
+			"receiver shard", miniBlock.ReceiverShardID,
+			"gas consumed in receiver shard for non sc txs", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][nonScTx],
+			"gas consumed in receiver shard for sc txs", mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][scTx],
+			"txs added", len(miniBlock.TxHashes),
+			"non sc txs", mapTxsForShard[miniBlock.ReceiverShardID],
+			"sc txs", mapScsForShard[miniBlock.ReceiverShardID])
 	}
 
-	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, blockType)
-	return mapMiniBlocks
+	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished",
+		"total txs", nbSortedTxs,
+		"num txs added", processingInfo.numTxsAdded,
+		"num txs bad", processingInfo.numTxsBad,
+		"num txs failed", processingInfo.numTxsFailed,
+		"num txs skipped", processingInfo.numTxsSkipped,
+		"num txs with initial balance consumed", processingInfo.numTxsWithInitialBalanceConsumed,
+		"num cross shard sc calls or special txs", processingInfo.numCrossShardScCallsOrSpecialTxs,
+		"used time for computeGasConsumed", processingInfo.totalTimeUsedForComputeGasConsumed,
+		"used time for processAndRemoveBadTransaction", processingInfo.totalTimeUsedForProcess)
 }
