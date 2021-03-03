@@ -5,6 +5,7 @@ type hashQueue struct {
 	size  uint
 }
 
+// NewHashQueue creates a new hashQueue
 func NewHashQueue(numHashes uint) *hashQueue {
 	return &hashQueue{
 		queue: make([][]byte, 0),
@@ -12,6 +13,7 @@ func NewHashQueue(numHashes uint) *hashQueue {
 	}
 }
 
+// Add adds a new element to the queue, and evicts the first element if the queue is full
 func (hq *hashQueue) Add(hash []byte) []byte {
 	if hq.size == 0 {
 		return hash
@@ -28,15 +30,4 @@ func (hq *hashQueue) Add(hash []byte) []byte {
 	hq.queue = append(hq.queue, hash)
 
 	return nil
-}
-
-func (hq *hashQueue) Evict() []byte {
-	if len(hq.queue) == 0 {
-		return []byte{}
-	}
-
-	hashToEvict := hq.queue[0]
-	hq.queue = hq.queue[1:]
-
-	return hashToEvict
 }

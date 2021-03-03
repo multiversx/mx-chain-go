@@ -94,7 +94,7 @@ type GasScheduleNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// Queue is an interface for queue implementations that evict the first element when the queue is full
 type Queue interface {
 	Add(hash []byte) []byte
-	Evict() []byte
 }

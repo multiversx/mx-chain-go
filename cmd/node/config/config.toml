@@ -637,7 +637,7 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
-    UserStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
+    UserStatePruningQueueSize = 10 # setting 0 means no buffering, so pruning is done for the block before final
     PeerStatePruningQueueSize = 5 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
