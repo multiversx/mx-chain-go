@@ -73,7 +73,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkESDTNFTBasicInput(acntSnd, vmInput, e.funcGasCost)
+	err := checkESDTNFTCreateBurnAddInput(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func saveESDTNFTToken(
 	return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, marshaledData)
 }
 
-func checkESDTNFTBasicInput(
+func checkESDTNFTCreateBurnAddInput(
 	account state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 	funcGasCost uint64) error {

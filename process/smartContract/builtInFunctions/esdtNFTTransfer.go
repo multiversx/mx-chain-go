@@ -83,7 +83,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkESDTNFTBasicInput(acntSnd, vmInput, e.funcGasCost)
+	err := checkBasicESDTArguments(vmInput)
 	if err != nil {
 		return nil, err
 	}
