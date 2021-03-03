@@ -1761,15 +1761,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:       tpn.HistoryRepository,
-		EpochNotifier:           tpn.EpochNotifier,
-		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:        &mock.AppStatusHandlerStub{},
+		BlockTracker:              tpn.BlockTracker,
+		StateCheckpointModulus:    stateCheckpointModulus,
+		UserStatePruningQueueSize: uint(10),
+		BlockSizeThrottler:        TestBlockSizeThrottler,
+		Indexer:                   indexer.NewNilIndexer(),
+		TpsBenchmark:              &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:         tpn.HistoryRepository,
+		EpochNotifier:             tpn.EpochNotifier,
+		HeaderIntegrityVerifier:   tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:          &mock.AppStatusHandlerStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1906,6 +1907,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			PeerStatePruningQueueSize:    uint(3),
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

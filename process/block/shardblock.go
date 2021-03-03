@@ -10,6 +10,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -29,7 +30,8 @@ type shardProcessor struct {
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
+	userStatePruningQueue core.Queue
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -100,6 +102,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
+	sp.userStatePruningQueue = queue.NewHashQueue(arguments.UserStatePruningQueueSize)
 
 	return &sp, nil
 }
@@ -1025,6 +1028,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
+			sp.userStatePruningQueue,
 		)
 	}
 }

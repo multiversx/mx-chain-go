@@ -123,6 +123,8 @@ type ProcessComponentsFactoryArgs struct {
 	StartEpochNum             uint32
 	SizeCheckDelta            uint32
 	StateCheckpointModulus    uint
+	UserStatePruningQueueSize uint
+	PeerStatePruningQueueSize uint
 	MaxComputableRounds       uint64
 	NumConcurrentResolverJobs int32
 	MinSizeInBytes            uint32
@@ -163,6 +165,8 @@ type processComponentsFactory struct {
 	rater                     sharding.PeerAccountListAndRatingHandler
 	sizeCheckDelta            uint32
 	stateCheckpointModulus    uint
+	userStatePruningQueueSize uint
+	peerStatePruningQueueSize uint
 	maxComputableRounds       uint64
 	numConcurrentResolverJobs int32
 	minSizeInBytes            uint32
@@ -214,6 +218,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		ratingsData:               args.RatingsData,
 		sizeCheckDelta:            args.SizeCheckDelta,
 		stateCheckpointModulus:    args.StateCheckpointModulus,
+		userStatePruningQueueSize: args.UserStatePruningQueueSize,
+		peerStatePruningQueueSize: args.PeerStatePruningQueueSize,
 		startEpochNum:             args.StartEpochNum,
 		maxComputableRounds:       args.MaxComputableRounds,
 		numConcurrentResolverJobs: args.NumConcurrentResolverJobs,

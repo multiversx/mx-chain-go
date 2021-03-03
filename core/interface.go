@@ -93,3 +93,8 @@ type GasScheduleNotifier interface {
 	UnRegisterAll()
 	IsInterfaceNil() bool
 }
+
+type Queue interface {
+	Add(hash []byte) []byte
+	Evict() []byte
+}

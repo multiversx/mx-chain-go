@@ -235,7 +235,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
-
 		)
 		if err != nil {
 			return err
@@ -813,6 +812,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		StartEpochNum:             managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		SizeCheckDelta:            configs.GeneralConfig.Marshalizer.SizeCheckDelta,
 		StateCheckpointModulus:    configs.GeneralConfig.StateTriesConfig.CheckpointRoundsModulus,
+		UserStatePruningQueueSize: configs.GeneralConfig.StateTriesConfig.UserStatePruningQueueSize,
+		PeerStatePruningQueueSize: configs.GeneralConfig.StateTriesConfig.PeerStatePruningQueueSize,
 		MaxComputableRounds:       configs.GeneralConfig.GeneralSettings.MaxComputableRounds,
 		NumConcurrentResolverJobs: configs.GeneralConfig.Antiflood.NumConcurrentResolverJobs,
 		MinSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MinSizeInBytes,

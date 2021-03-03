@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -39,6 +40,8 @@ type metaProcessor struct {
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
 	rewardsV2EnableEpoch         uint32
+	userStatePruningQueue        core.Queue
+	peerStatePruningQueue        core.Queue
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -140,6 +143,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+	mp.userStatePruningQueue = queue.NewHashQueue(arguments.UserStatePruningQueueSize)
+	mp.peerStatePruningQueue = queue.NewHashQueue(arguments.PeerStatePruningQueueSize)
 
 	return &mp, nil
 }
@@ -1361,6 +1366,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		lastMetaBlock.GetRootHash(),
 		prevHeader.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
+		mp.userStatePruningQueue,
 	)
 
 	mp.updateStateStorage(
@@ -1368,6 +1374,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevHeader.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
+		mp.peerStatePruningQueue,
 	)
 }
 

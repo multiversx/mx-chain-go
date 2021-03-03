@@ -15,7 +15,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -358,7 +358,7 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		MaxSnapshots:       3,
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
