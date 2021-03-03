@@ -1106,8 +1106,6 @@ func (v *validatorSC) basicChecksForUnStakeNodes(args *vmcommon.ContractCallInpu
 }
 
 func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationData *ValidatorDataV2) (uint64, uint64) {
-	currentNonce := v.eei.BlockChainHook().CurrentNonce()
-
 	numSuccess := uint64(0)
 	numSuccessFromWaiting := uint64(0)
 	for _, blsKey := range blsKeys {
@@ -1132,7 +1130,7 @@ func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationDa
 		if err != nil {
 			continue
 		}
-		if stakedData.UnStakedNonce > currentNonce {
+		if stakedData.UnStakedNonce == 0 {
 			numSuccessFromWaiting++
 		}
 	}
