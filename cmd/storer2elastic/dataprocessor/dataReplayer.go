@@ -401,10 +401,11 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	mbHashes [][]byte,
 ) (*block.Body, *types.Pool, error) {
 	txPool := &types.Pool{
-		Txs:     map[string]data.TransactionHandler{},
-		Scrs:    map[string]data.TransactionHandler{},
-		Invalid: map[string]data.TransactionHandler{},
-		Rewards: map[string]data.TransactionHandler{},
+		Txs:      map[string]data.TransactionHandler{},
+		Scrs:     map[string]data.TransactionHandler{},
+		Invalid:  map[string]data.TransactionHandler{},
+		Rewards:  map[string]data.TransactionHandler{},
+		Receipts: map[string]data.TransactionHandler{},
 	}
 	mbUnit := persisters.miniBlocksPersister
 
@@ -541,6 +542,8 @@ func putTxInPool(pool *types.Pool, mbType block.Type, tx data.TransactionHandler
 		pool.Rewards[string(txHash)] = tx
 	case block.ReceiptBlock:
 		pool.Receipts[string(txHash)] = tx
+	case block.SmartContractResultBlock:
+		pool.Scrs[string(txHash)] = tx
 	}
 }
 
