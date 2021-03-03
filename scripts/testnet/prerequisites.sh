@@ -55,9 +55,9 @@ fi
 
 cd $(dirname $ELRONDDIR)
 git clone git@github.com:ElrondNetwork/elrond-deploy-go.git
-
-
 git clone git@github.com:ElrondNetwork/elrond-proxy-go.git
+
+
 if [[ $PRIVATE_REPOS -eq 1 ]]; then
   git clone git@github.com:ElrondNetwork/elrond-txgen-go.git
   cd elrond-txgen-go
