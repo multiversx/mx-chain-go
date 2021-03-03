@@ -1139,7 +1139,7 @@ func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationDa
 	return numSuccessFromActive, numSuccessFromWaiting
 }
 
-func (v *validatorSC) computeProcessUnStakeFromNodes(
+func (v *validatorSC) processUnStakeTokensFromNodes(
 	registrationData *ValidatorDataV2,
 	validatorConfig ValidatorConfig,
 	numNodes uint64,
@@ -1148,12 +1148,12 @@ func (v *validatorSC) computeProcessUnStakeFromNodes(
 	if numNodes == 0 {
 		return vmcommon.Ok
 	}
-	unStakeFromActiveNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numNodes))
-	if unStakeFromActiveNodes.Cmp(registrationData.TotalStakeValue) > 0 {
-		unStakeFromActiveNodes.Set(registrationData.TotalStakeValue)
+	unStakeFromNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numNodes))
+	if unStakeFromNodes.Cmp(registrationData.TotalStakeValue) > 0 {
+		unStakeFromNodes.Set(registrationData.TotalStakeValue)
 	}
 
-	return v.processUnStakeValue(registrationData, unStakeFromActiveNodes, unStakeNonce)
+	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakeNonce)
 }
 
 // This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
@@ -1181,12 +1181,12 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
-	returnCode = v.computeProcessUnStakeFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	returnCode = v.computeProcessUnStakeFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentNonce())
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentNonce())
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
