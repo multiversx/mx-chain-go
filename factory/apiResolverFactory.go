@@ -247,9 +247,9 @@ func createScQueryElement(
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:                    args.gasScheduleNotifier,
 			ArgBlockChainHook:              argsHook,
-			DeployEnableEpoch:              args.generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			AheadOfTimeGasUsageEnableEpoch: args.generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-			ArwenV3EnableEpoch:             args.generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+			DeployEnableEpoch:              args.generalConfig.Epoch.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: args.generalConfig.Epoch.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             args.generalConfig.Epoch.RepairCallbackEnableEpoch,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)

@@ -580,8 +580,8 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RatingEnableEpoch:               ratingEnabledEpoch,
 		GenesisNonce:                    pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		SwitchJailWaitingEnableEpoch:    pcf.config.Epoch.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: pcf.config.Epoch.BelowSignedThresholdEnableEpoch,
 		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
@@ -693,7 +693,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
-		GeneralConfig:        &pcf.config.GeneralSettings,
+		EpochConfig:          &pcf.config.Epoch,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -1134,7 +1134,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.config.Epoch.TransactionSignedWithTxHashEnableEpoch,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1172,7 +1172,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.config.Epoch.TransactionSignedWithTxHashEnableEpoch,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

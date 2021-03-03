@@ -212,8 +212,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      &ccf.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: ccf.config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
-		GasPriceModifierEnableEpoch:    ccf.config.GeneralSettings.GasPriceModifierEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: ccf.config.Epoch.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    ccf.config.Epoch.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
@@ -256,7 +256,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		Hysteresis:           genesisNodesConfig.GetHysteresis(),
 		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
 		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: ccf.config.GeneralSettings.MaxNodesChangeEnableEpoch,
+		MaxNodesEnableConfig: ccf.config.Epoch.MaxNodesChangeEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)

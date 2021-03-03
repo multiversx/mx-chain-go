@@ -604,7 +604,7 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
-		GeneralConfig: &config.GeneralSettingsConfig{
+		EpochConfig: &config.EpochConfig{
 			BuiltInFunctionsEnableEpoch:    0,
 			SCDeployEnableEpoch:            0,
 			RelayedTransactionsEnableEpoch: 0,
@@ -704,7 +704,7 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
-		GeneralConfig: &config.GeneralSettingsConfig{
+		EpochConfig: &config.EpochConfig{
 			BuiltInFunctionsEnableEpoch:    0,
 			SCDeployEnableEpoch:            0,
 			RelayedTransactionsEnableEpoch: 0,

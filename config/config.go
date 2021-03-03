@@ -227,22 +227,8 @@ type GeneralSettingsConfig struct {
 	StartInEpochEnabled                    bool
 	ChainID                                string
 	MinTransactionVersion                  uint32
-	//SCDeployEnableEpoch                    uint32
-	//BuiltInFunctionsEnableEpoch            uint32
-	//RelayedTransactionsEnableEpoch         uint32
-	//PenalizedTooMuchGasEnableEpoch         uint32
-	//SwitchJailWaitingEnableEpoch           uint32
-	//SwitchHysteresisForMinNodesEnableEpoch uint32
-	//BelowSignedThresholdEnableEpoch        uint32
-	//TransactionSignedWithTxHashEnableEpoch uint32
-	//MetaProtectionEnableEpoch              uint32
-	//AheadOfTimeGasUsageEnableEpoch         uint32
-	//GasPriceModifierEnableEpoch            uint32
-	//RepairCallbackEnableEpoch              uint32
-	//MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
-	//BlockGasAndFeesReCheckEnableEpoch      uint32
 }
 
 // EpochConfig will hold epoch config information for a node

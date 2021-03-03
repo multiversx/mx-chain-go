@@ -77,7 +77,7 @@ func CreateHardForkTrigger(
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
 		RoundHandler:              process.RoundHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: config.Epoch.TransactionSignedWithTxHashEnableEpoch,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 	}

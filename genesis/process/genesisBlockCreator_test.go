@@ -116,7 +116,7 @@ func createMockArgument(
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:    nodePrice,
-		GeneralConfig: &config.GeneralSettingsConfig{
+		EpochConfig: &config.EpochConfig{
 			BuiltInFunctionsEnableEpoch:    0,
 			SCDeployEnableEpoch:            0,
 			RelayedTransactionsEnableEpoch: 0,
