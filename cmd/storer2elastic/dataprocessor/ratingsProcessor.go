@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
+	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -111,7 +111,7 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	return nil
 }
 
-func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]workItems.ValidatorRatingInfo) {
+func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]*types.ValidatorRatingInfo) {
 	for shardID, validators := range validatorsRatingData {
 		index := fmt.Sprintf("%d_%d", shardID, epoch)
 		rp.elasticIndexer.SaveValidatorsRating(index, validators)
@@ -161,8 +161,8 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]workItems.ValidatorRatingInfo, error) {
-	validatorsRatingInfo := make(map[uint32][]workItems.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]*types.ValidatorRatingInfo, error) {
+	validatorsRatingInfo := make(map[uint32][]*types.ValidatorRatingInfo)
 	for pa := range leavesChannel {
 		peerAccount, err := unmarshalPeer(pa.Value(), rp.marshalizer)
 		if err != nil {
@@ -170,7 +170,7 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan cor
 		}
 
 		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
-			workItems.ValidatorRatingInfo{
+			&types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
 				Rating:    float32(peerAccount.GetRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -179,13 +179,13 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan cor
 	return validatorsRatingInfo, nil
 }
 
-func (rp *ratingsProcessor) getGenesisRating() map[uint32][]workItems.ValidatorRatingInfo {
-	ratingsForGenesis := make(map[uint32][]workItems.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getGenesisRating() map[uint32][]*types.ValidatorRatingInfo {
+	ratingsForGenesis := make(map[uint32][]*types.ValidatorRatingInfo)
 
 	eligible, waiting := rp.genesisNodesConfig.InitialNodesInfo()
 	for shardID, nodesInShard := range eligible {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], workItems.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], &types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -193,7 +193,7 @@ func (rp *ratingsProcessor) getGenesisRating() map[uint32][]workItems.ValidatorR
 	}
 	for shardID, nodesInShard := range waiting {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], workItems.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], &types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})

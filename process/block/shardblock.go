@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -525,23 +526,13 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
-	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
-	invalidPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
-	receiptPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 
-	for hash, tx := range scPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range rewardPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range invalidPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range receiptPool {
-		txPool[hash] = tx
+	pool := &types.Pool{
+		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
+		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
+		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
+		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
+		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
@@ -594,7 +585,16 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil, headerHash)
+	args := &types.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   body,
+		Header:                 header,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: nil,
+		TransactionsPool:       pool,
+	}
+
+	sp.indexer.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)

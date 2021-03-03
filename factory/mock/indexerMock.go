@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
+	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -10,14 +10,13 @@ import (
 
 // IndexerMock is a mock implementation fot the Indexer interface
 type IndexerMock struct {
-	SaveBlockCalled func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler)
+	SaveBlockCalled func(args *indexerTypes.ArgsSaveBlockData)
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler,
-	_ []uint64, _ []string, _ []byte) {
+func (im *IndexerMock) SaveBlock(args *indexerTypes.ArgsSaveBlockData) {
 	if im.SaveBlockCalled != nil {
-		im.SaveBlockCalled(body, header, txPool)
+		im.SaveBlockCalled(args)
 	}
 }
 
@@ -25,8 +24,13 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
+// Close will do nothing
+func (im *IndexerMock) Close() error {
+	return nil
+}
+
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexerTypes.ValidatorRatingInfo) {
 
 }
 
@@ -38,9 +42,21 @@ func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
 func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
+// SaveRoundsInfo -
+func (im *IndexerMock) SaveRoundsInfo(_ []*indexerTypes.RoundInfo) {
+}
+
 // SaveValidatorsPubKeys -
 func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
+}
+
+// RevertIndexedBlock -
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// SaveAccounts -
+func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -51,24 +67,4 @@ func (im *IndexerMock) IsInterfaceNil() bool {
 // IsNilIndexer -
 func (im *IndexerMock) IsNilIndexer() bool {
 	return false
-}
-
-// RevertIndexedBlock -
-func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler){
-
-}
-
-// SaveAccounts -
-func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler){
-
-}
-
-// Close -
-func (im *IndexerMock) 	Close() error{
-	return nil
-}
-
-//SaveRoundsInfo -
-func (im *IndexerMock) 	SaveRoundsInfo(_ []workItems.RoundInfo){
-
 }

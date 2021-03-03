@@ -3,7 +3,7 @@ package dataprocessor_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
+	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -91,7 +91,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_NothingToIndexShoul
 	indexWasCalled := false
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -111,7 +111,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_UnmarshalPeerErrorS
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -132,7 +132,7 @@ func TestRatingsProcessor_IndexRatingsForGenesisMetaBlock_ShouldWork(t *testing.
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -161,7 +161,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testi
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}

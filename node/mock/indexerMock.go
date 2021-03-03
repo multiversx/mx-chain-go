@@ -1,22 +1,27 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
+	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface
 type IndexerMock struct {
-	SaveBlockCalled func(body *block.Body, header *block.Header)
+	SaveBlockCalled func(args *indexerTypes.ArgsSaveBlockData)
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
-	panic("implement me")
+func (im *IndexerMock) SaveBlock(args *indexerTypes.ArgsSaveBlockData) {
+	if im.SaveBlockCalled != nil {
+		im.SaveBlockCalled(args)
+	}
+}
+
+// SetTxLogsProcessor will do nothing
+func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
 // Close will do nothing
@@ -24,23 +29,21 @@ func (im *IndexerMock) Close() error {
 	return nil
 }
 
-// SetTxLogsProcessor will do nothing
-func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
+// SaveValidatorsRating --
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexerTypes.ValidatorRatingInfo) {
+
+}
+
+// SaveMetaBlock -
+func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
 }
 
 // UpdateTPS -
 func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
-	panic("implement me")
 }
 
 // SaveRoundsInfo -
-func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
-	panic("implement me")
-}
-
-// SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
-
+func (im *IndexerMock) SaveRoundsInfo(_ []*indexerTypes.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -

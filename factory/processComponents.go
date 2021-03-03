@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -821,7 +822,16 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 
 	if !pcf.indexer.IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+
+		args := &types.ArgsSaveBlockData{
+			HeaderHash:             genesisBlockHash,
+			Body:                   &dataBlock.Body{},
+			Header:                 genesisBlockHeader,
+			SignersIndexes:         nil,
+			NotarizedHeadersHashes: nil,
+			TransactionsPool:       &types.Pool{},
+		}
+		pcf.indexer.SaveBlock(args)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
