@@ -29,6 +29,25 @@ var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
 
 var log = logger.GetOrCreate("process/coordinator")
 
+// ArgTransactionCoordinator holds all dependencies required by the transaction coordinator factory in order to create new instances
+type ArgTransactionCoordinator struct {
+	Hasher                            hashing.Hasher
+	Marshalizer                       marshal.Marshalizer
+	ShardCoordinator                  sharding.Coordinator
+	Accounts                          state.AccountsAdapter
+	MiniBlockPool                     storage.Cacher
+	RequestHandler                    process.RequestHandler
+	PreProcessors                     process.PreProcessorsContainer
+	InterProcessors                   process.IntermediateProcessorContainer
+	GasHandler                        process.GasHandler
+	FeeHandler                        process.TransactionFeeHandler
+	BlockSizeComputation              preprocess.BlockSizeComputationHandler
+	BalanceComputation                preprocess.BalanceComputationHandler
+	EconomicsFee                      process.FeeHandler
+	TxTypeHandler                     process.TxTypeHandler
+	BlockGasAndFeesReCheckEnableEpoch uint32
+}
+
 type transactionCoordinator struct {
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
@@ -58,107 +77,51 @@ type transactionCoordinator struct {
 	blockGasAndFeesReCheckEnableEpoch uint32
 }
 
-//TODO: Should be refactored with arguments (added task EN-8790 in Jira)
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
-func NewTransactionCoordinator(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
-	miniBlockPool storage.Cacher,
-	requestHandler process.RequestHandler,
-	preProcessors process.PreProcessorsContainer,
-	interProcessors process.IntermediateProcessorContainer,
-	gasHandler process.GasHandler,
-	feeHandler process.TransactionFeeHandler,
-	blockSizeComputation preprocess.BlockSizeComputationHandler,
-	balanceComputation preprocess.BalanceComputationHandler,
-	economicsFee process.FeeHandler,
-	txTypeHandler process.TxTypeHandler,
-	blockGasAndFeesReCheckEnableEpoch uint32,
-) (*transactionCoordinator, error) {
-
-	if check.IfNil(shardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(miniBlockPool) {
-		return nil, process.ErrNilMiniBlockPool
-	}
-	if check.IfNil(requestHandler) {
-		return nil, process.ErrNilRequestHandler
-	}
-	if check.IfNil(interProcessors) {
-		return nil, process.ErrNilIntermediateProcessorContainer
-	}
-	if check.IfNil(preProcessors) {
-		return nil, process.ErrNilPreProcessorsContainer
-	}
-	if check.IfNil(gasHandler) {
-		return nil, process.ErrNilGasHandler
-	}
-	if check.IfNil(hasher) {
-		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(feeHandler) {
-		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(blockSizeComputation) {
-		return nil, process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(balanceComputation) {
-		return nil, process.ErrNilBalanceComputationHandler
-	}
-	if check.IfNil(economicsFee) {
-		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(txTypeHandler) {
-		return nil, process.ErrNilTxTypeHandler
+func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactionCoordinator, error) {
+	err := checkTransactionCoordinatorNilParameters(arguments)
+	if err != nil {
+		return nil, err
 	}
 
 	tc := &transactionCoordinator{
-		shardCoordinator:                  shardCoordinator,
-		accounts:                          accounts,
-		gasHandler:                        gasHandler,
-		hasher:                            hasher,
-		marshalizer:                       marshalizer,
-		feeHandler:                        feeHandler,
-		blockSizeComputation:              blockSizeComputation,
-		balanceComputation:                balanceComputation,
-		economicsFee:                      economicsFee,
-		txTypeHandler:                     txTypeHandler,
-		blockGasAndFeesReCheckEnableEpoch: blockGasAndFeesReCheckEnableEpoch,
+		shardCoordinator:                  arguments.ShardCoordinator,
+		accounts:                          arguments.Accounts,
+		gasHandler:                        arguments.GasHandler,
+		hasher:                            arguments.Hasher,
+		marshalizer:                       arguments.Marshalizer,
+		feeHandler:                        arguments.FeeHandler,
+		blockSizeComputation:              arguments.BlockSizeComputation,
+		balanceComputation:                arguments.BalanceComputation,
+		economicsFee:                      arguments.EconomicsFee,
+		txTypeHandler:                     arguments.TxTypeHandler,
+		blockGasAndFeesReCheckEnableEpoch: arguments.BlockGasAndFeesReCheckEnableEpoch,
 	}
 
-	tc.miniBlockPool = miniBlockPool
-	tc.onRequestMiniBlock = requestHandler.RequestMiniBlock
+	tc.miniBlockPool = arguments.MiniBlockPool
+	tc.onRequestMiniBlock = arguments.RequestHandler.RequestMiniBlock
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
-	tc.keysTxPreProcs = preProcessors.Keys()
+	tc.keysTxPreProcs = arguments.PreProcessors.Keys()
 	sort.Slice(tc.keysTxPreProcs, func(i, j int) bool {
 		return tc.keysTxPreProcs[i] < tc.keysTxPreProcs[j]
 	})
 	for _, value := range tc.keysTxPreProcs {
-		preProc, err := preProcessors.Get(value)
+		preProc, err := arguments.PreProcessors.Get(value)
 		if err != nil {
 			return nil, err
 		}
 		tc.txPreProcessors[value] = preProc
 	}
 
-	tc.keysInterimProcs = interProcessors.Keys()
+	tc.keysInterimProcs = arguments.InterProcessors.Keys()
 	sort.Slice(tc.keysInterimProcs, func(i, j int) bool {
 		return tc.keysInterimProcs[i] < tc.keysInterimProcs[j]
 	})
 	for _, value := range tc.keysInterimProcs {
-		interProc, err := interProcessors.Get(value)
+		interProc, err := arguments.InterProcessors.Get(value)
 		if err != nil {
 			return nil, err
 		}
@@ -1332,6 +1295,54 @@ func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
 	}
 
 	return maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, nil
+}
+
+func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinator) error {
+	if check.IfNil(arguments.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(arguments.Accounts) {
+		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(arguments.MiniBlockPool) {
+		return process.ErrNilMiniBlockPool
+	}
+	if check.IfNil(arguments.RequestHandler) {
+		return process.ErrNilRequestHandler
+	}
+	if check.IfNil(arguments.InterProcessors) {
+		return process.ErrNilIntermediateProcessorContainer
+	}
+	if check.IfNil(arguments.PreProcessors) {
+		return process.ErrNilPreProcessorsContainer
+	}
+	if check.IfNil(arguments.GasHandler) {
+		return process.ErrNilGasHandler
+	}
+	if check.IfNil(arguments.Hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(arguments.Marshalizer) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(arguments.FeeHandler) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(arguments.BlockSizeComputation) {
+		return process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(arguments.BalanceComputation) {
+		return process.ErrNilBalanceComputationHandler
+	}
+
+	if check.IfNil(arguments.EconomicsFee) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(arguments.TxTypeHandler) {
+		return process.ErrNilTxTypeHandler
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

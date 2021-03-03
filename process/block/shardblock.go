@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
@@ -40,39 +39,39 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
-	if check.IfNil(arguments.DataPool) {
+	if check.IfNil(arguments.DataComponents.Datapool()) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(arguments.DataPool.Headers()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(arguments.DataPool.Transactions()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
 
-	genesisHdr := arguments.BlockChain.GetGenesisHeader()
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:              arguments.AccountsDB,
 		blockSizeThrottler:      arguments.BlockSizeThrottler,
 		forkDetector:            arguments.ForkDetector,
-		hasher:                  arguments.Hasher,
-		marshalizer:             arguments.Marshalizer,
-		store:                   arguments.Store,
+		hasher:                  arguments.CoreComponents.Hasher(),
+		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
+		store:                   arguments.DataComponents.StorageService(),
 		shardCoordinator:        arguments.ShardCoordinator,
 		nodesCoordinator:        arguments.NodesCoordinator,
-		uint64Converter:         arguments.Uint64Converter,
+		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        statusHandler.NewNilStatusHandler(),
+		appStatusHandler:        arguments.AppStatusHandler,
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.RoundHandler,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
-		dataPool:                arguments.DataPool,
+		dataPool:                arguments.DataComponents.Datapool(),
 		stateCheckpointModulus:  arguments.StateCheckpointModulus,
-		blockChain:              arguments.BlockChain,
+		blockChain:              arguments.DataComponents.Blockchain(),
 		feeHandler:              arguments.FeeHandler,
 		indexer:                 arguments.Indexer,
 		tpsBenchmark:            arguments.TpsBenchmark,
@@ -80,6 +79,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainerFactory:      arguments.VMContainersFactory,
+		vmContainer:             arguments.VmContainer,
 	}
 
 	sp := shardProcessor{
@@ -394,7 +395,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		header.GetEpoch() == sp.epochStartTrigger.MetaEpoch()
 	if isEpochStartMetaHashIncorrect {
 		go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
-		log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
+		log.Warn("epoch start meta hash mismatch", "proposed", header.EpochStartMetaHash, "calculated", sp.epochStartTrigger.EpochStartMetaHdrHash())
 		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
 			process.ErrEpochDoesNotMatch, header.GetEpoch())
 	}
@@ -1060,6 +1061,12 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			ctx := context.Background()
 			accounts.SnapshotState(rootHash, ctx)
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
+			go func() {
+				err := sp.commitTrieEpochRootHashIfNeeded(metaHdr, rootHash)
+				if err != nil {
+					log.Warn("couldn't commit trie checkpoint", "epoch", header.Epoch, "error", err)
+				}
+			}()
 		}
 	}
 }
@@ -1656,7 +1663,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	roundTooOld := sp.rounder.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
@@ -1935,4 +1942,9 @@ func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
 	_ data.BodyHandler,
 ) error {
 	return nil
+}
+
+// Close - closes all underlying components
+func (sp *shardProcessor) Close() error {
+	return sp.baseProcessor.Close()
 }

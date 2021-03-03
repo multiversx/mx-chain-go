@@ -16,5 +16,4 @@ func TestNilDiscoverer(t *testing.T) {
 	assert.False(t, check.IfNil(nd))
 	assert.Equal(t, discovery.NullName, nd.Name())
 	assert.Nil(t, nd.Bootstrap())
-	assert.Equal(t, 0, len(nd.ReconnectToNetwork()))
 }

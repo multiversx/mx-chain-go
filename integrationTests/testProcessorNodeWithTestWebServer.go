@@ -14,10 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
-	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -158,7 +158,15 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
 
-	apiResolver, err := external.NewNodeApiResolver(tpn.SCQueryService, &mock.StatusMetricsStub{}, txCostHandler, totalStakedValueHandler)
+	apiResolverArgs := external.ApiResolverArgs{
+		ScQueryService:     tpn.SCQueryService,
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      txCostHandler,
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedValueHandler,
+	}
+	apiResolver, err := external.NewNodeApiResolver(apiResolverArgs)
 	log.LogIfError(err)
 
 	argSimulator := txsimulator.ArgsTxSimulator{

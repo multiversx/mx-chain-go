@@ -14,47 +14,27 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/componentHandler"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/disabled"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -69,105 +49,51 @@ var _ facade.NodeHandler = (*Node)(nil)
 //  over the None struct.
 type Option func(*Node) error
 
-// Node is a structure that passes the configuration parameters and initializes
-//  required services as requested
+// Node is a structure that holds all managed components
 type Node struct {
-	internalMarshalizer           marshal.Marshalizer
-	vmMarshalizer                 marshal.Marshalizer
-	txSignMarshalizer             marshal.Marshalizer
-	ctx                           context.Context
-	hasher                        hashing.Hasher
-	feeHandler                    process.FeeHandler
-	initialNodesPubkeys           map[uint32][]string
-	roundDuration                 uint64
-	consensusGroupSize            int
-	messenger                     P2PMessenger
-	syncTimer                     ntp.SyncTimer
-	rounder                       consensus.Rounder
-	blockProcessor                process.BlockProcessor
-	genesisTime                   time.Time
-	epochStartTrigger             epochStart.TriggerHandler
-	epochStartRegistrationHandler epochStart.RegistrationHandler
-	accounts                      state.AccountsAdapter
-	addressPubkeyConverter        core.PubkeyConverter
-	validatorPubkeyConverter      core.PubkeyConverter
-	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer         process.InterceptorsContainer
-	resolversFinder               dataRetriever.ResolversFinder
-	peerDenialEvaluator           p2p.PeerDenialEvaluator
-	appStatusHandler              core.AppStatusHandler
-	validatorStatistics           process.ValidatorStatisticsProcessor
-	hardforkTrigger               HardforkTrigger
-	validatorsProvider            process.ValidatorsProvider
-	whiteListRequest              process.WhiteListHandler
-	whiteListerVerifiedTxs        process.WhiteListHandler
-
-	pubKey            crypto.PublicKey
-	privKey           crypto.PrivateKey
-	keyGen            crypto.KeyGenerator
-	keyGenForAccounts crypto.KeyGenerator
-	singleSigner      crypto.SingleSigner
-	txSingleSigner    crypto.SingleSigner
-	multiSigner       crypto.MultiSigner
-	peerSigHandler    crypto.PeerSignatureHandler
-	forkDetector      process.ForkDetector
-
-	blkc               data.ChainHandler
-	dataPool           dataRetriever.PoolsHolder
-	store              dataRetriever.StorageService
-	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   sharding.NodesCoordinator
-	miniblocksProvider process.MiniBlockProvider
+	ctx                 context.Context
+	cancelFunc          context.CancelFunc
+	initialNodesPubkeys map[uint32][]string
+	roundDuration       uint64
+	consensusGroupSize  int
+	genesisTime         time.Time
+	peerDenialEvaluator p2p.PeerDenialEvaluator
+	hardforkTrigger     HardforkTrigger
 
 	networkShardingCollector NetworkShardingCollector
 
-	consensusTopic string
 	consensusType  string
 
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                 process.Indexer
-	blocksBlackListHandler  process.TimeCacher
-	bootStorer              process.BootStorer
-	requestedItemsHandler   dataRetriever.RequestedItemsHandler
-	headerSigVerifier       consensus.HeaderSigVerifier
-	headerIntegrityVerifier spos.HeaderIntegrityVerifier
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	chainID               []byte
-	minTransactionVersion uint32
-
-	sizeCheckDelta        uint32
-	txSentCounter         uint32
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
-
-	blockTracker             process.BlockTracker
-	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
-
-	requestHandler process.RequestHandler
+	txSentCounter  uint32
+	txAcumulator   core.Accumulator
 
 	addressSignatureSize    int
 	addressSignatureHexSize int
-	encodedAddressLength    int
 	validatorSignatureSize  int
 	publicKeySize           int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers syncGo.RWMutex
-	queryHandlers    map[string]debug.QueryHandler
+	mutQueryHandlers    syncGo.RWMutex
+	queryHandlers       map[string]debug.QueryHandler
+	bootstrapComponents mainFactory.BootstrapComponentsHolder
+	consensusComponents mainFactory.ConsensusComponentsHolder
+	coreComponents      mainFactory.CoreComponentsHolder
+	cryptoComponents    mainFactory.CryptoComponentsHolder
+	dataComponents      mainFactory.DataComponentsHolder
+	heartbeatComponents mainFactory.HeartbeatComponentsHolder
+	networkComponents   mainFactory.NetworkComponentsHolder
+	processComponents   mainFactory.ProcessComponentsHolder
+	stateComponents     mainFactory.StateComponentsHolder
+	statusComponents    mainFactory.StatusComponentsHolder
 
-	heartbeatHandler        HeartbeatHandler
-	peerHonestyHandler      consensus.PeerHonestyHandler
-	fallbackHeaderValidator consensus.FallbackHeaderValidator
-
-	watchdog          core.WatchdogTimer
-	historyRepository dblookupext.HistoryRepository
-
+	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
-	txSignHasher              hashing.Hasher
-	txVersionChecker          process.TxVersionCheckerHandler
 	isInImportMode            bool
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
@@ -185,17 +111,19 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	node := &Node{
-		ctx:                      context.Background(),
+		ctx:                      ctx,
+		cancelFunc:               cancelFunc,
 		currentSendingGoRoutines: 0,
-		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 		queryHandlers:            make(map[string]debug.QueryHandler),
 	}
-	for _, opt := range opts {
-		err := opt(node)
-		if err != nil {
-			return nil, errors.New("error applying option: " + err.Error())
-		}
+
+	node.closableComponents = make([]mainFactory.Closer, 0)
+
+	err := node.ApplyOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	return node, nil
@@ -203,21 +131,20 @@ func NewNode(opts ...Option) (*Node, error) {
 
 // GetAppStatusHandler will return the current status handler
 func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
-	return n.appStatusHandler
+	return n.coreComponents.StatusHandler()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
 func (n *Node) CreateShardedStores() error {
-	if n.shardCoordinator == nil {
+	if check.IfNil(n.processComponents.ShardCoordinator()) {
 		return ErrNilShardCoordinator
 	}
-
-	if n.dataPool == nil {
+	if check.IfNil(n.dataComponents.Datapool()) {
 		return ErrNilDataPool
 	}
 
-	transactionsDataStore := n.dataPool.Transactions()
-	headersDataStore := n.dataPool.Headers()
+	transactionsDataStore := n.dataComponents.Datapool().Transactions()
+	headersDataStore := n.dataComponents.Datapool().Headers()
 
 	if transactionsDataStore == nil {
 		return errors.New("nil transaction sharded data store")
@@ -230,187 +157,9 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-// StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus() error {
-	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
-		check.IfNil(n.blkc.GetGenesisHeader())
-	if isGenesisBlockNotInitialized {
-		return ErrGenesisBlockNotInitialized
-	}
-
-	if !n.indexer.IsNilIndexer() {
-		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
-			"it is incompatible with the indexing process.")
-		n.watchdog = &watchdog.DisabledWatchdog{}
-	}
-	if n.isInImportMode {
-		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
-			"it is incompatible with the import-db process.")
-		n.watchdog = &watchdog.DisabledWatchdog{}
-	}
-
-	chronologyHandler, err := n.createChronologyHandler(
-		n.rounder,
-		n.appStatusHandler,
-		n.watchdog,
-	)
-	if err != nil {
-		return err
-	}
-
-	bootstrapper, err := n.createBootstrapper(n.rounder)
-	if err != nil {
-		return err
-	}
-
-	err = bootstrapper.SetStatusHandler(n.GetAppStatusHandler())
-	if err != nil {
-		log.Debug("cannot set app status handler for shard bootstrapper")
-	}
-
-	bootstrapper.StartSyncingBlocks()
-
-	epoch := n.blkc.GetGenesisHeader().GetEpoch()
-	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
-	if !check.IfNil(crtBlockHeader) {
-		epoch = crtBlockHeader.GetEpoch()
-	}
-	log.Info("starting consensus", "epoch", epoch)
-
-	consensusState, err := n.createConsensusState(epoch)
-	if err != nil {
-		return err
-	}
-
-	consensusService, err := sposFactory.GetConsensusCoreFactory(n.consensusType)
-	if err != nil {
-		return err
-	}
-
-	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
-		n.internalMarshalizer,
-		n.hasher,
-		n.messenger,
-		n.shardCoordinator,
-		n.privKey,
-		n.peerSigHandler,
-		n.dataPool.Headers(),
-		n.interceptorsContainer,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	netInputMarshalizer := n.internalMarshalizer
-	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
-	}
-
-	workerArgs := &spos.WorkerArgs{
-		ConsensusService:         consensusService,
-		BlockChain:               n.blkc,
-		BlockProcessor:           n.blockProcessor,
-		Bootstrapper:             bootstrapper,
-		BroadcastMessenger:       broadcastMessenger,
-		ConsensusState:           consensusState,
-		ForkDetector:             n.forkDetector,
-		Marshalizer:              netInputMarshalizer,
-		Hasher:                   n.hasher,
-		Rounder:                  n.rounder,
-		ShardCoordinator:         n.shardCoordinator,
-		PeerSignatureHandler:     n.peerSigHandler,
-		SyncTimer:                n.syncTimer,
-		HeaderSigVerifier:        n.headerSigVerifier,
-		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
-		ChainID:                  n.chainID,
-		NetworkShardingCollector: n.networkShardingCollector,
-		AntifloodHandler:         n.inputAntifloodHandler,
-		PoolAdder:                n.dataPool.MiniBlocks(),
-		SignatureSize:            n.validatorSignatureSize,
-		PublicKeySize:            n.publicKeySize,
-		NodeRedundancyHandler:    n.nodeRedundancyHandler,
-	}
-
-	worker, err := spos.NewWorker(workerArgs)
-	if err != nil {
-		return err
-	}
-
-	worker.StartWorking()
-
-	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
-
-	// apply consensus group size on the input antiflooder just before consensus creation topic
-	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
-	err = n.createConsensusTopic(worker)
-	if err != nil {
-		return err
-	}
-
-	consensusArgs := &spos.ConsensusCoreArgs{
-		BlockChain:                    n.blkc,
-		BlockProcessor:                n.blockProcessor,
-		Bootstrapper:                  bootstrapper,
-		BroadcastMessenger:            broadcastMessenger,
-		ChronologyHandler:             chronologyHandler,
-		Hasher:                        n.hasher,
-		Marshalizer:                   n.internalMarshalizer,
-		BlsPrivateKey:                 n.privKey,
-		BlsSingleSigner:               n.singleSigner,
-		MultiSigner:                   n.multiSigner,
-		Rounder:                       n.rounder,
-		ShardCoordinator:              n.shardCoordinator,
-		NodesCoordinator:              n.nodesCoordinator,
-		SyncTimer:                     n.syncTimer,
-		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
-		AntifloodHandler:              n.inputAntifloodHandler,
-		PeerHonestyHandler:            n.peerHonestyHandler,
-		HeaderSigVerifier:             n.headerSigVerifier,
-		FallbackHeaderValidator:       n.fallbackHeaderValidator,
-		NodeRedundancyHandler:         n.nodeRedundancyHandler,
-	}
-
-	consensusDataContainer, err := spos.NewConsensusCore(
-		consensusArgs,
-	)
-	if err != nil {
-		return err
-	}
-
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		worker,
-		n.consensusType,
-		n.appStatusHandler,
-		n.indexer,
-		n.chainID,
-		n.messenger.ID(),
-	)
-	if err != nil {
-		return err
-	}
-
-	err = fct.GenerateSubrounds()
-	if err != nil {
-		return err
-	}
-
-	chronologyHandler.StartRounds()
-
-	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
-}
-
-func (n *Node) addCloserInstances(closers ...update.Closer) error {
-	for _, c := range closers {
-		err := n.hardforkTrigger.AddCloser(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+// GetConsensusGroupSize returns the configured consensus size
+func (n *Node) GetConsensusGroupSize() int {
+	return n.consensusGroupSize
 }
 
 // GetBalance gets the balance for a specific address
@@ -523,7 +272,7 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 	}
 
 	esdtToken := &esdt.ESDigitalToken{}
-	err = n.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, valueBytes)
 	if err != nil {
 		return "", "", err
 	}
@@ -575,15 +324,15 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
-	if check.IfNil(n.addressPubkeyConverter) || check.IfNil(n.accounts) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
-	addr, err := n.addressPubkeyConverter.Decode(address)
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
-	return n.accounts.GetExistingAccount(addr)
+	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
@@ -593,247 +342,6 @@ func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAcco
 
 	account, ok := ah.(state.UserAccountHandler)
 	return account, ok
-}
-
-// createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(
-	rounder consensus.Rounder,
-	appStatusHandler core.AppStatusHandler,
-	watchdog core.WatchdogTimer,
-) (consensus.ChronologyHandler, error) {
-	chr, err := chronology.NewChronology(
-		n.genesisTime,
-		rounder,
-		n.syncTimer,
-		watchdog,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = chr.SetAppStatusHandler(appStatusHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	return chr, nil
-}
-
-//TODO move this func in structs.go
-func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	miniblocksProvider, err := n.createMiniblocksProvider()
-	if err != nil {
-		return nil, err
-	}
-
-	n.miniblocksProvider = miniblocksProvider
-
-	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
-		return n.createShardBootstrapper(rounder)
-	}
-
-	if n.shardCoordinator.SelfId() == core.MetachainShardId {
-		return n.createMetaChainBootstrapper(rounder)
-	}
-
-	return nil, sharding.ErrShardIdOutOfRange
-}
-
-func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          n.bootStorer,
-		ForkDetector:        n.forkDetector,
-		BlockProcessor:      n.blockProcessor,
-		ChainHandler:        n.blkc,
-		Marshalizer:         n.internalMarshalizer,
-		Store:               n.store,
-		Uint64Converter:     n.uint64ByteSliceConverter,
-		BootstrapRoundIndex: n.bootstrapRoundIndex,
-		ShardCoordinator:    n.shardCoordinator,
-		NodesCoordinator:    n.nodesCoordinator,
-		EpochStartTrigger:   n.epochStartTrigger,
-		BlockTracker:        n.blockTracker,
-		ChainID:             string(n.chainID),
-	}
-
-	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
-		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-	}
-
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         n.dataPool,
-		Store:               n.store,
-		ChainHandler:        n.blkc,
-		Rounder:             rounder,
-		BlockProcessor:      n.blockProcessor,
-		WaitTime:            n.rounder.TimeDuration(),
-		Hasher:              n.hasher,
-		Marshalizer:         n.internalMarshalizer,
-		ForkDetector:        n.forkDetector,
-		RequestHandler:      n.requestHandler,
-		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            n.accounts,
-		BlackListHandler:    n.blocksBlackListHandler,
-		NetworkWatcher:      n.messenger,
-		BootStorer:          n.bootStorer,
-		StorageBootstrapper: shardStorageBootstrapper,
-		EpochHandler:        n.epochStartTrigger,
-		MiniblocksProvider:  n.miniblocksProvider,
-		Uint64Converter:     n.uint64ByteSliceConverter,
-		Indexer:             n.indexer,
-	}
-
-	argsShardBootstrapper := sync.ArgShardBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-	}
-
-	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	return bootstrap, nil
-}
-
-func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          n.bootStorer,
-		ForkDetector:        n.forkDetector,
-		BlockProcessor:      n.blockProcessor,
-		ChainHandler:        n.blkc,
-		Marshalizer:         n.internalMarshalizer,
-		Store:               n.store,
-		Uint64Converter:     n.uint64ByteSliceConverter,
-		BootstrapRoundIndex: n.bootstrapRoundIndex,
-		ShardCoordinator:    n.shardCoordinator,
-		NodesCoordinator:    n.nodesCoordinator,
-		EpochStartTrigger:   n.epochStartTrigger,
-		BlockTracker:        n.blockTracker,
-		ChainID:             string(n.chainID),
-	}
-
-	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
-		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-		PendingMiniBlocksHandler:    n.pendingMiniBlocksHandler,
-	}
-
-	metaStorageBootstrapper, err := storageBootstrap.NewMetaStorageBootstrapper(argsMetaStorageBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         n.dataPool,
-		Store:               n.store,
-		ChainHandler:        n.blkc,
-		Rounder:             rounder,
-		BlockProcessor:      n.blockProcessor,
-		WaitTime:            n.rounder.TimeDuration(),
-		Hasher:              n.hasher,
-		Marshalizer:         n.internalMarshalizer,
-		ForkDetector:        n.forkDetector,
-		RequestHandler:      n.requestHandler,
-		ShardCoordinator:    n.shardCoordinator,
-		Accounts:            n.accounts,
-		BlackListHandler:    n.blocksBlackListHandler,
-		NetworkWatcher:      n.messenger,
-		BootStorer:          n.bootStorer,
-		StorageBootstrapper: metaStorageBootstrapper,
-		EpochHandler:        n.epochStartTrigger,
-		MiniblocksProvider:  n.miniblocksProvider,
-		Uint64Converter:     n.uint64ByteSliceConverter,
-		Indexer:             n.indexer,
-	}
-
-	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-		EpochBootstrapper:   n.epochStartTrigger,
-	}
-
-	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	return bootstrap, nil
-}
-
-func (n *Node) createMiniblocksProvider() (process.MiniBlockProvider, error) {
-	if check.IfNil(n.dataPool) {
-		return nil, process.ErrNilPoolsHolder
-	}
-	if check.IfNil(n.store) {
-		return nil, process.ErrNilStorage
-	}
-
-	arg := provider.ArgMiniBlockProvider{
-		MiniBlockPool:    n.dataPool.MiniBlocks(),
-		MiniBlockStorage: n.store.GetStorer(dataRetriever.MiniBlockUnit),
-		Marshalizer:      n.internalMarshalizer,
-	}
-
-	return provider.NewMiniBlockProvider(arg)
-}
-
-// createConsensusState method creates a consensusState object
-func (n *Node) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
-	selfId, err := n.pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	eligibleNodesPubKeys, err := n.nodesCoordinator.GetConsensusWhitelistedNodes(epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	roundConsensus := spos.NewRoundConsensus(
-		eligibleNodesPubKeys,
-		n.consensusGroupSize,
-		string(selfId))
-
-	roundConsensus.ResetRoundState()
-
-	roundThreshold := spos.NewRoundThreshold()
-
-	roundStatus := spos.NewRoundStatus()
-	roundStatus.ResetRoundStatus()
-
-	consensusState := spos.NewConsensusState(
-		roundConsensus,
-		roundThreshold,
-		roundStatus)
-
-	return consensusState, nil
-}
-
-// createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
-	if check.IfNil(n.shardCoordinator) {
-		return ErrNilShardCoordinator
-	}
-	if check.IfNil(messageProcessor) {
-		return ErrNilMessenger
-	}
-
-	n.consensusTopic = core.ConsensusTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
-	if !n.messenger.HasTopic(n.consensusTopic) {
-		err := n.messenger.CreateTopic(n.consensusTopic, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	if n.messenger.HasTopicValidator(n.consensusTopic) {
-		return ErrValidatorAlreadySet
-	}
-
-	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
@@ -858,29 +366,34 @@ func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
 	}
 }
 
-func (n *Node) sendFromTxAccumulator() {
+func (n *Node) sendFromTxAccumulator(ctx context.Context) {
 	outputChannel := n.txAcumulator.OutputChannel()
 
-	for objs := range outputChannel {
-		//this will read continuously until the chan is closed
+	for {
+		select {
+		case objs := <-outputChannel:
+			{
+				if len(objs) == 0 {
+					break
+				}
 
-		if len(objs) == 0 {
-			continue
-		}
+				txs := make([]*transaction.Transaction, 0, len(objs))
+				for _, obj := range objs {
+					tx, ok := obj.(*transaction.Transaction)
+					if !ok {
+						continue
+					}
 
-		txs := make([]*transaction.Transaction, 0, len(objs))
-		for _, obj := range objs {
-			tx, ok := obj.(*transaction.Transaction)
-			if !ok {
-				continue
+					txs = append(txs, tx)
+				}
+
+				atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
+
+				n.sendBulkTransactions(txs)
 			}
-
-			txs = append(txs, tx)
+		case <-ctx.Done():
+			return
 		}
-
-		atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
-
-		n.sendBulkTransactions(txs)
 	}
 }
 
@@ -888,31 +401,34 @@ func (n *Node) sendFromTxAccumulator() {
 // if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
 // the peak counter resets after each print. There is also a total number of transactions sent to p2p
 // TODO make this function testable. Refactor if necessary.
-func (n *Node) printTxSentCounter() {
+func (n *Node) printTxSentCounter(ctx context.Context) {
 	maxTxCounter := uint32(0)
 	totalTxCounter := uint64(0)
 	counterSeconds := 0
 
 	for {
-		time.Sleep(time.Second)
-
-		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
-		if txSent > maxTxCounter {
-			maxTxCounter = txSent
-		}
-		totalTxCounter += uint64(txSent)
-
-		counterSeconds++
-		if counterSeconds > numSecondsBetweenPrints {
-			counterSeconds = 0
-
-			if maxTxCounter > 0 {
-				log.Info("sent transactions on network",
-					"max/sec", maxTxCounter,
-					"total", totalTxCounter,
-				)
+		select {
+		case <-time.After(time.Second):
+			txSent := atomic.SwapUint32(&n.txSentCounter, 0)
+			if txSent > maxTxCounter {
+				maxTxCounter = txSent
 			}
-			maxTxCounter = 0
+			totalTxCounter += uint64(txSent)
+
+			counterSeconds++
+			if counterSeconds > numSecondsBetweenPrints {
+				counterSeconds = 0
+
+				if maxTxCounter > 0 {
+					log.Info("sent transactions on network",
+						"max/sec", maxTxCounter,
+						"total", totalTxCounter,
+					)
+				}
+				maxTxCounter = 0
+			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -925,9 +441,9 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	)
 
 	for _, tx := range txs {
-		senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
+		senderShardId := n.processComponents.ShardCoordinator().ComputeId(tx.SndAddr)
 
-		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
+		marshalizedTx, err := n.coreComponents.InternalMarshalizer().Marshal(tx)
 		if err != nil {
 			log.Warn("node.sendBulkTransactions",
 				"marshalizer error", err,
@@ -956,7 +472,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx, n.whiteListerVerifiedTxs, n.whiteListRequest, true)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), true)
 	if err != nil {
 		return err
 	}
@@ -988,10 +504,10 @@ func (n *Node) commonTransactionValidation(
 	checkSignature bool,
 ) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
-		n.accounts,
-		n.shardCoordinator,
+		n.stateComponents.AccountsAdapter(),
+		n.processComponents.ShardCoordinator(),
 		whiteListRequest,
-		n.addressPubkeyConverter,
+		n.coreComponents.AddressPubKeyConverter(),
 		core.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
@@ -1000,15 +516,15 @@ func (n *Node) commonTransactionValidation(
 		return nil, nil, err
 	}
 
-	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
+	marshalizedTx, err := n.coreComponents.InternalMarshalizer().Marshal(tx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	currentEpoch := n.epochStartTrigger.Epoch()
+	currentEpoch := n.coreComponents.EpochNotifier().CurrentEpoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
-	txSingleSigner := n.txSingleSigner
+	txSingleSigner := n.cryptoComponents.TxSingleSigner()
 	if !checkSignature {
 		txSingleSigner = &disabledSig.DisabledSingleSig{}
 	}
@@ -1016,20 +532,20 @@ func (n *Node) commonTransactionValidation(
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
-		n.internalMarshalizer,
-		n.txSignMarshalizer,
-		n.hasher,
-		n.keyGenForAccounts,
+		n.coreComponents.InternalMarshalizer(),
+		n.coreComponents.TxMarshalizer(),
+		n.coreComponents.Hasher(),
+		n.cryptoComponents.TxSignKeyGen(),
 		txSingleSigner,
-		n.addressPubkeyConverter,
-		n.shardCoordinator,
-		n.feeHandler,
+		n.coreComponents.AddressPubKeyConverter(),
+		n.processComponents.ShardCoordinator(),
+		n.coreComponents.EconomicsData(),
 		whiteListerVerifiedTxs,
 		argumentParser,
-		n.chainID,
+		[]byte(n.coreComponents.ChainID()),
 		enableSignWithTxHash,
-		n.txSignHasher,
-		n.txVersionChecker,
+		n.coreComponents.TxSignHasher(),
+		n.coreComponents.TxVersionChecker(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1044,23 +560,24 @@ func (n *Node) commonTransactionValidation(
 }
 
 func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
-	senderShardID := n.shardCoordinator.ComputeId(tx.SndAddr)
-	if senderShardID != n.shardCoordinator.SelfId() {
+	shardCoordinator := n.bootstrapComponents.ShardCoordinator()
+	senderShardID := shardCoordinator.ComputeId(tx.SndAddr)
+	if senderShardID != shardCoordinator.SelfId() {
 		return fmt.Errorf("%w, tx sender shard ID: %d, node's shard ID %d",
-			ErrDifferentSenderShardId, senderShardID, n.shardCoordinator.SelfId())
+			ErrDifferentSenderShardId, senderShardID, shardCoordinator.SelfId())
 	}
 
 	return nil
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.internalMarshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(transactions, core.MaxBulkTransactionSize)
 	if err != nil {
@@ -1074,7 +591,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 				"topic", identifier,
 				"size", len(bufferToSend),
 			)
-			err = n.messenger.BroadcastOnChannelBlocking(
+			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
@@ -1109,22 +626,23 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" || len(chainID) > len(string(n.chainID)) {
+	if chainID == "" || len(chainID) > len(n.coreComponents.ChainID()) {
 		return nil, nil, ErrInvalidChainIDInTransaction
 	}
-	if check.IfNil(n.addressPubkeyConverter) {
+	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	if check.IfNil(addrPubKeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
 	if len(signatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
-	if len(receiver) > n.encodedAddressLength {
+	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
-	if len(sender) > n.encodedAddressLength {
+	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
 	}
 	if len(senderUsername) > core.MaxUserNameLength {
@@ -1137,12 +655,12 @@ func (n *Node) CreateTransaction(
 		return nil, nil, ErrDataFieldTooBig
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.Decode(receiver)
+	receiverAddress, err := addrPubKeyConverter.Decode(receiver)
 	if err != nil {
 		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
-	senderAddress, err := n.addressPubkeyConverter.Decode(sender)
+	senderAddress, err := addrPubKeyConverter.Decode(sender)
 	if err != nil {
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
@@ -1152,7 +670,7 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
-	if len(value) > len(n.feeHandler.GenesisTotalSupply().String())+1 {
+	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
 		return nil, nil, ErrTransactionValueLengthTooBig
 	}
 
@@ -1178,7 +696,7 @@ func (n *Node) CreateTransaction(
 	}
 
 	var txHash []byte
-	txHash, err = core.CalculateHash(n.internalMarshalizer, n.hasher, tx)
+	txHash, err = core.CalculateHash(n.coreComponents.InternalMarshalizer(), n.coreComponents.Hasher(), tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1188,19 +706,19 @@ func (n *Node) CreateTransaction(
 
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
-	if check.IfNil(n.addressPubkeyConverter) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	addr, err := n.addressPubkeyConverter.Decode(address)
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
 	}
 
-	accWrp, err := n.accounts.GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return state.NewUserAccount(addr)
@@ -1218,51 +736,15 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 
 // GetCode returns the code for the given account
 func (n *Node) GetCode(account state.UserAccountHandler) []byte {
-	return n.accounts.GetCode(account.GetCodeHash())
-}
-
-// StartHeartbeat starts the node's heartbeat processing/signaling module
-//TODO(next PR) remove the instantiation of the heartbeat component from here
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
-	arg := componentHandler.ArgHeartbeat{
-		HeartbeatConfig:          hbConfig,
-		PrefsConfig:              prefsConfig,
-		Marshalizer:              n.internalMarshalizer,
-		Messenger:                n.messenger,
-		ShardCoordinator:         n.shardCoordinator,
-		NodesCoordinator:         n.nodesCoordinator,
-		AppStatusHandler:         n.appStatusHandler,
-		Storer:                   n.store.GetStorer(dataRetriever.HeartbeatUnit),
-		ValidatorStatistics:      n.validatorStatistics,
-		PeerSignatureHandler:     n.peerSigHandler,
-		PrivKey:                  n.privKey,
-		HardforkTrigger:          n.hardforkTrigger,
-		AntifloodHandler:         n.inputAntifloodHandler,
-		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
-		EpochStartTrigger:        n.epochStartTrigger,
-		EpochStartRegistration:   n.epochStartRegistrationHandler,
-		Timer:                    &heartbeatProcess.RealTimer{},
-		GenesisTime:              n.genesisTime,
-		VersionNumber:            versionNumber,
-		PeerShardMapper:          n.networkShardingCollector,
-		SizeCheckDelta:           n.sizeCheckDelta,
-		ValidatorsProvider:       n.validatorsProvider,
-		CurrentBlockProvider:     n.blkc,
-		RedundancyHandler:        n.nodeRedundancyHandler,
-	}
-
-	var err error
-	n.heartbeatHandler, err = componentHandler.NewHeartbeatHandler(arg)
-
-	return err
+	return n.stateComponents.AccountsAdapter().GetCode(account.GetCodeHash())
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	if check.IfNil(n.heartbeatHandler) {
+	if check.IfNil(n.heartbeatComponents) {
 		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
-	mon := n.heartbeatHandler.Monitor()
+	mon := n.heartbeatComponents.Monitor()
 	if check.IfNil(mon) {
 		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
@@ -1272,7 +754,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
-	return n.validatorsProvider.GetLatestValidators(), nil
+	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
 // DirectTrigger will start the hardfork trigger
@@ -1287,20 +769,20 @@ func (n *Node) IsSelfTrigger() bool {
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
 func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
-	if n.addressPubkeyConverter == nil {
+	if n.coreComponents.AddressPubKeyConverter() == nil {
 		return "", fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 
-	return n.addressPubkeyConverter.Encode(pk), nil
+	return n.coreComponents.AddressPubKeyConverter().Encode(pk), nil
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
 func (n *Node) DecodeAddressPubkey(pk string) ([]byte, error) {
-	if n.addressPubkeyConverter == nil {
+	if n.coreComponents.AddressPubKeyConverter() == nil {
 		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
 	}
 
-	return n.addressPubkeyConverter.Decode(pk)
+	return n.coreComponents.AddressPubKeyConverter().Decode(pk)
 }
 
 // AddQueryHandler adds a query handler in cache
@@ -1340,7 +822,7 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 
 // GetPeerInfo returns information about a peer id
 func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
-	peers := n.messenger.Peers()
+	peers := n.networkComponents.NetworkMessenger().Peers()
 	pidsFound := make([]core.PeerID, 0)
 	for _, p := range peers {
 		if strings.Contains(p.Pretty(), pid) {
@@ -1365,10 +847,65 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
+// GetHardforkTrigger returns the hardfork trigger
+func (n *Node) GetHardforkTrigger() HardforkTrigger {
+	return n.hardforkTrigger
+}
+
+// GetCoreComponents returns the core components
+func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
+	return n.coreComponents
+}
+
+// GetCryptoComponents returns the crypto components
+func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
+	return n.cryptoComponents
+}
+
+// GetConsensusComponents returns the consensus components
+func (n *Node) GetConsensusComponents() mainFactory.ConsensusComponentsHolder {
+	return n.consensusComponents
+}
+
+// GetBootstrapComponents returns the bootstrap components
+func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
+	return n.bootstrapComponents
+}
+
+// GetDataComponents returns the data components
+func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
+	return n.dataComponents
+}
+
+// GetHeartbeatComponents returns the heartbeat components
+func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
+	return n.heartbeatComponents
+}
+
+// GetNetworkComponents returns the network components
+func (n *Node) GetNetworkComponents() mainFactory.NetworkComponentsHolder {
+	return n.networkComponents
+}
+
+// GetProcessComponents returns the process components
+func (n *Node) GetProcessComponents() mainFactory.ProcessComponentsHolder {
+	return n.processComponents
+}
+
+// GetStateComponents returns the state components
+func (n *Node) GetStateComponents() mainFactory.StateComponentsHolder {
+	return n.stateComponents
+}
+
+// GetStatusComponents returns the status components
+func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
+	return n.statusComponents
+}
+
 func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
-		Addresses:     n.messenger.PeerAddresses(p),
+		Addresses:     n.networkComponents.NetworkMessenger().PeerAddresses(p),
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
@@ -1377,10 +914,42 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
-		result.Pk = n.validatorPubkeyConverter.Encode(peerInfo.PkBytes)
+		result.Pk = n.coreComponents.ValidatorPubKeyConverter().Encode(peerInfo.PkBytes)
 	}
 
 	return result
+}
+
+// Close closes all underlying components
+func (n *Node) Close() error {
+	n.cancelFunc()
+
+	for _, qh := range n.queryHandlers {
+		log.LogIfError(qh.Close())
+	}
+
+	var closeError error = nil
+	log.Debug("closing all managed components")
+	for i := len(n.closableComponents) - 1; i >= 0; i-- {
+		managedComponent := n.closableComponents[i]
+		log.Debug("closing", fmt.Sprintf("managedComponent %s", managedComponent))
+		err := managedComponent.Close()
+		if err != nil {
+			if closeError == nil {
+				closeError = ErrNodeCloseFailed
+			}
+			closeError = fmt.Errorf("%w, err: %s", closeError, err.Error())
+		}
+	}
+
+	time.Sleep(time.Second * 5)
+
+	return closeError
+}
+
+// Returns true if the node is in import mode
+func (n *Node) IsInImportMode() bool {
+	return n.isInImportMode
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

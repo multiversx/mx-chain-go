@@ -85,6 +85,11 @@ func (cms *ConnectionMonitorStub) ThresholdMinConnectedPeers() int {
 	return 0
 }
 
+// Close -
+func (cms *ConnectionMonitorStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (cms *ConnectionMonitorStub) IsInterfaceNil() bool {
 	return cms == nil

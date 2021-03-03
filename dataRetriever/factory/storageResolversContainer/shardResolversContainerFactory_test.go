@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
@@ -178,6 +179,33 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() storageResolversContainers.FactoryArgs {
 	return storageResolversContainers.FactoryArgs{
+		GeneralConfig: config.Config{
+			AccountsTrieStorage:     getMockStorageConfig(),
+			PeerAccountsTrieStorage: getMockStorageConfig(),
+			TrieSnapshotDB: config.DBConfig{
+				FilePath:          "",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 1,
+				MaxBatchSize:      1,
+				MaxOpenFiles:      10,
+			},
+			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+				PruningBufferLen:   255,
+				SnapshotsBufferLen: 255,
+				MaxSnapshots:       255,
+			},
+			StateTriesConfig: config.StateTriesConfig{
+				CheckpointRoundsModulus:     100,
+				AccountsStatePruningEnabled: false,
+				PeerStatePruningEnabled:     false,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
+			},
+		},
+		ShardIDForTries:          0,
+		ChainID:                  "T",
+		WorkingDirectory:         "",
+		Hasher:                   mock.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
 		Messenger:                createStubTopicMessageHandlerForShard("", ""),
 		Store:                    createStoreForShard(),

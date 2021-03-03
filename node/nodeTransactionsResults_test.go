@@ -1,4 +1,4 @@
-package node
+package node_test
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -48,11 +49,21 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 			}, nil
 		},
 	}
-	n, _ := NewNode(
-		WithInternalMarshalizer(marshalizerdMock, 0),
-		WithDataStore(dataStore),
-		WithHistoryRepository(historyRepo),
-		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizerdMock
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.Store = dataStore
+
+	processComponents:= getDefaultProcessComponents()
+	processComponents.HistoryRepositoryInternal = historyRepo
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	epoch := uint32(0)
@@ -63,10 +74,10 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
-		SndAddr: n.addressPubkeyConverter.Encode(rec.SndAddr),
+		SndAddr: n.GetCoreComponents().AddressPubKeyConverter().Encode(rec.SndAddr),
 	}
 
-	n.putResultsInTransaction(txHash, tx, epoch)
+	n.PutResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
 }
 
@@ -126,13 +137,24 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			}, nil
 		},
 	}
-	n, _ := NewNode(
-		WithInternalMarshalizer(marshalizerdMock, 0),
-		WithDataStore(dataStore),
-		WithHistoryRepository(historyRepo),
-		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizerdMock
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.Store = dataStore
+
+	processComponents:= getDefaultProcessComponents()
+	processComponents.HistoryRepositoryInternal = historyRepo
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
+	addressPubKeyConverter := n.GetCoreComponents().AddressPubKeyConverter()
 	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
 			Hash:           hex.EncodeToString(scrHash1),
@@ -148,10 +170,10 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			CallType:       scr1.CallType,
 			CodeMetadata:   string(scr1.CodeMetadata),
 			ReturnMessage:  string(scr1.ReturnMessage),
-			SndAddr:        n.addressPubkeyConverter.Encode(scr1.SndAddr),
-			RcvAddr:        n.addressPubkeyConverter.Encode(scr1.RcvAddr),
-			RelayerAddr:    n.addressPubkeyConverter.Encode(scr1.RelayerAddr),
-			OriginalSender: n.addressPubkeyConverter.Encode(scr1.OriginalSender),
+			SndAddr:        addressPubKeyConverter.Encode(scr1.SndAddr),
+			RcvAddr:        addressPubKeyConverter.Encode(scr1.RcvAddr),
+			RelayerAddr:    addressPubKeyConverter.Encode(scr1.RelayerAddr),
+			OriginalSender: addressPubKeyConverter.Encode(scr1.OriginalSender),
 		},
 		{
 			Hash:           hex.EncodeToString(scrHash2),
@@ -160,6 +182,6 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	n.putResultsInTransaction(txHash, tx, epoch)
+	n.PutResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }

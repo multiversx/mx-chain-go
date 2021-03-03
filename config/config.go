@@ -58,6 +58,11 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32
 }
 
+// ConsensusConfig holds the consensus configuration parameters
+type ConsensusConfig struct {
+	Type string
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -109,6 +114,7 @@ type Config struct {
 	ReceiptsStorage                 StorageConfig
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
+	TrieEpochRootHashStorage        StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -151,7 +157,7 @@ type Config struct {
 	Heartbeat           HeartbeatConfig
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
-	Consensus           TypeConfig
+	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
 	TxLogsStorage       StorageConfig
 
@@ -218,6 +224,8 @@ type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
 	MaxComputableRounds                    uint64
 	StartInEpochEnabled                    bool
+	ChainID                                string
+	MinTransactionVersion                  uint32
 	SCDeployEnableEpoch                    uint32
 	BuiltInFunctionsEnableEpoch            uint32
 	RelayedTransactionsEnableEpoch         uint32
@@ -452,6 +460,21 @@ type VersionsConfig struct {
 	Cache            CacheConfig
 }
 
+// Configs is a holder for the node configuration parameters
+type Configs struct {
+	GeneralConfig            *Config
+	ApiRoutesConfig          *ApiRoutesConfig
+	EconomicsConfig          *EconomicsConfig
+	SystemSCConfig           *SystemSmartContractsConfig
+	RatingsConfig            *RatingsConfig
+	PreferencesConfig        *Preferences
+	ExternalConfig           *ExternalConfig
+	P2pConfig                *P2PConfig
+	FlagsConfig              *ContextFlagsConfig
+	ImportDbConfig           *ImportDbConfig
+	ConfigurationPathsHolder *ConfigurationPathsHolder
+}
+
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
 type GasScheduleByEpochs struct {
 	StartEpoch uint32
@@ -461,6 +484,24 @@ type GasScheduleByEpochs struct {
 // GasScheduleConfig represents the versioning config area for the gas schedule toml
 type GasScheduleConfig struct {
 	GasScheduleByEpochs []GasScheduleByEpochs
+}
+
+// ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
+type ConfigurationPathsHolder struct {
+	MainConfig                 string
+	ApiRoutes                  string
+	Economics                  string
+	SystemSC                   string
+	Ratings                    string
+	Preferences                string
+	External                   string
+	P2p                        string
+	GasScheduleDirectoryName   string
+	Nodes                      string
+	Genesis                    string
+	SmartContracts             string
+	ValidatorKey               string
+	ElasticSearchTemplatesPath string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

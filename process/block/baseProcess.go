@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -58,7 +60,7 @@ type baseProcessor struct {
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
 	txCoordinator           process.TransactionCoordinator
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	bootStorer              process.BootStorer
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
@@ -75,10 +77,12 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer       process.Indexer
-	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   dblookupext.HistoryRepository
-	epochNotifier process.EpochNotifier
+	indexer            process.Indexer
+	tpsBenchmark       statistics.TPSBenchmark
+	historyRepo        dblookupext.HistoryRepository
+	epochNotifier      process.EpochNotifier
+	vmContainerFactory process.VirtualMachinesContainerFactory
+	vmContainer        process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -102,16 +106,6 @@ func checkForNils(
 	if check.IfNil(bodyHandler) {
 		return process.ErrNilBlockBody
 	}
-	return nil
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return process.ErrNilAppStatusHandler
-	}
-
-	bp.appStatusHandler = ash
 	return nil
 }
 
@@ -249,7 +243,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.rounder.Index() - 1
+		lastRound := bp.roundHandler.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
@@ -357,16 +351,22 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 			return process.ErrNilAccountsAdapter
 		}
 	}
+	if check.IfNil(arguments.DataComponents) {
+		return process.ErrNilDataComponentsHolder
+	}
+	if check.IfNil(arguments.CoreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(arguments.Hasher) {
+	if check.IfNil(arguments.CoreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arguments.Marshalizer) {
+	if check.IfNil(arguments.CoreComponents.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.Store) {
+	if check.IfNil(arguments.DataComponents.StorageService()) {
 		return process.ErrNilStorage
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
@@ -375,7 +375,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if check.IfNil(arguments.Uint64Converter) {
+	if check.IfNil(arguments.CoreComponents.Uint64ByteSliceConverter()) {
 		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(arguments.RequestHandler) {
@@ -384,8 +384,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.RoundHandler) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
@@ -405,7 +405,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(arguments.BlockChain) {
+	if check.IfNil(arguments.DataComponents.Blockchain()) {
 		return process.ErrNilBlockChain
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
@@ -425,6 +425,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.AppStatusHandler) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -1219,7 +1222,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	}
 
 	waitTime := core.ExtraDelayForRequestBlockInfo
-	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}
@@ -1251,4 +1254,79 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	for i := 0; i < len(headers); i++ {
 		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
+}
+
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if check.IfNil(trieEpochRootHashStorageUnit) {
+		return nil
+	}
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	if isStorerDisabled {
+		return nil
+	}
+
+	userAccountsDb := bp.accountsDB[state.UserAccountsState]
+	if userAccountsDb == nil {
+		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
+	}
+
+	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
+
+	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash, ctx)
+	if err != nil {
+		return err
+	}
+
+	balanceSum := big.NewInt(0)
+	for leaf := range allLeavesChan {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
+		if errUnmarshal != nil {
+			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+		balanceSum.Add(balanceSum, userAccount.GetBalance())
+	}
+
+	log.Debug("sum of addresses in shard at epoch start",
+		"shard", bp.shardCoordinator.SelfId(),
+		"epoch", metaBlock.Epoch,
+		"sum", balanceSum.String())
+
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
+}
+
+// Close - closes all underlying components
+func (bp *baseProcessor) Close() error {
+	var err1, err2 error
+	if !check.IfNil(bp.vmContainer) {
+		err1 = bp.vmContainer.Close()
+	}
+	if !check.IfNil(bp.vmContainerFactory) {
+		err2 = bp.vmContainerFactory.Close()
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
+	}
+
+	return nil
 }

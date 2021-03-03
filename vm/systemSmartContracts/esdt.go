@@ -243,7 +243,7 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := sha256.Sha256{}.Compute(string(newRandomBase))
+	newRandom := sha256.NewSha256().Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
 
 	tickerPrefix := append(ticker, []byte(tickerSeparator)...)

@@ -1531,7 +1531,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	stateCheckpointModulus := uint(3)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
@@ -1597,6 +1597,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
 		)
+		time.Sleep(time.Second)
 	}
 
 	numDelayRounds := uint32(6)

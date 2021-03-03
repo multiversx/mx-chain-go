@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// RounderMock -
-type RounderMock struct {
+// RoundHandlerMock -
+type RoundHandlerMock struct {
 	RoundIndex int64
 
 	IndexCalled         func() int64
@@ -17,7 +17,7 @@ type RounderMock struct {
 }
 
 // BeforeGenesis -
-func (rndm *RounderMock) BeforeGenesis() bool {
+func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 	if rndm.BeforeGenesisCalled != nil {
 		return rndm.BeforeGenesisCalled()
 	}
@@ -25,7 +25,7 @@ func (rndm *RounderMock) BeforeGenesis() bool {
 }
 
 // Index -
-func (rndm *RounderMock) Index() int64 {
+func (rndm *RoundHandlerMock) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
 	}
@@ -34,7 +34,7 @@ func (rndm *RounderMock) Index() int64 {
 }
 
 // TimeDuration -
-func (rndm *RounderMock) TimeDuration() time.Duration {
+func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {
 		return rndm.TimeDurationCalled()
 	}
@@ -43,7 +43,7 @@ func (rndm *RounderMock) TimeDuration() time.Duration {
 }
 
 // TimeStamp -
-func (rndm *RounderMock) TimeStamp() time.Time {
+func (rndm *RoundHandlerMock) TimeStamp() time.Time {
 	if rndm.TimeStampCalled != nil {
 		return rndm.TimeStampCalled()
 	}
@@ -52,7 +52,7 @@ func (rndm *RounderMock) TimeStamp() time.Time {
 }
 
 // UpdateRound -
-func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
+func (rndm *RoundHandlerMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	if rndm.UpdateRoundCalled != nil {
 		rndm.UpdateRoundCalled(genesisRoundTimeStamp, timeStamp)
 		return
@@ -62,7 +62,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 }
 
 // RemainingTime -
-func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rndm *RoundHandlerMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	if rndm.RemainingTimeCalled != nil {
 		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
@@ -71,6 +71,6 @@ func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duratio
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rndm *RounderMock) IsInterfaceNil() bool {
+func (rndm *RoundHandlerMock) IsInterfaceNil() bool {
 	return rndm == nil
 }

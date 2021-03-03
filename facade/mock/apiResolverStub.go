@@ -37,6 +37,11 @@ func (ars *ApiResolverStub) GetTotalStakedValue() (*big.Int, error) {
 	return ars.GetTotalStakedValueHandler()
 }
 
+// Close -
+func (ars *ApiResolverStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ars *ApiResolverStub) IsInterfaceNil() bool {
 	return ars == nil

@@ -40,6 +40,10 @@ func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, shardId, nonce)
 }
 
+func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
+}
+
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
 	sp.receivedMetaBlock(header, metaBlockHash)
 }
@@ -77,37 +81,46 @@ func NewShardProcessorEmptyWith3shards(
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            &mock.MarshalizerMock{},
+		Hash:                &mock.HasherMock{},
+		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+	}
+	dataComponents := &mock.DataComponentsMock{
+		Storage:    &mock.ChainStorerMock{},
+		DataPool:   tdp,
+		BlockChain: blockChain,
+	}
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
+			CoreComponents:    coreComponents,
+			DataComponents:    dataComponents,
 			AccountsDB:        accountsDb,
 			ForkDetector:      &mock.ForkDetectorMock{},
-			Hasher:            &mock.HasherMock{},
-			Marshalizer:       &mock.MarshalizerMock{},
-			Store:             &mock.ChainStorerMock{},
 			ShardCoordinator:  shardCoordinator,
 			NodesCoordinator:  nodesCoordinator,
 			FeeHandler:        &mock.FeeAccumulatorStub{},
-			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:    &mock.RequestHandlerStub{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   hdrValidator,
-			Rounder:           &mock.RounderMock{},
+			RoundHandler:      &mock.RoundHandlerMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
 			},
 			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool:                tdp,
-			BlockChain:              blockChain,
 			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
 			Indexer:                 &mock.IndexerMock{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+			Version:                 "softwareVersion",
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
+			AppStatusHandler:        &mock.AppStatusHandlerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

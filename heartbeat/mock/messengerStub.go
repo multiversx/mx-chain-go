@@ -87,7 +87,7 @@ func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff [
 }
 
 // Bootstrap -
-func (ms *MessengerStub) Bootstrap() error {
+func (ms *MessengerStub) Bootstrap(_ uint32) error {
 	return ms.BootstrapCalled()
 }
 

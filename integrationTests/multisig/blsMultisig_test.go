@@ -158,7 +158,7 @@ func TestMultiSig_Bls(t *testing.T) {
 	}
 
 	hashSize := 16
-	hasher := &blake2b.Blake2b{HashSize: hashSize}
+	hasher, _ := blake2b.NewBlake2bWithSize(hashSize)
 	suite := mcl.NewSuiteBLS12()
 
 	pubKeysStr, multiSigners := createMultiSignersBls(numOfSigners, consensusGroupSize, hasher, suite)

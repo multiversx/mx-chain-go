@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,35 +15,49 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+type coreComponentsHolder interface {
+	Hasher() hashing.Hasher
+	InternalMarshalizer() marshal.Marshalizer
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	IsInterfaceNil() bool
+}
+
+type dataComponentsHolder interface {
+	StorageService() dataRetriever.StorageService
+	Datapool() dataRetriever.PoolsHolder
+	Blockchain() data.ChainHandler
+	IsInterfaceNil() bool
+}
+
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
+	CoreComponents          coreComponentsHolder
+	DataComponents          dataComponentsHolder
 	AccountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector            process.ForkDetector
-	Hasher                  hashing.Hasher
-	Marshalizer             marshal.Marshalizer
-	Store                   dataRetriever.StorageService
 	ShardCoordinator        sharding.Coordinator
 	NodesCoordinator        sharding.NodesCoordinator
 	FeeHandler              process.TransactionFeeHandler
-	Uint64Converter         typeConverters.Uint64ByteSliceConverter
 	RequestHandler          process.RequestHandler
 	BlockChainHook          process.BlockChainHookHandler
 	TxCoordinator           process.TransactionCoordinator
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	HeaderValidator         process.HeaderConstructionValidator
-	Rounder                 consensus.Rounder
+	RoundHandler            consensus.RoundHandler
 	BootStorer              process.BootStorer
 	BlockTracker            process.BlockTracker
-	DataPool                dataRetriever.PoolsHolder
-	BlockChain              data.ChainHandler
 	StateCheckpointModulus  uint
 	BlockSizeThrottler      process.BlockSizeThrottler
 	Indexer                 process.Indexer
 	TpsBenchmark            statistics.TPSBenchmark
+	Version                 string
 	HistoryRepository       dblookupext.HistoryRepository
 	EpochNotifier           process.EpochNotifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	AppStatusHandler        core.AppStatusHandler
+	VMContainersFactory     process.VirtualMachinesContainerFactory
+	VmContainer             process.VirtualMachinesContainer
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

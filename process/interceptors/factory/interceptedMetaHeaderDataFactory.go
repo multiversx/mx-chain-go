@@ -26,13 +26,16 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.TxSignMarshalizer) {
+	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -47,13 +50,16 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
+	if len(argument.CoreComponents.ChainID()) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
 
 	return &interceptedMetaHeaderDataFactory{
-		marshalizer:             argument.ProtoMarshalizer,
-		hasher:                  argument.Hasher,
+		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
+		hasher:                  argument.CoreComponents.Hasher(),
 		shardCoordinator:        argument.ShardCoordinator,
 		headerSigVerifier:       argument.HeaderSigVerifier,
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,

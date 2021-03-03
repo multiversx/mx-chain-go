@@ -16,9 +16,6 @@ import (
 
 // NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	// StartConsensus will start the consesus service for the current node
-	StartConsensus() error
-
 	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
@@ -91,6 +88,7 @@ type ApiResolver interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue() (*big.Int, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 

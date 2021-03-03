@@ -54,7 +54,7 @@ var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62,
 // TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
 
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
-var testHasher = sha256.Sha256{}
+var testHasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -260,6 +260,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -352,6 +353,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -396,6 +398,7 @@ func CreateVMAndBlockchainHook(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -903,4 +906,20 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 		ScForwarder:      scrForwarder,
 		EconomicsData:    economicsData,
 	}, nil
+}
+
+func defaultStorageConfig() *config.StorageConfig {
+	return &config.StorageConfig{
+		Cache: config.CacheConfig{
+			Name:     "SmartContractsStorage",
+			Type:     "LRU",
+			Capacity: 100,
+		},
+		DB: config.DBConfig{
+			FilePath:          "SmartContractsStorage",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      100,
+		},
+	}
 }

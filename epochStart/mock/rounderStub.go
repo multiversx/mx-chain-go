@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// RounderStub -
-type RounderStub struct {
+// RoundHandlerStub -
+type RoundHandlerStub struct {
 	RoundIndex int64
 
 	IndexCalled         func() int64
@@ -16,7 +16,7 @@ type RounderStub struct {
 }
 
 // Index -
-func (rndm *RounderStub) Index() int64 {
+func (rndm *RoundHandlerStub) Index() int64 {
 	if rndm.IndexCalled != nil {
 		return rndm.IndexCalled()
 	}
@@ -25,7 +25,7 @@ func (rndm *RounderStub) Index() int64 {
 }
 
 // TimeDuration -
-func (rndm *RounderStub) TimeDuration() time.Duration {
+func (rndm *RoundHandlerStub) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {
 		return rndm.TimeDurationCalled()
 	}
@@ -34,7 +34,7 @@ func (rndm *RounderStub) TimeDuration() time.Duration {
 }
 
 // TimeStamp -
-func (rndm *RounderStub) TimeStamp() time.Time {
+func (rndm *RoundHandlerStub) TimeStamp() time.Time {
 	if rndm.TimeStampCalled != nil {
 		return rndm.TimeStampCalled()
 	}
@@ -43,7 +43,7 @@ func (rndm *RounderStub) TimeStamp() time.Time {
 }
 
 // UpdateRound -
-func (rndm *RounderStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
+func (rndm *RoundHandlerStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	if rndm.UpdateRoundCalled != nil {
 		rndm.UpdateRoundCalled(genesisRoundTimeStamp, timeStamp)
 		return
@@ -53,7 +53,7 @@ func (rndm *RounderStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 }
 
 // RemainingTime -
-func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rndm *RoundHandlerStub) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	if rndm.RemainingTimeCalled != nil {
 		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
@@ -62,6 +62,6 @@ func (rndm *RounderStub) RemainingTime(startTime time.Time, maxTime time.Duratio
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rndm *RounderStub) IsInterfaceNil() bool {
+func (rndm *RoundHandlerStub) IsInterfaceNil() bool {
 	return rndm == nil
 }

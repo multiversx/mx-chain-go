@@ -1117,7 +1117,7 @@ func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
 }
 
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)

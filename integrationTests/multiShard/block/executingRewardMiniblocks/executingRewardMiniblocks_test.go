@@ -32,7 +32,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -122,7 +122,7 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -203,7 +203,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 

@@ -29,6 +29,7 @@ type ConnectableHostStub struct {
 	CloseCalled                 func() error
 	ConnManagerCalled           func() connmgr.ConnManager
 	ConnectToPeerCalled         func(ctx context.Context, address string) error
+	AddressToPeerInfoCalled     func(address string) (*peer.AddrInfo, error)
 }
 
 // EventBus -
@@ -149,6 +150,20 @@ func (hs *ConnectableHostStub) ConnManager() connmgr.ConnManager {
 	}
 
 	return nil
+}
+
+// AddressToPeerInfo -
+func (hs *ConnectableHostStub) AddressToPeerInfo(address string) (*peer.AddrInfo, error) {
+	if hs.AddressToPeerInfoCalled != nil {
+		return hs.AddressToPeerInfoCalled(address)
+	}
+
+	multiAddr, err := multiaddr.NewMultiaddr(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return peer.AddrInfoFromP2pAddr(multiAddr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

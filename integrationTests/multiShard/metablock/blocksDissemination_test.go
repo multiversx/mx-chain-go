@@ -21,7 +21,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -78,7 +78,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	numOfShards := 1
 	nodesPerShard := 1

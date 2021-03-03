@@ -66,6 +66,14 @@ type EpochSubscriberHandler interface {
 	IsInterfaceNil() bool
 }
 
+// Accumulator defines the interface able to accumulate data and periodically evict them
+type Accumulator interface {
+	AddData(data interface{})
+	OutputChannel() <-chan []interface{}
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // GasScheduleSubscribeHandler defines the behavior of a component that can be notified if a the gas schedule was changed
 type GasScheduleSubscribeHandler interface {
 	GasScheduleChange(gasSchedule map[string]map[string]uint64)

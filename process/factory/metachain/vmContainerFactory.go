@@ -23,19 +23,19 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer         sharding.ChanceComputer
-	validatorAccountsDB    state.AccountsAdapter
-	blockChainHookImpl     *hooks.BlockChainHookImpl
-	cryptoHook             vmcommon.CryptoHook
-	systemContracts        vm.SystemSCContainer
-	economics              process.EconomicsDataHandler
-	messageSigVerifier     vm.MessageSignVerifier
-	nodesConfigProvider    vm.NodesConfigProvider
-	gasSchedule            core.GasScheduleNotifier
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	systemSCConfig         *config.SystemSmartContractsConfig
-	epochNotifier          process.EpochNotifier
+	chanceComputer      sharding.ChanceComputer
+	validatorAccountsDB state.AccountsAdapter
+	blockChainHookImpl  *hooks.BlockChainHookImpl
+	cryptoHook          vmcommon.CryptoHook
+	systemContracts     vm.SystemSCContainer
+	economics           process.EconomicsDataHandler
+	messageSigVerifier  vm.MessageSignVerifier
+	nodesConfigProvider vm.NodesConfigProvider
+	gasSchedule         core.GasScheduleNotifier
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	systemSCConfig      *config.SystemSmartContractsConfig
+	epochNotifier       process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 }
 
@@ -125,6 +125,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	}
 
 	return container, nil
+}
+
+// Close closes the vm container factory
+func (vmf *vmContainerFactory) Close() error {
+	return vmf.blockChainHookImpl.Close()
 }
 
 // CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process

@@ -71,7 +71,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		return nil, epochStart.ErrNilRewardsHandler
 	}
 	if check.IfNil(args.RoundTime) {
-		return nil, process.ErrNilRounder
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(args.EconomicsDataNotified) {
 		return nil, epochStart.ErrNilEconomicsDataProvider

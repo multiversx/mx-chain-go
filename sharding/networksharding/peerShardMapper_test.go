@@ -20,27 +20,27 @@ const epochZero = uint32(0)
 
 //------- NewPeerShardMapper
 
+func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
+	return networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         testscommon.NewCacherMock(),
+		FallbackPkShardCache:  testscommon.NewCacherMock(),
+		FallbackPidShardCache: testscommon.NewCacherMock(),
+		NodesCoordinator:      &nodesCoordinatorStub{},
+		StartEpoch:            epochZero,
+	}
+}
+
 func createPeerShardMapper() *networksharding.PeerShardMapper {
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{},
-		epochZero,
-	)
+	psm, _ := networksharding.NewPeerShardMapper(createMockArgumentForPeerShardMapper())
 	return psm
 }
 
 func TestNewPeerShardMapper_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	psm, err := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		nil,
-		epochZero,
-	)
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = nil
+	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
 	assert.Equal(t, sharding.ErrNilNodesCoordinator, err)
@@ -49,59 +49,43 @@ func TestNewPeerShardMapper_NilNodesCoordinatorShouldErr(t *testing.T) {
 func TestNewPeerShardMapper_NilCacherForPeerIdPkShouldErr(t *testing.T) {
 	t.Parallel()
 
-	psm, err := networksharding.NewPeerShardMapper(
-		nil,
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{},
-		epochZero,
-	)
+	arg := createMockArgumentForPeerShardMapper()
+	arg.PeerIdPkCache = nil
+	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_NilCacherForPkShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	psm, err := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		nil,
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{},
-		epochZero,
-	)
+	arg := createMockArgumentForPeerShardMapper()
+	arg.FallbackPkShardCache = nil
+	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	psm, err := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		nil,
-		&nodesCoordinatorStub{},
-		epochZero,
-	)
+	arg := createMockArgumentForPeerShardMapper()
+	arg.FallbackPidShardCache = nil
+	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(8843)
-	psm, err := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{},
-		epoch,
-	)
+	arg := createMockArgumentForPeerShardMapper()
+	arg.StartEpoch = epoch
+	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.False(t, check.IfNil(psm))
 	assert.Nil(t, err)
@@ -308,21 +292,17 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				if bytes.Equal(publicKey, pk) {
-					return nil, shardId, nil
-				}
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			if bytes.Equal(publicKey, pk) {
+				return nil, shardId, nil
+			}
 
-				return nil, 0, nil
-			},
+			return nil, 0, nil
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 
@@ -340,13 +320,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorWrongTypeInCacheShouldReturn
 	t.Parallel()
 
 	wrongTypePk := uint64(6)
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{},
-		epochZero,
-	)
+	psm, _ := networksharding.NewPeerShardMapper(createMockArgumentForPeerShardMapper())
 	pid := core.PeerID("dummy peer ID")
 	psm.PeerIdPk().Put([]byte(pid), wrongTypePk, 8)
 
@@ -364,17 +338,13 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePublicKeyShardId(pk, shardId)
@@ -393,17 +363,13 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 	t.Parallel()
 
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	wrongTypeShardId := "shard 4"
@@ -423,17 +389,13 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePeerIdShardId(pid, shardId)
@@ -451,17 +413,13 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 	t.Parallel()
 
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 
@@ -477,17 +435,13 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *testing.T) {
 	t.Parallel()
 
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	wrongTypeShardId := "shard 4"
 	psm.FallbackPidShard().Put([]byte(pid), wrongTypeShardId, len(wrongTypeShardId))
@@ -506,17 +460,13 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 
 	shardId := uint32(445)
 	pk := []byte("dummy pk")
-	psm, _ := networksharding.NewPeerShardMapper(
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		testscommon.NewCacherMock(),
-		&nodesCoordinatorStub{
-			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
-				return nil, 0, errors.New("not found")
-			},
+	arg := createMockArgumentForPeerShardMapper()
+	arg.NodesCoordinator = &nodesCoordinatorStub{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, u uint32, e error) {
+			return nil, 0, errors.New("not found")
 		},
-		epochZero,
-	)
+	}
+	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	psm.UpdatePublicKeyShardId(pk, shardId)

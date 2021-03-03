@@ -66,7 +66,7 @@ type Facade interface {
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*big.Int, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	TpsBenchmark() *statistics.TpsBenchmark
+	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)

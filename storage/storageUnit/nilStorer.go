@@ -1,77 +1,78 @@
 package storageUnit
 
-type nilStorer struct {
+// NilStorer resembles a disabled implementation of the Storer interface
+type NilStorer struct {
 }
 
 // NewNilStorer will return a nil storer
-func NewNilStorer() *nilStorer {
-	return new(nilStorer)
+func NewNilStorer() *NilStorer {
+	return new(NilStorer)
 }
 
 // GetFromEpoch will do nothing
-func (ns *nilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
+func (ns *NilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 	return nil, nil
 }
 
 // GetBulkFromEpoch will do nothing
-func (ns *nilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
+func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
 	return nil, nil
 }
 
 // HasInEpoch will do nothing
-func (ns *nilStorer) HasInEpoch(_ []byte, _ uint32) error {
+func (ns *NilStorer) HasInEpoch(_ []byte, _ uint32) error {
 	return nil
 }
 
 // SearchFirst will do nothing
-func (ns *nilStorer) SearchFirst(_ []byte) ([]byte, error) {
+func (ns *NilStorer) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
 // Put will do nothing
-func (ns *nilStorer) Put(_, _ []byte) error {
+func (ns *NilStorer) Put(_, _ []byte) error {
 	return nil
 }
 
 // PutInEpoch will do nothing
-func (ns *nilStorer) PutInEpoch(key, data []byte, _ uint32) error {
+func (ns *NilStorer) PutInEpoch(_, _ []byte, _ uint32) error {
 	return nil
 }
 
 // Close will do nothing
-func (ns *nilStorer) Close() error {
+func (ns *NilStorer) Close() error {
 	return nil
 }
 
 // Get will do nothing
-func (ns *nilStorer) Get(_ []byte) ([]byte, error) {
+func (ns *NilStorer) Get(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
 // Has will do nothing
-func (ns *nilStorer) Has(_ []byte) error {
+func (ns *NilStorer) Has(_ []byte) error {
 	return nil
 }
 
 // Remove will do nothing
-func (ns *nilStorer) Remove(_ []byte) error {
+func (ns *NilStorer) Remove(_ []byte) error {
 	return nil
 }
 
 // ClearCache will do nothing
-func (ns *nilStorer) ClearCache() {
+func (ns *NilStorer) ClearCache() {
 }
 
 // DestroyUnit will do nothing
-func (ns *nilStorer) DestroyUnit() error {
+func (ns *NilStorer) DestroyUnit() error {
 	return nil
 }
 
 // RangeKeys does nothing
-func (ns *nilStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
+func (ns *NilStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ns *nilStorer) IsInterfaceNil() bool {
+func (ns *NilStorer) IsInterfaceNil() bool {
 	return ns == nil
 }
