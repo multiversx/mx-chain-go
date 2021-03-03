@@ -2,10 +2,12 @@ package factory
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -177,6 +179,49 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, scFactory)
+}
+
+func TestNewSystemSCFactory_GasScheduleChangeMissingElementsShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	gasSchedule, err := core.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	delete(gasSchedule["MetaChainSystemSCsCost"], "UnstakeTokens")
+	require.Nil(t, err)
+
+	scFactory.GasScheduleChange(gasSchedule)
+
+	assert.Equal(t, uint64(1), scFactory.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
+}
+
+func TestNewSystemSCFactory_GasScheduleChangeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	gasSchedule, err := core.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	require.Nil(t, err)
+
+	scFactory.GasScheduleChange(gasSchedule)
+
+	assert.Equal(t, uint64(5000000), scFactory.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
 }
 
 func TestSystemSCFactory_CreateWithBadDelegationManagerConfigChangeAddressShouldError(t *testing.T) {

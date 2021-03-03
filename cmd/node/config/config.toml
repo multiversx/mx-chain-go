@@ -79,6 +79,7 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
     ]
 
 [StoragePruning]
