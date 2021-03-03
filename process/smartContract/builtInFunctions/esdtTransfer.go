@@ -116,7 +116,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			}
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -203,15 +203,9 @@ func addToESDTBalance(
 		return process.ErrOnlyFungibleTokensHaveBalanceTransfer
 	}
 
-	if !bytes.Equal(senderAddr, vm.ESDTSCAddress) {
-		esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
-		if esdtUserMetaData.Frozen {
-			return process.ErrESDTIsFrozenForAccount
-		}
-
-		if pauseHandler.IsPaused(key) {
-			return process.ErrESDTTokenIsPaused
-		}
+	err = checkFrozeAndPause(senderAddr, key, esdtData, pauseHandler)
+	if err != nil {
+		return err
 	}
 
 	esdtData.Value.Add(esdtData.Value, value)
@@ -222,6 +216,28 @@ func addToESDTBalance(
 	err = saveESDTData(userAcnt, esdtData, key, marshalizer)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func checkFrozeAndPause(
+	senderAddr []byte,
+	key []byte,
+	esdtData *esdt.ESDigitalToken,
+	pauseHandler process.ESDTPauseHandler,
+) error {
+	if bytes.Equal(senderAddr, vm.ESDTSCAddress) {
+		return nil
+	}
+
+	esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
+	if esdtUserMetaData.Frozen {
+		return process.ErrESDTIsFrozenForAccount
+	}
+
+	if pauseHandler.IsPaused(key) {
+		return process.ErrESDTTokenIsPaused
 	}
 
 	return nil

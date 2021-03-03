@@ -73,7 +73,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkESDTCreateAddBurnInput(acntSnd, vmInput, e.funcGasCost)
+	err := checkESDTNFTBasicInput(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, process.ErrNotEnoughGas
 	}
 
-	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer)
+	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -203,9 +203,15 @@ func saveESDTNFTToken(
 	esdtTokenKey []byte,
 	esdtData *esdt.ESDigitalToken,
 	marshalizer marshal.Marshalizer,
+	pauseHandler process.ESDTPauseHandler,
 ) error {
 	if esdtData.TokenMetaData == nil {
 		return process.ErrNFTDoesNotHaveMetadata
+	}
+
+	err := checkFrozeAndPause(acnt.AddressBytes(), esdtTokenKey, esdtData, pauseHandler)
+	if err != nil {
+		return err
 	}
 
 	nonce := esdtData.TokenMetaData.Nonce
@@ -223,7 +229,7 @@ func saveESDTNFTToken(
 	return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, marshaledData)
 }
 
-func checkESDTCreateAddBurnInput(
+func checkESDTNFTBasicInput(
 	account state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 	funcGasCost uint64) error {

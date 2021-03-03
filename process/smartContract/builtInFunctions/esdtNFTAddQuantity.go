@@ -66,7 +66,7 @@ func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkESDTCreateAddBurnInput(acntSnd, vmInput, e.funcGasCost)
+	err := checkESDTNFTBasicInput(acntSnd, vmInput, e.funcGasCost)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	}
 	esdtData.Value.Add(esdtData.Value, big.NewInt(0).SetBytes(vmInput.Arguments[2]))
 
-	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer)
+	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}
