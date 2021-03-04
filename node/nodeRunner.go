@@ -94,6 +94,8 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
+	printEnableEpochs(*nr.configs.GeneralConfig)
+
 	logGoroutinesNumber(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
@@ -108,6 +110,25 @@ func (nr *nodeRunner) Start() error {
 	}
 
 	return nil
+}
+
+func printEnableEpochs(generalConfig config.Config) {
+	generalSettings := generalConfig.GeneralSettings
+
+	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
+	log.Debug("built in functions enable epoch", "epoch", generalSettings.BuiltInFunctionsEnableEpoch)
+	log.Debug("relayed transactions enable epoch", "epoch", generalSettings.RelayedTransactionsEnableEpoch)
+	log.Debug("penalized too much gas enable epoch", "epoch", generalSettings.PenalizedTooMuchGasEnableEpoch)
+	log.Debug("switch jail waiting enable epoch", "epoch", generalSettings.SwitchJailWaitingEnableEpoch)
+	log.Debug("switch hysteresis for min nodes enable epoch", "epoch", generalSettings.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug("below signed threshold enable epoch", "epoch", generalSettings.BelowSignedThresholdEnableEpoch)
+	log.Debug("transaction signed with tx hash enable epoch", "epoch", generalSettings.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug("meta protection enable epoch", "epoch", generalSettings.MetaProtectionEnableEpoch)
+	log.Debug("ahead of time gas usage enable epoch", "epoch", generalSettings.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug("gas price modifier enable epoch", "epoch", generalSettings.GasPriceModifierEnableEpoch)
+	log.Debug("repair callback enable epoch", "epoch", generalSettings.RepairCallbackEnableEpoch)
+	log.Debug("max nodes change enable epoch", "epoch", generalSettings.MaxNodesChangeEnableEpoch)
+	log.Debug("block gas and fees re-check enable epoch", "epoch", generalSettings.BlockGasAndFeesReCheckEnableEpoch)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
