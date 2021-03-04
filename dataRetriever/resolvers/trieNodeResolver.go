@@ -113,8 +113,6 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 		remainingSpace -= len(serializedNode)
 	}
 
-	log.Info("sent", "num nodes", len(nodes), "space", core.ConvertBytes(uint64(space)))
-
 	return tnRes.sendResponse(nodes, message)
 }
 
