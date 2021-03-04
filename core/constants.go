@@ -493,6 +493,18 @@ const BuiltInFunctionESDTLocalMint = "ESDTLocalMint"
 // BuiltInFunctionESDTLocalBurn is the key for the elrond standard digital token local burn built-in function
 const BuiltInFunctionESDTLocalBurn = "ESDTLocalBurn"
 
+// BuiltInFunctionESDTNFTTransfer is the key for the elrond standard digital token NFT transfer built-in function
+const BuiltInFunctionESDTNFTTransfer = "ESDTNFTTransfer"
+
+// BuiltInFunctionESDTNFTCreate is the key for the elrond standard digital token NFT create built-in function
+const BuiltInFunctionESDTNFTCreate = "ESDTNFTCreate"
+
+// BuiltInFunctionESDTNFTAddQuantity is the key for the elrond standard digital token NFT add quantity built-in function
+const BuiltInFunctionESDTNFTAddQuantity = "ESDTNFTAddQuantity"
+
+// BuiltInFunctionESDTNFTBurn is the key for the elrond standard digital token NFT burn built-in function
+const BuiltInFunctionESDTNFTBurn = "ESDTNFTBurn"
+
 // ESDTRoleLocalMint is the constant string for the local role of mint for ESDT tokens
 const ESDTRoleLocalMint = "ESDTRoleLocalMint"
 

@@ -62,6 +62,7 @@ func NewESDTNFTCreateFunc(
 func (e *esdtNFTCreate) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.gasConfig = gasCost.BaseOperationCost
 	e.mutExecution.Unlock()
 }
 

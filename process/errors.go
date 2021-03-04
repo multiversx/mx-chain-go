@@ -964,3 +964,6 @@ var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
 
 // ErrInvalidNFTQuantity signals that invalid nft quantity was provided
 var ErrInvalidNFTQuantity = errors.New("invalid nft quantity")
+
+// ErrWrongNFTOnDestination signals the NFT is missmatched on destination - should never happen
+var ErrWrongNFTOnDestination = errors.New("wrong NFT on destionation")
