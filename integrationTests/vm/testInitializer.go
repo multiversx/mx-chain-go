@@ -468,6 +468,10 @@ func CreateVMAndBlockchainHookMeta(
 	}
 
 	economicsData, err := createEconomicsData(0)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
 	vmFactory, err := metachain.NewVMContainerFactory(metachain.ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   args,
 		Economics:           economicsData,
