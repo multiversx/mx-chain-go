@@ -1,10 +1,9 @@
 package external
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -61,7 +60,7 @@ func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 }
 
 // GetTotalStakedValue will return total staked value
-func (nar *NodeApiResolver) GetTotalStakedValue() (*big.Int, error) {
+func (nar *NodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 

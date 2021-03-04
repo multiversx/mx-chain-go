@@ -13,7 +13,7 @@ import (
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
+	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProc"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -149,13 +149,12 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, tpn.SCQueryService, gasScheduleNotifier)
 	log.LogIfError(err)
 
-	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                     tpn.ShardCoordinator.SelfId(),
-		RoundDurationInMilliseconds: tpn.NodesSetup.GetRoundDuration(),
-		InternalMarshalizer:         TestMarshalizer,
-		Accounts:                    tpn.AccntState,
+	args := &stakeValuesProc.ArgsTotalStakedValueHandler{
+		ShardID:             tpn.ShardCoordinator.SelfId(),
+		InternalMarshalizer: TestMarshalizer,
+		Accounts:            tpn.AccntState,
 	}
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := stakeValuesProc.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
 
 	apiResolver, err := external.NewNodeApiResolver(tpn.SCQueryService, &mock.StatusMetricsStub{}, txCostHandler, totalStakedValueHandler)

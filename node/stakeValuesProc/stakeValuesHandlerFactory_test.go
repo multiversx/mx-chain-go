@@ -1,4 +1,4 @@
-package totalStakedAPI
+package stakeValuesProc
 
 import (
 	"testing"
@@ -27,10 +27,10 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := &ArgsTotalStakedValueHandler{
-		ShardID:                     core.MetachainShardId,
-		InternalMarshalizer:         &mock.MarshalizerMock{},
-		Accounts:                    &mock.AccountsStub{},
-		RoundDurationInMilliseconds: 5000,
+		ShardID:             core.MetachainShardId,
+		InternalMarshalizer: &mock.MarshalizerMock{},
+		Accounts:            &mock.AccountsStub{},
+		NodePrice:           "100",
 	}
 
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)

@@ -90,7 +90,7 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetTotalStakedValue() (*big.Int, error)
+	GetTotalStakedValue() (*api.StakeValues, error)
 	IsInterfaceNil() bool
 }
 

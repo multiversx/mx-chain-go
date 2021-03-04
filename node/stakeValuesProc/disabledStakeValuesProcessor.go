@@ -1,6 +1,6 @@
-package totalStakedAPI
+package stakeValuesProc
 
-import "math/big"
+import "github.com/ElrondNetwork/elrond-go/data/api"
 
 type disabledTotalStakedValueProcessor struct{}
 
@@ -10,7 +10,7 @@ func NewDisabledTotalStakedValueProcessor() (*disabledTotalStakedValueProcessor,
 }
 
 // GetTotalStakedValue -
-func (d *disabledTotalStakedValueProcessor) GetTotalStakedValue() (*big.Int, error) {
+func (d *disabledTotalStakedValueProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nil, ErrCannotReturnTotalStakedFromShardNode
 }
 

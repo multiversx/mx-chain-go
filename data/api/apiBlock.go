@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -39,4 +40,10 @@ type MiniBlock struct {
 	SourceShard      uint32                              `json:"sourceShard"`
 	DestinationShard uint32                              `json:"destinationShard"`
 	Transactions     []*transaction.ApiTransactionResult `json:"transactions,omitempty"`
+}
+
+// StakeValues is structure that contains totalStakedValue and topUpValue
+type StakeValues struct {
+	TotalStaked *big.Int
+	TopUp       *big.Int
 }

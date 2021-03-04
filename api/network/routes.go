@@ -1,26 +1,27 @@
 package network
 
 import (
-	"math/big"
+	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	getConfigPath   = "/config"
-	getStatusPath   = "/status"
-	economicsPath   = "/economics"
-	totalStakedPath = "/total-staked"
+	getConfigPath = "/config"
+	getStatusPath = "/status"
+	economicsPath = "/economics"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	GetTotalStakedValue() (*big.Int, error)
+	GetTotalStakedValue() (*api.StakeValues, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
@@ -30,7 +31,6 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
-	router.RegisterHandler(http.MethodGet, totalStakedPath, GetTotalStaked)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -106,25 +106,7 @@ func EconomicsMetrics(c *gin.Context) {
 		return
 	}
 
-	metrics := facade.StatusMetrics().EconomicsMetrics()
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"metrics": metrics},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
-}
-
-// GetTotalStaked is the endpoint that will return the total staked value
-func GetTotalStaked(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
-	totalStakedValue, err := facade.GetTotalStakedValue()
+	stakeValues, err := facade.GetTotalStakedValue()
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -137,15 +119,14 @@ func GetTotalStaked(c *gin.Context) {
 		return
 	}
 
-	totalStakedValueStr := "0"
-	if totalStakedValue != nil {
-		totalStakedValueStr = totalStakedValue.String()
-	}
+	metrics := facade.StatusMetrics().EconomicsMetrics()
+	metrics[core.MetricTotalStakedValue] = fmt.Sprintf("%s", stakeValues.TotalStaked.String())
+	metrics[core.MetricTopUpValue] = fmt.Sprintf("%s", stakeValues.TopUp.String())
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"totalStakedValue": totalStakedValueStr},
+			Data:  gin.H{"metrics": metrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

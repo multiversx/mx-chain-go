@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
@@ -156,7 +157,14 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.Facade{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			return &api.StakeValues{
+				TotalStaked: big.NewInt(100),
+				TopUp:       big.NewInt(20),
+			}, nil
+		},
+	}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -171,42 +179,6 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusOK)
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
-	assert.True(t, keyAndValueFoundInResponse)
-}
-
-func TestTotalStaked_NilContextShouldErr(t *testing.T) {
-	ws := startNodeServer(nil)
-	req, _ := http.NewRequest(http.MethodGet, "/network/total-staked", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
-
-}
-
-func TestTotalStaked_ShouldWork(t *testing.T) {
-	totalStaked := big.NewInt(250000000)
-	facade := &mock.Facade{}
-	facade.GetTotalStakedValueHandler = func() (*big.Int, error) {
-		return totalStaked, nil
-	}
-
-	ws := startNodeServer(facade)
-	req, err := http.NewRequest(http.MethodGet, "/network/total-staked", nil)
-	fmt.Println(err)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, http.StatusOK, resp.Code)
-
-	key := "totalStakedValue"
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, totalStaked.String())
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
