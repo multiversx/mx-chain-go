@@ -62,7 +62,7 @@ func (e *esdtRoles) ProcessBuiltinFunction(
 	esdtTokenRoleKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "key", esdtTokenRoleKey)
 
-	roles, _, err := e.getESDTRoleForAcnt(acntDst, esdtTokenRoleKey)
+	roles, _, err := e.getESDTRolesForAcnt(acntDst, esdtTokenRoleKey)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func doesRoleExist(roles *esdt.ESDTRoles, role []byte) (int, bool) {
 	return -1, false
 }
 
-func (e *esdtRoles) getESDTRoleForAcnt(acnt state.UserAccountHandler, key []byte) (*esdt.ESDTRoles, bool, error) {
+func (e *esdtRoles) getESDTRolesForAcnt(acnt state.UserAccountHandler, key []byte) (*esdt.ESDTRoles, bool, error) {
 	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
 		return nil, false, err
@@ -124,13 +124,13 @@ func (e *esdtRoles) getESDTRoleForAcnt(acnt state.UserAccountHandler, key []byte
 }
 
 // CheckAllowedToExecute returns error if the account is not allowed to execute the given action
-func (e *esdtRoles) CheckAllowedToExecute(account state.UserAccountHandler, tokenId []byte, action []byte) error {
+func (e *esdtRoles) CheckAllowedToExecute(account state.UserAccountHandler, tokenID []byte, action []byte) error {
 	if check.IfNil(account) {
 		return process.ErrNilUserAccount
 	}
 
-	esdtTokenRoleKey := append(e.keyPrefix, tokenId...)
-	roles, isNew, err := e.getESDTRoleForAcnt(account, esdtTokenRoleKey)
+	esdtTokenRoleKey := append(e.keyPrefix, tokenID...)
+	roles, isNew, err := e.getESDTRolesForAcnt(account, esdtTokenRoleKey)
 	if err != nil {
 		return err
 	}

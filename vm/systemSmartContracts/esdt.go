@@ -877,6 +877,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+
 	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -939,6 +940,7 @@ func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommo
 		e.eei.AddReturnMessage("needs 1 argument")
 		return vmcommon.UserError
 	}
+
 	if args.CallValue.Cmp(zero) != 0 {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.UserError
