@@ -1105,8 +1105,9 @@ func (v *validatorSC) basicChecksForUnStakeNodes(args *vmcommon.ContractCallInpu
 	return registrationData, vmcommon.Ok
 }
 
-func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationData *ValidatorDataV2) uint64 {
+func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationData *ValidatorDataV2) (uint64, uint64) {
 	numSuccess := uint64(0)
+	numSuccessFromWaiting := uint64(0)
 	for _, blsKey := range blsKeys {
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if errExec != nil {
@@ -1124,9 +1125,35 @@ func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationDa
 		}
 
 		numSuccess++
+
+		stakedData, err := v.getStakedData(blsKey)
+		if err != nil {
+			continue
+		}
+		if stakedData.UnStakedNonce == 0 {
+			numSuccessFromWaiting++
+		}
 	}
 
-	return numSuccess
+	numSuccessFromActive := numSuccess - numSuccessFromWaiting
+	return numSuccessFromActive, numSuccessFromWaiting
+}
+
+func (v *validatorSC) processUnStakeTokensFromNodes(
+	registrationData *ValidatorDataV2,
+	validatorConfig ValidatorConfig,
+	numNodes uint64,
+	unStakeNonce uint64,
+) vmcommon.ReturnCode {
+	if numNodes == 0 {
+		return vmcommon.Ok
+	}
+	unStakeFromNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numNodes))
+	if unStakeFromNodes.Cmp(registrationData.TotalStakeValue) > 0 {
+		unStakeFromNodes.Set(registrationData.TotalStakeValue)
+	}
+
+	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakeNonce)
 }
 
 // This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
@@ -1141,19 +1168,25 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	numSuccess := v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
+	numSuccessFromActive, numSuccessFromWaiting := v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
 	if !v.flagEnableTopUp.IsSet() {
+		// unStakeV1 returns from this point
 		return vmcommon.Ok
+	}
+
+	if numSuccessFromActive+numSuccessFromWaiting == 0 {
+		v.eei.AddReturnMessage("could not unstake any nodes")
+		return vmcommon.UserError
 	}
 
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
-	unStakeFromNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numSuccess))
-	if unStakeFromNodes.Cmp(registrationData.TotalStakeValue) > 0 {
-		unStakeFromNodes.Set(registrationData.TotalStakeValue)
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
-	returnCode = v.processUnStakeValue(registrationData, unStakeFromNodes)
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentNonce())
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1182,7 +1215,7 @@ func (v *validatorSC) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Re
 		return returnCode
 	}
 
-	_ = v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
+	_, _ = v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
 
 	return vmcommon.Ok
 }
@@ -1462,7 +1495,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	returnCode = v.processUnStakeValue(registrationData, unStakeValue)
+	unStakedNonce := v.eei.BlockChainHook().CurrentNonce()
+	if registrationData.NumRegistered == 0 {
+		unStakedNonce = 0
+	}
+	returnCode = v.processUnStakeValue(registrationData, unStakeValue, unStakedNonce)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1481,7 +1518,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) processUnStakeValue(registrationData *ValidatorDataV2, unStakeValue *big.Int) vmcommon.ReturnCode {
+func (v *validatorSC) processUnStakeValue(
+	registrationData *ValidatorDataV2,
+	unStakeValue *big.Int,
+	unStakedNonce uint64,
+) vmcommon.ReturnCode {
 	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(registrationData.TotalStakeValue) == 0
 	if !unstakeValueIsOk {
 		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
@@ -1498,7 +1539,7 @@ func (v *validatorSC) processUnStakeValue(registrationData *ValidatorDataV2, unS
 	registrationData.UnstakedInfo = append(
 		registrationData.UnstakedInfo,
 		&UnstakedValue{
-			UnstakedNonce: v.eei.BlockChainHook().CurrentNonce(),
+			UnstakedNonce: unStakedNonce,
 			UnstakedValue: unStakeValue,
 		},
 	)

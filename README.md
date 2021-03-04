@@ -6,7 +6,7 @@
 <br>
 
 [![](https://img.shields.io/badge/made%20by-Elrond%20Network-blue.svg)](http://elrond.com/)
-[![](https://img.shields.io/badge/project-Elrond%20Network%20Testnet-blue.svg)](https://testnet.elrond.com/)
+[![](https://img.shields.io/badge/project-Elrond%20Network%20Mainnet-blue.svg)](https://explorer.elrond.com/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ElrondNetwork/elrond-go)](https://goreportcard.com/report/github.com/ElrondNetwork/elrond-go)
 [![LoC](https://tokei.rs/b1/github/ElrondNetwork/elrond-go?category=code)](https://github.com/ElrondNetwork/elrond-go)
 [![API Reference](https://godoc.org/github.com/ElrondNetwork/elrond-go?status.svg)](https://godoc.org/github.com/ElrondNetwork/elrond-go)
