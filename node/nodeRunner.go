@@ -94,7 +94,7 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
-	printEnableEpochs(*nr.configs)
+	printEnableEpochs(nr.configs)
 
 	logGoroutinesNumber(0)
 
@@ -112,7 +112,7 @@ func (nr *nodeRunner) Start() error {
 	return nil
 }
 
-func printEnableEpochs(configs config.Configs) {
+func printEnableEpochs(configs *config.Configs) {
 	generalSettings := configs.GeneralConfig.GeneralSettings
 
 	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
@@ -135,13 +135,9 @@ func printEnableEpochs(configs config.Configs) {
 	log.Debug("staking v2 epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakingV2Epoch)
 	log.Debug("stake enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch)
 	log.Debug("double key protection enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.DoubleKeyProtectionEnableEpoch)
-
 	log.Debug("esdt enable epoch", "epoch", systemSCConfig.ESDTSystemSCConfig.EnabledEpoch)
-
 	log.Debug("governance enable epoch", "epoch", systemSCConfig.GovernanceSystemSCConfig.EnabledEpoch)
-
 	log.Debug("delegation manager enable epoch", "epoch", systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch)
-
 	log.Debug("delegation smart contract enable epoch", "epoch", systemSCConfig.DelegationSystemSCConfig.EnabledEpoch)
 }
 
