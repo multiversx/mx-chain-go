@@ -177,8 +177,13 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
+		mbTypeStr := miniBlock.Type.String()
+		if len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock) {
+			mbTypeStr = block.ScheduledBlock.String()
+		}
+
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
-			miniBlock.Type.String(),
+			mbTypeStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 

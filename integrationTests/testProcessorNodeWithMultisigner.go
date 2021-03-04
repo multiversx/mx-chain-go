@@ -247,6 +247,7 @@ func CreateNodeWithBLSAndTxKeys(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
+	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}

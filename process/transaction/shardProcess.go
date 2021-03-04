@@ -210,6 +210,20 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
 }
 
+// VerifyTransaction verifies the account states in respect with the transaction data
+func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	if err != nil {
+		return err
+	}
+
+	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
+}
+
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
 	txError error,

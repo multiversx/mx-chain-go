@@ -819,10 +819,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	}()
 
 	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
-		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, block.TxBlock)
+		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, block.TxBlock, nil)
 	}
 
-	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
+	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock, nil)
 
 	for index := range sortedTxs {
 		if !haveTime() {
@@ -1043,6 +1043,7 @@ func (txs *transactions) createEmptyMiniBlock(
 	senderShardID uint32,
 	receiverShardID uint32,
 	blockType block.Type,
+	reserved []byte,
 ) *block.MiniBlock {
 
 	miniBlock := &block.MiniBlock{
@@ -1050,6 +1051,7 @@ func (txs *transactions) createEmptyMiniBlock(
 		SenderShardID:   senderShardID,
 		ReceiverShardID: receiverShardID,
 		TxHashes:        make([][]byte, 0),
+		Reserved:        reserved,
 	}
 
 	return miniBlock
