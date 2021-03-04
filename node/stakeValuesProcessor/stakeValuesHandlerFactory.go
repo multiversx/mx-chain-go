@@ -1,4 +1,4 @@
-package stakeValuesProc
+package stakeValuesProcessor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,7 +18,7 @@ type ArgsTotalStakedValueHandler struct {
 // CreateTotalStakedValueHandler wil create a new instance of TotalStakedValueHandler
 func CreateTotalStakedValueHandler(args *ArgsTotalStakedValueHandler) (external.TotalStakedValueHandler, error) {
 	if args.ShardID != core.MetachainShardId {
-		return NewDisabledTotalStakedValueProcessor()
+		return NewDisabledStakeValuesProcessor()
 	}
 
 	return NewTotalStakedValueProcessor(

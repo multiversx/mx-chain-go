@@ -42,7 +42,7 @@ type MiniBlock struct {
 	Transactions     []*transaction.ApiTransactionResult `json:"transactions,omitempty"`
 }
 
-// StakeValues is structure that contains totalStakedValue and topUpValue
+// StakeValues is the structure that contains the total staked value and the total top up value
 type StakeValues struct {
 	TotalStaked *big.Int
 	TopUp       *big.Int

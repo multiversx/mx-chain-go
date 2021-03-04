@@ -1,4 +1,4 @@
-package stakeValuesProc
+package stakeValuesProcessor
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func TestCreateTotalStakedValueHandler_DisabledTotalStakedValueProcessor(t *test
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
 
-	totalStakedValueProc, ok := totalStakedValueHandler.(*disabledTotalStakedValueProcessor)
+	totalStakedValueProc, ok := totalStakedValueHandler.(*disabledStaleValuesProcessor)
 	require.True(t, ok)
 	require.NotNil(t, totalStakedValueProc)
 }
@@ -36,7 +36,7 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
 
-	totalStakedValueProc, ok := totalStakedValueHandler.(*totalStakedValueProcessor)
+	totalStakedValueProc, ok := totalStakedValueHandler.(*stakedValuesProc)
 	require.True(t, ok)
 	require.NotNil(t, totalStakedValueProc)
 }

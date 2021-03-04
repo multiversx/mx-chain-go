@@ -1,11 +1,10 @@
-package stakeValuesProc
+package stakeValuesProcessor
 
 import (
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/api"
@@ -15,19 +14,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
-type totalStakedValueProcessor struct {
+type stakedValuesProc struct {
 	marshalizer marshal.Marshalizer
 	accounts    state.AccountsAdapter
 	nodePrice   *big.Int
-	mutex       sync.RWMutex
 }
 
-// NewTotalStakedValueProcessor will create a new instance of totalStakedValueProcessor
+// NewTotalStakedValueProcessor will create a new instance of stakedValuesProc
 func NewTotalStakedValueProcessor(
 	nodePrice string,
 	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
-) (*totalStakedValueProcessor, error) {
+) (*stakedValuesProc, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
@@ -40,19 +38,16 @@ func NewTotalStakedValueProcessor(
 		return nil, ErrInvalidNodePrice
 	}
 
-	return &totalStakedValueProcessor{
+	return &stakedValuesProc{
 		marshalizer: marshalizer,
 		accounts:    accounts,
 		nodePrice:   nodePriceBig,
-		mutex:       sync.RWMutex{},
 	}, nil
 }
 
 // GetTotalStakedValue will calculate total staked value if needed and return calculated value
-func (tsp *totalStakedValueProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
-	tsp.mutex.Lock()
-	defer tsp.mutex.Unlock()
-	totalStaked, topUp, err := tsp.computeStakedValueAndTopUp()
+func (svp *stakedValuesProc) GetTotalStakedValue() (*api.StakeValues, error) {
+	totalStaked, topUp, err := svp.computeStakedValueAndTopUp()
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +58,8 @@ func (tsp *totalStakedValueProcessor) GetTotalStakedValue() (*api.StakeValues, e
 	}, nil
 }
 
-func (tsp *totalStakedValueProcessor) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
-	ah, err := tsp.accounts.GetExistingAccount(vm.ValidatorSCAddress)
+func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
+	ah, err := svp.accounts.GetExistingAccount(vm.ValidatorSCAddress)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +89,7 @@ func (tsp *totalStakedValueProcessor) computeStakedValueAndTopUp() (*big.Int, *b
 			return nil, nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
 		}
 
-		err = tsp.marshalizer.Unmarshal(validatorData, value)
+		err = svp.marshalizer.Unmarshal(validatorData, value)
 		if err != nil {
 			continue
 		}
@@ -106,13 +101,13 @@ func (tsp *totalStakedValueProcessor) computeStakedValueAndTopUp() (*big.Int, *b
 	totalStakedValue := totalStakedValueAllLeaves
 
 	numRegisteredNodesBig := big.NewInt(0).SetUint64(numRegistedNodes)
-	totalStakedValueWithoutTopUp := big.NewInt(0).Mul(numRegisteredNodesBig, tsp.nodePrice)
+	totalStakedValueWithoutTopUp := big.NewInt(0).Mul(numRegisteredNodesBig, svp.nodePrice)
 	topUpValue := big.NewInt(0).Sub(totalStakedValueAllLeaves, totalStakedValueWithoutTopUp)
 
 	return totalStakedValue, topUpValue, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tsp *totalStakedValueProcessor) IsInterfaceNil() bool {
-	return tsp == nil
+func (svp *stakedValuesProc) IsInterfaceNil() bool {
+	return svp == nil
 }

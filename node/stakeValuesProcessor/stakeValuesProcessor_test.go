@@ -1,4 +1,4 @@
-package stakeValuesProc
+package stakeValuesProcessor
 
 import (
 	"errors"
