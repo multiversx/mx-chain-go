@@ -1,6 +1,12 @@
-package stakeValuesProcessor
+package disabled
 
-import "github.com/ElrondNetwork/elrond-go/data/api"
+import (
+	"errors"
+
+	"github.com/ElrondNetwork/elrond-go/data/api"
+)
+
+var errCannotReturnTotalStakedFromShardNode = errors.New("total staked value cannot be returned by a shard node")
 
 type disabledStaleValuesProcessor struct{}
 
@@ -11,7 +17,7 @@ func NewDisabledStakeValuesProcessor() (*disabledStaleValuesProcessor, error) {
 
 // GetTotalStakedValue -
 func (d *disabledStaleValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
-	return nil, ErrCannotReturnTotalStakedFromShardNode
+	return nil, errCannotReturnTotalStakedFromShardNode
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ import (
 func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	nar, err := external.NewNodeApiResolver(nil, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{}, totalStakedAPIHandler)
 
 	assert.Nil(t, nar)
@@ -25,7 +25,7 @@ func TestNewNodeApiResolver_NilSCQueryServiceShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, nil, &mock.TransactionCostEstimatorMock{}, totalStakedAPIHandler)
 
 	assert.Nil(t, nar)
@@ -35,7 +35,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, nil, totalStakedAPIHandler)
 
 	assert.Nil(t, nar)
@@ -54,7 +54,7 @@ func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, &mock.TransactionCostEstimatorMock{}, totalStakedAPIHandler)
 
 	assert.Nil(t, err)
@@ -64,7 +64,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(&mock.SCQueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
@@ -87,7 +87,7 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},
@@ -108,7 +108,7 @@ func TestNodeApiResolver_StatusMetricsMapWithoutP2PShouldBeCalled(t *testing.T) 
 func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},
@@ -129,7 +129,7 @@ func TestNodeApiResolver_StatusP2pMetricsMapShouldBeCalled(t *testing.T) {
 func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},
@@ -150,7 +150,7 @@ func TestNodeApiResolver_StatusMetricsMapWhitoutP2PShouldBeCalled(t *testing.T) 
 func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},
@@ -171,7 +171,7 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := stakeValuesProcessor.NewDisabledStakeValuesProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	wasCalled := false
 	nar, _ := external.NewNodeApiResolver(
 		&mock.SCQueryServiceStub{},

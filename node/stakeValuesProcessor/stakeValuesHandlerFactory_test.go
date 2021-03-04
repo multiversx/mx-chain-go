@@ -18,9 +18,8 @@ func TestCreateTotalStakedValueHandler_DisabledTotalStakedValueProcessor(t *test
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
 
-	totalStakedValueProc, ok := totalStakedValueHandler.(*disabledStaleValuesProcessor)
-	require.True(t, ok)
-	require.NotNil(t, totalStakedValueProc)
+	_, ok := totalStakedValueHandler.(*stakedValuesProc)
+	require.False(t, ok)
 }
 
 func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
