@@ -1,4 +1,4 @@
-[Epoch]
+[EnableEpochs]
     # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
     SCDeployEnableEpoch = 3
 

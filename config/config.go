@@ -230,31 +230,6 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards uint32
 }
 
-// EpochConfig will hold epoch config information for a node
-type EpochConfig struct {
-	SCDeployEnableEpoch                    uint32
-	BuiltInFunctionsEnableEpoch            uint32
-	RelayedTransactionsEnableEpoch         uint32
-	PenalizedTooMuchGasEnableEpoch         uint32
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	BelowSignedThresholdEnableEpoch        uint32
-	TransactionSignedWithTxHashEnableEpoch uint32
-	MetaProtectionEnableEpoch              uint32
-	AheadOfTimeGasUsageEnableEpoch         uint32
-	GasPriceModifierEnableEpoch            uint32
-	RepairCallbackEnableEpoch              uint32
-	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
-	BlockGasAndFeesReCheckEnableEpoch      uint32
-	StakingV2Epoch                         uint32
-	StakeEnableEpoch                       uint32
-	DoubleKeyProtectionEnableEpoch         uint32
-	ESDTEnableEpoch                        uint32
-	GovernanceEnableEpoch                  uint32
-	DelegationManagerEnableEpoch           uint32
-	DelegationSmartContractEnableEpoch     uint32
-}
-
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
 type FacadeConfig struct {
 	RestApiInterface string
@@ -484,7 +459,7 @@ type Configs struct {
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
-	EnableEpochsConfig       *EpochConfig
+	EpochConfig              *EpochConfig
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
@@ -514,6 +489,7 @@ type ConfigurationPathsHolder struct {
 	SmartContracts             string
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
+	Epoch                      string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area
