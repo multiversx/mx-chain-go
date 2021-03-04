@@ -2178,6 +2178,7 @@ func createHardForkTrigger(
 		EpochNotifier:             epochNotifier,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

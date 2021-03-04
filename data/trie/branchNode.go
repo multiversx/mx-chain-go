@@ -779,6 +779,30 @@ func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	return hashes, nil
 }
 
+func (bn *branchNode) getNumNodes() data.NumNodesDTO {
+	arg := data.NumNodesDTO{
+		Total:    1,
+		Branches: 1,
+	}
+
+	for _, n := range bn.children {
+		if n != nil {
+			arg2 := n.getNumNodes()
+			arg.Total += arg2.Total
+			arg.Branches += arg2.Branches
+			arg.Leaves += arg2.Leaves
+			arg.Extensions += arg2.Extensions
+			if arg2.MaxLevel > arg.MaxLevel {
+				arg.MaxLevel = arg2.MaxLevel
+			}
+		}
+	}
+
+	arg.MaxLevel++
+
+	return arg
+}
+
 func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || bn.isInterfaceNil() {
 		return false, nil, nil

@@ -12,7 +12,7 @@ import (
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
+var maxBuffToSendTrieNodes = 1 << 18 //256KB
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
@@ -95,49 +95,36 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	hashes := b.Data
 
 	remainingSpace := maxBuffToSendTrieNodes
-	nodes := make([][]byte, 0, maxBuffToSendTrieNodes)
-	var nextNodes [][]byte
+	space := 0
+	var nodes [][]byte
+	var serializedNode []byte
 	for _, hash := range hashes {
-		nextNodes, remainingSpace, err = tnRes.getSubTrie(hash, remainingSpace)
+		serializedNode, err = tnRes.trieDataGetter.GetSerializedNode(hash)
 		if err != nil {
 			continue
 		}
 
-		nodes = append(nodes, nextNodes...)
-
-		lenNextNodes := uint64(len(nextNodes))
-		if lenNextNodes == 0 || remainingSpace == 0 {
+		if remainingSpace-len(serializedNode) < 0 {
 			break
 		}
+
+		space += len(serializedNode)
+		nodes = append(nodes, serializedNode)
+		remainingSpace -= len(serializedNode)
 	}
+
+	log.Info("sent", "num nodes", len(nodes), "space", core.ConvertBytes(uint64(space)))
 
 	return tnRes.sendResponse(nodes, message)
 }
 
 func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, message p2p.MessageP2P) error {
-	nodes, _, err := tnRes.getSubTrie(hash, maxBuffToSendTrieNodes)
+	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
 	}
 
-	return tnRes.sendResponse(nodes, message)
-}
-
-func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
-	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
-	if err != nil {
-		tnRes.ResolverDebugHandler().LogFailedToResolveData(
-			tnRes.topic,
-			hash,
-			err,
-		)
-
-		return nil, remainingSpace, err
-	}
-
-	tnRes.ResolverDebugHandler().LogSucceededToResolveData(tnRes.topic, hash)
-
-	return serializedNodes, remainingSpace, nil
+	return tnRes.sendResponse([][]byte{serializedNode}, message)
 }
 
 func (tnRes *TrieNodeResolver) sendResponse(serializedNodes [][]byte, message p2p.MessageP2P) error {

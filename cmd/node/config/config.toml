@@ -779,5 +779,7 @@
     LogFileLifeSpanInSec = 86400
 
 [TrieSync]
-    NumConcurrentTrieSyncers  = 2000
-    MaxHardCapForMissingNodes = 500
+    NumConcurrentTrieSyncers  = 200
+    MaxHardCapForMissingNodes = 5000
+    #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
+    TrieSyncerVersion         = 1

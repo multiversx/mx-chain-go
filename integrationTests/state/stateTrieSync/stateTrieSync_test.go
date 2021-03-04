@@ -3,11 +3,15 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,10 +24,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	factory3 "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("integrationtests/state/statetriesync")
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -36,12 +45,53 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	requesterNodeAddr := "0"
 	resolverNodeAddr := "1"
 
+	cacheConfig := storageUnit.CacheConfig{
+		Name:        "trie",
+		Type:        "SizeLRU",
+		SizeInBytes: 314572800, //300MB
+		Capacity:    500000,
+	}
+	trieCacheRequester, err := storageUnit.NewCache(cacheConfig)
+	require.Nil(t, err)
+	trieCacheResolver, err := storageUnit.NewCache(cacheConfig)
+	require.Nil(t, err)
+
+	dbConfig := config.DBConfig{
+		FilePath:          "trie",
+		Type:              "LvlDBSerial",
+		BatchDelaySeconds: 2,
+		MaxBatchSize:      45000,
+		MaxOpenFiles:      10,
+	}
+	persisterFactory := factory3.NewPersisterFactory(dbConfig) //factory.NewPersisterFactory(dbConfig)
+	tempDir, err := ioutil.TempDir("", "integrationTest")
+	require.Nil(t, err)
+
+	triePersisterRequester, err := persisterFactory.Create(tempDir)
+	require.Nil(t, err)
+
+	tempDir, err = ioutil.TempDir("", "integrationTest")
+	require.Nil(t, err)
+	triePersisterResolver, err := persisterFactory.Create(tempDir)
+	require.Nil(t, err)
+
+	trieStorageRequester, err := storageUnit.NewStorageUnit(trieCacheRequester, triePersisterRequester)
+	require.Nil(t, err)
+
+	trieStorageResolver, err := storageUnit.NewStorageUnit(trieCacheResolver, triePersisterResolver)
+	require.Nil(t, err)
+
+	defer func() {
+		_ = trieStorageRequester.DestroyUnit()
+		_ = trieStorageResolver.DestroyUnit()
+	}()
+
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	nRequester := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr, trieStorageRequester, createTestGasMap())
 	_ = nRequester.Messenger.CreateTopic(core.ConsensusTopic+nRequester.ShardCoordinator.CommunicationIdentifier(nRequester.ShardCoordinator.SelfId()), true)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	nResolver := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr, trieStorageResolver, createTestGasMap())
 	_ = nResolver.Messenger.CreateTopic(core.ConsensusTopic+nResolver.ShardCoordinator.CommunicationIdentifier(nResolver.ShardCoordinator.SelfId()), true)
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -49,17 +99,20 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
+	err = nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	//we have tested even with the 50000 value and found out that it worked in a reasonable amount of time ~21 seconds
+	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~6 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
+
+	nodes := resolverTrie.GetNumNodes()
+	log.Info("trie nodes", "total", nodes.Total, "branches", nodes.Branches, "extensions", nodes.Extensions, "leaves", nodes.Leaves, "max level", nodes.MaxLevel)
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()
@@ -99,9 +152,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             tss,
 		TimeoutBetweenTrieNodesCommits: timeout,
-		MaxHardCapForMissingNodes:      500,
+		MaxHardCapForMissingNodes:      10000,
 	}
-	trieSyncer, _ := trie.NewTrieSyncer(arg)
+	trieSyncer, _ := trie.NewDoubleListTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -130,6 +183,13 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		numLeaves++
 	}
 	assert.Equal(t, numTrieLeaves, numLeaves)
+}
+
+func createTestGasMap() map[string]map[string]uint64 {
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
+
+	return gasSchedule
 }
 
 func TestMultipleDataTriesSync(t *testing.T) {
@@ -211,6 +271,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 			Cacher:                    nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      5,
 			MaxHardCapForMissingNodes: 500,
+			TrieSyncerVersion:         2,
 		},
 		ShardId:   shardID,
 		Throttler: thr,

@@ -481,6 +481,22 @@ func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) dat
 	}
 }
 
+// GetSerializedNode returns the serialized node (if existing) provided the node's hash
+func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	log.Trace("GetSerializedNodes", "hash", hash)
+
+	db := getDbThatContainsHash(tr.trieStorage, hash)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	return db.Get(hash)
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
@@ -689,6 +705,15 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 	}
 
 	return false, nil
+}
+
+// GetNumNodes will return the trie nodes statistics DTO
+func (tr *patriciaMerkleTrie) GetNumNodes() data.NumNodesDTO {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	n := tr.root
+	return n.getNumNodes()
 }
 
 // GetStorageManager returns the storage manager for the trie

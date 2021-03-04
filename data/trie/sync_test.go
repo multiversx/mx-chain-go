@@ -24,7 +24,7 @@ func createMockArgument() ArgTrieSyncer {
 		Topic:                          "topic",
 		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
 		TimeoutBetweenTrieNodesCommits: minTimeoutBetweenNodesCommits,
-		MaxHardCapForMissingNodes:      1,
+		MaxHardCapForMissingNodes:      500,
 	}
 }
 

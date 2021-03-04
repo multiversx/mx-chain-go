@@ -377,11 +377,12 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	log.Debug("requesting trie nodes from network",
+	log.Info("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(rrh.trieHashesAccumulator),
 		"firstHash", unrequestedHashes[0],
+		"added", len(hashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
@@ -400,8 +401,10 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	for _, txHash := range rrh.trieHashesAccumulator {
-		log.Trace("requestByHashes", "hash", txHash)
+	if log.GetLevel() == logger.LogTrace {
+		for _, txHash := range rrh.trieHashesAccumulator {
+			log.Trace("requestByHashes", "hash", txHash)
+		}
 	}
 
 	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)

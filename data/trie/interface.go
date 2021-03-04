@@ -43,6 +43,7 @@ type node interface {
 	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
+	getNumNodes() data.NumNodesDTO
 	isInterfaceNil() bool
 
 	getMarshalizer() marshal.Marshalizer

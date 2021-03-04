@@ -542,6 +542,15 @@ func (en *extensionNode) getChildren(db data.DBWriteCacher) ([]node, error) {
 	return nextNodes, nil
 }
 
+func (en *extensionNode) getNumNodes() data.NumNodesDTO {
+	arg := en.child.getNumNodes()
+	arg.Extensions++
+	arg.Total++
+	arg.MaxLevel++
+
+	return arg
+}
+
 func (en *extensionNode) isValid() bool {
 	if len(en.EncodedChild) == 0 && en.child == nil {
 		return false
