@@ -94,7 +94,7 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
-	printEnableEpochs(*nr.configs.GeneralConfig)
+	printEnableEpochs(*nr.configs)
 
 	logGoroutinesNumber(0)
 
@@ -112,8 +112,8 @@ func (nr *nodeRunner) Start() error {
 	return nil
 }
 
-func printEnableEpochs(generalConfig config.Config) {
-	generalSettings := generalConfig.GeneralSettings
+func printEnableEpochs(configs config.Configs) {
+	generalSettings := configs.GeneralConfig.GeneralSettings
 
 	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
 	log.Debug("built in functions enable epoch", "epoch", generalSettings.BuiltInFunctionsEnableEpoch)
@@ -129,6 +129,20 @@ func printEnableEpochs(generalConfig config.Config) {
 	log.Debug("repair callback enable epoch", "epoch", generalSettings.RepairCallbackEnableEpoch)
 	log.Debug("max nodes change enable epoch", "epoch", generalSettings.MaxNodesChangeEnableEpoch)
 	log.Debug("block gas and fees re-check enable epoch", "epoch", generalSettings.BlockGasAndFeesReCheckEnableEpoch)
+
+	systemSCConfig := configs.SystemSCConfig
+
+	log.Debug("staking v2 epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakingV2Epoch)
+	log.Debug("stake enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch)
+	log.Debug("double key protection enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.DoubleKeyProtectionEnableEpoch)
+
+	log.Debug("esdt enable epoch", "epoch", systemSCConfig.ESDTSystemSCConfig.EnabledEpoch)
+
+	log.Debug("governance enable epoch", "epoch", systemSCConfig.GovernanceSystemSCConfig.EnabledEpoch)
+
+	log.Debug("delegation manager enable epoch", "epoch", systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch)
+
+	log.Debug("delegation smart contract enable epoch", "epoch", systemSCConfig.DelegationSystemSCConfig.EnabledEpoch)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
