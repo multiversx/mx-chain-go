@@ -52,7 +52,7 @@ func NewTotalStakedValueProcessor(
 func (tsp *totalStakedValueProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
 	tsp.mutex.Lock()
 	defer tsp.mutex.Unlock()
-	totalStaked, topUp, err := tsp.calculateStakedValueAndTopUp()
+	totalStaked, topUp, err := tsp.computeStakedValueAndTopUp()
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (tsp *totalStakedValueProcessor) GetTotalStakedValue() (*api.StakeValues, e
 	}, nil
 }
 
-func (tsp *totalStakedValueProcessor) calculateStakedValueAndTopUp() (*big.Int, *big.Int, error) {
+func (tsp *totalStakedValueProcessor) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
 	ah, err := tsp.accounts.GetExistingAccount(vm.ValidatorSCAddress)
 	if err != nil {
 		return nil, nil, err

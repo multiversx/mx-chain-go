@@ -182,6 +182,30 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := core.MetricTotalSupply
+	value := "12345"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	localErr := fmt.Errorf("%s", "local error")
+	facade := mock.Facade{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			return nil, localErr
+		},
+	}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
