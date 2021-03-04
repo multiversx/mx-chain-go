@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -120,8 +119,8 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalStakedValue] = fmt.Sprintf("%s", stakeValues.TotalStaked.String())
-	metrics[core.MetricTopUpValue] = fmt.Sprintf("%s", stakeValues.TopUp.String())
+	metrics[core.MetricTotalStakedValue] = stakeValues.TotalStaked.String()
+	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
 		http.StatusOK,
