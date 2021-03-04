@@ -4,9 +4,6 @@
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
     UnBondPeriod = 250
     MinStepValue = "100000000000000000000"
-    StakeEnableEpoch = 2
-    StakingV2Epoch = 4
-    DoubleKeyProtectionEnableEpoch = 3
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
@@ -17,7 +14,6 @@
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
     OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
-    EnabledEpoch = 4
 
 [GovernanceSystemSCConfig]
     ProposalCost = "5000000000000000000" #5 eGLD
@@ -25,15 +21,12 @@
     MinQuorum    = 400
     MinPassThreshold = 300
     MinVetoThreshold = 50
-    EnabledEpoch = 4
 
 [DelegationManagerSystemSCConfig]
     BaseIssuingCost = "0" #0 eGLD
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
-    EnabledEpoch = 4 #enable epoch should not be 0
 
 [DelegationSystemSCConfig]
     MinStakeAmount = "10000000000000000000" #10 eGLD
-    EnabledEpoch   = 4 #enable epoch should not be 0
     MinServiceFee  = 0
     MaxServiceFee  = 10000

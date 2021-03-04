@@ -157,7 +157,6 @@ type Config struct {
 	Heartbeat           HeartbeatConfig
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
-	Epoch 				EpochConfig
 	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
 	TxLogsStorage       StorageConfig
@@ -222,13 +221,13 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec               int
-	MaxComputableRounds                    uint64
-	StartInEpochEnabled                    bool
-	ChainID                                string
-	MinTransactionVersion                  uint32
-	GenesisString                          string
-	GenesisMaxNumberOfShards               uint32
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
+	StartInEpochEnabled      bool
+	ChainID                  string
+	MinTransactionVersion    uint32
+	GenesisString            string
+	GenesisMaxNumberOfShards uint32
 }
 
 // EpochConfig will hold epoch config information for a node
@@ -247,6 +246,13 @@ type EpochConfig struct {
 	RepairCallbackEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	BlockGasAndFeesReCheckEnableEpoch      uint32
+	StakingV2Epoch                         uint32
+	StakeEnableEpoch                       uint32
+	DoubleKeyProtectionEnableEpoch         uint32
+	ESDTEnableEpoch                        uint32
+	GovernanceEnableEpoch                  uint32
+	DelegationManagerEnableEpoch           uint32
+	DelegationSmartContractEnableEpoch     uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -478,6 +484,7 @@ type Configs struct {
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
+	EnableEpochsConfig       *EpochConfig
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
