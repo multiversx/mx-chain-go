@@ -14,6 +14,7 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
@@ -34,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -425,6 +427,122 @@ func CreateVMAndBlockchainHook(
 	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
+}
+
+// CreateVMAndBlockchainHookMeta -
+func CreateVMAndBlockchainHookMeta(
+	accnts state.AccountsAdapter,
+	gasSchedule map[string]map[string]uint64,
+	shardCoordinator sharding.Coordinator,
+) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
+	actualGasSchedule := gasSchedule
+	if gasSchedule == nil {
+		actualGasSchedule = arwenConfig.MakeGasMapForTests()
+		defaults.FillGasMapInternal(actualGasSchedule, 1)
+	}
+
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule: mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		MapDNSAddresses: map[string]struct{}{
+			string(dnsAddr): {},
+		},
+		Marshalizer: testMarshalizer,
+		Accounts:    accnts,
+	}
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+
+	datapool := testscommon.NewPoolsHolderMock()
+	args := hooks.ArgBlockChainHook{
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
+	}
+
+	economicsData, err := createEconomicsData(0)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	vmFactory, err := metachain.NewVMContainerFactory(metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   args,
+		Economics:           economicsData,
+		MessageSignVerifier: &mock.MessageSignVerifierMock{},
+		GasSchedule:         mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		NodesConfigProvider: &mock.NodesSetupStub{},
+		Hasher:              testHasher,
+		Marshalizer:         testMarshalizer,
+		SystemSCConfig:      createSystemSCConfig(),
+		ValidatorAccountsDB: accnts,
+		ChanceComputer:      &mock.NodesCoordinatorMock{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
+	})
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
+
+	return vmContainer, blockChainHook
+}
+
+func createSystemSCConfig() *config.SystemSmartContractsConfig {
+	return &config.SystemSmartContractsConfig{
+		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+			BaseIssuingCost: "5000000000000000000",
+			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
+			EnabledEpoch:    0,
+		},
+		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+			ProposalCost:     "5000000000000000000",
+			NumNodes:         500,
+			MinQuorum:        400,
+			MinPassThreshold: 300,
+			MinVetoThreshold: 50,
+			EnabledEpoch:     0,
+		},
+		StakingSystemSCConfig: config.StakingSystemSCConfig{
+			GenesisNodePrice:                     "2500000000000000000000",
+			MinStakeValue:                        "100000000000000000000",
+			MinUnstakeTokensValue:                "10000000000000000000",
+			UnJailValue:                          "2500000000000000000",
+			MinStepValue:                         "100000000000000000000",
+			UnBondPeriod:                         250,
+			NumRoundsWithoutBleed:                100,
+			MaximumPercentageToBleed:             0.5,
+			BleedPercentagePerRound:              0.00001,
+			MaxNumberOfNodesForStake:             36,
+			StakingV2Epoch:                       0,
+			StakeEnableEpoch:                     0,
+			DoubleKeyProtectionEnableEpoch:       0,
+			ActivateBLSPubKeyMessageVerification: false,
+		},
+		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+			MinCreationDeposit:  "1250000000000000000000",
+			EnabledEpoch:        0,
+			MinStakeAmount:      "10000000000000000000",
+			ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+		},
+		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+			EnabledEpoch:  0,
+			MinServiceFee: 1,
+			MaxServiceFee: 20,
+		},
+	}
 }
 
 // CreateTxProcessorWithOneSCExecutorWithVMs -
@@ -879,7 +997,15 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
+
+	var vmContainer process.VirtualMachinesContainer
+	var blockchainHook *hooks.BlockChainHookImpl
+	if selfShardID == core.MetachainShardId {
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator)
+	} else {
+		vmContainer, blockchainHook = CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
+	}
+
 	txProcessor, scProcessor, scrForwarder, economicsData, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
