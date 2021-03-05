@@ -153,12 +153,10 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 		return nil, err
 	}
 
-	sameSourceResetIntervalInSec := ws.antiFloodConfig.SameSourceResetIntervalInSec
-
 	var ctx context.Context
 	ctx, ws.cancelFunc = context.WithCancel(context.Background())
 
-	go sourceLimiterReset(ctx, sourceLimiter, sameSourceResetIntervalInSec)
+	go ws.sourceLimiterReset(ctx, sourceLimiter)
 
 	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
 	if err != nil {
@@ -168,8 +166,8 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 	return []shared.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
-func sourceLimiterReset(ctx context.Context, reset resetHandler, sameSourceResetIntervalInSec uint32) {
-	betweenResetDuration := time.Second * time.Duration(sameSourceResetIntervalInSec)
+func (ws *webServer) sourceLimiterReset(ctx context.Context, reset resetHandler) {
+	betweenResetDuration := time.Second * time.Duration(ws.antiFloodConfig.SameSourceResetIntervalInSec)
 	for {
 		select {
 		case <-time.After(betweenResetDuration):
