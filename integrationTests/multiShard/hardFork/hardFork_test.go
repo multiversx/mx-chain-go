@@ -469,8 +469,6 @@ func hardForkImport(
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					StakingV2Epoch:                       1000000,
-					StakeEnableEpoch:                     0,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
@@ -481,11 +479,9 @@ func hardForkImport(
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 					BaseIssuingCost:    "100",
 					MinCreationDeposit: "100",
-					EnabledEpoch:       0,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 					MinStakeAmount: "100",
-					EnabledEpoch:   0,
 					MinServiceFee:  0,
 					MaxServiceFee:  100,
 				},
@@ -499,10 +495,16 @@ func hardForkImport(
 				},
 			},
 			EpochConfig: &config.EpochConfig{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
+				EnableEpochs: config.EnableEpochs{
+					BuiltInFunctionsEnableEpoch:        0,
+					SCDeployEnableEpoch:                0,
+					RelayedTransactionsEnableEpoch:     0,
+					PenalizedTooMuchGasEnableEpoch:     0,
+					StakingV2Epoch:                     1000000,
+					StakeEnableEpoch:                   0,
+					DelegationManagerEnableEpoch:       0,
+					DelegationSmartContractEnableEpoch: 0,
+				},
 			},
 		}
 

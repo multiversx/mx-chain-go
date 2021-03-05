@@ -7,6 +7,7 @@ const (
 	PrefsPath             = "../../../cmd/node/config/prefs.toml"
 	ExternalPath          = "../../../cmd/node/config/external.toml"
 	P2pPath               = "../../../cmd/node/config/p2p.toml"
+	EpochPath             = "../../../cmd/node/config/enableEpochs.toml"
 	NodesSetupPath        = "../testdata/nodesSetup.json"
 	SystemSCConfigPath    = "../../../cmd/node/config/systemSmartContractsConfig.toml"
 	GenesisPath           = "../testdata/genesis.json"

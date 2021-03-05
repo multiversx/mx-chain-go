@@ -575,8 +575,6 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -587,11 +585,9 @@ func CreateFullGenesisBlocks(
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				BaseIssuingCost:    "100",
 				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinStakeAmount: "100",
-				EnabledEpoch:   0,
 				MinServiceFee:  0,
 				MaxServiceFee:  100,
 			},
@@ -605,10 +601,16 @@ func CreateFullGenesisBlocks(
 			},
 		},
 		EpochConfig: &config.EpochConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:        0,
+				SCDeployEnableEpoch:                0,
+				RelayedTransactionsEnableEpoch:     0,
+				PenalizedTooMuchGasEnableEpoch:     0,
+				StakingV2Epoch:                     StakingV2Epoch,
+				StakeEnableEpoch:                   0,
+				DelegationSmartContractEnableEpoch: 0,
+				DelegationManagerEnableEpoch:       0,
+			},
 		},
 	}
 
@@ -680,8 +682,6 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -692,11 +692,9 @@ func CreateGenesisMetaBlock(
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				BaseIssuingCost:    "100",
 				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinStakeAmount: "100",
-				EnabledEpoch:   0,
 				MinServiceFee:  0,
 				MaxServiceFee:  100,
 			},
@@ -705,10 +703,16 @@ func CreateGenesisMetaBlock(
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
 		EpochConfig: &config.EpochConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:        0,
+				SCDeployEnableEpoch:                0,
+				RelayedTransactionsEnableEpoch:     0,
+				PenalizedTooMuchGasEnableEpoch:     0,
+				StakingV2Epoch:                     StakingV2Epoch,
+				StakeEnableEpoch:                   0,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
 		},
 	}
 

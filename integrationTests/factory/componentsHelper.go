@@ -44,6 +44,7 @@ func CreateDefaultConfig() *config.Configs {
 	p2pConfig, _ := core.LoadP2PConfig(P2pPath)
 	externalConfig, _ := core.LoadExternalConfig(ExternalPath)
 	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(SystemSCConfigPath)
+	epochConfig, _ := core.LoadEpochConfig(EpochPath)
 
 	p2pConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
@@ -56,6 +57,7 @@ func CreateDefaultConfig() *config.Configs {
 	configs.PreferencesConfig = prefsConfig
 	configs.P2pConfig = p2pConfig
 	configs.ExternalConfig = externalConfig
+	configs.EpochConfig = epochConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
 		WorkingDir: "workingDir",
 		UseLogView: true,

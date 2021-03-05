@@ -444,6 +444,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
 		nr.configs.GeneralConfig,
+		nr.configs.EpochConfig,
 		managedBootstrapComponents.ShardCoordinator(),
 		nodesCoordinator,
 		nodesShuffledOut,
@@ -790,6 +791,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                    *configs.GeneralConfig,
+		EpochConfig:               *configs.EpochConfig,
 		PrefConfigs:               configs.PreferencesConfig.Preferences,
 		ImportDBConfig:            *configs.ImportDbConfig,
 		AccountsParser:            accountsParser,
@@ -933,6 +935,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
+		EpochConfig:       *nr.configs.EpochConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
@@ -1009,6 +1012,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		EpochConfig:           *nr.configs.EpochConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,

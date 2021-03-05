@@ -1178,7 +1178,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
-	validatorArgs.StakingSCConfig.StakingV2Epoch = 0
+	validatorArgs.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 

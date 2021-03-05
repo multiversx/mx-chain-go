@@ -61,6 +61,7 @@ type ArgsNewStakingSmartContract struct {
 	GasCost              vm.GasCost
 	Marshalizer          marshal.Marshalizer
 	EpochNotifier        vm.EpochNotifier
+	EpochConfig          config.EpochConfig
 }
 
 type waitingListReturnData struct {
@@ -120,8 +121,8 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
-		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
-		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
 	}

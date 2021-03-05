@@ -143,6 +143,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
+	EpochConfig                config.EpochConfig
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
@@ -182,7 +183,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		enableSignTxWithHashEpoch:  args.GeneralConfig.Epoch.TransactionSignedWithTxHashEnableEpoch,
+		enableSignTxWithHashEpoch:  args.EpochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,

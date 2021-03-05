@@ -37,6 +37,7 @@ import (
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config                config.Config
+	EpochConfig           config.EpochConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
 	ImportDbConfig        config.ImportDbConfig
@@ -49,6 +50,7 @@ type CoreComponentsFactoryArgs struct {
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
 	config                config.Config
+	epochConfig           config.EpochConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
 	importDbConfig        config.ImportDbConfig
@@ -93,6 +95,7 @@ type coreComponents struct {
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:                args.Config,
+		epochConfig:           args.EpochConfig,
 		ratingsConfig:         args.RatingsConfig,
 		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
@@ -212,8 +215,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      &ccf.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: ccf.config.Epoch.PenalizedTooMuchGasEnableEpoch,
-		GasPriceModifierEnableEpoch:    ccf.config.Epoch.GasPriceModifierEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: ccf.epochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    ccf.epochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
@@ -256,7 +259,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		Hysteresis:           genesisNodesConfig.GetHysteresis(),
 		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
 		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: ccf.config.Epoch.MaxNodesChangeEnableEpoch,
+		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)

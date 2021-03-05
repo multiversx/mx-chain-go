@@ -45,8 +45,6 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       1,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -56,18 +54,24 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinStakeAmount: "10",
-				EnabledEpoch:   0,
 				MinServiceFee:  0,
 				MaxServiceFee:  10000,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				BaseIssuingCost:    "10",
 				MinCreationDeposit: "10",
-				EnabledEpoch:       0,
 			},
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:                     1,
+				StakeEnableEpoch:                   0,
+				DelegationSmartContractEnableEpoch: 0,
+				DelegationManagerEnableEpoch:       0,
+			},
+		},
 	}
 }
 

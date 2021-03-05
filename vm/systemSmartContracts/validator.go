@@ -66,6 +66,7 @@ type ArgsValidatorSmartContract struct {
 	EpochNotifier      vm.EpochNotifier
 	EndOfEpochAddress  []byte
 	MinDeposit         string
+	EpochConfig        config.EpochConfig
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -132,15 +133,15 @@ func NewValidatorSmartContract(
 		unBondPeriod:          args.StakingSCConfig.UnBondPeriod,
 		sigVerifier:           args.SigVerifier,
 		baseConfig:            baseConfig,
-		stakingV2Epoch:        args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:    args.StakingSCConfig.StakeEnableEpoch,
+		stakingV2Epoch:        args.EpochConfig.EnableEpochs.StakingV2Epoch,
+		enableStakingEpoch:    args.EpochConfig.EnableEpochs.StakeEnableEpoch,
 		stakingSCAddress:      args.StakingSCAddress,
 		validatorSCAddress:    args.ValidatorSCAddress,
 		gasCost:               args.GasCost,
 		marshalizer:           args.Marshalizer,
 		minUnstakeTokensValue: minUnstakeTokensValue,
 		walletAddressLen:      len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:  args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		enableDoubleKeyEpoch:  args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
 		endOfEpochAddress:     args.EndOfEpochAddress,
 		minDeposit:            minDeposit,
 	}

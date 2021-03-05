@@ -827,8 +827,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       stakingV2EnableEpoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -839,11 +837,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				BaseIssuingCost:    "100",
 				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinStakeAmount: "100",
-				EnabledEpoch:   0,
 				MinServiceFee:  0,
 				MaxServiceFee:  100,
 			},
@@ -851,6 +847,14 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ValidatorAccountsDB: peerAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		EpochNotifier:       epochNotifier,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:                     stakingV2EnableEpoch,
+				StakeEnableEpoch:                   0,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
+		},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
