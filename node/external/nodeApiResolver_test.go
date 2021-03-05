@@ -53,14 +53,14 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-		args := external.ApiResolverArgs{
-			ScQueryService:     &mock.SCQueryServiceStub{},
-			StatusMetrics:      &mock.StatusMetricsStub{},
-			TxCostHandler:      nil,
-			VmFactory:          &mock.VmMachinesContainerFactoryMock{},
-			VmContainer:        &mock.VMContainerMock{},
-			StakedValueHandler: totalStakedAPIHandler,
-		}
+	args := external.ApiResolverArgs{
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      nil,
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
+	}
 	nar, err := external.NewNodeApiResolver(args)
 
 	assert.Nil(t, nar)
@@ -70,12 +70,12 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 func TestNewNodeApiResolver_NilVmFactory(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService:     &mock.SCQueryServiceStub{},
 		StatusMetrics:      &mock.StatusMetricsStub{},
 		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
-		VmFactory:         nil,
+		VmFactory:          nil,
 		VmContainer:        &mock.VMContainerMock{},
 		StakedValueHandler: totalStakedAPIHandler,
 	}
@@ -88,7 +88,7 @@ func TestNewNodeApiResolver_NilVmFactory(t *testing.T) {
 func TestNewNodeApiResolver_NilVmContainer(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService:     &mock.SCQueryServiceStub{},
 		StatusMetrics:      &mock.StatusMetricsStub{},
@@ -124,14 +124,14 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-		args := external.ApiResolverArgs{
-			ScQueryService:     &mock.SCQueryServiceStub{},
-			StatusMetrics:      &mock.StatusMetricsStub{},
-			TxCostHandler:      &mock.TransactionCostEstimatorMock{},
-			VmFactory:          &mock.VmMachinesContainerFactoryMock{},
-			VmContainer:        &mock.VMContainerMock{},
-			StakedValueHandler: totalStakedAPIHandler,
-		}
+	args := external.ApiResolverArgs{
+		ScQueryService:     &mock.SCQueryServiceStub{},
+		StatusMetrics:      &mock.StatusMetricsStub{},
+		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
+		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
+		VmContainer:        &mock.VMContainerMock{},
+		StakedValueHandler: totalStakedAPIHandler,
+	}
 	nar, err := external.NewNodeApiResolver(args)
 
 	assert.Nil(t, err)
@@ -142,7 +142,7 @@ func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	calledClose := false
-	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
@@ -167,13 +167,13 @@ func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
 func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
 	t.Parallel()
 
-	totalStakedAPIHandler, _ := totalStakedAPI.NewDisabledTotalStakedValueProcessor()
+	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
 	args := external.ApiResolverArgs{
 		ScQueryService: &mock.SCQueryServiceStub{},
 		StatusMetrics:  &mock.StatusMetricsStub{},
 		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
 		VmFactory:      &mock.VmMachinesContainerFactoryMock{},
-		VmContainer:    &mock.VMContainerMock{
+		VmContainer: &mock.VMContainerMock{
 			CloseCalled: func() error {
 				return fmt.Errorf("error")
 			},

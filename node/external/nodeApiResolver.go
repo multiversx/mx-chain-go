@@ -2,7 +2,6 @@ package external
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -48,7 +47,7 @@ func NewNodeApiResolver(args ApiResolverArgs) (*nodeApiResolver, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, ErrNilVmContainer
 	}
-	if check.IfNil(args.VmFactory){
+	if check.IfNil(args.VmFactory) {
 		return nil, ErrNilVmFactory
 	}
 

@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
-	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
