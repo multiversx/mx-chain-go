@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -204,7 +204,7 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := &types.RoundInfo{
+	roundInfo := &indexer.RoundInfo{
 		Index:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
@@ -213,7 +213,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		indexerHandler.SaveRoundsInfo([]*types.RoundInfo{roundInfo})
+		indexerHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
 		return
 	}
 
@@ -221,7 +221,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]*types.RoundInfo, 0)
+	roundsInfo := make([]*indexer.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -234,7 +234,7 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = &types.RoundInfo{
+		roundInfo = &indexer.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
@@ -264,11 +264,11 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]*types.ValidatorRatingInfo)
+	shardValidatorsRating := make(map[string][]*indexer.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
-		validatorsInfos := make([]*types.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]*indexer.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, &types.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, &indexer.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
@@ -283,7 +283,7 @@ func indexValidatorsRating(
 
 func indexShardValidatorsRating(
 	indexerHandler process.Indexer,
-	shardValidatorsRating map[string][]*types.ValidatorRatingInfo,
+	shardValidatorsRating map[string][]*indexer.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
 		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)

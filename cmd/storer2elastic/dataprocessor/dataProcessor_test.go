@@ -3,13 +3,13 @@ package dataprocessor_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
@@ -130,7 +130,7 @@ func TestDataProcessor_Index(t *testing.T) {
 				MetaBlockData: &storer2ElasticData.HeaderData{
 					Header:           &block.MetaBlock{},
 					Body:             &block.Body{},
-					BodyTransactions: &types.Pool{},
+					BodyTransactions: &indexer.Pool{},
 				},
 				ShardHeaders: map[uint32][]*storer2ElasticData.HeaderData{
 					0: {

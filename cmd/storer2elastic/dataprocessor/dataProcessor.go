@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	dataProcessorDisabled "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor/disabled"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -178,7 +178,7 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
 	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
 	// not all data was indexed
-	args := &types.ArgsSaveBlockData{
+	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:             headerHash,
 		Body:                   newBody,
 		Header:                 data.Header,
@@ -193,7 +193,7 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := &types.RoundInfo{
+	ri := &indexer.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -201,7 +201,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfo([]*types.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]*indexer.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

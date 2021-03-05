@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -1877,7 +1877,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *types.Pool
+	var txsPool *indexer.Pool
 	saveBlockCalledMutex := sync.Mutex{}
 
 	blkc := createTestBlockchain()
@@ -1896,7 +1896,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	arguments.Indexer = &mock.IndexerMock{
-		SaveBlockCalled: func(args *types.ArgsSaveBlockData) {
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
 			txsPool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()

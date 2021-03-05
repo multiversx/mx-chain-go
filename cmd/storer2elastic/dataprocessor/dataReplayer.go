@@ -9,7 +9,6 @@ import (
 	"sort"
 	"syscall"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -399,8 +399,8 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	header data.HeaderHandler,
 	persisters *persistersHolder,
 	mbHashes [][]byte,
-) (*block.Body, *types.Pool, error) {
-	txPool := &types.Pool{
+) (*block.Body, *indexer.Pool, error) {
+	txPool := &indexer.Pool{
 		Txs:      map[string]data.TransactionHandler{},
 		Scrs:     map[string]data.TransactionHandler{},
 		Invalid:  map[string]data.TransactionHandler{},
@@ -499,7 +499,7 @@ func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash
 func (dr *dataReplayer) processTransactionsForMiniBlock(
 	persisters *persistersHolder,
 	txHashes [][]byte,
-	pool *types.Pool,
+	pool *indexer.Pool,
 	mbType block.Type,
 ) error {
 	for _, txHash := range txHashes {
@@ -532,7 +532,7 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 	return nil
 }
 
-func putTxInPool(pool *types.Pool, mbType block.Type, tx data.TransactionHandler, txHash []byte) {
+func putTxInPool(pool *indexer.Pool, mbType block.Type, tx data.TransactionHandler, txHash []byte) {
 	switch mbType {
 	case block.TxBlock:
 		pool.Txs[string(txHash)] = tx

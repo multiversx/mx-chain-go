@@ -1,12 +1,12 @@
 package dataprocessor
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -54,10 +54,10 @@ type RatingProcessorHandler interface {
 
 // StorageDataIndexer defines the actions that a storage data indexer has to do
 type StorageDataIndexer interface {
-	SaveBlock(args *types.ArgsSaveBlockData)
-	SaveRoundsInfo(roundsInfos []*types.RoundInfo)
+	SaveBlock(args *indexer.ArgsSaveBlockData)
+	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRating(indexID string, infoRating []*types.ValidatorRatingInfo)
+	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
 	IsInterfaceNil() bool
 }

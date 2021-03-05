@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -557,7 +557,7 @@ func (mp *metaProcessor) indexBlock(
 
 	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
-	pool := &types.Pool{
+	pool := &indexer.Pool{
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
 		Rewards: rewardsTxs,
@@ -601,7 +601,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	args := &types.ArgsSaveBlockData{
+	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:             headerHash,
 		Body:                   body,
 		Header:                 metaBlock,

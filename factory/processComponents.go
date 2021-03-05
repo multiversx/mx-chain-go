@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -18,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -823,13 +823,13 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	if !pcf.indexer.IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
-		args := &types.ArgsSaveBlockData{
+		args := &indexer.ArgsSaveBlockData{
 			HeaderHash:             genesisBlockHash,
 			Body:                   &dataBlock.Body{},
 			Header:                 genesisBlockHeader,
 			SignersIndexes:         nil,
 			NotarizedHeadersHashes: nil,
-			TransactionsPool:       &types.Pool{},
+			TransactionsPool:       &indexer.Pool{},
 		}
 		pcf.indexer.SaveBlock(args)
 	}

@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/types"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -527,7 +527,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
-	pool := &types.Pool{
+	pool := &indexer.Pool{
 		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
 		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
@@ -585,7 +585,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	args := &types.ArgsSaveBlockData{
+	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:             headerHash,
 		Body:                   body,
 		Header:                 header,

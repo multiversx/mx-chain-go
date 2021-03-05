@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -143,7 +144,7 @@ func (ti *testIndexer) SaveTransaction(
 		},
 	}
 
-	txsPool := &types.Pool{
+	txsPool := &indexer.Pool{
 		Txs:      make(map[string]data.TransactionHandler),
 		Scrs:     make(map[string]data.TransactionHandler),
 		Rewards:  nil,
@@ -175,7 +176,7 @@ func (ti *testIndexer) SaveTransaction(
 		ShardID: ti.shardCoordinator.SelfId(),
 	}
 
-	args := &types.ArgsSaveBlockData{
+	args := &indexer.ArgsSaveBlockData{
 		HeaderHash:             nil,
 		Body:                   blk,
 		Header:                 header,
