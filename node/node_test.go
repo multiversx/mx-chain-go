@@ -2469,6 +2469,9 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	assert.Equal(t, len(txsToSend), int(numTxs))
 	assert.Nil(t, err)
 
+	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
+	time.Sleep(time.Second + time.Millisecond*500)
+
 	select {
 	case <-chDone:
 	case <-time.After(timeoutWait):

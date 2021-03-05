@@ -86,6 +86,7 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
     ]
 
 [StoragePruning]
@@ -651,7 +652,7 @@
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
-        NumConcurrentVMs = 20
+        NumConcurrentVMs = 1
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
