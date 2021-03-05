@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -92,7 +93,7 @@ func (nar *nodeApiResolver) Close() error {
 }
 
 // GetTotalStakedValue will return total staked value
-func (nar *nodeApiResolver) GetTotalStakedValue() (*big.Int, error) {
+func (nar *nodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 
