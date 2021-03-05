@@ -3921,7 +3921,7 @@ func TestStakingValidatorSC_UnStakeUnBondFromWaitingList(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	argsStaking.StakingSCConfig.StakingV2Epoch = 0
+	argsStaking.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 	eei.SetSCAddress([]byte("addr"))
@@ -3995,7 +3995,7 @@ func TestStakingValidatorSC_StakeUnStakeUnBondTokensNoNodes(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	argsStaking.StakingSCConfig.StakingV2Epoch = 0
+	argsStaking.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 	eei.SetSCAddress([]byte("addr"))
