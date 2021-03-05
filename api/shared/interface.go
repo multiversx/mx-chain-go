@@ -27,5 +27,7 @@ type ApiFacadeHandler interface {
 type UpgradeableHttpServerHandler interface {
 	CreateHttpServer() (HttpServerCloser, error)
 	UpdateFacade(facade ApiFacadeHandler) (HttpServerCloser, error)
+	GetHttpServer() HttpServerCloser
+	Close() error
 	IsInterfaceNil() bool
 }

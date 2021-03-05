@@ -145,7 +145,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		}
 
 		log.Debug("creating disabled API services")
-		httpServerWrapper, closableHttpServer, err := nr.createInitialHttpServer()
+		httpServerWrapper, err := nr.createInitialHttpServer()
 		if err != nil {
 			return err
 		}
@@ -244,7 +244,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
-
 		)
 		if err != nil {
 			return err
@@ -324,7 +323,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		}
 
 		log.Debug("updating the API service after creating the node facade")
-		ef, closableHttpServer, err := nr.createApiFacade(currentNode, httpServerWrapper, closableHttpServer, gasScheduleNotifier)
+		ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
 		if err != nil {
 			return err
 		}
@@ -333,7 +332,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, closableHttpServer, currentNode, goRoutinesNumberStart)
+		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, httpServerWrapper, currentNode, goRoutinesNumberStart)
 		if err != nil {
 			break
 		}
@@ -343,10 +342,9 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 func (nr *nodeRunner) createApiFacade(
 	currentNode *Node,
-	httpServer shared.UpgradeableHttpServerHandler,
-	closableHttpServer closing.Closer,
+	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier core.GasScheduleNotifier,
-) (closing.Closer, closing.Closer, error) {
+) (closing.Closer, error) {
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
@@ -364,7 +362,7 @@ func (nr *nodeRunner) createApiFacade(
 
 	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.Trace("creating elrond node facade")
@@ -388,20 +386,20 @@ func (nr *nodeRunner) createApiFacade(
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w while creating NodeFacade", err)
+		return nil, fmt.Errorf("%w while creating NodeFacade", err)
 	}
 
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 	ef.SetTpsBenchmark(currentNode.statusComponents.TpsBenchmark())
 
-	err = closableHttpServer.Close()
+	err = upgradableHttpServer.GetHttpServer().Close()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	newClosableHttpServer, err := httpServer.UpdateFacade(ef)
+	newClosableHttpServer, err := upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	go newClosableHttpServer.Start()
@@ -410,10 +408,10 @@ func (nr *nodeRunner) createApiFacade(
 
 	log.Trace("starting background services")
 
-	return ef, newClosableHttpServer, nil
+	return ef, nil
 }
 
-func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, closing.Closer, error) {
+func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
 	httpServerArgs := gin.ArgsNewWebServer{
 		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
@@ -422,17 +420,17 @@ func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHan
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	httpSever, err := httpServerWrapper.CreateHttpServer()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	go httpSever.Start()
 
-	return httpServerWrapper, httpSever, nil
+	return httpServerWrapper, nil
 }
 
 func (nr *nodeRunner) createMetrics(
@@ -591,7 +589,7 @@ func waitForSignal(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	healthService closing.Closer,
 	ef closing.Closer,
-	httpServer closing.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
 ) error {
@@ -1126,7 +1124,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 func closeAllComponents(
 	healthService io.Closer,
 	facade mainFactory.Closer,
-	httpServer mainFactory.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
 ) {

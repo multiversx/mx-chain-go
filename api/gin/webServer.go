@@ -28,7 +28,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var log = logger.GetOrCreate("api/factory")
+var log = logger.GetOrCreate("api/gin")
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
@@ -43,7 +43,7 @@ type webServer struct {
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
 	httpServer      shared.HttpServerCloser
-	ctx             context.Context
+	mutHttpServer   sync.RWMutex
 	cancelFunc      func()
 }
 
@@ -60,8 +60,6 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 		apiConfig:       args.ApiConfig,
 	}
 
-	gws.ctx, gws.cancelFunc = context.WithCancel(context.Background())
-
 	return gws, nil
 }
 
@@ -71,22 +69,17 @@ func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpSe
 	ws.mutFacadeSwitch.Lock()
 	defer ws.mutFacadeSwitch.Unlock()
 
-	if ws.httpServer != nil {
-		err := ws.httpServer.Close()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	ws.facade = facade
-	webServer, err := ws.CreateHttpServer()
+	closableWebServer, err := ws.CreateHttpServer()
 	if err != nil {
 		return nil, err
 	}
 
-	ws.httpServer = webServer
+	ws.mutHttpServer.Lock()
+	ws.httpServer = closableWebServer
+	ws.mutHttpServer.Unlock()
 
-	return webServer, nil
+	return closableWebServer, nil
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
@@ -139,9 +132,19 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
+	ws.mutHttpServer.Lock()
 	ws.httpServer = wrappedServer
+	ws.mutHttpServer.Unlock()
 
 	return wrappedServer, nil
+}
+
+// GetHttpServer returns the closable http server
+func (ws *webServer) GetHttpServer() shared.HttpServerCloser {
+	ws.mutHttpServer.RLock()
+	defer ws.mutHttpServer.RUnlock()
+
+	return ws.httpServer
 }
 
 func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
@@ -149,7 +152,13 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 	if err != nil {
 		return nil, err
 	}
-	go ws.sourceLimiterReset(sourceLimiter)
+
+	sameSourceResetIntervalInSec := ws.antiFloodConfig.SameSourceResetIntervalInSec
+
+	var ctx context.Context
+	ctx, ws.cancelFunc = context.WithCancel(context.Background())
+
+	go sourceLimiterReset(ctx, sourceLimiter, sameSourceResetIntervalInSec)
 
 	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
 	if err != nil {
@@ -159,14 +168,14 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 	return []shared.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
-func (ws *webServer) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(ws.antiFloodConfig.SameSourceResetIntervalInSec)
+func sourceLimiterReset(ctx context.Context, reset resetHandler, sameSourceResetIntervalInSec uint32) {
+	betweenResetDuration := time.Second * time.Duration(sameSourceResetIntervalInSec)
 	for {
 		select {
 		case <-time.After(betweenResetDuration):
 			log.Trace("calling reset on WS source limiter")
 			reset.Reset()
-		case <-ws.ctx.Done():
+		case <-ctx.Done():
 			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
 			return
 		}
@@ -231,6 +240,15 @@ func (ws *webServer) registerRoutes(gws *gin.Engine) {
 		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
 		registerLoggerWsRoute(gws, marshalizerForLogs)
 	}
+}
+
+// Close will handle the closing of inner components
+func (ws *webServer) Close() error {
+	if ws.cancelFunc != nil {
+		ws.cancelFunc()
+	}
+
+	return ws.httpServer.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
