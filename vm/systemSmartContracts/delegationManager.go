@@ -96,7 +96,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
 		delegationMgrEnabled:     atomic.Flag{},
-		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
+		enableDelegationMgrEpoch: args.EpochConfig.EnableEpochs.DelegationManagerEnableEpoch,
 		minCreationDeposit:       minCreationDeposit,
 		minDelegationAmount:      minDelegationAmount,
 		minFee:                   args.DelegationSCConfig.MinServiceFee,

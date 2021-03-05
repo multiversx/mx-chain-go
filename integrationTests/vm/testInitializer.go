@@ -508,7 +508,6 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 			BaseIssuingCost: "5000000000000000000",
 			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
-			EnabledEpoch:    0,
 		},
 		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 			ProposalCost:     "5000000000000000000",
@@ -516,7 +515,6 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			MinQuorum:        400,
 			MinPassThreshold: 300,
 			MinVetoThreshold: 50,
-			EnabledEpoch:     0,
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
@@ -529,19 +527,14 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			MaximumPercentageToBleed:             0.5,
 			BleedPercentagePerRound:              0.00001,
 			MaxNumberOfNodesForStake:             36,
-			StakingV2Epoch:                       0,
-			StakeEnableEpoch:                     0,
-			DoubleKeyProtectionEnableEpoch:       0,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",
-			EnabledEpoch:        0,
 			MinStakeAmount:      "10000000000000000000",
 			ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-			EnabledEpoch:  0,
 			MinServiceFee: 1,
 			MaxServiceFee: 20,
 		},
