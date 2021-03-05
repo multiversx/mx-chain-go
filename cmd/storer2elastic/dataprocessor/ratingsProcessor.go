@@ -167,6 +167,10 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		stateFactory.NewPeerAccountCreator(),
 	)
 	if err != nil {
+		if err == ErrNilShardCoordinator {
+			// decrease coverage
+			return ErrNilShardCoordinator
+		}
 		return err
 	}
 
