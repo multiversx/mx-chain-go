@@ -477,13 +477,13 @@ func hardForkImport(
 					MinUnstakeTokensValue:                "1",
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					BaseIssuingCost:    "100",
-					MinCreationDeposit: "100",
+					MinCreationDeposit:  "100",
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinStakeAmount: "100",
-					MinServiceFee:  0,
-					MaxServiceFee:  100,
+					MinServiceFee: 0,
+					MaxServiceFee: 100,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
