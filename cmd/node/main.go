@@ -58,7 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
+	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -2534,13 +2534,13 @@ func createApiResolver(
 		return nil, err
 	}
 
-	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                     shardCoordinator.SelfId(),
-		RoundDurationInMilliseconds: nodesSetup.GetRoundDuration(),
-		InternalMarshalizer:         marshalizer,
-		Accounts:                    accnts,
+	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
+		ShardID:             shardCoordinator.SelfId(),
+		InternalMarshalizer: marshalizer,
+		Accounts:            accnts,
+		NodePrice:           systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
 	}
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
 	if err != nil {
 		return nil, err
 	}
