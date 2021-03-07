@@ -18,7 +18,7 @@ type doubleListTrieSyncer struct {
 	shardId                   uint32
 	topic                     string
 	rootHash                  []byte
-	waitTimeBetweenRequests   time.Duration
+	waitTimeBetweenChecks     time.Duration
 	trie                      *patriciaMerkleTrie
 	requestHandler            RequestHandler
 	interceptedNodes          storage.Cacher
@@ -52,7 +52,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		trie:                      pmt,
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
-		waitTimeBetweenRequests:   time.Second,
+		waitTimeBetweenChecks:     time.Millisecond * 100,
 		handlerID:                 core.UniqueIdentifier(),
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutBetweenCommits:     arg.TimeoutBetweenTrieNodesCommits,
@@ -97,7 +97,7 @@ func (dlts *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Cont
 		}
 
 		select {
-		case <-time.After(dlts.waitTimeBetweenRequests):
+		case <-time.After(dlts.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
 			return ErrContextClosing

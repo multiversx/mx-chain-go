@@ -160,19 +160,20 @@ func TestTrieNodeResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) 
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
+//TODO in this PR: add more unit tests
+
 func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
 	getSerializedNodesWasCalled := false
 	sendWasCalled := false
-	returnedEncNodes := []byte("node1")
 
 	tr := &mock.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			if bytes.Equal([]byte("node1"), hash) {
 				getSerializedNodesWasCalled = true
-				return returnedEncNodes, nil
+				return []byte("node1"), nil
 			}
 
 			return nil, errors.New("wrong hash")

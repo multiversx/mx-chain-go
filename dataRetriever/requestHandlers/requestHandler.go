@@ -18,7 +18,6 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-const minHashesToRequest = 10
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
 //TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
@@ -373,7 +372,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.whiteList.Add(itemsToRequest)
 
 	elapsedTime := time.Since(rrh.lastTrieRequestTime)
-	if len(rrh.trieHashesAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
+	if elapsedTime < timeToAccumulateTrieHashes {
 		return
 	}
 

@@ -88,6 +88,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
+	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
+
 	mainTrie := u.dataTries[string(rootHash)]
 	rootHashes, err := u.findAllAccountRootHashes(mainTrie, ctx)
 	if err != nil {

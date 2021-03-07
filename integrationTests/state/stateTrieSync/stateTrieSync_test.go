@@ -17,14 +17,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	factory3 "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -33,6 +34,46 @@ import (
 )
 
 var log = logger.GetOrCreate("integrationtests/state/statetriesync")
+
+func createTestProcessorNodeAndTrieStorage(
+	t *testing.T,
+	numOfShards uint32,
+	shardID uint32,
+	txSignPrivKeyShardId uint32,
+	nodeAddr string,
+) (*integrationTests.TestProcessorNode, storage.Storer) {
+
+	cacheConfig := storageUnit.CacheConfig{
+		Name:        "trie",
+		Type:        "SizeLRU",
+		SizeInBytes: 314572800, //300MB
+		Capacity:    500000,
+	}
+	trieCache, err := storageUnit.NewCache(cacheConfig)
+	require.Nil(t, err)
+
+	dbConfig := config.DBConfig{
+		FilePath:          "trie",
+		Type:              "LvlDBSerial",
+		BatchDelaySeconds: 2,
+		MaxBatchSize:      45000,
+		MaxOpenFiles:      10,
+	}
+	persisterFactory := storageFactory.NewPersisterFactory(dbConfig)
+	tempDir, err := ioutil.TempDir("", "integrationTest")
+	require.Nil(t, err)
+
+	triePersister, err := persisterFactory.Create(tempDir)
+	require.Nil(t, err)
+
+	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
+	require.Nil(t, err)
+
+	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, nodeAddr, trieStorage, createTestGasMap())
+	_ = node.Messenger.CreateTopic(core.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
+
+	return node, trieStorage
+}
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -45,67 +86,28 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	requesterNodeAddr := "0"
 	resolverNodeAddr := "1"
 
-	cacheConfig := storageUnit.CacheConfig{
-		Name:        "trie",
-		Type:        "SizeLRU",
-		SizeInBytes: 314572800, //300MB
-		Capacity:    500000,
-	}
-	trieCacheRequester, err := storageUnit.NewCache(cacheConfig)
-	require.Nil(t, err)
-	trieCacheResolver, err := storageUnit.NewCache(cacheConfig)
-	require.Nil(t, err)
+	fmt.Println("Requester:	")
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
-	dbConfig := config.DBConfig{
-		FilePath:          "trie",
-		Type:              "LvlDBSerial",
-		BatchDelaySeconds: 2,
-		MaxBatchSize:      45000,
-		MaxOpenFiles:      10,
-	}
-	persisterFactory := factory3.NewPersisterFactory(dbConfig) //factory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
-	require.Nil(t, err)
-
-	triePersisterRequester, err := persisterFactory.Create(tempDir)
-	require.Nil(t, err)
-
-	tempDir, err = ioutil.TempDir("", "integrationTest")
-	require.Nil(t, err)
-	triePersisterResolver, err := persisterFactory.Create(tempDir)
-	require.Nil(t, err)
-
-	trieStorageRequester, err := storageUnit.NewStorageUnit(trieCacheRequester, triePersisterRequester)
-	require.Nil(t, err)
-
-	trieStorageResolver, err := storageUnit.NewStorageUnit(trieCacheResolver, triePersisterResolver)
-	require.Nil(t, err)
+	fmt.Println("Resolver:")
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
-	}()
 
-	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr, trieStorageRequester, createTestGasMap())
-	_ = nRequester.Messenger.CreateTopic(core.ConsensusTopic+nRequester.ShardCoordinator.CommunicationIdentifier(nRequester.ShardCoordinator.SelfId()), true)
-
-	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr, trieStorageResolver, createTestGasMap())
-	_ = nResolver.Messenger.CreateTopic(core.ConsensusTopic+nResolver.ShardCoordinator.CommunicationIdentifier(nResolver.ShardCoordinator.SelfId()), true)
-	defer func() {
 		_ = nRequester.Messenger.Close()
 		_ = nResolver.Messenger.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err = nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
+	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
 	assert.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~6 minutes
+	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	//we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -124,7 +126,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
@@ -204,13 +206,15 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
-	_ = nRequester.Messenger.CreateTopic(core.ConsensusTopic+nRequester.ShardCoordinator.CommunicationIdentifier(nRequester.ShardCoordinator.SelfId()), true)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nResolver.Messenger.CreateTopic(core.ConsensusTopic+nResolver.ShardCoordinator.CommunicationIdentifier(nResolver.ShardCoordinator.SelfId()), true)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+
 	defer func() {
+		_ = trieStorageRequester.DestroyUnit()
+		_ = trieStorageResolver.DestroyUnit()
+
 		_ = nRequester.Messenger.Close()
 		_ = nResolver.Messenger.Close()
 	}()
@@ -242,7 +246,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	}
 	require.Nil(t, err)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&testscommon.CacherStub{
@@ -265,12 +269,12 @@ func TestMultipleDataTriesSync(t *testing.T) {
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:                    integrationTests.TestHasher,
 			Marshalizer:               integrationTests.TestMarshalizer,
-			TrieStorageManager:        nRequester.TrieStorageManagers[factory2.UserAccountTrie],
+			TrieStorageManager:        nRequester.TrieStorageManagers[trieFactory.UserAccountTrie],
 			RequestHandler:            requestHandler,
 			Timeout:                   time.Second * 10,
 			Cacher:                    nRequester.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory:      5,
-			MaxHardCapForMissingNodes: 500,
+			MaxTrieLevelInMemory:      200,
+			MaxHardCapForMissingNodes: 5000,
 			TrieSyncerVersion:         2,
 		},
 		ShardId:   shardID,
