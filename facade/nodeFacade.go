@@ -367,7 +367,7 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue will return total staked value
-func (nf *nodeFacade) GetTotalStakedValue() (*big.Int, error) {
+func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
 	return nf.apiResolver.GetTotalStakedValue()
 }
 
