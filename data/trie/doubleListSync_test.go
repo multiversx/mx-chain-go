@@ -86,6 +86,9 @@ func createRequesterResolver(completeTrie data.Trie, interceptedNodes storage.Ca
 
 				var n *InterceptedTrieNode
 				n, err = NewInterceptedTrieNode(buff, marshalizer, hasher)
+				if err != nil {
+					continue
+				}
 
 				interceptedNodes.Put(hash, n, 0)
 			}
