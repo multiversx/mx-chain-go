@@ -33,11 +33,11 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 		StakingSCAddress:   []byte("staking"),
 		EndOfEpochAddress:  []byte("endOfEpoch"),
 		StakingSCConfig: config.StakingSystemSCConfig{
-			GenesisNodePrice: "1000",
-			UnJailValue:      "10",
-			MinStepValue:     "10",
-			MinStakeValue:    "1",
-			UnBondPeriod:     1,
+			GenesisNodePrice:                     "1000",
+			UnJailValue:                          "10",
+			MinStepValue:                         "10",
+			MinStakeValue:                        "1",
+			UnBondPeriod:                         1,
 			NumRoundsWithoutBleed:                1,
 			MaximumPercentageToBleed:             1,
 			BleedPercentagePerRound:              1,
@@ -51,8 +51,8 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 		MinDeposit:         "0",
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakeEnableEpoch:                     0,
-				StakingV2Epoch:                       10,
+				StakeEnableEpoch: 0,
+				StakingV2Epoch:   10,
 			},
 		},
 	}
@@ -856,6 +856,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStake1Stake1More(t *testing.T) {
 	staker := []byte("staker")
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
@@ -3932,6 +3933,7 @@ func TestStakingValidatorSC_UnStakeUnBondFromWaitingList(t *testing.T) {
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.Eei = eei
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 
 	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
@@ -4005,6 +4007,7 @@ func TestStakingValidatorSC_StakeUnStakeUnBondTokensNoNodes(t *testing.T) {
 
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
 	args.Eei = eei
 
 	sc, _ := NewValidatorSmartContract(args)
