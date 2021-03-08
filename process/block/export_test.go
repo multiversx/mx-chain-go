@@ -52,7 +52,7 @@ func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, e
 	return sp.createMiniBlocks(haveTime)
 }
 
-func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.Header) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
@@ -60,7 +60,7 @@ func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 	return sp.updateCrossShardInfo(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader *block.Header) {
+func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader data.HeaderHandler) {
 	sp.updateState(finalHeaders, currentHeader)
 }
 
@@ -135,7 +135,7 @@ func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHea
 	mp.receivedShardHeader(header, shardHeaderHash)
 }
 
-func (mp *metaProcessor) AddHdrHashToRequestedList(hdr *block.Header, hdrHash []byte) {
+func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -234,8 +234,8 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 	return mp.checkShardHeadersFinality(highestNonceHdrs)
 }
 
-func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
+func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaders(), body)
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
@@ -258,8 +258,8 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 	return sp.saveLastNotarizedHeader(shardId, processedHdrs)
 }
 
-func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
+func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaders(), body)
 }
 
 func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing() {
@@ -291,7 +291,7 @@ func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 }
 
 func (sp *shardProcessor) DisplayLogInfo(
-	header *block.Header,
+	header data.HeaderHandler,
 	body *block.Body,
 	headerHash []byte,
 	numShards uint32,
@@ -315,7 +315,7 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
-	header *block.Header,
+	header data.HeaderHandler,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(header)
 }
@@ -336,7 +336,7 @@ func (bp *baseProcessor) CreateBlockStarted() {
 	bp.createBlockStarted()
 }
 
-func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header *block.Header) error {
+func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header data.HeaderHandler) error {
 	return sp.addProcessedCrossMiniBlocksFromHeader(header)
 }
 
@@ -348,15 +348,15 @@ func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, body *block
 	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr *block.Header, body *block.Body) (*block.Body, error) {
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.HeaderHandler, body *block.Body) (*block.Body, error) {
 	return sp.applyBodyToHeader(shardHdr, body)
 }
 
-func (mp *metaProcessor) CreateBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
+func (mp *metaProcessor) CreateBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return mp.createBlockBody(metaBlock, haveTime)
 }
 
-func (sp *shardProcessor) CreateBlockBody(shardHdr *block.Header, haveTime func() bool) (data.BodyHandler, error) {
+func (sp *shardProcessor) CreateBlockBody(shardHdr data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	return sp.createBlockBody(shardHdr, haveTime)
 }
 

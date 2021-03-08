@@ -895,8 +895,8 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		shardInfoErr = vs.checkForMissedBlocks(
 			h.Round,
-			prevShardData.Round,
-			prevShardData.RandSeed,
+			prevShardData.GetRound(),
+			prevShardData.GetRandSeed(),
 			h.ShardID,
 			epoch,
 		)
@@ -908,7 +908,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	return nil
 }
 
-func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (*block.Header, error) {
+func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
 	blkHandler := cacheMap[string(hash)]
 	if check.IfNil(blkHandler) {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",

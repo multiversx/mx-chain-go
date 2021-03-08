@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -543,8 +544,8 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
 }
 
-func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {
-	for _, miniblockHdr := range hdr.MiniBlockHeaders {
+func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.HeaderHandler) {
+	for _, miniblockHdr := range hdr.GetMiniBlockHeaders() {
 		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.Hash)
 		if err != nil {
 			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash) + "not found")

@@ -98,7 +98,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	components.NodesConfig.CurrentEpoch = components.ShardHeader.Epoch
+	components.NodesConfig.CurrentEpoch = components.ShardHeader.GetEpoch()
 	nodesCoordinatorConfigKey, err := ssh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	roundToUseAsKey := int64(components.ShardHeader.Round)
+	roundToUseAsKey := int64(components.ShardHeader.GetRound())
 	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
 	roundNumBytes, err := ssh.marshalizer.Marshal(&roundNum)
 	if err != nil {
@@ -266,16 +266,16 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBl
 	return crossNotarizedHdrs, nil
 }
 
-func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (bootstrapStorage.BootstrapHeaderInfo, error) {
+func (ssh *shardStorageHandler) saveLastHeader(shardHeader data.HeaderHandler) (bootstrapStorage.BootstrapHeaderInfo, error) {
 	lastHeaderHash, err := ssh.saveShardHdrToStorage(shardHeader)
 	if err != nil {
 		return bootstrapStorage.BootstrapHeaderInfo{}, err
 	}
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: shardHeader.ShardID,
-		Epoch:   shardHeader.Epoch,
-		Nonce:   shardHeader.Nonce,
+		ShardId: shardHeader.GetShardID(),
+		Epoch:   shardHeader.GetEpoch(),
+		Nonce:   shardHeader.GetNonce(),
 		Hash:    lastHeaderHash,
 	}
 
@@ -292,10 +292,10 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	}
 
 	triggerReg := shardchain.TriggerRegistry{
-		Epoch:                       shardHeader.Epoch,
+		Epoch:                       shardHeader.GetEpoch(),
 		MetaEpoch:                   metaBlock.Epoch,
-		CurrentRoundIndex:           int64(shardHeader.Round),
-		EpochStartRound:             shardHeader.Round,
+		CurrentRoundIndex:           int64(shardHeader.GetRound()),
+		EpochStartRound:             shardHeader.GetRound(),
 		EpochMetaBlockHash:          metaBlockHash,
 		IsEpochStart:                true,
 		NewEpochHeaderReceived:      true,
@@ -303,7 +303,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		EpochStartShardHeader:       &block.Header{},
 	}
 
-	bootstrapKey := []byte(fmt.Sprint(shardHeader.Round))
+	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
 	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), bootstrapKey...)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)

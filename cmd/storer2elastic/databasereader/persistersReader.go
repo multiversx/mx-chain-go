@@ -65,7 +65,7 @@ func (dr *databaseReader) getHeader(hdrStorer string, value []byte) (data.Header
 	return hdr, errUmarshal
 }
 
-func (dr *databaseReader) unmarshalShardHeader(hdrBytes []byte) (*block.Header, error) {
+func (dr *databaseReader) unmarshalShardHeader(hdrBytes []byte) (data.HeaderHandler, error) {
 	blck := &block.Header{}
 	err := dr.marshalizer.Unmarshal(blck, hdrBytes)
 	if err != nil {

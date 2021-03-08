@@ -28,7 +28,7 @@ func GetShardHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.Header, error) {
+) (data.HeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -74,7 +74,7 @@ func GetMetaHeader(
 func GetShardHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.Header, error) {
+) (data.HeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
@@ -113,7 +113,7 @@ func GetShardHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.Header, error) {
+) (data.HeaderHandler, error) {
 
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
 	if err != nil {
@@ -187,7 +187,7 @@ func GetShardHeaderWithNonce(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
@@ -235,7 +235,7 @@ func GetShardHeaderFromPoolWithNonce(
 	nonce uint64,
 	shardId uint32,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	obj, hash, err := getHeaderFromPoolWithNonce(nonce, shardId, headersCacher)
 	if err != nil {
@@ -291,7 +291,7 @@ func GetShardHeaderFromStorageWithNonce(
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
-) (*block.Header, []byte, error) {
+) (data.HeaderHandler, []byte, error) {
 
 	hash, err := getHeaderHashFromStorageWithNonce(
 		nonce,

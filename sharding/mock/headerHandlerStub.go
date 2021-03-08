@@ -224,6 +224,21 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 	panic("implement me")
 }
 
+// GetMiniBlockHeaders -
+func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	panic("implement me")
+}
+
+// GetMetaBlockHashes -
+func (hhs *HeaderHandlerStub) GetMetaBlockHashes() [][]byte {
+	panic("implement me")
+}
+
+// GetBlockBodyType -
+func (hhs *HeaderHandlerStub) GetBlockBodyTypeInt32() int32 {
+	panic("implement me")
+}
+
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	panic("implement me")
@@ -231,6 +246,11 @@ func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 
 // SetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
+	panic("implement me")
+}
+
+// SetMiniBlockHeaderHandlers -
+func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(_ []data.MiniBlockHeaderHandler) {
 	panic("implement me")
 }
 
@@ -251,4 +271,12 @@ func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
 
 // SetSoftwareVersion -
 func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) {
+}
+
+// SetReceiptsHash -
+func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) {
+}
+
+// SetMetaBlockHashes -
+func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) {
 }

@@ -111,6 +111,23 @@ func (h *Header) SetShardID(shId uint32) {
 	h.ShardID = shId
 }
 
+// SetMiniBlockHeaders sets the miniBlock headers
+func (h *Header) SetMiniBlockHeaders(mbHeaderHandlers []data.MiniBlockHeaderHandler) {
+	if mbHeaderHandlers == nil {
+		h.MiniBlockHeaders = nil
+		return
+	}
+
+	h.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
+	for i, mb := range mbHeaderHandlers {
+		mbh, ok := mb.(*MiniBlockHeader)
+		if !ok || mbh == nil {
+			continue
+		}
+		h.MiniBlockHeaders[i] = *mbh
+	}
+}
+
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	hashDst := make(map[string]uint32)
@@ -199,6 +216,51 @@ func (h *Header) IsInterfaceNil() bool {
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (h *Header) IsStartOfEpochBlock() bool {
 	return len(h.EpochStartMetaHash) > 0
+}
+
+// GetBlockBodyTypeInt32 returns the block body type as int32
+func (h *Header) GetBlockBodyTypeInt32() int32 {
+	return int32(h.GetBlockBodyType())
+}
+
+// GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
+func (h *Header) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	mbHeaders := h.GetMiniBlockHeaders()
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
+
+	for i, mbHeader := range mbHeaders {
+		mbHeaderHandlers[i] = &mbHeader
+	}
+
+	return mbHeaderHandlers
+}
+
+// SetMiniBlockHeaderHandlers sets the miniBlock headers from the given miniBlock header handlers
+func (h *Header) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHeaderHandler) {
+	if mbHeaderHandlers == nil {
+		h.MiniBlockHeaders = nil
+		return
+	}
+
+	h.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
+	for i, mbHeaderHandler := range mbHeaderHandlers {
+		mbHeader, ok := mbHeaderHandler.(*MiniBlockHeader)
+		if !ok {
+			h.MiniBlockHeaders = nil
+			return
+		}
+		h.MiniBlockHeaders[i] = *mbHeader
+	}
+}
+
+// SetReceiptsHash sets the receipts hash
+func (h *Header) SetReceiptsHash(hash []byte) {
+	h.ReceiptsHash = hash
+}
+
+// SetMetaBlockHashes sets the metaBlock hashes
+func (h *Header) SetMetaBlockHashes(hashes [][]byte) {
+	h.MetaBlockHashes = hashes
 }
 
 // Clone the underlying data

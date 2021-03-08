@@ -658,7 +658,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 			log.Debug("ShardHdrNonceHashDataUnit.Remove", "error", errNotCritical.Error())
 		}
 
-		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
+		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.GetMiniBlockHeaderHandlers()))
 	}
 
 	mp.restoreBlockBody(bodyHandler)
@@ -867,7 +867,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 }
 
 // createBlockBody creates block body of metachain
-func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
+func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
 	mp.createBlockStarted()
 	mp.blockSizeThrottler.ComputeCurrentMaxSize()
 
@@ -882,7 +882,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		return nil, err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(miniBlocks, metaBlock.Nonce)
+	err = mp.scToProtocol.UpdateProtocol(miniBlocks, metaBlock.GetNonce())
 	if err != nil {
 		return nil, err
 	}
@@ -1849,8 +1849,8 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			usedInBlock: true,
 		}
 
-		if hdr.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
-			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.Nonce
+		if hdr.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
+			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
 		}
 	}
 
@@ -2016,12 +2016,12 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaders, err := mp.createMiniBlockHeaders(body)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body)
 	if err != nil {
 		return nil, err
 	}
 
-	metaHdr.MiniBlockHeaders = miniBlockHeaders
+	metaHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")

@@ -3,7 +3,6 @@ package storageBootstrap
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -105,7 +104,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 
 	for _, shardHeaderHash := range shardHeaderHashes {
-		var shardHeader *block.Header
+		var shardHeader data.HeaderHandler
 		shardHeader, err = process.GetShardHeaderFromStorage(shardHeaderHash, msb.marshalizer, msb.store)
 		if err != nil {
 			log.Debug("shard header is not found in BlockHeaderUnit storage",

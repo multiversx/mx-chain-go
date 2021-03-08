@@ -66,7 +66,7 @@ type trigger struct {
 	finality                    uint64
 	validity                    uint64
 	epochFinalityAttestingRound uint64
-	epochStartShardHeader       *block.Header
+	epochStartShardHeader       data.HeaderHandler
 	epochStartMeta              *block.MetaBlock
 
 	mutTrigger         sync.RWMutex
@@ -898,7 +898,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
 
-	if t.epochStartShardHeader.Epoch <= 1 {
+	if t.epochStartShardHeader.GetEpoch() <= 1 {
 		t.epochStartShardHeader = &block.Header{}
 		t.isEpochStart = true
 		t.newEpochHdrReceived = true
@@ -908,7 +908,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	shardHdrBuff := make([]byte, 0)
-	epoch := t.epochStartShardHeader.Epoch - 1
+	epoch := t.epochStartShardHeader.GetEpoch() - 1
 	for ; epoch > 0; epoch-- {
 		prevEpochStartIdentifier := core.EpochStartIdentifier(epoch)
 		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
@@ -936,7 +936,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return err
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.GetEpoch())
 	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)

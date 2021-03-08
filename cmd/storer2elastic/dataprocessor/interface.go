@@ -29,8 +29,8 @@ type NodesCoordinator interface {
 
 // HeaderMarshalizerHandler defines the actions that a header marshalizer has to do
 type HeaderMarshalizerHandler interface {
-	UnmarshalShardHeader(headerBytes []byte) (*block.Header, error)
-	UnmarshalMetaBlock(headerBytes []byte) (*block.MetaBlock, error)
+	UnmarshalShardHeader(headerBytes []byte) (data.HeaderHandler, error)
+	UnmarshalMetaBlock(headerBytes []byte) (data.HeaderHandler, error)
 	IsInterfaceNil() bool
 }
 

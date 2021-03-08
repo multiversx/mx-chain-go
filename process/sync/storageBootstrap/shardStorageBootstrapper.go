@@ -102,7 +102,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 		return
 	}
 
-	for _, metaBlockHash := range shardHeader.MetaBlockHashes {
+	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
 		var metaBlock *block.MetaBlock
 		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {

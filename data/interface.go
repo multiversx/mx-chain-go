@@ -68,9 +68,38 @@ type HeaderHandler interface {
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDst(destId uint32) []*MiniBlockInfo
 	GetMiniBlockHeadersHashes() [][]byte
+	GetMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
+
+	GetMetaBlockHashes() [][]byte
+	GetBlockBodyTypeInt32() int32
+
+	SetMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler)
+	SetReceiptsHash(hash []byte)
+	SetMetaBlockHashes(hashes [][]byte)
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
+}
+
+type MiniBlockHeaderFactory interface {
+	Create() MiniBlockHeaderHandler
+}
+
+// MiniBlockHeaderHandler defines setters and getters for miniBlock headers
+type MiniBlockHeaderHandler interface {
+	GetHash() []byte
+	GetSenderShardID() uint32
+	GetReceiverShardID() uint32
+	GetTxCount() uint32
+	GetTypeInt32() int32
+	GetReserved() []byte
+
+	SetHash(hash []byte)
+	SetSenderShardID(shardID uint32)
+	SetReceiverShardID(shardID uint32)
+	SetTxCount(count uint32)
+	SetType(t int32)
+	SetReserved(reserved []byte)
 }
 
 // BodyHandler interface for a block body

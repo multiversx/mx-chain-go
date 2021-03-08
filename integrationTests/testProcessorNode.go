@@ -2240,7 +2240,7 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
-func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
+func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (data.HeaderHandler, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
@@ -2262,14 +2262,14 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 }
 
 // GetBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (*dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetBlockBody(header data.HeaderHandler) (*dataBlock.Body, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
 	body := &dataBlock.Body{}
-	for _, miniBlockHeader := range header.MiniBlockHeaders {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaders() {
 		miniBlockHash := miniBlockHeader.Hash
 
 		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)

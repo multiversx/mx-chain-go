@@ -65,7 +65,7 @@ type Parameters struct {
 type ComponentsNeededForBootstrap struct {
 	EpochStartMetaBlock *block.MetaBlock
 	PreviousEpochStart  *block.MetaBlock
-	ShardHeader         *block.Header
+	ShardHeader         data.HeaderHandler
 	NodesConfig         *sharding.NodesCoordinatorRegistry
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator

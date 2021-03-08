@@ -2,6 +2,7 @@
 package block
 
 import (
+	"math"
 	"math/big"
 	"sort"
 
@@ -202,4 +203,53 @@ func (m *MetaBlock) Clone() data.HeaderHandler {
 // GetEpochStartMetaHash returns the hash of the epoch start meta block
 func (m *MetaBlock) GetEpochStartMetaHash() []byte {
 	return nil
+}
+
+// GetMetaBlockHashes() - the metaBlock does not hold any metaBlock hashes
+func (m *MetaBlock) GetMetaBlockHashes() [][]byte {
+	return nil
+}
+
+// GetBlockBodyType - currently there is no block body type for metaBlock so return MaxInt32
+func (m *MetaBlock) GetBlockBodyTypeInt32() int32 {
+	return math.MaxInt32
+}
+
+// GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
+func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	mbHeaders := m.GetMiniBlockHeaders()
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
+
+	for i, mbHeader := range mbHeaders {
+		mbHeaderHandlers[i] = &mbHeader
+	}
+
+	return mbHeaderHandlers
+}
+
+// SetMiniBlockHeaderHandlers sets the miniBlock headers from the given miniBlock header handlers
+func (m *MetaBlock) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHeaderHandler) {
+	if mbHeaderHandlers == nil {
+		m.MiniBlockHeaders = nil
+		return
+	}
+
+	m.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
+	for i, mbHeaderHandler := range mbHeaderHandlers {
+		mbHeader, ok := mbHeaderHandler.(*MiniBlockHeader)
+		if !ok {
+			m.MiniBlockHeaders = nil
+			return
+		}
+		m.MiniBlockHeaders[i] = *mbHeader
+	}
+}
+
+// SetReceiptsHash sets the receipts hash
+func (m *MetaBlock) SetReceiptsHash(hash []byte) {
+	m.ReceiptsHash = hash
+}
+
+// SetMetaBlockHashes - for metaBlock does nothing
+func (m *MetaBlock) SetMetaBlockHashes(_ [][]byte) {
 }

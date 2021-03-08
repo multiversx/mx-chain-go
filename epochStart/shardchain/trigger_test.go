@@ -577,7 +577,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	err = et.RevertStateToBlock(prevHdr)
 	assert.Nil(t, err)
 	assert.True(t, et.IsEpochStart())
-	assert.Equal(t, et.epochStartShardHeader.Epoch, prevEpochHdr.Epoch)
+	assert.Equal(t, et.epochStartShardHeader.GetEpoch(), prevEpochHdr.Epoch)
 }
 
 func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {

@@ -120,20 +120,20 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 	return nil
 }
 
-func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
+func checkMiniblocks(miniblocks []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
-		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != core.MetachainShardId &&
-			miniblock.SenderShardID != core.AllShardId
-		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != core.MetachainShardId &&
-			miniblock.ReceiverShardID != core.AllShardId
+		isWrongSenderShardId := miniblock.GetSenderShardID() >= coordinator.NumberOfShards() &&
+			miniblock.GetSenderShardID() != core.MetachainShardId &&
+			miniblock.GetSenderShardID() != core.AllShardId
+		isWrongDestinationShardId := miniblock.GetReceiverShardID() >= coordinator.NumberOfShards() &&
+			miniblock.GetReceiverShardID() != core.MetachainShardId &&
+			miniblock.GetReceiverShardID() != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
 		}
 
-		if len(miniblock.Reserved) > 0 {
+		if len(miniblock.GetReserved()) > 0 {
 			return process.ErrReservedFieldNotSupportedYet
 		}
 	}

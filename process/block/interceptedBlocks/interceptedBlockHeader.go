@@ -19,7 +19,7 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {
-	hdr               *block.Header
+	hdr               data.HeaderHandler
 	sigVerifier       process.InterceptedHeaderSigVerifier
 	integrityVerifier process.HeaderIntegrityVerifier
 	hasher            hashing.Hasher
@@ -56,7 +56,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	return inHdr, nil
 }
 
-func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Header, error) {
+func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
 	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
@@ -126,10 +126,10 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
 			logger.DisplayByteSlice(inHdr.hash),
-			inHdr.hdr.ShardID,
+			inHdr.hdr.GetShardID(),
 			inHdr.epochStartTrigger.Epoch(),
-			inHdr.hdr.Epoch,
-			inHdr.hdr.Round,
+			inHdr.hdr.GetEpoch(),
+			inHdr.hdr.GetRound(),
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
@@ -150,7 +150,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkMiniblocks(inHdr.hdr.MiniBlockHeaders, inHdr.shardCoordinator)
+	err = checkMiniblocks(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -181,18 +181,18 @@ func (inHdr *InterceptedHeader) Type() string {
 // String returns the header's most important fields as string
 func (inHdr *InterceptedHeader) String() string {
 	return fmt.Sprintf("shardId=%d, metaEpoch=%d, shardEpoch=%d, round=%d, nonce=%d",
-		inHdr.hdr.ShardID,
+		inHdr.hdr.GetShardID(),
 		inHdr.epochStartTrigger.Epoch(),
-		inHdr.hdr.Epoch,
-		inHdr.hdr.Round,
-		inHdr.hdr.Nonce,
+		inHdr.hdr.GetEpoch(),
+		inHdr.hdr.GetRound(),
+		inHdr.hdr.GetNonce(),
 	)
 }
 
 // Identifiers returns the identifiers used in requests
 func (inHdr *InterceptedHeader) Identifiers() [][]byte {
-	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.ShardID, inHdr.hdr.Nonce))
-	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.Epoch))
+	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.GetShardID(), inHdr.hdr.GetNonce()))
+	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.GetEpoch()))
 
 	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
 }

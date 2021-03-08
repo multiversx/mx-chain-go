@@ -505,13 +505,13 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
 
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -522,7 +522,7 @@ func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.
 			return 0, nil, err
 		}
 
-		miniBlockHeaders[i] = block.MiniBlockHeader{
+		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
 			Hash:            miniBlockHash,
 			SenderShardID:   body.MiniBlocks[i].SenderShardID,
 			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
@@ -531,7 +531,7 @@ func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.
 		}
 	}
 
-	return totalTxCount, miniBlockHeaders, nil
+	return totalTxCount, miniBlockHeaderHandlers, nil
 }
 
 // check if header has the same miniblocks as presented in body

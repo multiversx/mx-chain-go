@@ -206,7 +206,7 @@ func (dr *dataReplayer) processMetaChainDatabase(
 		return err
 	}
 
-	startingNonce := epochStartMetaBlock.Nonce
+	startingNonce := epochStartMetaBlock.GetNonce()
 	roundData, err := dr.processMetaBlock(
 		epochStartMetaBlock,
 		dbsInfo,
@@ -273,7 +273,7 @@ func (dr *dataReplayer) closeMetaPersisters(persistersHolder *metaBlocksPersiste
 	log.LogIfError(err)
 }
 
-func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
+func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (data.HeaderHandler, error) {
 	epochStartIdentifier := core.EpochStartIdentifier(record.Epoch)
 	metaBlockBytes, err := metaPersisters.metaBlocksPersister.Get([]byte(epochStartIdentifier))
 	if err == nil && len(metaBlockBytes) > 0 {
@@ -287,7 +287,7 @@ func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseIn
 	return nil, fmt.Errorf("epoch start meta not found for epoch %d", record.Epoch)
 }
 
-func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
+func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (data.HeaderHandler, error) {
 	nonceBytes := dr.uint64Converter.ToByteSlice(nonce)
 	metaBlockHash, err := metaPersisters.hdrHashNoncePersister.Get(nonceBytes)
 	if err != nil {
@@ -303,7 +303,7 @@ func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaB
 }
 
 func (dr *dataReplayer) processMetaBlock(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	dbsInfo []*databasereader.DatabaseInfo,
 	persisters *persistersHolder,
 	shardPersisters map[uint32]*persistersHolder,
@@ -316,7 +316,7 @@ func (dr *dataReplayer) processMetaBlock(
 	shardsHeaderData := make(map[uint32][]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
 		shardInfoCopy := shardInfo
-		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfoCopy, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfoCopy, metaBlock.GetEpoch(), shardPersisters[shardInfo.ShardID])
 		if errProcessShardInfo != nil {
 			log.Warn("cannot process shard info", "error", errProcessShardInfo)
 			return nil, errProcessShardInfo
@@ -371,7 +371,7 @@ func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.
 func (dr *dataReplayer) getShardHeader(
 	shardPersisters *persistersHolder,
 	hash []byte,
-) (*block.Header, error) {
+) (data.HeaderHandler, error) {
 	shardHeaderBytes, err := shardPersisters.shardHeadersPersister.Get(hash)
 	if err != nil {
 		return nil, err
