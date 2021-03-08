@@ -97,6 +97,8 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
+	printEnableEpochs(nr.configs)
+
 	logGoroutinesNumber(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
@@ -111,6 +113,35 @@ func (nr *nodeRunner) Start() error {
 	}
 
 	return nil
+}
+
+func printEnableEpochs(configs *config.Configs) {
+	generalSettings := configs.GeneralConfig.GeneralSettings
+
+	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
+	log.Debug("built in functions enable epoch", "epoch", generalSettings.BuiltInFunctionsEnableEpoch)
+	log.Debug("relayed transactions enable epoch", "epoch", generalSettings.RelayedTransactionsEnableEpoch)
+	log.Debug("penalized too much gas enable epoch", "epoch", generalSettings.PenalizedTooMuchGasEnableEpoch)
+	log.Debug("switch jail waiting enable epoch", "epoch", generalSettings.SwitchJailWaitingEnableEpoch)
+	log.Debug("switch hysteresis for min nodes enable epoch", "epoch", generalSettings.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug("below signed threshold enable epoch", "epoch", generalSettings.BelowSignedThresholdEnableEpoch)
+	log.Debug("transaction signed with tx hash enable epoch", "epoch", generalSettings.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug("meta protection enable epoch", "epoch", generalSettings.MetaProtectionEnableEpoch)
+	log.Debug("ahead of time gas usage enable epoch", "epoch", generalSettings.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug("gas price modifier enable epoch", "epoch", generalSettings.GasPriceModifierEnableEpoch)
+	log.Debug("repair callback enable epoch", "epoch", generalSettings.RepairCallbackEnableEpoch)
+	log.Debug("max nodes change enable epoch", "epoch", generalSettings.MaxNodesChangeEnableEpoch)
+	log.Debug("block gas and fees re-check enable epoch", "epoch", generalSettings.BlockGasAndFeesReCheckEnableEpoch)
+
+	systemSCConfig := configs.SystemSCConfig
+
+	log.Debug("staking v2 epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakingV2Epoch)
+	log.Debug("stake enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch)
+	log.Debug("double key protection enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.DoubleKeyProtectionEnableEpoch)
+	log.Debug("esdt enable epoch", "epoch", systemSCConfig.ESDTSystemSCConfig.EnabledEpoch)
+	log.Debug("governance enable epoch", "epoch", systemSCConfig.GovernanceSystemSCConfig.EnabledEpoch)
+	log.Debug("delegation manager enable epoch", "epoch", systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch)
+	log.Debug("delegation smart contract enable epoch", "epoch", systemSCConfig.DelegationSystemSCConfig.EnabledEpoch)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
