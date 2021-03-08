@@ -502,6 +502,9 @@ const BuiltInFunctionESDTNFTCreate = "ESDTNFTCreate"
 // BuiltInFunctionESDTNFTAddQuantity is the key for the elrond standard digital token NFT add quantity built-in function
 const BuiltInFunctionESDTNFTAddQuantity = "ESDTNFTAddQuantity"
 
+// BuiltInFunctionESDTNFTCreateRoleTransfer is the key for the elrond standard digital token create role transfer function
+const BuiltInFunctionESDTNFTCreateRoleTransfer = "BuiltInFunctionESDTNFTCreateRoleTransfer"
+
 // BuiltInFunctionESDTNFTBurn is the key for the elrond standard digital token NFT burn built-in function
 const BuiltInFunctionESDTNFTBurn = "ESDTNFTBurn"
 

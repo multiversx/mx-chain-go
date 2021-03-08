@@ -24,7 +24,9 @@ message ESDTData {
     bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     uint32 NumDecimals              = 15 [(gogoproto.jsontag) = "NumDecimals"];
     bool   CanAddSpecialRoles       = 16 [(gogoproto.jsontag) = "CanAddSpecialRoles"];
-    repeated ESDTRoles SpecialRoles = 17 [(gogoproto.jsontag) = "SpecialRoles"];
+    bool   NFTCreateStopped         = 17 [(gogoproto.jsontag) = "NFTCreateStopped"];
+    bool   CanTransferNFTCreateRole = 18 [(gogoproto.jsontag) = "CanTransferNFTCreateRole"];
+    repeated ESDTRoles SpecialRoles = 19 [(gogoproto.jsontag) = "SpecialRoles"];
 }
 
 message ESDTRoles {
