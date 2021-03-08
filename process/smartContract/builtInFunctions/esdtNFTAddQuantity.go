@@ -46,6 +46,7 @@ func NewESDTNFTAddQuantityFunc(
 		pauseHandler: pauseHandler,
 		rolesHandler: rolesHandler,
 		funcGasCost:  funcGasCost,
+		mutExecution: sync.RWMutex{},
 	}
 
 	return e, nil
@@ -58,7 +59,7 @@ func (e *esdtNFTAddQuantity) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT NFT add quantity function call
 func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -75,7 +76,7 @@ func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTAddQuantity))
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTAddQuantity))
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +86,7 @@ func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	if err != nil {
 		return nil, err
 	}
+
 	esdtData.Value.Add(esdtData.Value, big.NewInt(0).SetBytes(vmInput.Arguments[2]))
 
 	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
@@ -92,7 +94,10 @@ func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode:   vmcommon.Ok,
+		GasRemaining: vmInput.GasProvided - e.funcGasCost,
+	}
 	return vmOutput, nil
 }
 

@@ -53,6 +53,7 @@ func NewESDTNFTCreateFunc(
 		rolesHandler: rolesHandler,
 		funcGasCost:  funcGasCost,
 		gasConfig:    gasConfig,
+		mutExecution: sync.RWMutex{},
 	}
 
 	return e, nil
@@ -66,7 +67,7 @@ func (e *esdtNFTCreate) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT NFT create function call
 func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -84,7 +85,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 
 	tokenID := vmInput.Arguments[0]
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTCreate))
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTCreate))
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +145,10 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, GasRemaining: vmInput.GasProvided - gasToUse}
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode:   vmcommon.Ok,
+		GasRemaining: vmInput.GasProvided - gasToUse,
+	}
 	return vmOutput, nil
 }
 
@@ -154,6 +158,7 @@ func (e *esdtNFTCreate) getLatestNonce(acnt state.UserAccountHandler, tokenID []
 	if err != nil {
 		return 0, err
 	}
+
 	if len(nonceData) == 0 {
 		return 0, nil
 	}
@@ -166,7 +171,7 @@ func (e *esdtNFTCreate) saveLatestNonce(acnt state.UserAccountHandler, tokenID [
 	return acnt.DataTrieTracker().SaveKeyValue(nonceKey, big.NewInt(0).SetUint64(nonce).Bytes())
 }
 
-func getESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
+func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 }
 
@@ -176,7 +181,7 @@ func getESDTNFTToken(
 	nonce uint64,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtNFTTokenKey := getESDTNFTTokenKey(esdtTokenKey, nonce)
+	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
 
 	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(esdtNFTTokenKey)
 	if err != nil {
@@ -216,7 +221,7 @@ func saveESDTNFTToken(
 	}
 
 	nonce := esdtData.TokenMetaData.Nonce
-	esdtNFTTokenKey := getESDTNFTTokenKey(esdtTokenKey, nonce)
+	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
 
 	if esdtData.Value.Cmp(zero) <= 0 {
 		return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, nil)
