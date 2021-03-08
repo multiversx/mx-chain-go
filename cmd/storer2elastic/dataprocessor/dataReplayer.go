@@ -314,15 +314,15 @@ func (dr *dataReplayer) processMetaBlock(
 	}
 
 	shardsHeaderData := make(map[uint32][]*storer2ElasticData.HeaderData)
-	for _, shardInfo := range metaBlock.ShardInfo {
-		shardInfoCopy := shardInfo
-		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfoCopy, metaBlock.GetEpoch(), shardPersisters[shardInfo.ShardID])
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
+		shardInfoCopy := shardInfo.ShallowClone()
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, shardInfoCopy, metaBlock.GetEpoch(), shardPersisters[shardInfo.GetShardID()])
 		if errProcessShardInfo != nil {
 			log.Warn("cannot process shard info", "error", errProcessShardInfo)
 			return nil, errProcessShardInfo
 		}
 
-		shardsHeaderData[shardInfo.ShardID] = append(shardsHeaderData[shardInfo.ShardID], shardHdrData)
+		shardsHeaderData[shardInfo.GetShardID()] = append(shardsHeaderData[shardInfo.GetShardID()], shardHdrData)
 	}
 
 	return &storer2ElasticData.RoundPersistedData{
@@ -333,11 +333,11 @@ func (dr *dataReplayer) processMetaBlock(
 
 func (dr *dataReplayer) processShardInfo(
 	dbsInfos []*databasereader.DatabaseInfo,
-	shardInfo *block.ShardData,
+	shardInfo data.ShardDataHandler,
 	epoch uint32,
 	shardPersisters *persistersHolder,
 ) (*storer2ElasticData.HeaderData, error) {
-	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
+	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.GetHeaderHash())
 	if err != nil {
 		// if new epoch, shard headers can be found in the previous epoch's storage
 		return dr.getAndProcessFromShardStorer(dbsInfos, shardInfo, epoch-1)
@@ -346,8 +346,8 @@ func (dr *dataReplayer) processShardInfo(
 	return dr.processHeader(shardPersisters, shardHeader)
 }
 
-func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo *block.ShardData, epoch uint32) (*storer2ElasticData.HeaderData, error) {
-	shardDBInfo, err := getShardDatabaseForEpoch(dbsInfos, epoch, shardInfo.ShardID)
+func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo data.ShardDataHandler, epoch uint32) (*storer2ElasticData.HeaderData, error) {
+	shardDBInfo, err := getShardDatabaseForEpoch(dbsInfos, epoch, shardInfo.GetShardID())
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +360,7 @@ func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.
 		dr.closePersisters(shardPersisters)
 	}()
 
-	shardHdr, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
+	shardHdr, err := dr.getShardHeader(shardPersisters, shardInfo.GetHeaderHash())
 	if err != nil {
 		return nil, err
 	}

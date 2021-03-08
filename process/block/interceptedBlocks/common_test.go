@@ -3,6 +3,7 @@ package interceptedBlocks
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -432,7 +433,7 @@ func TestCheckMiniblocks_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	err1 := checkMiniblocks(nil, shardCoordinator)
-	err2 := checkMiniblocks(make([]block.MiniBlockHeader, 0), shardCoordinator)
+	err2 := checkMiniblocks(make([]data.MiniBlockHeaderHandler, 0), shardCoordinator)
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
@@ -451,7 +452,7 @@ func TestCheckMiniblocks_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 		Type:            0,
 	}
 
-	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
+	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -469,7 +470,7 @@ func TestCheckMiniblocks_WrongMiniblockReceiverShardIdShouldErr(t *testing.T) {
 		Type:            0,
 	}
 
-	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
+	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -487,7 +488,7 @@ func TestCheckMiniblocks_ReservedPopulatedShouldErr(t *testing.T) {
 		Reserved:        []byte("r"),
 	}
 
-	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
+	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
@@ -504,7 +505,7 @@ func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
 		Type:            0,
 	}
 
-	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
+	err := checkMiniblocks([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Nil(t, err)
 }

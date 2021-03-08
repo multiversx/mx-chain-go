@@ -786,7 +786,7 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.Met
 			continue
 		}
 
-		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.ShardMiniBlockHeader, selfShardID, shardData.ShardID)
+		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.GetShardMiniBlockHeaderHandlers(), selfShardID, shardData.ShardID)
 		if len(crossMbKeysShard) > 0 {
 			keys = append(keys, crossMbKeysShard...)
 		}

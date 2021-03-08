@@ -263,6 +263,11 @@ func (h *Header) SetMetaBlockHashes(hashes [][]byte) {
 	h.MetaBlockHashes = hashes
 }
 
+// GetShardInfoHandlers - returns nil, as not supported for shard header
+func (h *Header) GetShardInfoHandlers() []data.ShardDataHandler {
+	return nil
+}
+
 // Clone the underlying data
 func (mb *MiniBlock) Clone() *MiniBlock {
 	newMb := &MiniBlock{
@@ -275,3 +280,5 @@ func (mb *MiniBlock) Clone() *MiniBlock {
 
 	return newMb
 }
+
+

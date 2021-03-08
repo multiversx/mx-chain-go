@@ -284,3 +284,8 @@ func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) {
 // SetMetaBlockHashes -
 func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) {
 }
+
+// GetShardInfoHandlers -
+func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler{
+	panic("implement me")
+}

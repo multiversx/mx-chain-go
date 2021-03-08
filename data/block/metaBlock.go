@@ -253,3 +253,17 @@ func (m *MetaBlock) SetReceiptsHash(hash []byte) {
 // SetMetaBlockHashes - for metaBlock does nothing
 func (m *MetaBlock) SetMetaBlockHashes(_ [][]byte) {
 }
+
+// GetShardInfoHandlers - gets the shardInfo as an array of ShardDataHandler
+func (m *MetaBlock) GetShardInfoHandlers() []data.ShardDataHandler {
+	if m.ShardInfo == nil {
+		return nil
+	}
+
+	shardInfoHandlers := make([]data.ShardDataHandler, len(m.ShardInfo))
+	for i, shData := range m.ShardInfo {
+		shardInfoHandlers[i] = &shData
+	}
+
+	return shardInfoHandlers
+}

@@ -77,12 +77,10 @@ type HeaderHandler interface {
 	SetReceiptsHash(hash []byte)
 	SetMetaBlockHashes(hashes [][]byte)
 
+	GetShardInfoHandlers() []ShardDataHandler
+
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
-}
-
-type MiniBlockHeaderFactory interface {
-	Create() MiniBlockHeaderHandler
 }
 
 // MiniBlockHeaderHandler defines setters and getters for miniBlock headers
@@ -100,6 +98,50 @@ type MiniBlockHeaderHandler interface {
 	SetTxCount(count uint32)
 	SetType(t int32)
 	SetReserved(reserved []byte)
+}
+
+// PeerChangeHandler defines setters and getters for PeerChange
+type PeerChangeHandler interface {
+	GetPubKey() []byte
+	GetShardIdDest() uint32
+
+	SetPubKey(pubKey []byte)
+	SetShardIdDest(shardID uint32)
+}
+
+// ShardDataHandler defines setters and getters for ShardDataHandler
+type ShardDataHandler interface {
+	GetHeaderHash() []byte
+	GetShardMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
+	GetPrevRandSeed() []byte
+	GetPubKeysBitmap() []byte
+	GetSignature() []byte
+	GetRound() uint64
+	GetPrevHash() []byte
+	GetNonce() uint64
+	GetAccumulatedFees() *big.Int
+	GetDeveloperFees() *big.Int
+	GetNumPendingMiniBlocks() uint32
+	GetLastIncludedMetaNonce() uint64
+	GetShardID() uint32
+	GetTxCount() uint32
+
+	SetHeaderHash(hash []byte)
+	SetShardMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler)
+	SetPrevRandSeed(prevRandSeed []byte)
+	SetPubKeysBitmap(pubKeysBitmap []byte)
+	SetSignature(signature []byte)
+	SetRound(round uint64)
+	SetPrevHash(prevHash []byte)
+	SetNonce(nonce uint64)
+	SetAccumulatedFees(fees *big.Int)
+	SetDeveloperFees(fees *big.Int)
+	SetNumPendingMiniBlocks(num uint32)
+	SetLastIncludedMetaNonce(nonce uint64)
+	SetShardID(shardID uint32)
+	SetTxCount(txCount uint32)
+
+	ShallowClone() ShardDataHandler
 }
 
 // BodyHandler interface for a block body

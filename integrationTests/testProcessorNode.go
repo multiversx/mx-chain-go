@@ -2269,8 +2269,8 @@ func (tpn *TestProcessorNode) GetBlockBody(header data.HeaderHandler) (*dataBloc
 	}
 
 	body := &dataBlock.Body{}
-	for _, miniBlockHeader := range header.GetMiniBlockHeaders() {
-		miniBlockHash := miniBlockHeader.Hash
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		miniBlockHash := miniBlockHeader.GetHash()
 
 		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {

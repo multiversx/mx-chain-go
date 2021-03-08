@@ -191,7 +191,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = mp.checkHeaderBodyCorrelation(header.MiniBlockHeaders, body)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
 	}

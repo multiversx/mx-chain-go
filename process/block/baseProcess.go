@@ -535,10 +535,10 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, [
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
-		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
 	}
 
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
@@ -561,15 +561,15 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+		if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+		if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 	}

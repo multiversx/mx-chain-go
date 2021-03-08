@@ -545,24 +545,24 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 }
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.HeaderHandler) {
-	for _, miniblockHdr := range hdr.GetMiniBlockHeaders() {
-		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.Hash)
+	for _, miniblockHdr := range hdr.GetMiniBlockHeaderHandlers() {
+		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.GetHash())
 		if err != nil {
-			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash) + "not found")
+			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.GetHash()) + "not found")
 			continue
 		}
 
 		miniblock := &block.MiniBlock{}
 		err = integrationTests.TestMarshalizer.Unmarshal(miniblock, miniblockBytes)
 		if err != nil {
-			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash))
+			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.GetHash()))
 			continue
 		}
 
 		for _, txHash := range miniblock.TxHashes {
 			txBytes := []byte("not found")
 
-			mbType := miniblockHdr.Type
+			mbType := block.Type(miniblockHdr.GetTypeInt32())
 			switch mbType {
 			case block.TxBlock:
 				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash)

@@ -235,7 +235,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 }
 
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaders(), body)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
 }
 
 func (bp *baseProcessor) IsHdrConstructionValid(currHdr, prevHdr data.HeaderHandler) error {
@@ -259,7 +259,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 }
 
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaders(), body)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
 }
 
 func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing() {
