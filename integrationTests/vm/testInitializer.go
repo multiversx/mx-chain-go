@@ -487,6 +487,7 @@ func CreateVMAndBlockchainHookMeta(
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig:         createEpochConfig(),
 	})
 	if err != nil {
 		log.LogIfError(err)
@@ -501,6 +502,20 @@ func CreateVMAndBlockchainHookMeta(
 	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
+}
+
+func createEpochConfig() *config.EpochConfig {
+	return &config.EpochConfig{
+		EnableEpochs: config.EnableEpochs{
+			StakingV2Epoch:                     0,
+			StakeEnableEpoch:                   0,
+			DoubleKeyProtectionEnableEpoch:     0,
+			ESDTEnableEpoch:                    0,
+			GovernanceEnableEpoch:              0,
+			DelegationManagerEnableEpoch:       0,
+			DelegationSmartContractEnableEpoch: 0,
+		},
+	}
 }
 
 func createSystemSCConfig() *config.SystemSmartContractsConfig {
