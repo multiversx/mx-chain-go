@@ -1093,19 +1093,35 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 		return "", false
 	}
 
-	if function != core.BuiltInFunctionESDTTransfer {
-		return "", false
-	}
 	if len(args) < 2 {
 		return "", false
 	}
 
-	returnData := ""
-	returnData += function + "@"
-	returnData += hex.EncodeToString(args[0]) + "@"
-	returnData += hex.EncodeToString(args[1])
+	if function == core.BuiltInFunctionESDTTransfer {
+		returnData := ""
+		returnData += function + "@"
+		returnData += hex.EncodeToString(args[0]) + "@"
+		returnData += hex.EncodeToString(args[1])
 
-	return returnData, true
+		return returnData, true
+	}
+
+	if function == core.BuiltInFunctionESDTNFTTransfer {
+		if len(args) < 4 {
+			return "", false
+		}
+
+		returnData := ""
+		returnData += function + "@"
+		returnData += hex.EncodeToString(args[0]) + "@"
+		returnData += hex.EncodeToString(args[1]) + "@"
+		returnData += hex.EncodeToString(args[2]) + "@"
+		returnData += hex.EncodeToString(args[3])
+
+		return returnData, true
+	}
+
+	return "", false
 }
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
