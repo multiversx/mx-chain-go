@@ -20,6 +20,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &mock.AccountsStub{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 	}
 
 	return args

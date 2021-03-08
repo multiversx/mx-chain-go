@@ -193,10 +193,11 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses: DNSAddresses,
-		Marshalizer:     marshalizer,
-		Accounts:        context.Accounts,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:  DNSAddresses,
+		Marshalizer:      marshalizer,
+		Accounts:         context.Accounts,
+		ShardCoordinator: oneShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)

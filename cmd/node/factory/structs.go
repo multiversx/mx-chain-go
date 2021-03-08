@@ -1528,10 +1528,11 @@ func newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: mapDNSAddresses,
-		Marshalizer:     core.InternalMarshalizer,
-		Accounts:        stateComponents.AccountsAdapter,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  mapDNSAddresses,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -1857,10 +1858,11 @@ func newMetaBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}), // no dns for meta
-		Marshalizer:     core.InternalMarshalizer,
-		Accounts:        stateComponents.AccountsAdapter,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}), // no dns for meta
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -19,6 +20,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	EnableUserNameChange bool
 	Marshalizer          marshal.Marshalizer
 	Accounts             state.AccountsAdapter
+	ShardCoordinator     sharding.Coordinator
 }
 
 type builtInFuncFactory struct {
@@ -28,6 +30,7 @@ type builtInFuncFactory struct {
 	accounts             state.AccountsAdapter
 	builtInFunctions     process.BuiltInFunctionContainer
 	gasConfig            *process.GasCost
+	shardCoordinator     sharding.Coordinator
 }
 
 // NewBuiltInFunctionsFactory creates a factory which will instantiate the built in functions contracts
@@ -44,12 +47,16 @@ func NewBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (*built
 	if args.MapDNSAddresses == nil {
 		return nil, process.ErrNilDnsAddresses
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	b := &builtInFuncFactory{
 		mapDNSAddresses:      args.MapDNSAddresses,
 		enableUserNameChange: args.EnableUserNameChange,
 		marshalizer:          args.Marshalizer,
 		accounts:             args.Accounts,
+		shardCoordinator:     args.ShardCoordinator,
 	}
 
 	var err error
@@ -216,6 +223,42 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
+	newFunc, err = NewESDTNFTAddQuantityFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTAddQuantity, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewesdtNFTBurnFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTBurn, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTNFTCreateFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.gasConfig.BaseOperationCost, b.marshalizer, pauseFunc, setRoleFunc)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTCreate, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTNFTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, b.accounts, b.shardCoordinator, b.gasConfig.BaseOperationCost)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTCreate, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
 	return b.builtInFunctions, nil
 }
 
@@ -264,7 +307,29 @@ func SetPayableHandler(container process.BuiltInFunctionContainer, payableHandle
 		return process.ErrWrongTypeAssertion
 	}
 
-	return esdtTransferFunc.setPayableHandler(payableHandler)
+	err = esdtTransferFunc.setPayableHandler(payableHandler)
+	if err != nil {
+		return err
+	}
+
+	builtInFunc, err = container.Get(core.BuiltInFunctionESDTNFTTransfer)
+	if err != nil {
+		log.Warn("SetIsPayable", "error", err.Error())
+		return err
+	}
+
+	esdtNFTTransferFunc, ok := builtInFunc.(*esdtNFTTransfer)
+	if !ok {
+		log.Warn("SetIsPayable", "error", process.ErrWrongTypeAssertion)
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = esdtNFTTransferFunc.setPayableHandler(payableHandler)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
