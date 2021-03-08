@@ -2191,9 +2191,9 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	assert.Equal(t, 14, len(eei.output))
+	assert.Equal(t, 15, len(eei.output))
 	assert.Equal(t, []byte("esdtToken"), eei.output[0])
-	assert.Equal(t, vmInput.CallerAddr, eei.output[1])
+	assert.Equal(t, vmInput.CallerAddr, eei.output[2])
 }
 
 func TestEsdt_ExecuteConfigChange(t *testing.T) {
