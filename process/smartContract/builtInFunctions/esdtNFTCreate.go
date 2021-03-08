@@ -16,9 +16,10 @@ import (
 
 var _ process.BuiltinFunction = (*esdtNFTCreate)(nil)
 
+var noncePrefix = []byte(core.ElrondProtectedKeyPrefix + core.ESDTNFTLatestNonceIdentifier)
+
 type esdtNFTCreate struct {
 	keyPrefix    []byte
-	noncePrefix  []byte
 	marshalizer  marshal.Marshalizer
 	pauseHandler process.ESDTPauseHandler
 	rolesHandler process.ESDTRoleHandler
@@ -47,7 +48,6 @@ func NewESDTNFTCreateFunc(
 
 	e := &esdtNFTCreate{
 		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
-		noncePrefix:  []byte(core.ElrondProtectedKeyPrefix + core.ESDTNFTLatestNonceIdentifier),
 		marshalizer:  marshalizer,
 		pauseHandler: pauseHandler,
 		rolesHandler: rolesHandler,
@@ -89,7 +89,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	nonce, err := e.getLatestNonce(acntSnd, tokenID)
+	nonce, err := getLatestNonce(acntSnd, tokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	err = e.saveLatestNonce(acntSnd, tokenID, nextNonce)
+	err = saveLatestNonce(acntSnd, tokenID, nextNonce)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +148,8 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	return vmOutput, nil
 }
 
-func (e *esdtNFTCreate) getLatestNonce(acnt state.UserAccountHandler, tokenID []byte) (uint64, error) {
-	nonceKey := e.getNonceKey(tokenID)
+func getLatestNonce(acnt state.UserAccountHandler, tokenID []byte) (uint64, error) {
+	nonceKey := getNonceKey(tokenID)
 	nonceData, err := acnt.DataTrieTracker().RetrieveValue(nonceKey)
 	if err != nil {
 		return 0, err
@@ -161,8 +161,8 @@ func (e *esdtNFTCreate) getLatestNonce(acnt state.UserAccountHandler, tokenID []
 	return big.NewInt(0).SetBytes(nonceData).Uint64(), nil
 }
 
-func (e *esdtNFTCreate) saveLatestNonce(acnt state.UserAccountHandler, tokenID []byte, nonce uint64) error {
-	nonceKey := e.getNonceKey(tokenID)
+func saveLatestNonce(acnt state.UserAccountHandler, tokenID []byte, nonce uint64) error {
+	nonceKey := getNonceKey(tokenID)
 	return acnt.DataTrieTracker().SaveKeyValue(nonceKey, big.NewInt(0).SetUint64(nonce).Bytes())
 }
 
@@ -250,8 +250,8 @@ func checkESDTNFTCreateBurnAddInput(
 	return nil
 }
 
-func (e *esdtNFTCreate) getNonceKey(tokenID []byte) []byte {
-	return append(e.noncePrefix, tokenID...)
+func getNonceKey(tokenID []byte) []byte {
+	return append(noncePrefix, tokenID...)
 }
 
 // IsInterfaceNil returns true if underlying object in nil
