@@ -155,9 +155,6 @@ var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 // ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
 
-// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
-var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
-
 // ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
 var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
 
@@ -229,3 +226,6 @@ var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract sti
 
 // ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
 var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
+
+// ErrNFTCreateRoleAlreadyExists signals that NFT create role already exists
+var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")

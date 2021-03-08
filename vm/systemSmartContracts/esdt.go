@@ -188,11 +188,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 4 {
-		e.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.FunctionWrongSignature
-	}
+func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
@@ -213,13 +209,150 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.OutOfFunds
 	}
 
-	err = e.issueToken(args.CallerAddr, args.Arguments)
+	return vmcommon.Ok
+}
+
+// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
+func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if len(args.Arguments) < 4 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
+	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
+		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
+		return vmcommon.UserError
+	}
+
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		initialSupply,
+		numOfDecimals,
+		args.Arguments[4:],
+		[]byte(core.FungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
+	err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		0,
+		args.Arguments[2:],
+		[]byte(core.SemiFungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		0,
+		args.Arguments[2:],
+		[]byte(core.NonFungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) createNewToken(
+	owner []byte,
+	tokenName []byte,
+	tickerName []byte,
+	initialSupply *big.Int,
+	numDecimals uint32,
+	properties [][]byte,
+	tokenType []byte,
+) ([]byte, error) {
+	if !isTokenNameHumanReadable(tokenName) {
+		return nil, vm.ErrTokenNameNotHumanReadable
+	}
+
+	if !isTickerValid(tickerName) {
+		return nil, vm.ErrTickerNameNotValid
+	}
+
+	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
+	if err != nil {
+		return nil, err
+	}
+
+	newESDTToken := &ESDTData{
+		OwnerAddress: owner,
+		TokenName:    tokenName,
+		TickerName:   tickerName,
+		TokenType:    tokenType,
+		NumDecimals:  numDecimals,
+		MintedValue:  big.NewInt(0).Set(initialSupply),
+		BurntValue:   big.NewInt(0),
+		Upgradable:   true,
+	}
+	err = upgradeProperties(newESDTToken, properties, string(tokenType))
+	if err != nil {
+		return nil, err
+	}
+	err = e.saveToken(tokenIdentifier, newESDTToken)
+	if err != nil {
+		return nil, err
+	}
+
+	e.addToIssuedTokens(string(tokenIdentifier))
+
+	return tokenIdentifier, nil
 }
 
 func isTickerValid(tickerName []byte) bool {
@@ -274,69 +407,12 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
-// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
-func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
-	tokenName := arguments[0]
-	if !isTokenNameHumanReadable(tokenName) {
-		return vm.ErrTokenNameNotHumanReadable
+func upgradeProperties(token *ESDTData, args [][]byte, tokenType string) error {
+	mintBurnable := true
+	if tokenType != core.FungibleESDT {
+		mintBurnable = false
 	}
 
-	tickerName := arguments[1]
-	if !isTickerValid(tickerName) {
-		return vm.ErrTickerNameNotValid
-	}
-
-	initialSupply := big.NewInt(0).SetBytes(arguments[2])
-	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
-		return vm.ErrNegativeOrZeroInitialSupply
-	}
-
-	numOfDecimals := uint32(big.NewInt(0).SetBytes(arguments[3]).Uint64())
-	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
-		return fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			numOfDecimals,
-		)
-	}
-
-	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
-	if err != nil {
-		return err
-	}
-
-	newESDTToken := &ESDTData{
-		OwnerAddress: owner,
-		TokenName:    tokenName,
-		TickerName:   tickerName,
-		TokenType:    []byte(core.FungibleESDT),
-		NumDecimals:  numOfDecimals,
-		MintedValue:  initialSupply,
-		BurntValue:   big.NewInt(0),
-		Upgradable:   true,
-	}
-	err = upgradeProperties(newESDTToken, arguments[4:])
-	if err != nil {
-		return err
-	}
-	err = e.saveToken(tokenIdentifier, newESDTToken)
-	if err != nil {
-		return err
-	}
-
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		return err
-	}
-
-	e.addToIssuedTokens(string(tokenIdentifier))
-
-	return nil
-}
-
-func upgradeProperties(token *ESDTData, args [][]byte) error {
 	if len(args) == 0 {
 		return nil
 	}
@@ -352,8 +428,14 @@ func upgradeProperties(token *ESDTData, args [][]byte) error {
 		}
 		switch optionalArg {
 		case burnable:
+			if !mintBurnable {
+				return fmt.Errorf("%w only fungible tokens are burnable at system SC", vm.ErrInvalidArgument)
+			}
 			token.Burnable = val
 		case mintable:
+			if !mintBurnable {
+				return fmt.Errorf("%w only fungible tokens are mintable at system SC", vm.ErrInvalidArgument)
+			}
 			token.Mintable = val
 		case canPause:
 			token.CanPause = val
@@ -797,7 +879,7 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := upgradeProperties(token, args.Arguments[1:])
+	err := upgradeProperties(token, args.Arguments[1:], string(token.TokenType))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -820,13 +902,84 @@ func (e *esdt) checkArgumentsForSpecialRoleChanges(args *vmcommon.ContractCallIn
 		e.eei.AddReturnMessage("first argument must be an address")
 		return vmcommon.FunctionWrongSignature
 	}
-	err := validateRoles(args.Arguments[2:])
+	err := checkDuplicates(args.Arguments[2:])
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func checkIfCreateNFTRoleExists(args [][]byte, token *ESDTData) error {
+	createNFTInArgs := false
+	for _, arg := range args {
+		if bytes.Equal(arg, []byte(core.ESDTRoleNFTCreate)) {
+			createNFTInArgs = true
+			break
+		}
+	}
+
+	if !createNFTInArgs {
+		return nil
+	}
+
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
+				return vm.ErrNFTCreateRoleAlreadyExists
+			}
+		}
+	}
+
+	return nil
+}
+
+func isSpecialRoleValidForFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleLocalMint:
+		return nil
+	case core.ESDTRoleLocalBurn:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func isSpecialRoleValidForSemiFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleNFTBurn:
+		return nil
+	case core.ESDTRoleNFTAddQuantity:
+		return nil
+	case core.ESDTRoleNFTCreate:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func isSpecialRoleValidForNonFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleNFTBurn:
+		return nil
+	case core.ESDTRoleNFTCreate:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTData) error {
+	switch string(token.TokenType) {
+	case core.FungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForFungible)
+	case core.NonFungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForNonFungible)
+	case core.SemiFungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForSemiFungible)
+	}
+	return nil
 }
 
 func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -838,6 +991,18 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+
+	err := checkIfCreateNFTRoleExists(args.Arguments[2:], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
 	address := args.Arguments[1]
@@ -857,7 +1022,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
-	err := e.sendRoleChangeData(args, core.BuiltInFunctionSetESDTRole)
+	err = e.sendRoleChangeData(args, core.BuiltInFunctionSetESDTRole)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -927,14 +1092,6 @@ func (e *esdt) sendRoleChangeData(args *vmcommon.ContractCallInput, builtInFunc 
 	return err
 }
 
-func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
 func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 1 {
 		e.eei.AddReturnMessage("needs 1 argument")
@@ -976,31 +1133,15 @@ func checkDuplicates(arguments [][]byte) error {
 	return nil
 }
 
-func validateRoles(arguments [][]byte) error {
-	err := checkDuplicates(arguments)
-	if err != nil {
-		return err
-	}
-
+func validateRoles(arguments [][]byte, isSpecialRoleValid func(role string) error) error {
 	for _, arg := range arguments {
-		err = isSpecialRoleValid(string(arg))
+		err := isSpecialRoleValid(string(arg))
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func isSpecialRoleValid(argument string) error {
-	switch argument {
-	case core.ESDTRoleLocalMint:
-		return nil
-	case core.ESDTRoleLocalBurn:
-		return nil
-	default:
-		return vm.ErrInvalidArgument
-	}
 }
 
 func getRoleIndex(esdtRoles *ESDTRoles, role []byte) int {

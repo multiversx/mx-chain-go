@@ -528,6 +528,8 @@ const (
 	Fungible ESDTType = iota
 	// NonFungible defines the token for non fungible tokens
 	NonFungible
+	// SemiFungible defines the token for semi fungible tokens
+	SemiFungible
 )
 
 // FungibleESDT defines the string for the token type of fungible ESDT
@@ -535,6 +537,9 @@ const FungibleESDT = "FungibleESDT"
 
 // NonFungibleESDT defines the string for the token type of non fungible ESDT
 const NonFungibleESDT = "NonFungibleESDT"
+
+// SemiFungibleESDT defines the string for the token type of semi fungible ESDT
+const SemiFungibleESDT = "SemiFungibleESDT"
 
 // MaxRoyalty defines 100% as uint32
 const MaxRoyalty = uint32(10000)
