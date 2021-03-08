@@ -85,6 +85,9 @@ type VMInput struct {
 
 	// ESDTTokenType is the type of the transferred token
 	ESDTTokenType uint32
+
+	// ESDTTokenNonce is the nonce for the given NFT token
+	ESDTTokenNonce uint64
 }
 
 // ContractCreateInput VM input when creating a new contract.

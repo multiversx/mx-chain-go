@@ -233,13 +233,6 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 		return nil
 	}
 
-	addNFTTransferToVMOutput(
-		dstAddress,
-		nftTransferCallArgs,
-		0,
-		0,
-		vmOutput)
-
 	if isSCCallAfter {
 		var callArgs [][]byte
 		if len(vmInput.Arguments) > 5 {
