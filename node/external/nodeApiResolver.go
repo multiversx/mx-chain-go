@@ -2,10 +2,10 @@ package external
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -47,7 +47,7 @@ func NewNodeApiResolver(args ApiResolverArgs) (*nodeApiResolver, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, ErrNilVmContainer
 	}
-	if check.IfNil(args.VmFactory){
+	if check.IfNil(args.VmFactory) {
 		return nil, ErrNilVmFactory
 	}
 
@@ -92,7 +92,7 @@ func (nar *nodeApiResolver) Close() error {
 }
 
 // GetTotalStakedValue will return total staked value
-func (nar *nodeApiResolver) GetTotalStakedValue() (*big.Int, error) {
+func (nar *nodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 
