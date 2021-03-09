@@ -17,7 +17,7 @@ import (
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second*4)
 
 	nrBefore := runtime.NumGoroutine()
 	factory.PrintStack()
