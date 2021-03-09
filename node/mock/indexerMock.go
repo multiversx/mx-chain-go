@@ -53,7 +53,7 @@ func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandl
 }
 
 // SaveAccounts -
-func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
+func (im *IndexerMock) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

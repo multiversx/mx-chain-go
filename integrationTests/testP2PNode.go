@@ -177,6 +177,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
 		node.WithPeerSignatureHandler(psh),
 		node.WithBlockChain(&mock.BlockChainMock{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 	log.LogIfError(err)
 

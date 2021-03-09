@@ -49,6 +49,7 @@ type ArgHeartbeat struct {
 	SizeCheckDelta           uint32
 	ValidatorsProvider       peerProcess.ValidatorsProvider
 	CurrentBlockProvider     heartbeat.CurrentBlockProvider
+	RedundancyHandler        heartbeat.NodeRedundancyHandler
 }
 
 // HeartbeatHandler is the struct used to manage heartbeat subsystem consisting of a heartbeat sender and monitor
@@ -124,6 +125,7 @@ func (hbh *HeartbeatHandler) create() error {
 		KeyBaseIdentity:      arg.PrefsConfig.Identity,
 		HardforkTrigger:      arg.HardforkTrigger,
 		CurrentBlockProvider: arg.CurrentBlockProvider,
+		RedundancyHandler:    arg.RedundancyHandler,
 	}
 
 	hbh.sender, err = process.NewSender(argSender)
