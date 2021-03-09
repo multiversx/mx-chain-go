@@ -84,7 +84,6 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	}
 
 	tokenID := vmInput.Arguments[0]
-	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTCreate))
 	if err != nil {
 		return nil, err
@@ -100,6 +99,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, process.ErrInvalidArguments
 	}
 
+	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	quantity := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 	if quantity.Cmp(zero) == 0 {
 		return nil, process.ErrInvalidArguments
