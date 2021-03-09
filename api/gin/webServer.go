@@ -38,7 +38,7 @@ type ArgsNewWebServer struct {
 }
 
 type webServer struct {
-	*sync.RWMutex
+	sync.RWMutex
 	facade          shared.ApiFacadeHandler
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
@@ -66,9 +66,9 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 // new web server
 func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpServerCloser, error) {
 	ws.Lock()
-	defer ws.Unlock()
-
 	ws.facade = facade
+	ws.Unlock()
+
 	closableWebServer, err := ws.CreateHttpServer()
 	if err != nil {
 		return nil, err
