@@ -38,12 +38,11 @@ type ArgsNewWebServer struct {
 }
 
 type webServer struct {
+	*sync.RWMutex
 	facade          shared.ApiFacadeHandler
-	mutFacadeSwitch sync.RWMutex
 	apiConfig       config.ApiRoutesConfig
 	antiFloodConfig config.WebServerAntifloodConfig
 	httpServer      shared.HttpServerCloser
-	mutHttpServer   sync.RWMutex
 	cancelFunc      func()
 }
 
@@ -66,8 +65,8 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
 func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpServerCloser, error) {
-	ws.mutFacadeSwitch.Lock()
-	defer ws.mutFacadeSwitch.Unlock()
+	ws.Lock()
+	defer ws.Unlock()
 
 	ws.facade = facade
 	closableWebServer, err := ws.CreateHttpServer()
@@ -75,9 +74,7 @@ func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpSe
 		return nil, err
 	}
 
-	ws.mutHttpServer.Lock()
 	ws.httpServer = closableWebServer
-	ws.mutHttpServer.Unlock()
 
 	return closableWebServer, nil
 }
@@ -132,17 +129,17 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	ws.mutHttpServer.Lock()
+	ws.Lock()
 	ws.httpServer = wrappedServer
-	ws.mutHttpServer.Unlock()
+	ws.Unlock()
 
 	return wrappedServer, nil
 }
 
 // GetHttpServer returns the closable http server
 func (ws *webServer) GetHttpServer() shared.HttpServerCloser {
-	ws.mutHttpServer.RLock()
-	defer ws.mutHttpServer.RUnlock()
+	ws.RLock()
+	defer ws.RUnlock()
 
 	return ws.httpServer
 }
