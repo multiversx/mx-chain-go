@@ -1,10 +1,9 @@
 package external
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -55,13 +54,13 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 	return nar.statusMetricsHandler
 }
 
-//ComputeTransactionGasLimit will calculate how many gas a transaction will consume
-func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+// ComputeTransactionGasLimit will calculate how many gas a transaction will consume
+func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
 }
 
 // GetTotalStakedValue will return total staked value
-func (nar *NodeApiResolver) GetTotalStakedValue() (*big.Int, error) {
+func (nar *NodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 

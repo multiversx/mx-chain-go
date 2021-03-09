@@ -35,7 +35,7 @@ type Facade struct {
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
@@ -50,7 +50,7 @@ type Facade struct {
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetTotalStakedValueHandler              func() (*big.Int, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 }
 
 // GetUsername -
@@ -214,12 +214,12 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue -
-func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return f.GetTotalStakedValueHandler()
 }
 
 // ComputeTransactionGasLimit --
-func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }
 

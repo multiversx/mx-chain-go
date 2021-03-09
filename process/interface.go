@@ -1043,7 +1043,7 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo)
-	SaveAccounts(acc []state.UserAccountHandler)
+	SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool
 	IsNilIndexer() bool

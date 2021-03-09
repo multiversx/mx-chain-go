@@ -31,6 +31,10 @@ func TestScCallShouldWork(t *testing.T) {
 
 	for idx := uint64(0); idx < 10; idx++ {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
+
+		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
+		require.Equal(t, uint64(387), calculatedGasLimit)
+
 		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
 		require.Nil(t, testContext.GetLatestError())

@@ -4,15 +4,15 @@ import "github.com/ElrondNetwork/elrond-go/data/transaction"
 
 // TransactionCostEstimatorMock  --
 type TransactionCostEstimatorMock struct {
-	ComputeTransactionGasLimitCalled func(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimitCalled func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 }
 
 // ComputeTransactionGasLimit --
-func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	if tcem.ComputeTransactionGasLimitCalled != nil {
 		return tcem.ComputeTransactionGasLimitCalled(tx)
 	}
-	return 0, nil
+	return &transaction.CostResponse{}, nil
 }
 
 // IsInterfaceNil --
