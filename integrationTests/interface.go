@@ -64,7 +64,7 @@ type Facade interface {
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
-	GetTotalStakedValue() (*big.Int, error)
+	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
