@@ -61,6 +61,7 @@ func NewESDTNFTTransferFunc(
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		gasConfig:        gasConfig,
+		mutExecution:     sync.RWMutex{},
 	}
 
 	return e, nil
@@ -83,7 +84,7 @@ func (e *esdtNFTTransfer) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT NFT transfer roles function call
 func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -181,7 +182,10 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode:   vmcommon.Ok,
+		GasRemaining: vmInput.GasProvided - e.funcGasCost,
+	}
 	err = e.createNFTOutputTransfers(vmInput, vmOutput, esdtData, dstAddress)
 	if err != nil {
 		return nil, err
@@ -196,7 +200,6 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 	esdtTransferData *esdt.ESDigitalToken,
 	dstAddress []byte,
 ) error {
-
 	marshalledNFTTransfer, err := e.marshalizer.Marshal(esdtTransferData)
 	if err != nil {
 		return err
@@ -259,6 +262,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 	if e.shardCoordinator.SelfId() == e.shardCoordinator.ComputeId(dstAddress) {
 		return nil
 	}
+
 	accountHandler, err := e.accounts.LoadAccount(dstAddress)
 	if err != nil {
 		return err
