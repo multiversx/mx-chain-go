@@ -13,8 +13,8 @@ func (m *ShardData) GetShardMiniBlockHeaderHandlers() []data.MiniBlockHeaderHand
 	}
 
 	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(m.ShardMiniBlockHeaders))
-	for i, mbhh := range m.ShardMiniBlockHeaders {
-		miniBlockHeaderHandlers[i] = &mbhh
+	for i, _ := range m.ShardMiniBlockHeaders {
+		miniBlockHeaderHandlers[i] = &m.ShardMiniBlockHeaders[i]
 	}
 	return miniBlockHeaderHandlers
 }

@@ -3331,7 +3331,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
 	arguments.BlockTracker = mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
-	sp, _ := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
 
 	prevRandSeed := []byte("prevrand")
 	currRandSeed := []byte("currrand")
@@ -3368,19 +3369,23 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	}
 	mbHeaders := make([]block.MiniBlockHeader, 0)
 
-	hashed, _ := core.CalculateHash(marshalizer, hasher, &miniblock1)
+	hashed, err := core.CalculateHash(marshalizer, hasher, &miniblock1)
+	require.Nil(t, err)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock2)
+	hashed, err = core.CalculateHash(marshalizer, hasher, &miniblock2)
+	require.Nil(t, err)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
-	hashed, _ = core.CalculateHash(marshalizer, hasher, &miniblock3)
+	hashed, err = core.CalculateHash(marshalizer, hasher, &miniblock3)
+	require.Nil(t, err)
 	mbHeaders = append(mbHeaders, block.MiniBlockHeader{Hash: hashed})
 
 	miniBlocks := make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock1, miniblock2)
 	//header shard 0
-	prevHash, _ := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(core.MetachainShardId).(*block.MetaBlock))
+	prevHash, err := sp.ComputeHeaderHash(sp.LastNotarizedHdrForShard(core.MetachainShardId).(*block.MetaBlock))
+	require.Nil(t, err)
 	prevHdr := &block.MetaBlock{
 		Round:        10,
 		Nonce:        45,
@@ -3392,7 +3397,8 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	miniBlocks = make([]block.MiniBlock, 0)
 	miniBlocks = append(miniBlocks, miniblock3, miniblock4)
-	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	prevHash, err = sp.ComputeHeaderHash(prevHdr)
+	require.Nil(t, err)
 	currHdr := &block.MetaBlock{
 		Round:        11,
 		Nonce:        46,
@@ -3401,8 +3407,10 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 		PrevHash:     prevHash,
 		RootHash:     []byte("currRootHash"),
 		ShardInfo:    createShardData(hasher, marshalizer, miniBlocks)}
-	currHash, _ := sp.ComputeHeaderHash(currHdr)
-	prevHash, _ = sp.ComputeHeaderHash(prevHdr)
+	currHash, err := sp.ComputeHeaderHash(currHdr)
+	require.Nil(t, err)
+	prevHash, err = sp.ComputeHeaderHash(prevHdr)
+	require.Nil(t, err)
 
 	// put headers in pool
 	datapool.Headers().AddHeader(currHash, currHdr)

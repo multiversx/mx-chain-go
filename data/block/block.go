@@ -93,11 +93,17 @@ func (h *Header) SetTimeStamp(ts uint64) {
 
 // SetAccumulatedFees sets the accumulated fees in the header
 func (h *Header) SetAccumulatedFees(value *big.Int) {
+	if h.AccumulatedFees == nil {
+		h.AccumulatedFees = big.NewInt(0)
+	}
 	h.AccumulatedFees.Set(value)
 }
 
 // SetDeveloperFees sets the developer fees in the header
 func (h *Header) SetDeveloperFees(value *big.Int) {
+	if h.DeveloperFees == nil {
+		h.DeveloperFees = big.NewInt(0)
+	}
 	h.DeveloperFees.Set(value)
 }
 
@@ -228,8 +234,8 @@ func (h *Header) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	mbHeaders := h.GetMiniBlockHeaders()
 	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
 
-	for i, mbHeader := range mbHeaders {
-		mbHeaderHandlers[i] = &mbHeader
+	for i, _ := range mbHeaders {
+		mbHeaderHandlers[i] = &mbHeaders[i]
 	}
 
 	return mbHeaderHandlers
@@ -280,5 +286,3 @@ func (mb *MiniBlock) Clone() *MiniBlock {
 
 	return newMb
 }
-
-

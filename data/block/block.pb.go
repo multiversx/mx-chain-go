@@ -181,7 +181,7 @@ func (m *MiniBlockHeader) GetHash() []byte {
 	return nil
 }
 
-func (m *MiniBlockHeader)  GetSenderShardID() uint32 {
+func (m *MiniBlockHeader) GetSenderShardID() uint32 {
 	if m != nil {
 		return m.SenderShardID
 	}

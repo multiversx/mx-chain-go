@@ -67,7 +67,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochStartShardHeader = t.epochStartShardHeader
 
 	//TODO: change to protoMarshalizer
-	data, err := json.Marshal(registry)
+	marshalled, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
@@ -75,5 +75,5 @@ func (t *trigger) saveState(key []byte) error {
 	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
-	return t.triggerStorage.Put(trigInternalKey, data)
+	return t.triggerStorage.Put(trigInternalKey, marshalled)
 }
