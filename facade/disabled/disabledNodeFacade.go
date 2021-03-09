@@ -149,7 +149,7 @@ func (nf *disabledNodeFacade) GetTransaction(_ string, _ bool) (*transaction.Api
 }
 
 // ComputeTransactionGasLimit returns 0 and error
-func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transaction) (*transaction.CostResponse, error){
+func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nil, errNodeStarting
 }
 
@@ -173,8 +173,8 @@ func (nf *disabledNodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return nf.statusMetricsHandler
 }
 
-// GetTotalStakedValue returns a total staked value of 0
-func (nf *disabledNodeFacade) GetTotalStakedValue() (*big.Int, error) {
+// GetTotalStakedValue returns nil and error
+func (nf *disabledNodeFacade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nil, errNodeStarting
 }
 
@@ -249,7 +249,7 @@ func (nf *disabledNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 }
 
 // GetKeyValuePairs -
-func (nf *disabledNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error){
+func (nf *disabledNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
 	return nil, nil
 }
 
