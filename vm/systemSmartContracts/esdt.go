@@ -219,14 +219,14 @@ func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcom
 
 // format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := e.checkBasicCreateArguments(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
 	if len(args.Arguments) < 4 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
+	}
+
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
@@ -337,14 +337,15 @@ func (e *esdt) createNewToken(
 	}
 
 	newESDTToken := &ESDTData{
-		OwnerAddress: owner,
-		TokenName:    tokenName,
-		TickerName:   tickerName,
-		TokenType:    tokenType,
-		NumDecimals:  numDecimals,
-		MintedValue:  big.NewInt(0).Set(initialSupply),
-		BurntValue:   big.NewInt(0),
-		Upgradable:   true,
+		OwnerAddress:       owner,
+		TokenName:          tokenName,
+		TickerName:         tickerName,
+		TokenType:          tokenType,
+		NumDecimals:        numDecimals,
+		MintedValue:        big.NewInt(0).Set(initialSupply),
+		BurntValue:         big.NewInt(0),
+		Upgradable:         true,
+		CanAddSpecialRoles: true,
 	}
 	err = upgradeProperties(newESDTToken, properties, string(tokenType))
 	if err != nil {

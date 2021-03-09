@@ -254,7 +254,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 	if err != nil {
 		return nil, err
 	}
-	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTCreate, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTNFTTransfer, newFunc)
 	if err != nil {
 		return nil, err
 	}

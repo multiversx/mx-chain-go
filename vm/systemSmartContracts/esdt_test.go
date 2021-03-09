@@ -2148,6 +2148,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
 		TokenName:    []byte("esdtToken"),
+		TokenType:    []byte(core.FungibleESDT),
 		OwnerAddress: []byte("owner"),
 		Upgradable:   true,
 		BurntValue:   big.NewInt(100),
@@ -2395,6 +2396,8 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
 					},
 				},
+				TokenType:          []byte(core.FungibleESDT),
+				CanAddSpecialRoles: true,
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
@@ -2434,6 +2437,8 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 						Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
 					},
 				},
+				TokenType:          []byte(core.FungibleESDT),
+				CanAddSpecialRoles: true,
 			}
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
@@ -2505,7 +2510,7 @@ func TestEsdt_UnsetSpecialRoleCheckArgumentsInvalidRoleErr(t *testing.T) {
 	vmInput.CallValue = big.NewInt(1)
 
 	retCode := e.Execute(vmInput)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.OutOfFunds, retCode)
 }
 
 func TestEsdt_UnsetSpecialRoleCheckArgumentsDuplicatedRoleInArgsShouldErr(t *testing.T) {
