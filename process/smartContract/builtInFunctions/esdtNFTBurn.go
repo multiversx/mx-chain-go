@@ -23,8 +23,8 @@ type esdtNFTBurn struct {
 	mutExecution sync.RWMutex
 }
 
-// NewesdtNFTBurnFunc returns the esdt nft add quantity built-in function component
-func NewesdtNFTBurnFunc(
+// NewESDTNFTBurnFunc returns the esdt nft add quantity built-in function component
+func NewESDTNFTBurnFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,

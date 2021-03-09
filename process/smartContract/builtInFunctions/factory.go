@@ -205,7 +205,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTBurn, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTLocalBurn, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTLocalMintFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTLocalMintFunc(b.gasConfig.BuiltInCost.ESDTLocalMint, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTAddQuantityFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTNFTAddQuantityFunc(b.gasConfig.BuiltInCost.ESDTNFTAddQuantity, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewesdtNFTBurnFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTNFTBurnFunc(b.gasConfig.BuiltInCost.ESDTNFTBurn, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTCreateFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.gasConfig.BaseOperationCost, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = NewESDTNFTCreateFunc(b.gasConfig.BuiltInCost.ESDTNFTCreate, b.gasConfig.BaseOperationCost, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, b.accounts, b.shardCoordinator, b.gasConfig.BaseOperationCost)
+	newFunc, err = NewESDTNFTTransferFunc(b.gasConfig.BuiltInCost.ESDTNFTTransfer, b.marshalizer, pauseFunc, b.accounts, b.shardCoordinator, b.gasConfig.BaseOperationCost)
 	if err != nil {
 		return nil, err
 	}
