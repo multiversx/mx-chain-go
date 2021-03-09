@@ -38,6 +38,7 @@ const canFreeze = "canFreeze"
 const canWipe = "canWipe"
 const canChangeOwner = "canChangeOwner"
 const canAddSpecialRoles = "canAddSpecialRoles"
+const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 
 const conversionBase = 10
@@ -165,6 +166,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.setSpecialRole(args)
 	case "unSetSpecialRole":
 		return e.unSetSpecialRole(args)
+	case "transferNFTCreateRole":
+		return e.transferNFTCreateRole(args)
+	case "stopNFTCreate":
+		return e.stopNFTCreateForever(args)
 	case "getAllAddressesAndRoles":
 		return e.getAllAddressesAndRoles(args)
 	}
@@ -188,11 +193,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 4 {
-		e.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.FunctionWrongSignature
-	}
+func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
@@ -213,13 +214,151 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.OutOfFunds
 	}
 
-	err = e.issueToken(args.CallerAddr, args.Arguments)
+	return vmcommon.Ok
+}
+
+// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
+func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 4 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
+	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
+		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
+		return vmcommon.UserError
+	}
+
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		).Error())
+		return vmcommon.UserError
+	}
+
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		initialSupply,
+		numOfDecimals,
+		args.Arguments[4:],
+		[]byte(core.FungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
+	err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		0,
+		args.Arguments[2:],
+		[]byte(core.SemiFungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	tokenIdentifier, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		0,
+		args.Arguments[2:],
+		[]byte(core.NonFungibleESDT))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(tokenIdentifier)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) createNewToken(
+	owner []byte,
+	tokenName []byte,
+	tickerName []byte,
+	initialSupply *big.Int,
+	numDecimals uint32,
+	properties [][]byte,
+	tokenType []byte,
+) ([]byte, error) {
+	if !isTokenNameHumanReadable(tokenName) {
+		return nil, vm.ErrTokenNameNotHumanReadable
+	}
+
+	if !isTickerValid(tickerName) {
+		return nil, vm.ErrTickerNameNotValid
+	}
+
+	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
+	if err != nil {
+		return nil, err
+	}
+
+	newESDTToken := &ESDTData{
+		OwnerAddress:       owner,
+		TokenName:          tokenName,
+		TickerName:         tickerName,
+		TokenType:          tokenType,
+		NumDecimals:        numDecimals,
+		MintedValue:        big.NewInt(0).Set(initialSupply),
+		BurntValue:         big.NewInt(0),
+		Upgradable:         true,
+		CanAddSpecialRoles: true,
+	}
+	err = upgradeProperties(newESDTToken, properties, string(tokenType))
+	if err != nil {
+		return nil, err
+	}
+	err = e.saveToken(tokenIdentifier, newESDTToken)
+	if err != nil {
+		return nil, err
+	}
+
+	e.addToIssuedTokens(string(tokenIdentifier))
+
+	return tokenIdentifier, nil
 }
 
 func isTickerValid(tickerName []byte) bool {
@@ -274,69 +413,12 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
-// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
-func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
-	tokenName := arguments[0]
-	if !isTokenNameHumanReadable(tokenName) {
-		return vm.ErrTokenNameNotHumanReadable
+func upgradeProperties(token *ESDTData, args [][]byte, tokenType string) error {
+	mintBurnable := true
+	if tokenType != core.FungibleESDT {
+		mintBurnable = false
 	}
 
-	tickerName := arguments[1]
-	if !isTickerValid(tickerName) {
-		return vm.ErrTickerNameNotValid
-	}
-
-	initialSupply := big.NewInt(0).SetBytes(arguments[2])
-	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
-		return vm.ErrNegativeOrZeroInitialSupply
-	}
-
-	numOfDecimals := uint32(big.NewInt(0).SetBytes(arguments[3]).Uint64())
-	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
-		return fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			numOfDecimals,
-		)
-	}
-
-	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
-	if err != nil {
-		return err
-	}
-
-	newESDTToken := &ESDTData{
-		OwnerAddress: owner,
-		TokenName:    tokenName,
-		TickerName:   tickerName,
-		TokenType:    []byte(core.FungibleESDT),
-		NumDecimals:  numOfDecimals,
-		MintedValue:  initialSupply,
-		BurntValue:   big.NewInt(0),
-		Upgradable:   true,
-	}
-	err = upgradeProperties(newESDTToken, arguments[4:])
-	if err != nil {
-		return err
-	}
-	err = e.saveToken(tokenIdentifier, newESDTToken)
-	if err != nil {
-		return err
-	}
-
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		return err
-	}
-
-	e.addToIssuedTokens(string(tokenIdentifier))
-
-	return nil
-}
-
-func upgradeProperties(token *ESDTData, args [][]byte) error {
 	if len(args) == 0 {
 		return nil
 	}
@@ -352,8 +434,14 @@ func upgradeProperties(token *ESDTData, args [][]byte) error {
 		}
 		switch optionalArg {
 		case burnable:
+			if !mintBurnable {
+				return fmt.Errorf("%w only fungible tokens are burnable at system SC", vm.ErrInvalidArgument)
+			}
 			token.Burnable = val
 		case mintable:
+			if !mintBurnable {
+				return fmt.Errorf("%w only fungible tokens are mintable at system SC", vm.ErrInvalidArgument)
+			}
 			token.Mintable = val
 		case canPause:
 			token.CanPause = val
@@ -367,6 +455,8 @@ func upgradeProperties(token *ESDTData, args [][]byte) error {
 			token.CanChangeOwner = val
 		case canAddSpecialRoles:
 			token.CanAddSpecialRoles = val
+		case canTransferNFTCreateRole:
+			token.CanTransferNFTCreateRole = val
 		default:
 			return vm.ErrInvalidArgument
 		}
@@ -797,7 +887,7 @@ func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := upgradeProperties(token, args.Arguments[1:])
+	err := upgradeProperties(token, args.Arguments[1:], string(token.TokenType))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -817,16 +907,88 @@ func (e *esdt) checkArgumentsForSpecialRoleChanges(args *vmcommon.ContractCallIn
 		return vmcommon.FunctionWrongSignature
 	}
 	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("first argument must be an address")
+		e.eei.AddReturnMessage("second argument must be an address")
 		return vmcommon.FunctionWrongSignature
 	}
-	err := validateRoles(args.Arguments[2:])
+	err := checkDuplicates(args.Arguments[2:])
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func isCreateNFTRoleInArgs(args [][]byte) bool {
+	for _, arg := range args {
+		if bytes.Equal(arg, []byte(core.ESDTRoleNFTCreate)) {
+			return true
+		}
+	}
+	return false
+}
+
+func checkIfCreateNFTRoleExists(args [][]byte, token *ESDTData) error {
+	if !isCreateNFTRoleInArgs(args) {
+		return nil
+	}
+
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
+				return vm.ErrNFTCreateRoleAlreadyExists
+			}
+		}
+	}
+
+	return nil
+}
+
+func isSpecialRoleValidForFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleLocalMint:
+		return nil
+	case core.ESDTRoleLocalBurn:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func isSpecialRoleValidForSemiFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleNFTBurn:
+		return nil
+	case core.ESDTRoleNFTAddQuantity:
+		return nil
+	case core.ESDTRoleNFTCreate:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func isSpecialRoleValidForNonFungible(argument string) error {
+	switch argument {
+	case core.ESDTRoleNFTBurn:
+		return nil
+	case core.ESDTRoleNFTCreate:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTData) error {
+	switch string(token.TokenType) {
+	case core.FungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForFungible)
+	case core.NonFungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForNonFungible)
+	case core.SemiFungibleESDT:
+		return validateRoles(args, isSpecialRoleValidForSemiFungible)
+	}
+	return nil
 }
 
 func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -838,6 +1000,23 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+
+	if !token.CanAddSpecialRoles {
+		e.eei.AddReturnMessage("cannot add special roles")
+		return vmcommon.UserError
+	}
+
+	err := checkIfCreateNFTRoleExists(args.Arguments[2:], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
 	address := args.Arguments[1]
@@ -857,7 +1036,7 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
-	err := e.sendRoleChangeData(args, core.BuiltInFunctionSetESDTRole)
+	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], core.BuiltInFunctionSetESDTRole)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -883,6 +1062,11 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return returnCode
 	}
 
+	if isCreateNFTRoleInArgs(args.Arguments[2:]) {
+		e.eei.AddReturnMessage("cannot un set NFT create role")
+		return vmcommon.UserError
+	}
+
 	address := args.Arguments[1]
 	esdtRole, isNew := getRolesForAddress(token, address)
 	if isNew {
@@ -902,7 +1086,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		esdtRole.Roles = esdtRole.Roles[:len(esdtRole.Roles)-1]
 	}
 
-	err := e.sendRoleChangeData(args, core.BuiltInFunctionUnSetESDTRole)
+	err := e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], args.Arguments[2:], core.BuiltInFunctionUnSetESDTRole)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -917,22 +1101,141 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (e *esdt) sendRoleChangeData(args *vmcommon.ContractCallInput, builtInFunc string) error {
-	esdtSetRoleData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
-	for _, arg := range args.Arguments[2:] {
+func (e *esdt) deleteNFTCreateRole(token *ESDTData, currentNFTCreateOwner []byte) ([]byte, vmcommon.ReturnCode) {
+	for _, esdtRole := range token.SpecialRoles {
+		index := getRoleIndex(esdtRole, []byte(core.ESDTRoleNFTCreate))
+		if index < 0 {
+			continue
+		}
+
+		if len(currentNFTCreateOwner) > 0 && !bytes.Equal(esdtRole.Address, currentNFTCreateOwner) {
+			e.eei.AddReturnMessage("address missmatch, second argument must be the one holding the nft create role")
+			return nil, vmcommon.UserError
+		}
+
+		copy(esdtRole.Roles[index:], esdtRole.Roles[index+1:])
+		esdtRole.Roles[len(esdtRole.Roles)-1] = nil
+		esdtRole.Roles = esdtRole.Roles[:len(esdtRole.Roles)-1]
+		return esdtRole.Address, vmcommon.Ok
+	}
+
+	e.eei.AddReturnMessage("no address is holding the nft create role")
+	return nil, vmcommon.UserError
+}
+
+func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkArgumentsForSpecialRoleChanges(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if !token.CanTransferNFTCreateRole {
+		e.eei.AddReturnMessage("nft create role transfer is not allowed")
+		return vmcommon.UserError
+	}
+
+	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
+		e.eei.AddReturnMessage("invalid function call for fungible tokens")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[2]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("third argument must be an address")
+		return vmcommon.FunctionWrongSignature
+	}
+	if bytes.Equal(args.Arguments[1], args.Arguments[2]) {
+		e.eei.AddReturnMessage("second and third arguments must not be equal")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	_, returnCode = e.deleteNFTCreateRole(token, args.Arguments[1])
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	nextNFTCreateOwner := args.Arguments[2]
+	esdtRole, isNew := getRolesForAddress(token, nextNFTCreateOwner)
+	esdtRole.Roles = append(esdtRole.Roles, []byte(core.ESDTRoleNFTCreate))
+	if isNew {
+		token.SpecialRoles = append(token.SpecialRoles, esdtRole)
+	}
+
+	err := e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], [][]byte{[]byte(core.ESDTRoleNFTCreate)}, core.BuiltInFunctionUnSetESDTRole)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferNFTCreateData := core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
+		hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[2])
+	err = e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if token.NFTCreateStopped {
+		e.eei.AddReturnMessage("nft create was already stopped")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
+		e.eei.AddReturnMessage("invalid function call for fungible tokens")
+		return vmcommon.UserError
+	}
+
+	currentOwner, returnCode := e.deleteNFTCreateRole(token, nil)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	token.NFTCreateStopped = true
+	err := e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.sendRoleChangeData(args.Arguments[0], currentOwner, [][]byte{[]byte(core.ESDTRoleNFTCreate)}, core.BuiltInFunctionUnSetESDTRole)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) sendRoleChangeData(tokenID []byte, destination []byte, roles [][]byte, builtInFunc string) error {
+	esdtSetRoleData := builtInFunc + "@" + hex.EncodeToString(tokenID)
+	for _, arg := range roles {
 		esdtSetRoleData += "@" + hex.EncodeToString(arg)
 	}
 
-	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
+	err := e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
 	return err
-}
-
-func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
 }
 
 func (e *esdt) getAllAddressesAndRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -976,31 +1279,15 @@ func checkDuplicates(arguments [][]byte) error {
 	return nil
 }
 
-func validateRoles(arguments [][]byte) error {
-	err := checkDuplicates(arguments)
-	if err != nil {
-		return err
-	}
-
+func validateRoles(arguments [][]byte, isSpecialRoleValid func(role string) error) error {
 	for _, arg := range arguments {
-		err = isSpecialRoleValid(string(arg))
+		err := isSpecialRoleValid(string(arg))
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func isSpecialRoleValid(argument string) error {
-	switch argument {
-	case core.ESDTRoleLocalMint:
-		return nil
-	case core.ESDTRoleLocalBurn:
-		return nil
-	default:
-		return vm.ErrInvalidArgument
-	}
 }
 
 func getRoleIndex(esdtRoles *ESDTRoles, role []byte) int {

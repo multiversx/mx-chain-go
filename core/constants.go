@@ -502,6 +502,9 @@ const BuiltInFunctionESDTNFTCreate = "ESDTNFTCreate"
 // BuiltInFunctionESDTNFTAddQuantity is the key for the elrond standard digital token NFT add quantity built-in function
 const BuiltInFunctionESDTNFTAddQuantity = "ESDTNFTAddQuantity"
 
+// BuiltInFunctionESDTNFTCreateRoleTransfer is the key for the elrond standard digital token create role transfer function
+const BuiltInFunctionESDTNFTCreateRoleTransfer = "BuiltInFunctionESDTNFTCreateRoleTransfer"
+
 // BuiltInFunctionESDTNFTBurn is the key for the elrond standard digital token NFT burn built-in function
 const BuiltInFunctionESDTNFTBurn = "ESDTNFTBurn"
 
@@ -528,6 +531,8 @@ const (
 	Fungible ESDTType = iota
 	// NonFungible defines the token for non fungible tokens
 	NonFungible
+	// SemiFungible defines the token for semi fungible tokens
+	SemiFungible
 )
 
 // FungibleESDT defines the string for the token type of fungible ESDT
@@ -535,6 +540,9 @@ const FungibleESDT = "FungibleESDT"
 
 // NonFungibleESDT defines the string for the token type of non fungible ESDT
 const NonFungibleESDT = "NonFungibleESDT"
+
+// SemiFungibleESDT defines the string for the token type of semi fungible ESDT
+const SemiFungibleESDT = "SemiFungibleESDT"
 
 // MaxRoyalty defines 100% as uint32
 const MaxRoyalty = uint32(10000)

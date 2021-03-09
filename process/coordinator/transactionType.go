@@ -125,11 +125,14 @@ func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, t
 	if len(args) <= 2 {
 		return false
 	}
-	if function != core.BuiltInFunctionESDTTransfer {
-		return false
+	if function == core.BuiltInFunctionESDTTransfer && len(args) > 2 {
+		return true
+	}
+	if function == core.BuiltInFunctionESDTNFTTransfer && len(args) > 4 {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) (string, [][]byte) {

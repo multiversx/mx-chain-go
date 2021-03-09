@@ -375,8 +375,9 @@ func CreateVMAndBlockchainHook(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		Marshalizer: testMarshalizer,
-		Accounts:    accnts,
+		Marshalizer:      testMarshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()

@@ -23,7 +23,6 @@ type esdtNFTTransfer struct {
 	keyPrefix        []byte
 	marshalizer      marshal.Marshalizer
 	pauseHandler     process.ESDTPauseHandler
-	rolesHandler     process.ESDTRoleHandler
 	payableHandler   process.PayableHandler
 	funcGasCost      uint64
 	accounts         state.AccountsAdapter
@@ -37,8 +36,6 @@ func NewESDTNFTTransferFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,
-	rolesHandler process.ESDTRoleHandler,
-	payableHandler process.PayableHandler,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	gasConfig process.BaseOperationCost,
@@ -48,9 +45,6 @@ func NewESDTNFTTransferFunc(
 	}
 	if check.IfNil(pauseHandler) {
 		return nil, process.ErrNilPauseHandler
-	}
-	if check.IfNil(rolesHandler) {
-		return nil, process.ErrNilRolesHandler
 	}
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
@@ -63,16 +57,23 @@ func NewESDTNFTTransferFunc(
 		keyPrefix:        []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		marshalizer:      marshalizer,
 		pauseHandler:     pauseHandler,
-		rolesHandler:     rolesHandler,
 		funcGasCost:      funcGasCost,
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
-		payableHandler:   payableHandler,
 		gasConfig:        gasConfig,
 		mutExecution:     sync.RWMutex{},
 	}
 
 	return e, nil
+}
+
+func (e *esdtNFTTransfer) setPayableHandler(payableHandler process.PayableHandler) error {
+	if check.IfNil(payableHandler) {
+		return process.ErrNilPayableHandler
+	}
+
+	e.payableHandler = payableHandler
+	return nil
 }
 
 // SetNewGasConfig is called whenever gas cost is changed
@@ -234,13 +235,6 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 
 		return nil
 	}
-
-	addNFTTransferToVMOutput(
-		dstAddress,
-		nftTransferCallArgs,
-		0,
-		0,
-		vmOutput)
 
 	if isSCCallAfter {
 		var callArgs [][]byte
