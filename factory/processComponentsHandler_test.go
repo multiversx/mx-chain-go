@@ -54,6 +54,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 		networkComponents,
 	)
 
+	factory.SetShardCoordinator(shardCoordinator, processArgs.BootstrapComponents)
+
 	processComponentsFactory, err := factory.NewProcessComponentsFactory(processArgs)
 	require.Nil(t, err)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)

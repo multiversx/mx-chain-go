@@ -3,7 +3,6 @@ package factory_test
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -67,11 +66,27 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
-	epochStartConfig := getEpochStartConfig()
+	//epochStartConfig := getEpochStartConfig()
 
 	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,
 	}
+
+	statusComponents := getStatusComponents(
+		coreComponents,
+		networkComponents,
+		dataComponents,
+		stateComponents,
+		shardCoordinator,
+		&mock.NodesCoordinatorMock{},
+		&mock.EpochStartNotifierStub{},
+	)
+
+	bootstrapComponentsFactoryArgs := getBootStrapArgs()
+
+	bootstrapComponentsFactory, _ := factory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	bootstrapComponents, _ := factory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	_ = bootstrapComponents.Create()
 
 	return factory.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -126,34 +141,36 @@ func getProcessArgs(
 			},
 		},
 		SmartContractParser: &mock.SmartContractParserStub{},
-		EconomicsData:       CreateEconomicsData(),
-		GasSchedule:         gasScheduleNotifier,
-		RoundHandler: &mock.RoundHandlerMock{
-			RoundTimeDuration: time.Second,
-		},
-		ShardCoordinator:          shardCoordinator,
-		NodesCoordinator:          &mock.NodesCoordinatorMock{},
-		Data:                      dataComponents,
-		CoreData:                  coreComponents,
-		Crypto:                    cryptoComponents,
-		State:                     stateComponents,
-		Network:                   networkComponents,
-		RequestedItemsHandler:     &testscommon.RequestedItemsHandlerStub{},
-		WhiteListHandler:          &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:    &testscommon.WhiteListHandlerStub{},
-		EpochStartNotifier:        &mock.EpochStartNotifierStub{},
-		EpochStart:                &epochStartConfig,
-		Rater:                     &testscommon.RaterMock{},
-		RatingsData:               &testscommon.RatingsInfoMock{},
-		SizeCheckDelta:            0,
-		StateCheckpointModulus:    0,
-		MaxComputableRounds:       1000,
-		NumConcurrentResolverJobs: 2,
-		MinSizeInBytes:            0,
-		MaxSizeInBytes:            200,
-		MaxRating:                 100,
-		ImportStartHandler:        &testscommon.ImportStartHandlerStub{},
-		ValidatorPubkeyConverter:  &testscommon.PubkeyConverterMock{},
+		//EconomicsData:       CreateEconomicsData(),
+		GasSchedule: gasScheduleNotifier,
+		//RoundHandler: &mock.RoundHandlerMock{
+		//	RoundTimeDuration: time.Second,
+		//},
+		//ShardCoordinator:          shardCoordinator,
+		NodesCoordinator:       &mock.NodesCoordinatorMock{},
+		Data:                   dataComponents,
+		CoreData:               coreComponents,
+		Crypto:                 cryptoComponents,
+		State:                  stateComponents,
+		Network:                networkComponents,
+		StatusComponents:       statusComponents,
+		BootstrapComponents:    bootstrapComponents,
+		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
+		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
+		//EpochStartNotifier:        &mock.EpochStartNotifierStub{},
+		//EpochStart:                &epochStartConfig,
+		//Rater:                     &testscommon.RaterMock{},
+		//RatingsData:               &testscommon.RatingsInfoMock{},
+		//SizeCheckDelta:            0,
+		//StateCheckpointModulus:    0,
+		//MaxComputableRounds:       1000,
+		//NumConcurrentResolverJobs: 2,
+		//MinSizeInBytes:            0,
+		//MaxSizeInBytes:            200,
+		MaxRating:          100,
+		ImportStartHandler: &testscommon.ImportStartHandlerStub{},
+		//ValidatorPubkeyConverter:  &testscommon.PubkeyConverterMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -193,11 +210,11 @@ func getProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version:                 "v1.0.0",
-		Indexer:                 &mock.IndexerMock{},
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		Version: "v1.0.0",
+		//Indexer:                 &mock.IndexerMock{},
+		//TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+		HistoryRepo: &testscommon.HistoryRepositoryStub{},
+		//HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }
 
