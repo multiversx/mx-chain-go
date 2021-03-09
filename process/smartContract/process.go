@@ -957,14 +957,14 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	if check.IfNil(acntDst) {
 		return false, nil, nil
 	}
-	receipient := vmInput.RecipientAddr
+	recipient := vmInput.RecipientAddr
 	if vmInput.Function == core.BuiltInFunctionESDTNFTTransfer && bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
 		if len(vmInput.Arguments) <= 4 {
 			return false, nil, nil
 		}
-		receipient = vmInput.Arguments[3]
+		recipient = vmInput.Arguments[3]
 	}
-	if !core.IsSmartContractAddress(receipient) {
+	if !core.IsSmartContractAddress(recipient) {
 		return false, nil, nil
 	}
 
@@ -974,7 +974,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return true, newVMInput, nil
 	}
 
-	outAcc, ok := vmOutput.OutputAccounts[string(receipient)]
+	outAcc, ok := vmOutput.OutputAccounts[string(recipient)]
 	if !ok {
 		return false, nil, nil
 	}
@@ -1000,7 +1000,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
 		},
-		RecipientAddr:     receipient,
+		RecipientAddr:     recipient,
 		Function:          function,
 		AllowInitFunction: false,
 	}
