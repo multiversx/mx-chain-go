@@ -359,7 +359,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = indexGenesisAccounts(args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
+	err = indexGenesisAccounts(args.nodesConfig.GetStartTime(), args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
 	if err != nil {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
@@ -588,7 +588,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
-func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer process.Indexer, marshalizer marshal.Marshalizer) error {
+func indexGenesisAccounts(startTime int64, accountsAdapter state.AccountsAdapter, indexer process.Indexer, marshalizer marshal.Marshalizer) error {
 	if indexer.IsNilIndexer() {
 		return nil
 	}
@@ -615,7 +615,7 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer process
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	indexer.SaveAccounts(genesisAccounts)
+	indexer.SaveAccounts(uint64(startTime), genesisAccounts)
 	return nil
 }
 

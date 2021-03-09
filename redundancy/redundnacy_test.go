@@ -4,37 +4,65 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/redundancy/mock"
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArguments(redundancyLevel int64) redundancy.ArgNodeRedundancy {
+	return redundancy.ArgNodeRedundancy{
+		RedundancyLevel:    redundancyLevel,
+		Messenger:          &mock.MessengerStub{},
+		ObserverPrivateKey: &mock.PrivateKeyStub{},
+	}
+}
+
 func TestNewNodeRedundancy_ShouldErrNilMessenger(t *testing.T) {
 	t.Parallel()
 
-	nr, err := redundancy.NewNodeRedundancy(0, nil)
-	assert.Nil(t, nr)
+	arg := createMockArguments(0)
+	arg.Messenger = nil
+	nr, err := redundancy.NewNodeRedundancy(arg)
+
+	assert.True(t, check.IfNil(nr))
 	assert.Equal(t, redundancy.ErrNilMessenger, err)
+}
+
+func TestNewNodeRedundancy_ShouldErrNilObserverPrivateKey(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments(0)
+	arg.ObserverPrivateKey = nil
+	nr, err := redundancy.NewNodeRedundancy(arg)
+
+	assert.True(t, check.IfNil(nr))
+	assert.Equal(t, redundancy.ErrNilObserverPrivateKey, err)
 }
 
 func TestNewNodeRedundancy_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nr, err := redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
-	assert.NotNil(t, nr)
+	arg := createMockArguments(0)
+	nr, err := redundancy.NewNodeRedundancy(arg)
+
+	assert.False(t, check.IfNil(nr))
 	assert.Nil(t, err)
 }
 
 func TestIsRedundancyNode_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(-1, &mock.MessengerStub{})
+	arg := createMockArguments(-1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	assert.True(t, nr.IsRedundancyNode())
 
-	nr, _ = redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
+	arg = createMockArguments(0)
+	nr, _ = redundancy.NewNodeRedundancy(arg)
 	assert.False(t, nr.IsRedundancyNode())
 
-	nr, _ = redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg = createMockArguments(1)
+	nr, _ = redundancy.NewNodeRedundancy(arg)
 	assert.True(t, nr.IsRedundancyNode())
 }
 
@@ -43,7 +71,8 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 
 	maxRoundsOfInactivityAccepted := redundancy.GetMaxRoundsOfInactivityAccepted()
 
-	nr, _ := redundancy.NewNodeRedundancy(-1, &mock.MessengerStub{})
+	arg := createMockArguments(-1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
@@ -52,7 +81,8 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
 	assert.True(t, nr.IsMainMachineActive())
 
-	nr, _ = redundancy.NewNodeRedundancy(0, &mock.MessengerStub{})
+	arg = createMockArguments(0)
+	nr, _ = redundancy.NewNodeRedundancy(arg)
 	assert.False(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
@@ -61,7 +91,8 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
 	assert.False(t, nr.IsMainMachineActive())
 
-	nr, _ = redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg = createMockArguments(1)
+	nr, _ = redundancy.NewNodeRedundancy(arg)
 	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted - 1)
@@ -70,7 +101,8 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted)
 	assert.False(t, nr.IsMainMachineActive())
 
-	nr, _ = redundancy.NewNodeRedundancy(2, &mock.MessengerStub{})
+	arg = createMockArguments(2)
+	nr, _ = redundancy.NewNodeRedundancy(arg)
 	assert.True(t, nr.IsMainMachineActive())
 
 	nr.SetRoundsOfInactivity(maxRoundsOfInactivityAccepted*2 - 1)
@@ -83,7 +115,8 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 func TestAdjustInactivityIfNeeded_ShouldReturnWhenGivenRoundIndexWasAlreadyChecked(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg := createMockArguments(1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	selfPubKey := "1"
 	consensusPubKeys := []string{"1", "2", "3"}
 
@@ -94,7 +127,8 @@ func TestAdjustInactivityIfNeeded_ShouldReturnWhenGivenRoundIndexWasAlreadyCheck
 func TestAdjustInactivityIfNeeded_ShouldNotAdjustIfSelfPubKeyIsNotContainedInConsensusPubKeys(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg := createMockArguments(1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	selfPubKey := "4"
 	consensusPubKeys := []string{"1", "2", "3"}
 
@@ -111,7 +145,8 @@ func TestAdjustInactivityIfNeeded_ShouldNotAdjustIfSelfPubKeyIsNotContainedInCon
 func TestAdjustInactivityIfNeeded_ShouldAdjustOnlyOneTimeInTheSameRound(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg := createMockArguments(1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	selfPubKey := "3"
 	consensusPubKeys := []string{"1", "2", "3"}
 
@@ -124,7 +159,8 @@ func TestAdjustInactivityIfNeeded_ShouldAdjustOnlyOneTimeInTheSameRound(t *testi
 func TestAdjustInactivityIfNeeded_ShouldAdjustCorrectlyInDifferentRounds(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg := createMockArguments(1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	selfPubKey := "3"
 	consensusPubKeys := []string{"1", "2", "3"}
 
@@ -137,7 +173,8 @@ func TestAdjustInactivityIfNeeded_ShouldAdjustCorrectlyInDifferentRounds(t *test
 func TestResetInactivityIfNeeded_ShouldNotResetIfSelfPubKeyIsNotTheSameWithTheConsensusMsgPubKey(t *testing.T) {
 	t.Parallel()
 
-	nr, _ := redundancy.NewNodeRedundancy(1, &mock.MessengerStub{})
+	arg := createMockArguments(1)
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 	selfPubKey := "1"
 	consensusMsgPubKey := "2"
 	consensusMsgPeerID := core.PeerID("PeerID_2")
@@ -159,7 +196,9 @@ func TestResetInactivityIfNeeded_ShouldNotResetIfSelfPeerIDIsTheSameWithTheConse
 			return consensusMsgPeerID
 		},
 	}
-	nr, _ := redundancy.NewNodeRedundancy(1, messengerMock)
+	arg := createMockArguments(1)
+	arg.Messenger = messengerMock
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 
 	nr.SetRoundsOfInactivity(3)
 
@@ -177,10 +216,22 @@ func TestResetInactivityIfNeeded_ShouldResetRoundsOfInactivity(t *testing.T) {
 			return "PeerID_1"
 		},
 	}
-	nr, _ := redundancy.NewNodeRedundancy(1, messengerMock)
+	arg := createMockArguments(1)
+	arg.Messenger = messengerMock
+	nr, _ := redundancy.NewNodeRedundancy(arg)
 
 	nr.SetRoundsOfInactivity(3)
 
 	nr.ResetInactivityIfNeeded(selfPubKey, consensusMsgPubKey, "PeerID_2")
 	assert.Equal(t, uint64(0), nr.GetRoundsOfInactivity())
+}
+
+func TestNodeRedundancy_ObserverPrivateKey(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments(1)
+	arg.ObserverPrivateKey = &mock.PrivateKeyStub{}
+	nr, _ := redundancy.NewNodeRedundancy(arg)
+
+	assert.True(t, nr.ObserverPrivateKey() == arg.ObserverPrivateKey) //pointer testing
 }
