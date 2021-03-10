@@ -29,12 +29,12 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type DelegationManagement struct {
-	NumOfContracts   uint32        `protobuf:"varint,1,opt,name=NumOfContracts,proto3" json:"NumOfContracts"`
-	LastAddress      []byte        `protobuf:"bytes,2,opt,name=LastAddress,proto3" json:"LastAddress"`
-	MinServiceFee    uint64        `protobuf:"varint,3,opt,name=MinServiceFee,proto3" json:"MinServiceFee"`
-	MaxServiceFee    uint64        `protobuf:"varint,4,opt,name=MaxServiceFee,proto3" json:"MaxServiceFee"`
-	BaseIssueingCost *math_big.Int `protobuf:"bytes,5,opt,name=BaseIssueingCost,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BaseIssueingCost"`
-	MinDeposit       *math_big.Int `protobuf:"bytes,6,opt,name=MinDeposit,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinDeposit"`
+	NumOfContracts      uint32        `protobuf:"varint,1,opt,name=NumOfContracts,proto3" json:"NumOfContracts"`
+	LastAddress         []byte        `protobuf:"bytes,2,opt,name=LastAddress,proto3" json:"LastAddress"`
+	MinServiceFee       uint64        `protobuf:"varint,3,opt,name=MinServiceFee,proto3" json:"MinServiceFee"`
+	MaxServiceFee       uint64        `protobuf:"varint,4,opt,name=MaxServiceFee,proto3" json:"MaxServiceFee"`
+	MinDeposit          *math_big.Int `protobuf:"bytes,5,opt,name=MinDeposit,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinDeposit"`
+	MinDelegationAmount *math_big.Int `protobuf:"bytes,6,opt,name=MinDelegationAmount,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinDelegationAmount"`
 }
 
 func (m *DelegationManagement) Reset()      { *m = DelegationManagement{} }
@@ -93,16 +93,16 @@ func (m *DelegationManagement) GetMaxServiceFee() uint64 {
 	return 0
 }
 
-func (m *DelegationManagement) GetBaseIssueingCost() *math_big.Int {
+func (m *DelegationManagement) GetMinDeposit() *math_big.Int {
 	if m != nil {
-		return m.BaseIssueingCost
+		return m.MinDeposit
 	}
 	return nil
 }
 
-func (m *DelegationManagement) GetMinDeposit() *math_big.Int {
+func (m *DelegationManagement) GetMinDelegationAmount() *math_big.Int {
 	if m != nil {
-		return m.MinDeposit
+		return m.MinDelegationAmount
 	}
 	return nil
 }
@@ -147,12 +147,13 @@ func (m *DelegationContractList) GetAddresses() [][]byte {
 }
 
 type DelegationConfig struct {
-	MaxDelegationCap     *math_big.Int `protobuf:"bytes,1,opt,name=MaxDelegationCap,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MaxDelegationCap"`
-	InitialOwnerFunds    *math_big.Int `protobuf:"bytes,2,opt,name=InitialOwnerFunds,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"InitialOwnerFunds"`
-	AutomaticActivation  bool          `protobuf:"varint,3,opt,name=AutomaticActivation,proto3" json:"AutomaticActivation"`
-	ChangeableServiceFee bool          `protobuf:"varint,4,opt,name=ChangeableServiceFee,proto3" json:"ChangeableServiceFee"`
-	CreatedNonce         uint64        `protobuf:"varint,5,opt,name=CreatedNonce,proto3" json:"CreatedNonce"`
-	UnBondPeriod         uint64        `protobuf:"varint,6,opt,name=UnBondPeriod,proto3" json:"UnBondPeriod"`
+	MaxDelegationCap            *math_big.Int `protobuf:"bytes,1,opt,name=MaxDelegationCap,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MaxDelegationCap"`
+	InitialOwnerFunds           *math_big.Int `protobuf:"bytes,2,opt,name=InitialOwnerFunds,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"InitialOwnerFunds"`
+	AutomaticActivation         bool          `protobuf:"varint,3,opt,name=AutomaticActivation,proto3" json:"AutomaticActivation"`
+	ChangeableServiceFee        bool          `protobuf:"varint,4,opt,name=ChangeableServiceFee,proto3" json:"ChangeableServiceFee"`
+	CreatedNonce                uint64        `protobuf:"varint,5,opt,name=CreatedNonce,proto3" json:"CreatedNonce"`
+	UnBondPeriod                uint64        `protobuf:"varint,6,opt,name=UnBondPeriod,proto3" json:"UnBondPeriod"`
+	CheckCapOnReDelegateRewards bool          `protobuf:"varint,7,opt,name=CheckCapOnReDelegateRewards,proto3" json:"CheckCapOnReDelegateRewards"`
 }
 
 func (m *DelegationConfig) Reset()      { *m = DelegationConfig{} }
@@ -225,17 +226,79 @@ func (m *DelegationConfig) GetUnBondPeriod() uint64 {
 	return 0
 }
 
+func (m *DelegationConfig) GetCheckCapOnReDelegateRewards() bool {
+	if m != nil {
+		return m.CheckCapOnReDelegateRewards
+	}
+	return false
+}
+
+type DelegationMetaData struct {
+	Name       []byte `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name"`
+	Website    []byte `protobuf:"bytes,2,opt,name=Website,proto3" json:"Website"`
+	Identifier []byte `protobuf:"bytes,3,opt,name=Identifier,proto3" json:"Identifier"`
+}
+
+func (m *DelegationMetaData) Reset()      { *m = DelegationMetaData{} }
+func (*DelegationMetaData) ProtoMessage() {}
+func (*DelegationMetaData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b823c7d67e95582e, []int{3}
+}
+func (m *DelegationMetaData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DelegationMetaData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *DelegationMetaData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DelegationMetaData.Merge(m, src)
+}
+func (m *DelegationMetaData) XXX_Size() int {
+	return m.Size()
+}
+func (m *DelegationMetaData) XXX_DiscardUnknown() {
+	xxx_messageInfo_DelegationMetaData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DelegationMetaData proto.InternalMessageInfo
+
+func (m *DelegationMetaData) GetName() []byte {
+	if m != nil {
+		return m.Name
+	}
+	return nil
+}
+
+func (m *DelegationMetaData) GetWebsite() []byte {
+	if m != nil {
+		return m.Website
+	}
+	return nil
+}
+
+func (m *DelegationMetaData) GetIdentifier() []byte {
+	if m != nil {
+		return m.Identifier
+	}
+	return nil
+}
+
 type DelegationContractStatus struct {
-	Delegators    [][]byte     `protobuf:"bytes,1,rep,name=Delegators,proto3" json:"Delegators"`
-	StakedKeys    []*NodesData `protobuf:"bytes,2,rep,name=StakedKeys,proto3" json:"StakedKeys"`
-	NotStakedKeys []*NodesData `protobuf:"bytes,3,rep,name=NotStakedKeys,proto3" json:"NotStakedKeys"`
-	UnStakedKeys  []*NodesData `protobuf:"bytes,4,rep,name=UnStakedKeys,proto3" json:"UnStakedKeys"`
+	StakedKeys    []*NodesData `protobuf:"bytes,1,rep,name=StakedKeys,proto3" json:"StakedKeys"`
+	NotStakedKeys []*NodesData `protobuf:"bytes,2,rep,name=NotStakedKeys,proto3" json:"NotStakedKeys"`
+	UnStakedKeys  []*NodesData `protobuf:"bytes,3,rep,name=UnStakedKeys,proto3" json:"UnStakedKeys"`
+	NumUsers      uint64       `protobuf:"varint,4,opt,name=NumUsers,proto3" json:"NumUsers"`
 }
 
 func (m *DelegationContractStatus) Reset()      { *m = DelegationContractStatus{} }
 func (*DelegationContractStatus) ProtoMessage() {}
 func (*DelegationContractStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{3}
+	return fileDescriptor_b823c7d67e95582e, []int{4}
 }
 func (m *DelegationContractStatus) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -260,13 +323,6 @@ func (m *DelegationContractStatus) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DelegationContractStatus proto.InternalMessageInfo
 
-func (m *DelegationContractStatus) GetDelegators() [][]byte {
-	if m != nil {
-		return m.Delegators
-	}
-	return nil
-}
-
 func (m *DelegationContractStatus) GetStakedKeys() []*NodesData {
 	if m != nil {
 		return m.StakedKeys
@@ -288,6 +344,13 @@ func (m *DelegationContractStatus) GetUnStakedKeys() []*NodesData {
 	return nil
 }
 
+func (m *DelegationContractStatus) GetNumUsers() uint64 {
+	if m != nil {
+		return m.NumUsers
+	}
+	return 0
+}
+
 type Fund struct {
 	Value   *math_big.Int `protobuf:"bytes,1,opt,name=Value,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Value"`
 	Address []byte        `protobuf:"bytes,2,opt,name=Address,proto3" json:"Address"`
@@ -298,7 +361,7 @@ type Fund struct {
 func (m *Fund) Reset()      { *m = Fund{} }
 func (*Fund) ProtoMessage() {}
 func (*Fund) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{4}
+	return fileDescriptor_b823c7d67e95582e, []int{5}
 }
 func (m *Fund) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -352,16 +415,17 @@ func (m *Fund) GetType() uint32 {
 }
 
 type DelegatorData struct {
-	ActiveFund        []byte        `protobuf:"bytes,1,opt,name=ActiveFund,proto3" json:"ActiveFund"`
-	UnStakedFunds     [][]byte      `protobuf:"bytes,2,rep,name=UnStakedFunds,proto3" json:"UnStakedFunds"`
-	RewardsCheckpoint uint32        `protobuf:"varint,3,opt,name=RewardsCheckpoint,proto3" json:"RewardsCheckpoint"`
-	UnClaimedRewards  *math_big.Int `protobuf:"bytes,4,opt,name=UnClaimedRewards,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"UnClaimedRewards"`
+	ActiveFund            []byte        `protobuf:"bytes,1,opt,name=ActiveFund,proto3" json:"ActiveFund"`
+	UnStakedFunds         [][]byte      `protobuf:"bytes,2,rep,name=UnStakedFunds,proto3" json:"UnStakedFunds"`
+	RewardsCheckpoint     uint32        `protobuf:"varint,3,opt,name=RewardsCheckpoint,proto3" json:"RewardsCheckpoint"`
+	UnClaimedRewards      *math_big.Int `protobuf:"bytes,4,opt,name=UnClaimedRewards,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"UnClaimedRewards"`
+	TotalCumulatedRewards *math_big.Int `protobuf:"bytes,5,opt,name=TotalCumulatedRewards,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalCumulatedRewards"`
 }
 
 func (m *DelegatorData) Reset()      { *m = DelegatorData{} }
 func (*DelegatorData) ProtoMessage() {}
 func (*DelegatorData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{5}
+	return fileDescriptor_b823c7d67e95582e, []int{6}
 }
 func (m *DelegatorData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -414,6 +478,13 @@ func (m *DelegatorData) GetUnClaimedRewards() *math_big.Int {
 	return nil
 }
 
+func (m *DelegatorData) GetTotalCumulatedRewards() *math_big.Int {
+	if m != nil {
+		return m.TotalCumulatedRewards
+	}
+	return nil
+}
+
 type GlobalFundData struct {
 	ActiveFunds   [][]byte      `protobuf:"bytes,1,rep,name=ActiveFunds,proto3" json:"ActiveFunds"`
 	UnStakedFunds [][]byte      `protobuf:"bytes,2,rep,name=UnStakedFunds,proto3" json:"UnStakedFunds"`
@@ -424,7 +495,7 @@ type GlobalFundData struct {
 func (m *GlobalFundData) Reset()      { *m = GlobalFundData{} }
 func (*GlobalFundData) ProtoMessage() {}
 func (*GlobalFundData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{6}
+	return fileDescriptor_b823c7d67e95582e, []int{7}
 }
 func (m *GlobalFundData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -485,7 +556,7 @@ type NodesData struct {
 func (m *NodesData) Reset()      { *m = NodesData{} }
 func (*NodesData) ProtoMessage() {}
 func (*NodesData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{7}
+	return fileDescriptor_b823c7d67e95582e, []int{8}
 }
 func (m *NodesData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -533,7 +604,7 @@ type RewardComputationData struct {
 func (m *RewardComputationData) Reset()      { *m = RewardComputationData{} }
 func (*RewardComputationData) ProtoMessage() {}
 func (*RewardComputationData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_b823c7d67e95582e, []int{8}
+	return fileDescriptor_b823c7d67e95582e, []int{9}
 }
 func (m *RewardComputationData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -583,6 +654,7 @@ func init() {
 	proto.RegisterType((*DelegationManagement)(nil), "proto.DelegationManagement")
 	proto.RegisterType((*DelegationContractList)(nil), "proto.DelegationContractList")
 	proto.RegisterType((*DelegationConfig)(nil), "proto.DelegationConfig")
+	proto.RegisterType((*DelegationMetaData)(nil), "proto.DelegationMetaData")
 	proto.RegisterType((*DelegationContractStatus)(nil), "proto.DelegationContractStatus")
 	proto.RegisterType((*Fund)(nil), "proto.Fund")
 	proto.RegisterType((*DelegatorData)(nil), "proto.DelegatorData")
@@ -594,72 +666,79 @@ func init() {
 func init() { proto.RegisterFile("delegation.proto", fileDescriptor_b823c7d67e95582e) }
 
 var fileDescriptor_b823c7d67e95582e = []byte{
-	// 1025 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x41, 0x6b, 0xe3, 0x46,
-	0x14, 0xb6, 0x1c, 0x27, 0x4d, 0x5e, 0xe2, 0x34, 0x99, 0xcd, 0xb6, 0xa6, 0x14, 0x29, 0x08, 0x0a,
-	0x81, 0xb2, 0x0e, 0xdb, 0x16, 0x0a, 0xed, 0xa5, 0x91, 0xb3, 0x29, 0x66, 0x63, 0x6f, 0x19, 0x67,
-	0x17, 0xba, 0xec, 0x65, 0x6c, 0x4d, 0x94, 0x21, 0xf6, 0x8c, 0x91, 0x46, 0xc9, 0x06, 0x7a, 0xe8,
-	0xa5, 0xd0, 0x53, 0xe9, 0x3f, 0xe8, 0xb5, 0xec, 0xff, 0x28, 0xf4, 0x18, 0x7a, 0xca, 0x49, 0x6d,
-	0x9c, 0x4b, 0xd1, 0x69, 0x29, 0xfd, 0x01, 0x45, 0x23, 0xc9, 0x1e, 0xd9, 0xde, 0x4b, 0x31, 0x7b,
-	0xb1, 0xe6, 0x7d, 0x9f, 0xe7, 0xd3, 0xcc, 0x7b, 0xdf, 0xbc, 0x11, 0x6c, 0xb9, 0xb4, 0x4f, 0x3d,
-	0x22, 0x99, 0xe0, 0xf5, 0xa1, 0x2f, 0xa4, 0x40, 0xcb, 0xea, 0xf1, 0xc1, 0x03, 0x8f, 0xc9, 0xb3,
-	0xb0, 0x5b, 0xef, 0x89, 0xc1, 0xbe, 0x27, 0x3c, 0xb1, 0xaf, 0xe0, 0x6e, 0x78, 0xaa, 0x22, 0x15,
-	0xa8, 0x51, 0x3a, 0xcb, 0xfe, 0x77, 0x09, 0x76, 0x0e, 0xc7, 0x52, 0x2d, 0xc2, 0x89, 0x47, 0x07,
-	0x94, 0x4b, 0xf4, 0x05, 0x6c, 0xb6, 0xc3, 0xc1, 0x93, 0xd3, 0x86, 0xe0, 0xd2, 0x27, 0x3d, 0x19,
-	0xd4, 0x8c, 0x5d, 0x63, 0xaf, 0xea, 0xa0, 0x38, 0xb2, 0xa6, 0x18, 0x3c, 0x15, 0xa3, 0x87, 0xb0,
-	0x7e, 0x4c, 0x02, 0x79, 0xe0, 0xba, 0x3e, 0x0d, 0x82, 0x5a, 0x79, 0xd7, 0xd8, 0xdb, 0x70, 0xde,
-	0x8d, 0x23, 0x4b, 0x87, 0xb1, 0x1e, 0xa0, 0xcf, 0xa1, 0xda, 0x62, 0xbc, 0x43, 0xfd, 0x0b, 0xd6,
-	0xa3, 0x47, 0x94, 0xd6, 0x96, 0x76, 0x8d, 0xbd, 0x8a, 0xb3, 0x1d, 0x47, 0x56, 0x91, 0xc0, 0xc5,
-	0x50, 0x4d, 0x24, 0x2f, 0xb5, 0x89, 0x15, 0x6d, 0xa2, 0x4e, 0xe0, 0x62, 0x88, 0x7e, 0x30, 0x60,
-	0xcb, 0x21, 0x01, 0x6d, 0x06, 0x41, 0x48, 0x19, 0xf7, 0x1a, 0x22, 0x90, 0xb5, 0x65, 0xb5, 0xd4,
-	0x6f, 0xe3, 0xc8, 0x9a, 0xe1, 0x5e, 0xfd, 0x69, 0x1d, 0x0c, 0x88, 0x3c, 0xdb, 0xef, 0x32, 0xaf,
-	0xde, 0xe4, 0xf2, 0x4b, 0x2d, 0xd1, 0x8f, 0xfa, 0xbe, 0xe0, 0x6e, 0x9b, 0xca, 0x4b, 0xe1, 0x9f,
-	0xef, 0x53, 0x15, 0x3d, 0xf0, 0xc4, 0xbe, 0x4b, 0x24, 0xa9, 0x3b, 0xcc, 0x6b, 0x72, 0xd9, 0x20,
-	0x81, 0xa4, 0x3e, 0x9e, 0x91, 0x45, 0x01, 0x40, 0x8b, 0xf1, 0x43, 0x3a, 0x14, 0x01, 0x93, 0xb5,
-	0x15, 0xb5, 0x80, 0x4e, 0x1c, 0x59, 0x1a, 0xba, 0x98, 0x57, 0x6b, 0x82, 0xf6, 0x23, 0x78, 0x6f,
-	0x52, 0xf5, 0xbc, 0x70, 0xc7, 0x2c, 0x90, 0xe8, 0x63, 0x58, 0xcb, 0x6a, 0x42, 0x93, 0x92, 0x2f,
-	0xed, 0x6d, 0x38, 0xd5, 0x38, 0xb2, 0x26, 0x20, 0x9e, 0x0c, 0xed, 0x57, 0x15, 0xd8, 0x2a, 0xe8,
-	0x9c, 0x32, 0x4f, 0x25, 0xb6, 0x45, 0x5e, 0x6a, 0x38, 0x19, 0x2a, 0xf3, 0x64, 0x89, 0x9d, 0xe6,
-	0x16, 0x94, 0xd8, 0x69, 0x59, 0xf4, 0xa3, 0x01, 0xdb, 0x4d, 0xce, 0x24, 0x23, 0xfd, 0x27, 0x97,
-	0x9c, 0xfa, 0x47, 0x21, 0x77, 0x73, 0x33, 0x3e, 0x8f, 0x23, 0x6b, 0x96, 0x5c, 0xcc, 0x4a, 0x66,
-	0x75, 0x51, 0x13, 0xee, 0x1d, 0x84, 0x52, 0x0c, 0x88, 0x64, 0xbd, 0x83, 0x9e, 0x64, 0x17, 0x6a,
-	0x91, 0xca, 0xe3, 0xab, 0xce, 0xfb, 0x71, 0x64, 0xcd, 0xa3, 0xf1, 0x3c, 0x10, 0x1d, 0xc3, 0x4e,
-	0xe3, 0x8c, 0x70, 0x8f, 0x92, 0x6e, 0x9f, 0x4e, 0xd9, 0x7e, 0xd5, 0xa9, 0xc5, 0x91, 0x35, 0x97,
-	0xc7, 0x73, 0x51, 0xf4, 0x19, 0x6c, 0x34, 0x7c, 0x4a, 0x24, 0x75, 0xdb, 0x82, 0xf7, 0xa8, 0xf2,
-	0x7f, 0xc5, 0xd9, 0x8a, 0x23, 0xab, 0x80, 0xe3, 0x42, 0x94, 0xcc, 0x7a, 0xca, 0x1d, 0xc1, 0xdd,
-	0x6f, 0xa8, 0xcf, 0x84, 0xab, 0x4c, 0x9b, 0xcd, 0xd2, 0x71, 0x5c, 0x88, 0xec, 0x5f, 0xca, 0x50,
-	0x9b, 0x35, 0x5d, 0x47, 0x12, 0x19, 0x06, 0xa8, 0x0e, 0x90, 0x71, 0xc2, 0xcf, 0x7d, 0xb7, 0x99,
-	0x9c, 0x82, 0x09, 0x8a, 0xb5, 0x31, 0xfa, 0x0a, 0xa0, 0x23, 0xc9, 0x39, 0x75, 0x1f, 0xd3, 0xab,
-	0xa4, 0xa8, 0x4b, 0x7b, 0xeb, 0x9f, 0x6c, 0xa5, 0x3d, 0xad, 0xde, 0x16, 0x2e, 0x0d, 0x0e, 0x89,
-	0x24, 0xa9, 0xc2, 0xe4, 0x7f, 0x58, 0x1b, 0xa3, 0x26, 0x54, 0xdb, 0x42, 0x6a, 0x22, 0x4b, 0x6f,
-	0x10, 0x51, 0xad, 0xa4, 0xf0, 0x57, 0x5c, 0x0c, 0xd1, 0x51, 0x92, 0x0f, 0x4d, 0xa9, 0xf2, 0x06,
-	0xa5, 0x2c, 0x43, 0x9a, 0x50, 0x21, 0xb2, 0xff, 0x30, 0xa0, 0x92, 0x18, 0x06, 0xb9, 0xb0, 0xfc,
-	0x8c, 0xf4, 0x43, 0x9a, 0x1d, 0x9b, 0x76, 0x1c, 0x59, 0x29, 0xb0, 0x18, 0x87, 0xa6, 0x5a, 0xe8,
-	0x23, 0x78, 0xa7, 0xd8, 0xa2, 0xd7, 0xe3, 0xc8, 0xca, 0x21, 0x9c, 0x0f, 0x90, 0x05, 0xcb, 0xa9,
-	0x39, 0xd2, 0x96, 0xbc, 0x96, 0x2c, 0x26, 0x75, 0x45, 0xfa, 0x40, 0x1f, 0x42, 0xe5, 0xe4, 0x6a,
-	0x98, 0x5a, 0xb0, 0xea, 0xac, 0xc6, 0x91, 0xa5, 0x62, 0xac, 0x7e, 0xed, 0xdf, 0xca, 0x50, 0x1d,
-	0x17, 0x2e, 0x49, 0x43, 0x52, 0x6b, 0x65, 0x68, 0x9a, 0xec, 0x35, 0xdb, 0xa2, 0xaa, 0xd4, 0x04,
-	0xc5, 0xda, 0x38, 0x69, 0xf1, 0x79, 0x9a, 0xf2, 0x33, 0x9c, 0xd8, 0x43, 0xd5, 0xa5, 0x40, 0xe0,
-	0x62, 0x88, 0x1a, 0xb0, 0x8d, 0xe9, 0x25, 0xf1, 0xdd, 0xa0, 0x71, 0x46, 0x7b, 0xe7, 0x43, 0xc1,
-	0xb8, 0x54, 0xbb, 0xa8, 0x3a, 0xf7, 0x93, 0x06, 0x30, 0x43, 0xe2, 0x59, 0x48, 0xb5, 0xb3, 0xa7,
-	0xbc, 0xd1, 0x27, 0x6c, 0x40, 0xdd, 0x8c, 0x56, 0x5b, 0xcd, 0xda, 0xd9, 0x34, 0xb7, 0xa0, 0x76,
-	0x36, 0x2d, 0x6b, 0xff, 0x53, 0x86, 0xcd, 0xaf, 0xfb, 0xa2, 0x4b, 0xfa, 0xc9, 0xe6, 0x54, 0x22,
-	0x1f, 0xc2, 0xfa, 0x24, 0x4d, 0xf9, 0xa9, 0x51, 0xf7, 0xac, 0x06, 0x63, 0x3d, 0xf8, 0xff, 0xb9,
-	0xbc, 0x80, 0xf5, 0x13, 0x21, 0x49, 0x3f, 0x15, 0x53, 0x59, 0xdc, 0x70, 0x4e, 0x92, 0x77, 0x69,
-	0xf0, 0x62, 0xf6, 0xae, 0x2b, 0xa2, 0xef, 0xa0, 0xaa, 0xc2, 0x7c, 0x35, 0x59, 0xea, 0x9f, 0x25,
-	0x0b, 0x2e, 0x10, 0x8b, 0x79, 0x77, 0x51, 0xd3, 0x7e, 0x01, 0x6b, 0xe3, 0xe3, 0x8b, 0x6c, 0x58,
-	0x71, 0x8e, 0x3b, 0x8f, 0xe9, 0x55, 0xe6, 0x59, 0x88, 0x23, 0x2b, 0x43, 0x70, 0xf6, 0x4c, 0xae,
-	0xcf, 0x0e, 0xf3, 0x38, 0x75, 0x5b, 0x81, 0x97, 0x9d, 0x2a, 0x75, 0x7d, 0x8e, 0x41, 0x3c, 0x19,
-	0xda, 0xd7, 0x65, 0xb8, 0x9f, 0x96, 0xb7, 0x21, 0x06, 0xc3, 0x50, 0xaa, 0xc6, 0xa8, 0x5e, 0xf5,
-	0x93, 0x01, 0xf7, 0xb2, 0xc2, 0x9f, 0x88, 0x43, 0x16, 0x48, 0x9f, 0x75, 0x43, 0x99, 0xf7, 0x83,
-	0x17, 0xc9, 0x8d, 0x31, 0x87, 0x5e, 0x4c, 0x0a, 0xe6, 0x29, 0x4f, 0x97, 0xbf, 0xfc, 0xb6, 0xca,
-	0x5f, 0x07, 0x98, 0xf9, 0x28, 0x4c, 0xbb, 0xfa, 0xe4, 0x6a, 0xd3, 0xc6, 0x4e, 0xfb, 0xfa, 0xd6,
-	0x2c, 0xdd, 0xdc, 0x9a, 0xa5, 0xd7, 0xb7, 0xa6, 0xf1, 0xfd, 0xc8, 0x34, 0x7e, 0x1d, 0x99, 0xc6,
-	0xef, 0x23, 0xd3, 0xb8, 0x1e, 0x99, 0xc6, 0xcd, 0xc8, 0x34, 0xfe, 0x1a, 0x99, 0xc6, 0xdf, 0x23,
-	0xb3, 0xf4, 0x7a, 0x64, 0x1a, 0x3f, 0xdf, 0x99, 0xa5, 0xeb, 0x3b, 0xb3, 0x74, 0x73, 0x67, 0x96,
-	0x9e, 0xef, 0x04, 0x57, 0x81, 0xa4, 0x83, 0xce, 0x80, 0xf8, 0x72, 0xfc, 0x29, 0xdb, 0x5d, 0x51,
-	0x3d, 0xfc, 0xd3, 0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0xf6, 0x84, 0xb3, 0x15, 0x70, 0x0b, 0x00,
-	0x00,
+	// 1147 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x57, 0xc1, 0x6f, 0xe3, 0xc4,
+	0x17, 0x8e, 0xd3, 0x74, 0xb7, 0xfb, 0x9a, 0xf4, 0xd7, 0xce, 0xb6, 0x3f, 0x22, 0x40, 0x76, 0x65,
+	0x09, 0xa9, 0x12, 0xda, 0x54, 0x0b, 0x48, 0x48, 0x70, 0xa1, 0x4e, 0xb7, 0x28, 0xda, 0x36, 0x45,
+	0x93, 0x76, 0x11, 0xab, 0x15, 0xd2, 0x24, 0x9e, 0xba, 0xa3, 0xc6, 0x9e, 0xc8, 0x1e, 0xb7, 0x5b,
+	0x89, 0x03, 0x17, 0x24, 0x38, 0x80, 0x38, 0x70, 0xe1, 0x3f, 0x40, 0xfc, 0x25, 0x1c, 0x2b, 0x4e,
+	0x3d, 0x20, 0x43, 0xd3, 0x0b, 0xf2, 0x69, 0xc5, 0x1d, 0x09, 0x79, 0x6c, 0x27, 0xe3, 0x24, 0xbb,
+	0x07, 0x14, 0x71, 0x89, 0xdf, 0xfb, 0x9e, 0xe7, 0xf3, 0xb3, 0xbf, 0xf7, 0xde, 0x4c, 0x60, 0xd5,
+	0xa6, 0x7d, 0xea, 0x10, 0xc1, 0xb8, 0xd7, 0x18, 0xf8, 0x5c, 0x70, 0xb4, 0x28, 0x2f, 0xaf, 0x3f,
+	0x70, 0x98, 0x38, 0x0d, 0xbb, 0x8d, 0x1e, 0x77, 0xb7, 0x1d, 0xee, 0xf0, 0x6d, 0x09, 0x77, 0xc3,
+	0x13, 0xe9, 0x49, 0x47, 0x5a, 0xe9, 0x2a, 0xf3, 0xef, 0x05, 0x58, 0xdf, 0x1d, 0x51, 0x1d, 0x10,
+	0x8f, 0x38, 0xd4, 0xa5, 0x9e, 0x40, 0x1f, 0xc0, 0x4a, 0x3b, 0x74, 0x0f, 0x4f, 0x9a, 0xdc, 0x13,
+	0x3e, 0xe9, 0x89, 0xa0, 0xae, 0x6d, 0x6a, 0x5b, 0x35, 0x0b, 0xc5, 0x91, 0x31, 0x11, 0xc1, 0x13,
+	0x3e, 0x7a, 0x08, 0xcb, 0xfb, 0x24, 0x10, 0x3b, 0xb6, 0xed, 0xd3, 0x20, 0xa8, 0x97, 0x37, 0xb5,
+	0xad, 0xaa, 0xf5, 0xbf, 0x38, 0x32, 0x54, 0x18, 0xab, 0x0e, 0x7a, 0x1f, 0x6a, 0x07, 0xcc, 0xeb,
+	0x50, 0xff, 0x9c, 0xf5, 0xe8, 0x1e, 0xa5, 0xf5, 0x85, 0x4d, 0x6d, 0xab, 0x62, 0xad, 0xc5, 0x91,
+	0x51, 0x0c, 0xe0, 0xa2, 0x2b, 0x17, 0x92, 0xe7, 0xca, 0xc2, 0x8a, 0xb2, 0x50, 0x0d, 0xe0, 0xa2,
+	0x8b, 0x02, 0x80, 0x03, 0xe6, 0xed, 0xd2, 0x01, 0x0f, 0x98, 0xa8, 0x2f, 0xca, 0x1c, 0x3b, 0x71,
+	0x64, 0x28, 0xe8, 0xcf, 0xbf, 0x1b, 0x3b, 0x2e, 0x11, 0xa7, 0xdb, 0x5d, 0xe6, 0x34, 0x5a, 0x9e,
+	0xf8, 0x50, 0xf9, 0xb6, 0x8f, 0xfa, 0x3e, 0xf7, 0xec, 0x36, 0x15, 0x17, 0xdc, 0x3f, 0xdb, 0xa6,
+	0xd2, 0x7b, 0xe0, 0xf0, 0x6d, 0x9b, 0x08, 0xd2, 0xb0, 0x98, 0xd3, 0xf2, 0x44, 0x93, 0x04, 0x82,
+	0xfa, 0x58, 0x21, 0x44, 0xdf, 0x69, 0x70, 0x5f, 0xba, 0xf9, 0x17, 0xdf, 0x71, 0x79, 0xe8, 0x89,
+	0xfa, 0x1d, 0xf9, 0xf8, 0x67, 0x71, 0x64, 0xcc, 0x0a, 0xcf, 0x27, 0x8f, 0x59, 0xcc, 0xe6, 0x23,
+	0xf8, 0xff, 0x18, 0xcb, 0x15, 0xdc, 0x67, 0x81, 0x40, 0x6f, 0xc3, 0xbd, 0x4c, 0x1c, 0x9a, 0x68,
+	0xbf, 0xb0, 0x55, 0xb5, 0x6a, 0x71, 0x64, 0x8c, 0x41, 0x3c, 0x36, 0xcd, 0x6f, 0x17, 0x61, 0xb5,
+	0xc0, 0x73, 0xc2, 0x1c, 0xf4, 0x95, 0x06, 0xab, 0x07, 0xe4, 0xb9, 0x82, 0x93, 0x81, 0xac, 0xa2,
+	0xaa, 0xf5, 0x59, 0x1c, 0x19, 0x53, 0xb1, 0xf9, 0xbc, 0xe6, 0x14, 0x2d, 0xfa, 0x5a, 0x83, 0xb5,
+	0x96, 0xc7, 0x04, 0x23, 0xfd, 0xc3, 0x0b, 0x8f, 0xfa, 0x7b, 0xa1, 0x67, 0xe7, 0x55, 0xf9, 0x34,
+	0x8e, 0x8c, 0xe9, 0xe0, 0x7c, 0x32, 0x99, 0xe6, 0x45, 0x2d, 0xb8, 0xbf, 0x13, 0x0a, 0xee, 0x12,
+	0xc1, 0x7a, 0x3b, 0x3d, 0xc1, 0xce, 0x65, 0x92, 0xb2, 0xd8, 0x97, 0xac, 0xd7, 0x12, 0xf9, 0x67,
+	0x84, 0xf1, 0x2c, 0x10, 0xed, 0xc3, 0x7a, 0xf3, 0x94, 0x78, 0x0e, 0x25, 0xdd, 0x3e, 0x9d, 0xa8,
+	0xff, 0x25, 0xab, 0x1e, 0x47, 0xc6, 0xcc, 0x38, 0x9e, 0x89, 0xa2, 0xf7, 0xa0, 0xda, 0xf4, 0x29,
+	0x11, 0xd4, 0x6e, 0x73, 0xaf, 0x47, 0x65, 0x3f, 0x54, 0xac, 0xd5, 0x38, 0x32, 0x0a, 0x38, 0x2e,
+	0x78, 0xc9, 0xaa, 0x63, 0xcf, 0xe2, 0x9e, 0xfd, 0x09, 0xf5, 0x19, 0xb7, 0x65, 0x19, 0x67, 0xab,
+	0x54, 0x1c, 0x17, 0x3c, 0x44, 0xe0, 0x8d, 0xe6, 0x29, 0xed, 0x9d, 0x35, 0xc9, 0xe0, 0xd0, 0xc3,
+	0x34, 0x13, 0x8b, 0x62, 0x7a, 0x41, 0x7c, 0x3b, 0xa8, 0xdf, 0x95, 0x2f, 0x60, 0xc4, 0x91, 0xf1,
+	0xaa, 0xdb, 0xf0, 0xab, 0x82, 0xe6, 0x37, 0x1a, 0x20, 0x65, 0xac, 0x51, 0x41, 0x76, 0x89, 0x20,
+	0xe8, 0x4d, 0xa8, 0xb4, 0x89, 0x4b, 0xb3, 0x22, 0x5c, 0x8a, 0x23, 0x43, 0xfa, 0x58, 0xfe, 0xa2,
+	0xb7, 0xe0, 0xee, 0xa7, 0xb4, 0x1b, 0x30, 0x41, 0xb3, 0xe2, 0x58, 0x8e, 0x23, 0x23, 0x87, 0x70,
+	0x6e, 0xa0, 0x06, 0x40, 0xcb, 0xa6, 0x9e, 0x60, 0x27, 0x8c, 0xfa, 0x52, 0xba, 0xaa, 0xb5, 0x92,
+	0x0c, 0x8e, 0x31, 0x8a, 0x15, 0xdb, 0xfc, 0xb1, 0x0c, 0xf5, 0xe9, 0x1e, 0xeb, 0x08, 0x22, 0xc2,
+	0x00, 0x7d, 0x04, 0xd0, 0x11, 0xe4, 0x8c, 0xda, 0x8f, 0xe9, 0x65, 0xda, 0x66, 0xcb, 0xef, 0xac,
+	0xa6, 0xb3, 0xb9, 0xd1, 0xe6, 0x36, 0x0d, 0x92, 0xbc, 0x53, 0xfa, 0xf1, 0x7d, 0x58, 0xb1, 0x51,
+	0x0b, 0x6a, 0x6d, 0x2e, 0x14, 0x92, 0xf2, 0x4b, 0x48, 0xe4, 0x48, 0x2c, 0xdc, 0x8a, 0x8b, 0x2e,
+	0xda, 0x4b, 0xe4, 0x54, 0x98, 0x16, 0x5e, 0xc2, 0x94, 0x09, 0xac, 0x10, 0x15, 0x3c, 0xb4, 0x05,
+	0x4b, 0xed, 0xd0, 0x3d, 0x0e, 0xa8, 0x1f, 0x64, 0xe3, 0xb8, 0x1a, 0x47, 0xc6, 0x08, 0xc3, 0x23,
+	0xcb, 0xfc, 0x55, 0x83, 0x4a, 0xd2, 0x19, 0xc8, 0x86, 0xc5, 0x27, 0xa4, 0x1f, 0xe6, 0xd2, 0xb4,
+	0xe3, 0xc8, 0x48, 0x81, 0xf9, 0xb4, 0x62, 0xca, 0x95, 0x28, 0x5c, 0xdc, 0x94, 0xa4, 0xc2, 0xf9,
+	0x86, 0x94, 0x1b, 0xc8, 0x80, 0xc5, 0xb4, 0x0b, 0xd2, 0x4d, 0xe8, 0x5e, 0x92, 0x4c, 0x5a, 0xfe,
+	0xe9, 0x25, 0xa9, 0xa3, 0xa3, 0xcb, 0x41, 0xda, 0x6b, 0xb5, 0xb4, 0x8e, 0x12, 0x1f, 0xcb, 0x5f,
+	0xf3, 0xb7, 0x05, 0xa8, 0x65, 0x82, 0x73, 0x5f, 0xd6, 0x5d, 0x03, 0x40, 0x76, 0x2e, 0x4d, 0xde,
+	0x35, 0x7b, 0x45, 0xa9, 0xe9, 0x18, 0xc5, 0x8a, 0x9d, 0x6c, 0x6a, 0xf9, 0x07, 0xcd, 0x87, 0x55,
+	0x32, 0x7f, 0xa5, 0x82, 0x85, 0x00, 0x2e, 0xba, 0xa8, 0x09, 0x6b, 0x59, 0x0b, 0xc8, 0xee, 0x18,
+	0x70, 0xe6, 0x09, 0xf9, 0x16, 0x35, 0x6b, 0x23, 0x99, 0x74, 0x53, 0x41, 0x3c, 0x0d, 0xc9, 0xb9,
+	0x7d, 0xec, 0x35, 0xfb, 0x84, 0xb9, 0xd4, 0xce, 0xbb, 0xb2, 0x32, 0x9e, 0xdb, 0x93, 0xb1, 0x39,
+	0xcd, 0xed, 0x49, 0x5a, 0xf4, 0x83, 0x06, 0x1b, 0x47, 0x5c, 0x90, 0x7e, 0x33, 0x74, 0xc3, 0x7e,
+	0x32, 0x75, 0xf2, 0x64, 0xd2, 0xdd, 0xfa, 0xf3, 0x38, 0x32, 0x66, 0xdf, 0x30, 0x9f, 0x8c, 0x66,
+	0x73, 0x9b, 0x7f, 0x95, 0x61, 0xe5, 0xe3, 0x3e, 0xef, 0x92, 0x7e, 0xf2, 0xcd, 0xa5, 0xbe, 0x0f,
+	0x61, 0x79, 0xac, 0x5e, 0xbe, 0x5b, 0xca, 0x03, 0x8f, 0x02, 0x63, 0xd5, 0xf9, 0xf7, 0x12, 0x9f,
+	0xc3, 0xb2, 0xcc, 0x2b, 0x25, 0xcb, 0xe6, 0xcf, 0x51, 0xf2, 0x2c, 0x05, 0x9e, 0xcf, 0x07, 0x50,
+	0x19, 0xd1, 0x17, 0x50, 0x93, 0x6e, 0x9e, 0x4d, 0x56, 0x11, 0x4f, 0x92, 0x84, 0x0b, 0x81, 0xf9,
+	0x3c, 0xbb, 0xc8, 0x69, 0x3e, 0x83, 0x7b, 0xa3, 0xf9, 0x83, 0x4c, 0xb8, 0x63, 0xed, 0x77, 0x1e,
+	0xd3, 0xcb, 0xac, 0x95, 0x20, 0x8e, 0x8c, 0x0c, 0xc1, 0xd9, 0x35, 0x39, 0xbe, 0x74, 0x98, 0xe3,
+	0x51, 0xfb, 0x20, 0x70, 0xb2, 0x66, 0x97, 0xc7, 0x97, 0x11, 0x88, 0xc7, 0xa6, 0x79, 0x55, 0x86,
+	0x8d, 0x54, 0xde, 0x26, 0x77, 0x07, 0xa1, 0x90, 0x93, 0x5a, 0x3e, 0x2a, 0x39, 0xb0, 0x65, 0xc2,
+	0x1f, 0xf1, 0x5d, 0x16, 0x08, 0x9f, 0x75, 0x43, 0x91, 0x8f, 0x29, 0x79, 0x60, 0x9b, 0x11, 0x9e,
+	0xd3, 0x81, 0x6d, 0x06, 0xf3, 0xa4, 0xfc, 0xe5, 0xff, 0x4a, 0xfe, 0x06, 0xc0, 0xd4, 0xe9, 0x3c,
+	0xdd, 0x96, 0xc6, 0x47, 0x0b, 0xc5, 0xb6, 0xda, 0x57, 0x37, 0x7a, 0xe9, 0xfa, 0x46, 0x2f, 0xbd,
+	0xb8, 0xd1, 0xb5, 0x2f, 0x87, 0xba, 0xf6, 0xd3, 0x50, 0xd7, 0x7e, 0x19, 0xea, 0xda, 0xd5, 0x50,
+	0xd7, 0xae, 0x87, 0xba, 0xf6, 0xc7, 0x50, 0xd7, 0xfe, 0x1c, 0xea, 0xa5, 0x17, 0x43, 0x5d, 0xfb,
+	0xfe, 0x56, 0x2f, 0x5d, 0xdd, 0xea, 0xa5, 0xeb, 0x5b, 0xbd, 0xf4, 0x74, 0x3d, 0xb8, 0x0c, 0x04,
+	0x75, 0x3b, 0x2e, 0xf1, 0xc5, 0xe8, 0x3f, 0x45, 0xf7, 0x8e, 0xdc, 0x84, 0xde, 0xfd, 0x27, 0x00,
+	0x00, 0xff, 0xff, 0x2d, 0x67, 0x02, 0x77, 0xf9, 0x0c, 0x00, 0x00,
 }
 
 func (this *DelegationManagement) Equal(that interface{}) bool {
@@ -695,13 +774,13 @@ func (this *DelegationManagement) Equal(that interface{}) bool {
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.BaseIssueingCost, that1.BaseIssueingCost) {
+		if !__caster.Equal(this.MinDeposit, that1.MinDeposit) {
 			return false
 		}
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.MinDeposit, that1.MinDeposit) {
+		if !__caster.Equal(this.MinDelegationAmount, that1.MinDelegationAmount) {
 			return false
 		}
 	}
@@ -779,6 +858,39 @@ func (this *DelegationConfig) Equal(that interface{}) bool {
 	if this.UnBondPeriod != that1.UnBondPeriod {
 		return false
 	}
+	if this.CheckCapOnReDelegateRewards != that1.CheckCapOnReDelegateRewards {
+		return false
+	}
+	return true
+}
+func (this *DelegationMetaData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DelegationMetaData)
+	if !ok {
+		that2, ok := that.(DelegationMetaData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Name, that1.Name) {
+		return false
+	}
+	if !bytes.Equal(this.Website, that1.Website) {
+		return false
+	}
+	if !bytes.Equal(this.Identifier, that1.Identifier) {
+		return false
+	}
 	return true
 }
 func (this *DelegationContractStatus) Equal(that interface{}) bool {
@@ -799,14 +911,6 @@ func (this *DelegationContractStatus) Equal(that interface{}) bool {
 		return this == nil
 	} else if this == nil {
 		return false
-	}
-	if len(this.Delegators) != len(that1.Delegators) {
-		return false
-	}
-	for i := range this.Delegators {
-		if !bytes.Equal(this.Delegators[i], that1.Delegators[i]) {
-			return false
-		}
 	}
 	if len(this.StakedKeys) != len(that1.StakedKeys) {
 		return false
@@ -831,6 +935,9 @@ func (this *DelegationContractStatus) Equal(that interface{}) bool {
 		if !this.UnStakedKeys[i].Equal(that1.UnStakedKeys[i]) {
 			return false
 		}
+	}
+	if this.NumUsers != that1.NumUsers {
+		return false
 	}
 	return true
 }
@@ -906,6 +1013,12 @@ func (this *DelegatorData) Equal(that interface{}) bool {
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		if !__caster.Equal(this.UnClaimedRewards, that1.UnClaimedRewards) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalCumulatedRewards, that1.TotalCumulatedRewards) {
 			return false
 		}
 	}
@@ -1033,8 +1146,8 @@ func (this *DelegationManagement) GoString() string {
 	s = append(s, "LastAddress: "+fmt.Sprintf("%#v", this.LastAddress)+",\n")
 	s = append(s, "MinServiceFee: "+fmt.Sprintf("%#v", this.MinServiceFee)+",\n")
 	s = append(s, "MaxServiceFee: "+fmt.Sprintf("%#v", this.MaxServiceFee)+",\n")
-	s = append(s, "BaseIssueingCost: "+fmt.Sprintf("%#v", this.BaseIssueingCost)+",\n")
 	s = append(s, "MinDeposit: "+fmt.Sprintf("%#v", this.MinDeposit)+",\n")
+	s = append(s, "MinDelegationAmount: "+fmt.Sprintf("%#v", this.MinDelegationAmount)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1052,7 +1165,7 @@ func (this *DelegationConfig) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
+	s := make([]string, 0, 11)
 	s = append(s, "&systemSmartContracts.DelegationConfig{")
 	s = append(s, "MaxDelegationCap: "+fmt.Sprintf("%#v", this.MaxDelegationCap)+",\n")
 	s = append(s, "InitialOwnerFunds: "+fmt.Sprintf("%#v", this.InitialOwnerFunds)+",\n")
@@ -1060,6 +1173,19 @@ func (this *DelegationConfig) GoString() string {
 	s = append(s, "ChangeableServiceFee: "+fmt.Sprintf("%#v", this.ChangeableServiceFee)+",\n")
 	s = append(s, "CreatedNonce: "+fmt.Sprintf("%#v", this.CreatedNonce)+",\n")
 	s = append(s, "UnBondPeriod: "+fmt.Sprintf("%#v", this.UnBondPeriod)+",\n")
+	s = append(s, "CheckCapOnReDelegateRewards: "+fmt.Sprintf("%#v", this.CheckCapOnReDelegateRewards)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *DelegationMetaData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&systemSmartContracts.DelegationMetaData{")
+	s = append(s, "Name: "+fmt.Sprintf("%#v", this.Name)+",\n")
+	s = append(s, "Website: "+fmt.Sprintf("%#v", this.Website)+",\n")
+	s = append(s, "Identifier: "+fmt.Sprintf("%#v", this.Identifier)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1069,7 +1195,6 @@ func (this *DelegationContractStatus) GoString() string {
 	}
 	s := make([]string, 0, 8)
 	s = append(s, "&systemSmartContracts.DelegationContractStatus{")
-	s = append(s, "Delegators: "+fmt.Sprintf("%#v", this.Delegators)+",\n")
 	if this.StakedKeys != nil {
 		s = append(s, "StakedKeys: "+fmt.Sprintf("%#v", this.StakedKeys)+",\n")
 	}
@@ -1079,6 +1204,7 @@ func (this *DelegationContractStatus) GoString() string {
 	if this.UnStakedKeys != nil {
 		s = append(s, "UnStakedKeys: "+fmt.Sprintf("%#v", this.UnStakedKeys)+",\n")
 	}
+	s = append(s, "NumUsers: "+fmt.Sprintf("%#v", this.NumUsers)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1099,12 +1225,13 @@ func (this *DelegatorData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 8)
+	s := make([]string, 0, 9)
 	s = append(s, "&systemSmartContracts.DelegatorData{")
 	s = append(s, "ActiveFund: "+fmt.Sprintf("%#v", this.ActiveFund)+",\n")
 	s = append(s, "UnStakedFunds: "+fmt.Sprintf("%#v", this.UnStakedFunds)+",\n")
 	s = append(s, "RewardsCheckpoint: "+fmt.Sprintf("%#v", this.RewardsCheckpoint)+",\n")
 	s = append(s, "UnClaimedRewards: "+fmt.Sprintf("%#v", this.UnClaimedRewards)+",\n")
+	s = append(s, "TotalCumulatedRewards: "+fmt.Sprintf("%#v", this.TotalCumulatedRewards)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -1174,9 +1301,9 @@ func (m *DelegationManagement) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = l
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.MinDeposit)
+		size := __caster.Size(m.MinDelegationAmount)
 		i -= size
-		if _, err := __caster.MarshalTo(m.MinDeposit, dAtA[i:]); err != nil {
+		if _, err := __caster.MarshalTo(m.MinDelegationAmount, dAtA[i:]); err != nil {
 			return 0, err
 		}
 		i = encodeVarintDelegation(dAtA, i, uint64(size))
@@ -1185,9 +1312,9 @@ func (m *DelegationManagement) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	dAtA[i] = 0x32
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.BaseIssueingCost)
+		size := __caster.Size(m.MinDeposit)
 		i -= size
-		if _, err := __caster.MarshalTo(m.BaseIssueingCost, dAtA[i:]); err != nil {
+		if _, err := __caster.MarshalTo(m.MinDeposit, dAtA[i:]); err != nil {
 			return 0, err
 		}
 		i = encodeVarintDelegation(dAtA, i, uint64(size))
@@ -1271,6 +1398,16 @@ func (m *DelegationConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.CheckCapOnReDelegateRewards {
+		i--
+		if m.CheckCapOnReDelegateRewards {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
 	if m.UnBondPeriod != 0 {
 		i = encodeVarintDelegation(dAtA, i, uint64(m.UnBondPeriod))
 		i--
@@ -1326,6 +1463,50 @@ func (m *DelegationConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *DelegationMetaData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DelegationMetaData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DelegationMetaData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Identifier) > 0 {
+		i -= len(m.Identifier)
+		copy(dAtA[i:], m.Identifier)
+		i = encodeVarintDelegation(dAtA, i, uint64(len(m.Identifier)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Website) > 0 {
+		i -= len(m.Website)
+		copy(dAtA[i:], m.Website)
+		i = encodeVarintDelegation(dAtA, i, uint64(len(m.Website)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintDelegation(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *DelegationContractStatus) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1346,6 +1527,11 @@ func (m *DelegationContractStatus) MarshalToSizedBuffer(dAtA []byte) (int, error
 	_ = i
 	var l int
 	_ = l
+	if m.NumUsers != 0 {
+		i = encodeVarintDelegation(dAtA, i, uint64(m.NumUsers))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.UnStakedKeys) > 0 {
 		for iNdEx := len(m.UnStakedKeys) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -1357,7 +1543,7 @@ func (m *DelegationContractStatus) MarshalToSizedBuffer(dAtA []byte) (int, error
 				i = encodeVarintDelegation(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x1a
 		}
 	}
 	if len(m.NotStakedKeys) > 0 {
@@ -1371,7 +1557,7 @@ func (m *DelegationContractStatus) MarshalToSizedBuffer(dAtA []byte) (int, error
 				i = encodeVarintDelegation(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x12
 		}
 	}
 	if len(m.StakedKeys) > 0 {
@@ -1384,15 +1570,6 @@ func (m *DelegationContractStatus) MarshalToSizedBuffer(dAtA []byte) (int, error
 				i -= size
 				i = encodeVarintDelegation(dAtA, i, uint64(size))
 			}
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.Delegators) > 0 {
-		for iNdEx := len(m.Delegators) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Delegators[iNdEx])
-			copy(dAtA[i:], m.Delegators[iNdEx])
-			i = encodeVarintDelegation(dAtA, i, uint64(len(m.Delegators[iNdEx])))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -1471,6 +1648,17 @@ func (m *DelegatorData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalCumulatedRewards)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalCumulatedRewards, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintDelegation(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2a
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		size := __caster.Size(m.UnClaimedRewards)
@@ -1688,12 +1876,12 @@ func (m *DelegationManagement) Size() (n int) {
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.BaseIssueingCost)
+		l = __caster.Size(m.MinDeposit)
 		n += 1 + l + sovDelegation(uint64(l))
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.MinDeposit)
+		l = __caster.Size(m.MinDelegationAmount)
 		n += 1 + l + sovDelegation(uint64(l))
 	}
 	return n
@@ -1742,6 +1930,30 @@ func (m *DelegationConfig) Size() (n int) {
 	if m.UnBondPeriod != 0 {
 		n += 1 + sovDelegation(uint64(m.UnBondPeriod))
 	}
+	if m.CheckCapOnReDelegateRewards {
+		n += 2
+	}
+	return n
+}
+
+func (m *DelegationMetaData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovDelegation(uint64(l))
+	}
+	l = len(m.Website)
+	if l > 0 {
+		n += 1 + l + sovDelegation(uint64(l))
+	}
+	l = len(m.Identifier)
+	if l > 0 {
+		n += 1 + l + sovDelegation(uint64(l))
+	}
 	return n
 }
 
@@ -1751,12 +1963,6 @@ func (m *DelegationContractStatus) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.Delegators) > 0 {
-		for _, b := range m.Delegators {
-			l = len(b)
-			n += 1 + l + sovDelegation(uint64(l))
-		}
-	}
 	if len(m.StakedKeys) > 0 {
 		for _, e := range m.StakedKeys {
 			l = e.Size()
@@ -1774,6 +1980,9 @@ func (m *DelegationContractStatus) Size() (n int) {
 			l = e.Size()
 			n += 1 + l + sovDelegation(uint64(l))
 		}
+	}
+	if m.NumUsers != 0 {
+		n += 1 + sovDelegation(uint64(m.NumUsers))
 	}
 	return n
 }
@@ -1824,6 +2033,11 @@ func (m *DelegatorData) Size() (n int) {
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.UnClaimedRewards)
+		n += 1 + l + sovDelegation(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalCumulatedRewards)
 		n += 1 + l + sovDelegation(uint64(l))
 	}
 	return n
@@ -1914,8 +2128,8 @@ func (this *DelegationManagement) String() string {
 		`LastAddress:` + fmt.Sprintf("%v", this.LastAddress) + `,`,
 		`MinServiceFee:` + fmt.Sprintf("%v", this.MinServiceFee) + `,`,
 		`MaxServiceFee:` + fmt.Sprintf("%v", this.MaxServiceFee) + `,`,
-		`BaseIssueingCost:` + fmt.Sprintf("%v", this.BaseIssueingCost) + `,`,
 		`MinDeposit:` + fmt.Sprintf("%v", this.MinDeposit) + `,`,
+		`MinDelegationAmount:` + fmt.Sprintf("%v", this.MinDelegationAmount) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1941,6 +2155,19 @@ func (this *DelegationConfig) String() string {
 		`ChangeableServiceFee:` + fmt.Sprintf("%v", this.ChangeableServiceFee) + `,`,
 		`CreatedNonce:` + fmt.Sprintf("%v", this.CreatedNonce) + `,`,
 		`UnBondPeriod:` + fmt.Sprintf("%v", this.UnBondPeriod) + `,`,
+		`CheckCapOnReDelegateRewards:` + fmt.Sprintf("%v", this.CheckCapOnReDelegateRewards) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *DelegationMetaData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&DelegationMetaData{`,
+		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
+		`Website:` + fmt.Sprintf("%v", this.Website) + `,`,
+		`Identifier:` + fmt.Sprintf("%v", this.Identifier) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1965,10 +2192,10 @@ func (this *DelegationContractStatus) String() string {
 	}
 	repeatedStringForUnStakedKeys += "}"
 	s := strings.Join([]string{`&DelegationContractStatus{`,
-		`Delegators:` + fmt.Sprintf("%v", this.Delegators) + `,`,
 		`StakedKeys:` + repeatedStringForStakedKeys + `,`,
 		`NotStakedKeys:` + repeatedStringForNotStakedKeys + `,`,
 		`UnStakedKeys:` + repeatedStringForUnStakedKeys + `,`,
+		`NumUsers:` + fmt.Sprintf("%v", this.NumUsers) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1995,6 +2222,7 @@ func (this *DelegatorData) String() string {
 		`UnStakedFunds:` + fmt.Sprintf("%v", this.UnStakedFunds) + `,`,
 		`RewardsCheckpoint:` + fmt.Sprintf("%v", this.RewardsCheckpoint) + `,`,
 		`UnClaimedRewards:` + fmt.Sprintf("%v", this.UnClaimedRewards) + `,`,
+		`TotalCumulatedRewards:` + fmt.Sprintf("%v", this.TotalCumulatedRewards) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -2165,44 +2393,6 @@ func (m *DelegationManagement) Unmarshal(dAtA []byte) error {
 			}
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BaseIssueingCost", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDelegation
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDelegation
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthDelegation
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.BaseIssueingCost = tmp
-				}
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinDeposit", wireType)
 			}
 			var byteLen int
@@ -2236,6 +2426,44 @@ func (m *DelegationManagement) Unmarshal(dAtA []byte) error {
 					return err
 				} else {
 					m.MinDeposit = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinDelegationAmount", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.MinDelegationAmount = tmp
 				}
 			}
 			iNdEx = postIndex
@@ -2531,6 +2759,181 @@ func (m *DelegationConfig) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CheckCapOnReDelegateRewards", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CheckCapOnReDelegateRewards = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipDelegation(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DelegationMetaData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowDelegation
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DelegationMetaData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DelegationMetaData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = append(m.Name[:0], dAtA[iNdEx:postIndex]...)
+			if m.Name == nil {
+				m.Name = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Website", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Website = append(m.Website[:0], dAtA[iNdEx:postIndex]...)
+			if m.Website == nil {
+				m.Website = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Identifier", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Identifier = append(m.Identifier[:0], dAtA[iNdEx:postIndex]...)
+			if m.Identifier == nil {
+				m.Identifier = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDelegation(dAtA[iNdEx:])
@@ -2586,38 +2989,6 @@ func (m *DelegationContractStatus) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Delegators", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowDelegation
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthDelegation
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthDelegation
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Delegators = append(m.Delegators, make([]byte, postIndex-iNdEx))
-			copy(m.Delegators[len(m.Delegators)-1], dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StakedKeys", wireType)
 			}
 			var msglen int
@@ -2650,7 +3021,7 @@ func (m *DelegationContractStatus) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NotStakedKeys", wireType)
 			}
@@ -2684,7 +3055,7 @@ func (m *DelegationContractStatus) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedKeys", wireType)
 			}
@@ -2718,6 +3089,25 @@ func (m *DelegationContractStatus) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumUsers", wireType)
+			}
+			m.NumUsers = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumUsers |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipDelegation(dAtA[iNdEx:])
@@ -3054,6 +3444,44 @@ func (m *DelegatorData) Unmarshal(dAtA []byte) error {
 					return err
 				} else {
 					m.UnClaimedRewards = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalCumulatedRewards", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowDelegation
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthDelegation
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalCumulatedRewards = tmp
 				}
 			}
 			iNdEx = postIndex

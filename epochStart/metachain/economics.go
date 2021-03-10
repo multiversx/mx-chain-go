@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -185,6 +186,13 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rewardsForProtocolSustainability,
 	)
 
+	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.Epoch)
+	if err != nil {
+		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
+
+		return nil, err
+	}
+
 	return &computedEconomics, nil
 }
 
@@ -327,11 +335,7 @@ func (e *economics) computeRewardsPerBlock(
 	epoch uint32,
 ) *big.Int {
 
-	inflationRatePerDay := inflationRate / numberOfDaysInYear
-	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
-	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
-
-	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
+	inflationRateForEpoch := e.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
 
 	rewardsPerBlock := big.NewInt(0).Div(prevTotalSupply, big.NewInt(0).SetUint64(maxBlocksInEpoch))
 	if epoch > e.stakingV2EnableEpoch {
@@ -339,6 +343,16 @@ func (e *economics) computeRewardsPerBlock(
 	}
 
 	return core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
+}
+
+func (e *economics) computeInflationForEpoch(inflationRate float64, maxBlocksInEpoch uint64) float64 {
+	inflationRatePerDay := inflationRate / numberOfDaysInYear
+	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
+
+	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
+
+	return inflationRateForEpoch
 }
 
 func (e *economics) computeNumOfTotalCreatedBlocks(
@@ -404,6 +418,77 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 	}
 
 	return mapShardIdNonce, nil
+}
+
+func (e *economics) checkEconomicsInvariants(
+	computedEconomics block.Economics,
+	inflationRate float64,
+	maxBlocksInEpoch uint64,
+	totalNumBlocksInEpoch uint64,
+	metaBlock *block.MetaBlock,
+	epoch uint32,
+) error {
+	if epoch <= e.stakingV2EnableEpoch {
+		return nil
+	}
+
+	maxAllowedInflation := e.rewardsHandler.MaxInflationRate(1)
+	if !core.IsInRangeInclusiveFloat64(inflationRate, 0, maxAllowedInflation) {
+		return fmt.Errorf("%w, computed inflation %s, max allowed %s",
+			epochStart.ErrInvalidInflationRate,
+			strconv.FormatFloat(inflationRate, 'f', -1, 64),
+			strconv.FormatFloat(maxAllowedInflation, 'f', -1, 64))
+
+	}
+
+	if !core.IsInRangeInclusive(metaBlock.AccumulatedFeesInEpoch, zero, e.genesisTotalSupply) {
+		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
+			epochStart.ErrInvalidAccumulatedFees,
+			metaBlock.AccumulatedFeesInEpoch,
+			e.genesisTotalSupply,
+		)
+	}
+
+	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
+	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
+		maxRewardsInEpoch = metaBlock.AccumulatedFeesInEpoch
+	}
+
+	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {
+		return fmt.Errorf("%w, computed protocol sustainability rewards %s, max allowed %s",
+			epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards,
+			computedEconomics.RewardsForProtocolSustainability,
+			maxRewardsInEpoch,
+		)
+	}
+
+	if !core.IsInRangeInclusive(computedEconomics.TotalNewlyMinted, zero, maxRewardsInEpoch) {
+		return fmt.Errorf("%w, computed minted tokens %s, max allowed %s",
+			epochStart.ErrInvalidAmountMintedTokens,
+			computedEconomics.TotalNewlyMinted,
+			maxRewardsInEpoch,
+		)
+	}
+
+	if !core.IsInRangeInclusive(computedEconomics.TotalToDistribute, zero, maxRewardsInEpoch) {
+		return fmt.Errorf("%w, computed total to distribute %s, max allowed %s",
+			epochStart.ErrInvalidTotalToDistribute,
+			computedEconomics.TotalToDistribute,
+			maxRewardsInEpoch,
+		)
+	}
+
+	rewardsSum := big.NewInt(0).Mul(big.NewInt(int64(totalNumBlocksInEpoch)), computedEconomics.RewardsPerBlock)
+	if !core.IsInRangeInclusive(rewardsSum, zero, maxRewardsInEpoch) {
+		return fmt.Errorf("%w, computed sum of rewards %s, max allowed %s",
+			epochStart.ErrInvalidRewardsPerBlock,
+			rewardsSum,
+			maxRewardsInEpoch,
+		)
+	}
+
+	return nil
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed

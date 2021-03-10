@@ -62,7 +62,7 @@
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 4, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 5, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
@@ -85,6 +85,7 @@
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
         { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
     ]
 
 [StoragePruning]
@@ -651,7 +652,7 @@
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
-        NumConcurrentVMs = 20
+        NumConcurrentVMs = 1
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
@@ -796,3 +797,7 @@
 
 [Logs]
     LogFileLifeSpanInSec = 86400
+
+[TrieSync]
+    NumConcurrentTrieSyncers  = 2000
+    MaxHardCapForMissingNodes = 500

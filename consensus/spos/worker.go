@@ -69,6 +69,7 @@ type Worker struct {
 
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -95,6 +96,7 @@ type WorkerArgs struct {
 	SignatureSize            int
 	PublicKeySize            int
 	AppStatusHandler         core.AppStatusHandler
+	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 }
 
 // NewWorker creates a new Worker object
@@ -139,6 +141,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
+		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -229,6 +232,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.NodeRedundancyHandler) {
+		return ErrNilNodeRedundancyHandler
 	}
 
 	return nil
@@ -339,6 +345,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
 		return err
+	}
+
+	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
+		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(
+			wrk.consensusState.SelfPubKey(),
+			string(cnsMsg.PubKey),
+			message.Peer(),
+		)
 	}
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)

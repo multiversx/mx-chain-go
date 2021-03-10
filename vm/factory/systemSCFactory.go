@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"fmt"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -10,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
 )
+
+var log = logger.GetOrCreate("vm/factory")
 
 type systemSCFactory struct {
 	systemEI               vm.ContextHandler
@@ -134,6 +139,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	err := scf.createGasConfig(gasSchedule)
 	if err != nil {
+		log.Error("error changing gas schedule", "error", err)
 		return
 	}
 
@@ -141,11 +147,14 @@ func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]
 	for _, key := range scf.systemSCsContainer.Keys() {
 		systemSC, err = scf.systemSCsContainer.Get(key)
 		if err != nil {
+			log.Error("error getting system SC", "key", key, "error", err)
 			return
 		}
 
 		systemSC.SetNewGasCost(scf.gasCost)
 	}
+
+	log.Debug("new gas schedule was set")
 }
 
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
@@ -233,6 +242,11 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 }
 
 func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartContract, error) {
+	configChangeAddres, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+	}
+
 	argsDelegationManager := systemSmartContracts.ArgsNewDelegationManager{
 		DelegationMgrSCConfig:  scf.systemSCConfig.DelegationManagerSystemSCConfig,
 		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
@@ -240,6 +254,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		ConfigChangeAddress:    configChangeAddres,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,

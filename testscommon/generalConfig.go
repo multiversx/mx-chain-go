@@ -305,6 +305,10 @@ func GetGeneralConfig() config.Config {
 		SoftwareVersionConfig: config.SoftwareVersionConfig{
 			PollingIntervalInMinutes: 30,
 		},
+		TrieSync: config.TrieSyncConfig{
+			NumConcurrentTrieSyncers:  50,
+			MaxHardCapForMissingNodes: 500,
+		},
 	}
 }
 

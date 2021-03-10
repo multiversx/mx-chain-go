@@ -31,6 +31,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		PeerHonestyHandler:            consensusCoreMock.PeerHonestyHandler(),
 		HeaderSigVerifier:             consensusCoreMock.HeaderSigVerifier(),
 		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
+		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
 	}
 	return args
 }
@@ -283,6 +284,20 @@ func TestConsensusCore_WithNilFallbackHeaderValidatorShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilFallbackHeaderValidator, err)
+}
+
+func TestConsensusCore_WithNilNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.NodeRedundancyHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

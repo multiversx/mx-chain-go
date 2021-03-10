@@ -526,8 +526,11 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
-		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {
-			return expectedGasLimit, nil
+		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (*tr.CostResponse, error) {
+			return &tr.CostResponse{
+				GasUnits:   expectedGasLimit,
+				RetMessage: "",
+			}, nil
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -594,7 +597,7 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return nil, nil, expectedErr
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -645,7 +648,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return expectedErr
 		},
 	}
@@ -676,6 +679,76 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 	assert.Contains(t, simulateResponse.Error, expectedErr.Error())
 }
 
+func TestSimulateTransaction_CannotParseParameterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate?checkSignature=tttt", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, apiErrors.ErrValidation.Error(), simulateResponse.Error)
+}
+
+func TestSimulateTransaction_UseQueryParameterShouldWork(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
+			assert.True(t, bypassSignature)
+			return nil
+		},
+		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+			return &tr.Transaction{}, []byte("hash"), nil
+		},
+		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+			return &tr.SimulationResults{}, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate?bypassSignature=true", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+}
+
 func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -687,7 +760,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}
@@ -736,7 +809,7 @@ func TestSimulateTransaction(t *testing.T) {
 		CreateTransactionHandler: func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
-		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction, bypassSignature bool) error {
 			return nil
 		},
 	}

@@ -19,12 +19,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -94,6 +94,8 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
+	printEnableEpochs(nr.configs)
+
 	logGoroutinesNumber(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
@@ -108,6 +110,35 @@ func (nr *nodeRunner) Start() error {
 	}
 
 	return nil
+}
+
+func printEnableEpochs(configs *config.Configs) {
+	generalSettings := configs.GeneralConfig.GeneralSettings
+
+	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
+	log.Debug("built in functions enable epoch", "epoch", generalSettings.BuiltInFunctionsEnableEpoch)
+	log.Debug("relayed transactions enable epoch", "epoch", generalSettings.RelayedTransactionsEnableEpoch)
+	log.Debug("penalized too much gas enable epoch", "epoch", generalSettings.PenalizedTooMuchGasEnableEpoch)
+	log.Debug("switch jail waiting enable epoch", "epoch", generalSettings.SwitchJailWaitingEnableEpoch)
+	log.Debug("switch hysteresis for min nodes enable epoch", "epoch", generalSettings.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug("below signed threshold enable epoch", "epoch", generalSettings.BelowSignedThresholdEnableEpoch)
+	log.Debug("transaction signed with tx hash enable epoch", "epoch", generalSettings.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug("meta protection enable epoch", "epoch", generalSettings.MetaProtectionEnableEpoch)
+	log.Debug("ahead of time gas usage enable epoch", "epoch", generalSettings.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug("gas price modifier enable epoch", "epoch", generalSettings.GasPriceModifierEnableEpoch)
+	log.Debug("repair callback enable epoch", "epoch", generalSettings.RepairCallbackEnableEpoch)
+	log.Debug("max nodes change enable epoch", "epoch", generalSettings.MaxNodesChangeEnableEpoch)
+	log.Debug("block gas and fees re-check enable epoch", "epoch", generalSettings.BlockGasAndFeesReCheckEnableEpoch)
+
+	systemSCConfig := configs.SystemSCConfig
+
+	log.Debug("staking v2 epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakingV2Epoch)
+	log.Debug("stake enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch)
+	log.Debug("double key protection enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.DoubleKeyProtectionEnableEpoch)
+	log.Debug("esdt enable epoch", "epoch", systemSCConfig.ESDTSystemSCConfig.EnabledEpoch)
+	log.Debug("governance enable epoch", "epoch", systemSCConfig.GovernanceSystemSCConfig.EnabledEpoch)
+	log.Debug("delegation manager enable epoch", "epoch", systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch)
+	log.Debug("delegation smart contract enable epoch", "epoch", systemSCConfig.DelegationSystemSCConfig.EnabledEpoch)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
@@ -235,6 +266,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
+
 		)
 		if err != nil {
 			return err
@@ -242,6 +274,9 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
+		if err != nil {
+			return err
+		}
 
 		elasticIndexer := managedStatusComponents.ElasticIndexer()
 		if !elasticIndexer.IsNilIndexer() {
@@ -274,6 +309,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedProcessComponents,
 			managedConsensusComponents.HardforkTrigger(),
+			managedProcessComponents.NodeRedundancyHandler(),
 		)
 
 		if err != nil {
@@ -495,6 +531,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	hardforkTrigger HardforkTrigger,
+	redundancyHandler consensus.NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(managedCoreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
@@ -504,6 +541,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		AppVersion:        nr.configs.FlagsConfig.Version,
 		GenesisTime:       genesisTime,
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    managedCoreComponents,
 		DataComponents:    managedDataComponents,
 		NetworkComponents: managedNetworkComponents,
@@ -783,6 +821,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                    *configs.GeneralConfig,
+		PrefConfigs:               configs.PreferencesConfig.Preferences,
 		ImportDBConfig:            *configs.ImportDbConfig,
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
@@ -1197,7 +1236,7 @@ func copySingleFile(folder string, configFile string) {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer process.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 ) {
