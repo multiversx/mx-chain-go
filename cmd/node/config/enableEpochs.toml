@@ -40,13 +40,6 @@
     # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
     BlockGasAndFeesReCheckEnableEpoch = 4
 
-    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
-    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
-    MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 5, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
-    ]
-
     # StakeEnableEpoch represents the epoch when staking is enabled
     StakeEnableEpoch = 2
 
@@ -68,3 +61,10 @@
     # DelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 4
+
+    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
+    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+    MaxNodesChangeEnableEpoch = [
+        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
+        { EpochEnable = 5, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+    ]
