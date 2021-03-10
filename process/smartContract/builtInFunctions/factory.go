@@ -75,6 +75,7 @@ func NewBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (*built
 func (b *builtInFuncFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	newGasConfig, err := createGasConfig(gasSchedule)
 	if err != nil {
+		log.Error("builtInFuncFactory GasScheduleChange createNewGasConfig", "err", err)
 		return
 	}
 
@@ -82,6 +83,7 @@ func (b *builtInFuncFactory) GasScheduleChange(gasSchedule map[string]map[string
 	for key := range b.builtInFunctions.Keys() {
 		builtInFunc, errGet := b.builtInFunctions.Get(key)
 		if errGet != nil {
+			log.Error("builtInFuncFactory GasScheduleChange get", "err", errGet)
 			return
 		}
 
