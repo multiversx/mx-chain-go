@@ -51,6 +51,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	mapSCTxs := make(map[string]struct{})
 	mapTxsForShard := make(map[uint32]int)
 	mapScsForShard := make(map[uint32]int)
+	mapCrossShardScCallsOrSpecialTxs := make(map[uint32]int)
+	maxCrossShardScCallsOrSpecialTxsPerShard := 0
 
 	processingInfo := processedTxsInfo{}
 
@@ -95,16 +97,23 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			continue
 		}
 
-		miniBlock, ok := mapMiniBlocks[receiverShardID]
-		if !ok {
-			log.Debug("mini block is not created", "shard", receiverShardID)
-			continue
+		if len(senderAddressToSkip) > 0 {
+			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
+				processingInfo.numTxsSkipped++
+				continue
+			}
 		}
 
 		_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 		isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
 		firstMiniBlockSplitForReceiverShardFound := (isReceiverSmartContractAddress && mapScsForShard[receiverShardID] == 0 && mapTxsForShard[receiverShardID] > 0) ||
 			(!isReceiverSmartContractAddress && mapTxsForShard[receiverShardID] == 0 && mapScsForShard[receiverShardID] > 0)
+
+		miniBlock, ok := mapMiniBlocks[receiverShardID]
+		if !ok {
+			log.Debug("mini block is not created", "shard", receiverShardID)
+			continue
+		}
 
 		numNewMiniBlocks := 0
 		if len(miniBlock.TxHashes) == 0 || firstCrossShardScCallOrSpecialTxFound {
@@ -118,7 +127,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			if !firstCrossShardScCallOrSpecialTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			if mapCrossShardScCallsOrSpecialTxs[receiverShardID] >= maxCrossShardScCallsOrSpecialTxsPerShard {
+				numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			}
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -127,13 +138,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 				"num scheduled txs added", processingInfo.numScheduledTxsAdded,
 				"total txs", len(sortedTxs))
 			break
-		}
-
-		if len(senderAddressToSkip) > 0 {
-			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
-				processingInfo.numTxsSkipped++
-				continue
-			}
 		}
 
 		addressHasEnoughBalance, isAddressSet, txMaxTotalCost := txs.hasAddressEnoughInitialBalance(tx)
@@ -205,14 +209,18 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 				firstCrossShardScCallOrSpecialTxFound = true
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
-			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
+			if mapCrossShardScCallsOrSpecialTxs[receiverShardID] > maxCrossShardScCallsOrSpecialTxsPerShard {
+				maxCrossShardScCallsOrSpecialTxsPerShard = mapCrossShardScCallsOrSpecialTxs[receiverShardID]
+				//we need to increment this as to account for the corresponding SCR hash
+				txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			}
 			processingInfo.numCrossShardScCallsOrSpecialTxs++
 		}
 
 		if isReceiverSmartContractAddress {
-			mapScsForShard[receiverShardID]++
 			mapSCTxs[string(txHash)] = struct{}{}
+			mapScsForShard[receiverShardID]++
 		} else {
 			mapTxsForShard[receiverShardID]++
 		}
@@ -419,12 +427,14 @@ func (txs *transactions) createScheduledMiniBlocks(
 	log.Debug("createScheduledMiniBlocks has been started")
 
 	mapMiniBlocks := txs.createEmptyMiniBlocks(block.TxBlock, []byte{byte(block.ScheduledBlock)})
+	mapCrossShardScCallTxs := make(map[uint32]int)
+	maxCrossShardScCallTxsPerShard := 0
 
-	firstCrossShardScCallFound := false
+	firstCrossShardScCallTxFound := false
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := txs.initGasConsumed()
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
+	totalGasConsumedInSelfShard := uint64(0)
 
 	senderAddressToSkip := []byte("")
 
@@ -437,6 +447,11 @@ func (txs *transactions) createScheduledMiniBlocks(
 		txHash := sortedTxs[index].TxHash
 		senderShardID := sortedTxs[index].SenderShardID
 		receiverShardID := sortedTxs[index].ReceiverShardID
+
+		_, alreadyAdded := mapSCTxs[string(txHash)]
+		if alreadyAdded {
+			continue
+		}
 
 		if isShardStuck != nil && isShardStuck(receiverShardID) {
 			log.Trace("shard is stuck", "shard", receiverShardID)
@@ -452,14 +467,18 @@ func (txs *transactions) createScheduledMiniBlocks(
 			continue
 		}
 
+		if len(senderAddressToSkip) > 0 {
+			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
+				processingInfo.numScheduledTxsSkipped++
+				continue
+			}
+		}
+
+		senderAddressToSkip = tx.GetSndAddr()
+
 		_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 		isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
 		if !isReceiverSmartContractAddress {
-			continue
-		}
-
-		_, alreadyAdded := mapSCTxs[string(txHash)]
-		if alreadyAdded {
 			continue
 		}
 
@@ -475,12 +494,14 @@ func (txs *transactions) createScheduledMiniBlocks(
 		}
 		numNewTxs := 1
 
-		isCrossShardScCall := receiverShardID != txs.shardCoordinator.SelfId()
-		if isCrossShardScCall {
-			if !firstCrossShardScCallFound {
+		isCrossShardScCallTx := receiverShardID != txs.shardCoordinator.SelfId()
+		if isCrossShardScCallTx {
+			if !firstCrossShardScCallTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			if mapCrossShardScCallTxs[receiverShardID] >= maxCrossShardScCallTxsPerShard {
+				numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
+			}
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -491,20 +512,11 @@ func (txs *transactions) createScheduledMiniBlocks(
 			break
 		}
 
-		if len(senderAddressToSkip) > 0 {
-			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
-				processingInfo.numScheduledTxsSkipped++
-				continue
-			}
-		}
-
 		addressHasEnoughBalance, isAddressSet, txMaxTotalCost := txs.hasAddressEnoughInitialBalance(tx)
 		if !addressHasEnoughBalance {
 			processingInfo.numTxsWithInitialBalanceConsumed++
 			continue
 		}
-
-		senderAddressToSkip = tx.GetSndAddr()
 
 		err := txs.verifyTransaction(
 			tx,
@@ -536,13 +548,17 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
-		if isCrossShardScCall {
-			if !firstCrossShardScCallFound {
-				firstCrossShardScCallFound = true
+		if isCrossShardScCallTx {
+			if !firstCrossShardScCallTxFound {
+				firstCrossShardScCallTxFound = true
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
-			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			mapCrossShardScCallTxs[receiverShardID]++
+			if mapCrossShardScCallTxs[receiverShardID] > maxCrossShardScCallTxsPerShard {
+				maxCrossShardScCallTxsPerShard = mapCrossShardScCallTxs[receiverShardID]
+				//we need to increment this as to account for the corresponding SCR hash
+				txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			}
 			processingInfo.numScheduledCrossShardScCalls++
 		}
 
@@ -551,8 +567,12 @@ func (txs *transactions) createScheduledMiniBlocks(
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mapMiniBlocks, mapSCTxs)
+	if len(miniBlocks) > 0 {
+		log.Debug("scheduled mini blocks created", "num", len(miniBlocks))
+	}
 
-	log.Debug("createScheduledMiniBlocks has been finished")
+	log.Debug("createScheduledMiniBlocks has been finished", "elapsed time", time.Since(initialTime))
+
 	return miniBlocks
 }
 

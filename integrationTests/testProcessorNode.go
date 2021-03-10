@@ -386,6 +386,7 @@ func newBaseTestProcessorNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
+	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,

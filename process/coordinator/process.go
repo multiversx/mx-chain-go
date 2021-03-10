@@ -596,7 +596,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in source shard
+		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
 		if len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock) {
 			log.Warn("CreateMbsAndProcessCrossShardTransactionsDstMe: execution of scheduled mini blocks should be skipped for now")
 			miniBlocks = append(miniBlocks, miniBlock)
