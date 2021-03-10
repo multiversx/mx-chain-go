@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
+	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -116,14 +116,14 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	totaltakedHandlerArgs := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                     args.ProcessComponents.ShardCoordinator().SelfId(),
-		RoundDurationInMilliseconds: args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
-		InternalMarshalizer:         args.CoreComponents.InternalMarshalizer(),
-		Accounts:                    args.StateComponents.AccountsAdapter(),
+	totaltakedHandlerArgs := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
+		ShardID:             args.ProcessComponents.ShardCoordinator().SelfId(),
+		InternalMarshalizer: args.CoreComponents.InternalMarshalizer(),
+		Accounts:            args.StateComponents.AccountsAdapter(),
+		NodePrice:           args.Configs.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
 	}
 
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
+	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
