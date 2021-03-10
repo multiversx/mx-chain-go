@@ -826,6 +826,15 @@ func dumpTrieContents(tr data.Trie, values [][]byte) {
 	}
 }
 
+func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	numNodes := tr.GetNumNodes()
+	assert.Equal(t, data.NumNodesDTO{}, numNodes)
+}
+
 func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
 	t.Parallel()
 
