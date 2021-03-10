@@ -243,7 +243,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		}
 
 		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-			GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+			GasScheduleConfig: configs.EpochConfig.GasSchedule,
 			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 			EpochNotifier:     managedCoreComponents.EpochNotifier(),
 		}

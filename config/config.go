@@ -173,7 +173,6 @@ type Config struct {
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
-	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
 }
@@ -460,17 +459,6 @@ type Configs struct {
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
 	EpochConfig              *EpochConfig
-}
-
-// GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
-type GasScheduleByEpochs struct {
-	StartEpoch uint32
-	FileName   string
-}
-
-// GasScheduleConfig represents the versioning config area for the gas schedule toml
-type GasScheduleConfig struct {
-	GasScheduleByEpochs []GasScheduleByEpochs
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node

@@ -33,13 +33,6 @@
         Capacity = 100
         Type = "LRU"
 
-[GasSchedule]
-    GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
-        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
-    ]
-
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true

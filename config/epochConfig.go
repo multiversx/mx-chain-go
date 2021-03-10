@@ -3,6 +3,12 @@ package config
 // EpochConfig will hold epoch configurations
 type EpochConfig struct {
 	EnableEpochs EnableEpochs
+	GasSchedule  GasScheduleConfig
+}
+
+// GasScheduleConfig represents the versioning config area for the gas schedule toml
+type GasScheduleConfig struct {
+	GasScheduleByEpochs []GasScheduleByEpochs
 }
 
 // EnableEpochs will hold the configuration for activation epochs
@@ -28,4 +34,10 @@ type EnableEpochs struct {
 	GovernanceEnableEpoch                  uint32
 	DelegationManagerEnableEpoch           uint32
 	DelegationSmartContractEnableEpoch     uint32
+}
+
+// GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
+type GasScheduleByEpochs struct {
+	StartEpoch uint32
+	FileName   string
 }

@@ -68,3 +68,10 @@
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
         { EpochEnable = 5, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
     ]
+
+[GasSchedule]
+    GasScheduleByEpochs = [
+        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 3, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 4, FileName = "gasScheduleV3.toml" },
+    ]
