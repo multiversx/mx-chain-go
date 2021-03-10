@@ -780,12 +780,16 @@ func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 }
 
 func (bn *branchNode) getNumNodes() data.NumNodesDTO {
+	if check.IfNil(bn) {
+		return data.NumNodesDTO{}
+	}
+
 	currentNumNodes := data.NumNodesDTO{
 		Branches: 1,
 	}
 
 	for _, n := range bn.children {
-		if n.isInterfaceNil() {
+		if check.IfNil(n) {
 			continue
 		}
 
@@ -804,7 +808,7 @@ func (bn *branchNode) getNumNodes() data.NumNodesDTO {
 }
 
 func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
-	if len(key) == 0 || bn.isInterfaceNil() {
+	if len(key) == 0 || check.IfNil(bn) {
 		return false, nil, nil
 	}
 
@@ -814,6 +818,7 @@ func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
-func (bn *branchNode) isInterfaceNil() bool {
+// IsInterfaceNil returns true if there is no value under the interface
+func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil
 }

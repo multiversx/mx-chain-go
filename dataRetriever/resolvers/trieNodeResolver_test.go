@@ -3,15 +3,18 @@ package resolvers_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeer = core.PeerID("from connected peer")
@@ -248,6 +251,232 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeErrorsShouldNotSend(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected err")
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			assert.Fail(t, "should have not called send")
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &mock.TrieStub{
+		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("hash1")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	data, _ := arg.Marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffBatch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Nil(t, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodesErrorsShouldNotSendSubtrie(t *testing.T) {
+	t.Parallel()
+
+	nodes := [][]byte{[]byte("node1")}
+	hashes := [][]byte{[]byte("hash1")}
+
+	var receivedNodes [][]byte
+	arg := createMockArgTrieNodeResolver()
+	expectedErr := errors.New("expected err")
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			b := &batch.Batch{}
+			err := arg.Marshalizer.Unmarshal(b, buff)
+			require.Nil(t, err)
+			receivedNodes = b.Data
+
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &mock.TrieStub{
+		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+			for i := 0; i < len(hashes); i++ {
+				if bytes.Equal(hash, hashes[i]) {
+					return nodes[i], nil
+				}
+			}
+
+			return nil, fmt.Errorf("not found")
+		},
+		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+			return nil, 0, expectedErr
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("hash1")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	data, _ := arg.Marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffBatch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Nil(t, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	require.Equal(t, 1, len(receivedNodes))
+	assert.Equal(t, nodes[0], receivedNodes[0])
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShouldNotReadSubtries(t *testing.T) {
+	t.Parallel()
+
+	nodes := [][]byte{bytes.Repeat([]byte{1}, resolvers.MaxBuffToSendTrieNodes)}
+	hashes := [][]byte{[]byte("hash1")}
+
+	var receivedNodes [][]byte
+	arg := createMockArgTrieNodeResolver()
+	expectedErr := errors.New("expected err")
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			b := &batch.Batch{}
+			err := arg.Marshalizer.Unmarshal(b, buff)
+			require.Nil(t, err)
+			receivedNodes = b.Data
+
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &mock.TrieStub{
+		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+			for i := 0; i < len(hashes); i++ {
+				if bytes.Equal(hash, hashes[i]) {
+					return nodes[i], nil
+				}
+			}
+
+			return nil, fmt.Errorf("not found")
+		},
+		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+			assert.Fail(t, "should have not called GetSerializedNodesCalled")
+			return nil, 0, expectedErr
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("hash1")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	data, _ := arg.Marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffBatch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Nil(t, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	require.Equal(t, 1, len(receivedNodes))
+	assert.Equal(t, nodes[0], receivedNodes[0])
+}
+
+func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubtries(t *testing.T) {
+	t.Parallel()
+
+	nodes := [][]byte{[]byte("node1"), []byte("node2")}
+	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
+	subtriesNodes := [][]byte{[]byte("subtrie nodes 0"), []byte("subtrie nodes 1")}
+
+	var receivedNodes [][]byte
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID) error {
+			b := &batch.Batch{}
+			err := arg.Marshalizer.Unmarshal(b, buff)
+			require.Nil(t, err)
+			receivedNodes = b.Data
+
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &mock.TrieStub{
+		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+			for i := 0; i < len(hashes); i++ {
+				if bytes.Equal(hash, hashes[i]) {
+					return nodes[i], nil
+				}
+			}
+
+			return nil, fmt.Errorf("not found")
+		},
+		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+			used := 0
+			for _, buff := range subtriesNodes {
+				used += len(buff)
+			}
+
+			return subtriesNodes, u - uint64(used), nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("hash1"), []byte("hash2")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	data, _ := arg.Marshalizer.Marshal(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffBatch,
+		},
+	)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer)
+	assert.Nil(t, err)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	require.Equal(t, 4, len(receivedNodes))
+	for _, n := range nodes {
+		assert.True(t, buffInSlice(n, receivedNodes))
+	}
+	for _, n := range subtriesNodes {
+		assert.True(t, buffInSlice(n, receivedNodes))
+	}
+}
+
+func buffInSlice(buff []byte, slice [][]byte) bool {
+	for _, b := range slice {
+		if bytes.Equal(b, buff) {
+			return true
+		}
+	}
+
+	return false
 }
 
 //------- RequestTransactionFromHash

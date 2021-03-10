@@ -114,7 +114,13 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}
 
 	nodes := resolverTrie.GetNumNodes()
-	log.Info("trie nodes", "total", nodes.Total, "branches", nodes.Branches, "extensions", nodes.Extensions, "leaves", nodes.Leaves, "max level", nodes.MaxLevel)
+	log.Info("trie nodes",
+		"total", nodes.Branches+nodes.Extensions+nodes.Leaves,
+		"branches", nodes.Branches,
+		"extensions", nodes.Extensions,
+		"leaves", nodes.Leaves,
+		"max level", nodes.MaxLevel,
+	)
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.RootHash()

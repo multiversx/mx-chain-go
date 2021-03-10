@@ -543,7 +543,7 @@ func (en *extensionNode) getChildren(db data.DBWriteCacher) ([]node, error) {
 }
 
 func (en *extensionNode) getNumNodes() data.NumNodesDTO {
-	if en.isInterfaceNil() {
+	if check.IfNil(en) {
 		return data.NumNodesDTO{}
 	}
 
@@ -645,7 +645,7 @@ func (en *extensionNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 }
 
 func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
-	if len(key) == 0 || en.isInterfaceNil() {
+	if len(key) == 0 || check.IfNil(en) {
 		return false, nil, nil
 	}
 
@@ -655,6 +655,7 @@ func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
-func (en *extensionNode) isInterfaceNil() bool {
+// IsInterfaceNil returns true if there is no value under the interface
+func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil
 }

@@ -383,7 +383,7 @@ func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 }
 
 func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
-	if ln.isInterfaceNil() {
+	if check.IfNil(ln) {
 		return false, nil, nil
 	}
 
@@ -394,6 +394,7 @@ func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, nil, nil
 }
 
-func (ln *leafNode) isInterfaceNil() bool {
+// IsInterfaceNil returns true if there is no value under the interface
+func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil
 }

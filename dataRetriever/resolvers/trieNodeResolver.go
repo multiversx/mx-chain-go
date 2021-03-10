@@ -125,6 +125,7 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 		remainingSpace -= len(serializedNode)
 	}
 
+	usedAllSpace = usedAllSpace || remainingSpace == 0
 	return spaceUsed, usedAllSpace
 }
 
@@ -149,8 +150,8 @@ func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string
 				continue
 			}
 
-			if spaceUsedAlready-len(serializedNode) < 0 {
-				break
+			if remainingForSubtries-len(serializedNode) < 0 {
+				return
 			}
 			spaceUsedAlready += len(serializedNode)
 			nodes[string(serializedNode)] = struct{}{}
@@ -194,6 +195,11 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 }
 
 func (tnRes *TrieNodeResolver) sendResponse(serializedNodes [][]byte, message p2p.MessageP2P) error {
+	if len(serializedNodes) == 0 {
+		//do not send useless message
+		return nil
+	}
+
 	buff, err := tnRes.marshalizer.Marshal(&batch.Batch{Data: serializedNodes})
 	if err != nil {
 		return err

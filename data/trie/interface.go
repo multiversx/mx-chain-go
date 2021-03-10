@@ -44,12 +44,13 @@ type node interface {
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() data.NumNodesDTO
-	isInterfaceNil() bool
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
+
+	IsInterfaceNil() bool
 }
 
 type atomicBuffer interface {

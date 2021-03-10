@@ -713,7 +713,7 @@ func (tr *patriciaMerkleTrie) GetNumNodes() data.NumNodesDTO {
 	defer tr.mutOperation.Unlock()
 
 	n := tr.root
-	if n.isInterfaceNil() {
+	if check.IfNil(n) {
 		return data.NumNodesDTO{}
 	}
 
