@@ -1,10 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -15,7 +15,7 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
+func (im *IndexerMock) SaveBlock(_ *indexer.ArgsSaveBlockData) {
 	panic("implement me")
 }
 
@@ -34,12 +34,12 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfo -
-func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
+func (im *IndexerMock) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 	panic("implement me")
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
 
 }
 
