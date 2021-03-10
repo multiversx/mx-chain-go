@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -73,7 +75,7 @@ type processComponents struct {
 	blackListHandler            process.TimeCacher
 	bootStorer                  process.BootStorer
 	headerSigVerifier           process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier     HeaderIntegrityVerifierHandler
+	headerIntegrityVerifier     factory.HeaderIntegrityVerifierHandler
 	validatorsStatistics        process.ValidatorStatisticsProcessor
 	validatorsProvider          process.ValidatorsProvider
 	blockTracker                process.BlockTracker
@@ -924,7 +926,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 
 func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
@@ -1068,7 +1070,7 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
@@ -1106,7 +1108,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 
 func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {

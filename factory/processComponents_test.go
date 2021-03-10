@@ -12,8 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -65,8 +63,6 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
-
-	//epochStartConfig := getEpochStartConfig()
 
 	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,
@@ -140,13 +136,8 @@ func getProcessArgs(
 				return initialAccounts
 			},
 		},
-		SmartContractParser: &mock.SmartContractParserStub{},
-		//EconomicsData:       CreateEconomicsData(),
-		GasSchedule: gasScheduleNotifier,
-		//RoundHandler: &mock.RoundHandlerMock{
-		//	RoundTimeDuration: time.Second,
-		//},
-		//ShardCoordinator:          shardCoordinator,
+		SmartContractParser:    &mock.SmartContractParserStub{},
+		GasSchedule:            gasScheduleNotifier,
 		NodesCoordinator:       &mock.NodesCoordinatorMock{},
 		Data:                   dataComponents,
 		CoreData:               coreComponents,
@@ -158,19 +149,8 @@ func getProcessArgs(
 		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
-		//EpochStartNotifier:        &mock.EpochStartNotifierStub{},
-		//EpochStart:                &epochStartConfig,
-		//Rater:                     &testscommon.RaterMock{},
-		//RatingsData:               &testscommon.RatingsInfoMock{},
-		//SizeCheckDelta:            0,
-		//StateCheckpointModulus:    0,
-		//MaxComputableRounds:       1000,
-		//NumConcurrentResolverJobs: 2,
-		//MinSizeInBytes:            0,
-		//MaxSizeInBytes:            200,
-		MaxRating:          100,
-		ImportStartHandler: &testscommon.ImportStartHandlerStub{},
-		//ValidatorPubkeyConverter:  &testscommon.PubkeyConverterMock{},
+		MaxRating:              100,
+		ImportStartHandler:     &testscommon.ImportStartHandlerStub{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -210,24 +190,9 @@ func getProcessArgs(
 				MaxServiceFee: 100,
 			},
 		},
-		Version: "v1.0.0",
-		//Indexer:                 &mock.IndexerMock{},
-		//TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+		Version:     "v1.0.0",
 		HistoryRepo: &testscommon.HistoryRepositoryStub{},
-		//HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
-}
-
-// CreateEconomicsData creates a mock EconomicsData object
-func CreateEconomicsData() process.EconomicsDataHandler {
-	economicsConfig := createDummyEconomicsConfig()
-	args := economics.ArgsNewEconomicsData{
-		Economics:                      &economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
-	}
-	economicsData, _ := economics.NewEconomicsData(args)
-	return economicsData
 }
 
 // FillGasMapMetaChainSystemSCsCosts -

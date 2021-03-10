@@ -10,7 +10,6 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -1742,39 +1741,48 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.RoundHandlerField = tpn.RoundHandler
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
+	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
+
+	statusComponents := GetDefaultStatusComponents()
+
+	triesConfig := config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus:   stateCheckpointModulus,
+			UserStatePruningQueueSize: uint(10),
+			PeerStatePruningQueueSize: uint(3),
+		},
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
-		CoreComponents:   coreComponents,
-		DataComponents:   dataComponents,
-		AccountsDB:       accountsDb,
-		ForkDetector:     tpn.ForkDetector,
-		ShardCoordinator: tpn.ShardCoordinator,
-		NodesCoordinator: tpn.NodesCoordinator,
-		FeeHandler:       tpn.FeeAccumulator,
-		RequestHandler:   tpn.RequestHandler,
-		BlockChainHook:   tpn.BlockchainHook,
-		HeaderValidator:  tpn.HeaderValidator,
-		RoundHandler:     tpn.RoundHandler,
+		CoreComponents:      coreComponents,
+		DataComponents:      dataComponents,
+		BootstrapComponents: bootstrapComponents,
+		StatusComponents:    statusComponents,
+		Config:              triesConfig,
+		AccountsDB:          accountsDb,
+		ForkDetector:        tpn.ForkDetector,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		FeeHandler:          tpn.FeeAccumulator,
+		RequestHandler:      tpn.RequestHandler,
+		BlockChainHook:      tpn.BlockchainHook,
+		HeaderValidator:     tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
 			},
 		},
-		BlockTracker:              tpn.BlockTracker,
-		StateCheckpointModulus:    stateCheckpointModulus,
-		UserStatePruningQueueSize: uint(10),
-		BlockSizeThrottler:        TestBlockSizeThrottler,
-		Indexer:                   indexer.NewNilIndexer(),
-		TpsBenchmark:              &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:         tpn.HistoryRepository,
-		EpochNotifier:             tpn.EpochNotifier,
-		HeaderIntegrityVerifier:   tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:          &mock.AppStatusHandlerStub{},
+		BlockTracker:       tpn.BlockTracker,
+		BlockSizeThrottler: TestBlockSizeThrottler,
+		HistoryRepository:  tpn.HistoryRepository,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1783,7 +1791,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: argumentsBase.RoundHandler.TimeStamp(),
+			GenesisTime: argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
 			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
@@ -1911,7 +1919,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-			PeerStatePruningQueueSize:    uint(3),
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

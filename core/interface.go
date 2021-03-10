@@ -1,6 +1,8 @@
 package core
 
-import "time"
+import (
+	"time"
+)
 
 // AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
 type AppStatusHandler interface {

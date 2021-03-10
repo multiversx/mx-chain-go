@@ -59,26 +59,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		hasher:                  arguments.CoreComponents.Hasher(),
 		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
 		store:                   arguments.DataComponents.StorageService(),
-		shardCoordinator:        arguments.ShardCoordinator,
+		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
 		nodesCoordinator:        arguments.NodesCoordinator,
 		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        arguments.AppStatusHandler,
+		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		roundHandler:            arguments.RoundHandler,
+		roundHandler:            arguments.CoreComponents.RoundHandler(),
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
 		dataPool:                arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:  arguments.StateCheckpointModulus,
+		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		blockChain:              arguments.DataComponents.Blockchain(),
 		feeHandler:              arguments.FeeHandler,
-		indexer:                 arguments.Indexer,
-		tpsBenchmark:            arguments.TpsBenchmark,
+		indexer:                 arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
 		vmContainerFactory:      arguments.VMContainersFactory,
@@ -102,7 +102,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
-	sp.userStatePruningQueue = queue.NewHashQueue(arguments.UserStatePruningQueueSize)
+	sp.userStatePruningQueue = queue.NewHashQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }

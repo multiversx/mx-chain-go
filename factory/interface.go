@@ -65,13 +65,6 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
-// HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
-type HeaderIntegrityVerifierHandler interface {
-	Verify(header data.HeaderHandler) error
-	GetVersion(epoch uint32) string
-	IsInterfaceNil() bool
-}
-
 // Closer defines the Close behavior
 type Closer interface {
 	Close() error
@@ -404,7 +397,7 @@ type BootstrapComponentsHolder interface {
 	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
 	ShardCoordinator() sharding.Coordinator
-	HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler
+	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 
