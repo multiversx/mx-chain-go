@@ -927,20 +927,20 @@ func isCreateNFTRoleInArgs(args [][]byte) bool {
 	return false
 }
 
-func checkIfCreateNFTRoleExists(args [][]byte, token *ESDTData) error {
+func checkIfCreateNFTRoleExistsInArgsAndToken(args [][]byte, token *ESDTData) bool {
 	if !isCreateNFTRoleInArgs(args) {
-		return nil
+		return false
 	}
 
 	for _, esdtRole := range token.SpecialRoles {
 		for _, role := range esdtRole.Roles {
 			if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
-				return vm.ErrNFTCreateRoleAlreadyExists
+				return true
 			}
 		}
 	}
 
-	return nil
+	return false
 }
 
 func isSpecialRoleValidForFungible(argument string) error {
@@ -1006,13 +1006,12 @@ func (e *esdt) setSpecialRole(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err := checkIfCreateNFTRoleExists(args.Arguments[2:], token)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
+	if checkIfCreateNFTRoleExistsInArgsAndToken(args.Arguments[2:], token) {
+		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
 		return vmcommon.UserError
 	}
 
-	err = checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
+	err := checkSpecialRolesAccordingToTokenType(args.Arguments[2:], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
