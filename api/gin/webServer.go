@@ -74,13 +74,18 @@ func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpSe
 		return nil, err
 	}
 
+	ws.Lock()
 	ws.httpServer = closableWebServer
+	ws.Unlock()
 
 	return closableWebServer, nil
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
 func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
+	ws.Lock()
+	defer ws.Unlock()
+
 	if ws.facade.RestApiInterface() == facade.DefaultRestPortOff {
 		return disabled.NewDisabledServerClosing(), nil
 	}
@@ -129,9 +134,7 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	ws.Lock()
 	ws.httpServer = wrappedServer
-	ws.Unlock()
 
 	return wrappedServer, nil
 }
@@ -177,6 +180,7 @@ func (ws *webServer) sourceLimiterReset(ctx context.Context, reset resetHandler)
 	}
 }
 
+// registerRoutes has to be called under mutex protection
 func (ws *webServer) registerRoutes(gws *gin.Engine) {
 	routesConfig := ws.apiConfig
 	nodeRoutes := gws.Group("/node")
@@ -243,7 +247,11 @@ func (ws *webServer) Close() error {
 		ws.cancelFunc()
 	}
 
-	return ws.httpServer.Close()
+	ws.Lock()
+	err := ws.httpServer.Close()
+	ws.Unlock()
+
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
