@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -110,6 +111,12 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 		return nil, err
 	}
 
+	esdtTokenRoleKey := append(roleKeyPrefix, tokenID...)
+	err = e.deleteCreateRoleFromAccount(acntDst, esdtTokenRoleKey)
+	if err != nil {
+		return nil, err
+	}
+
 	destAddress := vmInput.Arguments[1]
 	if e.shardCoordinator.ComputeId(destAddress) == e.shardCoordinator.SelfId() {
 		newDestinationAcc, errLoad := e.accounts.LoadAccount(destAddress)
@@ -122,6 +129,11 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 		}
 
 		err = saveLatestNonce(newDestUserAcc, tokenID, nonce)
+		if err != nil {
+			return nil, err
+		}
+
+		err = e.addCreateRoletoAccount(newDestUserAcc, esdtTokenRoleKey)
 		if err != nil {
 			return nil, err
 		}
@@ -147,6 +159,50 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 	return outAcc, nil
 }
 
+func (e *esdtNFTCreateRoleTransfer) deleteCreateRoleFromAccount(
+	acntDst state.UserAccountHandler,
+	esdtTokenRoleKey []byte,
+) error {
+	roles, _, err := getESDTRolesForAcnt(e.marshalizer, acntDst, esdtTokenRoleKey)
+	if err != nil {
+		return err
+	}
+
+	deleteRoles(roles, [][]byte{[]byte(core.ESDTRoleNFTCreate)})
+	return saveRolesToAccount(acntDst, esdtTokenRoleKey, roles, e.marshalizer)
+}
+
+func (e *esdtNFTCreateRoleTransfer) addCreateRoletoAccount(
+	acntDst state.UserAccountHandler,
+	esdtTokenRoleKey []byte,
+) error {
+	roles, _, err := getESDTRolesForAcnt(e.marshalizer, acntDst, esdtTokenRoleKey)
+	if err != nil {
+		return err
+	}
+
+	roles.Roles = append(roles.Roles, []byte(core.ESDTRoleNFTCreate))
+	return saveRolesToAccount(acntDst, esdtTokenRoleKey, roles, e.marshalizer)
+}
+
+func saveRolesToAccount(
+	acntDst state.UserAccountHandler,
+	esdtTokenRoleKey []byte,
+	roles *esdt.ESDTRoles,
+	marshalizer marshal.Marshalizer,
+) error {
+	marshaledData, err := marshalizer.Marshal(roles)
+	if err != nil {
+		return err
+	}
+	err = acntDst.DataTrieTracker().SaveKeyValue(esdtTokenRoleKey, marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtNextOwner(
 	acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -162,6 +218,12 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtNextOwner(
 	nonce := big.NewInt(0).SetBytes(vmInput.Arguments[1]).Uint64()
 
 	err := saveLatestNonce(acntDst, tokenID, nonce)
+	if err != nil {
+		return err
+	}
+
+	esdtTokenRoleKey := append(roleKeyPrefix, tokenID...)
+	err = e.addCreateRoletoAccount(acntDst, esdtTokenRoleKey)
 	if err != nil {
 		return err
 	}

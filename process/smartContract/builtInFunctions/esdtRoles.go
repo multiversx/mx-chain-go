@@ -14,9 +14,9 @@ import (
 )
 
 var _ process.BuiltinFunction = (*esdtRoles)(nil)
+var roleKeyPrefix = []byte(core.ElrondProtectedKeyPrefix + core.ESDTRoleIdentifier + core.ESDTKeyIdentifier)
 
 type esdtRoles struct {
-	keyPrefix   []byte
 	set         bool
 	marshalizer marshal.Marshalizer
 }
@@ -31,7 +31,6 @@ func NewESDTRolesFunc(
 	}
 
 	e := &esdtRoles{
-		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + core.ESDTRoleIdentifier + core.ESDTKeyIdentifier),
 		set:         set,
 		marshalizer: marshalizer,
 	}
@@ -59,10 +58,10 @@ func (e *esdtRoles) ProcessBuiltinFunction(
 		return nil, process.ErrNilUserAccount
 	}
 
-	esdtTokenRoleKey := append(e.keyPrefix, vmInput.Arguments[0]...)
+	esdtTokenRoleKey := append(roleKeyPrefix, vmInput.Arguments[0]...)
 	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "key", esdtTokenRoleKey)
 
-	roles, _, err := e.getESDTRolesForAcnt(acntDst, esdtTokenRoleKey)
+	roles, _, err := getESDTRolesForAcnt(e.marshalizer, acntDst, esdtTokenRoleKey)
 	if err != nil {
 		return nil, err
 	}
@@ -70,29 +69,29 @@ func (e *esdtRoles) ProcessBuiltinFunction(
 	if e.set {
 		roles.Roles = append(roles.Roles, vmInput.Arguments[1:]...)
 	} else {
-		for _, arg := range vmInput.Arguments[1:] {
-			index, exist := doesRoleExist(roles, arg)
-			if !exist {
-				continue
-			}
-
-			copy(roles.Roles[index:], roles.Roles[index+1:])
-			roles.Roles[len(roles.Roles)-1] = nil
-			roles.Roles = roles.Roles[:len(roles.Roles)-1]
-		}
+		deleteRoles(roles, vmInput.Arguments[1:])
 	}
 
-	marshaledData, err := e.marshalizer.Marshal(roles)
-	if err != nil {
-		return nil, err
-	}
-	err = acntDst.DataTrieTracker().SaveKeyValue(esdtTokenRoleKey, marshaledData)
+	err = saveRolesToAccount(acntDst, esdtTokenRoleKey, roles, e.marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 	return vmOutput, nil
+}
+
+func deleteRoles(roles *esdt.ESDTRoles, deleteRoles [][]byte) {
+	for _, arg := range deleteRoles {
+		index, exist := doesRoleExist(roles, arg)
+		if !exist {
+			continue
+		}
+
+		copy(roles.Roles[index:], roles.Roles[index+1:])
+		roles.Roles[len(roles.Roles)-1] = nil
+		roles.Roles = roles.Roles[:len(roles.Roles)-1]
+	}
 }
 
 func doesRoleExist(roles *esdt.ESDTRoles, role []byte) (int, bool) {
@@ -104,18 +103,24 @@ func doesRoleExist(roles *esdt.ESDTRoles, role []byte) (int, bool) {
 	return -1, false
 }
 
-func (e *esdtRoles) getESDTRolesForAcnt(acnt state.UserAccountHandler, key []byte) (*esdt.ESDTRoles, bool, error) {
+func getESDTRolesForAcnt(
+	marshalizer marshal.Marshalizer,
+	acnt state.UserAccountHandler,
+	key []byte,
+) (*esdt.ESDTRoles, bool, error) {
 	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
 		return nil, false, err
 	}
 
-	roles := &esdt.ESDTRoles{}
+	roles := &esdt.ESDTRoles{
+		Roles: make([][]byte, 0),
+	}
 	if len(marshaledData) == 0 {
 		return roles, true, nil
 	}
 
-	err = e.marshalizer.Unmarshal(roles, marshaledData)
+	err = marshalizer.Unmarshal(roles, marshaledData)
 	if err != nil {
 		return nil, false, err
 	}
@@ -129,8 +134,8 @@ func (e *esdtRoles) CheckAllowedToExecute(account state.UserAccountHandler, toke
 		return process.ErrNilUserAccount
 	}
 
-	esdtTokenRoleKey := append(e.keyPrefix, tokenID...)
-	roles, isNew, err := e.getESDTRolesForAcnt(account, esdtTokenRoleKey)
+	esdtTokenRoleKey := append(roleKeyPrefix, tokenID...)
+	roles, isNew, err := getESDTRolesForAcnt(e.marshalizer, account, esdtTokenRoleKey)
 	if err != nil {
 		return err
 	}
