@@ -169,7 +169,7 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 
 // GetSerializedNode -
 func (ts *TrieStub) GetSerializedNode(hash []byte) ([]byte, error) {
-	if ts.GetSerializedNodesCalled != nil {
+	if ts.GetSerializedNodeCalled != nil {
 		return ts.GetSerializedNodeCalled(hash)
 	}
 	return make([]byte, 0), nil

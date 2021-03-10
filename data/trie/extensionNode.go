@@ -543,12 +543,15 @@ func (en *extensionNode) getChildren(db data.DBWriteCacher) ([]node, error) {
 }
 
 func (en *extensionNode) getNumNodes() data.NumNodesDTO {
-	arg := en.child.getNumNodes()
-	arg.Extensions++
-	arg.Total++
-	arg.MaxLevel++
+	if en.isInterfaceNil() {
+		return data.NumNodesDTO{}
+	}
 
-	return arg
+	childNumNodes := en.child.getNumNodes()
+	childNumNodes.Extensions++
+	childNumNodes.MaxLevel++
+
+	return childNumNodes
 }
 
 func (en *extensionNode) isValid() bool {

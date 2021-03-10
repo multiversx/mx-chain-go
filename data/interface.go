@@ -151,7 +151,6 @@ type EventHandler interface {
 // NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
 // trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
 type NumNodesDTO struct {
-	Total      int
 	Leaves     int
 	Extensions int
 	Branches   int

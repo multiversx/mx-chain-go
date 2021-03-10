@@ -96,7 +96,6 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 
 	nodes := make(map[string]struct{})
 	spaceUsed, usedAllSpace := tnRes.resolveOnlyRequestedHashes(hashes, nodes)
-
 	if usedAllSpace {
 		return tnRes.sendResponse(convertMapToSlice(nodes), message)
 	}

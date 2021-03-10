@@ -111,14 +111,14 @@ func TestNewDoubleListTrieSyncer_InvalidParametersShouldErr(t *testing.T) {
 
 	arg := createMockArgument()
 	arg.RequestHandler = nil
-	dlts, err := NewDoubleListTrieSyncer(arg)
-	assert.True(t, check.IfNil(dlts))
+	d, err := NewDoubleListTrieSyncer(arg)
+	assert.True(t, check.IfNil(d))
 	assert.Equal(t, ErrNilRequestHandler, err)
 
 	arg = createMockArgument()
 	arg.Trie = &mock.TrieStub{}
-	dlts, err = NewDoubleListTrieSyncer(arg)
-	assert.True(t, check.IfNil(dlts))
+	d, err = NewDoubleListTrieSyncer(arg)
+	assert.True(t, check.IfNil(d))
 	assert.Equal(t, ErrWrongTypeAssertion, err)
 }
 
@@ -126,8 +126,8 @@ func TestNewDoubleListTrieSyncer(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	dlts, err := NewDoubleListTrieSyncer(arg)
-	assert.False(t, check.IfNil(dlts))
+	d, err := NewDoubleListTrieSyncer(arg)
+	assert.False(t, check.IfNil(d))
 	assert.Nil(t, err)
 }
 
@@ -135,17 +135,17 @@ func TestDoubleListTrieSyncer_Trie(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	dlts, _ := NewDoubleListTrieSyncer(arg)
+	d, _ := NewDoubleListTrieSyncer(arg)
 
-	assert.True(t, dlts.Trie() == arg.Trie) //pointer testing
+	assert.True(t, d.Trie() == arg.Trie) //pointer testing
 }
 
 func TestDoubleListTrieSyncer_StartSyncingNilRootHashShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	dlts, _ := NewDoubleListTrieSyncer(arg)
-	err := dlts.StartSyncing(nil, context.Background())
+	d, _ := NewDoubleListTrieSyncer(arg)
+	err := d.StartSyncing(nil, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -154,8 +154,8 @@ func TestDoubleListTrieSyncer_StartSyncingEmptyRootHashShouldReturnNil(t *testin
 	t.Parallel()
 
 	arg := createMockArgument()
-	dlts, _ := NewDoubleListTrieSyncer(arg)
-	err := dlts.StartSyncing(EmptyTrieHash, context.Background())
+	d, _ := NewDoubleListTrieSyncer(arg)
+	err := d.StartSyncing(EmptyTrieHash, context.Background())
 
 	assert.Nil(t, err)
 }
@@ -164,8 +164,8 @@ func TestDoubleListTrieSyncer_StartSyncingNilContextShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	dlts, _ := NewDoubleListTrieSyncer(arg)
-	err := dlts.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
+	d, _ := NewDoubleListTrieSyncer(arg)
+	err := d.StartSyncing(bytes.Repeat([]byte{1}, len(EmptyTrieHash)), nil)
 
 	assert.Equal(t, ErrNilContext, err)
 }
@@ -181,11 +181,11 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	arg := createMockArgument()
 	arg.Trie, _ = createInMemoryTrie()
 
-	dlts, _ := NewDoubleListTrieSyncer(arg)
+	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancelFunc()
 
-	err := dlts.StartSyncing(roothash, ctx)
+	err := d.StartSyncing(roothash, ctx)
 	require.Equal(t, ErrContextClosing, err)
 }
 
@@ -201,11 +201,11 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	arg.Trie, _ = createInMemoryTrie()
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
 
-	dlts, _ := NewDoubleListTrieSyncer(arg)
+	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()
 
-	err := dlts.StartSyncing(roothash, ctx)
+	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
 	syncedRootHash, _ := arg.Trie.RootHash()
@@ -249,11 +249,11 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, exceptionHashes)
 
-	dlts, _ := NewDoubleListTrieSyncer(arg)
+	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()
 
-	err := dlts.StartSyncing(roothash, ctx)
+	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
 	syncedRootHash, _ := arg.Trie.RootHash()

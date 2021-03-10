@@ -400,17 +400,23 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	if log.GetLevel() == logger.LogTrace {
-		for _, txHash := range rrh.trieHashesAccumulator {
-			log.Trace("requestByHashes", "hash", txHash)
-		}
-	}
+	rrh.logTrieHashesFromAccumulator()
 
 	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
 
 	rrh.addRequestedItems(itemsToRequest)
 	rrh.lastTrieRequestTime = time.Now()
 	rrh.trieHashesAccumulator = make(map[string]struct{})
+}
+
+func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	for _, txHash := range rrh.trieHashesAccumulator {
+		log.Trace("requestByHashes", "hash", txHash)
+	}
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce

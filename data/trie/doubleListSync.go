@@ -46,7 +46,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	dlts := &doubleListTrieSyncer{
+	d := &doubleListTrieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodes:          arg.InterceptedNodes,
 		trie:                      pmt,
@@ -59,13 +59,13 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
 	}
 
-	return dlts, nil
+	return d, nil
 }
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network. All concurrent calls will be serialized
 // so this function is treated as a large critical section. This was done so the inner processing can be done without using
 // other mutexes.
-func (dlts *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
+func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
 		return nil
 	}
@@ -73,22 +73,22 @@ func (dlts *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Cont
 		return ErrNilContext
 	}
 
-	dlts.mutOperation.Lock()
+	d.mutOperation.Lock()
 	defer func() {
-		dlts.mutOperation.Unlock()
+		d.mutOperation.Unlock()
 	}()
 
-	dlts.lastSyncedTrieNode = time.Now()
-	dlts.marginExisting = make(map[string]node)
-	dlts.marginMissing = make(map[string]struct{})
+	d.lastSyncedTrieNode = time.Now()
+	d.marginExisting = make(map[string]node)
+	d.marginMissing = make(map[string]struct{})
 
-	dlts.rootFound = false
-	dlts.rootHash = rootHash
+	d.rootFound = false
+	d.rootHash = rootHash
 
-	dlts.marginMissing[string(rootHash)] = struct{}{}
+	d.marginMissing[string(rootHash)] = struct{}{}
 
 	for {
-		isSynced, err := dlts.checkIsSynced()
+		isSynced, err := d.checkIsSyncedWhileProcessingMargins()
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ func (dlts *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Cont
 		}
 
 		select {
-		case <-time.After(dlts.waitTimeBetweenChecks):
+		case <-time.After(d.waitTimeBetweenChecks):
 			continue
 		case <-ctx.Done():
 			return ErrContextClosing
@@ -105,111 +105,111 @@ func (dlts *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Cont
 	}
 }
 
-func (dlts *doubleListTrieSyncer) checkIsSynced() (bool, error) {
-	err := dlts.processMargin()
+func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMargins() (bool, error) {
+	err := d.processMargin()
 	if err != nil {
 		return false, err
 	}
 
-	if len(dlts.marginMissing) > 0 {
-		marginSlice := make([][]byte, 0, len(dlts.marginMissing))
-		for hash := range dlts.marginMissing {
+	if len(d.marginMissing) > 0 {
+		marginSlice := make([][]byte, 0, len(d.marginMissing))
+		for hash := range d.marginMissing {
 			marginSlice = append(marginSlice, []byte(hash))
 		}
 
-		dlts.request(marginSlice)
+		d.request(marginSlice)
 
 		return false, nil
 	}
 
-	return len(dlts.marginMissing)+len(dlts.marginExisting) == 0, nil
+	return len(d.marginMissing)+len(d.marginExisting) == 0, nil
 }
 
-func (dlts *doubleListTrieSyncer) request(hashes [][]byte) {
-	dlts.requestHandler.RequestTrieNodes(dlts.shardId, hashes, dlts.topic)
-	dlts.trieSyncStatistics.SetNumMissing(dlts.rootHash, len(hashes))
+func (d *doubleListTrieSyncer) request(hashes [][]byte) {
+	d.requestHandler.RequestTrieNodes(d.shardId, hashes, d.topic)
+	d.trieSyncStatistics.SetNumMissing(d.rootHash, len(hashes))
 }
 
-func (dlts *doubleListTrieSyncer) processMargin() error {
-	dlts.processMissingMargin()
+func (d *doubleListTrieSyncer) processMargin() error {
+	d.processMissingMargin()
 
-	return dlts.processNodesMargin()
+	return d.processNodesMargin()
 }
 
-func (dlts *doubleListTrieSyncer) processMissingMargin() {
-	for hash := range dlts.marginMissing {
-		n, err := dlts.getNode([]byte(hash))
+func (d *doubleListTrieSyncer) processMissingMargin() {
+	for hash := range d.marginMissing {
+		n, err := d.getNode([]byte(hash))
 		if err != nil {
 			continue
 		}
 
-		delete(dlts.marginMissing, hash)
+		delete(d.marginMissing, hash)
 
-		dlts.marginExisting[string(n.getHash())] = n
+		d.marginExisting[string(n.getHash())] = n
 	}
 }
 
-func (dlts *doubleListTrieSyncer) processNodesMargin() error {
-	for hash, element := range dlts.marginExisting {
-		err := encodeNodeAndCommitToDB(element, dlts.trie.trieStorage.Database())
+func (d *doubleListTrieSyncer) processNodesMargin() error {
+	for hash, element := range d.marginExisting {
+		err := encodeNodeAndCommitToDB(element, d.trie.trieStorage.Database())
 		if err != nil {
 			return err
 		}
 
-		dlts.trieSyncStatistics.AddNumReceived(1)
-		dlts.resetWatchdog()
+		d.trieSyncStatistics.AddNumReceived(1)
+		d.resetWatchdog()
 
-		if !dlts.rootFound && bytes.Equal([]byte(hash), dlts.rootHash) {
+		if !d.rootFound && bytes.Equal([]byte(hash), d.rootHash) {
 			var collapsedRoot node
 			collapsedRoot, err = element.getCollapsed()
 			if err != nil {
 				return nil
 			}
 
-			dlts.trie.root = collapsedRoot
+			d.trie.root = collapsedRoot
 		}
 
 		var children []node
 		var missingChildrenHashes [][]byte
-		missingChildrenHashes, children, err = element.loadChildren(dlts.getNode)
+		missingChildrenHashes, children, err = element.loadChildren(d.getNode)
 		if err != nil {
 			return err
 		}
 
-		if len(missingChildrenHashes) > 0 && len(dlts.marginMissing) > dlts.maxHardCapForMissingNodes {
+		if len(missingChildrenHashes) > 0 && len(d.marginMissing) > d.maxHardCapForMissingNodes {
 			break
 		}
 
-		delete(dlts.marginExisting, hash)
+		delete(d.marginExisting, hash)
 
 		for _, child := range children {
-			dlts.marginExisting[string(child.getHash())] = child
+			d.marginExisting[string(child.getHash())] = child
 		}
 
 		for _, missingHash := range missingChildrenHashes {
-			dlts.marginMissing[string(missingHash)] = struct{}{}
+			d.marginMissing[string(missingHash)] = struct{}{}
 		}
 	}
 
 	return nil
 }
 
-func (dlts *doubleListTrieSyncer) resetWatchdog() {
-	dlts.lastSyncedTrieNode = time.Now()
+func (d *doubleListTrieSyncer) resetWatchdog() {
+	d.lastSyncedTrieNode = time.Now()
 }
 
 // Trie returns the synced trie
-func (dlts *doubleListTrieSyncer) Trie() data.Trie {
-	return dlts.trie
+func (d *doubleListTrieSyncer) Trie() data.Trie {
+	return d.trie
 }
 
-func (dlts *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	n, ok := dlts.interceptedNodes.Get(hash)
+func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
+	n, ok := d.interceptedNodes.Get(hash)
 	if ok {
 		return trieNode(n)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, dlts.trie.trieStorage.Database(), dlts.trie.marshalizer, dlts.trie.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, d.trie.trieStorage.Database(), d.trie.marshalizer, d.trie.hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
@@ -222,6 +222,6 @@ func (dlts *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (dlts *doubleListTrieSyncer) IsInterfaceNil() bool {
-	return dlts == nil
+func (d *doubleListTrieSyncer) IsInterfaceNil() bool {
+	return d == nil
 }

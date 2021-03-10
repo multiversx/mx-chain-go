@@ -486,7 +486,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("GetSerializedNodes", "hash", hash)
+	log.Trace("GetSerializedNode", "hash", hash)
 
 	db := getDbThatContainsHash(tr.trieStorage, hash)
 	if db == nil {
@@ -713,6 +713,10 @@ func (tr *patriciaMerkleTrie) GetNumNodes() data.NumNodesDTO {
 	defer tr.mutOperation.Unlock()
 
 	n := tr.root
+	if n.isInterfaceNil() {
+		return data.NumNodesDTO{}
+	}
+
 	return n.getNumNodes()
 }
 

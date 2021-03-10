@@ -332,7 +332,6 @@ func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {
 
 func (ln *leafNode) getNumNodes() data.NumNodesDTO {
 	return data.NumNodesDTO{
-		Total:    1,
 		Leaves:   1,
 		MaxLevel: 1,
 	}
