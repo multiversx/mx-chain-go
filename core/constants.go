@@ -535,9 +535,9 @@ type ESDTType uint32
 const (
 	// Fungible defines the token type for ESDT fungible tokens
 	Fungible ESDTType = iota
-	// NonFungible defines the token for non fungible tokens
+	// NonFungible defines the token type for ESDT non fungible tokens
 	NonFungible
-	// SemiFungible defines the token for semi fungible tokens
+	// SemiFungible defines the token type for ESDT semi fungible tokens
 	SemiFungible
 )
 
@@ -583,7 +583,7 @@ const ESDTKeyIdentifier = "esdt"
 // ESDTRoleIdentifier is the key prefix for esdt role identifier
 const ESDTRoleIdentifier = "role"
 
-// ESDTNFTLatestNonceIdentifier is the key prefix for esdt latent nonce identifier
+// ESDTNFTLatestNonceIdentifier is the key prefix for esdt latest nonce identifier
 const ESDTNFTLatestNonceIdentifier = "nonce"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header

@@ -23,7 +23,7 @@ type esdtNFTBurn struct {
 	mutExecution sync.RWMutex
 }
 
-// NewESDTNFTBurnFunc returns the esdt nft add quantity built-in function component
+// NewESDTNFTBurnFunc returns the esdt NFT burn built-in function component
 func NewESDTNFTBurnFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
@@ -54,8 +54,12 @@ func NewESDTNFTBurnFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtNFTBurn) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.funcGasCost = gasCost.BuiltInCost.ESDTNFTBurn
 	e.mutExecution.Unlock()
 }
 

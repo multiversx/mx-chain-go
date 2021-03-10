@@ -281,7 +281,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 		big.NewInt(0),
 		0,
 		args.Arguments[2:],
-		[]byte(core.SemiFungibleESDT))
+		[]byte(core.NonFungibleESDT))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -303,7 +303,7 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 		big.NewInt(0),
 		0,
 		args.Arguments[2:],
-		[]byte(core.NonFungibleESDT))
+		[]byte(core.SemiFungibleESDT))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -326,7 +326,6 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, vm.ErrTokenNameNotHumanReadable
 	}
-
 	if !isTickerValid(tickerName) {
 		return nil, vm.ErrTickerNameNotValid
 	}
@@ -1109,7 +1108,7 @@ func (e *esdt) deleteNFTCreateRole(token *ESDTData, currentNFTCreateOwner []byte
 		}
 
 		if len(currentNFTCreateOwner) > 0 && !bytes.Equal(esdtRole.Address, currentNFTCreateOwner) {
-			e.eei.AddReturnMessage("address missmatch, second argument must be the one holding the nft create role")
+			e.eei.AddReturnMessage("address mismatch, second argument must be the one holding the NFT create role")
 			return nil, vmcommon.UserError
 		}
 
@@ -1119,7 +1118,7 @@ func (e *esdt) deleteNFTCreateRole(token *ESDTData, currentNFTCreateOwner []byte
 		return esdtRole.Address, vmcommon.Ok
 	}
 
-	e.eei.AddReturnMessage("no address is holding the nft create role")
+	e.eei.AddReturnMessage("no address is holding the NFT create role")
 	return nil, vmcommon.UserError
 }
 
@@ -1135,7 +1134,7 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 	}
 
 	if !token.CanTransferNFTCreateRole {
-		e.eei.AddReturnMessage("nft create role transfer is not allowed")
+		e.eei.AddReturnMessage("NFT create role transfer is not allowed")
 		return vmcommon.UserError
 	}
 
@@ -1199,7 +1198,7 @@ func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	if token.NFTCreateStopped {
-		e.eei.AddReturnMessage("nft create was already stopped")
+		e.eei.AddReturnMessage("NFT create was already stopped")
 		return vmcommon.UserError
 	}
 	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {

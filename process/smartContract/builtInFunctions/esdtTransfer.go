@@ -55,6 +55,10 @@ func NewESDTTransferFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
 	e.mutExecution.Unlock()
@@ -129,7 +133,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				callArgs = vmInput.Arguments[3:]
 			}
 
-			addOutPutTransferToVMOutput(
+			addOutputTransferToVMOutput(
 				string(vmInput.Arguments[2]),
 				callArgs,
 				vmInput.RecipientAddr,
@@ -149,7 +153,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	// cross-shard ESDT transfer call through a smart contract
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
@@ -160,7 +164,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	return vmOutput, nil
 }
 
-func addOutPutTransferToVMOutput(
+func addOutputTransferToVMOutput(
 	function string,
 	arguments [][]byte,
 	recipient []byte,

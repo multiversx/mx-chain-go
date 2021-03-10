@@ -54,8 +54,12 @@ func NewESDTLocalMintFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtLocalMint) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.funcGasCost = gasCost.BuiltInCost.ESDTLocalMint
 	e.mutExecution.Unlock()
 }
 

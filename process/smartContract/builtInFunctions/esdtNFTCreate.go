@@ -2,6 +2,7 @@ package builtInFunctions
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -15,7 +16,6 @@ import (
 )
 
 var _ process.BuiltinFunction = (*esdtNFTCreate)(nil)
-
 var noncePrefix = []byte(core.ElrondProtectedKeyPrefix + core.ESDTNFTLatestNonceIdentifier)
 
 type esdtNFTCreate struct {
@@ -28,7 +28,7 @@ type esdtNFTCreate struct {
 	mutExecution sync.RWMutex
 }
 
-// NewESDTNFTCreateFunc returns the esdt nft create built-in function component
+// NewESDTNFTCreateFunc returns the esdt NFT create built-in function component
 func NewESDTNFTCreateFunc(
 	funcGasCost uint64,
 	gasConfig process.BaseOperationCost,
@@ -61,8 +61,12 @@ func NewESDTNFTCreateFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtNFTCreate) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.funcGasCost = gasCost.BuiltInCost.ESDTNFTCreate
 	e.gasConfig = gasCost.BaseOperationCost
 	e.mutExecution.Unlock()
 }
@@ -80,7 +84,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 	if len(vmInput.Arguments) < 7 {
-		return nil, process.ErrInvalidArguments
+		return nil, fmt.Errorf("%w, wrong number of arguments", process.ErrInvalidArguments)
 	}
 
 	tokenID := vmInput.Arguments[0]
@@ -94,15 +98,24 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 
+	totalLength := uint64(0)
+	for _, arg := range vmInput.Arguments {
+		totalLength += uint64(len(arg))
+	}
+	gasToUse := totalLength*e.gasConfig.StorePerByte + e.funcGasCost
+	if vmInput.GasProvided < gasToUse {
+		return nil, process.ErrNotEnoughGas
+	}
+
 	royalties := uint32(big.NewInt(0).SetBytes(vmInput.Arguments[3]).Uint64())
 	if royalties > core.MaxRoyalty {
-		return nil, process.ErrInvalidArguments
+		return nil, fmt.Errorf("%w, invalid max royality value", process.ErrInvalidArguments)
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	quantity := big.NewInt(0).SetBytes(vmInput.Arguments[1])
-	if quantity.Cmp(zero) == 0 {
-		return nil, process.ErrInvalidArguments
+	if quantity.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w, invalid quantity", process.ErrInvalidArguments)
 	}
 	if quantity.Cmp(big.NewInt(1)) > 0 {
 		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTAddQuantity))
@@ -121,18 +134,9 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 			Creator:    vmInput.CallerAddr,
 			Royalties:  royalties,
 			Hash:       vmInput.Arguments[4],
-			URIs:       vmInput.Arguments[6:],
 			Attributes: vmInput.Arguments[5],
+			URIs:       vmInput.Arguments[6:],
 		},
-	}
-
-	totalLength := uint64(0)
-	for _, arg := range vmInput.Arguments {
-		totalLength += uint64(len(arg))
-	}
-	gasToUse := totalLength*e.gasConfig.StorePerByte + e.funcGasCost
-	if vmInput.GasProvided < gasToUse {
-		return nil, process.ErrNotEnoughGas
 	}
 
 	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
@@ -238,7 +242,8 @@ func saveESDTNFTToken(
 func checkESDTNFTCreateBurnAddInput(
 	account state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
-	funcGasCost uint64) error {
+	funcGasCost uint64,
+) error {
 	err := checkBasicESDTArguments(vmInput)
 	if err != nil {
 		return err

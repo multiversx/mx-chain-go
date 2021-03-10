@@ -23,7 +23,7 @@ type esdtNFTAddQuantity struct {
 	mutExecution sync.RWMutex
 }
 
-// NewESDTNFTAddQuantityFunc returns the esdt nft add quantity built-in function component
+// NewESDTNFTAddQuantityFunc returns the esdt NFT add quantity built-in function component
 func NewESDTNFTAddQuantityFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
@@ -54,8 +54,12 @@ func NewESDTNFTAddQuantityFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtNFTAddQuantity) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.funcGasCost = gasCost.BuiltInCost.ESDTNFTAddQuantity
 	e.mutExecution.Unlock()
 }
 

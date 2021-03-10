@@ -31,7 +31,7 @@ type esdtNFTTransfer struct {
 	mutExecution     sync.RWMutex
 }
 
-// NewESDTNFTTransferFunc returns the esdt nft add quantity built-in function component
+// NewESDTNFTTransferFunc returns the esdt NFT transfer built-in function component
 func NewESDTNFTTransferFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
@@ -78,8 +78,12 @@ func (e *esdtNFTTransfer) setPayableHandler(payableHandler process.PayableHandle
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtNFTTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.funcGasCost = gasCost.BuiltInCost.ESDTNFTTransfer
 	e.gasConfig = gasCost.BaseOperationCost
 	e.mutExecution.Unlock()
 }
@@ -134,7 +138,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 			callArgs = vmInput.Arguments[5:]
 		}
 
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
 			string(vmInput.Arguments[4]),
 			callArgs,
 			vmInput.RecipientAddr,
@@ -209,7 +213,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 	if gasForTransfer > vmOutput.GasRemaining {
 		return process.ErrNotEnoughGas
 	}
-	vmOutput.GasRemaining = vmOutput.GasRemaining - gasForTransfer
+	vmOutput.GasRemaining -= gasForTransfer
 
 	nftTransferCallArgs := make([][]byte, 0)
 	nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[:2]...)
@@ -242,7 +246,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 			callArgs = vmInput.Arguments[5:]
 		}
 
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
 			string(vmInput.Arguments[4]),
 			callArgs,
 			vmInput.RecipientAddr,
@@ -259,7 +263,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 	esdtTokenKey []byte,
 	mustVerifyPayable bool,
 ) error {
-	if e.shardCoordinator.SelfId() == e.shardCoordinator.ComputeId(dstAddress) {
+	if e.shardCoordinator.SelfId() != e.shardCoordinator.ComputeId(dstAddress) {
 		return nil
 	}
 

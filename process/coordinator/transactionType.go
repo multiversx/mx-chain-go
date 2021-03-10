@@ -122,7 +122,7 @@ func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, t
 	if len(args) <= 2 {
 		return false
 	}
-	if function == core.BuiltInFunctionESDTTransfer && len(args) > 2 {
+	if function == core.BuiltInFunctionESDTTransfer {
 		return core.IsSmartContractAddress(tx.GetRcvAddr())
 	}
 	if function == core.BuiltInFunctionESDTNFTTransfer && len(args) > 4 {

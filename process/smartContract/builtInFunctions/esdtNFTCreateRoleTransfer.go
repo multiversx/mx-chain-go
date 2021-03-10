@@ -24,7 +24,7 @@ type esdtNFTCreateRoleTransfer struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewESDTNFTCreateRoleTransfer returns the esdt nft create built-in function component
+// NewESDTNFTCreateRoleTransfer returns the esdt NFT create role transfer built-in function component
 func NewESDTNFTCreateRoleTransfer(
 	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
@@ -54,7 +54,7 @@ func NewESDTNFTCreateRoleTransfer(
 func (e *esdtNFTCreateRoleTransfer) SetNewGasConfig(_ *process.GasCost) {
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT create role transfer function call
 func (e *esdtNFTCreateRoleTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -101,6 +101,11 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 
 	tokenID := vmInput.Arguments[0]
 	nonce, err := getLatestNonce(acntDst, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = saveLatestNonce(acntDst, tokenID, 0)
 	if err != nil {
 		return nil, err
 	}

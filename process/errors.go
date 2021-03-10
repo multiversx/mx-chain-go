@@ -962,8 +962,8 @@ var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exists")
 // ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
 var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
 
-// ErrInvalidNFTQuantity signals that invalid nft quantity was provided
-var ErrInvalidNFTQuantity = errors.New("invalid nft quantity")
+// ErrInvalidNFTQuantity signals that invalid NFT quantity was provided
+var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
 
-// ErrWrongNFTOnDestination signals the NFT is missmatched on destination - should never happen
-var ErrWrongNFTOnDestination = errors.New("wrong NFT on destionation")
+// ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
+var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
