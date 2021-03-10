@@ -82,8 +82,8 @@ func (e *esdtRoles) ProcessBuiltinFunction(
 }
 
 func deleteRoles(roles *esdt.ESDTRoles, deleteRoles [][]byte) {
-	for _, arg := range deleteRoles {
-		index, exist := doesRoleExist(roles, arg)
+	for _, deleteRole := range deleteRoles {
+		index, exist := doesRoleExist(roles, deleteRole)
 		if !exist {
 			continue
 		}

@@ -133,7 +133,7 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 			return nil, err
 		}
 
-		err = e.addCreateRoletoAccount(newDestUserAcc, esdtTokenRoleKey)
+		err = e.addCreateRoleToAccount(newDestUserAcc, esdtTokenRoleKey)
 		if err != nil {
 			return nil, err
 		}
@@ -172,13 +172,20 @@ func (e *esdtNFTCreateRoleTransfer) deleteCreateRoleFromAccount(
 	return saveRolesToAccount(acntDst, esdtTokenRoleKey, roles, e.marshalizer)
 }
 
-func (e *esdtNFTCreateRoleTransfer) addCreateRoletoAccount(
+func (e *esdtNFTCreateRoleTransfer) addCreateRoleToAccount(
 	acntDst state.UserAccountHandler,
 	esdtTokenRoleKey []byte,
 ) error {
 	roles, _, err := getESDTRolesForAcnt(e.marshalizer, acntDst, esdtTokenRoleKey)
 	if err != nil {
 		return err
+	}
+
+	for _, role := range roles.Roles {
+		if bytes.Equal(role, []byte(core.ESDTRoleNFTCreate)) {
+			log.Error("addCreateRoleToAccount which already has create role")
+			return nil
+		}
 	}
 
 	roles.Roles = append(roles.Roles, []byte(core.ESDTRoleNFTCreate))
@@ -223,7 +230,7 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtNextOwner(
 	}
 
 	esdtTokenRoleKey := append(roleKeyPrefix, tokenID...)
-	err = e.addCreateRoletoAccount(acntDst, esdtTokenRoleKey)
+	err = e.addCreateRoleToAccount(acntDst, esdtTokenRoleKey)
 	if err != nil {
 		return err
 	}
