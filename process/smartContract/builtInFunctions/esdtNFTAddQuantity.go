@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ process.BuiltinFunction = (*esdtLocalMint)(nil)
+var _ process.BuiltinFunction = (*esdtNFTAddQuantity)(nil)
 
-type esdtLocalMint struct {
+type esdtNFTAddQuantity struct {
 	keyPrefix    []byte
 	marshalizer  marshal.Marshalizer
 	pauseHandler process.ESDTPauseHandler
@@ -23,13 +23,13 @@ type esdtLocalMint struct {
 	mutExecution sync.RWMutex
 }
 
-// NewESDTLocalMintFunc returns the esdt local mint built-in function component
-func NewESDTLocalMintFunc(
+// NewESDTNFTAddQuantityFunc returns the esdt NFT add quantity built-in function component
+func NewESDTNFTAddQuantityFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,
 	rolesHandler process.ESDTRoleHandler,
-) (*esdtLocalMint, error) {
+) (*esdtNFTAddQuantity, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -40,7 +40,7 @@ func NewESDTLocalMintFunc(
 		return nil, process.ErrNilRolesHandler
 	}
 
-	e := &esdtLocalMint{
+	e := &esdtNFTAddQuantity{
 		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		marshalizer:  marshalizer,
 		pauseHandler: pauseHandler,
@@ -53,47 +53,59 @@ func NewESDTLocalMintFunc(
 }
 
 // SetNewGasConfig is called whenever gas cost is changed
-func (e *esdtLocalMint) SetNewGasConfig(gasCost *process.GasCost) {
+func (e *esdtNFTAddQuantity) SetNewGasConfig(gasCost *process.GasCost) {
 	if gasCost == nil {
 		return
 	}
 
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTLocalMint
+	e.funcGasCost = gasCost.BuiltInCost.ESDTNFTAddQuantity
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
-func (e *esdtLocalMint) ProcessBuiltinFunction(
+// ProcessBuiltinFunction resolves ESDT NFT add quantity function call
+func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	err := checkInputArgumentsForLocalAction(acntSnd, vmInput, e.funcGasCost)
+	err := checkESDTNFTCreateBurnAddInput(acntSnd, vmInput, e.funcGasCost)
+	if err != nil {
+		return nil, err
+	}
+	if len(vmInput.Arguments) < 3 {
+		return nil, process.ErrInvalidArguments
+	}
+
+	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTAddQuantity))
 	if err != nil {
 		return nil, err
 	}
 
-	tokenID := vmInput.Arguments[0]
-	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, tokenID, []byte(core.ESDTRoleLocalMint))
+	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
+	nonce := big.NewInt(0).SetBytes(vmInput.Arguments[1]).Uint64()
+	esdtData, err := getESDTNFTToken(acntSnd, esdtTokenKey, nonce, e.marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
-	esdtTokenKey := append(e.keyPrefix, tokenID...)
-	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Set(value), e.marshalizer, e.pauseHandler)
+	esdtData.Value.Add(esdtData.Value, big.NewInt(0).SetBytes(vmInput.Arguments[2]))
+
+	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode:   vmcommon.Ok,
+		GasRemaining: vmInput.GasProvided - e.funcGasCost,
+	}
 	return vmOutput, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil
-func (e *esdtLocalMint) IsInterfaceNil() bool {
+func (e *esdtNFTAddQuantity) IsInterfaceNil() bool {
 	return e == nil
 }

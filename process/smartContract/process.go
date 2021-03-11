@@ -66,10 +66,8 @@ type scProcessor struct {
 	txTypeHandler  process.TxTypeHandler
 	gasHandler     process.GasHandler
 
-	asyncCallbackGasLock uint64
-	asyncCallStepCost    uint64
-	esdtTransferCost     uint64
-	mutGasLock           sync.RWMutex
+	builtInGasCosts map[string]uint64
+	mutGasLock      sync.RWMutex
 
 	txLogsProcessor process.TransactionLogProcessor
 }
@@ -159,7 +157,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
 	sc := &scProcessor{
 		vmContainer:                    args.VmContainer,
@@ -175,9 +172,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		economicsFee:                   args.EconomicsFee,
 		txTypeHandler:                  args.TxTypeHandler,
 		gasHandler:                     args.GasHandler,
-		asyncCallStepCost:              apiCosts[core.AsyncCallStepField],
-		asyncCallbackGasLock:           apiCosts[core.AsyncCallbackGasLockField],
-		esdtTransferCost:               builtInFuncCost[core.BuiltInFunctionESDTTransfer],
+		builtInGasCosts:                builtInFuncCost,
 		builtInFunctions:               args.BuiltInFunctions,
 		txLogsProcessor:                args.TxLogsProcessor,
 		badTxForwarder:                 args.BadTxForwarder,
@@ -200,28 +195,12 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	sc.mutGasLock.Lock()
 	defer sc.mutGasLock.Unlock()
 
-	apiCosts := gasSchedule[core.ElrondAPICost]
-	if apiCosts == nil {
-		return
-	}
-	_, existAsyncCallStepField := apiCosts[core.AsyncCallStepField]
-	_, existAsyncCallbackGasLockField := apiCosts[core.AsyncCallbackGasLockField]
-	if !existAsyncCallStepField || !existAsyncCallbackGasLockField {
-		return
-	}
-
 	builtInFuncCost := gasSchedule[core.BuiltInCost]
 	if builtInFuncCost == nil {
 		return
 	}
-	_, existsESDTTransfer := builtInFuncCost[core.BuiltInFunctionESDTTransfer]
-	if !existsESDTTransfer {
-		return
-	}
 
-	sc.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
-	sc.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
-	sc.esdtTransferCost = builtInFuncCost[core.BuiltInFunctionESDTTransfer]
+	sc.builtInGasCosts = builtInFuncCost
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -734,6 +713,7 @@ func (sc *scProcessor) resolveFailedTransaction(
 
 func (sc *scProcessor) computeBuiltInFuncGasUsed(
 	txTypeOnDst process.TransactionType,
+	function string,
 	gasProvided uint64,
 	gasRemaining uint64,
 ) (uint64, error) {
@@ -742,7 +722,7 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 	}
 
 	sc.mutGasLock.RLock()
-	builtInFuncGasUsed := sc.esdtTransferCost
+	builtInFuncGasUsed := sc.builtInGasCosts[function]
 	sc.mutGasLock.RUnlock()
 
 	return builtInFuncGasUsed, nil
@@ -769,7 +749,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
-	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.GasProvided, vmOutput.GasRemaining)
+	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "function", "ExecuteBultInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
@@ -977,7 +957,14 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	if check.IfNil(acntDst) {
 		return false, nil, nil
 	}
-	if !core.IsSmartContractAddress(vmInput.RecipientAddr) {
+	recipient := vmInput.RecipientAddr
+	if vmInput.Function == core.BuiltInFunctionESDTNFTTransfer && bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
+		if len(vmInput.Arguments) <= 4 {
+			return false, nil, nil
+		}
+		recipient = vmInput.Arguments[3]
+	}
+	if !core.IsSmartContractAddress(recipient) {
 		return false, nil, nil
 	}
 
@@ -987,7 +974,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return true, newVMInput, nil
 	}
 
-	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
+	outAcc, ok := vmOutput.OutputAccounts[string(recipient)]
 	if !ok {
 		return false, nil, nil
 	}
@@ -1013,7 +1000,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
 		},
-		RecipientAddr:     vmInput.RecipientAddr,
+		RecipientAddr:     recipient,
 		Function:          function,
 		AllowInitFunction: false,
 	}
@@ -1063,12 +1050,18 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 }
 
 func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmcommon.ContractCallInput) {
-	if fullVMInput.Function != core.BuiltInFunctionESDTTransfer {
-		return
+	if fullVMInput.Function == core.BuiltInFunctionESDTTransfer {
+		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
+		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
+		newVMInput.ESDTTokenType = uint32(core.Fungible)
 	}
 
-	newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
-	newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
+	if fullVMInput.Function == core.BuiltInFunctionESDTNFTTransfer {
+		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
+		newVMInput.ESDTTokenNonce = big.NewInt(0).SetBytes(fullVMInput.Arguments[1]).Uint64()
+		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[2])
+		newVMInput.ESDTTokenType = uint32(core.NonFungible)
+	}
 }
 
 func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
@@ -1087,19 +1080,35 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 		return "", false
 	}
 
-	if function != core.BuiltInFunctionESDTTransfer {
-		return "", false
-	}
 	if len(args) < 2 {
 		return "", false
 	}
 
-	returnData := ""
-	returnData += function + "@"
-	returnData += hex.EncodeToString(args[0]) + "@"
-	returnData += hex.EncodeToString(args[1])
+	if function == core.BuiltInFunctionESDTTransfer {
+		returnData := ""
+		returnData += function + "@"
+		returnData += hex.EncodeToString(args[0]) + "@"
+		returnData += hex.EncodeToString(args[1])
 
-	return returnData, true
+		return returnData, true
+	}
+
+	if function == core.BuiltInFunctionESDTNFTTransfer {
+		if len(args) < 4 {
+			return "", false
+		}
+
+		returnData := ""
+		returnData += function + "@"
+		returnData += hex.EncodeToString(args[0]) + "@"
+		returnData += hex.EncodeToString(args[1]) + "@"
+		returnData += hex.EncodeToString(args[2]) + "@"
+		returnData += hex.EncodeToString(args[3])
+
+		return returnData, true
+	}
+
+	return "", false
 }
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
@@ -1833,11 +1842,14 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 		return false
 	}
 
-	if function != core.BuiltInFunctionESDTTransfer {
-		return true
+	if function == core.BuiltInFunctionESDTTransfer {
+		return len(args) == 2
+	}
+	if function == core.BuiltInFunctionESDTNFTTransfer {
+		return len(args) == 4
 	}
 
-	return len(args) == 2
+	return false
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)

@@ -26,6 +26,10 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *claimDeveloperRewards) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ClaimDeveloperRewards
 	c.mutExecution.Unlock()

@@ -55,6 +55,10 @@ func NewESDTTransferFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
 	e.mutExecution.Unlock()
@@ -88,7 +92,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -100,9 +104,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if !check.IfNil(acntDst) {
 		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
 		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
-			isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
-			if err != nil {
-				return nil, err
+			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
+			if errPayable != nil {
+				return nil, errPayable
 			}
 			if !isPayable {
 				if !check.IfNil(acntSnd) {
@@ -116,7 +120,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			}
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +133,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				callArgs = vmInput.Arguments[3:]
 			}
 
-			addOutPutTransferToVMOutput(
+			addOutputTransferToVMOutput(
 				string(vmInput.Arguments[2]),
 				callArgs,
 				vmInput.RecipientAddr,
@@ -149,7 +153,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	// cross-shard ESDT transfer call through a smart contract
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
@@ -160,7 +164,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	return vmOutput, nil
 }
 
-func addOutPutTransferToVMOutput(
+func addOutputTransferToVMOutput(
 	function string,
 	arguments [][]byte,
 	recipient []byte,
@@ -199,15 +203,13 @@ func addToESDTBalance(
 		return err
 	}
 
-	if !bytes.Equal(senderAddr, vm.ESDTSCAddress) {
-		esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
-		if esdtUserMetaData.Frozen {
-			return process.ErrESDTIsFrozenForAccount
-		}
+	if esdtData.Type != uint32(core.Fungible) {
+		return process.ErrOnlyFungibleTokensHaveBalanceTransfer
+	}
 
-		if pauseHandler.IsPaused(key) {
-			return process.ErrESDTTokenIsPaused
-		}
+	err = checkFrozeAndPause(senderAddr, key, esdtData, pauseHandler)
+	if err != nil {
+		return err
 	}
 
 	esdtData.Value.Add(esdtData.Value, value)
@@ -218,6 +220,28 @@ func addToESDTBalance(
 	err = saveESDTData(userAcnt, esdtData, key, marshalizer)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func checkFrozeAndPause(
+	senderAddr []byte,
+	key []byte,
+	esdtData *esdt.ESDigitalToken,
+	pauseHandler process.ESDTPauseHandler,
+) error {
+	if bytes.Equal(senderAddr, vm.ESDTSCAddress) {
+		return nil
+	}
+
+	esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
+	if esdtUserMetaData.Frozen {
+		return process.ErrESDTIsFrozenForAccount
+	}
+
+	if pauseHandler.IsPaused(key) {
+		return process.ErrESDTTokenIsPaused
 	}
 
 	return nil
@@ -243,7 +267,7 @@ func getESDTDataFromKey(
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil

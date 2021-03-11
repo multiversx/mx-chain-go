@@ -49,6 +49,10 @@ func NewESDTBurnFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtBurn) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
 	e.mutExecution.Unlock()
@@ -95,7 +99,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	gasRemaining := computeGasRemaining(acntSnd, vmInput.GasProvided, e.funcGasCost)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
 			core.BuiltInFunctionESDTBurn,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,

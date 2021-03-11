@@ -952,3 +952,18 @@ var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceed
 
 // ErrActionNotAllowed signals that action is not allowed
 var ErrActionNotAllowed = errors.New("action is not allowed")
+
+// ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
+var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
+
+// ErrNFTTokenDoesNotExist signals that NFT token does not exists
+var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exists")
+
+// ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
+var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
+
+// ErrInvalidNFTQuantity signals that invalid NFT quantity was provided
+var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
+
+// ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
+var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")

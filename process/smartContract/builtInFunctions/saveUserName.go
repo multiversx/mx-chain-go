@@ -45,6 +45,10 @@ func NewSaveUserNameFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (s *saveUserName) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	s.mutExecution.Lock()
 	s.gasCost = gasCost.BuiltInCost.SaveUserName
 	s.mutExecution.Unlock()

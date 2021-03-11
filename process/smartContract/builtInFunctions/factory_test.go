@@ -20,6 +20,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &mock.AccountsStub{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 	}
 
 	return args
@@ -52,6 +53,19 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["SaveKeyValue"] = value
 	gasMap["ESDTTransfer"] = value
 	gasMap["ESDTBurn"] = value
+	gasMap["ChangeOwnerAddress"] = value
+	gasMap["ClaimDeveloperRewards"] = value
+	gasMap["SaveUserName"] = value
+	gasMap["SaveKeyValue"] = value
+	gasMap["ESDTTransfer"] = value
+	gasMap["ESDTBurn"] = value
+	gasMap["ESDTLocalMint"] = value
+	gasMap["ESDTLocalBurn"] = value
+	gasMap["ESDTNFTCreate"] = value
+	gasMap["ESDTNFTAddQuantity"] = value
+	gasMap["ESDTNFTBurn"] = value
+	gasMap["ESDTNFTTransfer"] = value
+	gasMap["ESDTNFTChangeCreateOwner"] = value
 
 	return gasMap
 }
@@ -76,5 +90,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	assert.Nil(t, err)
 	container, err := factory.CreateBuiltInFunctionContainer()
 	assert.Nil(t, err)
-	assert.Equal(t, len(container.Keys()), 15)
+	assert.Equal(t, len(container.Keys()), 20)
 }

@@ -728,10 +728,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -1243,10 +1244,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: mapDNSAddresses,
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  mapDNSAddresses,
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -1425,10 +1427,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()

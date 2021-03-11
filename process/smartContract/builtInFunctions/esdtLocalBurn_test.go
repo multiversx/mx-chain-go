@@ -167,7 +167,7 @@ func TestEsdtLocalBurn_SetNewGasConfig(t *testing.T) {
 	esdtLocalBurnF, _ := NewESDTLocalBurnFunc(0, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{}, &mock.ESDTRoleHandlerStub{})
 
 	esdtLocalBurnF.SetNewGasConfig(&process.GasCost{BuiltInCost: process.BuiltInCost{
-		ESDTBurn: 500},
+		ESDTLocalBurn: 500},
 	})
 
 	require.Equal(t, uint64(500), esdtLocalBurnF.funcGasCost)

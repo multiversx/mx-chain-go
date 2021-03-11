@@ -11,19 +11,22 @@ message ESDTData {
     bytes  OwnerAddress             = 1 [(gogoproto.jsontag) = "OwnerAddress"];
     bytes  TokenName                = 2 [(gogoproto.jsontag) = "TokenName"];
     bytes  TickerName               = 3 [(gogoproto.jsontag) = "TickerName"];
-    bool   Mintable                 = 4 [(gogoproto.jsontag) = "Mintable"];
-    bool   Burnable                 = 5 [(gogoproto.jsontag) = "Burnable"];
-    bool   CanPause                 = 6 [(gogoproto.jsontag) = "CanPause"];
-    bool   CanFreeze                = 7 [(gogoproto.jsontag) = "CanFreeze"];
-    bool   CanWipe                  = 8 [(gogoproto.jsontag) = "CanWipe"];
-    bool   Upgradable               = 9 [(gogoproto.jsontag) = "CanUpgrade"];
-    bool   CanChangeOwner           = 10 [(gogoproto.jsontag) = "CanChangeOwner"];
-    bool   IsPaused                 = 11 [(gogoproto.jsontag) = "IsPaused"];
-    bytes  MintedValue              = 12 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  BurntValue               = 13 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 NumDecimals              = 14 [(gogoproto.jsontag) = "NumDecimals"];
-    bool   CanAddSpecialRoles       = 15 [(gogoproto.jsontag) = "CanAddSpecialRoles"];
-    repeated ESDTRoles SpecialRoles = 16 [(gogoproto.jsontag) = "SpecialRoles"];
+    bytes  TokenType                = 4 [(gogoproto.jsontag) = "TokenType"];
+    bool   Mintable                 = 5 [(gogoproto.jsontag) = "Mintable"];
+    bool   Burnable                 = 6 [(gogoproto.jsontag) = "Burnable"];
+    bool   CanPause                 = 7 [(gogoproto.jsontag) = "CanPause"];
+    bool   CanFreeze                = 8 [(gogoproto.jsontag) = "CanFreeze"];
+    bool   CanWipe                  = 9 [(gogoproto.jsontag) = "CanWipe"];
+    bool   Upgradable               = 10 [(gogoproto.jsontag) = "CanUpgrade"];
+    bool   CanChangeOwner           = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
+    bool   IsPaused                 = 12 [(gogoproto.jsontag) = "IsPaused"];
+    bytes  MintedValue              = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  BurntValue               = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumDecimals              = 15 [(gogoproto.jsontag) = "NumDecimals"];
+    bool   CanAddSpecialRoles       = 16 [(gogoproto.jsontag) = "CanAddSpecialRoles"];
+    bool   NFTCreateStopped         = 17 [(gogoproto.jsontag) = "NFTCreateStopped"];
+    bool   CanTransferNFTCreateRole = 18 [(gogoproto.jsontag) = "CanTransferNFTCreateRole"];
+    repeated ESDTRoles SpecialRoles = 19 [(gogoproto.jsontag) = "SpecialRoles"];
 }
 
 message ESDTRoles {

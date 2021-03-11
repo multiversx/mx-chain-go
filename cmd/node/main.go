@@ -2512,6 +2512,7 @@ func createApiResolver(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2643,6 +2644,7 @@ func createScQueryElement(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2726,12 +2728,14 @@ func createBuiltinFuncs(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (process.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      marshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {

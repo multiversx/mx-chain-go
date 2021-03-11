@@ -1,10 +1,17 @@
 [BuiltInCost]
-    ChangeOwnerAddress    = 5000000
-    ClaimDeveloperRewards = 5000000
-    SaveUserName          = 1000000
-    SaveKeyValue          = 250000
-    ESDTTransfer          = 250000
-    ESDTBurn              = 250000
+    ChangeOwnerAddress       = 5000000
+    ClaimDeveloperRewards    = 5000000
+    SaveUserName             = 1000000
+    SaveKeyValue             = 250000
+    ESDTTransfer             = 250000
+    ESDTBurn                 = 250000
+    ESDTLocalMint            = 250000
+    ESDTLocalBurn            = 250000
+    ESDTNFTCreate            = 500000
+    ESDTNFTAddQuantity       = 500000
+    ESDTNFTBurn              = 500000
+    ESDTNFTTransfer          = 500000
+    ESDTNFTChangeCreateOwner = 1000000
 
 [MetaChainSystemSCsCost]
     Stake               = 5000000
