@@ -24,8 +24,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.1.2-0.20210226164828-e74ecd83baa1 h1:l
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.2-0.20210226164828-e74ecd83baa1/go.mod h1:Bee6Liu4GPmecEGWN4+QH4hlVvdtbpsjHpk/SxZgf6Q=
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210309184230-68eac15cd9dd h1:ZnJIL2Dq7S3JJPEaKHOk3RLzTgruLEdtmjuMVNrJHjM=
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210309184230-68eac15cd9dd/go.mod h1:anqjyN3fz8L5ySrpgOexA9YsEZVd0ixSMnORhBa12/0=
-github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210311084538-8cae95876b1b h1:9ns3Jrvgwv3ytNQPDGb1kkDGxf89Jg537/o7oEo73uM=
-github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210311084538-8cae95876b1b/go.mod h1:VZVOP47Fa2SRL6RfFbZYDpIQgFwGnfyO11ss3ACc93k=
+github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210311101853-19a4cedc9145 h1:0KC7Y4tZl36/iV/XOsKTI30t+F4LWQJLYemvereS/OA=
+github.com/ElrondNetwork/arwen-wasm-vm v1.1.3-0.20210311101853-19a4cedc9145/go.mod h1:VZVOP47Fa2SRL6RfFbZYDpIQgFwGnfyO11ss3ACc93k=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -900,6 +900,7 @@ golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd h1:xhmwyvizuTgC2qz7ZlMluP20uW+C3Rm0FD/WLDX8884=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 h1:DYfZAGf2WMFjMxbgTjaC+2HC7NkNAQs+6Q8b9WEB/F4=
@@ -964,6 +965,7 @@ google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQ
 google.golang.org/protobuf v1.20.1-0.20200309200217-e05f789c0967/go.mod h1:A+miEFZTKqfCUM6K7xSMQL9OKL/b6hQv+e19PK+JZNE=
 google.golang.org/protobuf v1.21.0/go.mod h1:47Nbq4nVaFHyn7ilMalzfO3qCViNmqZ2kzikPIcrTAo=
 google.golang.org/protobuf v1.22.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
+google.golang.org/protobuf v1.23.0 h1:4MY060fB1DLGMB/7MBTLnwQUY6+F09GEiz6SsrNqyzM=
 google.golang.org/protobuf v1.23.0/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.23.1-0.20200526195155-81db48ad09cc/go.mod h1:EGpADcykh3NcUnDUJcl1+ZksZNG86OlYog2l/sGQquU=
 google.golang.org/protobuf v1.25.0 h1:Ejskq+SyPohKW+1uil0JJMtmHCgJPJ/qWTxr8qp+R4c=
