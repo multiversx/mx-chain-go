@@ -31,14 +31,11 @@ var messageSigningHasher = keccak.NewKeccak()
 
 func TestVerifyMessageSignatureFromLedger(t *testing.T) {
 	// these field values were obtained by using Elrond App for Ledger
-	address := "erd13xpd7hcg7x9ej8w3qaweuthqqft0cjp5awnar5kx356uz3253hcqqfqre9" // alice
+	address := "erd19pht2w242wcj0x9gq3us86dtjrrfe3wk8ffh5nhdemf0mce6hsmsupxzlq"
 	message := "test message"
-	signature := "a224e3be198c4ac9d2b4a11226bb4447078f8f166ffce351c093b562b6fb16e634612499c952800a63d3d5b7c6b12f42daaafd4ba0525fcf133867e051e5f707"
+	signature := "ec7a27cb4b23641ae62e3ea96d5858c8142e20d79a6e1710037d1c27b0d138d7452a98da93c036b2b47ee587d4cb4af6ae24c358f3f5f74f85580f45e072280b"
 
-	sigBytes, err := hex.DecodeString(signature)
-	require.NoError(t, err)
-
-	err = checkMessageSignature(t, address, message, sigBytes)
+	err := checkSignature(address, message, signature)
 	require.NoError(t, err)
 }
 
@@ -47,10 +44,7 @@ func TestVerifyMessageSignature(t *testing.T) {
 	message := "custom message of Alice"
 	signature := "b83647b88cdc7904895f510250cc735502bf4fd86331dd1b76e078d6409433753fd6f619fc7f8152cf8589a4669eb8318b2e735e41309ed3b60e64221d814f08"
 
-	sigBytes, err := hex.DecodeString(signature)
-	require.NoError(t, err)
-
-	err = checkMessageSignature(t, address, message, sigBytes)
+	err := checkSignature(address, message, signature)
 	require.NoError(t, err)
 }
 
@@ -68,6 +62,15 @@ func TestMessageSigning(t *testing.T) {
 
 	table, _ := display.CreateTableString(header, lines)
 	fmt.Println(table)
+}
+
+func checkSignature(address string, message string, signature string) error {
+	sigBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return err
+	}
+
+	return checkMessageSignature(address, message, sigBytes)
 }
 
 func signMessage(t *testing.T, senderSeedHex string, message string) (string, string, string) {
@@ -99,19 +102,20 @@ func computeHashForMessage(message string) []byte {
 	return hash
 }
 
-func checkMessageSignature(t *testing.T, address string, message string, signature []byte) error {
-	payloadForHash := fmt.Sprintf("%s%v%s", elrondSignedMessagePrefix, len(message), message)
-	hash := messageSigningHasher.Compute(payloadForHash)
-
+func checkMessageSignature(address string, message string, signature []byte) error {
+	hash := computeHashForMessage(message)
 	suite := ed25519.NewEd25519()
 	keyGen := signing.NewKeyGenerator(suite)
 
 	addressBytes, err := addressEncoder.Decode(address)
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
 
 	publicKey, err := keyGen.PublicKeyFromByteArray(addressBytes)
 	if err != nil {
 		return err
 	}
+
 	return signer.Verify(publicKey, hash, signature)
 }
