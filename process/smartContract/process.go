@@ -1812,7 +1812,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	tx data.TransactionHandler,
 	result *smartContractResult.SmartContractResult,
 ) bool {
-	if len(vmOutput.ReturnData) > 0 && sc.flagReturnDataToLastTransfer.IsSet() {
+	if len(vmOutput.ReturnData) > 0 && !sc.flagReturnDataToLastTransfer.IsSet() {
 		return false
 	}
 
