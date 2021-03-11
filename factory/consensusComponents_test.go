@@ -400,8 +400,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		dataComponents,
 		stateComponents,
 		shardCoordinator,
-		&mock.NodesCoordinatorMock{},
-		&mock.EpochStartNotifierStub{},
+		processComponents.NodesCoordinator(),
 	)
 
 	return factory.ConsensusComponentsFactoryArgs{

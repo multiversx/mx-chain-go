@@ -68,14 +68,14 @@ func getProcessArgs(
 		GasSchedule: gasSchedule,
 	}
 
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	statusComponents := getStatusComponents(
 		coreComponents,
 		networkComponents,
 		dataComponents,
 		stateComponents,
 		shardCoordinator,
-		&mock.NodesCoordinatorMock{},
-		&mock.EpochStartNotifierStub{},
+		nodesCoordinator,
 	)
 
 	bootstrapComponentsFactoryArgs := getBootStrapArgs()
@@ -83,6 +83,7 @@ func getProcessArgs(
 	bootstrapComponentsFactory, _ := factory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 	bootstrapComponents, _ := factory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapComponents.Create()
+	factory.SetShardCoordinator(shardCoordinator, bootstrapComponents)
 
 	return factory.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -138,7 +139,7 @@ func getProcessArgs(
 		},
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       &mock.NodesCoordinatorMock{},
+		NodesCoordinator:       nodesCoordinator,
 		Data:                   dataComponents,
 		CoreData:               coreComponents,
 		Crypto:                 cryptoComponents,

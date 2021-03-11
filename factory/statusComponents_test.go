@@ -153,7 +153,6 @@ func getStatusComponents(
 	stateComponents factory.StateComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	epochStartNotifier factory.EpochStartNotifier,
 ) factory.StatusComponentsHandler {
 	indexerURL := "url"
 	elasticUsername := "user"
@@ -172,7 +171,7 @@ func getStatusComponents(
 		EconomicsConfig:    config.EconomicsConfig{},
 		ShardCoordinator:   shardCoordinator,
 		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: epochStartNotifier,
+		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
 		NetworkComponents:  networkComponents,
