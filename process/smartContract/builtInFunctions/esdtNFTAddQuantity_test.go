@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
@@ -324,6 +325,14 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionShouldErrOnSaveBecauseTokenIsP
 func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionShouldWork(t *testing.T) {
 	t.Parallel()
 
+	tokenIdentifier := "testTkn"
+	key := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenIdentifier
+
+	nonce := big.NewInt(33)
+	initialValue := big.NewInt(5)
+	valueToAdd := big.NewInt(37)
+	expectedValue := big.NewInt(0).Add(initialValue, valueToAdd)
+
 	marshalizer := &mock.MarshalizerMock{}
 	eqf, _ := NewESDTNFTAddQuantityFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ESDTRoleHandlerStub{})
 
@@ -332,10 +341,11 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionShouldWork(t *testing.T) {
 		TokenMetaData: &esdt.MetaData{
 			Name: []byte("test"),
 		},
-		Value: big.NewInt(10),
+		Value: initialValue,
 	}
 	esdtDataBytes, _ := marshalizer.Marshal(esdtData)
-	tailLength := 28 // len(esdtKey) + "identifier"
+	tokenKey := append([]byte(key), nonce.Bytes()...)
+	tailLength := len(tokenKey) + len("identifier")
 	esdtDataBytes = append(esdtDataBytes, make([]byte, tailLength)...)
 	userAcc.SetDataTrie(&mock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
@@ -348,7 +358,7 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionShouldWork(t *testing.T) {
 		&vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallValue:   big.NewInt(0),
-				Arguments:   [][]byte{[]byte("arg0"), []byte("arg1"), []byte("arg2")},
+				Arguments:   [][]byte{[]byte(tokenIdentifier), nonce.Bytes(), valueToAdd.Bytes()},
 				CallerAddr:  []byte("address 1"),
 				GasProvided: 12,
 			},
@@ -358,4 +368,13 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionShouldWork(t *testing.T) {
 
 	require.NotNil(t, output)
 	require.NoError(t, err)
+	require.Equal(t, vmcommon.Ok, output.ReturnCode)
+
+	res, err := userAcc.DataTrieTracker().RetrieveValue([]byte(key))
+	require.NoError(t, err)
+	require.NotNil(t, res)
+
+	finalTokenData := esdt.ESDigitalToken{}
+	_ = marshalizer.Unmarshal(&finalTokenData, res)
+	require.Equal(t, expectedValue.Bytes(), finalTokenData.Value.Bytes())
 }
