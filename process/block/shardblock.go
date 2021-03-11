@@ -102,7 +102,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
-	sp.userStatePruningQueue = queue.NewHashQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
+	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }

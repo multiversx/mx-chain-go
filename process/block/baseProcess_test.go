@@ -2,10 +2,13 @@ package block_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"math/big"
 	"reflect"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -1363,4 +1366,82 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	mb := &block.MetaBlock{Epoch: epoch}
 	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
+}
+
+func TestBaseProcessor_updateState(t *testing.T) {
+	t.Parallel()
+
+	var pruneRootHash []byte
+	var cancelPruneRootHash []byte
+
+	poolMock := testscommon.NewPoolsHolderMock()
+
+	numHeaders := 5
+	headers := make([]block.Header, numHeaders)
+	for i := 0; i < numHeaders; i++ {
+		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
+	}
+
+	hdrStore := &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			if len(headers) != 0 {
+				header := headers[0]
+				headers = headers[1:]
+				return json.Marshal(header)
+			}
+
+			return nil, nil
+		},
+	}
+
+	storer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return hdrStore
+		},
+	}
+
+	shardC := mock.NewMultiShardsCoordinatorMock(3)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = poolMock
+	dataComponents.Storage = storer
+	bootstrapComponents.Coordinator = shardC
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.BlockTracker = &mock.BlockTrackerMock{}
+	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
+	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+		PruneTrieCalled: func(rootHashParam []byte, identifier data.TriePruningIdentifier) {
+			pruneRootHash = rootHashParam
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			cancelPruneRootHash = rootHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	pruningQueue := queue.NewSliceQueue(uint(numHeaders - 1))
+
+	prevRootHash := []byte("rootHash")
+	for i := range headers {
+		sp.UpdateState(
+			&headers[i],
+			headers[i].RootHash,
+			prevRootHash,
+			arguments.AccountsDB[state.UserAccountsState],
+			pruningQueue,
+		)
+		prevRootHash = headers[i].RootHash
+
+		if i < numHeaders-1 {
+			assert.Equal(t, 0, len(pruneRootHash))
+			assert.Equal(t, 0, len(cancelPruneRootHash))
+		}
+	}
+
+	assert.Equal(t, []byte("rootHash"), pruneRootHash)
+	assert.Equal(t, []byte("rootHash"), cancelPruneRootHash)
 }

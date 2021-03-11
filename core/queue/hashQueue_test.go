@@ -11,29 +11,29 @@ func TestNewHashQueue(t *testing.T) {
 	t.Parallel()
 
 	hqSize := uint(5)
-	hq := NewHashQueue(hqSize)
+	hq := NewSliceQueue(hqSize)
 	assert.Equal(t, hqSize, hq.size)
 	assert.Equal(t, 0, len(hq.queue))
 }
 
-func TestHashQueue_AddToAnZeroSizedQueue(t *testing.T) {
+func TestSliceQueue_AddToAnZeroSizedQueue(t *testing.T) {
 	t.Parallel()
 
 	hashToAdd := []byte("hash")
-	hq := NewHashQueue(0)
+	hq := NewSliceQueue(0)
 
 	returnedHash := hq.Add(hashToAdd)
 	assert.Equal(t, hashToAdd, returnedHash)
 	assert.Equal(t, 0, len(hq.queue))
 }
 
-func TestHashQueue_AddToAFullQueue(t *testing.T) {
+func TestSliceQueue_AddToAFullQueue(t *testing.T) {
 	t.Parallel()
 
 	hashToAdd := []byte("hash")
 	expectedHash := []byte("expectedHash")
 	hqSize := uint(5)
-	hq := NewHashQueue(hqSize)
+	hq := NewSliceQueue(hqSize)
 
 	returnedHash := hq.Add(expectedHash)
 	assert.Equal(t, 0, len(returnedHash))
@@ -50,12 +50,12 @@ func TestHashQueue_AddToAFullQueue(t *testing.T) {
 	assert.Equal(t, hashToAdd, hq.queue[len(hq.queue)-1])
 }
 
-func TestHashQueue_AddToPartiallyFilledQueue(t *testing.T) {
+func TestSliceQueue_AddToPartiallyFilledQueue(t *testing.T) {
 	t.Parallel()
 
 	hashToAdd := []byte("hash")
 	hqSize := uint(5)
-	hq := NewHashQueue(hqSize)
+	hq := NewSliceQueue(hqSize)
 
 	numHashesToAdd := 3
 	for i := 0; i < numHashesToAdd; i++ {

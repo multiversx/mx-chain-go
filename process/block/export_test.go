@@ -388,3 +388,13 @@ func (mp *metaProcessor) RequestShardHeadersIfNeeded(hdrsAddedForShard map[uint3
 func (bp *baseProcessor) AddHeaderIntoTrackerPool(nonce uint64, shardID uint32) {
 	bp.addHeaderIntoTrackerPool(nonce, shardID)
 }
+
+func (bp *baseProcessor) UpdateState(
+	finalHeader data.HeaderHandler,
+	rootHash []byte,
+	prevRootHash []byte,
+	accounts state.AccountsAdapter,
+	statePruningQueue core.Queue,
+) {
+	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts, statePruningQueue)
+}

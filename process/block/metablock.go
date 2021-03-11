@@ -143,8 +143,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
-	mp.userStatePruningQueue = queue.NewHashQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
-	mp.peerStatePruningQueue = queue.NewHashQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
+	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
+	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
 	return &mp, nil
 }
