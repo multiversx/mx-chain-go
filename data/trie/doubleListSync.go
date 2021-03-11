@@ -28,8 +28,8 @@ type doubleListTrieSyncer struct {
 	lastSyncedTrieNode        time.Time
 	timeoutBetweenCommits     time.Duration
 	maxHardCapForMissingNodes int
-	marginExisting            map[string]node
-	marginMissing             map[string]struct{}
+	existingNodes             map[string]node
+	missingHashes             map[string]struct{}
 }
 
 // NewDoubleListTrieSyncer creates a new instance of trieSyncer that uses 2 list for keeping the "margin" nodes.
@@ -79,16 +79,16 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	}()
 
 	d.lastSyncedTrieNode = time.Now()
-	d.marginExisting = make(map[string]node)
-	d.marginMissing = make(map[string]struct{})
+	d.existingNodes = make(map[string]node)
+	d.missingHashes = make(map[string]struct{})
 
 	d.rootFound = false
 	d.rootHash = rootHash
 
-	d.marginMissing[string(rootHash)] = struct{}{}
+	d.missingHashes[string(rootHash)] = struct{}{}
 
 	for {
-		isSynced, err := d.checkIsSyncedWhileProcessingMargins()
+		isSynced, err := d.checkIsSyncedWhileProcessingMissingAndExisting()
 		if err != nil {
 			return err
 		}
@@ -105,15 +105,15 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	}
 }
 
-func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMargins() (bool, error) {
-	err := d.processMargin()
+func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMissingAndExisting() (bool, error) {
+	err := d.processMissingAndExisting()
 	if err != nil {
 		return false, err
 	}
 
-	if len(d.marginMissing) > 0 {
-		marginSlice := make([][]byte, 0, len(d.marginMissing))
-		for hash := range d.marginMissing {
+	if len(d.missingHashes) > 0 {
+		marginSlice := make([][]byte, 0, len(d.missingHashes))
+		for hash := range d.missingHashes {
 			marginSlice = append(marginSlice, []byte(hash))
 		}
 
@@ -122,7 +122,7 @@ func (d *doubleListTrieSyncer) checkIsSyncedWhileProcessingMargins() (bool, erro
 		return false, nil
 	}
 
-	return len(d.marginMissing)+len(d.marginExisting) == 0, nil
+	return len(d.missingHashes)+len(d.existingNodes) == 0, nil
 }
 
 func (d *doubleListTrieSyncer) request(hashes [][]byte) {
@@ -130,27 +130,27 @@ func (d *doubleListTrieSyncer) request(hashes [][]byte) {
 	d.trieSyncStatistics.SetNumMissing(d.rootHash, len(hashes))
 }
 
-func (d *doubleListTrieSyncer) processMargin() error {
-	d.processMissingMargin()
+func (d *doubleListTrieSyncer) processMissingAndExisting() error {
+	d.processMissingHashes()
 
-	return d.processNodesMargin()
+	return d.processExistingNodes()
 }
 
-func (d *doubleListTrieSyncer) processMissingMargin() {
-	for hash := range d.marginMissing {
+func (d *doubleListTrieSyncer) processMissingHashes() {
+	for hash := range d.missingHashes {
 		n, err := d.getNode([]byte(hash))
 		if err != nil {
 			continue
 		}
 
-		delete(d.marginMissing, hash)
+		delete(d.missingHashes, hash)
 
-		d.marginExisting[string(n.getHash())] = n
+		d.existingNodes[string(n.getHash())] = n
 	}
 }
 
-func (d *doubleListTrieSyncer) processNodesMargin() error {
-	for hash, element := range d.marginExisting {
+func (d *doubleListTrieSyncer) processExistingNodes() error {
+	for hash, element := range d.existingNodes {
 		err := encodeNodeAndCommitToDB(element, d.trie.trieStorage.Database())
 		if err != nil {
 			return err
@@ -176,18 +176,18 @@ func (d *doubleListTrieSyncer) processNodesMargin() error {
 			return err
 		}
 
-		if len(missingChildrenHashes) > 0 && len(d.marginMissing) > d.maxHardCapForMissingNodes {
+		if len(missingChildrenHashes) > 0 && len(d.missingHashes) > d.maxHardCapForMissingNodes {
 			break
 		}
 
-		delete(d.marginExisting, hash)
+		delete(d.existingNodes, hash)
 
 		for _, child := range children {
-			d.marginExisting[string(child.getHash())] = child
+			d.existingNodes[string(child.getHash())] = child
 		}
 
 		for _, missingHash := range missingChildrenHashes {
-			d.marginMissing[string(missingHash)] = struct{}{}
+			d.missingHashes[string(missingHash)] = struct{}{}
 		}
 	}
 
