@@ -628,9 +628,16 @@ func (txs *transactions) verifyTransaction(
 		*gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
 		*totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+
+		return err
 	}
 
-	return err
+	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txs.txsForCurrBlock.mutTxsForBlock.Lock()
+	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
+	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
+
+	return nil
 }
 
 func (txs *transactions) displayProcessingResults(
