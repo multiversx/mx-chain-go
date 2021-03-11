@@ -152,6 +152,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	vmOutput := &vmcommon.VMOutput{
 		ReturnCode:   vmcommon.Ok,
 		GasRemaining: vmInput.GasProvided - gasToUse,
+		ReturnData:   [][]byte{big.NewInt(0).SetUint64(nextNonce).Bytes()},
 	}
 	return vmOutput, nil
 }
