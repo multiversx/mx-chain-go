@@ -118,7 +118,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, fmt.Errorf("%w, invalid quantity", process.ErrInvalidArguments)
 	}
 	if quantity.Cmp(big.NewInt(1)) > 0 {
-		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTAddQuantity))
+		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTAddQuantity))
 		if err != nil {
 			return nil, err
 		}
