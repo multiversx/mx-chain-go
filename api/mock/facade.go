@@ -50,7 +50,7 @@ type Facade struct {
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetTotalStakedValueHandler              func() (*big.Int, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 }
 
 // GetUsername -
@@ -214,7 +214,7 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue -
-func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return f.GetTotalStakedValueHandler()
 }
 

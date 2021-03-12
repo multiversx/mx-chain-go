@@ -1,4 +1,4 @@
-package totalStakedAPI
+package stakeValuesProcessor
 
 import (
 	"testing"
@@ -18,25 +18,24 @@ func TestCreateTotalStakedValueHandler_DisabledTotalStakedValueProcessor(t *test
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
 
-	totalStakedValueProc, ok := totalStakedValueHandler.(*disabledTotalStakedValueProcessor)
-	require.True(t, ok)
-	require.NotNil(t, totalStakedValueProc)
+	_, ok := totalStakedValueHandler.(*stakedValuesProc)
+	require.False(t, ok)
 }
 
 func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := &ArgsTotalStakedValueHandler{
-		ShardID:                     core.MetachainShardId,
-		InternalMarshalizer:         &mock.MarshalizerMock{},
-		Accounts:                    &mock.AccountsStub{},
-		RoundDurationInMilliseconds: 5000,
+		ShardID:             core.MetachainShardId,
+		InternalMarshalizer: &mock.MarshalizerMock{},
+		Accounts:            &mock.AccountsStub{},
+		NodePrice:           "100",
 	}
 
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
 
-	totalStakedValueProc, ok := totalStakedValueHandler.(*totalStakedValueProcessor)
+	totalStakedValueProc, ok := totalStakedValueHandler.(*stakedValuesProc)
 	require.True(t, ok)
 	require.NotNil(t, totalStakedValueProc)
 }
