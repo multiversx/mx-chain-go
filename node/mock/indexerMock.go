@@ -18,8 +18,6 @@ func (im *IndexerStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(args)
 	}
-
-	return
 }
 
 // Close will do nothing
