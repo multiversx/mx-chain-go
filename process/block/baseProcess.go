@@ -220,7 +220,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
-		if currHdr == nil {
+		if check.IfNil(currHdr) {
 			continue
 		}
 

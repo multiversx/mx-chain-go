@@ -1007,7 +1007,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 }
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {
-	if e.epochStartMeta != nil {
+	if !check.IfNil(e.epochStartMeta) {
 		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.GetNonce())
 		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.GetRound())
 	}

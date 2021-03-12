@@ -1685,7 +1685,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 	var errFinal error
 
 	for shardId, lastVerifiedHdr := range highestNonceHdrs {
-		if lastVerifiedHdr == nil || lastVerifiedHdr.IsInterfaceNil() {
+		if check.IfNil(lastVerifiedHdr) {
 			return process.ErrNilBlockHeader
 		}
 		if lastVerifiedHdr.GetShardID() != shardId {

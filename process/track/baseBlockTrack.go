@@ -761,12 +761,12 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return nil
 }
 
-func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.MetaBlock) {
+func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.HeaderHandler) {
 	selfShardID := bbt.shardCoordinator.SelfId()
 	if selfShardID == core.MetachainShardId {
 		return
 	}
-	if metablock == nil {
+	if check.IfNil(metablock) {
 		return
 	}
 	if bbt.isHeaderOutOfRange(metablock) {
@@ -781,12 +781,12 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.Met
 		keys = append(keys, crossMbKeysMeta...)
 	}
 
-	for _, shardData := range metablock.ShardInfo {
-		if shardData.ShardID == selfShardID {
+	for _, shardData := range metablock.GetShardInfoHandlers() {
+		if shardData.GetShardID() == selfShardID {
 			continue
 		}
 
-		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.GetShardMiniBlockHeaderHandlers(), selfShardID, shardData.ShardID)
+		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.GetShardMiniBlockHeaderHandlers(), selfShardID, shardData.GetShardID())
 		if len(crossMbKeysShard) > 0 {
 			keys = append(keys, crossMbKeysShard...)
 		}
@@ -800,7 +800,7 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 	if selfShardID != core.MetachainShardId {
 		return
 	}
-	if shardHeader == nil {
+	if check.IfNil(shardHeader) {
 		return
 	}
 	if bbt.isHeaderOutOfRange(shardHeader) {

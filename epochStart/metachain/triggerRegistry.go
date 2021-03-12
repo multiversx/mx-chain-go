@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
@@ -23,13 +24,15 @@ func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
-	data, err := t.triggerStorage.Get(trigInternalKey)
+	d, err := t.triggerStorage.Get(trigInternalKey)
 	if err != nil {
 		return err
 	}
 
-	state := &TriggerRegistry{}
-	err = json.Unmarshal(data, state)
+	state := &TriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+	err = json.Unmarshal(d, state)
 	if err != nil {
 		return err
 	}

@@ -43,7 +43,7 @@ func GetPendingMiniBlocks(
 	unFinishedMetaBlocksMap map[string]data.HeaderHandler,
 ) ([]data.MiniBlockHeaderHandler, error) {
 
-	if epochStartMetaBlock == nil {
+	if check.IfNil(epochStartMetaBlock) {
 		return nil, ErrNilEpochStartMetaBlock
 	}
 	if unFinishedMetaBlocksMap == nil {

@@ -1231,7 +1231,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
-	if header == nil {
+	if check.IfNil(header){
 		return nil, process.ErrNilBlockHeader
 	}
 
@@ -1254,7 +1254,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 }
 
 func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.HeaderHandler) error {
-	if header == nil {
+	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
 	}
 

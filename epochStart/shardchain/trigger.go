@@ -675,7 +675,7 @@ func (t *trigger) getHeaderWithNonceAndHashFromMaps(nonce uint64, neededHash []b
 		}
 
 		neededHdr := t.mapHashHdr[hash]
-		if neededHdr != nil {
+		if !check.IfNil(neededHdr) {
 			return neededHdr
 		}
 	}
@@ -684,7 +684,7 @@ func (t *trigger) getHeaderWithNonceAndHashFromMaps(nonce uint64, neededHash []b
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) data.HeaderHandler {
 	peekedData, _ := t.headersPool.GetHeaderByHash(neededHash)
 	neededHdr, ok := peekedData.(*block.MetaBlock)
 	if ok {
@@ -697,7 +697,7 @@ func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) *block.MetaBlock 
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) data.HeaderHandler {
 	storageData, err := t.metaHdrStorage.Get(neededHash)
 	if err == nil {
 		var neededHdr block.MetaBlock
@@ -715,17 +715,17 @@ func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) *block.MetaBlo
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndHash(nonce uint64, neededHash []byte) (data.HeaderHandler, error) {
 	metaHdr := t.getHeaderWithNonceAndHashFromMaps(nonce, neededHash)
-	if metaHdr != nil {
+	if !check.IfNil(metaHdr) {
 		return metaHdr, nil
 	}
 
 	metaHdr = t.getHeaderWithHashFromPool(neededHash)
-	if metaHdr != nil {
+	if !check.IfNil(metaHdr) {
 		return metaHdr, nil
 	}
 
 	metaHdr = t.getHeaderWithHashFromStorage(neededHash)
-	if metaHdr != nil {
+	if !check.IfNil(metaHdr) {
 		return metaHdr, nil
 	}
 
@@ -763,7 +763,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromMaps(nonce uint64, prevHash [
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) *block.MetaBlock {
+func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash []byte) data.HeaderHandler {
 	headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
 		return nil
@@ -800,12 +800,12 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 // call only if mutex is locked before
 func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (data.HeaderHandler, error) {
 	metaHdr := t.getHeaderWithNonceAndPrevHashFromMaps(nonce, prevHash)
-	if metaHdr != nil {
+	if !check.IfNil(metaHdr) {
 		return metaHdr, nil
 	}
 
 	metaHdr = t.getHeaderWithNonceAndPrevHashFromCache(nonce, prevHash)
-	if metaHdr != nil {
+	if !check.IfNil(metaHdr) {
 		return metaHdr, nil
 	}
 
