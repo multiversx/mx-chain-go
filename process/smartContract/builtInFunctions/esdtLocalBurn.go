@@ -103,6 +103,9 @@ func checkBasicESDTArguments(vmInput *vmcommon.ContractCallInput) error {
 	if vmInput == nil {
 		return process.ErrNilVmInput
 	}
+	if vmInput.CallValue == nil {
+		return process.ErrNilValue
+	}
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return process.ErrBuiltInFunctionCalledWithValue
 	}

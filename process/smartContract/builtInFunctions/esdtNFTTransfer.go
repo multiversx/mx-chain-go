@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -62,6 +63,7 @@ func NewESDTNFTTransferFunc(
 		shardCoordinator: shardCoordinator,
 		gasConfig:        gasConfig,
 		mutExecution:     sync.RWMutex{},
+		payableHandler:   &disabledPayableHandler{},
 	}
 
 	return e, nil
@@ -155,15 +157,15 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 ) (*vmcommon.VMOutput, error) {
 	dstAddress := vmInput.Arguments[3]
 	if len(dstAddress) != len(vmInput.CallerAddr) {
-		return nil, process.ErrInvalidArguments
+		return nil, fmt.Errorf("%w, not a valid destination address", process.ErrInvalidArguments)
 	}
 	if bytes.Equal(dstAddress, vmInput.CallerAddr) {
-		return nil, process.ErrInvalidArguments
+		return nil, fmt.Errorf("%w, can not transfer to self", process.ErrInvalidArguments)
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	nonce := big.NewInt(0).SetBytes(vmInput.Arguments[1]).Uint64()
-	esdtData, err := getESDTNFTToken(acntSnd, esdtTokenKey, nonce, e.marshalizer)
+	esdtData, err := getESDTNFTTokenOnSender(acntSnd, esdtTokenKey, nonce, e.marshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +218,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 	vmOutput.GasRemaining -= gasForTransfer
 
 	nftTransferCallArgs := make([][]byte, 0)
-	nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[:2]...)
+	nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[:3]...)
 	nftTransferCallArgs = append(nftTransferCallArgs, marshalledNFTTransfer)
 	if len(vmInput.Arguments) > 4 {
 		nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[4:]...)
@@ -286,11 +288,11 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 		}
 	}
 
-	currentESDTData, err := getESDTNFTToken(userAccount, esdtTokenKey, esdtDataToTransfer.TokenMetaData.Nonce, e.marshalizer)
+	currentESDTData, isNew, err := getESDTNFTTokenOnDestination(userAccount, esdtTokenKey, esdtDataToTransfer.TokenMetaData.Nonce, e.marshalizer)
 	if err != nil && !errors.Is(err, process.ErrNFTTokenDoesNotExist) {
 		return err
 	}
-	if currentESDTData != nil {
+	if !isNew {
 		if currentESDTData.TokenMetaData == nil {
 			return process.ErrWrongNFTOnDestination
 		}

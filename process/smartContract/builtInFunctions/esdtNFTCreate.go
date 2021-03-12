@@ -179,26 +179,18 @@ func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 }
 
-func getESDTNFTToken(
-	acnt state.UserAccountHandler,
+func getESDTNFTTokenOnSender(
+	accnt state.UserAccountHandler,
 	esdtTokenKey []byte,
 	nonce uint64,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
-
-	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(esdtNFTTokenKey)
+	esdtData, isNew, err := getESDTNFTTokenOnDestination(accnt, esdtTokenKey, nonce, marshalizer)
 	if err != nil {
 		return nil, err
 	}
-	if len(marshaledData) == 0 {
-		return nil, process.ErrNFTTokenDoesNotExist
-	}
-
-	esdtData := &esdt.ESDigitalToken{}
-	err = marshalizer.Unmarshal(esdtData, marshaledData)
-	if err != nil {
-		return nil, err
+	if isNew {
+		return nil, process.ErrNewNFTDataOnSenderAddress
 	}
 
 	if esdtData.TokenMetaData == nil {
@@ -206,6 +198,27 @@ func getESDTNFTToken(
 	}
 
 	return esdtData, nil
+}
+
+func getESDTNFTTokenOnDestination(
+	accnt state.UserAccountHandler,
+	esdtTokenKey []byte,
+	nonce uint64,
+	marshalizer marshal.Marshalizer,
+) (*esdt.ESDigitalToken, bool, error) {
+	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
+	marshaledData, err := accnt.DataTrieTracker().RetrieveValue(esdtNFTTokenKey)
+	if err != nil || len(marshaledData) == 0 {
+		return esdtData, true, nil
+	}
+
+	err = marshalizer.Unmarshal(esdtData, marshaledData)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return esdtData, false, nil
 }
 
 func saveESDTNFTToken(

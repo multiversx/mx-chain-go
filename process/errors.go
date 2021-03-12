@@ -967,3 +967,6 @@ var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
 
 // ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
 var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
+
+// ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
+var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")
