@@ -307,7 +307,7 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	err1 := checkMetaShardInfo(nil, shardCoordinator)
-	err2 := checkMetaShardInfo(make([]block.ShardData, 0), shardCoordinator)
+	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator)
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
@@ -325,7 +325,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -349,7 +349,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -373,7 +373,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -397,7 +397,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
 	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
@@ -420,7 +420,7 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
 
 	assert.Nil(t, err)
 }

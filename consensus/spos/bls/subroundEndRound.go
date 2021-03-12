@@ -119,7 +119,7 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
-	header := sr.Header.Clone()
+	header := sr.Header.ShallowClone()
 	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
 	header.SetSignature(cnsDta.AggregateSignature)
 	header.SetLeaderSignature(cnsDta.LeaderSignature)
@@ -356,7 +356,7 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 		return false, nil
 	}
 
-	header := sr.Header.Clone()
+	header := sr.Header.ShallowClone()
 	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
 	header.SetSignature(cnsDta.AggregateSignature)
 	header.SetLeaderSignature(cnsDta.LeaderSignature)
@@ -379,7 +379,7 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 
 	var receivedHeaderHash []byte
 	for index := range receivedHeaders {
-		receivedHeader := receivedHeaders[index].Clone()
+		receivedHeader := receivedHeaders[index].ShallowClone()
 		receivedHeader.SetLeaderSignature(nil)
 		receivedHeader.SetPubKeysBitmap(nil)
 		receivedHeader.SetSignature(nil)
@@ -399,7 +399,7 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
-	headerClone := sr.Header.Clone()
+	headerClone := sr.Header.ShallowClone()
 	headerClone.SetLeaderSignature(nil)
 
 	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)

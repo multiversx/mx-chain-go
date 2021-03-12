@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -13,7 +13,7 @@ type EpochStartMetaBlockProcessorStub struct {
 	ValidateCalled               func(data process.InterceptedData, fromConnectedPeer core.PeerID) error
 	SaveCalled                   func(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error
 	RegisterHandlerCalled        func(handler func(topic string, hash []byte, data interface{}))
-	GetEpochStartMetaBlockCalled func(ctx context.Context) (*block.MetaBlock, error)
+	GetEpochStartMetaBlockCalled func(ctx context.Context) (data.HeaderHandler, error)
 }
 
 // Validate -
@@ -47,7 +47,7 @@ func (esmbps *EpochStartMetaBlockProcessorStub) IsInterfaceNil() bool {
 }
 
 // GetEpochStartMetaBlock -
-func (esmbps *EpochStartMetaBlockProcessorStub) GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error) {
+func (esmbps *EpochStartMetaBlockProcessorStub) GetEpochStartMetaBlock(ctx context.Context) (data.HeaderHandler, error) {
 	if esmbps.GetEpochStartMetaBlockCalled != nil {
 		return esmbps.GetEpochStartMetaBlockCalled(ctx)
 	}

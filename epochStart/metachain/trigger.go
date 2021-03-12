@@ -50,7 +50,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 type trigger struct {
 	isEpochStart                bool
 	epoch                       uint32
-	epochStartMeta              *block.MetaBlock
+	epochStartMeta              data.HeaderHandler
 	currentRound                uint64
 	epochFinalityAttestingRound uint64
 	currEpochStartRound         uint64

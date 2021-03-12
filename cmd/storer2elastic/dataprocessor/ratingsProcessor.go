@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -86,13 +86,13 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 }
 
 // IndexRatingsForEpochStartMetaBlock will index the ratings for an epoch start meta block
-func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.MetaBlock) error {
+func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock data.HeaderHandler) error {
 	if metaBlock.GetNonce() == 0 {
 		rp.indexRating(0, rp.getGenesisRating())
 		return nil
 	}
 
-	rootHash := metaBlock.ValidatorStatsRootHash
+	rootHash := metaBlock.GetValidatorStatsRootHash()
 	ctx := context.Background()
 	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {

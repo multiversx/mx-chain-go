@@ -315,7 +315,7 @@ func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.Hea
 	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
 	hdr.SetRandSeed(randSeed)
 
-	hdrClone := hdr.Clone()
+	hdrClone := hdr.ShallowClone()
 	hdrClone.SetLeaderSignature(nil)
 	headerJsonBytes, _ := integrationTests.TestMarshalizer.Marshal(hdrClone)
 	leaderSign, _ := signer.Sign(leaderSk, headerJsonBytes)

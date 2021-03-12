@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -42,13 +41,13 @@ type DataReplayerHandler interface {
 
 // TPSBenchmarkUpdaterHandler defines the actions that a TPS benchmark updater has to do
 type TPSBenchmarkUpdaterHandler interface {
-	IndexTPSForMetaBlock(metaBlock *block.MetaBlock)
+	IndexTPSForMetaBlock(metaBlock data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
 // RatingProcessorHandler defines the actions that a rating processor has to do
 type RatingProcessorHandler interface {
-	IndexRatingsForEpochStartMetaBlock(metaBlock *block.MetaBlock) error
+	IndexRatingsForEpochStartMetaBlock(metaBlock data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

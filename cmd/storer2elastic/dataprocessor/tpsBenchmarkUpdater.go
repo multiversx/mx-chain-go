@@ -3,7 +3,7 @@ package dataprocessor
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -41,7 +41,7 @@ func NewTPSBenchmarkUpdater(
 }
 
 // IndexTPSForMetaBlock will call the indexer's tps for a metablock
-func (tbp *tpsBenchmarkUpdater) IndexTPSForMetaBlock(metaBlock *block.MetaBlock) {
+func (tbp *tpsBenchmarkUpdater) IndexTPSForMetaBlock(metaBlock data.HeaderHandler) {
 	tbp.tpsBenchmark.Update(metaBlock)
 	tbp.elasticIndexer.UpdateTPS(tbp.tpsBenchmark)
 }

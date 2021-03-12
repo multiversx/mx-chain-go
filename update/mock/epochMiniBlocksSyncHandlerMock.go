@@ -3,17 +3,18 @@ package mock
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // EpochStartPendingMiniBlocksSyncHandlerMock -
 type EpochStartPendingMiniBlocksSyncHandlerMock struct {
-	SyncPendingMiniBlocksFromMetaCalled func(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error
+	SyncPendingMiniBlocksFromMetaCalled func(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error
 	GetMiniBlocksCalled                 func() (map[string]*block.MiniBlock, error)
 }
 
 // SyncPendingMiniBlocksFromMeta -
-func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
+func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error {
 	if ep.SyncPendingMiniBlocksFromMetaCalled != nil {
 		return ep.SyncPendingMiniBlocksFromMetaCalled(epochStart, unFinished, ctx)
 	}

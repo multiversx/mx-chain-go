@@ -279,7 +279,7 @@ func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.Publi
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) data.HeaderHandler {
-	headerCopy := header.Clone()
+	headerCopy := header.ShallowClone()
 	headerCopy.SetSignature(nil)
 	headerCopy.SetPubKeysBitmap(nil)
 	headerCopy.SetLeaderSignature(nil)
@@ -288,7 +288,7 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) da
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) data.HeaderHandler {
-	headerCopy := header.Clone()
+	headerCopy := header.ShallowClone()
 	headerCopy.SetLeaderSignature(nil)
 
 	return headerCopy

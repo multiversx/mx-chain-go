@@ -166,18 +166,18 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 	return nil
 }
 
-func getEpochStartShardData(metaBlock *block.MetaBlock, shardId uint32) (block.EpochStartShardData, error) {
-	for _, epochStartShardData := range metaBlock.EpochStart.LastFinalizedHeaders {
-		if epochStartShardData.ShardID == shardId {
+func getEpochStartShardData(metaBlock data.HeaderHandler, shardId uint32) (data.EpochStartShardDataHandler, error) {
+	for _, epochStartShardData := range metaBlock.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if epochStartShardData.GetShardID() == shardId {
 			return epochStartShardData, nil
 		}
 	}
 
-	return block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
+	return &block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
 }
 
 func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
-	meta *block.MetaBlock,
+	meta data.HeaderHandler,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
 	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
@@ -185,7 +185,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 		return nil, nil, err
 	}
 
-	neededMeta, ok := headers[string(shardData.FirstPendingMetaBlock)].(*block.MetaBlock)
+	neededMeta, ok := headers[string(shardData.GetFirstPendingMetaBlock())].(*block.MetaBlock)
 	if !ok {
 		return nil, nil, epochStart.ErrMissingHeader
 	}
@@ -195,10 +195,10 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 
 	pendingMBsMap := make(map[string]struct{})
 	pendingMBsPerShardMap := make(map[uint32][][]byte)
-	for _, mbHeader := range shardData.PendingMiniBlockHeaders {
-		senderShId := mbHeader.SenderShardID
-		pendingMBsPerShardMap[senderShId] = append(pendingMBsPerShardMap[senderShId], mbHeader.Hash)
-		pendingMBsMap[string(mbHeader.Hash)] = struct{}{}
+	for _, mbHeader := range shardData.GetPendingMiniBlockHeaderHandlers() {
+		senderShId := mbHeader.GetSenderShardID()
+		pendingMBsPerShardMap[senderShId] = append(pendingMBsPerShardMap[senderShId], mbHeader.GetHash())
+		pendingMBsMap[string(mbHeader.GetHash())] = struct{}{}
 	}
 
 	processedMbHashes := make([][]byte, 0)
@@ -214,7 +214,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 	if len(processedMbHashes) > 0 {
 		processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
-			MetaHash:         shardData.FirstPendingMetaBlock,
+			MetaHash:         shardData.GetFirstPendingMetaBlock(),
 			MiniBlocksHashes: processedMbHashes,
 		})
 	}
@@ -230,15 +230,15 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	return processedMiniBlocks, sliceToRet, nil
 }
 
-func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta data.HeaderHandler, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
 	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
 		return nil, err
 	}
 
-	lastCrossMetaHdrHash := shardData.LastFinishedMetaBlock
-	if len(shardData.PendingMiniBlockHeaders) == 0 {
-		lastCrossMetaHdrHash = shardData.FirstPendingMetaBlock
+	lastCrossMetaHdrHash := shardData.GetLastFinishedMetaBlock()
+	if len(shardData.GetPendingMiniBlockHeaderHandlers()) == 0 {
+		lastCrossMetaHdrHash = shardData.GetFirstPendingMetaBlock()
 	}
 
 	neededHdr, ok := headers[string(lastCrossMetaHdrHash)]
@@ -293,7 +293,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 
 	triggerReg := shardchain.TriggerRegistry{
 		Epoch:                       shardHeader.GetEpoch(),
-		MetaEpoch:                   metaBlock.Epoch,
+		MetaEpoch:                   metaBlock.GetEpoch(),
 		CurrentRoundIndex:           int64(shardHeader.GetRound()),
 		EpochStartRound:             shardHeader.GetRound(),
 		EpochMetaBlockHash:          metaBlockHash,

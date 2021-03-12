@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
@@ -15,7 +15,7 @@ type TriggerRegistry struct {
 	CurrEpochStartRound         uint64
 	PrevEpochStartRound         uint64
 	EpochStartMetaHash          []byte
-	EpochStartMeta              *block.MetaBlock
+	EpochStartMeta              data.HeaderHandler
 }
 
 // LoadState loads into trigger the saved state

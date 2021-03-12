@@ -102,7 +102,7 @@ func (m *ShardData) SetTxCount(txCount uint32) {
 	m.TxCount = txCount
 }
 
-// Clone - clones the shardData and returns the clone
+// ShallowClone - clones the shardData and returns the clone
 func (m *ShardData) ShallowClone() data.ShardDataHandler {
 	n := *m
 	return &n

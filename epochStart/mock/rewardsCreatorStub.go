@@ -12,23 +12,23 @@ import (
 // RewardsCreatorStub -
 type RewardsCreatorStub struct {
 	CreateRewardsMiniBlocksCalled func(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocksCalled func(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewardsCalled func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
 	CreateMarshalizedDataCalled            func(body *block.Body) map[string][][]byte
 	GetRewardsTxsCalled                    func(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorageCalled             func(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteTxsFromStorageCalled             func(metaBlock *block.MetaBlock, body *block.Body)
-	RemoveBlockDataFromPoolsCalled         func(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorageCalled             func(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteTxsFromStorageCalled             func(metaBlock data.HeaderHandler, body *block.Body)
+	RemoveBlockDataFromPoolsCalled         func(metaBlock data.HeaderHandler, body *block.Body)
 }
 
 // CreateRewardsMiniBlocks -
 func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -41,7 +41,7 @@ func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
 
 // VerifyRewardsMiniBlocks -
 func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {
@@ -85,21 +85,21 @@ func (rcs *RewardsCreatorStub) GetRewardsTxs(body *block.Body) map[string]data.T
 }
 
 // SaveTxBlockToStorage -
-func (rcs *RewardsCreatorStub) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcs *RewardsCreatorStub) SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body) {
 	if rcs.SaveTxBlockToStorageCalled != nil {
 		rcs.SaveTxBlockToStorageCalled(metaBlock, body)
 	}
 }
 
 // DeleteTxsFromStorage -
-func (rcs *RewardsCreatorStub) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcs *RewardsCreatorStub) DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
 	if rcs.DeleteTxsFromStorageCalled != nil {
 		rcs.DeleteTxsFromStorageCalled(metaBlock, body)
 	}
 }
 
 // RemoveBlockDataFromPools -
-func (rcs *RewardsCreatorStub) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcs *RewardsCreatorStub) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body) {
 	if rcs.RemoveBlockDataFromPoolsCalled != nil {
 		rcs.RemoveBlockDataFromPoolsCalled(metaBlock, body)
 	}

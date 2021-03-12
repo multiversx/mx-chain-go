@@ -195,7 +195,7 @@ func (m *MetaBlock) IsStartOfEpochBlock() bool {
 }
 
 // Clone will return a clone of the object
-func (m *MetaBlock) Clone() data.HeaderHandler {
+func (m *MetaBlock) ShallowClone() data.HeaderHandler {
 	metaBlockCopy := *m
 	return &metaBlockCopy
 }
@@ -266,4 +266,12 @@ func (m *MetaBlock) GetShardInfoHandlers() []data.ShardDataHandler {
 	}
 
 	return shardInfoHandlers
+}
+
+// GetEpochStartHandler -
+func (m *MetaBlock) GetEpochStartHandler() data.EpochStartHandler {
+	if m == nil {
+		return nil
+	}
+	return &m.EpochStart
 }

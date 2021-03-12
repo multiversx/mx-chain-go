@@ -106,7 +106,7 @@ type HeadersByHashSyncer interface {
 
 // PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type PendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocks(miniBlockHeaders []block.MiniBlockHeader, ctx context.Context) error
+	SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	ClearFields()
 	IsInterfaceNil() bool
@@ -121,7 +121,7 @@ type AccountsDBSyncer interface {
 
 // StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
 type StartOfEpochMetaSyncer interface {
-	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
+	SyncEpochStartMeta(waitTime time.Duration) (data.HeaderHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -183,17 +183,17 @@ type EpochEconomicsDataProvider interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }

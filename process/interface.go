@@ -834,18 +834,18 @@ type EpochStartDataCreator interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
 
@@ -853,9 +853,9 @@ type RewardsCreator interface {
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	SaveValidatorInfoBlocksToStorage(metaBlock data.HeaderHandler, body *block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler)
+	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }
 
@@ -944,7 +944,7 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
-	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
+	SyncMiniBlocks(metaBlock data.HeaderHandler) ([][]byte, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 

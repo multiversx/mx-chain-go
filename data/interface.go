@@ -78,9 +78,11 @@ type HeaderHandler interface {
 	SetMetaBlockHashes(hashes [][]byte)
 
 	GetShardInfoHandlers() []ShardDataHandler
+	GetEpochStartHandler() EpochStartHandler
+	GetDevFeesInEpoch() *big.Int
 
 	IsInterfaceNil() bool
-	Clone() HeaderHandler
+	ShallowClone() HeaderHandler
 }
 
 // MiniBlockHeaderHandler defines setters and getters for miniBlock headers
@@ -98,6 +100,7 @@ type MiniBlockHeaderHandler interface {
 	SetTxCount(count uint32)
 	SetType(t int32)
 	SetReserved(reserved []byte)
+	ShallowClone() MiniBlockHeaderHandler
 }
 
 // PeerChangeHandler defines setters and getters for PeerChange
@@ -142,6 +145,59 @@ type ShardDataHandler interface {
 	SetTxCount(txCount uint32)
 
 	ShallowClone() ShardDataHandler
+}
+
+// EpochStartShardDataHandler defines setters and getters for EpochStartShardData
+type EpochStartShardDataHandler interface {
+	GetShardID() uint32
+	GetEpoch() uint32
+	GetRound() uint64
+	GetNonce() uint64
+	GetHeaderHash() []byte
+	GetRootHash() []byte
+	GetFirstPendingMetaBlock() []byte
+	GetLastFinishedMetaBlock() []byte
+	GetPendingMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
+
+	SetShardID(uint32)
+	SetEpoch(uint32)
+	SetRound(uint64)
+	SetNonce(uint64)
+	SetHeaderHash([]byte)
+	SetRootHash([]byte)
+	SetFirstPendingMetaBlock([]byte)
+	SetLastFinishedMetaBlock([]byte)
+	SetPendingMiniBlockHeaders([]MiniBlockHeaderHandler)
+}
+
+// EconomicHandler defines setters and getters for Economics
+type EconomicsHandler interface {
+	GetTotalSupply() *big.Int
+	GetTotalToDistribute() *big.Int
+	GetTotalNewlyMinted() *big.Int
+	GetRewardsPerBlock() *big.Int
+	GetRewardsForProtocolSustainability() *big.Int
+	GetNodePrice() *big.Int
+	GetPrevEpochStartRound() uint64
+	GetPrevEpochStartHash() []byte
+
+	SetTotalSupply(totalSupply *big.Int)
+	SetTotalToDistribute(totalToDistribute *big.Int)
+	SetTotalNewlyMinted(totalNewlyMinted *big.Int)
+	SetRewardsPerBlock(rewardsPerBlock *big.Int)
+	SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int)
+	SetNodePrice(nodePrice *big.Int)
+	SetPrevEpochStartRound(prevEpochStart uint64)
+	SetPrevEpochStartHash(prevEpochStartHash []byte)
+}
+
+// EpochStartHandler defines setters and getters for EpochStart
+type EpochStartHandler interface {
+	GetLastFinalizedHeaderHandlers() []EpochStartShardDataHandler
+	GetEconomicsHandler() EconomicsHandler
+
+	SetLastFinalizedHeaders(epochStartDataHandlers []EpochStartShardDataHandler)
+	SetEconomics(economicsHandler EconomicsHandler)
 }
 
 // BodyHandler interface for a block body

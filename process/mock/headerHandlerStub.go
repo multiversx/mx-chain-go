@@ -56,7 +56,7 @@ func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 }
 
 // Clone -
-func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
+func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 	return hhs.CloneCalled()
 }
 
@@ -287,5 +287,15 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) {
 
 // GetShardInfoHandlers -
 func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler{
+	panic("implement me")
+}
+
+// GetEpochStartHandler -
+func (hhs *HeaderHandlerStub) GetEpochStartHandler() data.EpochStartHandler {
+	panic("implement me")
+}
+
+// GetDevFeesInEpoch -
+func (hhs *HeaderHandlerStub) GetDevFeesInEpoch() *big.Int {
 	panic("implement me")
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -74,8 +75,8 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 }
 
 // SyncPendingMiniBlocksFromMeta syncs the pending miniblocks from an epoch start metaBlock
-func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
-	if !epochStart.IsStartOfEpochBlock() && epochStart.Nonce > 0 {
+func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error {
+	if !epochStart.IsStartOfEpochBlock() && epochStart.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}
 	if unFinished == nil {
@@ -83,7 +84,7 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 	}
 
 	for hash, meta := range unFinished {
-		log.Debug("syncing miniblocks from unFinished meta", "hash", []byte(hash), "nonce", meta.Nonce)
+		log.Debug("syncing miniblocks from unFinished meta", "hash", []byte(hash), "nonce", meta.GetNonce())
 	}
 
 	listPendingMiniBlocks, err := update.GetPendingMiniBlocks(epochStart, unFinished)
@@ -95,16 +96,16 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 }
 
 // SyncPendingMiniBlocks will sync the miniblocks for the given epoch start meta block
-func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []block.MiniBlockHeader, ctx context.Context) error {
+func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
 	return p.syncMiniBlocks(miniBlockHeaders, ctx)
 }
 
-func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.MiniBlockHeader, ctx context.Context) error {
+func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBlockHeaderHandler, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
 
 	mapHashesToRequest := make(map[string]uint32)
 	for _, mbHeader := range listPendingMiniBlocks {
-		mapHashesToRequest[string(mbHeader.Hash)] = mbHeader.SenderShardID
+		mapHashesToRequest[string(mbHeader.GetHash())] = mbHeader.GetSenderShardID()
 	}
 
 	p.mutPendingMb.Lock()

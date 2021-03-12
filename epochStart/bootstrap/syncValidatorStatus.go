@@ -115,8 +115,8 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 // NodesConfigFromMetaBlock synces and creates registry from epoch start metablock
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
-	currMetaBlock *block.MetaBlock,
-	prevMetaBlock *block.MetaBlock,
+	currMetaBlock data.HeaderHandler,
+	prevMetaBlock data.HeaderHandler,
 ) (*sharding.NodesCoordinatorRegistry, uint32, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, epochStart.ErrNotEpochStartBlock
@@ -135,17 +135,17 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, err
 	}
 
-	selfShardId, err := s.nodeCoordinator.ShardIdForEpoch(currMetaBlock.Epoch)
+	selfShardId, err := s.nodeCoordinator.ShardIdForEpoch(currMetaBlock.GetEpoch())
 	if err != nil {
 		return nil, 0, err
 	}
 
 	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
-	nodesConfig.CurrentEpoch = currMetaBlock.Epoch
+	nodesConfig.CurrentEpoch = currMetaBlock.GetEpoch()
 	return nodesConfig, selfShardId, nil
 }
 
-func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock *block.MetaBlock) error {
+func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHandler) error {
 	if metaBlock.GetEpoch() == 0 {
 		// no need to process for genesis - already created
 		return nil
@@ -160,20 +160,21 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock *block.MetaBl
 	return nil
 }
 
-func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.MiniBlockHeader {
-	shardMBHeaders := make([]block.MiniBlockHeader, 0)
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.Type != block.PeerBlock {
+func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
+	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	for i, mbHeader := range  mbHeaderHandlers{
+		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
-		shardMBHeaders = append(shardMBHeaders, mbHeader)
+		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
 	}
-	return shardMBHeaders
+	return shardMBHeaderHandlers
 }
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 ) (data.BodyHandler, error) {
 	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
 
@@ -192,7 +193,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(peerMiniBlocks))}
 	for _, mbHeader := range shardMBHeaders {
-		blockBody.MiniBlocks = append(blockBody.MiniBlocks, peerMiniBlocks[string(mbHeader.Hash)])
+		blockBody.MiniBlocks = append(blockBody.MiniBlocks, peerMiniBlocks[string(mbHeader.GetHash())])
 	}
 
 	return blockBody, nil

@@ -53,7 +53,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return nil, expectedErr
 		},
@@ -72,7 +72,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksOK(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -91,7 +91,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -117,7 +117,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 
 	rewardCreatorV2 := &mock.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
 			return make(block.MiniBlockSlice, 2), nil
 		},
@@ -144,7 +144,7 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 	expectedErr := fmt.Errorf("expectedError")
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
 			return expectedErr
 		},
 	}
@@ -161,7 +161,7 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
-			metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
+			metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics) error {
 			return nil
 		},
 	}
@@ -257,7 +257,7 @@ func TestRewardsCreatorProxy_SaveTxBlockToStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		SaveTxBlockToStorageCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		SaveTxBlockToStorageCalled: func(metaBlock data.HeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
@@ -275,7 +275,7 @@ func TestRewardsCreatorProxy_DeleteTxsFromStorage(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		DeleteTxsFromStorageCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		DeleteTxsFromStorageCalled: func(metaBlock data.HeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}
@@ -293,7 +293,7 @@ func TestRewardsCreatorProxy_RemoveBlockDataFromPools(t *testing.T) {
 	functionCalled := false
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{
-		RemoveBlockDataFromPoolsCalled: func(metaBlock *block.MetaBlock, body *block.Body) {
+		RemoveBlockDataFromPoolsCalled: func(metaBlock data.HeaderHandler, body *block.Body) {
 			functionCalled = true
 		},
 	}

@@ -182,7 +182,7 @@ func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 }
 
 // Clone returns a clone of the object
-func (h *Header) Clone() data.HeaderHandler {
+func (h *Header) ShallowClone() data.HeaderHandler {
 	headerCopy := *h
 	return &headerCopy
 }
@@ -271,6 +271,16 @@ func (h *Header) SetMetaBlockHashes(hashes [][]byte) {
 
 // GetShardInfoHandlers - returns nil, as not supported for shard header
 func (h *Header) GetShardInfoHandlers() []data.ShardDataHandler {
+	return nil
+}
+
+// GetEpochStartHandler - not supported on shard header
+func (h *Header) GetEpochStartHandler() data.EpochStartHandler {
+	return nil
+}
+
+// GetDevFeesInEpoch - not supported on shard header
+func (h *Header) GetDevFeesInEpoch() *big.Int {
 	return nil
 }
 

@@ -1,5 +1,7 @@
 package block
 
+import "github.com/ElrondNetwork/elrond-go/data"
+
 // SetType -
 func (m *MiniBlockHeader) GetTypeInt32() int32 {
 	return int32(m.Type)
@@ -33,4 +35,10 @@ func (m *MiniBlockHeader) SetType(t int32) {
 // SetReserved -
 func (m *MiniBlockHeader) SetReserved(reserved []byte) {
 	m.Reserved = reserved
+}
+
+// ShallowClone -
+func (m *MiniBlockHeader) ShallowClone() data.MiniBlockHeaderHandler {
+	mbhCopy := *m
+	return &mbhCopy
 }

@@ -17,7 +17,7 @@ var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr               *block.MetaBlock
+	hdr               data.HeaderHandler
 	sigVerifier       process.InterceptedHeaderSigVerifier
 	integrityVerifier process.HeaderIntegrityVerifier
 	hasher            hashing.Hasher
@@ -118,7 +118,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.ShardInfo, imh.shardCoordinator)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -139,16 +139,16 @@ func (imh *InterceptedMetaHeader) Type() string {
 // String returns the meta header's most important fields as string
 func (imh *InterceptedMetaHeader) String() string {
 	return fmt.Sprintf("epoch=%d, round=%d, nonce=%d",
-		imh.hdr.Epoch,
-		imh.hdr.Round,
-		imh.hdr.Nonce,
+		imh.hdr.GetEpoch(),
+		imh.hdr.GetRound(),
+		imh.hdr.GetNonce(),
 	)
 }
 
 // Identifiers returns the identifiers used in requests
 func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
-	keyNonce := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, imh.hdr.Nonce))
-	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.Epoch))
+	keyNonce := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, imh.hdr.GetNonce()))
+	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
 
 	return [][]byte{imh.hash, keyNonce, keyEpoch}
 }

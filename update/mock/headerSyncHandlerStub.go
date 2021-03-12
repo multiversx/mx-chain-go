@@ -1,14 +1,14 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HeaderSyncHandlerStub -
 type HeaderSyncHandlerStub struct {
 	SyncUnFinishedMetaHeadersCalled func(epoch uint32) error
-	GetEpochStartMetaBlockCalled    func() (*block.MetaBlock, error)
-	GetUnFinishedMetaBlocksCalled   func() (map[string]*block.MetaBlock, error)
+	GetEpochStartMetaBlockCalled    func() (data.HeaderHandler, error)
+	GetUnFinishedMetaBlocksCalled   func() (map[string]data.HeaderHandler, error)
 }
 
 // SyncUnFinishedMetaHeaders -
@@ -20,7 +20,7 @@ func (hsh *HeaderSyncHandlerStub) SyncUnFinishedMetaHeaders(epoch uint32) error 
 }
 
 // GetEpochStartMetaBlock -
-func (hsh *HeaderSyncHandlerStub) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (hsh *HeaderSyncHandlerStub) GetEpochStartMetaBlock() (data.HeaderHandler, error) {
 	if hsh.GetEpochStartMetaBlockCalled != nil {
 		return hsh.GetEpochStartMetaBlockCalled()
 	}
@@ -28,7 +28,7 @@ func (hsh *HeaderSyncHandlerStub) GetEpochStartMetaBlock() (*block.MetaBlock, er
 }
 
 // GetUnFinishedMetaBlocks -
-func (hsh *HeaderSyncHandlerStub) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+func (hsh *HeaderSyncHandlerStub) GetUnFinishedMetaBlocks() (map[string]data.HeaderHandler, error) {
 	if hsh.GetUnFinishedMetaBlocksCalled != nil {
 		return hsh.GetUnFinishedMetaBlocksCalled()
 	}
