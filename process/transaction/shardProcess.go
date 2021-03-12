@@ -140,6 +140,10 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
 	}
 
+	log.Debug("enable epoch for relayed transactions", "epoch", txProc.relayedTxEnableEpoch)
+	log.Debug("enable epoch for penalized too much gas", "epoch", txProc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("enable epoch for meta protection", "epoch", txProc.metaProtectionEnableEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil

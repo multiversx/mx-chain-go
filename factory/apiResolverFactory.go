@@ -257,6 +257,10 @@ func createScQueryElement(
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
 		}
 
+		log.Debug("enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
+		log.Debug("enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
+		log.Debug("enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
+
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, nil, nil, err

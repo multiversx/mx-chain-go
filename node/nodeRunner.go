@@ -113,29 +113,37 @@ func (nr *nodeRunner) Start() error {
 }
 
 func printEnableEpochs(configs *config.Configs) {
+	var readEpochFor = func(flag string) string {
+		return fmt.Sprintf("read enable epoch for %s", flag)
+	}
+
 	enableEpochs := configs.EpochConfig.EnableEpochs
 
-	log.Debug("sc deploy enable epoch", "epoch", enableEpochs.SCDeployEnableEpoch)
-	log.Debug("built in functions enable epoch", "epoch", enableEpochs.BuiltInFunctionsEnableEpoch)
-	log.Debug("relayed transactions enable epoch", "epoch", enableEpochs.RelayedTransactionsEnableEpoch)
-	log.Debug("penalized too much gas enable epoch", "epoch", enableEpochs.PenalizedTooMuchGasEnableEpoch)
-	log.Debug("switch jail waiting enable epoch", "epoch", enableEpochs.SwitchJailWaitingEnableEpoch)
-	log.Debug("switch hysteresis for min nodes enable epoch", "epoch", enableEpochs.SwitchHysteresisForMinNodesEnableEpoch)
-	log.Debug("below signed threshold enable epoch", "epoch", enableEpochs.BelowSignedThresholdEnableEpoch)
-	log.Debug("transaction signed with tx hash enable epoch", "epoch", enableEpochs.TransactionSignedWithTxHashEnableEpoch)
-	log.Debug("meta protection enable epoch", "epoch", enableEpochs.MetaProtectionEnableEpoch)
-	log.Debug("ahead of time gas usage enable epoch", "epoch", enableEpochs.AheadOfTimeGasUsageEnableEpoch)
-	log.Debug("gas price modifier enable epoch", "epoch", enableEpochs.GasPriceModifierEnableEpoch)
-	log.Debug("repair callback enable epoch", "epoch", enableEpochs.RepairCallbackEnableEpoch)
-	log.Debug("max nodes change enable epoch", "epoch", enableEpochs.MaxNodesChangeEnableEpoch)
-	log.Debug("block gas and fees re-check enable epoch", "epoch", enableEpochs.BlockGasAndFeesReCheckEnableEpoch)
-	log.Debug("staking v2 epoch", "epoch", enableEpochs.StakingV2Epoch)
-	log.Debug("stake enable epoch", "epoch", enableEpochs.StakeEnableEpoch)
-	log.Debug("double key protection enable epoch", "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
-	log.Debug("esdt enable epoch", "epoch", enableEpochs.ESDTEnableEpoch)
-	log.Debug("governance enable epoch", "epoch", enableEpochs.GovernanceEnableEpoch)
-	log.Debug("delegation manager enable epoch", "epoch", enableEpochs.DelegationManagerEnableEpoch)
-	log.Debug("delegation smart contract enable epoch", "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
+	log.Debug(readEpochFor("sc deploy"), "epoch", enableEpochs.SCDeployEnableEpoch)
+	log.Debug(readEpochFor("built in functions"), "epoch", enableEpochs.BuiltInFunctionsEnableEpoch)
+	log.Debug(readEpochFor("relayed transactions"), "epoch", enableEpochs.RelayedTransactionsEnableEpoch)
+	log.Debug(readEpochFor("penalized too much gas"), "epoch", enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	log.Debug(readEpochFor("switch jail waiting"), "epoch", enableEpochs.SwitchJailWaitingEnableEpoch)
+	log.Debug(readEpochFor("switch hysteresis for min nodes"), "epoch", enableEpochs.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug(readEpochFor("below signed threshold"), "epoch", enableEpochs.BelowSignedThresholdEnableEpoch)
+	log.Debug(readEpochFor("transaction signed with tx hash"), "epoch", enableEpochs.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug(readEpochFor("meta protection"), "epoch", enableEpochs.MetaProtectionEnableEpoch)
+	log.Debug(readEpochFor("ahead of time gas usage"), "epoch", enableEpochs.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug(readEpochFor("gas price modifier"), "epoch", enableEpochs.GasPriceModifierEnableEpoch)
+	log.Debug(readEpochFor("repair callback"), "epoch", enableEpochs.RepairCallbackEnableEpoch)
+	log.Debug(readEpochFor("max nodes change"), "epoch", enableEpochs.MaxNodesChangeEnableEpoch)
+	log.Debug(readEpochFor("block gas and fees re-check"), "epoch", enableEpochs.BlockGasAndFeesReCheckEnableEpoch)
+	log.Debug(readEpochFor("staking v2 epoch"), "epoch", enableEpochs.StakingV2Epoch)
+	log.Debug(readEpochFor("stake"), "epoch", enableEpochs.StakeEnableEpoch)
+	log.Debug(readEpochFor("double key protection"), "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
+	log.Debug(readEpochFor("esdt"), "epoch", enableEpochs.ESDTEnableEpoch)
+	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
+	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
+	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
+
+	gasSchedule := configs.EpochConfig.GasSchedule
+
+	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(

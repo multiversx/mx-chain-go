@@ -102,6 +102,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		minFee:                   args.DelegationSCConfig.MinServiceFee,
 		maxFee:                   args.DelegationSCConfig.MaxServiceFee,
 	}
+	log.Debug("enable epoch for delegation manager", "epoch", d.enableDelegationMgrEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
 

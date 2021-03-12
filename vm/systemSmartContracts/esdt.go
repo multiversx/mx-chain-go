@@ -105,6 +105,8 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
+	log.Debug("enable epoch for esdt", "epoch", e.enabledEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
 	return e, nil

@@ -165,6 +165,11 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		shardCoordinator:         args.ShardCoordinator,
 	}
 
+	log.Debug("enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
+	log.Debug("enable epoch for switch hysteresis for min nodes", "epoch", s.hystNodesEnableEpoch)
+	log.Debug("enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
+	log.Debug("enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
+
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
 	sort.Slice(s.maxNodesEnableConfig, func(i, j int) bool {

@@ -145,6 +145,9 @@ func NewValidatorSmartContract(
 		endOfEpochAddress:     args.EndOfEpochAddress,
 		minDeposit:            minDeposit,
 	}
+	log.Debug("enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 

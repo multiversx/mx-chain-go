@@ -49,6 +49,7 @@ func NewGasComputation(
 		gasRefunded:             make(map[string]uint64),
 		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
 	}
+	log.Debug("enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
 
 	epochNotifier.RegisterNotifyHandler(g)
 

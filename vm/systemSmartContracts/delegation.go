@@ -117,6 +117,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		stakingV2EnableEpoch:   args.EpochConfig.EnableEpochs.StakingV2Epoch,
 		stakingV2Enabled:       atomic.Flag{},
 	}
+	log.Debug("enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
+	log.Debug("enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
 
 	var okValue bool
 
