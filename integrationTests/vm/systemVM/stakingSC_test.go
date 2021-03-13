@@ -15,9 +15,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const delegationManagementKey = "delegationManagement"
+
+func saveDelegationManagerConfig(nodes []*integrationTests.TestProcessorNode) {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := node.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
+		marshaledData, _ := integrationTests.TestMarshalizer.Marshal(managementData)
+		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+		_ = node.AccntState.SaveAccount(userAcc)
+		_, _ = node.AccntState.Commit()
+	}
+}
 
 func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
@@ -56,6 +76,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
+	saveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -169,8 +190,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
-
 	verifyInitialBalance(t, nodes, initialVal)
+	saveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
