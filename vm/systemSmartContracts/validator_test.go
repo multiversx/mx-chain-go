@@ -47,10 +47,12 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
 		},
-		Marshalizer:        &mock.MarshalizerMock{},
-		GenesisTotalSupply: big.NewInt(100000000),
-		EpochNotifier:      &mock.EpochNotifierStub{},
-		MinDeposit:         "0",
+		Marshalizer:              &mock.MarshalizerMock{},
+		GenesisTotalSupply:       big.NewInt(100000000),
+		EpochNotifier:            &mock.EpochNotifierStub{},
+		MinDeposit:               "0",
+		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
+		DelegationMgrEnableEpoch: 100000,
 	}
 
 	return args
