@@ -84,6 +84,7 @@ type VMTestContext struct {
 	ShardCoordinator sharding.Coordinator
 	ScForwarder      process.IntermediateTransactionHandler
 	EconomicsData    process.EconomicsDataHandler
+	Marshalizer      marshal.Marshalizer
 }
 
 // Close -
@@ -1028,5 +1029,6 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 		ShardCoordinator: shardCoordinator,
 		ScForwarder:      scrForwarder,
 		EconomicsData:    economicsData,
+		Marshalizer:      testMarshalizer,
 	}, nil
 }
