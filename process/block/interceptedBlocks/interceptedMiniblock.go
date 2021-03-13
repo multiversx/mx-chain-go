@@ -112,9 +112,10 @@ func (inMb *InterceptedMiniblock) integrity() error {
 		}
 	}
 
-	if len(miniblock.Reserved) > 0 {
-		return process.ErrReservedFieldNotSupportedYet
-	}
+	//TODO: Remove this condition after the final decision about reserved field from mini block
+	//if len(miniblock.Reserved) > 0 {
+	//	return process.ErrReservedFieldNotSupportedYet
+	//}
 
 	return nil
 }

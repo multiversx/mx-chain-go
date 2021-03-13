@@ -678,7 +678,7 @@ func (txs *transactions) displayProcessingResults(
 			"sc txs", mapScsForShard[miniBlock.ReceiverShardID])
 	}
 
-	log.Debug("total txs", nbSortedTxs,
+	log.Debug("transactions info", "total txs", nbSortedTxs,
 		"num txs added", processingInfo.numTxsAdded,
 		"num bad txs", processingInfo.numBadTxs,
 		"num txs failed", processingInfo.numTxsFailed,
@@ -706,7 +706,7 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 		"total gas consumed in self shard", totalGasConsumedInSelfShard)
 
 	for _, miniBlock := range miniBlocks {
-		log.Debug("mini block info",
+		log.Debug("scheduled mini block info",
 			"type", "ScheduledBlock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
@@ -714,7 +714,7 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("total txs", nbSortedTxs,
+	log.Debug("scheduled transactions info", "total txs", nbSortedTxs,
 		"num scheduled txs added", schedulingInfo.numScheduledTxsAdded,
 		"num scheduled bad txs", schedulingInfo.numScheduledBadTxs,
 		"num scheduled txs skipped", schedulingInfo.numScheduledTxsSkipped,
