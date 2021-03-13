@@ -241,6 +241,39 @@ func TestNewStakingValidatorSmartContract_InvalidGenesisTotalSupply(t *testing.T
 	require.True(t, errors.Is(err, vm.ErrInvalidGenesisTotalSupply))
 }
 
+func TestNewStakingValidatorSmartContract_NilEpochNotifier(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.EpochNotifier = nil
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	require.Equal(t, vm.ErrNilEpochNotifier, err)
+}
+
+func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.EndOfEpochAddress = make([]byte, 0)
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	require.Equal(t, vm.ErrInvalidEndOfEpochAccessAddress, err)
+}
+
+func TestNewStakingValidatorSmartContract_EmptyDelegationManagerAddress(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.DelegationMgrSCAddress = make([]byte, 0)
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidAddress))
+}
+
 func TestStakingValidatorSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -4231,6 +4264,76 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedValues, eeiFinishedValues)
+}
+
+func TestValidatorSC_getMinUnStakeTokensValueDelegationManagerNotActive(t *testing.T) {
+	t.Parallel()
+
+	minUnstakeTokens := 12345
+	eei := &mock.SystemEIStub{}
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+	args.DelegationMgrEnableEpoch = 10000
+	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+	currentMinUnstakeTokens, err := stakingValidatorSc.getMinUnStakeTokensValue()
+	require.Nil(t, err)
+	assert.Equal(t, big.NewInt(int64(minUnstakeTokens)), currentMinUnstakeTokens)
+}
+
+func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManager(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForValidatorSC()
+	storedDelegationManagementData := &DelegationManagement{
+		MinDelegationAmount: big.NewInt(457293),
+	}
+	buff, _ := args.Marshalizer.Marshal(storedDelegationManagementData)
+
+	minUnstakeTokens := 12345
+	eei := &mock.SystemEIStub{
+		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
+			return buff
+		},
+	}
+
+	args.Eei = eei
+	args.DelegationMgrEnableEpoch = 0
+	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+	currentMinUnstakeTokens, err := stakingValidatorSc.getMinUnStakeTokensValue()
+	require.Nil(t, err)
+	assert.Equal(t, storedDelegationManagementData.MinDelegationAmount, currentMinUnstakeTokens)
+}
+
+func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFail(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	args := createMockArgumentsForValidatorSC()
+	args.Marshalizer = &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return expectedErr
+		},
+	}
+
+	minUnstakeTokens := 12345
+	eei := &mock.SystemEIStub{
+		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
+			return make([]byte, 1)
+		},
+	}
+
+	args.Eei = eei
+	args.DelegationMgrEnableEpoch = 0
+	args.StakingSCConfig.MinUnstakeTokensValue = fmt.Sprintf("%d", minUnstakeTokens)
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+	currentMinUnstakeTokens, err := stakingValidatorSc.getMinUnStakeTokensValue()
+	require.Nil(t, currentMinUnstakeTokens)
+	assert.Equal(t, expectedErr, err)
 }
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
