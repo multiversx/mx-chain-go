@@ -35,6 +35,18 @@ var (
 	value200EGLD, _  = big.NewInt(0).SetString("200000000000000000000", 10)
 )
 
+const delegationManagementKey = "delegationManagement"
+
+func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
+	acc, _ := testContext.Accounts.LoadAccount(vmAddr.DelegationManagerSCAddress)
+	userAcc, _ := acc.(state.UserAccountHandler)
+
+	managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
+	marshaledData, _ := testContext.Marshalizer.Marshal(managementData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+	_ = testContext.Accounts.SaveAccount(userAcc)
+}
+
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T) {
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
 
@@ -42,8 +54,8 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	saveDelegationManagerConfig(testContextMeta)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
@@ -83,7 +95,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-
+	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
 
 	gasPrice := uint64(10)
@@ -124,7 +136,7 @@ func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-
+	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
 
 	gasPrice := uint64(10)
@@ -165,7 +177,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-
+	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
 
 	gasPrice := uint64(10)
@@ -225,7 +237,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-
+	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
 
 	gasPrice := uint64(10)

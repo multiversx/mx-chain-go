@@ -1096,7 +1096,7 @@ func (d *delegation) finishDelegateUser(
 }
 
 func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
@@ -1224,7 +1224,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
@@ -2412,7 +2412,7 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 		return vm.ErrNotEnoughInitialOwnerFunds
 	}
 
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		return err
 	}
@@ -2431,14 +2431,18 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	return nil
 }
 
-func (d *delegation) getDelegationManagement() (*DelegationManagement, error) {
-	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
+func getDelegationManagement(
+	eei vm.SystemEI,
+	marshalizer marshal.Marshalizer,
+	delegationMgrAddress []byte,
+) (*DelegationManagement, error) {
+	marshaledData := eei.GetStorageFromAddress(delegationMgrAddress, []byte(delegationManagementKey))
 	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
 	}
 
 	managementData := &DelegationManagement{}
-	err := d.marshalizer.Unmarshal(managementData, marshaledData)
+	err := marshalizer.Unmarshal(managementData, marshaledData)
 	if err != nil {
 		return nil, err
 	}

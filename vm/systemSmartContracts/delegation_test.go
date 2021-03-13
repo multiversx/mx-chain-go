@@ -4084,7 +4084,7 @@ func TestDelegation_GetDelegationManagementNoDataShouldError(t *testing.T) {
 		},
 	}
 
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 
 	assert.Nil(t, delegationManagement)
 	assert.True(t, errors.Is(err, vm.ErrDataNotFoundUnderKey))
@@ -4107,7 +4107,7 @@ func TestDelegation_GetDelegationManagementMarshalizerFailsShouldError(t *testin
 		},
 	}
 
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 
 	assert.Nil(t, delegationManagement)
 	assert.True(t, errors.Is(err, expectedErr))
@@ -4136,7 +4136,7 @@ func TestDelegation_GetDelegationManagementShouldWork(t *testing.T) {
 		marshalizer: marshalizer,
 	}
 
-	delegationManagement, err := d.getDelegationManagement()
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 
 	assert.Nil(t, err)
 	require.NotNil(t, delegationManagement)
