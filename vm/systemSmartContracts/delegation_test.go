@@ -414,8 +414,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 
 	dGlobalFund, err := d.getGlobalFundData()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(dGlobalFund.ActiveFunds))
-	assert.Equal(t, 0, len(dGlobalFund.UnStakedFunds))
 	assert.Equal(t, callValue, dGlobalFund.TotalActive)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStaked)
 
@@ -1664,7 +1662,6 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	dGlobalFund, _ := d.getGlobalFundData()
 	assert.Equal(t, big.NewInt(15), dGlobalFund.TotalActive)
-	assert.Equal(t, fundKey, dGlobalFund.ActiveFunds[0])
 
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, uint64(1), dStatus.NumUsers)
@@ -1776,7 +1773,6 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenGettingMinimumDelegat
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
 		TotalActive:   big.NewInt(100),
 		TotalUnStaked: big.NewInt(0),
 	})
@@ -1864,7 +1860,6 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
 		TotalActive:   big.NewInt(100),
 		TotalUnStaked: big.NewInt(0),
 	})
@@ -1883,8 +1878,6 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
 
 	globalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, 1, len(globalFund.UnStakedFunds))
-	assert.Equal(t, nextFundKey, globalFund.UnStakedFunds[0])
 	assert.Equal(t, big.NewInt(20), globalFund.TotalActive)
 	assert.Equal(t, big.NewInt(80), globalFund.TotalUnStaked)
 
@@ -1947,10 +1940,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
 		TotalActive:   big.NewInt(100),
 		TotalUnStaked: big.NewInt(0),
-		ActiveFunds:   [][]byte{fundKey},
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -1966,11 +1957,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
 
 	globalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, 1, len(globalFund.UnStakedFunds))
-	assert.Equal(t, nextFundKey, globalFund.UnStakedFunds[0])
 	assert.Equal(t, big.NewInt(0), globalFund.TotalActive)
 	assert.Equal(t, big.NewInt(100), globalFund.TotalUnStaked)
-	assert.Equal(t, 0, len(globalFund.ActiveFunds))
 
 	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, 1, len(dData.UnStakedFunds))
@@ -2011,10 +1999,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
 		TotalActive:   big.NewInt(100),
 		TotalUnStaked: big.NewInt(0),
-		ActiveFunds:   [][]byte{fundKey},
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -2040,11 +2026,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
 	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
 
 	globalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, 1, len(globalFund.UnStakedFunds))
-	assert.Equal(t, nextFundKey, globalFund.UnStakedFunds[0])
 	assert.Equal(t, big.NewInt(0), globalFund.TotalActive)
 	assert.Equal(t, big.NewInt(100), globalFund.TotalUnStaked)
-	assert.Equal(t, 0, len(globalFund.ActiveFunds))
 
 	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, 1, len(dData.UnStakedFunds))
@@ -2169,7 +2152,6 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		UnBondPeriod: 50,
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{fundKey1, fundKey2},
 		TotalUnStaked: big.NewInt(140),
 		TotalActive:   big.NewInt(0),
 	})
@@ -2178,8 +2160,6 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	gFundData, _ := d.getGlobalFundData()
-	assert.Equal(t, 1, len(gFundData.UnStakedFunds))
-	assert.Equal(t, fundKey2, gFundData.UnStakedFunds[0])
 	assert.Equal(t, big.NewInt(80), gFundData.TotalUnStaked)
 
 	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)

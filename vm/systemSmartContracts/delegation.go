@@ -290,8 +290,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	globalFund := &GlobalFundData{
-		ActiveFunds:   make([][]byte, 0),
-		UnStakedFunds: make([][]byte, 0),
 		TotalActive:   big.NewInt(0),
 		TotalUnStaked: big.NewInt(0),
 	}
@@ -1044,7 +1042,6 @@ func (d *delegation) finishDelegateUser(
 		}
 
 		delegator.ActiveFund = fundKey
-		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
 			dStatus.NumUsers++
 		}
@@ -1278,21 +1275,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, unStakedFundKey)
 	globalFund.TotalActive.Sub(globalFund.TotalActive, actualUserUnStake)
 	globalFund.TotalUnStaked.Add(globalFund.TotalUnStaked, actualUserUnStake)
 	delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
 
 	if activeFund.Value.Cmp(zero) == 0 {
-		for i, fundKey := range globalFund.ActiveFunds {
-			if bytes.Equal(delegator.ActiveFund, fundKey) {
-				copy(globalFund.ActiveFunds[i:], globalFund.ActiveFunds[i+1:])
-				lenKeys := len(globalFund.ActiveFunds)
-				globalFund.ActiveFunds[lenKeys-1] = nil
-				globalFund.ActiveFunds = globalFund.ActiveFunds[:lenKeys-1]
-				break
-			}
-		}
 		delegator.ActiveFund = nil
 	}
 
@@ -1538,19 +1525,6 @@ func (d *delegation) getUnBondableTokens(delegator *DelegatorData, unBondPeriod 
 	return totalUnBondable, nil
 }
 
-func (d *delegation) deleteUnStakedFund(fundKey []byte, globalFund *GlobalFundData) {
-	d.eei.SetStorage(fundKey, nil)
-	for i, globalKey := range globalFund.UnStakedFunds {
-		if bytes.Equal(fundKey, globalKey) {
-			copy(globalFund.UnStakedFunds[i:], globalFund.UnStakedFunds[i+1:])
-			lenKeys := len(globalFund.UnStakedFunds)
-			globalFund.UnStakedFunds[lenKeys-1] = nil
-			globalFund.UnStakedFunds = globalFund.UnStakedFunds[:lenKeys-1]
-			break
-		}
-	}
-}
-
 func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage("wrong number of arguments")
@@ -1638,7 +1612,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
-		d.deleteUnStakedFund(fundKey, globalFund)
+		d.eei.SetStorage(fundKey, nil)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 
@@ -2365,15 +2339,6 @@ func (d *delegation) createNextKeyFund(address []byte, value *big.Int, fundType 
 
 	fundKey := append([]byte(fundKeyPrefix), nextKey.Bytes()...)
 	return fundKey, fund
-}
-
-func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey []byte, fundType uint32) {
-	switch fundType {
-	case active:
-		globalFund.ActiveFunds = append(globalFund.ActiveFunds, fundKey)
-	case unStaked:
-		globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, fundKey)
-	}
 }
 
 func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {

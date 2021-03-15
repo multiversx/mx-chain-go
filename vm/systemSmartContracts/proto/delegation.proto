@@ -59,8 +59,6 @@ message DelegatorData {
 }
 
 message GlobalFundData {
-  repeated bytes ActiveFunds   = 1 [(gogoproto.jsontag) = "ActiveFunds"];
-  repeated bytes UnStakedFunds = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
   bytes TotalActive            = 3 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes TotalUnStaked          = 4 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
