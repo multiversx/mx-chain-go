@@ -1910,6 +1910,87 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, eei.output[3], []byte{50})
 }
 
+func TestDelegationSystemSC_ExecuteUnDelegateLimitReached(t *testing.T) {
+	t.Parallel()
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	addValidatorAndStakingScToVmContext(eei)
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{80}})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+	})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	dFund, _ := d.getFund(fundKey)
+	assert.Equal(t, big.NewInt(20), dFund.Value)
+	assert.Equal(t, active, dFund.Type)
+
+	dFund, _ = d.getFund(nextFundKey)
+	assert.Equal(t, big.NewInt(80), dFund.Value)
+	assert.Equal(t, unStaked, dFund.Type)
+	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
+
+	globalFund, _ := d.getGlobalFundData()
+	assert.Equal(t, big.NewInt(20), globalFund.TotalActive)
+	assert.Equal(t, big.NewInt(80), globalFund.TotalUnStaked)
+
+	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, 1, len(dData.UnStakedFunds))
+	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		UnBondPeriod: 50,
+	})
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 100
+	}
+
+	vmInput.Arguments = [][]byte{{20}}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getUserUnDelegatedList", [][]byte{})
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 4, len(eei.output))
+	assert.Equal(t, eei.output[0], []byte{80})
+	assert.Equal(t, eei.output[1], []byte{})
+	assert.Equal(t, eei.output[2], []byte{20})
+	assert.Equal(t, eei.output[3], []byte{50})
+}
+
 func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	t.Parallel()
 

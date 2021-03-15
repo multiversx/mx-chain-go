@@ -3,6 +3,7 @@
     MinStakeValue = "100000000000000000000" #100 eGLD
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
     UnBondPeriod = 250
+    UnBondPeriodInEpochs = 10
     MinStepValue = "100000000000000000000"
     StakeEnableEpoch = 2
     StakingV2Epoch = 4

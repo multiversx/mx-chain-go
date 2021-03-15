@@ -26,6 +26,7 @@ const serviceFeeKey = "serviceFee"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
+const maxUnStakedFunds = 50
 
 const (
 	active   = uint32(0)
@@ -1278,6 +1279,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	globalFund.TotalActive.Sub(globalFund.TotalActive, actualUserUnStake)
 	globalFund.TotalUnStaked.Add(globalFund.TotalUnStaked, actualUserUnStake)
 	delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
+
+	if len(delegator.UnStakedFunds) > maxUnStakedFunds {
+		d.eei.AddReturnMessage("number of unDelegate limit reach, withDraw required")
+		return vmcommon.UserError
+	}
 
 	if activeFund.Value.Cmp(zero) == 0 {
 		delegator.ActiveFund = nil
