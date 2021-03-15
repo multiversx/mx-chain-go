@@ -361,12 +361,12 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	ownerAddr := []byte("ownerAddr")
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
-	createdNonce := uint64(150)
+	createdEpoch := uint32(150)
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
-			return createdNonce
+		&mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
+			return createdEpoch
 		}},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
@@ -374,6 +374,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 20
+	args.StakingSCConfig.UnBondPeriodInEpochs = 20
 	_ = eei.SetSystemSCContainer(
 		createSystemSCContainer(eei),
 	)
@@ -394,8 +395,8 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, ownerAddr, retrievedOwnerAddress)
 	assert.Equal(t, big.NewInt(250), dConf.MaxDelegationCap)
 	assert.Equal(t, []byte{10}, retrievedServiceFee)
-	assert.Equal(t, createdNonce, dConf.CreatedNonce)
-	assert.Equal(t, big.NewInt(20).Uint64(), dConf.UnBondPeriod)
+	assert.Equal(t, createdEpoch, dConf.CreatedNonce)
+	assert.Equal(t, big.NewInt(20).Uint64(), dConf.UnBondPeriodInEpochs)
 
 	dStatus, err := d.getDelegationStatus()
 	assert.Nil(t, err)
@@ -409,7 +410,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, callValue, ownerFund.Value)
 	assert.Equal(t, ownerAddr, ownerFund.Address)
-	assert.Equal(t, createdNonce, ownerFund.Nonce)
+	assert.Equal(t, createdEpoch, ownerFund.Epoch)
 	assert.Equal(t, active, ownerFund.Type)
 
 	dGlobalFund, err := d.getGlobalFundData()
@@ -1886,10 +1887,10 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		UnBondPeriod: 50,
+		UnBondPeriodInEpochs: 10,
 	})
 
-	blockChainHook.CurrentNonceCalled = func() uint64 {
+	blockChainHook.CurrentEpochCalled = func() uint32 {
 		return 100
 	}
 
@@ -2139,17 +2140,17 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	_ = d.saveFund(fundKey1, &Fund{
 		Value:   big.NewInt(60),
 		Address: vmInput.CallerAddr,
-		Nonce:   10,
+		Epoch:   10,
 		Type:    unStaked,
 	})
 	_ = d.saveFund(fundKey2, &Fund{
 		Value:   big.NewInt(80),
 		Address: vmInput.CallerAddr,
-		Nonce:   50,
+		Epoch:   50,
 		Type:    unStaked,
 	})
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		UnBondPeriod: 50,
+		UnBondPeriodInEpochs: 50,
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
 		TotalUnStaked: big.NewInt(140),
@@ -3409,7 +3410,7 @@ func TestDelegation_ExecuteGetUserUnBondableNoUnStakedFund(t *testing.T) {
 	})
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		UnBondPeriod: 10,
+		UnBondPeriodInEpochs: 10,
 	})
 
 	output := d.Execute(vmInput)
@@ -3448,16 +3449,16 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 
 	_ = d.saveFund(fundKey1, &Fund{
 		Value: fundValue,
-		Nonce: 400,
+		Epoch: 400,
 	})
 
 	_ = d.saveFund(fundKey2, &Fund{
 		Value: fundValue,
-		Nonce: 495,
+		Epoch: 495,
 	})
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		UnBondPeriod: 10,
+		UnBondPeriodInEpochs: 10,
 	})
 
 	output := d.Execute(vmInput)
@@ -3673,7 +3674,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	serviceFee := uint64(10000)
 	initialOwnerFunds := big.NewInt(500)
 	createdNonce := uint64(100)
-	unBondPeriod := uint64(144000)
+	unBondPeriodInEpoch := uint32(144000)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
 		MaxDelegationCap:            maxDelegationCap,
 		InitialOwnerFunds:           initialOwnerFunds,
@@ -3681,7 +3682,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 		ChangeableServiceFee:        true,
 		CheckCapOnReDelegateRewards: true,
 		CreatedNonce:                createdNonce,
-		UnBondPeriod:                unBondPeriod,
+		UnBondPeriodInEpochs:        unBondPeriodInEpoch,
 	})
 	eei.SetStorage([]byte(ownerKey), ownerAddress)
 	eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(serviceFee).Bytes())
@@ -3698,7 +3699,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	assert.Equal(t, []byte("true"), eei.output[6])
 	assert.Equal(t, []byte("true"), eei.output[7])
 	assert.Equal(t, big.NewInt(0).SetUint64(createdNonce), big.NewInt(0).SetBytes(eei.output[8]))
-	assert.Equal(t, big.NewInt(0).SetUint64(unBondPeriod), big.NewInt(0).SetBytes(eei.output[9]))
+	assert.Equal(t, big.NewInt(0).SetUint64(uint64(unBondPeriodInEpoch)), big.NewInt(0).SetBytes(eei.output[9]))
 }
 
 func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
