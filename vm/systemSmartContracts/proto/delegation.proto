@@ -26,7 +26,7 @@ message DelegationConfig {
   bool   AutomaticActivation         = 3 [(gogoproto.jsontag) = "AutomaticActivation"];
   bool   ChangeableServiceFee        = 4 [(gogoproto.jsontag) = "ChangeableServiceFee"];
   uint64 CreatedNonce                = 5 [(gogoproto.jsontag) = "CreatedNonce"];
-  uint64 UnBondPeriod                = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
+  uint32 UnBondPeriodInEpochs        = 6 [(gogoproto.jsontag) = "UnBondPeriodInEpochs"];
   bool   CheckCapOnReDelegateRewards = 7 [(gogoproto.jsontag) = "CheckCapOnReDelegateRewards"];
 }
 
@@ -46,7 +46,7 @@ message DelegationContractStatus {
 message Fund {
   bytes  Value   = 1 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes  Address = 2 [(gogoproto.jsontag) = "Address"];
-  uint64 Nonce   = 3 [(gogoproto.jsontag) = "Nonce"];
+  uint32 Epoch   = 3 [(gogoproto.jsontag) = "Epoch"];
   uint32 Type    = 4 [(gogoproto.jsontag) = "Type"];
 }
 
