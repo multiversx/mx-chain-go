@@ -2,9 +2,7 @@ package builtInFunctions
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -219,7 +217,7 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionCheckAllowedToExecuteError(t *
 	require.Equal(t, localErr, err)
 }
 
-func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionNilTrie(t *testing.T) {
+func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionNewSenderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	eqf, _ := NewESDTNFTAddQuantityFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{}, &mock.ESDTRoleHandlerStub{})
@@ -239,8 +237,7 @@ func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionNilTrie(t *testing.T) {
 
 	require.Nil(t, output)
 	require.Error(t, err)
-	fmt.Println(err.Error())
-	require.True(t, strings.Contains(err.Error(), "trie is nil"))
+	require.Equal(t, process.ErrNewNFTDataOnSenderAddress, err)
 }
 
 func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionMetaDataMissing(t *testing.T) {
