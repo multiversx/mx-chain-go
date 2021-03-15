@@ -75,7 +75,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
-	epochStartTrigger epochStart.TriggerHandler,
+	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
@@ -390,7 +390,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	epochStartTrigger epochStart.TriggerHandler,
+	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,

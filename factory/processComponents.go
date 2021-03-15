@@ -593,7 +593,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	return validatorStatisticsProcessor, nil
 }
 
-func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process.RequestHandler) (epochStart.TriggerHandler, error) {
+func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Hasher:      pcf.coreData.Hasher(),
