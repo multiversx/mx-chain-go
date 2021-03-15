@@ -26,8 +26,8 @@ type CoreComponentsMock struct {
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	EpochNotifierField          process.EpochNotifier
-	RoundHdl                    consensus.RoundHandler
-	StatusHdl                   core.AppStatusHandler
+	RoundField                  consensus.RoundHandler
+	StatusField                 core.AppStatusHandler
 }
 
 // InternalMarshalizer -
@@ -112,12 +112,12 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 
 // RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
-	return ccm.RoundHdl
+	return ccm.RoundField
 }
 
 // StatusHandler -
 func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	return ccm.StatusHdl
+	return ccm.StatusField
 }
 
 // IsInterfaceNil -
