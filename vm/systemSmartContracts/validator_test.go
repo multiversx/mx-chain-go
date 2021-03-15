@@ -3455,7 +3455,7 @@ func TestStakingValidatorSC_UnstakeAllTokensShouldWork(t *testing.T) {
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedEpoch: startEpoch + 1,
+				UnstakedEpoch: startEpoch + unbondPeriod,
 				UnstakedValue: big.NewInt(10),
 			},
 		},
@@ -3764,7 +3764,7 @@ func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
 					UnstakedValue: big.NewInt(3),
 				},
 				{
-					UnstakedEpoch: startEpoch + 1,
+					UnstakedEpoch: startEpoch,
 					UnstakedValue: big.NewInt(4),
 				},
 			},
@@ -4214,7 +4214,7 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 	t.Parallel()
 
 	currentNonce := uint64(12)
-	unBondPeriod := uint64(5)
+	unBondPeriod := uint32(5)
 
 	eeiFinishedValues := make([][]byte, 0)
 	arguments := CreateVmContractCallInput()
@@ -4247,6 +4247,9 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 			CurrentNonceCalled: func() uint64 {
 				return currentNonce
 			},
+			CurrentEpochCalled: func() uint32 {
+				return uint32(currentNonce)
+			},
 		}
 	}
 	eei.FinishCalled = func(value []byte) {
@@ -4258,7 +4261,7 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
-	stakingValidatorSc.unBondPeriod = unBondPeriod
+	stakingValidatorSc.unBondPeriodInEpochs = unBondPeriod
 	stakingValidatorSc.flagEnableTopUp.Set()
 
 	arguments.Function = "getUnStakedTokensList"

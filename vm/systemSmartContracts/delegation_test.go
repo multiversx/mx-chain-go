@@ -365,9 +365,10 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	callValue := big.NewInt(130)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
-			return createdEpoch
-		},
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return createdEpoch
+			},
 			CurrentNonceCalled: func() uint64 {
 				return uint64(createdEpoch)
 			}},
@@ -2121,9 +2122,10 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	currentNonce := uint64(60)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
-			return currentNonce
-		},
+		&mock.BlockChainHookStub{
+			CurrentNonceCalled: func() uint64 {
+				return currentNonce
+			},
 			CurrentEpochCalled: func() uint32 {
 				return uint32(currentNonce)
 			}},
