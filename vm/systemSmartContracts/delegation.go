@@ -1270,26 +1270,10 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	lenUnStakedFunds := len(delegator.UnStakedFunds)
-	lastUnStakedFund, err := d.getFund(delegator.UnStakedFunds[lenUnStakedFunds-1])
+	err = d.addNewUnStakedFund(args.CallerAddr, delegator, actualUserUnStake)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
-	}
-	if lastUnStakedFund.Epoch == d.eei.BlockChainHook().CurrentEpoch() {
-		lastUnStakedFund.Value.Add(lastUnStakedFund.Value, actualUserUnStake)
-		err = d.saveFund(delegator.UnStakedFunds[lenUnStakedFunds-1], lastUnStakedFund)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-	} else {
-		unStakedFundKey, errCreate := d.createAndSaveNextKeyFund(args.CallerAddr, actualUserUnStake, unStaked)
-		if errCreate != nil {
-			d.eei.AddReturnMessage(errCreate.Error())
-			return vmcommon.UserError
-		}
-		delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
 	}
 
 	globalFund.TotalActive.Sub(globalFund.TotalActive, actualUserUnStake)
@@ -1317,6 +1301,33 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) addNewUnStakedFund(
+	delegatorAddress []byte,
+	delegator *DelegatorData,
+	unStakeValue *big.Int,
+) error {
+	lenUnStakedFunds := len(delegator.UnStakedFunds)
+
+	if lenUnStakedFunds > 0 {
+		lastUnStakedFund, err := d.getFund(delegator.UnStakedFunds[lenUnStakedFunds-1])
+		if err != nil {
+			return err
+		}
+		if lastUnStakedFund.Epoch == d.eei.BlockChainHook().CurrentEpoch() {
+			lastUnStakedFund.Value.Add(lastUnStakedFund.Value, unStakeValue)
+			return d.saveFund(delegator.UnStakedFunds[lenUnStakedFunds-1], lastUnStakedFund)
+		}
+	}
+
+	unStakedFundKey, err := d.createAndSaveNextKeyFund(delegatorAddress, unStakeValue, unStaked)
+	if err != nil {
+		return err
+	}
+	delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
+
+	return nil
 }
 
 func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

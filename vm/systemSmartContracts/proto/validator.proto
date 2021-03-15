@@ -19,8 +19,8 @@ message ValidatorDataV1 {
 }
 
 message UnstakedValue{
-    uint32   UnstakedEpoch = 1 [(gogoproto.jsontag) = "UnstakedNonce"];
-    bytes    UnstakedValue = 2  [(gogoproto.jsontag) = "UnstakedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32   UnstakedEpoch = 1 [(gogoproto.jsontag) = "UnstakedEpoch"];
+    bytes    UnstakedValue = 2 [(gogoproto.jsontag) = "UnstakedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message ValidatorDataV2 {
