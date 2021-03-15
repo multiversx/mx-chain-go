@@ -59,8 +59,8 @@ message DelegatorData {
 }
 
 message GlobalFundData {
-  bytes TotalActive            = 3 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes TotalUnStaked          = 4 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalActive            = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalUnStaked          = 2 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message NodesData {
