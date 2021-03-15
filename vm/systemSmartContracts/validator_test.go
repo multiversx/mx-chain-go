@@ -38,6 +38,7 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 			MinStepValue:                         "10",
 			MinStakeValue:                        "1",
 			UnBondPeriod:                         1,
+			UnBondPeriodInEpochs:                 1,
 			StakeEnableEpoch:                     0,
 			StakingV2Epoch:                       10,
 			NumRoundsWithoutBleed:                1,

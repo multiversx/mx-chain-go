@@ -367,7 +367,10 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
 			return createdEpoch
-		}},
+		},
+			CurrentNonceCalled: func() uint64 {
+				return uint64(createdEpoch)
+			}},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
 		&mock.AccountsStub{},
@@ -395,8 +398,8 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, ownerAddr, retrievedOwnerAddress)
 	assert.Equal(t, big.NewInt(250), dConf.MaxDelegationCap)
 	assert.Equal(t, []byte{10}, retrievedServiceFee)
-	assert.Equal(t, createdEpoch, dConf.CreatedNonce)
-	assert.Equal(t, big.NewInt(20).Uint64(), dConf.UnBondPeriodInEpochs)
+	assert.Equal(t, uint64(createdEpoch), dConf.CreatedNonce)
+	assert.Equal(t, big.NewInt(20).Uint64(), uint64(dConf.UnBondPeriodInEpochs))
 
 	dStatus, err := d.getDelegationStatus()
 	assert.Nil(t, err)
@@ -2120,7 +2123,10 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
 			return currentNonce
-		}},
+		},
+			CurrentEpochCalled: func() uint32 {
+				return uint32(currentNonce)
+			}},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
