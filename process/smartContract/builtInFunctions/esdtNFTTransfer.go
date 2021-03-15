@@ -133,7 +133,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 	}
 
 	mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 4
-	err = e.addNFTToDestination(vmInput.RecipientAddr, esdtTransferData, esdtTokenKey, mustVerifyPayable)
+	err = e.addNFTToDestination(vmInput.RecipientAddr, acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable)
 	if err != nil {
 		return nil, err
 	}
@@ -188,10 +188,27 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 	}
 
 	esdtData.Value.Set(quantityToTransfer)
-	mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 4
-	err = e.addNFTToDestination(dstAddress, esdtData, esdtTokenKey, mustVerifyPayable)
-	if err != nil {
-		return nil, err
+
+	if e.shardCoordinator.SelfId() == e.shardCoordinator.ComputeId(dstAddress) {
+		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 4
+		accountHandler, errLoad := e.accounts.LoadAccount(dstAddress)
+		if errLoad != nil {
+			return nil, errLoad
+		}
+		userAccount, ok := accountHandler.(state.UserAccountHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		err = e.addNFTToDestination(dstAddress, userAccount, esdtData, esdtTokenKey, mustVerifyPayable)
+		if err != nil {
+			return nil, err
+		}
+
+		err = e.accounts.SaveAccount(userAccount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vmOutput := &vmcommon.VMOutput{
@@ -267,23 +284,11 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 
 func (e *esdtNFTTransfer) addNFTToDestination(
 	dstAddress []byte,
+	userAccount state.UserAccountHandler,
 	esdtDataToTransfer *esdt.ESDigitalToken,
 	esdtTokenKey []byte,
 	mustVerifyPayable bool,
 ) error {
-	if e.shardCoordinator.SelfId() != e.shardCoordinator.ComputeId(dstAddress) {
-		return nil
-	}
-
-	accountHandler, err := e.accounts.LoadAccount(dstAddress)
-	if err != nil {
-		return err
-	}
-	userAccount, ok := accountHandler.(state.UserAccountHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	if mustVerifyPayable {
 		isPayable, errIsPayable := e.payableHandler.IsPayable(dstAddress)
 		if errIsPayable != nil {
@@ -309,11 +314,6 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 	}
 
 	err = saveESDTNFTToken(userAccount, esdtTokenKey, esdtDataToTransfer, e.marshalizer, e.pauseHandler)
-	if err != nil {
-		return err
-	}
-
-	err = e.accounts.SaveAccount(userAccount)
 	if err != nil {
 		return err
 	}

@@ -404,11 +404,6 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShards(t *testing.T) {
 	vmOutput, err = nftTransferDestinationShard.ProcessBuiltinFunction(nil, destination.(state.UserAccountHandler), vmInput)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-	_, _ = nftTransferSenderShard.accounts.Commit()
-
-	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
-	require.Nil(t, err)
-
 	testNFTTokenShouldExist(t, nftTransferDestinationShard.marshalizer, destination, tokenName, tokenNonce, big.NewInt(1))
 }
 
