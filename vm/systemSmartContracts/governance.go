@@ -89,7 +89,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		governanceConfig:    args.GovernanceConfig,
 		enabledEpoch:        args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
-	log.Debug("enable epoch for governance", "epoch", g.governanceConfig)
+	log.Debug("governance: enable epoch for governance", "epoch", g.governanceConfig)
 
 	args.EpochNotifier.RegisterNotifyHandler(g)
 

@@ -97,7 +97,7 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 		txTypeHandler:                     arguments.TxTypeHandler,
 		blockGasAndFeesReCheckEnableEpoch: arguments.BlockGasAndFeesReCheckEnableEpoch,
 	}
-	log.Debug("enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
+	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
 
 	tc.miniBlockPool = arguments.MiniBlockPool
 	tc.onRequestMiniBlock = arguments.RequestHandler.RequestMiniBlock

@@ -126,8 +126,8 @@ func NewStakingSmartContract(
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
 	}
-	log.Debug("enable epoch for stake", "epoch", reg.enableStakingEpoch)
-	log.Debug("enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)

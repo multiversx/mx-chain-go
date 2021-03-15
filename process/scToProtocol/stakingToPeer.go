@@ -76,7 +76,7 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		jailRating:       args.RatingsData.MinRating(),
 		stakeEnableEpoch: args.StakeEnableEpoch,
 	}
-	log.Debug("enable epoch for stake", "epoch", st.stakeEnableEpoch)
+	log.Debug("stakingToPeer: enable epoch for stake", "epoch", st.stakeEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
 

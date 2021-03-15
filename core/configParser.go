@@ -115,7 +115,7 @@ func LoadGasScheduleConfig(filepath string) (map[string]map[string]uint64, error
 	return flattenedGasSchedule, nil
 }
 
-// LoadEpochConfig returns a EpochConfig by reading the provided config file
+// LoadEpochConfig returns an EpochConfig by reading from the provided config file
 func LoadEpochConfig(filepath string) (*config.EpochConfig, error) {
 	cfg := &config.EpochConfig{}
 	err := LoadTomlFile(cfg, filepath)

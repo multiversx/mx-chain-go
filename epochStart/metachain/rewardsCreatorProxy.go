@@ -47,8 +47,8 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 		configuredRC:  rCreatorV1,
 		args:          &args,
 	}
-	log.Debug("enable epoch for switch jail waiting", "epoch", args.BaseRewardsCreatorArgs.RewardsFix1EpochEnable)
-	log.Debug("enable epoch for staking v2", "epoch", args.EpochEnableV2)
+	log.Debug("rewardsProxy: enable epoch for switch jail waiting", "epoch", args.BaseRewardsCreatorArgs.RewardsFix1EpochEnable)
+	log.Debug("rewardsProxy: enable epoch for staking v2", "epoch", args.EpochEnableV2)
 
 	rcProxy.rc, err = rcProxy.createRewardsCreatorV1()
 	if err != nil {

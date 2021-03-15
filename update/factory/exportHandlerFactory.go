@@ -240,7 +240,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 	}
-	log.Debug("enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
+	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
 	return e, nil
 }

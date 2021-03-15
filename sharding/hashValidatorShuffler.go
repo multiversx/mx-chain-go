@@ -63,7 +63,7 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 
 	var configs []config.MaxNodesChangeConfig
 
-	log.Debug("enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
+	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
 	if args.MaxNodesEnableConfig != nil {
 		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 		copy(configs, args.MaxNodesEnableConfig)
