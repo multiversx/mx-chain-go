@@ -596,15 +596,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		if len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock) {
-			log.Warn("CreateMbsAndProcessCrossShardTransactionsDstMe: execution of scheduled mini blocks should be skipped for now")
-			miniBlocks = append(miniBlocks, miniBlock)
-			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-			nrMiniBlocksProcessed++
-			continue
-		}
-
 		preproc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
 			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)

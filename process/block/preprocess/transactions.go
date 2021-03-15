@@ -297,6 +297,12 @@ func (txs *transactions) computeTxsToMe(body *block.Body) ([]*txcache.WrappedTra
 				miniBlock.ReceiverShardID)
 		}
 
+		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
+		if isScheduledMiniBlock(miniBlock) {
+			log.Warn("computeTxsToMe: execution of scheduled mini blocks should be skipped for now")
+			continue
+		}
+
 		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock)
 		if err != nil {
 			return nil, err
@@ -1224,6 +1230,11 @@ func (txs *transactions) ProcessMiniBlock(
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
 
+	//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
+	if isScheduledMiniBlock(miniBlock) {
+		log.Warn("ProcessMiniBlock: execution of scheduled mini blocks should be skipped for now")
+	}
+
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
@@ -1231,6 +1242,11 @@ func (txs *transactions) ProcessMiniBlock(
 		}
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
+
+		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
+		if isScheduledMiniBlock(miniBlock) {
+			continue
+		}
 
 		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
