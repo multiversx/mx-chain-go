@@ -417,6 +417,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	epochStartTrigger, _ := NewEpochStartTrigger(args)
 
 	currHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, previousHeader99)
+	require.Nil(t, err)
 	epochStartTrigger.receivedMetaBlock(previousHeader99, currHash)
 	require.False(t, epochStartTrigger.IsEpochStart())
 

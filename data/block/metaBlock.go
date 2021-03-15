@@ -220,7 +220,7 @@ func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	mbHeaders := m.GetMiniBlockHeaders()
 	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
 
-	for i, _ := range mbHeaders {
+	for i := range mbHeaders {
 		mbHeaderHandlers[i] = &mbHeaders[i]
 	}
 
@@ -261,7 +261,7 @@ func (m *MetaBlock) GetShardInfoHandlers() []data.ShardDataHandler {
 	}
 
 	shardInfoHandlers := make([]data.ShardDataHandler, len(m.ShardInfo))
-	for i, _ := range m.ShardInfo {
+	for i := range m.ShardInfo {
 		shardInfoHandlers[i] = &m.ShardInfo[i]
 	}
 
