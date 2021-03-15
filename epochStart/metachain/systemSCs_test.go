@@ -543,7 +543,7 @@ func addValidatorDataWithUnStakedKey(
 
 	for _, bls := range registeredKeys {
 		validatorData.UnstakedInfo = append(validatorData.UnstakedInfo, &systemSmartContracts.UnstakedValue{
-			UnstakedNonce: 1,
+			UnstakedEpoch: 1,
 			UnstakedValue: nodePrice,
 		})
 

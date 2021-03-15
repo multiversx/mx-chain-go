@@ -2373,7 +2373,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 			RewardAddress: caller,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: 1,
+					UnstakedEpoch: 1,
 					UnstakedValue: big.NewInt(1000),
 				},
 			},
@@ -2432,7 +2432,7 @@ func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
 			RewardAddress: caller,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: 1,
+					UnstakedEpoch: 1,
 					UnstakedValue: big.NewInt(1000),
 				},
 			},
@@ -3274,12 +3274,12 @@ func TestStakingValidatorSC_UnstakeTokensShouldWork(t *testing.T) {
 
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
-	nonce := startNonce
+	startEpoch := uint32(56)
+	epoch := startEpoch
 	blockChainHook := &mock.BlockChainHookStub{
-		CurrentNonceCalled: func() uint64 {
-			nonce++
-			return nonce
+		CurrentEpochCalled: func() uint32 {
+			epoch++
+			return epoch
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
@@ -3318,11 +3318,11 @@ func TestStakingValidatorSC_UnstakeTokensShouldWork(t *testing.T) {
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedNonce: startNonce + 1,
+				UnstakedEpoch: startEpoch + 1,
 				UnstakedValue: big.NewInt(1),
 			},
 			{
-				UnstakedNonce: startNonce + 2,
+				UnstakedEpoch: startEpoch + 2,
 				UnstakedValue: big.NewInt(2),
 			},
 		},
@@ -3340,12 +3340,12 @@ func TestStakingValidatorSC_UnstakeTokensHavingUnstakedShouldWork(t *testing.T) 
 
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
-	nonce := startNonce
+	startEpoch := uint32(32)
+	epoch := startEpoch
 	blockChainHook := &mock.BlockChainHookStub{
-		CurrentNonceCalled: func() uint64 {
-			nonce++
-			return nonce
+		CurrentEpochCalled: func() uint32 {
+			epoch++
+			return epoch
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
@@ -3367,7 +3367,7 @@ func TestStakingValidatorSC_UnstakeTokensHavingUnstakedShouldWork(t *testing.T) 
 			NumRegistered:   1,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: 1,
+					UnstakedEpoch: 1,
 					UnstakedValue: big.NewInt(5),
 				},
 			},
@@ -3388,11 +3388,11 @@ func TestStakingValidatorSC_UnstakeTokensHavingUnstakedShouldWork(t *testing.T) 
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedNonce: 1,
+				UnstakedEpoch: 1,
 				UnstakedValue: big.NewInt(5),
 			},
 			{
-				UnstakedNonce: startNonce + 1,
+				UnstakedEpoch: startEpoch + 1,
 				UnstakedValue: big.NewInt(6),
 			},
 		},
@@ -3409,18 +3409,19 @@ func TestStakingValidatorSC_UnstakeAllTokensShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
-	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
-	nonce := startNonce
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
 	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
 		CurrentNonceCalled: func() uint64 {
-			nonce++
-			return nonce
+			return uint64(startEpoch + unbondPeriod)
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
-	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
@@ -3453,7 +3454,7 @@ func TestStakingValidatorSC_UnstakeAllTokensShouldWork(t *testing.T) {
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedNonce: startNonce + 1,
+				UnstakedEpoch: startEpoch + 1,
 				UnstakedValue: big.NewInt(10),
 			},
 		},
@@ -3487,17 +3488,20 @@ func TestStakingValidatorSC_UnbondTokensOneArgument(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
-	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
 	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
 		CurrentNonceCalled: func() uint64 {
-			return startNonce + unbondPeriod
+			return uint64(startEpoch + unbondPeriod)
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
-	args.StakingSCConfig.UnBondPeriod = unbondPeriod
-	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
@@ -3514,19 +3518,19 @@ func TestStakingValidatorSC_UnbondTokensOneArgument(t *testing.T) {
 			NumRegistered:   1,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: startNonce - 2,
+					UnstakedEpoch: startEpoch - 2,
 					UnstakedValue: big.NewInt(1),
 				},
 				{
-					UnstakedNonce: startNonce - 1,
+					UnstakedEpoch: startEpoch - 1,
 					UnstakedValue: big.NewInt(2),
 				},
 				{
-					UnstakedNonce: startNonce,
+					UnstakedEpoch: startEpoch,
 					UnstakedValue: big.NewInt(3),
 				},
 				{
-					UnstakedNonce: startNonce + 1,
+					UnstakedEpoch: startEpoch + 1,
 					UnstakedValue: big.NewInt(4),
 				},
 			},
@@ -3548,11 +3552,11 @@ func TestStakingValidatorSC_UnbondTokensOneArgument(t *testing.T) {
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedNonce: startNonce,
+				UnstakedEpoch: startEpoch,
 				UnstakedValue: big.NewInt(2),
 			},
 			{
-				UnstakedNonce: startNonce + 1,
+				UnstakedEpoch: startEpoch + 1,
 				UnstakedValue: big.NewInt(4),
 			},
 		},
@@ -3589,17 +3593,20 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
-	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
 	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
 		CurrentNonceCalled: func() uint64 {
-			return startNonce + unbondPeriod
+			return uint64(startEpoch + unbondPeriod)
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
-	args.StakingSCConfig.UnBondPeriod = unbondPeriod
-	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
@@ -3616,19 +3623,19 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 			NumRegistered:   1,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: startNonce - 2,
+					UnstakedEpoch: startEpoch - 2,
 					UnstakedValue: big.NewInt(1),
 				},
 				{
-					UnstakedNonce: startNonce - 1,
+					UnstakedEpoch: startEpoch - 1,
 					UnstakedValue: big.NewInt(2),
 				},
 				{
-					UnstakedNonce: startNonce,
+					UnstakedEpoch: startEpoch,
 					UnstakedValue: big.NewInt(3),
 				},
 				{
-					UnstakedNonce: startNonce + 1,
+					UnstakedEpoch: startEpoch + 1,
 					UnstakedValue: big.NewInt(4),
 				},
 			},
@@ -3649,7 +3656,7 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 		NumRegistered:   1,
 		UnstakedInfo: []*UnstakedValue{
 			{
-				UnstakedNonce: startNonce + 1,
+				UnstakedEpoch: startEpoch + 1,
 				UnstakedValue: big.NewInt(4),
 			},
 		},
@@ -3666,18 +3673,21 @@ func TestStakingValidatorSC_UnBondAllTokensWithMinDepositShouldError(t *testing.
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
-	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
 	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
 		CurrentNonceCalled: func() uint64 {
-			return startNonce + unbondPeriod + 1
+			return uint64(startEpoch + unbondPeriod)
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.MinDeposit = "1000"
-	args.StakingSCConfig.UnBondPeriod = unbondPeriod
-	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
@@ -3694,7 +3704,7 @@ func TestStakingValidatorSC_UnBondAllTokensWithMinDepositShouldError(t *testing.
 			NumRegistered:   1,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: startNonce - 2,
+					UnstakedEpoch: startEpoch - 2,
 					UnstakedValue: big.NewInt(1),
 				},
 			},
@@ -3711,17 +3721,20 @@ func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
-	unbondPeriod := uint64(10)
-	startNonce := uint64(56)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
 	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
 		CurrentNonceCalled: func() uint64 {
-			return startNonce + unbondPeriod + 1
+			return uint64(startEpoch + unbondPeriod)
 		},
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
-	args.StakingSCConfig.UnBondPeriod = unbondPeriod
-	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
@@ -3738,19 +3751,19 @@ func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
 			NumRegistered:   1,
 			UnstakedInfo: []*UnstakedValue{
 				{
-					UnstakedNonce: startNonce - 2,
+					UnstakedEpoch: startEpoch - 2,
 					UnstakedValue: big.NewInt(1),
 				},
 				{
-					UnstakedNonce: startNonce - 1,
+					UnstakedEpoch: startEpoch - 1,
 					UnstakedValue: big.NewInt(2),
 				},
 				{
-					UnstakedNonce: startNonce,
+					UnstakedEpoch: startEpoch,
 					UnstakedValue: big.NewInt(3),
 				},
 				{
-					UnstakedNonce: startNonce + 1,
+					UnstakedEpoch: startEpoch + 1,
 					UnstakedValue: big.NewInt(4),
 				},
 			},
@@ -4207,11 +4220,11 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 	validatorData := createABid(25000000, 2, 12500000)
 	validatorData.UnstakedInfo = append(validatorData.UnstakedInfo,
 		&UnstakedValue{
-			UnstakedNonce: 6,
+			UnstakedEpoch: 6,
 			UnstakedValue: big.NewInt(10),
 		},
 		&UnstakedValue{
-			UnstakedNonce: 10,
+			UnstakedEpoch: 10,
 			UnstakedValue: big.NewInt(11),
 		},
 	)
