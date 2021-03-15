@@ -64,6 +64,10 @@ func (e *esdtNFTBurn) SetNewGasConfig(gasCost *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT NFT burn function call
+// Requires 3 arguments:
+// arg0 - token identifier
+// arg1 - nonce
+// arg2 - quantity to burn
 func (e *esdtNFTBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,

@@ -91,6 +91,12 @@ func (e *esdtNFTTransfer) SetNewGasConfig(gasCost *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT NFT transfer roles function call
+// Requires 4 arguments:
+// arg0 - token identifier
+// arg1 - nonce
+// arg2 - quantity to transfer
+// arg3 - destination address
+// if cross-shard, the rest of arguments will be filled inside the SCR
 func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
