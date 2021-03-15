@@ -37,8 +37,8 @@ func createMockComponentHolders() (
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusHdl:           &mock.AppStatusHandlerStub{},
-		RoundHdl:            &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
+		StatusField:         &mock.AppStatusHandlerStub{},
+		RoundField:          &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -2633,7 +2633,7 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = poolsHolderStub
 	roundHandlerMock := &mock.RoundHandlerMock{}
-	coreComponents.RoundHdl = roundHandlerMock
+	coreComponents.RoundField = roundHandlerMock
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

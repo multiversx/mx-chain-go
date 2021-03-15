@@ -85,8 +85,8 @@ func NewShardProcessorEmptyWith3shards(
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherMock{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusHdl:           &mock.AppStatusHandlerStub{},
-		RoundHdl:            &mock.RoundHandlerMock{},
+		StatusField:         &mock.AppStatusHandlerStub{},
+		RoundField:          &mock.RoundHandlerMock{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &mock.ChainStorerMock{},

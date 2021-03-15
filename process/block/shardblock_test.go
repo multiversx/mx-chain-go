@@ -4527,7 +4527,7 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	dataComponents.DataPool = poolsHolderStub
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	roundHandlerMock := &mock.RoundHandlerMock{}
-	coreComponents.RoundHdl = roundHandlerMock
+	coreComponents.RoundField = roundHandlerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 

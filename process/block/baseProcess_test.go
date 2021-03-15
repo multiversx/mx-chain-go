@@ -291,8 +291,8 @@ func createComponentHolderMocks() (
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherStub{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-		StatusHdl:           &mock.AppStatusHandlerStub{},
-		RoundHdl:            &mock.RoundHandlerMock{},
+		StatusField:         &mock.AppStatusHandlerStub{},
+		RoundField:          &mock.RoundHandlerMock{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -1080,7 +1080,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundHdl = roundHandler
+	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	requestHandlerStub := &mock.RequestHandlerStub{
@@ -1128,7 +1128,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundHdl = roundHandler
+	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	requestHandlerStub := &mock.RequestHandlerStub{
@@ -1209,7 +1209,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = poolsHolderStub
 	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundHdl = roundHandler
+	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
