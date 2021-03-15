@@ -1890,7 +1890,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		UnBondPeriodInEpochs: 10,
+		UnBondPeriodInEpochs: 50,
 	})
 
 	blockChainHook.CurrentEpochCalled = func() uint32 {
@@ -3432,6 +3432,9 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{
 			CurrentNonceCalled: func() uint64 {
+				return 500
+			},
+			CurrentEpochCalled: func() uint32 {
 				return 500
 			},
 		},
