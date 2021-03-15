@@ -102,8 +102,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
-		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
+		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 2 &&
+			!bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
+		if mustVerifyPayable {
 			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
 			if errPayable != nil {
 				return nil, errPayable
