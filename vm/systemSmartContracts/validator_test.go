@@ -2634,6 +2634,9 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return unStakeNonce
 	}
+	blockChainHook.CurrentEpochCalled = func() uint32 {
+		return uint32(unStakeNonce)
+	}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
@@ -2647,6 +2650,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: unStakeNonce,
+		UnStakedEpoch: uint32(unStakeNonce),
 		RewardAddress: stakerAddress,
 		StakeValue:    valueStakedByTheCaller,
 		JailedRound:   math.MaxUint64,
@@ -2658,6 +2662,9 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return unStakeNonce + unBondPeriod + 1
+	}
+	blockChainHook.CurrentEpochCalled = func() uint32 {
+		return uint32(unStakeNonce + unBondPeriod + 1)
 	}
 	eei.SetSCAddress(args.ValidatorSCAddress)
 	retCode = stakingSmartContract.Execute(arguments)
