@@ -523,6 +523,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			UnJailValue:                          "2500000000000000000",
 			MinStepValue:                         "100000000000000000000",
 			UnBondPeriod:                         250,
+			UnBondPeriodInEpochs:                 1,
 			NumRoundsWithoutBleed:                100,
 			MaximumPercentageToBleed:             0.5,
 			BleedPercentagePerRound:              0.00001,
