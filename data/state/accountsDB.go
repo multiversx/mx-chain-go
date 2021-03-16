@@ -442,6 +442,10 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 		"new root hash", accountHandler.GetRootHash(),
 	)
 
+	if adb.dataTries.Get(accountHandler.AddressBytes()) == nil {
+		adb.dataTries.Put(accountHandler.AddressBytes(), accountHandler.DataTrie())
+	}
+
 	return nil
 }
 
