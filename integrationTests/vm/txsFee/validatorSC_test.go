@@ -54,7 +54,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	defer testContextMeta.Close()
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 	saveDelegationManagerConfig(testContextMeta)
 
 	gasPrice := uint64(10)
@@ -96,7 +96,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
@@ -137,7 +137,7 @@ func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0})
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
@@ -178,7 +178,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
@@ -238,7 +238,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 
 	saveNodesConfig(t, testContextMeta, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Nonce: 10000})
+	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
