@@ -92,7 +92,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -102,11 +102,12 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
-		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
-			isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
-			if err != nil {
-				return nil, err
+		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 2 &&
+			!bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
+		if mustVerifyPayable {
+			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
+			if errPayable != nil {
+				return nil, errPayable
 			}
 			if !isPayable {
 				if !check.IfNil(acntSnd) {

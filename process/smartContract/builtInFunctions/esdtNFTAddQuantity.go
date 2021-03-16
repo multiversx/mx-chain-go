@@ -64,6 +64,10 @@ func (e *esdtNFTAddQuantity) SetNewGasConfig(gasCost *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT NFT add quantity function call
+// Requires 3 arguments:
+// arg0 - token identifier
+// arg1 - nonce
+// arg2 - quantity to add
 func (e *esdtNFTAddQuantity) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,

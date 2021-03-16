@@ -72,6 +72,14 @@ func (e *esdtNFTCreate) SetNewGasConfig(gasCost *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT NFT create function call
+// Requires at least 7 arguments:
+// arg0 - token identifier
+// arg1 - initial quantity
+// arg2 - NFT name
+// arg3 - Royalties - max 10000
+// arg4 - hash
+// arg5 - attributes
+// arg6+ - multiple entries of URI (minimum 1)
 func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -152,6 +160,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	vmOutput := &vmcommon.VMOutput{
 		ReturnCode:   vmcommon.Ok,
 		GasRemaining: vmInput.GasProvided - gasToUse,
+		ReturnData:   [][]byte{big.NewInt(0).SetUint64(nextNonce).Bytes()},
 	}
 	return vmOutput, nil
 }
