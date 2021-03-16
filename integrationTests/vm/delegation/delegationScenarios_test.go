@@ -259,7 +259,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
@@ -313,7 +313,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
@@ -440,7 +440,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
 	}
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	for i := range delegationScAddresses {
 		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
