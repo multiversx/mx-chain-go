@@ -3042,7 +3042,7 @@ func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.Arguments = [][]byte{{1}, {2}, {3}}
 	retCode = e.Execute(vmInput)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
 }
 
 func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
