@@ -51,7 +51,7 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta data.HeaderHandler) error {
+func (st *syncAccountsDBs) SyncTriesFrom(meta data.MetaHeaderHandler) error {
 	if !meta.IsStartOfEpochBlock() && meta.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}
@@ -108,7 +108,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta data.HeaderHandler) error {
 	return nil
 }
 
-func (st *syncAccountsDBs) syncMeta(meta data.HeaderHandler) error {
+func (st *syncAccountsDBs) syncMeta(meta data.MetaHeaderHandler) error {
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.GetRootHash())
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: meta", err)

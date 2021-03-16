@@ -19,7 +19,7 @@ type StartOfEpochNodesConfigHandler interface {
 // EpochStartMetaBlockInterceptorProcessor defines the methods to sync an epoch start metablock
 type EpochStartMetaBlockInterceptorProcessor interface {
 	process.InterceptorProcessor
-	GetEpochStartMetaBlock(ctx context.Context) (data.HeaderHandler, error)
+	GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error)
 }
 
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage

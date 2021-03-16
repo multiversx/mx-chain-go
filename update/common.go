@@ -39,8 +39,8 @@ type ArgsHardForkProcessor struct {
 
 // GetPendingMiniBlocks get all the pending miniBlocks from epoch start metaBlock and unFinished metaBlocks
 func GetPendingMiniBlocks(
-	epochStartMetaBlock data.HeaderHandler,
-	unFinishedMetaBlocksMap map[string]data.HeaderHandler,
+	epochStartMetaBlock data.MetaHeaderHandler,
+	unFinishedMetaBlocksMap map[string]data.MetaHeaderHandler,
 ) ([]data.MiniBlockHeaderHandler, error) {
 
 	if check.IfNil(epochStartMetaBlock) {
@@ -71,7 +71,7 @@ func GetPendingMiniBlocks(
 }
 
 // createNonceToHashMap creates a map of nonce to hash from all the given metaBlocks
-func createNonceToHashMap(unFinishedMetaBlocks map[string]data.HeaderHandler) map[uint64]string {
+func createNonceToHashMap(unFinishedMetaBlocks map[string]data.MetaHeaderHandler) map[uint64]string {
 	nonceToHashMap := make(map[uint64]string, len(unFinishedMetaBlocks))
 	for metaBlockHash, metaBlock := range unFinishedMetaBlocks {
 		nonceToHashMap[metaBlock.GetNonce()] = metaBlockHash
@@ -83,7 +83,7 @@ func createNonceToHashMap(unFinishedMetaBlocks map[string]data.HeaderHandler) ma
 // computePendingMiniBlocksFromUnFinishedMetaBlocks computes all the pending miniBlocks from unFinished metaBlocks
 func computePendingMiniBlocksFromUnFinishedMetaBlocks(
 	epochStartShardData data.EpochStartShardDataHandler,
-	unFinishedMetaBlocks map[string]data.HeaderHandler,
+	unFinishedMetaBlocks map[string]data.MetaHeaderHandler,
 	nonceToHashMap map[uint64]string,
 	epochStartMetaBlockNonce uint64,
 ) ([]data.MiniBlockHeaderHandler, error) {
@@ -115,7 +115,7 @@ func computePendingMiniBlocksFromUnFinishedMetaBlocks(
 }
 
 // getAllMiniBlocksWithDst returns all miniBlock headers with the given destination from the given metaBlock
-func getAllMiniBlocksWithDst(metaBlock data.HeaderHandler, destShardID uint32) []data.MiniBlockHeaderHandler {
+func getAllMiniBlocksWithDst(metaBlock data.MetaHeaderHandler, destShardID uint32) []data.MiniBlockHeaderHandler {
 	mbHdrs := make([]data.MiniBlockHeaderHandler, 0)
 	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
 	for i := 0; i < len(shardInfoHandlers); i++ {

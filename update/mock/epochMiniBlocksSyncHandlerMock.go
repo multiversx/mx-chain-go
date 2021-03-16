@@ -9,12 +9,12 @@ import (
 
 // EpochStartPendingMiniBlocksSyncHandlerMock -
 type EpochStartPendingMiniBlocksSyncHandlerMock struct {
-	SyncPendingMiniBlocksFromMetaCalled func(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error
+	SyncPendingMiniBlocksFromMetaCalled func(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error
 	GetMiniBlocksCalled                 func() (map[string]*block.MiniBlock, error)
 }
 
 // SyncPendingMiniBlocksFromMeta -
-func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error {
+func (ep *EpochStartPendingMiniBlocksSyncHandlerMock) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
 	if ep.SyncPendingMiniBlocksFromMetaCalled != nil {
 		return ep.SyncPendingMiniBlocksFromMetaCalled(epochStart, unFinished, ctx)
 	}

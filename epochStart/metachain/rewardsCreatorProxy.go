@@ -66,7 +66,7 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -79,7 +79,7 @@ func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {
@@ -111,17 +111,17 @@ func (rcp *rewardsCreatorProxy) GetRewardsTxs(body *block.Body) map[string]data.
 }
 
 // SaveTxBlockToStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body) {
+func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
 }
 
 // DeleteTxsFromStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
 }
 
 // RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body) {
+func (rcp *rewardsCreatorProxy) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.RemoveBlockDataFromPools(metaBlock, body)
 }
 

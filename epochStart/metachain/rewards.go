@@ -48,7 +48,7 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
 func (rc *rewardsCreator) CreateRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -203,7 +203,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreator) VerifyRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {

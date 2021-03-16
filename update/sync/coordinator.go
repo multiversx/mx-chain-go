@@ -174,7 +174,7 @@ func displayStatusMessage(message string, ctx context.Context) {
 	}
 }
 
-func (ss *syncState) printMetablockInfo(metaBlock data.HeaderHandler) {
+func (ss *syncState) printMetablockInfo(metaBlock data.MetaHeaderHandler) {
 	log.Info("epoch start meta block",
 		"nonce", metaBlock.GetNonce(),
 		"round", metaBlock.GetRound(),
@@ -192,12 +192,12 @@ func (ss *syncState) printMetablockInfo(metaBlock data.HeaderHandler) {
 }
 
 // GetEpochStartMetaBlock returns the synced metablock
-func (ss *syncState) GetEpochStartMetaBlock() (data.HeaderHandler, error) {
+func (ss *syncState) GetEpochStartMetaBlock() (data.MetaHeaderHandler, error) {
 	return ss.headers.GetEpochStartMetaBlock()
 }
 
 // GetUnFinishedMetaBlocks returns the synced unFinished metablocks
-func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]data.HeaderHandler, error) {
+func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error) {
 	return ss.headers.GetUnFinishedMetaBlocks()
 }
 

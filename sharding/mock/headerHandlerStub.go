@@ -34,6 +34,11 @@ func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
 	panic("implement me")
 }
 
+// SetDevFeesInEpoch -
+func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(value *big.Int){
+	panic("implement me")
+}
+
 // GetReceiptsHash --
 func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 	return []byte("hash")
@@ -293,5 +298,15 @@ func (hhs *HeaderHandlerStub) GetEpochStartHandler() data.EpochStartHandler {
 
 // GetDevFeesInEpoch -
 func (hhs *HeaderHandlerStub) GetDevFeesInEpoch() *big.Int {
+	panic("implement me")
+}
+
+// SetShardInfoHandlers -
+func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) {
+	panic("implement me")
+}
+
+// SetAccumulatedFeesInEpoch -
+func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) {
 	panic("implement me")
 }

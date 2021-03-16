@@ -281,7 +281,7 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) requestEpochStartInfo(header data.HeaderHandler, haveTime func() time.Duration) error {
+func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	if !header.IsStartOfEpochBlock() {
 		return nil
 	}
@@ -349,7 +349,7 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 }
 
 func (sp *shardProcessor) checkEpochCorrectness(
-	header data.HeaderHandler,
+	header data.ShardHeaderHandler,
 ) error {
 	currentBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentBlockHeader) {
@@ -984,7 +984,7 @@ func (sp *shardProcessor) displayPoolsInfo() {
 	sp.displayMiniBlocksPool()
 }
 
-func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.HeaderHandler) {
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, hdr := range headers {
@@ -1029,7 +1029,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	}
 }
 
-func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.HeaderHandler) {
+func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {
 	accounts := sp.accountsDB[state.UserAccountsState]
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1258,13 +1258,17 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.Head
 		return process.ErrNilBlockHeader
 	}
 
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok{
+		return process.ErrWrongTypeAssertion
+	}
 	miniBlockHashes := make(map[int][]byte, len(header.GetMiniBlockHeaderHandlers()))
 	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
 		miniBlockHashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
 	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if !ok {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
@@ -1446,7 +1450,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	go sp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
-func (sp *shardProcessor) requestMetaHeaders(shardHeader data.HeaderHandler) (uint32, uint32) {
+func (sp *shardProcessor) requestMetaHeaders(shardHeader data.ShardHeaderHandler) (uint32, uint32) {
 	_ = core.EmptyChannel(sp.chRcvAllMetaHdrs)
 
 	if len(shardHeader.GetMetaBlockHashes()) == 0 {
@@ -1456,7 +1460,7 @@ func (sp *shardProcessor) requestMetaHeaders(shardHeader data.HeaderHandler) (ui
 	return sp.computeExistingAndRequestMissingMetaHeaders(shardHeader)
 }
 
-func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header data.HeaderHandler) (uint32, uint32) {
+func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1496,7 +1500,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	return sp.hdrsForCurrBlock.missingHdrs, sp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 }
 
-func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.HeaderHandler) error {
+func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	miniBlockMetaHashes, err := sp.getAllMiniBlockDstMeFromMeta(header)
 	if err != nil {
 		return err
@@ -1512,7 +1516,7 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.HeaderHandl
 	return nil
 }
 
-func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.HeaderHandler) (map[string][]byte, error) {
+func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHandler) (map[string][]byte, error) {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, err
@@ -1749,7 +1753,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
-func (sp *shardProcessor) applyBodyToHeader(shardHeader data.HeaderHandler, body *block.Body) (*block.Body, error) {
+func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler, body *block.Body) (*block.Body, error) {
 	sw := core.NewStopWatch()
 	sw.Start("applyBodyToHeader")
 	defer func() {

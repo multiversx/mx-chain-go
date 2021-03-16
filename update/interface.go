@@ -13,8 +13,8 @@ import (
 
 // StateSyncer interface defines the methods needed to sync and get all states
 type StateSyncer interface {
-	GetEpochStartMetaBlock() (data.HeaderHandler, error)
-	GetUnFinishedMetaBlocks() (map[string]data.HeaderHandler, error)
+	GetEpochStartMetaBlock() (data.MetaHeaderHandler, error)
+	GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error)
 	SyncAllState(epoch uint32) error
 	GetAllTries() (map[string]data.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
@@ -92,8 +92,8 @@ type ImportHandler interface {
 	ImportAll() error
 	GetValidatorAccountsDB() state.AccountsAdapter
 	GetMiniBlocks() map[string]*block.MiniBlock
-	GetHardForkMetaBlock() data.HeaderHandler
-	GetUnFinishedMetaBlocks() map[string]data.HeaderHandler
+	GetHardForkMetaBlock() data.MetaHeaderHandler
+	GetUnFinishedMetaBlocks() map[string]data.MetaHeaderHandler
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
 	Close() error
@@ -119,21 +119,21 @@ type PendingTransactionProcessor interface {
 // HeaderSyncHandler defines the methods to sync and get the epoch start metablock
 type HeaderSyncHandler interface {
 	SyncUnFinishedMetaHeaders(epoch uint32) error
-	GetEpochStartMetaBlock() (data.HeaderHandler, error)
-	GetUnFinishedMetaBlocks() (map[string]data.HeaderHandler, error)
+	GetEpochStartMetaBlock() (data.MetaHeaderHandler, error)
+	GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error)
 	IsInterfaceNil() bool
 }
 
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
-	SyncTriesFrom(meta data.HeaderHandler) error
+	SyncTriesFrom(meta data.MetaHeaderHandler) error
 	GetTries() (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 
 // EpochStartPendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type EpochStartPendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocksFromMeta(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error
+	SyncPendingMiniBlocksFromMeta(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }

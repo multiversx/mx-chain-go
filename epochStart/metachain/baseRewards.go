@@ -189,7 +189,7 @@ func (brc *baseRewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.T
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.HeaderHandler, body *block.Body) {
+func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
 		return
 	}
@@ -224,7 +224,7 @@ func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.HeaderHandler, body *
 }
 
 // DeleteTxsFromStorage deletes data from storage
-func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
@@ -247,7 +247,7 @@ func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.HeaderHandler
 }
 
 // RemoveBlockDataFromPools removes block info from pools
-func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body) {
+func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}

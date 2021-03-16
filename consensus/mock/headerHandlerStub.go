@@ -276,7 +276,7 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) {
 }
 
 // GetShardInfoHandlers -
-func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler{
+func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler {
 	panic("implement me")
 }
 
@@ -287,5 +287,20 @@ func (hhs *HeaderHandlerStub) GetEpochStartHandler() data.EpochStartHandler {
 
 // GetDevFeesInEpoch -
 func (hhs *HeaderHandlerStub) GetDevFeesInEpoch() *big.Int {
+	panic("implement me")
+}
+
+// SetDevFeesInEpoch -
+func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(_ *big.Int) {
+	panic("implement me")
+}
+
+// SetShardInfoHandlers -
+func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) {
+	panic("implement me")
+}
+
+// SetAccumulatedFeesInEpoch -
+func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) {
 	panic("implement me")
 }

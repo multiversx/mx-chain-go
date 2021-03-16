@@ -61,7 +61,11 @@ func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 }
 
 func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader data.HeaderHandler) {
-	sp.updateState(finalHeaders, currentHeader)
+	currShardHeader, ok := currentHeader.(data.ShardHeaderHandler)
+	if !ok{
+		return
+	}
+	sp.updateState(finalHeaders, currShardHeader)
 }
 
 func NewShardProcessorEmptyWith3shards(
@@ -163,7 +167,7 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	return check.IfNil(hdrInfoValue.hdr)
 }
 
-func (mp *metaProcessor) CreateShardInfo() ([]block.ShardData, error) {
+func (mp *metaProcessor) CreateShardInfo() ([]data.ShardDataHandler, error) {
 	return mp.createShardInfo()
 }
 
@@ -315,7 +319,7 @@ func (sp *shardProcessor) RestoreMetaBlockIntoPool(
 }
 
 func (sp *shardProcessor) GetAllMiniBlockDstMeFromMeta(
-	header data.HeaderHandler,
+	header data.ShardHeaderHandler,
 ) (map[string][]byte, error) {
 	return sp.getAllMiniBlockDstMeFromMeta(header)
 }
@@ -344,11 +348,11 @@ func (mp *metaProcessor) VerifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 	return mp.verifyCrossShardMiniBlockDstMe(header)
 }
 
-func (mp *metaProcessor) ApplyBodyToHeader(metaHdr *block.MetaBlock, body *block.Body) (data.BodyHandler, error) {
+func (mp *metaProcessor) ApplyBodyToHeader(metaHdr data.MetaHeaderHandler, body *block.Body) (data.BodyHandler, error) {
 	return mp.applyBodyToHeader(metaHdr, body)
 }
 
-func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.HeaderHandler, body *block.Body) (*block.Body, error) {
+func (sp *shardProcessor) ApplyBodyToHeader(shardHdr data.ShardHeaderHandler, body *block.Body) (*block.Body, error) {
 	return sp.applyBodyToHeader(shardHdr, body)
 }
 

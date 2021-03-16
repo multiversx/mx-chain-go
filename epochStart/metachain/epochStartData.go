@@ -196,7 +196,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 	return startData, allShardHdrList, nil
 }
 
-func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr data.HeaderHandler) ([]byte, []byte, []data.HeaderHandler, error) {
+func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr data.ShardHeaderHandler) ([]byte, []byte, []data.HeaderHandler, error) {
 	var firstPendingMetaHash []byte
 	var lastFinalizedMetaHash []byte
 

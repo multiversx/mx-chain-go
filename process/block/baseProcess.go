@@ -279,6 +279,16 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
+	var valStatRootHash, epochStartMetaHash []byte
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
+	if ok {
+		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
+	} else {
+		shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
+		if ok {
+			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
+		}
+	}
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
@@ -331,7 +341,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(valStatRootHash)}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
@@ -339,7 +349,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(epochStartMetaHash)}),
 	}
 }
 
@@ -1146,7 +1156,15 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
+		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
+		if !ok{
+			return []byte{}, []byte{}
+		}
+		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+ 		if !ok{
+ 			return []byte{}, []byte{}
+	    }
+		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
 	}

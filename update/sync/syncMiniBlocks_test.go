@@ -119,7 +119,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
@@ -193,7 +193,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
@@ -248,7 +248,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
 	timeout := time.Second + time.Millisecond*500
@@ -294,7 +294,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	go func() {
@@ -347,7 +347,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -401,7 +401,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 			},
 		},
 	}
-	unFinished := make(map[string]data.HeaderHandler)
+	unFinished := make(map[string]data.MetaHeaderHandler)
 	unFinished["firstPending"] = metaBlock
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

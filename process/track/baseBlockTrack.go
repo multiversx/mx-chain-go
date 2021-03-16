@@ -761,7 +761,7 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return nil
 }
 
-func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.HeaderHandler) {
+func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaHeaderHandler) {
 	selfShardID := bbt.shardCoordinator.SelfId()
 	if selfShardID == core.MetachainShardId {
 		return

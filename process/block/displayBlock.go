@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -62,6 +63,7 @@ func (txc *transactionCounter) displayLogInfo(
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
+
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
@@ -112,8 +114,14 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
-	if header.GetBlockBodyTypeInt32() == int32(block.TxBlock) {
-		shardLines = txc.displayMetaHashesIncluded(shardLines, header)
+	var varBlockBodyType int32 = math.MaxInt32
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if ok{
+		varBlockBodyType = shardHeader.GetBlockBodyTypeInt32()
+	}
+
+	if varBlockBodyType == int32(block.TxBlock) {
+		shardLines = txc.displayMetaHashesIncluded(shardLines, shardHeader)
 		shardLines = txc.displayTxBlockBody(shardLines, body)
 
 		return tableHeader, shardLines
@@ -127,7 +135,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 func (txc *transactionCounter) displayMetaHashesIncluded(
 	lines []*display.LineData,
-	header data.HeaderHandler,
+	header data.ShardHeaderHandler,
 ) []*display.LineData {
 
 	if header.GetMetaBlockHashes() == nil || len(header.GetMetaBlockHashes()) == 0 {

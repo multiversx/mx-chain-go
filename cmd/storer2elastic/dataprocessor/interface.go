@@ -28,8 +28,8 @@ type NodesCoordinator interface {
 
 // HeaderMarshalizerHandler defines the actions that a header marshalizer has to do
 type HeaderMarshalizerHandler interface {
-	UnmarshalShardHeader(headerBytes []byte) (data.HeaderHandler, error)
-	UnmarshalMetaBlock(headerBytes []byte) (data.HeaderHandler, error)
+	UnmarshalShardHeader(headerBytes []byte) (data.ShardHeaderHandler, error)
+	UnmarshalMetaBlock(headerBytes []byte) (data.MetaHeaderHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -47,7 +47,7 @@ type TPSBenchmarkUpdaterHandler interface {
 
 // RatingProcessorHandler defines the actions that a rating processor has to do
 type RatingProcessorHandler interface {
-	IndexRatingsForEpochStartMetaBlock(metaBlock data.HeaderHandler) error
+	IndexRatingsForEpochStartMetaBlock(metaBlock data.MetaHeaderHandler) error
 	IsInterfaceNil() bool
 }
 

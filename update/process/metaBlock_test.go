@@ -130,7 +130,7 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 		Round:      2,
 		EpochStart: epochStart,
 	}
-	unFinishedMetaBlocks := map[string]data.HeaderHandler{
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
 		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
@@ -141,10 +141,10 @@ func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 				},
 			}
 		},
-		GetHardForkMetaBlockCalled: func() data.HeaderHandler {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]data.HeaderHandler {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {

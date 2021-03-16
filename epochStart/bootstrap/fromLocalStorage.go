@@ -248,7 +248,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	return &bootstrapData, config, nil
 }
 
-func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.HeaderHandler, error) {
+func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
 	data, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {

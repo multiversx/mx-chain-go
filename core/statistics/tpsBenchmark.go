@@ -216,7 +216,7 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 	s.mut.Unlock()
 }
 
-func (s *TpsBenchmark) updateStatistics(header data.HeaderHandler) error {
+func (s *TpsBenchmark) updateStatistics(header data.MetaHeaderHandler) error {
 	if s.blockNumber == header.GetNonce() {
 		return nil
 	}
@@ -290,7 +290,7 @@ func (s *TpsBenchmark) updateStatistics(header data.HeaderHandler) error {
 	return nil
 }
 
-func getNumOfTxsWithoutPeerTxsAndSCRs(metaBlock data.HeaderHandler) (uint64, uint64) {
+func getNumOfTxsWithoutPeerTxsAndSCRs(metaBlock data.MetaHeaderHandler) (uint64, uint64) {
 	// get number of transactions from metablock miniblocks
 	totalTxsForTPS, totalTxsForCount := getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(core.MetachainShardId, metaBlock.GetMiniBlockHeaderHandlers())
 

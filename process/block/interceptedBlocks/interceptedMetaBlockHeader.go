@@ -17,7 +17,7 @@ var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr               data.HeaderHandler
+	hdr               data.MetaHeaderHandler
 	sigVerifier       process.InterceptedHeaderSigVerifier
 	integrityVerifier process.HeaderIntegrityVerifier
 	hasher            hashing.Hasher

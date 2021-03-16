@@ -121,7 +121,7 @@ type AccountsDBSyncer interface {
 
 // StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
 type StartOfEpochMetaSyncer interface {
-	SyncEpochStartMeta(waitTime time.Duration) (data.HeaderHandler, error)
+	SyncEpochStartMeta(waitTime time.Duration) (data.MetaHeaderHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -183,17 +183,17 @@ type EpochEconomicsDataProvider interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body)
-	RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body)
+	SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
 }

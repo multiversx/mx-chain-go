@@ -983,7 +983,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
 	}
@@ -1010,7 +1010,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
 		},
@@ -2766,6 +2766,8 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)
 	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	metaHeaderHandler, _ := headerHandler.(data.MetaHeaderHandler)
+	metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false

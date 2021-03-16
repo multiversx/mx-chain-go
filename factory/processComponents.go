@@ -357,9 +357,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
-	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
+	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
 	if !ok {
 		return nil, errors.New("genesis meta block does not exist")
+	}
+
+	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, errors.New("genesis meta block invalid")
 	}
 
 	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)

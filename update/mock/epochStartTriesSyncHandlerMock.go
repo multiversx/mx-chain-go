@@ -6,12 +6,12 @@ import (
 
 // EpochStartTriesSyncHandlerMock -
 type EpochStartTriesSyncHandlerMock struct {
-	SyncTriesFromCalled func(meta data.HeaderHandler) error
+	SyncTriesFromCalled func(meta data.MetaHeaderHandler) error
 	GetTriesCalled      func() (map[string]data.Trie, error)
 }
 
 // SyncTriesFrom -
-func (es *EpochStartTriesSyncHandlerMock) SyncTriesFrom(meta data.HeaderHandler) error {
+func (es *EpochStartTriesSyncHandlerMock) SyncTriesFrom(meta data.MetaHeaderHandler) error {
 	if es.SyncTriesFromCalled != nil {
 		return es.SyncTriesFromCalled(meta)
 	}

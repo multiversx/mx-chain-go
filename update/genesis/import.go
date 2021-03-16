@@ -39,8 +39,8 @@ type stateImport struct {
 	genesisHeaders               map[uint32]data.HeaderHandler
 	transactions                 map[string]data.TransactionHandler
 	miniBlocks                   map[string]*block.MiniBlock
-	importedEpochStartMetaBlock  data.HeaderHandler
-	importedUnFinishedMetaBlocks map[string]data.HeaderHandler
+	importedEpochStartMetaBlock  data.MetaHeaderHandler
+	importedUnFinishedMetaBlocks map[string]data.MetaHeaderHandler
 	tries                        map[string]data.Trie
 	accountDBsMap                map[uint32]state.AccountsDBImporter
 	validatorDB                  state.AccountsDBImporter
@@ -73,7 +73,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		transactions:                 make(map[string]data.TransactionHandler),
 		miniBlocks:                   make(map[string]*block.MiniBlock),
 		importedEpochStartMetaBlock:  &block.MetaBlock{},
-		importedUnFinishedMetaBlocks: make(map[string]data.HeaderHandler),
+		importedUnFinishedMetaBlocks: make(map[string]data.MetaHeaderHandler),
 		tries:                        make(map[string]data.Trie),
 		hasher:                       args.Hasher,
 		marshalizer:                  args.Marshalizer,
@@ -551,12 +551,12 @@ func (si *stateImport) GetTransactions() map[string]data.TransactionHandler {
 }
 
 // GetHardForkMetaBlock returns the hardFork metablock
-func (si *stateImport) GetHardForkMetaBlock() data.HeaderHandler {
+func (si *stateImport) GetHardForkMetaBlock() data.MetaHeaderHandler {
 	return si.importedEpochStartMetaBlock
 }
 
 // GetUnFinishedMetaBlocks returns all imported unFinished metablocks
-func (si *stateImport) GetUnFinishedMetaBlocks() map[string]data.HeaderHandler {
+func (si *stateImport) GetUnFinishedMetaBlocks() map[string]data.MetaHeaderHandler {
 	return si.importedUnFinishedMetaBlocks
 }
 

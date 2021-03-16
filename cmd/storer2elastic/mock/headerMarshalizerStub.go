@@ -7,12 +7,12 @@ import (
 
 // HeaderMarshalizerStub -
 type HeaderMarshalizerStub struct {
-	UnmarshalShardHeaderCalled func(headerBytes []byte) (data.HeaderHandler, error)
-	UnmarshalMetaBlockCalled   func(headerBytes []byte) (data.HeaderHandler, error)
+	UnmarshalShardHeaderCalled func(headerBytes []byte) (data.ShardHeaderHandler, error)
+	UnmarshalMetaBlockCalled   func(headerBytes []byte) (data.MetaHeaderHandler, error)
 }
 
 // UnmarshalShardHeader -
-func (h *HeaderMarshalizerStub) UnmarshalShardHeader(headerBytes []byte) (data.HeaderHandler, error) {
+func (h *HeaderMarshalizerStub) UnmarshalShardHeader(headerBytes []byte) (data.ShardHeaderHandler, error) {
 	if h.UnmarshalShardHeaderCalled != nil {
 		return h.UnmarshalShardHeaderCalled(headerBytes)
 	}
@@ -21,7 +21,7 @@ func (h *HeaderMarshalizerStub) UnmarshalShardHeader(headerBytes []byte) (data.H
 }
 
 // UnmarshalMetaBlock -
-func (h *HeaderMarshalizerStub) UnmarshalMetaBlock(headerBytes []byte) (data.HeaderHandler, error) {
+func (h *HeaderMarshalizerStub) UnmarshalMetaBlock(headerBytes []byte) (data.MetaHeaderHandler, error) {
 	if h.UnmarshalMetaBlockCalled != nil {
 		return h.UnmarshalMetaBlockCalled(headerBytes)
 	}

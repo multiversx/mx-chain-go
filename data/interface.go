@@ -28,7 +28,6 @@ type HeaderHandler interface {
 	GetEpoch() uint32
 	GetRound() uint64
 	GetRootHash() []byte
-	GetValidatorStatsRootHash() []byte
 	GetPrevHash() []byte
 	GetPrevRandSeed() []byte
 	GetRandSeed() []byte
@@ -42,8 +41,11 @@ type HeaderHandler interface {
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
-	GetEpochStartMetaHash() []byte
 	GetReserved() []byte
+	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDst(destId uint32) []*MiniBlockInfo
+	GetMiniBlockHeadersHashes() [][]byte
+	GetMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
 
 	SetAccumulatedFees(value *big.Int)
 	SetDeveloperFees(value *big.Int)
@@ -53,7 +55,6 @@ type HeaderHandler interface {
 	SetRound(r uint64)
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
-	SetValidatorStatsRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
 	SetPrevRandSeed(pvRandSeed []byte)
 	SetRandSeed(randSeed []byte)
@@ -63,26 +64,32 @@ type HeaderHandler interface {
 	SetChainID(chainID []byte)
 	SetSoftwareVersion(version []byte)
 	SetTxCount(txCount uint32)
-
-	IsStartOfEpochBlock() bool
-	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
-	GetOrderedCrossMiniblocksWithDst(destId uint32) []*MiniBlockInfo
-	GetMiniBlockHeadersHashes() [][]byte
-	GetMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
-
-	GetMetaBlockHashes() [][]byte
-	GetBlockBodyTypeInt32() int32
-
 	SetMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler)
 	SetReceiptsHash(hash []byte)
-	SetMetaBlockHashes(hashes [][]byte)
 
-	GetShardInfoHandlers() []ShardDataHandler
+	IsStartOfEpochBlock() bool
+	ShallowClone() HeaderHandler
+	IsInterfaceNil() bool
+}
+
+type ShardHeaderHandler interface {
+	HeaderHandler
+	GetMetaBlockHashes() [][]byte
+	GetEpochStartMetaHash() []byte
+	GetBlockBodyTypeInt32() int32
+	SetMetaBlockHashes(hashes [][]byte)
+}
+
+type MetaHeaderHandler interface {
+	HeaderHandler
+	GetValidatorStatsRootHash() []byte
 	GetEpochStartHandler() EpochStartHandler
 	GetDevFeesInEpoch() *big.Int
-
-	IsInterfaceNil() bool
-	ShallowClone() HeaderHandler
+	GetShardInfoHandlers() []ShardDataHandler
+	SetValidatorStatsRootHash(rHash []byte)
+	SetDevFeesInEpoch(value *big.Int)
+	SetShardInfoHandlers(shardInfo []ShardDataHandler)
+	SetAccumulatedFeesInEpoch(value *big.Int)
 }
 
 // MiniBlockHeaderHandler defines setters and getters for miniBlock headers

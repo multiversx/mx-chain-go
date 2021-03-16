@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+var _ = data.HeaderHandler(&Header{})
+var _ = data.ShardHeaderHandler(&Header{})
+
 // MiniBlockSlice should be used when referring to subset of mini blocks that is not
 //  necessarily representing a full block body
 type MiniBlockSlice []*MiniBlock
@@ -35,15 +38,6 @@ func (h *Header) SetRound(r uint64) {
 // SetRootHash sets root hash
 func (h *Header) SetRootHash(rHash []byte) {
 	h.RootHash = rHash
-}
-
-// SetValidatorStatsRootHash set's the root hash for the validator statistics trie
-func (h *Header) SetValidatorStatsRootHash(_ []byte) {
-}
-
-// GetValidatorStatsRootHash set's the root hash for the validator statistics trie
-func (h *Header) GetValidatorStatsRootHash() []byte {
-	return []byte{}
 }
 
 // SetPrevHash sets prev hash
@@ -267,21 +261,6 @@ func (h *Header) SetReceiptsHash(hash []byte) {
 // SetMetaBlockHashes sets the metaBlock hashes
 func (h *Header) SetMetaBlockHashes(hashes [][]byte) {
 	h.MetaBlockHashes = hashes
-}
-
-// GetShardInfoHandlers - returns nil, as not supported for shard header
-func (h *Header) GetShardInfoHandlers() []data.ShardDataHandler {
-	return nil
-}
-
-// GetEpochStartHandler - not supported on shard header
-func (h *Header) GetEpochStartHandler() data.EpochStartHandler {
-	return nil
-}
-
-// GetDevFeesInEpoch - not supported on shard header
-func (h *Header) GetDevFeesInEpoch() *big.Int {
-	return nil
 }
 
 // Clone the underlying data

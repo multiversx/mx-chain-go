@@ -12,15 +12,15 @@ import (
 // EpochRewardsCreatorStub -
 type EpochRewardsCreatorStub struct {
 	CreateRewardsMiniBlocksCalled func(
-		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocksCalled func(
-		metaBlock data.HeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) error
 	CreateMarshalizedDataCalled    func(body *block.Body) map[string][][]byte
-	SaveTxBlockToStorageCalled     func(metaBlock data.HeaderHandler, body *block.Body)
-	DeleteTxsFromStorageCalled     func(metaBlock data.HeaderHandler, body *block.Body)
-	RemoveBlockDataFromPoolsCalled func(metaBlock data.HeaderHandler, body *block.Body)
+	SaveTxBlockToStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteTxsFromStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	RemoveBlockDataFromPoolsCalled func(metaBlock data.MetaHeaderHandler, body *block.Body)
 	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
 	GetProtocolSustainCalled       func() *big.Int
 	GetLocalTxCacheCalled          func() epochStart.TransactionCacher
@@ -44,7 +44,7 @@ func (e *EpochRewardsCreatorStub) GetLocalTxCache() epochStart.TransactionCacher
 
 // CreateRewardsMiniBlocks -
 func (e *EpochRewardsCreatorStub) CreateRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -64,7 +64,7 @@ func (e *EpochRewardsCreatorStub) GetRewardsTxs(body *block.Body) map[string]dat
 
 // VerifyRewardsMiniBlocks -
 func (e *EpochRewardsCreatorStub) VerifyRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {
@@ -83,14 +83,14 @@ func (e *EpochRewardsCreatorStub) CreateMarshalizedData(body *block.Body) map[st
 }
 
 // SaveTxBlockToStorage -
-func (e *EpochRewardsCreatorStub) SaveTxBlockToStorage(metaBlock data.HeaderHandler, body *block.Body) {
+func (e *EpochRewardsCreatorStub) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if e.SaveTxBlockToStorageCalled != nil {
 		e.SaveTxBlockToStorageCalled(metaBlock, body)
 	}
 }
 
 // DeleteTxsFromStorage -
-func (e *EpochRewardsCreatorStub) DeleteTxsFromStorage(metaBlock data.HeaderHandler, body *block.Body) {
+func (e *EpochRewardsCreatorStub) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if e.DeleteTxsFromStorageCalled != nil {
 		e.DeleteTxsFromStorageCalled(metaBlock, body)
 	}
@@ -102,7 +102,7 @@ func (e *EpochRewardsCreatorStub) IsInterfaceNil() bool {
 }
 
 // RemoveBlockDataFromPools -
-func (e *EpochRewardsCreatorStub) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, body *block.Body) {
+func (e *EpochRewardsCreatorStub) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if e.RemoveBlockDataFromPoolsCalled != nil {
 		e.RemoveBlockDataFromPoolsCalled(metaBlock, body)
 	}

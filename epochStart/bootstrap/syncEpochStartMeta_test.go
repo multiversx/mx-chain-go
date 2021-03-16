@@ -89,7 +89,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (data.HeaderHandler, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -115,7 +115,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (data.HeaderHandler, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return expectedMb, nil
 		},
 	}

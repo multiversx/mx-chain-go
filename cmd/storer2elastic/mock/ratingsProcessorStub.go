@@ -6,11 +6,11 @@ import (
 
 // RatingsProcessorStub -
 type RatingsProcessorStub struct {
-	IndexRatingsForEpochStartMetaBlockCalled func(metaBlock data.HeaderHandler) error
+	IndexRatingsForEpochStartMetaBlockCalled func(metaBlock data.MetaHeaderHandler) error
 }
 
 // IndexRatingsForEpochStartMetaBlock -
-func (r *RatingsProcessorStub) IndexRatingsForEpochStartMetaBlock(metaBlock data.HeaderHandler) error {
+func (r *RatingsProcessorStub) IndexRatingsForEpochStartMetaBlock(metaBlock data.MetaHeaderHandler) error {
 	if r.IndexRatingsForEpochStartMetaBlockCalled != nil {
 		return r.IndexRatingsForEpochStartMetaBlockCalled(metaBlock)
 	}

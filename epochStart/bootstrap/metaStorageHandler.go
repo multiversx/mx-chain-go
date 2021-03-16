@@ -159,7 +159,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
-	meta data.HeaderHandler,
+	meta data.MetaHeaderHandler,
 	mapHeaders map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
 	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)

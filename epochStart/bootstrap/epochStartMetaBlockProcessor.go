@@ -31,10 +31,10 @@ type epochStartMetaBlockProcessor struct {
 	marshalizer                       marshal.Marshalizer
 	hasher                            hashing.Hasher
 	mutReceivedMetaBlocks             sync.RWMutex
-	mapReceivedMetaBlocks             map[string]data.HeaderHandler
+	mapReceivedMetaBlocks             map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers            map[string][]core.PeerID
 	chanConsensusReached              chan bool
-	metaBlock                         data.HeaderHandler
+	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
 	minNumOfPeersToConsiderBlockValid int
@@ -80,7 +80,7 @@ func NewEpochStartMetaBlockProcessor(
 		minNumConnectedPeers:              minNumConnectedPeersConfig,
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
-		mapReceivedMetaBlocks:             make(map[string]data.HeaderHandler),
+		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 	}
@@ -165,7 +165,7 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.HeaderHandler, error) {
+func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
 	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.HeaderHandler, error) {
+func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.MetaHeaderHandler, error) {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 

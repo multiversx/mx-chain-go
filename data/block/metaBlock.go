@@ -12,6 +12,7 @@ import (
 
 // don't break the interface
 var _ = data.HeaderHandler(&MetaBlock{})
+var _ = data.MetaHeaderHandler(&MetaBlock{})
 
 // GetShardID returns the metachain shard id
 func (m *MetaBlock) GetShardID() uint32 {
@@ -85,12 +86,34 @@ func (m *MetaBlock) SetSoftwareVersion(version []byte) {
 
 // SetAccumulatedFees sets the accumulated fees in the header
 func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+	if m.AccumulatedFees  == nil{
+		m.AccumulatedFees = big.NewInt(0)
+	}
 	m.AccumulatedFees.Set(value)
+}
+
+// SetAccumulatedFeesInEpoch sets the epoch accumulated fees in the header
+func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) {
+	if m.AccumulatedFeesInEpoch  == nil{
+		m.AccumulatedFeesInEpoch = big.NewInt(0)
+	}
+	m.AccumulatedFeesInEpoch.Set(value)
 }
 
 // SetDeveloperFees sets the developer fees in the header
 func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
+	if m.DeveloperFees == nil {
+		m.DeveloperFees = big.NewInt(0)
+	}
 	m.DeveloperFees.Set(value)
+}
+
+// SetDeveloperFees sets the developer fees in the header
+func (m *MetaBlock) SetDevFeesInEpoch(value *big.Int) {
+	if m.DevFeesInEpoch == nil{
+		m.DevFeesInEpoch = big.NewInt(0)
+	}
+	m.DevFeesInEpoch.Set(value)
 }
 
 // SetTimeStamp sets header timestamp
@@ -235,8 +258,8 @@ func (m *MetaBlock) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlock
 	}
 
 	m.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
-	for i, mbHeaderHandler := range mbHeaderHandlers {
-		mbHeader, ok := mbHeaderHandler.(*MiniBlockHeader)
+	for i := range mbHeaderHandlers {
+		mbHeader, ok := mbHeaderHandlers[i].(*MiniBlockHeader)
 		if !ok {
 			m.MiniBlockHeaders = nil
 			return
@@ -274,4 +297,22 @@ func (m *MetaBlock) GetEpochStartHandler() data.EpochStartHandler {
 		return nil
 	}
 	return &m.EpochStart
+}
+
+// SetShardInfoHandlers -
+func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler){
+	if shardInfo == nil{
+		m.ShardInfo = nil
+		return
+	}
+
+	m.ShardInfo = make([]ShardData, len(shardInfo))
+	for i := range shardInfo {
+		shData, ok := shardInfo[i].(*ShardData)
+		if !ok {
+			m.ShardInfo = nil
+			return
+		}
+		m.ShardInfo[i] = *shData
+	}
 }

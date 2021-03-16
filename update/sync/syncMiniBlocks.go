@@ -75,7 +75,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 }
 
 // SyncPendingMiniBlocksFromMeta syncs the pending miniblocks from an epoch start metaBlock
-func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.HeaderHandler, unFinished map[string]data.HeaderHandler, ctx context.Context) error {
+func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
 	if !epochStart.IsStartOfEpochBlock() && epochStart.GetNonce() > 0 {
 		return update.ErrNotEpochStartBlock
 	}

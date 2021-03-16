@@ -21,7 +21,7 @@ func NewHeaderMarshalizer(marshalizer marshal.Marshalizer) (*headerMarshalizer, 
 }
 
 // UnmarshalShardHeader will unmarshal a shard header from the received bytes
-func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (data.HeaderHandler, error) {
+func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (data.ShardHeaderHandler, error) {
 	var shardHeader block.Header
 	err := hm.marshalizer.Unmarshal(&shardHeader, headerBytes)
 	if err != nil {
@@ -32,7 +32,7 @@ func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (data.Head
 }
 
 // UnmarshalMetaBlock will unmarshal a meta block the received bytes
-func (hm *headerMarshalizer) UnmarshalMetaBlock(headerBytes []byte) (data.HeaderHandler, error) {
+func (hm *headerMarshalizer) UnmarshalMetaBlock(headerBytes []byte) (data.MetaHeaderHandler, error) {
 	var metaBlock block.MetaBlock
 	err := hm.marshalizer.Unmarshal(&metaBlock, headerBytes)
 	if err != nil {

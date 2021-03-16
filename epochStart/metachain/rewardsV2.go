@@ -79,7 +79,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 // This method applies the rewards according to the economics version 2 proposal, which takes into consideration
 // stake top-up values per node
 func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
@@ -155,7 +155,7 @@ func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustaina
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {

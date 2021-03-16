@@ -25,7 +25,7 @@ type storageEpochStartMetaBlockProcessor struct {
 	hasher         hashing.Hasher
 	chanReceived   chan struct{}
 	mutMetablock   sync.Mutex
-	metaBlock      data.HeaderHandler
+	metaBlock      data.MetaHeaderHandler
 }
 
 // NewStorageEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block when importing
@@ -108,7 +108,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.HeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
 	ses.requestMetaBlock()
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -125,7 +125,7 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	}
 }
 
-func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (data.HeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (data.MetaHeaderHandler, error) {
 	ses.mutMetablock.Lock()
 	defer ses.mutMetablock.Unlock()
 

@@ -86,7 +86,7 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 }
 
 // IndexRatingsForEpochStartMetaBlock will index the ratings for an epoch start meta block
-func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock data.HeaderHandler) error {
+func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock data.MetaHeaderHandler) error {
 	if metaBlock.GetNonce() == 0 {
 		rp.indexRating(0, rp.getGenesisRating())
 		return nil

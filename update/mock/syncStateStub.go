@@ -7,8 +7,8 @@ import (
 
 // SyncStateStub -
 type SyncStateStub struct {
-	GetEpochStartMetaBlockCalled  func() (data.HeaderHandler, error)
-	GetUnFinishedMetaBlocksCalled func() (map[string]data.HeaderHandler, error)
+	GetEpochStartMetaBlockCalled  func() (data.MetaHeaderHandler, error)
+	GetUnFinishedMetaBlocksCalled func() (map[string]data.MetaHeaderHandler, error)
 	SyncAllStateCalled            func(epoch uint32) error
 	GetAllTriesCalled             func() (map[string]data.Trie, error)
 	GetAllTransactionsCalled      func() (map[string]data.TransactionHandler, error)
@@ -16,7 +16,7 @@ type SyncStateStub struct {
 }
 
 // GetEpochStartMetaBlock -
-func (sss *SyncStateStub) GetEpochStartMetaBlock() (data.HeaderHandler, error) {
+func (sss *SyncStateStub) GetEpochStartMetaBlock() (data.MetaHeaderHandler, error) {
 	if sss.GetEpochStartMetaBlockCalled != nil {
 		return sss.GetEpochStartMetaBlockCalled()
 	}
@@ -24,7 +24,7 @@ func (sss *SyncStateStub) GetEpochStartMetaBlock() (data.HeaderHandler, error) {
 }
 
 // GetUnFinishedMetaBlocks -
-func (sss *SyncStateStub) GetUnFinishedMetaBlocks() (map[string]data.HeaderHandler, error) {
+func (sss *SyncStateStub) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error) {
 	if sss.GetUnFinishedMetaBlocksCalled != nil {
 		return sss.GetUnFinishedMetaBlocksCalled()
 	}

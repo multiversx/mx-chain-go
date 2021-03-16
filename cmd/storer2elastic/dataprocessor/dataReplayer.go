@@ -273,7 +273,7 @@ func (dr *dataReplayer) closeMetaPersisters(persistersHolder *metaBlocksPersiste
 	log.LogIfError(err)
 }
 
-func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (data.HeaderHandler, error) {
+func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (data.MetaHeaderHandler, error) {
 	epochStartIdentifier := core.EpochStartIdentifier(record.Epoch)
 	metaBlockBytes, err := metaPersisters.metaBlocksPersister.Get([]byte(epochStartIdentifier))
 	if err == nil && len(metaBlockBytes) > 0 {
@@ -287,7 +287,7 @@ func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseIn
 	return nil, fmt.Errorf("epoch start meta not found for epoch %d", record.Epoch)
 }
 
-func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (data.HeaderHandler, error) {
+func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (data.MetaHeaderHandler, error) {
 	nonceBytes := dr.uint64Converter.ToByteSlice(nonce)
 	metaBlockHash, err := metaPersisters.hdrHashNoncePersister.Get(nonceBytes)
 	if err != nil {
@@ -303,7 +303,7 @@ func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaB
 }
 
 func (dr *dataReplayer) processMetaBlock(
-	metaBlock data.HeaderHandler,
+	metaBlock data.MetaHeaderHandler,
 	dbsInfo []*databasereader.DatabaseInfo,
 	persisters *persistersHolder,
 	shardPersisters map[uint32]*persistersHolder,

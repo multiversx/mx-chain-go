@@ -11,7 +11,7 @@ import (
 
 // MetaBlockInterceptorProcessorStub -
 type MetaBlockInterceptorProcessorStub struct {
-	GetEpochStartMetaBlockCalled func() (data.HeaderHandler, error)
+	GetEpochStartMetaBlockCalled func() (data.MetaHeaderHandler, error)
 }
 
 // Validate -
@@ -38,7 +38,7 @@ func (m *MetaBlockInterceptorProcessorStub) IsInterfaceNil() bool {
 }
 
 // GetEpochStartMetaBlock -
-func (m *MetaBlockInterceptorProcessorStub) GetEpochStartMetaBlock(_ context.Context) (data.HeaderHandler, error) {
+func (m *MetaBlockInterceptorProcessorStub) GetEpochStartMetaBlock(_ context.Context) (data.MetaHeaderHandler, error) {
 	if m.GetEpochStartMetaBlockCalled != nil {
 		return m.GetEpochStartMetaBlockCalled()
 	}

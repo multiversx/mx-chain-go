@@ -8,7 +8,7 @@ func (e *epochStartMetaSyncer) SetEpochStartMetaBlockInterceptorProcessor(proc E
 	e.metaBlockProcessor = proc
 }
 
-func (e *epochStartMetaBlockProcessor) GetMapMetaBlock() map[string]data.HeaderHandler {
+func (e *epochStartMetaBlockProcessor) GetMapMetaBlock() map[string]data.MetaHeaderHandler {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 

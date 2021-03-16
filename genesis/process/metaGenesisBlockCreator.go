@@ -43,7 +43,7 @@ func CreateMetaGenesisBlock(
 	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.MetaHeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
@@ -126,7 +126,7 @@ func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, error) {
+) (data.MetaHeaderHandler, [][]byte, error) {
 	if check.IfNil(hardForkBlockProcessor) {
 		return nil, nil, update.ErrNilHardForkBlockProcessor
 	}

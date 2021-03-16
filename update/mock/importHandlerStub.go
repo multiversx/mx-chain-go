@@ -11,8 +11,8 @@ type ImportHandlerStub struct {
 	ImportAllCalled               func() error
 	GetValidatorAccountsDBCalled  func() state.AccountsAdapter
 	GetMiniBlocksCalled           func() map[string]*block.MiniBlock
-	GetHardForkMetaBlockCalled    func() data.HeaderHandler
-	GetUnFinishedMetaBlocksCalled func() map[string]data.HeaderHandler
+	GetHardForkMetaBlockCalled    func() data.MetaHeaderHandler
+	GetUnFinishedMetaBlocksCalled func() map[string]data.MetaHeaderHandler
 	GetTransactionsCalled         func() map[string]data.TransactionHandler
 	GetAccountsDBForShardCalled   func(shardID uint32) state.AccountsAdapter
 	CloseCalled                   func() error
@@ -43,7 +43,7 @@ func (ihs *ImportHandlerStub) GetMiniBlocks() map[string]*block.MiniBlock {
 }
 
 // GetHardForkMetaBlock -
-func (ihs *ImportHandlerStub) GetHardForkMetaBlock() data.HeaderHandler {
+func (ihs *ImportHandlerStub) GetHardForkMetaBlock() data.MetaHeaderHandler {
 	if ihs.GetHardForkMetaBlockCalled != nil {
 		return ihs.GetHardForkMetaBlockCalled()
 	}
@@ -51,7 +51,7 @@ func (ihs *ImportHandlerStub) GetHardForkMetaBlock() data.HeaderHandler {
 }
 
 // GetUnFinishedMetaBlocks -
-func (ihs *ImportHandlerStub) GetUnFinishedMetaBlocks() map[string]data.HeaderHandler {
+func (ihs *ImportHandlerStub) GetUnFinishedMetaBlocks() map[string]data.MetaHeaderHandler {
 	if ihs.GetUnFinishedMetaBlocksCalled != nil {
 		return ihs.GetUnFinishedMetaBlocksCalled()
 	}

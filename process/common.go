@@ -28,7 +28,7 @@ func GetShardHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (data.HeaderHandler, error) {
+) (data.ShardHeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -74,7 +74,7 @@ func GetMetaHeader(
 func GetShardHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (data.HeaderHandler, error) {
+) (data.ShardHeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
@@ -113,7 +113,7 @@ func GetShardHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (data.HeaderHandler, error) {
+) (data.ShardHeaderHandler, error) {
 
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
 	if err != nil {

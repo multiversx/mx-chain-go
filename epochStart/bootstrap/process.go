@@ -63,8 +63,8 @@ type Parameters struct {
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
-	EpochStartMetaBlock data.HeaderHandler
-	PreviousEpochStart  data.HeaderHandler
+	EpochStartMetaBlock data.MetaHeaderHandler
+	PreviousEpochStart  data.MetaHeaderHandler
 	ShardHeader         data.HeaderHandler
 	NodesConfig         *sharding.NodesCoordinatorRegistry
 	Headers             map[string]data.HeaderHandler
@@ -114,8 +114,8 @@ type epochStartBootstrap struct {
 	argumentsParser           process.ArgumentsParser
 
 	// gathered data
-	epochStartMeta     data.HeaderHandler
-	prevEpochStartMeta data.HeaderHandler
+	epochStartMeta     data.MetaHeaderHandler
+	prevEpochStartMeta data.MetaHeaderHandler
 	syncedHeaders      map[string]data.HeaderHandler
 	nodesConfig        *sharding.NodesCoordinatorRegistry
 	userAccountTries   map[string]data.Trie
@@ -530,7 +530,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 	return nil
 }
 
-func (e *epochStartBootstrap) syncHeadersFrom(meta data.HeaderHandler) (map[string]data.HeaderHandler, error) {
+func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 

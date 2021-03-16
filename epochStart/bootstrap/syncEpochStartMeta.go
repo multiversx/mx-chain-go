@@ -107,7 +107,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
-func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (data.HeaderHandler, error) {
+func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (data.MetaHeaderHandler, error) {
 	err := e.initTopicForEpochStartMetaBlockInterceptor()
 	if err != nil {
 		return nil, err
