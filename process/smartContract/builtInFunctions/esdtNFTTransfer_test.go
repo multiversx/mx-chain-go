@@ -420,7 +420,8 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationDoesNotHo
 	vmOutput, err = nftTransferDestinationShard.ProcessBuiltinFunction(nil, destination.(state.UserAccountHandler), vmInput)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-	_, _ = nftTransferSenderShard.accounts.Commit()
+	_ = nftTransferDestinationShard.accounts.SaveAccount(destination)
+	_, _ = nftTransferDestinationShard.accounts.Commit()
 
 	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
 	require.Nil(t, err)
@@ -513,7 +514,8 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationHoldsNFT(
 	vmOutput, err = nftTransferDestinationShard.ProcessBuiltinFunction(nil, destination.(state.UserAccountHandler), vmInput)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-	_, _ = nftTransferSenderShard.accounts.Commit()
+	_ = nftTransferDestinationShard.accounts.SaveAccount(destination)
+	_, _ = nftTransferDestinationShard.accounts.Commit()
 
 	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
 	require.Nil(t, err)
