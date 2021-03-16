@@ -3926,6 +3926,11 @@ func TestStakingValidatorSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 
 	assert.Equal(t, totalStake.Bytes(), vmOutput.ReturnData[0])
 	assert.Equal(t, totalStake.Bytes(), vmOutput.ReturnData[1])
+
+	eei.output = make([][]byte, 0)
+	callFunctionAndCheckResult(t, "getTotalStaked", sc, caller, [][]byte{caller}, big.NewInt(0), vmcommon.Ok)
+	vmOutput = eei.CreateVMOutput()
+	assert.Equal(t, totalStake.String(), string(vmOutput.ReturnData[0]))
 }
 
 func TestMarshalingBetweenValidatorV1AndValidatorV2(t *testing.T) {
