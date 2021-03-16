@@ -57,52 +57,24 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send token issue
-
-	issueNFT(nodes, core.NonFungibleESDT)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(getTokenIdentifier(nodes))
-
-	//// /////// ----- set special role
-	setRole(nodes, nodes[1].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleNFTCreate))
-	setRole(nodes, nodes[1].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleNFTBurn))
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	nftMetaData := nftArguments{
-		name:       []byte("nft name"),
-		quantity:   1,
-		royalties:  9000,
-		hash:       []byte("hash"),
-		attributes: []byte("attr"),
-		uri:        [][]byte{[]byte("uri")},
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
 	}
-	createNFT([]byte(tokenIdentifier), nodes[1], nodes, &nftMetaData)
 
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	checkNftData(
+	tokenIdentifier, nftMetaData := prepareNFTWithRoles(
 		t,
-		nodes[1].OwnAccount.Address,
-		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
-		&nftMetaData,
-		false,
+		idxProposers,
+		nodes[1],
+		&round,
+		&nonce,
+		core.NonFungibleESDT,
+		1,
+		roles,
 	)
 
-	// increase quantity
+	// decrease quantity
 	nonceArg := hex.EncodeToString(big.NewInt(0).SetUint64(1).Bytes())
 	quantityToBurn := int64(1)
 	quantityToBurnArg := hex.EncodeToString(big.NewInt(quantityToBurn).Bytes())
@@ -118,19 +90,19 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
+	nrRoundsToPropagateMultiShard := 5
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	// the token data is removed from trie if the quantity is 0, so we should not find it
+	nftMetaData.quantity = 0
 	checkNftData(
 		t,
 		nodes[1].OwnAccount.Address,
 		nodes[1].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		true,
+		nftMetaData,
 	)
 }
 
@@ -176,52 +148,23 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send token issue
-
-	issueNFT(nodes, core.SemiFungibleESDT)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(getTokenIdentifier(nodes))
-
-	//// /////// ----- set special roles
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTAddQuantity),
 		[]byte(core.ESDTRoleNFTBurn),
 	}
-	setRoles(nodes, nodes[1].OwnAccount.Address, []byte(tokenIdentifier), roles)
 
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	nftMetaData := nftArguments{
-		name:       []byte("nft name"),
-		quantity:   5,
-		royalties:  9000,
-		hash:       []byte("hash"),
-		attributes: []byte("attr"),
-		uri:        [][]byte{[]byte("uri")},
-	}
-	createNFT([]byte(tokenIdentifier), nodes[1], nodes, &nftMetaData)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	checkNftData(
+	initialQuantity := int64(5)
+	tokenIdentifier, nftMetaData := prepareNFTWithRoles(
 		t,
-		nodes[1].OwnAccount.Address,
-		nodes[1].OwnAccount.Address,
-		nodes, tokenIdentifier,
-		&nftMetaData,
-		false,
+		nodes,
+		idxProposers,
+		nodes[1],
+		&round,
+		&nonce,
+		core.SemiFungibleESDT,
+		initialQuantity,
+		roles,
 	)
 
 	// increase quantity
@@ -240,7 +183,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
+	nrRoundsToPropagateMultiShard := 5
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -251,8 +194,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	time.Sleep(time.Second)
@@ -266,8 +208,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	// burn quantity
@@ -296,8 +237,7 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 }
 
@@ -343,49 +283,20 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send token issue
-
-	issueNFT(nodes, core.NonFungibleESDT)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(getTokenIdentifier(nodes))
-
-	//// /////// ----- set special role
-	setRole(nodes, nodes[1].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleNFTCreate))
-	setRole(nodes, nodes[1].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleNFTBurn))
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	nftMetaData := nftArguments{
-		name:       []byte("nft name"),
-		quantity:   1,
-		royalties:  9000,
-		hash:       []byte("hash"),
-		attributes: []byte("attr"),
-		uri:        [][]byte{[]byte("uri")},
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
 	}
-	createNFT([]byte(tokenIdentifier), nodes[1], nodes, &nftMetaData)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	checkNftData(
+	tokenIdentifier, nftMetaData := prepareNFTWithRoles(
 		t,
-		nodes[1].OwnAccount.Address,
-		nodes[1].OwnAccount.Address,
 		nodes,
-		tokenIdentifier,
-		&nftMetaData,
-		false,
+		idxProposers,
+		nodes[1],
+		&round,
+		&nonce,
+		core.NonFungibleESDT,
+		1,
+		roles,
 	)
 
 	// transfer
@@ -415,7 +326,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
+	nrRoundsToPropagateMultiShard := 5
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -426,8 +337,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		nodeInSameShard.OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	// check that the creator doesn't has the token data in trie anymore
@@ -438,8 +348,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 		nodes[1].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		true,
+		nftMetaData,
 	)
 }
 
@@ -485,12 +394,8 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	///////////------- send token issue
-
-	issueNFT(nodes, core.SemiFungibleESDT)
-
-	// get a node from the shard
-	var nodeInDifferentShard = nodes[1]
+	// get a node from a different shard
+	var nodeInDifferentShard = nodes[0]
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != nodes[0].ShardCoordinator.SelfId() {
 			nodeInDifferentShard = node
@@ -498,49 +403,23 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(getTokenIdentifier(nodes))
-
-	//// /////// ----- set special roles
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTAddQuantity),
 		[]byte(core.ESDTRoleNFTBurn),
 	}
-	setRoles(nodes, nodeInDifferentShard.OwnAccount.Address, []byte(tokenIdentifier), roles)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
 
 	initialQuantity := int64(5)
-	nftMetaData := nftArguments{
-		name:       []byte("nft name"),
-		quantity:   initialQuantity,
-		royalties:  9000,
-		hash:       []byte("hash"),
-		attributes: []byte("attr"),
-		uri:        [][]byte{[]byte("uri")},
-	}
-	createNFT([]byte(tokenIdentifier), nodeInDifferentShard, nodes, &nftMetaData)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	checkNftData(
+	tokenIdentifier, nftMetaData := prepareNFTWithRoles(
 		t,
-		nodeInDifferentShard.OwnAccount.Address,
-		nodeInDifferentShard.OwnAccount.Address,
-		nodes, tokenIdentifier,
-		&nftMetaData,
-		false,
+		nodes,
+		idxProposers,
+		nodeInDifferentShard,
+		&round,
+		&nonce,
+		core.SemiFungibleESDT,
+		initialQuantity,
+		roles,
 	)
 
 	// increase quantity
@@ -559,7 +438,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
+	nrRoundsToPropagateMultiShard := 5
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -570,8 +449,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	time.Sleep(time.Second)
@@ -585,8 +463,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	// transfer
@@ -615,8 +492,7 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodeInDifferentShard.OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
 
 	nftMetaData.quantity = quantityToTransfer
@@ -626,9 +502,62 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 		nodes[0].OwnAccount.Address,
 		nodes,
 		tokenIdentifier,
-		&nftMetaData,
-		false,
+		nftMetaData,
 	)
+}
+
+func prepareNFTWithRoles(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	idxProposers []int,
+	nftCreator *integrationTests.TestProcessorNode,
+	round *uint64,
+	nonce *uint64,
+	esdtType string,
+	quantity int64,
+	roles [][]byte) (string, *nftArguments) {
+	issueNFT(nodes, esdtType)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 5
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(getTokenIdentifier(nodes))
+
+	//// /////// ----- set special roles
+	setRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard = 5
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	time.Sleep(time.Second)
+
+	nftMetaData := nftArguments{
+		name:       []byte("nft name"),
+		quantity:   quantity,
+		royalties:  9000,
+		hash:       []byte("hash"),
+		attributes: []byte("attr"),
+		uri:        [][]byte{[]byte("uri")},
+	}
+	createNFT([]byte(tokenIdentifier), nftCreator, nodes, &nftMetaData)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard = 5
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkNftData(
+		t,
+		nftCreator.OwnAccount.Address,
+		nftCreator.OwnAccount.Address,
+		nodes,
+		tokenIdentifier,
+		&nftMetaData,
+	)
+
+	return tokenIdentifier, &nftMetaData
 }
 
 func issueNFT(nodes []*integrationTests.TestProcessorNode, esdtType string) {
@@ -681,13 +610,12 @@ func checkNftData(
 	nodes []*integrationTests.TestProcessorNode,
 	tokenName string,
 	args *nftArguments,
-	shouldNotFound bool,
 ) {
 	tokenIdentifierPlusNonce := []byte(tokenName)
 	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, big.NewInt(0).SetUint64(1).Bytes()...)
 	esdtData := getESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
 
-	if shouldNotFound {
+	if args.quantity == 0 {
 		require.Nil(t, esdtData.TokenMetaData)
 		return
 	}
