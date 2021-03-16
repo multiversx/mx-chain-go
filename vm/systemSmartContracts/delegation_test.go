@@ -2052,6 +2052,117 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFundsAsOwner(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 }
 
+func TestDelegationSystemSC_ExecuteUnDelegateMultipleTimesSameAndDiffEpochAndWithdraw(t *testing.T) {
+	t.Parallel()
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
+	thirdFundKey := append([]byte(fundKeyPrefix), []byte{3}...)
+	args := createMockArgumentsForDelegation()
+	currentEpoch := uint32(10)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriodInEpochs = 10
+	addValidatorAndStakingScToVmContext(eei)
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{10}})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+	})
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		MaxDelegationCap:            big.NewInt(0),
+		InitialOwnerFunds:           big.NewInt(0),
+		AutomaticActivation:         false,
+		ChangeableServiceFee:        false,
+		CreatedNonce:                0,
+		UnBondPeriodInEpochs:        args.StakingSCConfig.UnBondPeriodInEpochs,
+		CheckCapOnReDelegateRewards: false,
+	})
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 10})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+
+	for i := 0; i < 5; i++ {
+		output := d.Execute(vmInput)
+		assert.Equal(t, vmcommon.Ok, output)
+	}
+	currentEpoch += 1
+	for i := 0; i < 5; i++ {
+		output := d.Execute(vmInput)
+		assert.Equal(t, vmcommon.Ok, output)
+	}
+
+	dFund, _ := d.getFund(fundKey)
+	assert.Nil(t, dFund)
+
+	dFund, _ = d.getFund(nextFundKey)
+	assert.Equal(t, big.NewInt(50), dFund.Value)
+	assert.Equal(t, currentEpoch-1, dFund.Epoch)
+	assert.Equal(t, unStaked, dFund.Type)
+	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
+
+	dFund, _ = d.getFund(thirdFundKey)
+	assert.Equal(t, big.NewInt(50), dFund.Value)
+	assert.Equal(t, currentEpoch, dFund.Epoch)
+	assert.Equal(t, unStaked, dFund.Type)
+	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
+
+	globalFund, _ := d.getGlobalFundData()
+	assert.Equal(t, big.NewInt(0), globalFund.TotalActive)
+	assert.Equal(t, big.NewInt(100), globalFund.TotalUnStaked)
+
+	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, 2, len(dData.UnStakedFunds))
+	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
+	assert.Equal(t, thirdFundKey, dData.UnStakedFunds[1])
+
+	currentEpoch += d.unBondPeriodInEpochs - 1
+	vmInput.Function = "withdraw"
+	vmInput.Arguments = [][]byte{}
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	_, dData, _ = d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, 1, len(dData.UnStakedFunds))
+	assert.Equal(t, thirdFundKey, dData.UnStakedFunds[0])
+
+	dFund, _ = d.getFund(thirdFundKey)
+	assert.Equal(t, big.NewInt(50), dFund.Value)
+	assert.Equal(t, currentEpoch-d.unBondPeriodInEpochs+1, dFund.Epoch)
+	assert.Equal(t, unStaked, dFund.Type)
+	assert.Equal(t, vmInput.CallerAddr, dFund.Address)
+
+	currentEpoch += 1
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	isNew, _, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.True(t, isNew)
+}
+
 func TestDelegationSystemSC_ExecuteWithdrawUserErrors(t *testing.T) {
 	t.Parallel()
 
