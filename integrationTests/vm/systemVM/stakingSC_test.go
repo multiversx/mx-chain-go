@@ -39,7 +39,7 @@ func saveDelegationManagerConfig(nodes []*integrationTests.TestProcessorNode) {
 	}
 }
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -112,6 +112,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
+
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -138,7 +144,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	verifyUnbound(t, nodes)
 }
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -239,6 +245,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
 
 	/////////----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)

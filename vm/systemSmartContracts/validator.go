@@ -34,6 +34,7 @@ const (
 type validatorSC struct {
 	eei                      vm.SystemEI
 	unBondPeriod             uint64
+	unBondPeriodInEpochs     uint32
 	sigVerifier              vm.MessageSignVerifier
 	baseConfig               ValidatorConfig
 	stakingV2Epoch           uint32
@@ -138,6 +139,7 @@ func NewValidatorSmartContract(
 	reg := &validatorSC{
 		eei:                      args.Eei,
 		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
 		sigVerifier:              args.SigVerifier,
 		baseConfig:               baseConfig,
 		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
@@ -1153,7 +1155,7 @@ func (v *validatorSC) processUnStakeTokensFromNodes(
 	registrationData *ValidatorDataV2,
 	validatorConfig ValidatorConfig,
 	numNodes uint64,
-	unStakeNonce uint64,
+	unStakedEpoch uint32,
 ) vmcommon.ReturnCode {
 	if numNodes == 0 {
 		return vmcommon.Ok
@@ -1163,7 +1165,7 @@ func (v *validatorSC) processUnStakeTokensFromNodes(
 		unStakeFromNodes.Set(registrationData.TotalStakeValue)
 	}
 
-	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakeNonce)
+	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakedEpoch)
 }
 
 // This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
@@ -1196,7 +1198,7 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentNonce())
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentEpoch())
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1505,11 +1507,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	unStakedNonce := v.eei.BlockChainHook().CurrentNonce()
+	unStakedEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	if registrationData.NumRegistered == 0 {
-		unStakedNonce = 0
+		unStakedEpoch = 0
 	}
-	returnCode = v.processUnStakeValue(registrationData, unStakeValue, unStakedNonce)
+	returnCode = v.processUnStakeValue(registrationData, unStakeValue, unStakedEpoch)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1542,7 +1544,7 @@ func (v *validatorSC) getMinUnStakeTokensValue() (*big.Int, error) {
 func (v *validatorSC) processUnStakeValue(
 	registrationData *ValidatorDataV2,
 	unStakeValue *big.Int,
-	unStakedNonce uint64,
+	unStakedEpoch uint32,
 ) vmcommon.ReturnCode {
 
 	minUnstakeValue, err := v.getMinUnStakeTokensValue()
@@ -1564,13 +1566,21 @@ func (v *validatorSC) processUnStakeValue(
 
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, unStakeValue)
 	registrationData.TotalUnstaked.Add(registrationData.TotalUnstaked, unStakeValue)
-	registrationData.UnstakedInfo = append(
-		registrationData.UnstakedInfo,
-		&UnstakedValue{
-			UnstakedNonce: unStakedNonce,
-			UnstakedValue: unStakeValue,
-		},
-	)
+
+	lenUnStakedInfo := len(registrationData.UnstakedInfo)
+	if lenUnStakedInfo > 0 && registrationData.UnstakedInfo[lenUnStakedInfo-1].UnstakedEpoch == unStakedEpoch {
+		lastUnstakedInfo := registrationData.UnstakedInfo[lenUnStakedInfo-1]
+		lastUnstakedInfo.UnstakedValue.Add(lastUnstakedInfo.UnstakedValue, unStakeValue)
+	} else {
+		registrationData.UnstakedInfo = append(
+			registrationData.UnstakedInfo,
+			&UnstakedValue{
+				UnstakedEpoch: unStakedEpoch,
+				UnstakedValue: unStakeValue,
+			},
+		)
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1610,17 +1620,17 @@ func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vm
 		return returnCode
 	}
 
-	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	for _, unStakedValue := range registrationData.UnstakedInfo {
 		v.eei.Finish(unStakedValue.UnstakedValue.Bytes())
-		elapsedNonce := currentNonce - unStakedValue.UnstakedNonce
-		if elapsedNonce >= v.unBondPeriod {
+		elapsedEpoch := currentEpoch - unStakedValue.UnstakedEpoch
+		if elapsedEpoch >= v.unBondPeriodInEpochs {
 			v.eei.Finish(zero.Bytes())
 			continue
 		}
 
-		remainingNonce := v.unBondPeriod - elapsedNonce
-		v.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+		remainingEpoch := v.unBondPeriodInEpochs - elapsedEpoch
+		v.eei.Finish(big.NewInt(int64(remainingEpoch)).Bytes())
 	}
 	return vmcommon.Ok
 }
@@ -1687,7 +1697,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
 	var unstakedValue *UnstakedValue
-	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	totalUnBond := big.NewInt(0)
 	index := 0
 
@@ -1695,7 +1705,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 
 	splitUnStakedInfo := &UnstakedValue{UnstakedValue: big.NewInt(0)}
 	for _, unstakedValue = range registrationData.UnstakedInfo {
-		canUnbond := currentNonce-unstakedValue.UnstakedNonce >= v.unBondPeriod
+		canUnbond := currentEpoch-unstakedValue.UnstakedEpoch >= v.unBondPeriodInEpochs
 		if !canUnbond {
 			break
 		}
@@ -1704,7 +1714,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 		index++
 		if stopAtUnBondValue && totalUnBond.Cmp(valueToUnBond) >= 0 {
 			splitUnStakedInfo.UnstakedValue.Sub(totalUnBond, valueToUnBond)
-			splitUnStakedInfo.UnstakedNonce = unstakedValue.UnstakedNonce
+			splitUnStakedInfo.UnstakedEpoch = unstakedValue.UnstakedEpoch
 			totalUnBond.Set(valueToUnBond)
 			break
 		}

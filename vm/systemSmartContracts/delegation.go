@@ -26,6 +26,7 @@ const serviceFeeKey = "serviceFee"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
+const maxNumOfUnStakedFunds = 50
 
 const (
 	active   = uint32(0)
@@ -45,7 +46,7 @@ type delegation struct {
 	enableDelegationEpoch  uint32
 	minServiceFee          uint64
 	maxServiceFee          uint64
-	unBondPeriod           uint64
+	unBondPeriodInEpochs   uint32
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
@@ -111,7 +112,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
 		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
 		sigVerifier:            args.SigVerifier,
-		unBondPeriod:           args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
 		endOfEpochAddr:         args.EndOfEpochAddress,
 		stakingV2EnableEpoch:   args.StakingSCConfig.StakingV2Epoch,
 		stakingV2Enabled:       atomic.Flag{},
@@ -273,7 +274,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		AutomaticActivation:         false,
 		ChangeableServiceFee:        true,
 		CreatedNonce:                d.eei.BlockChainHook().CurrentNonce(),
-		UnBondPeriod:                d.unBondPeriod,
+		UnBondPeriodInEpochs:        d.unBondPeriodInEpochs,
 		CheckCapOnReDelegateRewards: true,
 	}
 
@@ -290,8 +291,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	globalFund := &GlobalFundData{
-		ActiveFunds:   make([][]byte, 0),
-		UnStakedFunds: make([][]byte, 0),
 		TotalActive:   big.NewInt(0),
 		TotalUnStaked: big.NewInt(0),
 	}
@@ -1044,7 +1043,6 @@ func (d *delegation) finishDelegateUser(
 		}
 
 		delegator.ActiveFund = fundKey
-		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
 			dStatus.NumUsers++
 		}
@@ -1272,27 +1270,21 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	unStakedFundKey, err := d.createAndSaveNextKeyFund(args.CallerAddr, actualUserUnStake, unStaked)
+	err = d.addNewUnStakedFund(args.CallerAddr, delegator, actualUserUnStake)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, unStakedFundKey)
 	globalFund.TotalActive.Sub(globalFund.TotalActive, actualUserUnStake)
 	globalFund.TotalUnStaked.Add(globalFund.TotalUnStaked, actualUserUnStake)
-	delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
+
+	if len(delegator.UnStakedFunds) > maxNumOfUnStakedFunds {
+		d.eei.AddReturnMessage("number of unDelegate limit reached, withDraw required")
+		return vmcommon.UserError
+	}
 
 	if activeFund.Value.Cmp(zero) == 0 {
-		for i, fundKey := range globalFund.ActiveFunds {
-			if bytes.Equal(delegator.ActiveFund, fundKey) {
-				copy(globalFund.ActiveFunds[i:], globalFund.ActiveFunds[i+1:])
-				lenKeys := len(globalFund.ActiveFunds)
-				globalFund.ActiveFunds[lenKeys-1] = nil
-				globalFund.ActiveFunds = globalFund.ActiveFunds[:lenKeys-1]
-				break
-			}
-		}
 		delegator.ActiveFund = nil
 	}
 
@@ -1309,6 +1301,33 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) addNewUnStakedFund(
+	delegatorAddress []byte,
+	delegator *DelegatorData,
+	unStakeValue *big.Int,
+) error {
+	lenUnStakedFunds := len(delegator.UnStakedFunds)
+
+	if lenUnStakedFunds > 0 {
+		lastUnStakedFund, err := d.getFund(delegator.UnStakedFunds[lenUnStakedFunds-1])
+		if err != nil {
+			return err
+		}
+		if lastUnStakedFund.Epoch == d.eei.BlockChainHook().CurrentEpoch() {
+			lastUnStakedFund.Value.Add(lastUnStakedFund.Value, unStakeValue)
+			return d.saveFund(delegator.UnStakedFunds[lenUnStakedFunds-1], lastUnStakedFund)
+		}
+	}
+
+	unStakedFundKey, err := d.createAndSaveNextKeyFund(delegatorAddress, unStakeValue, unStaked)
+	if err != nil {
+		return err
+	}
+	delegator.UnStakedFunds = append(delegator.UnStakedFunds, unStakedFundKey)
+
+	return nil
 }
 
 func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1522,33 +1541,20 @@ func (d *delegation) executeOnValidatorSCWithValueInArgs(
 	return vmOutput.ReturnData, vmcommon.Ok
 }
 
-func (d *delegation) getUnBondableTokens(delegator *DelegatorData, unBondPeriod uint64) (*big.Int, error) {
+func (d *delegation) getUnBondableTokens(delegator *DelegatorData, unBondPeriodInEpochs uint32) (*big.Int, error) {
 	totalUnBondable := big.NewInt(0)
-	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for _, fundKey := range delegator.UnStakedFunds {
 		fund, err := d.getFund(fundKey)
 		if err != nil {
 			return nil, err
 		}
-		if currentNonce-fund.Nonce < unBondPeriod {
+		if currentEpoch-fund.Epoch < unBondPeriodInEpochs {
 			continue
 		}
 		totalUnBondable.Add(totalUnBondable, fund.Value)
 	}
 	return totalUnBondable, nil
-}
-
-func (d *delegation) deleteUnStakedFund(fundKey []byte, globalFund *GlobalFundData) {
-	d.eei.SetStorage(fundKey, nil)
-	for i, globalKey := range globalFund.UnStakedFunds {
-		if bytes.Equal(fundKey, globalKey) {
-			copy(globalFund.UnStakedFunds[i:], globalFund.UnStakedFunds[i+1:])
-			lenKeys := len(globalFund.UnStakedFunds)
-			globalFund.UnStakedFunds[lenKeys-1] = nil
-			globalFund.UnStakedFunds = globalFund.UnStakedFunds[:lenKeys-1]
-			break
-		}
-	}
 }
 
 func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1586,7 +1592,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriod)
+	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriodInEpochs)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1612,7 +1618,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	totalUnBonded := big.NewInt(0)
 	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
@@ -1622,7 +1628,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
 		}
-		if currentNonce-fund.Nonce < dConfig.UnBondPeriod {
+		if currentEpoch-fund.Epoch < dConfig.UnBondPeriodInEpochs {
 			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex])
 			continue
 		}
@@ -1638,7 +1644,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
-		d.deleteUnStakedFund(fundKey, globalFund)
+		d.eei.SetStorage(fundKey, nil)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 
@@ -1925,7 +1931,7 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	d.eei.Finish([]byte(changeableServiceFee))
 	d.eei.Finish([]byte(checkCapOnReDelegate))
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.CreatedNonce).Bytes())
-	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.UnBondPeriod).Bytes())
+	d.eei.Finish(big.NewInt(0).SetUint64(uint64(delegationConfig.UnBondPeriodInEpochs)).Bytes())
 
 	return vmcommon.Ok
 }
@@ -2021,7 +2027,7 @@ func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriod)
+	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriodInEpochs)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2043,7 +2049,7 @@ func (d *delegation) getUserUnDelegatedList(args *vmcommon.ContractCallInput) vm
 		return vmcommon.UserError
 	}
 
-	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	var fund *Fund
 	for _, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
@@ -2053,14 +2059,14 @@ func (d *delegation) getUserUnDelegatedList(args *vmcommon.ContractCallInput) vm
 		}
 
 		d.eei.Finish(fund.Value.Bytes())
-		elapsedNonce := currentNonce - fund.Nonce
-		if elapsedNonce >= dConfig.UnBondPeriod {
+		elapsedEpoch := currentEpoch - fund.Epoch
+		if elapsedEpoch >= dConfig.UnBondPeriodInEpochs {
 			d.eei.Finish(zero.Bytes())
 			continue
 		}
 
-		remainingNonce := dConfig.UnBondPeriod - elapsedNonce
-		d.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+		remainingEpoch := dConfig.UnBondPeriodInEpochs - elapsedEpoch
+		d.eei.Finish(big.NewInt(0).SetUint64(uint64(remainingEpoch)).Bytes())
 	}
 
 	return vmcommon.Ok
@@ -2131,7 +2137,7 @@ func (d *delegation) getDelegatorFundsData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriod)
+	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriodInEpochs)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2359,21 +2365,12 @@ func (d *delegation) createNextKeyFund(address []byte, value *big.Int, fundType 
 	fund := &Fund{
 		Value:   big.NewInt(0).Set(value),
 		Address: address,
-		Nonce:   d.eei.BlockChainHook().CurrentNonce(),
+		Epoch:   d.eei.BlockChainHook().CurrentEpoch(),
 		Type:    fundType,
 	}
 
 	fundKey := append([]byte(fundKeyPrefix), nextKey.Bytes()...)
 	return fundKey, fund
-}
-
-func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey []byte, fundType uint32) {
-	switch fundType {
-	case active:
-		globalFund.ActiveFunds = append(globalFund.ActiveFunds, fundKey)
-	case unStaked:
-		globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, fundKey)
-	}
 }
 
 func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {
