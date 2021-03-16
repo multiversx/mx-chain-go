@@ -428,12 +428,12 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, err
 	}
 
-	newClosableHttpServer, err := upgradableHttpServer.UpdateFacade(ef)
+	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
 		return nil, err
 	}
 
-	go newClosableHttpServer.Start()
+	go upgradableHttpServer.GetHttpServer().Start()
 
 	log.Debug("updated node facade and restarted the API services")
 
@@ -455,6 +455,11 @@ func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHan
 	}
 
 	httpSever, err := httpServerWrapper.CreateHttpServer()
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpServerWrapper.SetHttpServer(httpSever)
 	if err != nil {
 		return nil, err
 	}

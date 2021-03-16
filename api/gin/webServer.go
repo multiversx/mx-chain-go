@@ -9,6 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
+	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/gin/disabled"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -64,21 +65,17 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
-func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) (shared.HttpServerCloser, error) {
+func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) error {
 	ws.Lock()
 	ws.facade = facade
 	ws.Unlock()
 
 	closableWebServer, err := ws.CreateHttpServer()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	ws.Lock()
-	ws.httpServer = closableWebServer
-	ws.Unlock()
-
-	return closableWebServer, nil
+	return ws.SetHttpServer(closableWebServer)
 }
 
 // CreateHttpServer will create a new instance of http.Server and populate it with all the routes
@@ -134,9 +131,20 @@ func (ws *webServer) CreateHttpServer() (shared.HttpServerCloser, error) {
 		"SameSourceResetIntervalInSec", ws.antiFloodConfig.SameSourceResetIntervalInSec,
 	)
 
-	ws.httpServer = wrappedServer
-
 	return wrappedServer, nil
+}
+
+// SetHttpServer will set the inner http server to the provided one
+func (ws *webServer) SetHttpServer(httpServer shared.HttpServerCloser) error {
+	if check.IfNil(httpServer) {
+		return errors.ErrNilHttpServer
+	}
+
+	ws.Lock()
+	ws.httpServer = httpServer
+	ws.Unlock()
+
+	return nil
 }
 
 // GetHttpServer returns the closable http server
