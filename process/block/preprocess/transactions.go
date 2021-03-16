@@ -497,7 +497,7 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
-	calculatedMiniBlocks, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
+	calculatedMiniBlocks, _, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		isShardStuckFalse,
 		isMaxBlockSizeReachedFalse,
@@ -520,6 +520,7 @@ func (txs *transactions) processTxsFromMe(
 		SortTransactionsBySenderAndNonce(scheduledTxsFromMe)
 
 		haveAdditionalTime := getAdditionalTimeFunc()
+		mapSCTxs := make(map[string]struct{})
 		scheduledMiniBlocks := txs.createScheduledMiniBlocks(
 			haveTime,
 			haveAdditionalTime,
