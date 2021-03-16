@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
@@ -140,6 +141,7 @@ func createESDTToken(
 		TokenMetaData: &esdt.MetaData{
 			URIs:  [][]byte{[]byte("uri")},
 			Nonce: nonce,
+			Hash:  []byte("NFT hash"),
 		},
 	}
 	buff, _ := marshalizer.Marshal(esdtData)
@@ -270,7 +272,7 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionInvalidArgumentsShouldErr(t *test
 	assert.Equal(t, process.ErrInvalidArguments, err)
 }
 
-func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShard(t *testing.T) {
+func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShardWithScCall(t *testing.T) {
 	t.Parallel()
 
 	nftTransfer := createNftTransferWithMockArguments(0, 1, &mock.PauseHandlerStub{})
@@ -281,7 +283,8 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShard(t *testing.T) {
 			},
 		})
 	senderAddress := bytes.Repeat([]byte{2}, 32)
-	destinationAddress := bytes.Repeat([]byte{1}, 32)
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	destinationAddress, _ := pkConv.Decode("erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd")
 	sender, err := nftTransfer.accounts.LoadAccount(senderAddress)
 	require.Nil(t, err)
 	destination, err := nftTransfer.accounts.LoadAccount(destinationAddress)
@@ -302,8 +305,11 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShard(t *testing.T) {
 	destination, err = nftTransfer.accounts.LoadAccount(destinationAddress)
 	require.Nil(t, err)
 
+	scCallFunctionAsHex := hex.EncodeToString([]byte("functionToCall"))
+	scCallArg := hex.EncodeToString([]byte("arg"))
 	nonceBytes := big.NewInt(int64(tokenNonce)).Bytes()
 	quantityBytes := big.NewInt(1).Bytes()
+	scCallArgs := [][]byte{[]byte(scCallFunctionAsHex), []byte(scCallArg)}
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallValue:  big.NewInt(0),
@@ -312,6 +318,7 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShard(t *testing.T) {
 		},
 		RecipientAddr: senderAddress,
 	}
+	vmInput.Arguments = append(vmInput.Arguments, scCallArgs...)
 
 	vmOutput, err := nftTransfer.ProcessBuiltinFunction(sender.(state.UserAccountHandler), destination.(state.UserAccountHandler), vmInput)
 	require.Nil(t, err)
@@ -328,9 +335,104 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShard(t *testing.T) {
 
 	testNFTTokenShouldExist(t, nftTransfer.marshalizer, sender, tokenName, tokenNonce, big.NewInt(2)) //3 initial - 1 transferred
 	testNFTTokenShouldExist(t, nftTransfer.marshalizer, destination, tokenName, tokenNonce, big.NewInt(1))
+	funcName, args := extractScResultsFromVmOutput(t, vmOutput)
+	assert.Equal(t, scCallFunctionAsHex, funcName)
+	require.Equal(t, 1, len(args))
+	require.Equal(t, []byte(scCallArg), args[0])
 }
 
-func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShards(t *testing.T) {
+func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationDoesNotHoldingNFTWithSCCall(t *testing.T) {
+	t.Parallel()
+
+	payableHandler := &mock.PayableHandlerStub{
+		IsPayableCalled: func(address []byte) (bool, error) {
+			return true, nil
+		},
+	}
+
+	nftTransferSenderShard := createNftTransferWithMockArguments(1, 2, &mock.PauseHandlerStub{})
+	_ = nftTransferSenderShard.setPayableHandler(payableHandler)
+
+	nftTransferDestinationShard := createNftTransferWithMockArguments(0, 2, &mock.PauseHandlerStub{})
+	_ = nftTransferDestinationShard.setPayableHandler(payableHandler)
+
+	senderAddress := bytes.Repeat([]byte{1}, 32)
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	destinationAddress, _ := pkConv.Decode("erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd")
+	sender, err := nftTransferSenderShard.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	tokenName := []byte("token")
+	tokenNonce := uint64(1)
+
+	initialTokens := big.NewInt(3)
+	createESDTToken(tokenName, core.NonFungible, tokenNonce, initialTokens, nftTransferSenderShard.marshalizer, sender.(state.UserAccountHandler))
+	_ = nftTransferSenderShard.accounts.SaveAccount(sender)
+	_, _ = nftTransferSenderShard.accounts.Commit()
+
+	//reload sender account
+	sender, err = nftTransferSenderShard.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	nonceBytes := big.NewInt(int64(tokenNonce)).Bytes()
+	quantityBytes := big.NewInt(1).Bytes()
+	scCallFunctionAsHex := hex.EncodeToString([]byte("functionToCall"))
+	scCallArg := hex.EncodeToString([]byte("arg"))
+	scCallArgs := [][]byte{[]byte(scCallFunctionAsHex), []byte(scCallArg)}
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:  big.NewInt(0),
+			CallerAddr: senderAddress,
+			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+		},
+		RecipientAddr: senderAddress,
+	}
+	vmInput.Arguments = append(vmInput.Arguments, scCallArgs...)
+
+	vmOutput, err := nftTransferSenderShard.ProcessBuiltinFunction(sender.(state.UserAccountHandler), nil, vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	_ = nftTransferSenderShard.accounts.SaveAccount(sender)
+	_, _ = nftTransferSenderShard.accounts.Commit()
+
+	//reload sender account
+	sender, err = nftTransferSenderShard.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	testNFTTokenShouldExist(t, nftTransferSenderShard.marshalizer, sender, tokenName, tokenNonce, big.NewInt(2)) //3 initial - 1 transferred
+
+	funcName, args := extractScResultsFromVmOutput(t, vmOutput)
+	log.Info("executing on destination shard", "function", funcName, "args", args)
+
+	destination, err := nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
+	require.Nil(t, err)
+
+	vmInput = &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:  big.NewInt(0),
+			CallerAddr: senderAddress,
+			Arguments:  args,
+		},
+		RecipientAddr: destinationAddress,
+	}
+
+	vmOutput, err = nftTransferDestinationShard.ProcessBuiltinFunction(nil, destination.(state.UserAccountHandler), vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	_, _ = nftTransferSenderShard.accounts.Commit()
+
+	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
+	require.Nil(t, err)
+
+	testNFTTokenShouldExist(t, nftTransferDestinationShard.marshalizer, destination, tokenName, tokenNonce, big.NewInt(1))
+	funcName, args = extractScResultsFromVmOutput(t, vmOutput)
+	assert.Equal(t, scCallFunctionAsHex, funcName)
+	require.Equal(t, 1, len(args))
+	require.Equal(t, []byte(scCallArg), args[0])
+}
+
+func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationHoldsNFT(t *testing.T) {
 	t.Parallel()
 
 	payableHandler := &mock.PayableHandlerStub{
@@ -389,7 +491,14 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShards(t *testing.T) {
 	funcName, args := extractScResultsFromVmOutput(t, vmOutput)
 	log.Info("executing on destination shard", "function", funcName, "args", args)
 
+	destinationNumTokens := big.NewInt(1000)
 	destination, err := nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
+	require.Nil(t, err)
+	createESDTToken(tokenName, core.NonFungible, tokenNonce, destinationNumTokens, nftTransferDestinationShard.marshalizer, destination.(state.UserAccountHandler))
+	_ = nftTransferDestinationShard.accounts.SaveAccount(destination)
+	_, _ = nftTransferDestinationShard.accounts.Commit()
+
+	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
 	require.Nil(t, err)
 
 	vmInput = &vmcommon.ContractCallInput{
@@ -409,7 +518,8 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShards(t *testing.T) {
 	destination, err = nftTransferDestinationShard.accounts.LoadAccount(destinationAddress)
 	require.Nil(t, err)
 
-	testNFTTokenShouldExist(t, nftTransferDestinationShard.marshalizer, destination, tokenName, tokenNonce, big.NewInt(1))
+	expected := big.NewInt(0).Add(destinationNumTokens, big.NewInt(1))
+	testNFTTokenShouldExist(t, nftTransferDestinationShard.marshalizer, destination, tokenName, tokenNonce, expected)
 }
 
 func extractScResultsFromVmOutput(t testing.TB, vmOutput *vmcommon.VMOutput) (string, [][]byte) {

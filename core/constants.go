@@ -537,8 +537,6 @@ const (
 	Fungible ESDTType = iota
 	// NonFungible defines the token type for ESDT non fungible tokens
 	NonFungible
-	// SemiFungible defines the token type for ESDT semi fungible tokens
-	SemiFungible
 )
 
 // FungibleESDT defines the string for the token type of fungible ESDT
