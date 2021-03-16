@@ -91,4 +91,9 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	container, err := factory.CreateBuiltInFunctionContainer()
 	assert.Nil(t, err)
 	assert.Equal(t, len(container.Keys()), 20)
+
+	err = SetPayableHandler(container, &mock.BlockChainHookHandlerMock{})
+	assert.Nil(t, err)
+
+	assert.False(t, factory.IsInterfaceNil())
 }
