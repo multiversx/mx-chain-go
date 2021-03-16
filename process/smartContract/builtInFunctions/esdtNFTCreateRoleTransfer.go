@@ -78,6 +78,7 @@ func (e *esdtNFTCreateRoleTransfer) ProcessBuiltinFunction(
 		if errExec != nil {
 			return nil, errExec
 		}
+		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		vmOutput.OutputAccounts[string(outAcc.Address)] = outAcc
 	} else {
 		err = e.executeTransferNFTCreateChangeAtNextOwner(acntDst, vmInput)
@@ -214,9 +215,6 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtNextOwner(
 	acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) error {
-	if check.IfNil(acntDst) {
-		return process.ErrNilUserAccount
-	}
 	if len(vmInput.Arguments) != 2 {
 		return process.ErrInvalidArguments
 	}
