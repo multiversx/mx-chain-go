@@ -1168,12 +1168,6 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	err = e.sendRoleChangeData(args.Arguments[0], args.Arguments[1], [][]byte{[]byte(core.ESDTRoleNFTCreate)}, core.BuiltInFunctionUnSetESDTRole)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
 	esdtTransferNFTCreateData := core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
 		hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[2])
 	err = e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)

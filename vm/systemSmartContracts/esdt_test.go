@@ -3040,9 +3040,9 @@ func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
 	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
 
 	vmInput.CallValue = big.NewInt(0)
-	vmInput.Arguments = [][]byte{{1}, {2}, {3}}
+	vmInput.Arguments = [][]byte{{1}, []byte("caller3"), {3}}
 	retCode = e.Execute(vmInput)
-	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 }
 
 func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
@@ -3053,7 +3053,7 @@ func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
-				Address: []byte("myAddress"),
+				Address: []byte("caller1"),
 				Roles:   [][]byte{[]byte(core.ESDTRoleLocalMint)},
 			},
 		},
@@ -3068,7 +3068,7 @@ func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
 
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("stopNFTCreate", [][]byte{[]byte("tokenID")})
+	vmInput := getDefaultVmInputForFunc("transferNFTCreateRole", [][]byte{[]byte("tokenID"), []byte("caller3"), []byte("caller22")})
 	vmInput.CallerAddr = []byte("caller2")
 	vmInput.CallValue = big.NewInt(0)
 
@@ -3079,12 +3079,20 @@ func TestEsdt_TransferNFTCreateCallErrors(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	token.TokenType = []byte(core.NonFungibleESDT)
-	token.NFTCreateStopped = true
+	token.TokenType = []byte(core.FungibleESDT)
+	token.CanTransferNFTCreateRole = true
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	token.NFTCreateStopped = false
+	token.TokenType = []byte(core.NonFungibleESDT)
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+
+	vmInput.Arguments[2] = vmInput.Arguments[1]
+	retCode = e.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
+
+	vmInput.Arguments[2] = []byte("caller2")
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }
@@ -3097,7 +3105,7 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
 			{
-				Address: []byte("myAddress"),
+				Address: []byte("caller3"),
 				Roles:   [][]byte{[]byte(core.ESDTRoleNFTCreate)},
 			},
 		},
@@ -3108,7 +3116,8 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 			return tokenBytes
 		},
 		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-			require.Equal(t, []byte("ESDTUnSetRole@746f6b656e4944@45534454526f6c654e4654437265617465"), input)
+			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@63616c6c657232"), input)
+			require.Equal(t, destination, []byte("caller3"))
 			return nil
 		},
 	}
@@ -3116,12 +3125,12 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("stopNFTCreate", [][]byte{[]byte("tokenID")})
+	vmInput := getDefaultVmInputForFunc("transferNFTCreateRole", [][]byte{[]byte("tokenID"), []byte("caller3"), []byte("caller2")})
 	vmInput.CallerAddr = token.OwnerAddress
 	vmInput.CallValue = big.NewInt(0)
 
 	token.TokenType = []byte(core.NonFungibleESDT)
-	token.NFTCreateStopped = false
+	token.CanTransferNFTCreateRole = true
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 }
