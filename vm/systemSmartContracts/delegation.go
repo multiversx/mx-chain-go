@@ -1280,7 +1280,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	globalFund.TotalUnStaked.Add(globalFund.TotalUnStaked, actualUserUnStake)
 
 	if len(delegator.UnStakedFunds) > maxUnStakedFunds {
-		d.eei.AddReturnMessage("number of unDelegate limit reach, withDraw required")
+		d.eei.AddReturnMessage("number of unDelegate limit reached, withDraw required")
 		return vmcommon.UserError
 	}
 
