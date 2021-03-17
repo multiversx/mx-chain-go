@@ -159,6 +159,11 @@ func (builder *txDataBuilder) CanBurn(prop bool) *txDataBuilder {
 	return builder.Str("canBurn").Bool(prop)
 }
 
+// CanTransferNFTCreateRole appends "canTransferNFTCreateRole" followed by the provided boolean value.
+func (builder *txDataBuilder) CanTransferNFTCreateRole(prop bool) *txDataBuilder {
+	return builder.Str("canTransferNFTCreateRole").Bool(prop)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (builder *txDataBuilder) IsInterfaceNil() bool {
 	return builder == nil
