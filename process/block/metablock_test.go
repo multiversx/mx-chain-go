@@ -721,8 +721,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
 	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
-
+	genesisHeader := &block.MetaBlock{Nonce: 0}
+	_ = blkc.SetGenesisHeader(genesisHeader)
+	_ = blkc.SetCurrentBlockHeader(genesisHeader)
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.Storage = store
 	dataComponents.BlockChain = blkc
@@ -831,6 +832,14 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		}, GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{Nonce: 0}
+		},
+	}
+
 	coreComponents.Hash = hasher
 	arguments := createMockMetaArguments(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -841,6 +850,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
