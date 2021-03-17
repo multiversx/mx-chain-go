@@ -723,7 +723,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	genesisHeader := &block.MetaBlock{Nonce: 0}
 	_ = blkc.SetGenesisHeader(genesisHeader)
-	_ = blkc.SetCurrentBlockHeader(genesisHeader)
+
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.Storage = store
 	dataComponents.BlockChain = blkc
@@ -835,8 +835,6 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	dataComponents.BlockChain = &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Nonce: 0}
-		}, GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{Nonce: 0}
 		},
 	}
 
