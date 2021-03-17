@@ -1016,7 +1016,13 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	valueToSendToSc := int64(1000)
 	txData.Clear().TransferESDT(tokenIdentifier, valueToSendToSc)
 	txData.Str("transfer_to_second_contract_rejected")
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(
+		tokenIssuer,
+		nodes,
+		big.NewInt(0),
+		firstScAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
@@ -1029,6 +1035,173 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 
 	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdentifier)
 	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
+}
+
+func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+	initialSupply := int64(10000000000)
+	issueTestToken(nodes, initialSupply)
+	tokenIssuer := nodes[0]
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
+
+	// deploy smart contracts
+
+	callerScCode := arwen.GetSCCode("./testdata/exec-on-dest-caller.wasm")
+	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxDataNonPayable(callerScCode),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(callerScAddress)
+	require.Nil(t, err)
+
+	receiverScCode := arwen.GetSCCode("./testdata/exec-on-dest-receiver.wasm")
+	receiverScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxDataNonPayable(receiverScCode)+"@"+
+			hex.EncodeToString([]byte(tokenIdentifier)),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(receiverScAddress)
+	require.Nil(t, err)
+
+	// set receiver address in caller contract | map[ticker] -> receiverAddress
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().
+		Func("setPoolAddress").
+		Str(tokenIdentifier).
+		Str(string(receiverScAddress))
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		callerScAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(callerScAddress)
+	require.Nil(t, err)
+
+	// issue 1:1 esdt:interestEsdt in receiver contract
+
+	txData = txDataBuilder.NewBuilder()
+	issueTokenSupply := big.NewInt(100000000) // 100 tokens
+	issueTokenDecimals := 6
+	issuePrice := big.NewInt(1000)
+	txData.Clear().
+		Func("issue").
+		Str(tokenIdentifier).
+		Str("token-name").
+		Str("L").
+		BigInt(issueTokenSupply).
+		Int(issueTokenDecimals)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		issuePrice,
+		receiverScAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+
+	// call caller sc with ESDTTransfer which will call the second sc with execute_on_dest_context
+	txData = txDataBuilder.NewBuilder()
+	valueToTransfer := int64(1000)
+	txData.Clear().
+		TransferESDT(tokenIdentifier, valueToTransfer).
+		Str("deposit_asset").
+		Str(string(callerScAddress))
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		callerScAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// no tokens received - should be int64(1000)
+	esdtData := getESDTTokenData(t, receiverScAddress, nodes, tokenIdentifier)
+	require.EqualValues(t, &esdt.ESDigitalToken{Value: nil}, esdtData)
+	require.NotEqualValues(t, big.NewInt(valueToTransfer), esdtData.Value)
+
+	// no tokens in caller contract
+	esdtData = getESDTTokenData(t, callerScAddress, nodes, tokenIdentifier)
+	require.EqualValues(t, &esdt.ESDigitalToken{}, esdtData)
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
