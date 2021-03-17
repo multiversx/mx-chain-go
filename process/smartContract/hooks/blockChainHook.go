@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -371,7 +372,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		}
 	}
 
-	if !check.IfNil(dstAccount) {
+	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
 			return nil, err
