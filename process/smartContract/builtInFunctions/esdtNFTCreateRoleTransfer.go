@@ -153,7 +153,8 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 	}
 	outTransfer := vmcommon.OutputTransfer{
 		Value: big.NewInt(0),
-		Data:  []byte(core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(nonce).Bytes())),
+		Data: []byte(core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
+			hex.EncodeToString(tokenID) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(nonce).Bytes())),
 	}
 	outAcc.OutputTransfers = append(outAcc.OutputTransfers, outTransfer)
 
