@@ -86,7 +86,7 @@ func (m *MetaBlock) SetSoftwareVersion(version []byte) {
 
 // SetAccumulatedFees sets the accumulated fees in the header
 func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
-	if m.AccumulatedFees  == nil{
+	if m.AccumulatedFees == nil {
 		m.AccumulatedFees = big.NewInt(0)
 	}
 	m.AccumulatedFees.Set(value)
@@ -94,7 +94,7 @@ func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 
 // SetAccumulatedFeesInEpoch sets the epoch accumulated fees in the header
 func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) {
-	if m.AccumulatedFeesInEpoch  == nil{
+	if m.AccumulatedFeesInEpoch == nil {
 		m.AccumulatedFeesInEpoch = big.NewInt(0)
 	}
 	m.AccumulatedFeesInEpoch.Set(value)
@@ -110,7 +110,7 @@ func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
 
 // SetDeveloperFees sets the developer fees in the header
 func (m *MetaBlock) SetDevFeesInEpoch(value *big.Int) {
-	if m.DevFeesInEpoch == nil{
+	if m.DevFeesInEpoch == nil {
 		m.DevFeesInEpoch = big.NewInt(0)
 	}
 	m.DevFeesInEpoch.Set(value)
@@ -300,8 +300,8 @@ func (m *MetaBlock) GetEpochStartHandler() data.EpochStartHandler {
 }
 
 // SetShardInfoHandlers -
-func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler){
-	if shardInfo == nil{
+func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) {
+	if shardInfo == nil {
 		m.ShardInfo = nil
 		return
 	}

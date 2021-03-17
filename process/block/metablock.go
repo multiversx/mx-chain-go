@@ -781,8 +781,8 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 		totalDevFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.DevFeesInEpoch)
 	}
 
-	metaHdr.AccumulatedFeesInEpoch = totalAccumulatedFeesInEpoch
-	metaHdr.DevFeesInEpoch = totalDevFeesInEpoch
+	metaHdr.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
+	metaHdr.DevFeesInEpoch.Set(totalDevFeesInEpoch)
 	economicsData, err := mp.epochEconomics.ComputeEndOfEpochEconomics(metaHdr)
 	if err != nil {
 		return err
@@ -1186,7 +1186,7 @@ func (mp *metaProcessor) CommitBlock(
 	lastHeader := mp.blockChain.GetCurrentBlockHeader()
 	lastMetaBlock, ok := lastHeader.(data.MetaHeaderHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		log.Warn("metaBlock.CommitBlock - nil current block header")
 	}
 	mp.updateState(lastMetaBlock)
 
@@ -2011,7 +2011,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	if err != nil {
 		return nil, err
 	}
-	metaHdr.SetAccumulatedFees(accumulatedFees)
+	metaHdr.SetAccumulatedFeesInEpoch(accumulatedFees)
 	metaHdr.SetDevFeesInEpoch(devFees)
 
 	body, ok := bodyHandler.(*block.Body)

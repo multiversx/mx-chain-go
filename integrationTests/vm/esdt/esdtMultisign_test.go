@@ -26,6 +26,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
