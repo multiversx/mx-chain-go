@@ -159,7 +159,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing.T) {
+func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -168,11 +168,11 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testing.T) {
@@ -286,7 +286,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 
 	container := mock.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
-	container.SetRounder(initRounderMock())
+	container.SetRoundHandler(initRoundHandlerMock())
 
 	sr := *initSubroundStartRoundWithContainer(container)
 
@@ -321,6 +321,23 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	}
 	container := mock.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
+
+	srStartRound := *initSubroundStartRoundWithContainer(container)
+
+	r := srStartRound.InitCurrentRound()
+	assert.False(t, r)
+}
+
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenMainMachineIsActive(t *testing.T) {
+	t.Parallel()
+
+	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+	}
+	container := mock.InitConsensusCore()
+	container.SetNodeRedundancyHandler(nodeRedundancyMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
 
@@ -387,14 +404,14 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *testing.T) {
 	t.Parallel()
 
-	rounderMock := initRounderMock()
+	roundHandlerMock := initRoundHandlerMock()
 
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Duration(-1)
 	}
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(rounderMock)
+	container.SetRoundHandler(roundHandlerMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
 

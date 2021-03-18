@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -148,7 +148,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		RequestHandler:   &mock.RequestHandlerStub{},
 		Messenger:        &mock.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		EconomicsData:    &economics.EconomicsData{},
+		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
 		WhitelistHandler: &mock.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,

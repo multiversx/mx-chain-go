@@ -22,7 +22,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		BlsPrivateKey:                 consensusCoreMock.PrivateKey(),
 		BlsSingleSigner:               consensusCoreMock.SingleSigner(),
 		MultiSigner:                   consensusCoreMock.MultiSigner(),
-		Rounder:                       consensusCoreMock.Rounder(),
+		RoundHandler:                  consensusCoreMock.RoundHandler(),
 		ShardCoordinator:              consensusCoreMock.ShardCoordinator(),
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
 		SyncTimer:                     consensusCoreMock.SyncTimer(),
@@ -31,6 +31,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		PeerHonestyHandler:            consensusCoreMock.PeerHonestyHandler(),
 		HeaderSigVerifier:             consensusCoreMock.HeaderSigVerifier(),
 		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
+		NodeRedundancyHandler:         consensusCoreMock.NodeRedundancyHandler(),
 	}
 	return args
 }
@@ -173,18 +174,18 @@ func TestConsensusCore_WithNilMultiSignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestConsensusCore_WithNilRounderShouldFail(t *testing.T) {
+func TestConsensusCore_WithNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultConsensusCoreArgs()
-	args.Rounder = nil
+	args.RoundHandler = nil
 
 	consensusCore, err := spos.NewConsensusCore(
 		args,
 	)
 
 	assert.Nil(t, consensusCore)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestConsensusCore_WithNilShardCoordinatorShouldFail(t *testing.T) {
@@ -283,6 +284,20 @@ func TestConsensusCore_WithNilFallbackHeaderValidatorShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilFallbackHeaderValidator, err)
+}
+
+func TestConsensusCore_WithNilNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.NodeRedundancyHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

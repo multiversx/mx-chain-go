@@ -32,7 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -236,6 +236,89 @@ func TestGetUsername(t *testing.T) {
 	username, err := n.GetUsername(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
+}
+
+func TestNode_GetKeyValuePairs(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	k1, v1 := []byte("key1"), []byte("value1")
+	k2, v2 := []byte("key2"), []byte("value2")
+
+	accDB := &mock.AccountsStub{}
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					ch <- trieLeaf
+
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					ch <- trieLeaf2
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
+	assert.Nil(t, err)
+	resV1, ok := pairs[hex.EncodeToString(k1)]
+	assert.True(t, ok)
+	assert.Equal(t, hex.EncodeToString(v1), resV1)
+
+	resV2, ok := pairs[hex.EncodeToString(k2)]
+	assert.True(t, ok)
+	assert.Equal(t, hex.EncodeToString(v2), resV2)
+}
+
+func TestNode_GetValueForKey(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	k1, v1 := []byte("key1"), []byte("value1")
+	_ = acc.DataTrieTracker().SaveKeyValue(k1, v1)
+
+	accDB := &mock.AccountsStub{}
+
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
+	assert.NoError(t, err)
+	assert.Equal(t, hex.EncodeToString(v1), value)
 }
 
 func TestNode_GetESDTBalance(t *testing.T) {
@@ -654,7 +737,8 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	signature := "-"
 
 	coreComponents.AddrPubKeyConv = nil
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
+	chainID := coreComponents.ChainID()
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -694,7 +778,21 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	stateComponents.Accounts = nil
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
+	tx, txHash, err := n.CreateTransaction(
+		nonce,
+		value.String(),
+		receiver,
+		nil,
+		sender,
+		nil,
+		gasPrice,
+		gasLimit,
+		txData,
+		signature,
+		coreComponents.ChainID(),
+		1,
+		0,
+	)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -731,16 +829,17 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
 	assert.NotNil(t, err)
 }
 
-func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
+func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 	t.Parallel()
 
+	chainID := "chain id"
 	expectedHash := []byte("expected hash")
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -755,13 +854,21 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
 	}
+
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -771,9 +878,21 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 1, 0)
-	assert.Equal(t, node.ErrInvalidChainID, err)
+	signature := hex.EncodeToString([]byte(strings.Repeat("s", 10)))
+
+	emptyChainID := ""
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, emptyChainID, 1, 0)
+	assert.Equal(t, node.ErrInvalidChainIDInTransaction, err)
+
+	for i := 1; i < len(chainID); i++ {
+		newChainID := strings.Repeat("c", i)
+		_, _, err = n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0)
+		assert.NoError(t, err)
+	}
+
+	newChainID := chainID + "additional text"
+	_, _, err = n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, newChainID, 1, 0)
+	assert.Equal(t, node.ErrInvalidChainIDInTransaction, err)
 }
 
 func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
@@ -793,6 +912,12 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
 	}
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
@@ -810,7 +935,7 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := []byte("-")
 	signature := "617eff4f"
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 0, 0)
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "", 0, 0)
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
@@ -835,6 +960,12 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
 		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
 	}
 	coreComponents.ChainIdCalled = func() string {
 		return string(chainID)
@@ -842,7 +973,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return version
 	}
-	coreComponents.EconomicsHandler = &economicsMocks.EconomicsHandlerMock{
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -870,6 +1001,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -879,9 +1011,9 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -891,6 +1023,431 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 
 	err = n.ValidateTransaction(tx)
 	assert.True(t, errors.Is(err, node.ErrDifferentSenderShardId))
+}
+
+func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
+	t.Parallel()
+
+	maxValueLength := 7
+	signatureLength := 10
+	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxValueLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(signatureLength),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxValueLength)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+
+	for i := 0; i <= signatureLength; i++ {
+		signatureBytes := []byte(strings.Repeat("a", i))
+		signatureHex := hex.EncodeToString(signatureBytes)
+		tx, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signatureHex, chainID, 1, 0)
+		assert.NotNil(t, tx)
+		assert.NoError(t, err)
+		assert.Equal(t, signatureBytes, tx.Signature)
+	}
+
+	signature := hex.EncodeToString([]byte(strings.Repeat("a", signatureLength+1)))
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Equal(t, node.ErrInvalidSignatureLength, err)
+}
+
+func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "10"
+	receiver := "rcv"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	for i := 0; i <= encodedAddressLen; i++ {
+		sender := strings.Repeat("s", i)
+		_, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+		assert.NoError(t, err)
+	}
+
+	sender := strings.Repeat("s", encodedAddressLen) + "additional"
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, node.ErrInvalidAddressLength))
+}
+
+func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "10"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	for i := 0; i <= encodedAddressLen; i++ {
+		receiver := strings.Repeat("r", i)
+		_, _, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+		assert.NoError(t, err)
+	}
+
+	receiver := strings.Repeat("r", encodedAddressLen) + "additional"
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, node.ErrInvalidAddressLength))
+}
+
+func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	senderUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, senderUsername, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrInvalidSenderUsernameLength, err)
+}
+
+func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	receiverUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, receiverUsername, sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrInvalidReceiverUsernameLength, err)
+}
+
+func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := bytes.Repeat([]byte{0}, core.MegabyteSize+1)
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrDataFieldTooBig, err)
+}
+
+func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrTransactionValueLengthTooBig, err)
 }
 
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
@@ -911,6 +1468,12 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
 		},
 	}
 	stateComponents := getDefaultStateComponents()
@@ -935,6 +1498,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		node.WithNetworkComponents(networkComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -944,13 +1508,12 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	tx, txHash, err := n.CreateTransaction(
-		nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData,
+		nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData,
 		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(), 0,
 	)
-
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -985,6 +1548,12 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
 		},
 	}
 	coreComponents.TxSignHasherField = &mock.HasherMock{}
@@ -1031,6 +1600,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		node.WithProcessComponents(processComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -1040,12 +1610,12 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, chainID, version, options)
-
-	err := n.ValidateTransaction(tx)
+	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version, options)
+	require.Nil(t, err)
+	err = n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
@@ -1075,6 +1645,12 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
 		},
 	}
 
@@ -1125,6 +1701,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -1134,10 +1711,10 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, chainID, version+1, options)
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version+1, options)
 
 	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
@@ -1892,6 +2469,9 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	assert.Equal(t, len(txsToSend), int(numTxs))
 	assert.Nil(t, err)
 
+	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
+	time.Sleep(time.Second + time.Millisecond*500)
+
 	select {
 	case <-chDone:
 	case <-time.After(timeoutWait):
@@ -2110,3 +2690,55 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	assert.Equal(t, expected, vals)
 }
+
+func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(3)
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = bootstrapComponents.ShCoordinator
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     11,
+		Value:     big.NewInt(25),
+		RcvAddr:   []byte("rec"),
+		SndAddr:   []byte("snd"),
+		GasPrice:  6,
+		GasLimit:  12,
+		Data:      []byte(""),
+		Signature: []byte("sig1"),
+		ChainID:   []byte(coreComponents.ChainID()),
+	}
+
+	err := n.ValidateTransactionForSimulation(tx, false)
+	require.NoError(t, err)
+}
+

@@ -35,8 +35,8 @@ type CoreComponentsStub struct {
 	WatchdogField                      core.WatchdogTimer
 	AlarmSchedulerField                core.TimersScheduler
 	SyncTimerField                     ntp.SyncTimer
-	RounderField                       consensus.Rounder
-	EconomicsDataField                 process.EconomicsHandler
+	RoundHandlerField                  consensus.RoundHandler
+	EconomicsDataField                 process.EconomicsDataHandler
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
@@ -93,13 +93,13 @@ func (ccs *CoreComponentsStub) SyncTimer() ntp.SyncTimer {
 	return ccs.SyncTimerField
 }
 
-// Rounder -
-func (ccs *CoreComponentsStub) Rounder() consensus.Rounder {
-	return ccs.RounderField
+// RoundHandler -
+func (ccs *CoreComponentsStub) RoundHandler() consensus.RoundHandler {
+	return ccs.RoundHandlerField
 }
 
 // EconomicsData -
-func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsHandler {
+func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsDataHandler {
 	return ccs.EconomicsDataField
 }
 
@@ -204,6 +204,11 @@ func (ccs *CoreComponentsStub) MinTransactionVersion() uint32 {
 // TxVersionChecker -
 func (ccs *CoreComponentsStub) TxVersionChecker() process.TxVersionCheckerHandler {
 	return ccs.TxVersionCheckField
+}
+
+// EncodedAddressLen -
+func (ccs *CoreComponentsStub) EncodedAddressLen() uint32 {
+	return uint32(ccs.AddressPubKeyConverter().Len()*2)
 }
 
 // ChanStopNodeProcess -

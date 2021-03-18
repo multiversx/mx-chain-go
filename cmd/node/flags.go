@@ -291,6 +291,12 @@ var (
 		Value: 0,
 		Usage: "This flag will specify the start in epoch value in import-db process",
 	}
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
+		Value: 0,
+	}
 	// fullArchive defines a flag that, if set, will make the node act like a full history node
 	fullArchive = cli.BoolFlag{
 		Name:  "full-archive",
@@ -341,6 +347,7 @@ func getFlags() []cli.Flag {
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
 		importDbStartInEpoch,
+		redundancyLevel,
 		fullArchive,
 	}
 }
@@ -385,6 +392,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	}
 	if ctx.IsSet(numActivePersisters.Name) {
 		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+	if ctx.IsSet(redundancyLevel.Name) {
+		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 	if ctx.IsSet(fullArchive.Name) {
 		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)

@@ -211,7 +211,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -233,7 +233,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		currentPid,
 		&mock.AppStatusHandlerStub{},
 	)
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
@@ -243,7 +243,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T) {
@@ -862,16 +862,16 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	// update rounder's mock so it will calculate for real the duration
+	// update roundHandler's mock so it will calculate for real the duration
 	container := mock.InitConsensusCore()
-	rounder := mock.RounderMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime
 
 		return remainingTime
 	}}
-	container.SetRounder(&rounder)
+	container.SetRoundHandler(&roundHandler)
 	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 
 	sr.RoundTimeStamp = time.Now().AddDate(0, 0, -1)

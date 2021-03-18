@@ -69,12 +69,16 @@ func (wrk *Worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
 	wrk.marshalizer = marshalizer
 }
 
-func (wrk *Worker) Rounder() consensus.Rounder {
-	return wrk.rounder
+func (wrk *Worker) RoundHandler() consensus.RoundHandler {
+	return wrk.roundHandler
 }
 
-func (wrk *Worker) SetRounder(rounder consensus.Rounder) {
-	wrk.rounder = rounder
+func (wrk *Worker) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
+	wrk.nodeRedundancyHandler = nodeRedundancyHandler
+}
+
+func (wrk *Worker) SetRoundHandler(roundHandler consensus.RoundHandler) {
+	wrk.roundHandler = roundHandler
 }
 
 func (wrk *Worker) CheckSignature(cnsData *consensus.Message) error {

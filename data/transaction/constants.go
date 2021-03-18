@@ -4,8 +4,15 @@ package transaction
 type TxType string
 
 const (
-	TxTypeNormal   TxType = "normal"
+	// TxTypeNormal represents the identifier for a regular transaction
+	TxTypeNormal TxType = "normal"
+
+	// TxTypeUnsigned represents the identifier for a unsigned transaction
 	TxTypeUnsigned TxType = "unsigned"
-	TxTypeReward   TxType = "reward"
-	TxTypeInvalid  TxType = "invalid"
+
+	// TxTypeReward represents the identifier for a reward transaction
+	TxTypeReward TxType = "reward"
+
+	// TxTypeInvalid represents the identifier for an invalid transaction
+	TxTypeInvalid TxType = "invalid"
 )

@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -18,13 +18,14 @@ type NodeStub struct {
 	ConnectToAddressesHandler  func([]string) error
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
-	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
+	GetCodeCalled                                  func(state.UserAccountHandler) []byte
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -35,11 +36,12 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
-	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
+	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                         func(address string) ([]string, error)
+	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 }
 
 // GetUsername -
@@ -49,6 +51,15 @@ func (ns *NodeStub) GetUsername(address string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// GetKeyValuesPairs -
+func (ns *NodeStub) GetKeyValuePairs(address string) (map[string]string, error) {
+	if ns.GetKeyValuePairsCalled != nil {
+		return ns.GetKeyValuePairsCalled(address)
+	}
+
+	return nil, nil
 }
 
 // GetValueForKey -
@@ -66,12 +77,12 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 }
 
 // GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByHashCalled(hash, withTxs)
 }
 
 // GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByNonceCalled(nonce, withTxs)
 }
 
@@ -86,10 +97,10 @@ func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 }
 
 // CreateTransaction -
-func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 	gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error) {
 
-	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return ns.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 //ValidateTransaction -
@@ -98,8 +109,8 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation -
-func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	return ns.ValidateTransactionForSimulationCalled(tx)
+func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
+	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
 }
 
 // GetTransaction -
@@ -115,6 +126,15 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 // GetAccount -
 func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ns.GetAccountHandler(address)
+}
+
+// GetCode -
+func (ns *NodeStub) GetCode(account state.UserAccountHandler) []byte {
+	if ns.GetCodeCalled != nil {
+		return ns.GetCodeCalled(account)
+	}
+
+	return nil
 }
 
 // GetHeartbeats -

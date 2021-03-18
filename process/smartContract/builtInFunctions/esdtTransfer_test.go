@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -209,4 +210,47 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 
 	_, err = transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
+}
+
+func TestESDTTransfer_ProcessBuiltInFunctionOnAsyncCallBack(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
+
+	input := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+			CallType:    vmcommon.AsynchronousCallBack,
+		},
+	}
+	key := []byte("key")
+	value := big.NewInt(10).Bytes()
+	input.Arguments = [][]byte{key, value}
+	accSnd, _ := state.NewUserAccount([]byte("snd"))
+	accDst, _ := state.NewUserAccount(vm.ESDTSCAddress)
+
+	esdtKey := append(transferFunc.keyPrefix, key...)
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(100)}
+	marshaledData, _ := marshalizer.Marshal(esdtToken)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+
+	vmOutput, err := transferFunc.ProcessBuiltinFunction(nil, accDst, input)
+	assert.Nil(t, err)
+
+	marshaledData, _ = accDst.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
+	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
+
+	assert.Equal(t, vmOutput.GasRemaining, input.GasProvided)
+
+	vmOutput, err = transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
+	assert.Nil(t, err)
+	vmOutput.GasRemaining = input.GasProvided - transferFunc.funcGasCost
+
+	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
+	assert.True(t, esdtToken.Value.Cmp(big.NewInt(90)) == 0)
 }

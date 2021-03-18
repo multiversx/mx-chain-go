@@ -203,7 +203,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 
 func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 	genesisEpoch := uint32(0)
-	if arg.HardForkConfig.AfterHardFork == true {
+	if arg.HardForkConfig.AfterHardFork {
 		genesisEpoch = arg.HardForkConfig.StartEpoch
 	}
 

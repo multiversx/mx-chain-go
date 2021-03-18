@@ -19,7 +19,7 @@ import (
 
 const maxGoRoutinesSendMessage = 30
 
-var minTxGasPrice = uint64(10)
+var minTxGasPrice = uint64(100)
 var minTxGasLimit = uint64(1000)
 
 //TODO remove this file and adapt integration tests using GenerateAndSendBulkTransactions

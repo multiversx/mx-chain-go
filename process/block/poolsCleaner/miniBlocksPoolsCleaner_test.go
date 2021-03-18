@@ -13,18 +13,18 @@ import (
 func TestNewMiniBlocksPoolsCleaner_NilMiniblockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(nil, &mock.RounderMock{}, &mock.CoordinatorStub{})
+	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(nil, &mock.RoundHandlerMock{}, &mock.CoordinatorStub{})
 
 	assert.Equal(t, process.ErrNilMiniBlockPool, err)
 	assert.Nil(t, miniblockCleaner)
 }
 
-func TestNewMiniBlocksPoolsCleaner_NilRounderShouldErr(t *testing.T) {
+func TestNewMiniBlocksPoolsCleaner_NilRoundHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), nil, &mock.CoordinatorStub{})
 
-	assert.Equal(t, process.ErrNilRounder, err)
+	assert.Equal(t, process.ErrNilRoundHandler, err)
 	assert.Nil(t, miniblockCleaner)
 }
 
@@ -49,7 +49,7 @@ func TestNewMiniBlocksPoolsCleaner_ShouldWork(t *testing.T) {
 func TestReceivedMiniBlock_WrongTypeShouldBeIgnored(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RounderMock{}, &mock.CoordinatorStub{})
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RoundHandlerMock{}, &mock.CoordinatorStub{})
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlockHeader{}
@@ -60,7 +60,7 @@ func TestReceivedMiniBlock_WrongTypeShouldBeIgnored(t *testing.T) {
 func TestReceivedMiniBlock_ShouldBeAddedInMap(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RounderMock{}, &mock.CoordinatorStub{})
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RoundHandlerMock{}, &mock.CoordinatorStub{})
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlock{}
@@ -77,7 +77,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MiniblockNotInPoolShouldBeRemovedFromMap(t
 				return nil, false
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{},
 	)
 
@@ -98,7 +98,7 @@ func TestCleanMiniblocksPoolsIfNeeded_RoundDiffTooSmallMiniblockShouldRemainInMa
 				return nil, true
 			},
 		},
-		&mock.RounderMock{},
+		&mock.RoundHandlerMock{},
 		&mock.CoordinatorStub{},
 	)
 
@@ -114,7 +114,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MbShouldBeRemovedFromPoolAndMap(t *testing
 	t.Parallel()
 
 	called := false
-	rounder := &mock.RoundStub{
+	roundHandler := &mock.RoundStub{
 		IndexCalled: func() int64 {
 			return 0
 		},
@@ -128,7 +128,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MbShouldBeRemovedFromPoolAndMap(t *testing
 				called = true
 			},
 		},
-		rounder,
+		roundHandler,
 		&mock.CoordinatorStub{},
 	)
 
@@ -136,7 +136,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MbShouldBeRemovedFromPoolAndMap(t *testing
 	miniblock := &block.MiniBlock{}
 	miniblockCleaner.receivedMiniBlock(key, miniblock)
 
-	rounder.IndexCalled = func() int64 {
+	roundHandler.IndexCalled = func() int64 {
 		return process.MaxRoundsToKeepUnprocessedMiniBlocks + 1
 	}
 	result := miniblockCleaner.cleanMiniblocksPoolsIfNeeded()

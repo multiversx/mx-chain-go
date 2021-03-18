@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +20,7 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
+	GetTotalStakedValue() (*api.StakeValues, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
@@ -102,7 +105,23 @@ func EconomicsMetrics(c *gin.Context) {
 		return
 	}
 
+	stakeValues, err := facade.GetTotalStakedValue()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	metrics := facade.StatusMetrics().EconomicsMetrics()
+	metrics[core.MetricTotalStakedValue] = stakeValues.TotalStaked.String()
+	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

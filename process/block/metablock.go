@@ -29,7 +29,7 @@ type metaProcessor struct {
 	scToProtocol                 process.SmartContractToProtocolHandler
 	epochStartDataCreator        process.EpochStartDataCreator
 	epochEconomics               process.EndOfEpochEconomics
-	epochRewardsCreator          process.EpochStartRewardsCreator
+	epochRewardsCreator          process.RewardsCreator
 	validatorInfoCreator         process.EpochStartValidatorInfoCreator
 	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
@@ -38,6 +38,7 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+	rewardsV2EnableEpoch         uint32
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -65,7 +66,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochEconomics
 	}
 	if check.IfNil(arguments.EpochRewardsCreator) {
-		return nil, process.ErrNilEpochStartRewardsCreator
+		return nil, process.ErrNilRewardsCreator
 	}
 	if check.IfNil(arguments.EpochValidatorInfoCreator) {
 		return nil, process.ErrNilEpochStartValidatorInfoCreator
@@ -95,7 +96,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		txCoordinator:           arguments.TxCoordinator,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.RoundHandler,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
 		dataPool:                arguments.DataComponents.Datapool(),
@@ -122,6 +123,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
+		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
 	}
 
 	mp.txCounter = NewTransactionCounter()
@@ -140,6 +142,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
+}
+
+func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
+	return headerHandler.GetEpoch() >= mp.rewardsV2EnableEpoch
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -224,6 +230,15 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		return process.ErrAccountStateDirty
+	}
+
+	err = mp.processIfFirstBlockAfterEpochStart()
+	if err != nil {
+		return err
+	}
+
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
 		return err
@@ -271,10 +286,6 @@ func (mp *metaProcessor) ProcessBlock(
 		if err != nil {
 			return err
 		}
-	}
-
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		return process.ErrAccountStateDirty
 	}
 
 	defer func() {
@@ -358,12 +369,34 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
+	computedEconomics, err := mp.epochEconomics.ComputeEndOfEpochEconomics(header)
 	if err != nil {
 		return err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	if mp.isRewardsV2Enabled(header) {
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		if err != nil {
+			return err
+		}
+
+		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+		if err != nil {
+			return err
+		}
+
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
 		return err
 	}
@@ -378,7 +411,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
@@ -656,7 +689,15 @@ func (mp *metaProcessor) CreateBlock(
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
 	var body data.BodyHandler
-	var err error
+
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		return nil, nil, process.ErrAccountStateDirty
+	}
+
+	err := mp.processIfFirstBlockAfterEpochStart()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if mp.epochStartTrigger.IsEpochStart() {
 		err = mp.updateEpochStartHeader(metaHdr)
@@ -683,6 +724,34 @@ func (mp *metaProcessor) CreateBlock(
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
 
 	return metaHdr, body, nil
+}
+
+func (mp *metaProcessor) isPreviousBlockEpochStart() (uint32, bool) {
+	blockHeader := mp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		blockHeader = mp.blockChain.GetGenesisHeader()
+	}
+
+	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
+}
+
+func (mp *metaProcessor) processIfFirstBlockAfterEpochStart() error {
+	epoch, isPreviousEpochStart := mp.isPreviousBlockEpochStart()
+	if !isPreviousEpochStart {
+		return nil
+	}
+
+	nodesForcedToStay, err := mp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {
@@ -750,13 +819,32 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo)
-	if err != nil {
-		return nil, err
+	var rewardMiniBlocks block.MiniBlockSlice
+	if mp.isRewardsV2Enabled(metaBlock) {
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
+		if err != nil {
+			return nil, err
+		}
+
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
 		return nil, err
 	}
@@ -806,11 +894,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
-
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("metaProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
-		return &block.Body{MiniBlocks: miniBlocks}, nil
-	}
 
 	if !haveTime() {
 		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
@@ -985,7 +1068,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		roundTooOld := mp.rounder.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
 		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
@@ -1134,7 +1217,7 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		numShardHeadersFromPool,
 		mp.blockTracker,
-		uint64(mp.rounder.TimeDuration().Seconds()),
+		uint64(mp.roundHandler.TimeDuration().Seconds()),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1543,7 +1626,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	for shardID, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
 			if !mp.isGenesisShardBlockAndFirstMeta(shardHdr.GetNonce()) {
-				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
+				err = mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
 				if err != nil {
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
 				}
@@ -1558,11 +1641,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	for _, shardData := range metaHdr.ShardInfo {
-		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
 			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
 		}
-		actualHdr := hdrInfo.hdr
+		actualHdr := headerInfo.hdr
 		shardHdr, ok := actualHdr.(*block.Header)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
@@ -1737,7 +1820,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 				log.Warn("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader", "error", err.Error())
 				continue
 			}
-			if bytes.Compare(hash, shardData.HeaderHash) != 0 {
+			if !bytes.Equal(hash, shardData.HeaderHash) {
 				log.Warn("genesis hash missmatch",
 					"last notarized nonce", lastCrossNotarizedHeaderForShard.GetNonce(),
 					"last notarized hash", hash,

@@ -57,52 +57,56 @@ func NewTxTypeHandler(
 }
 
 // ComputeTransactionType calculates the transaction type
-func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
+func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	err := tth.checkTxValidity(tx)
 	if err != nil {
-		return process.InvalidTransaction
+		return process.InvalidTransaction, process.InvalidTransaction
 	}
 
 	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {
-			return process.SCDeployment
+			return process.SCDeployment, process.SCDeployment
 		}
-		return process.InvalidTransaction
+		return process.InvalidTransaction, process.InvalidTransaction
 	}
 
 	if len(tx.GetData()) == 0 {
-		return process.MoveBalance
+		return process.MoveBalance, process.MoveBalance
 	}
 
-	funcName := tth.getFunctionFromArguments(tx.GetData())
+	funcName, args := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
 	if isBuiltInFunction {
-		return process.BuiltInFunctionCall
+		if tth.isSCCallAfterBuiltIn(funcName, args, tx) {
+			return process.BuiltInFunctionCall, process.SCInvoking
+		}
+
+		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 	}
 
 	if isAsynchronousCallBack(tx) {
-		return process.SCInvoking
+		return process.SCInvoking, process.SCInvoking
 	}
 
 	if len(funcName) == 0 {
-		return process.MoveBalance
+		return process.MoveBalance, process.MoveBalance
 	}
 
 	if tth.isRelayedTransaction(funcName) {
-		return process.RelayedTx
+		return process.RelayedTx, process.RelayedTx
 	}
 
 	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
-	if !isDestInSelfShard {
-		return process.MoveBalance
+	if isDestInSelfShard && core.IsSmartContractAddress(tx.GetRcvAddr()) {
+		return process.SCInvoking, process.SCInvoking
 	}
 
 	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		return process.SCInvoking
+		return process.MoveBalance, process.SCInvoking
 	}
 
-	return process.MoveBalance
+	return process.MoveBalance, process.MoveBalance
 }
 
 func isAsynchronousCallBack(tx data.TransactionHandler) bool {
@@ -114,17 +118,31 @@ func isAsynchronousCallBack(tx data.TransactionHandler) bool {
 	return scr.CallType == vmcommon.AsynchronousCallBack
 }
 
-func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) string {
+func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
+	if !core.IsSmartContractAddress(tx.GetRcvAddr()) {
+		return false
+	}
+	if len(args) <= 2 {
+		return false
+	}
+	if function != core.BuiltInFunctionESDTTransfer {
+		return false
+	}
+
+	return true
+}
+
+func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) (string, [][]byte) {
 	if len(txData) == 0 {
-		return ""
+		return "", nil
 	}
 
-	function, _, err := tth.argumentParser.ParseData(string(txData))
+	function, args, err := tth.argumentParser.ParseData(string(txData))
 	if err != nil {
-		return ""
+		return "", nil
 	}
 
-	return function
+	return function, args
 }
 
 func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {

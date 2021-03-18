@@ -56,3 +56,23 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 // SetSndAddr sets the sender address of the reward transaction
 func (_ *RewardTx) SetSndAddr(addr []byte) {
 }
+
+// GetRcvUserName returns the receiver user name from the reward transaction
+func (_ *RewardTx) GetRcvUserName() []byte {
+	return nil
+}
+
+// CheckIntegrity checks for not nil fields and negative value
+func (rtx *RewardTx) CheckIntegrity() error {
+	if len(rtx.RcvAddr) == 0 {
+		return data.ErrNilRcvAddr
+	}
+	if rtx.Value == nil {
+		return data.ErrNilValue
+	}
+	if rtx.Value.Sign() < 0 {
+		return data.ErrNegativeValue
+	}
+
+	return nil
+}

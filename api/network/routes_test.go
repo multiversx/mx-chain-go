@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
@@ -155,7 +157,14 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	value := "12345"
 	statusMetricsProvider.SetStringValue(key, value)
 
-	facade := mock.Facade{}
+	facade := mock.Facade{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			return &api.StakeValues{
+				TotalStaked: big.NewInt(100),
+				TopUp:       big.NewInt(20),
+			}, nil
+		},
+	}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
 	}
@@ -171,6 +180,30 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := core.MetricTotalSupply
+	value := "12345"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	localErr := fmt.Errorf("%s", "local error")
+	facade := mock.Facade{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			return nil, localErr
+		},
+	}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {
@@ -218,10 +251,11 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"network": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/config", Open: true},
 					{Name: "/status", Open: true},
 					{Name: "/economics", Open: true},
+					{Name: "/total-staked", Open: true},
 				},
 			},
 		},

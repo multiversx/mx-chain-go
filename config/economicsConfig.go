@@ -20,6 +20,8 @@ type RewardsSettings struct {
 	DeveloperPercentage              float64
 	ProtocolSustainabilityPercentage float64
 	ProtocolSustainabilityAddress    string
+	TopUpGradientPoint               string
+	TopUpFactor                      float64
 }
 
 // FeeSettings will hold economics fee settings
@@ -27,9 +29,9 @@ type FeeSettings struct {
 	MaxGasLimitPerBlock     string
 	MaxGasLimitPerMetaBlock string
 	GasPerDataByte          string
-	DataLimitForBaseCalc    string
 	MinGasPrice             string
 	MinGasLimit             string
+	GasPriceModifier        float64
 }
 
 // EconomicsConfig will hold economics config

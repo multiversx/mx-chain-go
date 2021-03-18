@@ -79,6 +79,17 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
+	if ok := (&transaction.StatusComputer{
+		SelfShard:                n.processComponents.ShardCoordinator().SelfId(),
+		Store:                    n.dataComponents.StorageService(),
+		Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
+		MiniblockType:            block.Type(miniblockMetadata.Type),
+		HeaderHash:               miniblockMetadata.HeaderHash,
+		HeaderNonce:              miniblockMetadata.HeaderNonce,
+	}).SetStatusIfIsRewardReverted(tx); ok {
+		return tx, nil
+	}
+
 	tx.Status = (&transaction.StatusComputer{
 		MiniblockType:        block.Type(miniblockMetadata.Type),
 		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
@@ -158,25 +169,6 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxTyp
 	}
 
 	return nil, transaction.TxTypeInvalid, false
-}
-
-func (n *Node) isTxInStorage(hash []byte) bool {
-	store := n.dataComponents.StorageService()
-	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
-	err := txsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
-	err = rewardTxsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	err = unsignedTxsStorer.Has(hash)
-	return err == nil
 }
 
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
@@ -287,31 +279,35 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (
 
 func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeNormal),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
-		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeNormal),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
 func (n *Node) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeInvalid),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
-		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeInvalid),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
@@ -329,7 +325,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 }
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
@@ -345,5 +341,10 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
 		OriginalSender:          n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}, nil
+	}
+	if len(tx.GetOriginalSender()) == n.coreComponents.AddressPubKeyConverter().Len() {
+		txResult.OriginalSender = n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender())
+	}
+
+	return txResult, nil
 }

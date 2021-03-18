@@ -1,6 +1,8 @@
 package node
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -238,15 +240,30 @@ func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
 	assert.True(t, node.hardforkTrigger == hardforkTrigger)
 }
 
-func TestWithSignatureSize(t *testing.T) {
+func TestWithAddressSignatureSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	signatureSize := 32
+	opt := WithAddressSignatureSize(signatureSize)
+
+	err := opt(node)
+	assert.Equal(t, signatureSize, node.addressSignatureSize)
+	assert.Nil(t, err)
+
+	expectedHexSize := len(hex.EncodeToString(bytes.Repeat([]byte{0}, signatureSize)))
+	assert.Equal(t, expectedHexSize, node.addressSignatureHexSize)
+}
+
+func TestWithValidatorSignatureSize(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 	signatureSize := 48
-	opt := WithSignatureSize(signatureSize)
+	opt := WithValidatorSignatureSize(signatureSize)
 
 	err := opt(node)
-	assert.Equal(t, signatureSize, node.signatureSize)
+	assert.Equal(t, signatureSize, node.validatorSignatureSize)
 	assert.Nil(t, err)
 }
 
@@ -296,5 +313,29 @@ func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.
 	err := opt(node)
 
 	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
+	assert.Nil(t, err)
+}
+
+func TestWithNodeRedundancyHandler_NilNodeRedundancyHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodeRedundancyHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNodeRedundancyHandler, err)
+}
+
+func TestWithNodeRedundancyHandler_OkNodeRedundancyHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	opt := WithNodeRedundancyHandler(nodeRedundancyHandler)
+	err := opt(node)
+
+	assert.Equal(t, nodeRedundancyHandler, node.nodeRedundancyHandler)
 	assert.Nil(t, err)
 }

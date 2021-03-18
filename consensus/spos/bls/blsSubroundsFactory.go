@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -17,7 +16,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
-	indexer          indexer.Indexer
+	indexer          spos.ConsensusDataIndexer
 	chainID          []byte
 	currentPid       core.PeerID
 }
@@ -82,7 +81,7 @@ func checkNewFactoryParams(
 }
 
 // SetIndexer method will update the value of the factory's indexer
-func (fct *factory) SetIndexer(indexer indexer.Indexer) {
+func (fct *factory) SetIndexer(indexer spos.ConsensusDataIndexer) {
 	fct.indexer = indexer
 }
 
@@ -116,7 +115,7 @@ func (fct *factory) GenerateSubrounds() error {
 }
 
 func (fct *factory) getTimeDuration() time.Duration {
-	return fct.consensusCore.Rounder().TimeDuration()
+	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
 func (fct *factory) generateStartRoundSubround() error {

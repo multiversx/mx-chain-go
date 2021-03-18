@@ -1,23 +1,23 @@
 [StakingSystemSCConfig]
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
+    MinUnstakeTokensValue = "10000000000000000000" #10eGLD
     UnBondPeriod = 250
     MinStepValue = "100000000000000000000"
-    AuctionEnableEpoch = 100000
     StakeEnableEpoch = 2
-    DoubleKeyProtectionEnableEpoch = 2
+    StakingV2Epoch = 4
+    DoubleKeyProtectionEnableEpoch = 3
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
     MaxNumberOfNodesForStake = 36
-    NodesToSelectInAuction = 36
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
 
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
     OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
-    EnabledEpoch = 2
+    EnabledEpoch = 4
 
 [GovernanceSystemSCConfig]
     ProposalCost = "5000000000000000000" #5 eGLD
@@ -25,4 +25,15 @@
     MinQuorum    = 400
     MinPassThreshold = 300
     MinVetoThreshold = 50
-    EnabledEpoch = 2
+    EnabledEpoch = 4
+
+[DelegationManagerSystemSCConfig]
+    MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
+    EnabledEpoch = 4 #enable epoch should not be 0
+    MinStakeAmount = "10000000000000000000" #10 eGLD
+    ConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
+
+[DelegationSystemSCConfig]
+    EnabledEpoch   = 4 #enable epoch should not be 0
+    MinServiceFee  = 0
+    MaxServiceFee  = 10000

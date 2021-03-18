@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -11,8 +12,8 @@ import (
 // BlsConsensusType specifies the signature scheme used in the consensus
 const BlsConsensusType = "bls"
 
-// Rounder defines the actions which should be handled by a round implementation
-type Rounder interface {
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
 	Index() int64
 	BeforeGenesis() bool
 	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
@@ -26,18 +27,18 @@ type Rounder interface {
 // SubroundHandler defines the actions which should be handled by a subround implementation
 type SubroundHandler interface {
 	// DoWork implements of the subround's job
-	DoWork(rounder Rounder) bool
+	DoWork(roundHandler RoundHandler) bool
 	// Previous returns the ID of the previous subround
 	Previous() int
 	// Next returns the ID of the next subround
 	Next() int
 	// Current returns the ID of the current subround
 	Current() int
-	// StartTime returns the start time, in the rounder time, of the current subround
+	// StartTime returns the start time, in the roundHandler time, of the current subround
 	StartTime() int64
-	// EndTime returns the top limit time, in the rounder time, of the current subround
+	// EndTime returns the top limit time, in the roundHandler time, of the current subround
 	EndTime() int64
-	// Name returns the name of the current rounder
+	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
 	ConsensusChannel() chan bool
@@ -127,5 +128,15 @@ type HeaderSigVerifier interface {
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// NodeRedundancyHandler provides functionality to handle the redundancy mechanism for a node
+type NodeRedundancyHandler interface {
+	IsRedundancyNode() bool
+	IsMainMachineActive() bool
+	AdjustInactivityIfNeeded(selfPubKey string, consensusPubKeys []string, roundIndex int64)
+	ResetInactivityIfNeeded(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID)
+	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }

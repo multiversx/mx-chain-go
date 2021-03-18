@@ -25,7 +25,7 @@ type ConsensusCoreMock struct {
 	blsPrivateKey           crypto.PrivateKey
 	blsSingleSigner         crypto.SingleSigner
 	multiSigner             crypto.MultiSigner
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
 	validatorGroupSelector  sharding.NodesCoordinator
@@ -34,6 +34,7 @@ type ConsensusCoreMock struct {
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
+	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 }
 
 // GetAntiFloodHandler -
@@ -86,9 +87,9 @@ func (ccm *ConsensusCoreMock) MultiSigner() crypto.MultiSigner {
 	return ccm.multiSigner
 }
 
-// Rounder -
-func (ccm *ConsensusCoreMock) Rounder() consensus.Rounder {
-	return ccm.rounder
+// RoundHandler -
+func (ccm *ConsensusCoreMock) RoundHandler() consensus.RoundHandler {
+	return ccm.roundHandler
 }
 
 // ShardCoordinator -
@@ -156,9 +157,9 @@ func (ccm *ConsensusCoreMock) SetMultiSigner(multiSigner crypto.MultiSigner) {
 	ccm.multiSigner = multiSigner
 }
 
-// SetRounder -
-func (ccm *ConsensusCoreMock) SetRounder(rounder consensus.Rounder) {
-	ccm.rounder = rounder
+// SetRoundHandler -
+func (ccm *ConsensusCoreMock) SetRoundHandler(roundHandler consensus.RoundHandler) {
+	ccm.roundHandler = roundHandler
 }
 
 // SetShardCoordinator -
@@ -209,6 +210,16 @@ func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeader
 // SetFallbackHeaderValidator -
 func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
 	ccm.fallbackHeaderValidator = fallbackHeaderValidator
+}
+
+// NodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return ccm.nodeRedundancyHandler
+}
+
+// SetNodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
+	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

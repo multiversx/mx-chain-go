@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -45,12 +44,12 @@ type ArgBaseProcessor struct {
 	TxCoordinator           process.TransactionCoordinator
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	HeaderValidator         process.HeaderConstructionValidator
-	Rounder                 consensus.Rounder
+	RoundHandler            consensus.RoundHandler
 	BootStorer              process.BootStorer
 	BlockTracker            process.BlockTracker
 	StateCheckpointModulus  uint
 	BlockSizeThrottler      process.BlockSizeThrottler
-	Indexer                 indexer.Indexer
+	Indexer                 process.Indexer
 	TpsBenchmark            statistics.TPSBenchmark
 	Version                 string
 	HistoryRepository       dblookupext.HistoryRepository
@@ -75,8 +74,9 @@ type ArgMetaProcessor struct {
 	SCToProtocol                 process.SmartContractToProtocolHandler
 	EpochStartDataCreator        process.EpochStartDataCreator
 	EpochEconomics               process.EndOfEpochEconomics
-	EpochRewardsCreator          process.EpochStartRewardsCreator
+	EpochRewardsCreator          process.RewardsCreator
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	RewardsV2EnableEpoch         uint32
 }
