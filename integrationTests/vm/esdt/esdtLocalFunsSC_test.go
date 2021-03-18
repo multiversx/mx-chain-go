@@ -15,6 +15,9 @@ import (
 )
 
 func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 	advertiser, nodes, idxProposers := createNodesAndPrepareBalances(1)
 
 	defer func() {

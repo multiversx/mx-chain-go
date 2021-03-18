@@ -2519,7 +2519,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
-func TestEsdt_SetSpecialRoleSemiNFTShouldErr(t *testing.T) {
+func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()

@@ -113,11 +113,7 @@ func getESDTRolesForAcnt(
 	}
 
 	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(key)
-	if err != nil {
-		return roles, true, nil
-	}
-
-	if len(marshaledData) == 0 {
+	if err != nil || len(marshaledData) == 0 {
 		return roles, true, nil
 	}
 
