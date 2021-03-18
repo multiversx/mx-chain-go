@@ -1171,7 +1171,9 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
 
 	// call caller sc with ESDTTransfer which will call the second sc with execute_on_dest_context
 	txData = txDataBuilder.NewBuilder()
