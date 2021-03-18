@@ -20,8 +20,6 @@ var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
 var zero = big.NewInt(0)
 
-const minLenArgumentsESDTTransfer = 2
-
 type esdtTransfer struct {
 	funcGasCost    uint64
 	marshalizer    marshal.Marshalizer
@@ -100,11 +98,11 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
-	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > minLenArgumentsESDTTransfer
+	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > core.MinLenArgumentsESDTTransfer
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		if mustVerifyPayable(vmInput, minLenArgumentsESDTTransfer) {
+		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer) {
 			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
 			if errPayable != nil {
 				return nil, errPayable
@@ -130,12 +128,12 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmOutput.GasRemaining, err = core.SafeSubUint64(vmInput.GasProvided, e.funcGasCost)
 			log.LogIfError(err, "esdtTransfer", "isSCCallAfter")
 			var callArgs [][]byte
-			if len(vmInput.Arguments) > minLenArgumentsESDTTransfer+1 {
-				callArgs = vmInput.Arguments[minLenArgumentsESDTTransfer+1:]
+			if len(vmInput.Arguments) > core.MinLenArgumentsESDTTransfer+1 {
+				callArgs = vmInput.Arguments[core.MinLenArgumentsESDTTransfer+1:]
 			}
 
 			addOutputTransferToVMOutput(
-				string(vmInput.Arguments[minLenArgumentsESDTTransfer]),
+				string(vmInput.Arguments[core.MinLenArgumentsESDTTransfer]),
 				callArgs,
 				vmInput.RecipientAddr,
 				vmInput.GasLocked,

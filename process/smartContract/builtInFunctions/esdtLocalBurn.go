@@ -109,7 +109,7 @@ func checkBasicESDTArguments(vmInput *vmcommon.ContractCallInput) error {
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return process.ErrBuiltInFunctionCalledWithValue
 	}
-	if len(vmInput.Arguments) < 2 {
+	if len(vmInput.Arguments) < core.MinLenArgumentsESDTTransfer {
 		return process.ErrInvalidArguments
 	}
 	return nil

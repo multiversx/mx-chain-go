@@ -648,3 +648,9 @@ const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32
+
+// MinLenArgumentsESDTTransfer defines the min length of arguments for the ESDT transfer
+const MinLenArgumentsESDTTransfer = 2
+
+// MinLenArgumentsESDTNFTTransfer defines the minimum length for esdt nft transfer
+const MinLenArgumentsESDTNFTTransfer = 4
