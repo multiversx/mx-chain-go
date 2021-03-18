@@ -100,7 +100,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 	}
 	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
-	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifier)
+	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
 	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
