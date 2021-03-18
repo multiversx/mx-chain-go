@@ -84,6 +84,7 @@ type VMTestContext struct {
 	ShardCoordinator sharding.Coordinator
 	ScForwarder      process.IntermediateTransactionHandler
 	EconomicsData    process.EconomicsDataHandler
+	Marshalizer      marshal.Marshalizer
 }
 
 // Close -
@@ -522,6 +523,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			UnJailValue:                          "2500000000000000000",
 			MinStepValue:                         "100000000000000000000",
 			UnBondPeriod:                         250,
+			UnBondPeriodInEpochs:                 1,
 			NumRoundsWithoutBleed:                100,
 			MaximumPercentageToBleed:             0.5,
 			BleedPercentagePerRound:              0.00001,
@@ -1028,5 +1030,6 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 		ShardCoordinator: shardCoordinator,
 		ScForwarder:      scrForwarder,
 		EconomicsData:    economicsData,
+		Marshalizer:      testMarshalizer,
 	}, nil
 }
