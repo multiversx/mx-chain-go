@@ -1178,7 +1178,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	valueToTransfer := int64(1000)
 	txData.Clear().
 		TransferESDT(tokenIdentifier, valueToTransfer).
-		Str("deposit_asset").
+		Str("deposit").
 		Str(string(callerScAddress))
 
 	integrationTests.CreateAndSendTransaction(
@@ -1194,10 +1194,11 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	// no tokens received - should be int64(1000)
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToTransfer)
+
+	// should be int64(1000)
 	esdtData := getESDTTokenData(t, receiverScAddress, nodes, tokenIdentifier)
-	require.EqualValues(t, &esdt.ESDigitalToken{Value: nil}, esdtData)
-	require.NotEqualValues(t, big.NewInt(valueToTransfer), esdtData.Value)
+	require.EqualValues(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToTransfer)}, esdtData)
 
 	// no tokens in caller contract
 	esdtData = getESDTTokenData(t, callerScAddress, nodes, tokenIdentifier)
