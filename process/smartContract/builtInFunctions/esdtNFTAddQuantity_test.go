@@ -67,7 +67,7 @@ func TestEsdtNFTAddQuantity_SetNewGasConfig_ShouldWork(t *testing.T) {
 	require.Equal(t, newGasCost, eqf.funcGasCost)
 }
 
-func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionErrorOncheckESDTNFTCreateBurnAddInput(t *testing.T) {
+func TestEsdtNFTAddQuantity_ProcessBuiltinFunctionErrorOnCheckESDTNFTCreateBurnAddInput(t *testing.T) {
 	t.Parallel()
 
 	eqf, _ := NewESDTNFTAddQuantityFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{}, &mock.ESDTRoleHandlerStub{})

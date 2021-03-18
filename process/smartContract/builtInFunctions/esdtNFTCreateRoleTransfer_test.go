@@ -186,7 +186,7 @@ func checkLatestNonce(t *testing.T, e *esdtNFTCreateRoleTransfer, addr []byte, t
 	destAcc, _ := e.accounts.LoadAccount(addr)
 	userAcc := destAcc.(state.UserAccountHandler)
 	nonce, _ := getLatestNonce(userAcc, tokenID)
-	assert.Equal(t, nonce, expectedNonce)
+	assert.Equal(t, expectedNonce, nonce)
 }
 
 func checkNFTCreateRoleExists(t *testing.T, e *esdtNFTCreateRoleTransfer, addr []byte, tokenID []byte, expectedIndex int) {

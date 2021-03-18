@@ -317,10 +317,10 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	}
 
 	nonceArg := hex.EncodeToString(big.NewInt(0).SetUint64(1).Bytes())
-	quantityToSend := int64(1)
-	quantityToBurnArg := hex.EncodeToString(big.NewInt(quantityToSend).Bytes())
+	quantityToTransfer := int64(1)
+	quantityToTransferArg := hex.EncodeToString(big.NewInt(quantityToTransfer).Bytes())
 	txData := []byte(core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
-		"@" + nonceArg + "@" + quantityToBurnArg + "@" + hex.EncodeToString(nodeInSameShard.OwnAccount.Address))
+		"@" + nonceArg + "@" + quantityToTransferArg + "@" + hex.EncodeToString(nodeInSameShard.OwnAccount.Address))
 	integrationTests.CreateAndSendTransaction(
 		nodes[1],
 		nodes,
