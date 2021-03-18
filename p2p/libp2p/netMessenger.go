@@ -834,18 +834,6 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 			return false
 		}
 
-		err = handler.ProcessReceivedMessage(msg, fromConnectedPeer)
-		if err != nil {
-			log.Trace("p2p validator",
-				"error", err.Error(),
-				"topic", message.Topic,
-				"originator", p2p.MessageOriginatorPid(msg),
-				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-				"seq no", p2p.MessageOriginatorSeq(msg),
-			)
-			netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), true)
-			return false
-
 		identifiers, handlers := topicProcs.getList()
 		messageOk := true
 		for index, handler := range handlers {
@@ -853,7 +841,7 @@ func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topi
 			if err != nil {
 				log.Trace("p2p validator",
 					"error", err.Error(),
-					"topics", message.TopicIDs,
+					"topic", message.Topic,
 					"originator", p2p.MessageOriginatorPid(msg),
 					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 					"seq no", p2p.MessageOriginatorSeq(msg),
@@ -1075,22 +1063,13 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 
 		//we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
-		errProcess := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
-		if errProcess != nil {
-			log.Trace("p2p validator",
-				"error", errProcess.Error(),
-				"topic", msg.Topic(),
-				"originator", p2p.MessageOriginatorPid(msg),
-				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-				"seq no", p2p.MessageOriginatorSeq(msg),
-			)
 		messageOk := true
 		for index, handler := range handlers {
 			errProcess := handler.ProcessReceivedMessage(msg, fromConnectedPeer)
 			if errProcess != nil {
 				log.Trace("p2p validator",
 					"error", errProcess.Error(),
-					"topics", msg.Topics(),
+					"topic", msg.Topic(),
 					"originator", p2p.MessageOriginatorPid(msg),
 					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 					"seq no", p2p.MessageOriginatorSeq(msg),

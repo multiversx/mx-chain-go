@@ -67,6 +67,8 @@ func (ms *MessengerStub) HasTopic(name string) bool {
 	if ms.HasTopicCalled != nil {
 		return ms.HasTopicCalled(name)
 	}
+
+	return false
 }
 
 // BroadcastOnChannel -
@@ -118,7 +120,7 @@ func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil
 }
 
-// IsConnected
+// IsConnected -
 func (ms *MessengerStub) IsConnected(_ core.PeerID) bool {
 	return false
 }
