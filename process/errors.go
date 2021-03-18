@@ -956,8 +956,8 @@ var ErrActionNotAllowed = errors.New("action is not allowed")
 // ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
 var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
 
-// ErrNFTTokenDoesNotExist signals that NFT token does not exists
-var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exists")
+// ErrNFTTokenDoesNotExist signals that NFT token does not exist
+var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exist")
 
 // ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
 var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
@@ -967,3 +967,6 @@ var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
 
 // ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
 var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
+
+// ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
+var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")

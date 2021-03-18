@@ -983,7 +983,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(secondScCode)+"@"+
+		arwen.CreateDeployTxDataNonPayable(secondScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
 		integrationTests.AdditionalGasLimit,
 	)
@@ -1000,7 +1000,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(firstScCode)+"@"+
+		arwen.CreateDeployTxDataNonPayable(firstScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(secondScAddress),
 		integrationTests.AdditionalGasLimit,
@@ -1097,7 +1097,7 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(secondScCode)+"@"+
+		arwen.CreateDeployTxDataNonPayable(secondScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier)),
 		integrationTests.AdditionalGasLimit,
 	)
@@ -1113,7 +1113,7 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(firstScCode)+"@"+
+		arwen.CreateDeployTxDataNonPayable(firstScCode)+"@"+
 			hex.EncodeToString([]byte(tokenIdentifier))+"@"+
 			hex.EncodeToString(secondScAddress),
 		integrationTests.AdditionalGasLimit,

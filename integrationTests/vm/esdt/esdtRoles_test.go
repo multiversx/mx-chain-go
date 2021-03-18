@@ -262,6 +262,20 @@ func setRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, to
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 }
 
+func setRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
+	tokenIssuer := nodes[0]
+
+	txData := "setSpecialRole" +
+		"@" + hex.EncodeToString(tokenIdentifier) +
+		"@" + hex.EncodeToString(addrForRole)
+
+	for _, role := range roles {
+		txData += "@" + hex.EncodeToString(role)
+	}
+
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+}
+
 func unsetRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles []byte) {
 	tokenIssuer := nodes[0]
 

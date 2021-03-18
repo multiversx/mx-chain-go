@@ -72,6 +72,14 @@ func (e *esdtNFTCreate) SetNewGasConfig(gasCost *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT NFT create function call
+// Requires at least 7 arguments:
+// arg0 - token identifier
+// arg1 - initial quantity
+// arg2 - NFT name
+// arg3 - Royalties - max 10000
+// arg4 - hash
+// arg5 - attributes
+// arg6+ - multiple entries of URI (minimum 1)
 func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -118,7 +126,7 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, fmt.Errorf("%w, invalid quantity", process.ErrInvalidArguments)
 	}
 	if quantity.Cmp(big.NewInt(1)) > 0 {
-		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, esdtTokenKey, []byte(core.ESDTRoleNFTAddQuantity))
+		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTAddQuantity))
 		if err != nil {
 			return nil, err
 		}
@@ -180,26 +188,18 @@ func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 }
 
-func getESDTNFTToken(
-	acnt state.UserAccountHandler,
+func getESDTNFTTokenOnSender(
+	accnt state.UserAccountHandler,
 	esdtTokenKey []byte,
 	nonce uint64,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
-
-	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(esdtNFTTokenKey)
+	esdtData, isNew, err := getESDTNFTTokenOnDestination(accnt, esdtTokenKey, nonce, marshalizer)
 	if err != nil {
 		return nil, err
 	}
-	if len(marshaledData) == 0 {
-		return nil, process.ErrNFTTokenDoesNotExist
-	}
-
-	esdtData := &esdt.ESDigitalToken{}
-	err = marshalizer.Unmarshal(esdtData, marshaledData)
-	if err != nil {
-		return nil, err
+	if isNew {
+		return nil, process.ErrNewNFTDataOnSenderAddress
 	}
 
 	if esdtData.TokenMetaData == nil {
@@ -207,6 +207,27 @@ func getESDTNFTToken(
 	}
 
 	return esdtData, nil
+}
+
+func getESDTNFTTokenOnDestination(
+	accnt state.UserAccountHandler,
+	esdtTokenKey []byte,
+	nonce uint64,
+	marshalizer marshal.Marshalizer,
+) (*esdt.ESDigitalToken, bool, error) {
+	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
+	marshaledData, err := accnt.DataTrieTracker().RetrieveValue(esdtNFTTokenKey)
+	if err != nil || len(marshaledData) == 0 {
+		return esdtData, true, nil
+	}
+
+	err = marshalizer.Unmarshal(esdtData, marshaledData)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return esdtData, false, nil
 }
 
 func saveESDTNFTToken(

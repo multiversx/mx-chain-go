@@ -108,15 +108,12 @@ func getESDTRolesForAcnt(
 	acnt state.UserAccountHandler,
 	key []byte,
 ) (*esdt.ESDTRoles, bool, error) {
-	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(key)
-	if err != nil {
-		return nil, false, err
-	}
-
 	roles := &esdt.ESDTRoles{
 		Roles: make([][]byte, 0),
 	}
-	if len(marshaledData) == 0 {
+
+	marshaledData, err := acnt.DataTrieTracker().RetrieveValue(key)
+	if err != nil || len(marshaledData) == 0 {
 		return roles, true, nil
 	}
 

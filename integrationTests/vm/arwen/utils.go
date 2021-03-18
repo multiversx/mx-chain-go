@@ -519,6 +519,11 @@ func CreateDeployTxData(scCode string) string {
 	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
 }
 
+// CreateDeployTxDataNonPayable -
+func CreateDeployTxDataNonPayable(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, "0000"}, "@")
+}
+
 // ExecuteSC -
 func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) error {
 	return context.ExecuteSCWithValue(sender, txData, big.NewInt(0))
