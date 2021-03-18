@@ -453,11 +453,12 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 		_, alreadyAdded := mapSCTxs[string(txHash)]
 		if alreadyAdded {
+			log.Debug("already added", "hash", txHash)
 			continue
 		}
 
 		if isShardStuck != nil && isShardStuck(receiverShardID) {
-			log.Trace("shard is stuck", "shard", receiverShardID)
+			log.Debug("shard is stuck", "shard", receiverShardID)
 			continue
 		}
 
@@ -482,6 +483,17 @@ func (txs *transactions) createScheduledMiniBlocks(
 		_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 		isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
 		if !isReceiverSmartContractAddress {
+			log.Debug("receiver is NOT a smart contract address",
+				"self shard", txs.shardCoordinator.SelfId(),
+				"tx hash", txHash,
+				"tx nonce", tx.Nonce,
+				"tx len data", len(tx.Data),
+				"txTypeDstShard", txTypeDstShard,
+				"tx sender shard", senderShardID,
+				"tx sender address", tx.SndAddr,
+				"tx receiver shard", receiverShardID,
+				"tx receiver address", tx.RcvAddr,
+			)
 			continue
 		}
 
@@ -531,6 +543,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			mapGasConsumedByMiniBlockInReceiverShard,
 			&schedulingInfo)
 		if err != nil {
+			log.Debug("createScheduledMiniBlocks.verifyTransaction", "error", err.Error())
 			continue
 		}
 
