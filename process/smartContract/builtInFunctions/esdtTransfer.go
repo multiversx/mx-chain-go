@@ -20,6 +20,8 @@ var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
 var zero = big.NewInt(0)
 
+const minLenArgumentsESDTTransfer = 2
+
 type esdtTransfer struct {
 	funcGasCost    uint64
 	marshalizer    marshal.Marshalizer
@@ -98,13 +100,11 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
-	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2
+	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > minLenArgumentsESDTTransfer
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 2 &&
-			!bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
-		if mustVerifyPayable {
+		if mustVerifyPayable(vmInput, minLenArgumentsESDTTransfer) {
 			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
 			if errPayable != nil {
 				return nil, errPayable
@@ -130,12 +130,12 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmOutput.GasRemaining, err = core.SafeSubUint64(vmInput.GasProvided, e.funcGasCost)
 			log.LogIfError(err, "esdtTransfer", "isSCCallAfter")
 			var callArgs [][]byte
-			if len(vmInput.Arguments) > 3 {
-				callArgs = vmInput.Arguments[3:]
+			if len(vmInput.Arguments) > minLenArgumentsESDTTransfer+1 {
+				callArgs = vmInput.Arguments[minLenArgumentsESDTTransfer+1:]
 			}
 
 			addOutputTransferToVMOutput(
-				string(vmInput.Arguments[2]),
+				string(vmInput.Arguments[minLenArgumentsESDTTransfer]),
 				callArgs,
 				vmInput.RecipientAddr,
 				vmInput.GasLocked,
@@ -163,6 +163,21 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	}
 
 	return vmOutput, nil
+}
+
+func mustVerifyPayable(vmInput *vmcommon.ContractCallInput, minLenArguments int) bool {
+	if vmInput.CallType == vmcommon.AsynchronousCallBack || vmInput.CallType == vmcommon.ESDTTransferAndExecute {
+		return false
+	}
+	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
+		return false
+	}
+
+	if len(vmInput.Arguments) > minLenArguments {
+		return false
+	}
+
+	return true
 }
 
 func addOutputTransferToVMOutput(

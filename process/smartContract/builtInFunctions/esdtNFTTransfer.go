@@ -20,6 +20,8 @@ import (
 
 var _ process.BuiltinFunction = (*esdtNFTTransfer)(nil)
 
+const minLenArgumentsNFTTransfer = 4
+
 type esdtNFTTransfer struct {
 	keyPrefix        []byte
 	marshalizer      marshal.Marshalizer
@@ -132,22 +134,21 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 4
-	err = e.addNFTToDestination(vmInput.RecipientAddr, acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable)
+	err = e.addNFTToDestination(vmInput.RecipientAddr, acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable(vmInput, minLenArgumentsNFTTransfer))
 	if err != nil {
 		return nil, err
 	}
 
 	// no need to consume gas on destination - sender already paid for it
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided}
-	if len(vmInput.Arguments) > 4 && core.IsSmartContractAddress(vmInput.RecipientAddr) {
+	if len(vmInput.Arguments) > minLenArgumentsNFTTransfer && core.IsSmartContractAddress(vmInput.RecipientAddr) {
 		var callArgs [][]byte
-		if len(vmInput.Arguments) > 5 {
-			callArgs = vmInput.Arguments[5:]
+		if len(vmInput.Arguments) > minLenArgumentsNFTTransfer+1 {
+			callArgs = vmInput.Arguments[minLenArgumentsNFTTransfer+1:]
 		}
 
 		addOutputTransferToVMOutput(
-			string(vmInput.Arguments[4]),
+			string(vmInput.Arguments[minLenArgumentsNFTTransfer]),
 			callArgs,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
@@ -190,7 +191,6 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 	esdtData.Value.Set(quantityToTransfer)
 
 	if e.shardCoordinator.SelfId() == e.shardCoordinator.ComputeId(dstAddress) {
-		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && len(vmInput.Arguments) == 4
 		accountHandler, errLoad := e.accounts.LoadAccount(dstAddress)
 		if errLoad != nil {
 			return nil, errLoad
@@ -200,7 +200,7 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		err = e.addNFTToDestination(dstAddress, userAccount, esdtData, esdtTokenKey, mustVerifyPayable)
+		err = e.addNFTToDestination(dstAddress, userAccount, esdtData, esdtTokenKey, mustVerifyPayable(vmInput, minLenArgumentsNFTTransfer))
 		if err != nil {
 			return nil, err
 		}
@@ -247,7 +247,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 		nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[4:]...)
 	}
 
-	isSCCallAfter := len(vmInput.Arguments) > 4 && core.IsSmartContractAddress(dstAddress)
+	isSCCallAfter := len(vmInput.Arguments) > minLenArgumentsNFTTransfer && core.IsSmartContractAddress(dstAddress)
 
 	if e.shardCoordinator.SelfId() != e.shardCoordinator.ComputeId(dstAddress) {
 		gasToTransfer := uint64(0)
@@ -267,12 +267,12 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 
 	if isSCCallAfter {
 		var callArgs [][]byte
-		if len(vmInput.Arguments) > 5 {
-			callArgs = vmInput.Arguments[5:]
+		if len(vmInput.Arguments) > minLenArgumentsNFTTransfer+1 {
+			callArgs = vmInput.Arguments[minLenArgumentsNFTTransfer+1:]
 		}
 
 		addOutputTransferToVMOutput(
-			string(vmInput.Arguments[4]),
+			string(vmInput.Arguments[minLenArgumentsNFTTransfer]),
 			callArgs,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
