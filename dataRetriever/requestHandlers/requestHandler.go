@@ -92,6 +92,13 @@ func (rrh *resolverRequestHandler) SetEpoch(epoch uint32) {
 	rrh.mutEpoch.Unlock()
 }
 
+func (rrh *resolverRequestHandler) getEpoch() uint32 {
+	rrh.mutEpoch.RLock()
+	defer rrh.mutEpoch.RUnlock()
+
+	return rrh.epoch
+}
+
 // RequestTransaction method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic)
@@ -148,9 +155,7 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 		)
 	}
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	for _, batch := range sliceBatches {
 		err = resolver.RequestDataFromHashArray(batch, epoch)
 		if err != nil {
@@ -197,9 +202,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	rrh.whiteList.Add([][]byte{miniblockHash})
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = resolver.RequestDataFromHash(miniblockHash, epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlock.RequestDataFromHash",
@@ -243,9 +246,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = miniBlocksResolver.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
@@ -281,9 +282,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = headerResolver.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestShardHeader.RequestDataFromHash",
@@ -318,9 +317,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = resolver.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeader.RequestDataFromHash",
@@ -357,9 +354,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 	rrh.whiteList.Add([][]byte{key})
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = headerResolver.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
 		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
@@ -456,9 +451,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 	rrh.whiteList.Add([][]byte{key})
 
-	rrh.mutEpoch.RLock()
-	epoch := rrh.epoch
-	rrh.mutEpoch.RUnlock()
+	epoch := rrh.getEpoch()
 	err = headerResolver.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeaderByNonce.RequestDataFromNonce",

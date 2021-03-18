@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,7 @@ func TestCreateCurrentEpochProvider_NilCurrentEpochProvider(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.IsType(t, &epochproviders.NilEpochProvider{}, cnep)
+	assert.IsType(t, disabled.NewEpochProvider(), cnep)
 }
 
 func TestCreateCurrentEpochProvider_ArithemticEpochProvider(t *testing.T) {
@@ -42,6 +43,7 @@ func TestCreateCurrentEpochProvider_ArithemticEpochProvider(t *testing.T) {
 		1,
 		1,
 	)
+	require.Nil(t, err)
 
 	aep, _ := epochproviders.NewArithmeticEpochProvider(
 		epochproviders.ArgArithmeticEpochProvider{
@@ -51,7 +53,5 @@ func TestCreateCurrentEpochProvider_ArithemticEpochProvider(t *testing.T) {
 		},
 	)
 	require.False(t, check.IfNil(aep))
-
-	assert.Nil(t, err)
 	assert.IsType(t, aep, cnep)
 }

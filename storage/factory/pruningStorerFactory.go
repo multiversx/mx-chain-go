@@ -536,14 +536,14 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 }
 
 func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
-	if psf.generalConfig.StoragePruning.FullArchive {
-		historyArgs := &pruning.FullHistoryStorerArgs{
-			StorerArgs:               arg,
-			NumOfOldActivePersisters: psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters,
-		}
-
-		return pruning.NewFullHistoryPruningStorer(historyArgs)
+	if !psf.generalConfig.StoragePruning.FullArchive {
+		return pruning.NewPruningStorer(arg)
 	}
 
-	return pruning.NewPruningStorer(arg)
+	historyArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               arg,
+		NumOfOldActivePersisters: psf.generalConfig.StoragePruning.FullArchiveNumActivePersisters,
+	}
+
+	return pruning.NewFullHistoryPruningStorer(historyArgs)
 }

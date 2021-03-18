@@ -5,29 +5,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// CurrentNetworkEpochProviderHandler -
-type CurrentNetworkEpochProviderHandler struct {
+// currentNetworkEpochProviderHandler -
+type currentNetworkEpochProviderHandler struct {
+}
+
+// NewCurrentNetworkEpochProviderHandler will create a new currentNetworkEpochProviderHandler instance
+func NewCurrentNetworkEpochProviderHandler() *currentNetworkEpochProviderHandler {
+	return &currentNetworkEpochProviderHandler{}
 }
 
 // EpochStartAction does nothing
-func (cneph *CurrentNetworkEpochProviderHandler) EpochStartAction(_ data.HeaderHandler) {
+func (cneph *currentNetworkEpochProviderHandler) EpochStartAction(_ data.HeaderHandler) {
 }
 
 // EpochStartPrepare does nothing
-func (cneph *CurrentNetworkEpochProviderHandler) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+func (cneph *currentNetworkEpochProviderHandler) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // NotifyOrder return core.CurrentNetworkEpochProvider value
-func (cneph *CurrentNetworkEpochProviderHandler) NotifyOrder() uint32 {
+func (cneph *currentNetworkEpochProviderHandler) NotifyOrder() uint32 {
 	return core.CurrentNetworkEpochProvider
 }
 
 // EpochIsActiveInNetwork returns true
-func (cneph *CurrentNetworkEpochProviderHandler) EpochIsActiveInNetwork(_ uint32) bool {
+func (cneph *currentNetworkEpochProviderHandler) EpochIsActiveInNetwork(_ uint32) bool {
 	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cneph *CurrentNetworkEpochProviderHandler) IsInterfaceNil() bool {
+func (cneph *currentNetworkEpochProviderHandler) IsInterfaceNil() bool {
 	return cneph == nil
 }

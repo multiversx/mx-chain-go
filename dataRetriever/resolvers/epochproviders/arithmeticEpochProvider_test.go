@@ -1,6 +1,7 @@
 package epochproviders
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ func TestNewArithmeticEpochProvider_InvalidRoundsPerEpoch(t *testing.T) {
 
 	aep, err := NewArithmeticEpochProvider(arg)
 
-	assert.Equal(t, ErrInvalidRoundsPerEpoch, err)
+	assert.True(t, errors.Is(err, ErrInvalidRoundsPerEpoch))
 	assert.True(t, check.IfNil(aep))
 }
 
@@ -43,7 +44,7 @@ func TestNewArithmeticEpochProvider_InvalidRoundTimeInMilliseconds(t *testing.T)
 
 	aep, err := NewArithmeticEpochProvider(arg)
 
-	assert.Equal(t, ErrInvalidRoundTimeInMilliseconds, err)
+	assert.True(t, errors.Is(err, ErrInvalidRoundTimeInMilliseconds))
 	assert.True(t, check.IfNil(aep))
 }
 
@@ -58,7 +59,7 @@ func TestNewArithmeticEpochProvider_InvalidStartTime(t *testing.T) {
 
 	aep, err := NewArithmeticEpochProvider(arg)
 
-	assert.Equal(t, ErrInvalidStartTime, err)
+	assert.True(t, errors.Is(err, ErrInvalidStartTime))
 	assert.True(t, check.IfNil(aep))
 }
 
@@ -212,4 +213,23 @@ func TestArithmeticEpochProvider_NotifyOrder(t *testing.T) {
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1))
 
 	assert.Equal(t, uint32(core.CurrentNetworkEpochProvider), aep.NotifyOrder())
+}
+
+func TestEpochsDiff(t *testing.T) {
+	roundTimeInMilliseconds := uint64(5000)
+	roundsPerEpoch := 500
+	millisInASec := 1000
+
+	currentTimeStamp := uint64(1600000000)
+
+	epochDuration := uint64(roundsPerEpoch+1) * (roundTimeInMilliseconds / uint64(millisInASec))
+
+	headerTimestampForNewEpoch := currentTimeStamp - (epochDuration)
+
+	diffTimeStampInSeconds := currentTimeStamp - headerTimestampForNewEpoch
+	diffTimeStampInMilliseconds := diffTimeStampInSeconds * 1000
+	diffRounds := diffTimeStampInMilliseconds / roundTimeInMilliseconds
+	diffEpochs := diffRounds / uint64(roundsPerEpoch+1)
+
+	fmt.Println(diffEpochs)
 }

@@ -1,6 +1,7 @@
 package epochproviders
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,13 +39,13 @@ type arithmeticEpochProvider struct {
 // based on the last block saved, considering the block's timestamp and epoch in respect with the current time
 func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpochProvider, error) {
 	if arg.RoundsPerEpoch == 0 {
-		return nil, ErrInvalidRoundsPerEpoch
+		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundsPerEpoch)
 	}
 	if arg.RoundTimeInMilliseconds == 0 {
-		return nil, ErrInvalidRoundTimeInMilliseconds
+		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundTimeInMilliseconds)
 	}
 	if arg.StartTime < 0 {
-		return nil, ErrInvalidStartTime
+		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,

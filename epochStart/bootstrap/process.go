@@ -972,7 +972,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		SizeCheckDelta:              0,
 		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider: &disabled.CurrentNetworkEpochProviderHandler{},
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
