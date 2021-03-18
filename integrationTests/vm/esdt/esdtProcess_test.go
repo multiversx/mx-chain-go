@@ -1204,7 +1204,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	// no tokens in caller contract
 	esdtData = getESDTTokenData(t, callerScAddress, nodes, tokenIdentifier)
-	require.EqualValues(t, &esdt.ESDigitalToken{}, esdtData)
+	require.EqualValues(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
