@@ -26,18 +26,21 @@ const (
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
+
+	queryParamWithResults    = "withResults"
+	queryParamCheckSignature = "checkSignature"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
+	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
-	ValidateTransactionForSimulation(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
@@ -60,17 +63,19 @@ type MultipleTxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender    string `form:"sender" json:"sender"`
-	Receiver  string `form:"receiver" json:"receiver"`
-	Value     string `form:"value" json:"value"`
-	Data      []byte `form:"data" json:"data"`
-	Nonce     uint64 `form:"nonce" json:"nonce"`
-	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
-	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
-	Signature string `form:"signature" json:"signature"`
-	ChainID   string `form:"chainID" json:"chainID"`
-	Version   uint32 `form:"version" json:"version"`
-	Options   uint32 `json:"options,omitempty"`
+	Sender           string `form:"sender" json:"sender"`
+	Receiver         string `form:"receiver" json:"receiver"`
+	SenderUsername   []byte `json:"senderUsername,omitempty"`
+	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
+	Value            string `form:"value" json:"value"`
+	Data             []byte `form:"data" json:"data"`
+	Nonce            uint64 `form:"nonce" json:"nonce"`
+	GasPrice         uint64 `form:"gasPrice" json:"gasPrice"`
+	GasLimit         uint64 `form:"gasLimit" json:"gasLimit"`
+	Signature        string `form:"signature" json:"signature"`
+	ChainID          string `form:"chainID" json:"chainID"`
+	Version          uint32 `form:"version" json:"version"`
+	Options          uint32 `json:"options,omitempty"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -163,11 +168,26 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
+	checkSignature, err := getQueryParameterCheckSignature(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrValidation.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
 	tx, txHash, err := facade.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
@@ -188,7 +208,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransactionForSimulation(tx)
+	err = facade.ValidateTransactionForSimulation(tx, checkSignature)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -250,7 +270,9 @@ func SendTransaction(c *gin.Context) {
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
@@ -341,7 +363,9 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
+			receivedTx.ReceiverUsername,
 			receivedTx.Sender,
+			receivedTx.SenderUsername,
 			receivedTx.GasPrice,
 			receivedTx.GasLimit,
 			receivedTx.Data,
@@ -415,7 +439,7 @@ func GetTransaction(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s", errors.ErrValidation.Error()),
+				Error: errors.ErrValidation.Error(),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -470,7 +494,9 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
@@ -507,7 +533,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"txGasUnits": cost},
+			Data:  cost,
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -515,10 +541,19 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 }
 
 func getQueryParamWithResults(c *gin.Context) (bool, error) {
-	withResultsStr := c.Request.URL.Query().Get("withResults")
+	withResultsStr := c.Request.URL.Query().Get(queryParamWithResults)
 	if withResultsStr == "" {
 		return false, nil
 	}
 
 	return strconv.ParseBool(withResultsStr)
+}
+
+func getQueryParameterCheckSignature(c *gin.Context) (bool, error) {
+	bypassSignatureStr := c.Request.URL.Query().Get(queryParamCheckSignature)
+	if bypassSignatureStr == "" {
+		return true, nil
+	}
+
+	return strconv.ParseBool(bypassSignatureStr)
 }

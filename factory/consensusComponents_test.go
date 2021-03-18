@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -424,7 +425,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &mock.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
-		RoundHandler:             &testscommon.RounderMock{},
+		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
@@ -442,6 +443,17 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
+		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+				return &mock.PrivateKeyStub{}
+			},
+		},
 	}
 }
 

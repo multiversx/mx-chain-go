@@ -120,7 +120,7 @@ func checkNewSubroundParams(
 // DoWork method actually does the work of this Subround. First it tries to do the Job of the Subround then it will
 // Check the consensus. If the upper time limit of this Subround is reached, the Extend method will be called before
 // returning. If this method returns true the chronology will advance to the next Subround.
-func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
+func (sr *Subround) DoWork(roundHandler consensus.RoundHandler) bool {
 	if sr.Job == nil || sr.Check == nil {
 		return false
 	}
@@ -128,8 +128,8 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 
-	startTime := rounder.TimeStamp()
-	maxTime := rounder.TimeDuration() * MaxThresholdPercent / 100
+	startTime := roundHandler.TimeStamp()
+	maxTime := roundHandler.TimeDuration() * MaxThresholdPercent / 100
 
 	sr.Job()
 	if sr.Check() {
@@ -142,7 +142,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 			if sr.Check() {
 				return true
 			}
-		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
+		case <-time.After(roundHandler.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
 				sr.RoundCanceled = true
 				sr.Extend(sr.current)

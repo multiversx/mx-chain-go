@@ -118,6 +118,9 @@ func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArguments()
+	args.SystemEI = &mock.SystemEIStub{GetContractCalled: func(address []byte) (vm.SystemSmartContract, error) {
+		return nil, vm.ErrUnknownSystemSmartContract
+	}}
 	sVM, _ := NewSystemVM(args)
 
 	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})

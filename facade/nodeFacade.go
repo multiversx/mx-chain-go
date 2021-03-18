@@ -11,7 +11,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -24,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	apiData "github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -96,7 +96,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, ErrNilApiResolver
 	}
 	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrErrNilTransactionSimulatorProcessor
+		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -198,7 +198,7 @@ func (nf *nodeFacade) startRest() {
 		log.Debug("web server is off")
 	default:
 		log.Debug("creating web server limiters")
-		limiters, err := nf.createMiddlewareLimiters()
+		limiters, err := nf.CreateMiddlewareLimiters()
 		if err != nil {
 			log.Error("error creating web server limiters",
 				"error", err.Error(),
@@ -236,7 +236,8 @@ func (nf *nodeFacade) startRest() {
 	}
 }
 
-func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
+// CreateMiddlewareLimiters will create the middleware limiters used in web server
+func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
 	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
@@ -285,6 +286,11 @@ func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string
 	return nf.node.GetESDTBalance(address, key)
 }
 
+// GetKeyValuePairs returns all the key-value pairs under the provided address
+func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error) {
+	return nf.node.GetKeyValuePairs(address)
+}
+
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 	return nf.node.GetAllESDTTokens(address)
@@ -294,8 +300,10 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,
 	value string,
-	receiverHex string,
-	senderHex string,
+	receiver string,
+	receiverUsername []byte,
+	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	txData []byte,
@@ -305,7 +313,7 @@ func (nf *nodeFacade) CreateTransaction(
 	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 
-	return nf.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
+	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
 }
 
 // ValidateTransaction will validate a transaction
@@ -314,8 +322,8 @@ func (nf *nodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for the simulation process
-func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	return nf.node.ValidateTransactionForSimulation(tx)
+func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	return nf.node.ValidateTransactionForSimulation(tx, checkSignature)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
@@ -339,7 +347,7 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
-func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
@@ -347,6 +355,11 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (u
 // about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return nf.node.GetAccount(address)
+}
+
+// GetCode returns the code for the given account
+func (nf *nodeFacade) GetCode(account state.UserAccountHandler) []byte {
+	return nf.node.GetCode(account)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
@@ -362,6 +375,11 @@ func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 // StatusMetrics will return the node's status metrics
 func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return nf.apiResolver.StatusMetrics()
+}
+
+// GetTotalStakedValue will return total staked value
+func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
+	return nf.apiResolver.GetTotalStakedValue()
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
@@ -418,12 +436,12 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 }
 
 // GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
 	return nf.node.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
 	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 

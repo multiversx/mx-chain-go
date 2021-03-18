@@ -17,7 +17,7 @@ type ProcessComponentsStub struct {
 	ShardCoord                     sharding.Coordinator
 	IntContainer                   process.InterceptorsContainer
 	ResFinder                      dataRetriever.ResolversFinder
-	RoundHandler                   consensus.Rounder
+	RoundHandlerField              consensus.RoundHandler
 	EpochTrigger                   epochStart.TriggerHandler
 	EpochNotifier                  factory.EpochStartNotifier
 	ForkDetect                     process.ForkDetector
@@ -41,6 +41,7 @@ type ProcessComponentsStub struct {
 	HistoryRepositoryInternal      dblookupext.HistoryRepository
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 }
 
 // Create -
@@ -78,9 +79,9 @@ func (pcs *ProcessComponentsStub) ResolversFinder() dataRetriever.ResolversFinde
 	return pcs.ResFinder
 }
 
-// Rounder -
-func (pcs *ProcessComponentsStub) Rounder() consensus.Rounder {
-	return pcs.RoundHandler
+// RoundHandler -
+func (pcs *ProcessComponentsStub) RoundHandler() consensus.RoundHandler {
+	return pcs.RoundHandlerField
 }
 
 // EpochStartTrigger -
@@ -196,6 +197,11 @@ func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler
 // RequestedItemsHandler -
 func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcs.RequestedItemsHandlerInternal
+}
+
+// NodeRedundancyHandler -
+func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return pcs.NodeRedundancyHandlerInternal
 }
 
 // IsInterfaceNil -

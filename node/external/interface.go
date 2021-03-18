@@ -2,6 +2,7 @@ package external
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -26,6 +27,12 @@ type StatusMetricsHandler interface {
 
 // TransactionCostHandler defines the actions which should be handler by a transaction cost estimator
 type TransactionCostHandler interface {
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	IsInterfaceNil() bool
+}
+
+// TotalStakedValueHandler defines the behavior of a component able to return total staked value
+type TotalStakedValueHandler interface {
+	GetTotalStakedValue() (*api.StakeValues, error)
 	IsInterfaceNil() bool
 }

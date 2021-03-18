@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -127,7 +128,7 @@ func getProcessArgs(
 		SmartContractParser: &mock.SmartContractParserStub{},
 		EconomicsData:       CreateEconomicsData(),
 		GasSchedule:         gasScheduleNotifier,
-		Rounder: &mock.RounderMock{
+		RoundHandler: &mock.RoundHandlerMock{
 			RoundTimeDuration: time.Second,
 		},
 		ShardCoordinator:          shardCoordinator,
@@ -171,27 +172,37 @@ func getProcessArgs(
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
 				UnBondPeriod:                         0,
-				AuctionEnableEpoch:                   0,
+				StakingV2Epoch:                       0,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
 				MaxNumberOfNodesForStake:             10,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				MinCreationDeposit:  "100",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
 		Version:                 "v1.0.0",
 		Indexer:                 &mock.IndexerMock{},
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }
 
 // CreateEconomicsData creates a mock EconomicsData object
-func CreateEconomicsData() *economics.EconomicsData {
+func CreateEconomicsData() process.EconomicsDataHandler {
 	economicsConfig := createDummyEconomicsConfig()
 	args := economics.ArgsNewEconomicsData{
 		Economics:                      &economicsConfig,
@@ -220,6 +231,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
+	gasMap["DelegationMgrOps"] = value
+	gasMap["GetAllNodeStates"] = value
 
 	return gasMap
 }

@@ -40,6 +40,23 @@ type deployedScMetrics struct {
 	numOtherTypes int
 }
 
+func createGenesisConfig() config.GeneralSettingsConfig {
+	return config.GeneralSettingsConfig{
+		BuiltInFunctionsEnableEpoch:            0,
+		SCDeployEnableEpoch:                    unreachableEpoch,
+		RelayedTransactionsEnableEpoch:         0,
+		PenalizedTooMuchGasEnableEpoch:         0,
+		AheadOfTimeGasUsageEnableEpoch:         unreachableEpoch,
+		BelowSignedThresholdEnableEpoch:        unreachableEpoch,
+		GasPriceModifierEnableEpoch:            unreachableEpoch,
+		MetaProtectionEnableEpoch:              unreachableEpoch,
+		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
+		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
+	}
+}
+
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
@@ -51,14 +68,7 @@ func CreateShardGenesisBlock(
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	genesisOverrideConfig := config.GeneralSettingsConfig{
-		BuiltInFunctionsEnableEpoch:    0,
-		SCDeployEnableEpoch:            0,
-		RelayedTransactionsEnableEpoch: 0,
-		PenalizedTooMuchGasEnableEpoch: 0,
-	}
-
-	processors, err := createProcessorsForShardGenesisBlock(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -278,14 +288,16 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	vmFactoryImpl, err := shard.NewVMContainerFactory(
-		arg.VirtualMachineConfig,
-		math.MaxUint64,
-		arg.GasSchedule,
-		argsHook,
-		arg.GeneralConfig.SCDeployEnableEpoch,
-		arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
-	)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         arg.VirtualMachineConfig,
+		BlockGasLimit:                  math.MaxUint64,
+		GasSchedule:                    arg.GasSchedule,
+		ArgBlockChainHook:              argsHook,
+		DeployEnableEpoch:              arg.GeneralConfig.SCDeployEnableEpoch,
+		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
+		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
+	}
+	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -343,13 +355,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler)
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, generalConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -360,7 +372,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		AccountsDB:                     arg.Accounts,
 		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
 		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
-		Coordinator:                    arg.ShardCoordinator,
+		ShardCoordinator:               arg.ShardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   genesisFeeHandler,
 		EconomicsFee:                   genesisFeeHandler,
@@ -374,6 +386,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
+		IsGenesisProcessing:            true,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -447,20 +462,25 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		arg.Core.Hasher(),
-		arg.Core.InternalMarshalizer(),
-		arg.ShardCoordinator,
-		arg.Accounts,
-		arg.Data.Datapool().MiniBlocks(),
-		disabledRequestHandler,
-		preProcContainer,
-		interimProcContainer,
-		gasHandler,
-		genesisFeeHandler,
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-	)
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:               arg.Core.Hasher(),
+		Marshalizer:          arg.Core.InternalMarshalizer(),
+		ShardCoordinator:     arg.ShardCoordinator,
+		Accounts:             arg.Accounts,
+		MiniBlockPool:        arg.Data.Datapool().MiniBlocks(),
+		RequestHandler:       disabledRequestHandler,
+		PreProcessors:        preProcContainer,
+		InterProcessors:      interimProcContainer,
+		GasHandler:           gasHandler,
+		FeeHandler:           genesisFeeHandler,
+		BlockSizeComputation: disabledBlockSizeComputationHandler,
+		BalanceComputation:   disabledBalanceComputationHandler,
+		EconomicsFee: genesisFeeHandler,
+		TxTypeHandler: txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch: generalConfig.BlockGasAndFeesReCheckEnableEpoch,
+
+	}
+	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}

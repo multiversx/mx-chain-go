@@ -118,6 +118,7 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.MiniBlo
 		for hash, shardId := range mapHashesToRequest {
 			if _, ok := p.mapMiniBlocks[hash]; ok {
 				delete(mapHashesToRequest, hash)
+				continue
 			}
 
 			p.mapHashes[hash] = struct{}{}

@@ -30,6 +30,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	StateComponents     StateComponentsHolder
 	StatusComponents    StatusComponentsHolder
+	IsInImportMode      bool
 }
 
 type consensusComponentsFactory struct {
@@ -43,6 +44,7 @@ type consensusComponentsFactory struct {
 	processComponents   ProcessComponentsHolder
 	stateComponents     StateComponentsHolder
 	statusComponents    StatusComponentsHolder
+	isInImportMode      bool
 }
 
 type consensusComponents struct {
@@ -93,6 +95,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:   args.ProcessComponents,
 		stateComponents:     args.StateComponents,
 		statusComponents:    args.StatusComponents,
+		isInImportMode:      args.IsInImportMode,
 	}, nil
 }
 
@@ -176,7 +179,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerSignatureHandler:     ccf.cryptoComponents.PeerSignatureHandler(),
 		Marshalizer:              marshalizer,
 		Hasher:                   ccf.coreComponents.Hasher(),
-		Rounder:                  ccf.processComponents.Rounder(),
+		RoundHandler:             ccf.processComponents.RoundHandler(),
 		ShardCoordinator:         ccf.processComponents.ShardCoordinator(),
 		SyncTimer:                ccf.coreComponents.SyncTimer(),
 		HeaderSigVerifier:        ccf.processComponents.HeaderSigVerifier(),
@@ -188,6 +191,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
+		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -198,7 +202,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
 
-	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	// apply consensus group size on the input antiflooder just before consensus creation topic
 	ccf.networkComponents.InputAntiFloodHandler().ApplyConsensusSize(
 		ccf.processComponents.NodesCoordinator().ConsensusGroupSize(
 			ccf.processComponents.ShardCoordinator().SelfId()),
@@ -219,7 +223,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		BlsPrivateKey:                 ccf.cryptoComponents.PrivateKey(),
 		BlsSingleSigner:               ccf.cryptoComponents.BlockSigner(),
 		MultiSigner:                   ccf.cryptoComponents.MultiSigner(),
-		Rounder:                       ccf.processComponents.Rounder(),
+		RoundHandler:                  ccf.processComponents.RoundHandler(),
 		ShardCoordinator:              ccf.processComponents.ShardCoordinator(),
 		NodesCoordinator:              ccf.processComponents.NodesCoordinator(),
 		SyncTimer:                     ccf.coreComponents.SyncTimer(),
@@ -228,6 +232,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerHonestyHandler:            ccf.networkComponents.PeerHonestyHandler(),
 		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
+		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -292,10 +297,15 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 			"it is incompatible with the indexing process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}
+	if ccf.isInImportMode {
+		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
+			"it is incompatible with the import-db process.")
+		wd = &watchdog.DisabledWatchdog{}
+	}
 
 	chronologyArg := chronology.ArgChronology{
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
-		Rounder:          ccf.processComponents.Rounder(),
+		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
 		Watchdog:         wd,
 		AppStatusHandler: ccf.coreComponents.StatusHandler(),
@@ -406,9 +416,9 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		PoolsHolder:         ccf.dataComponents.Datapool(),
 		Store:               ccf.dataComponents.StorageService(),
 		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Rounder:             ccf.processComponents.Rounder(),
+		RoundHandler:        ccf.processComponents.RoundHandler(),
 		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		WaitTime:            ccf.processComponents.Rounder().TimeDuration(),
+		WaitTime:            ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:              ccf.coreComponents.Hasher(),
 		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:        ccf.processComponents.ForkDetector(),
@@ -469,9 +479,9 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		PoolsHolder:         ccf.dataComponents.Datapool(),
 		Store:               ccf.dataComponents.StorageService(),
 		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Rounder:             ccf.processComponents.Rounder(),
+		RoundHandler:        ccf.processComponents.RoundHandler(),
 		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		WaitTime:            ccf.processComponents.Rounder().TimeDuration(),
+		WaitTime:            ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:              ccf.coreComponents.Hasher(),
 		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:        ccf.processComponents.ForkDetector(),

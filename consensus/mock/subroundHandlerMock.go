@@ -6,7 +6,7 @@ import (
 
 // SubroundHandlerMock -
 type SubroundHandlerMock struct {
-	DoWorkCalled           func(rounder consensus.Rounder) bool
+	DoWorkCalled           func(roundHandler consensus.RoundHandler) bool
 	PreviousCalled         func() int
 	NextCalled             func() int
 	CurrentCalled          func() int
@@ -19,8 +19,8 @@ type SubroundHandlerMock struct {
 }
 
 // DoWork -
-func (srm *SubroundHandlerMock) DoWork(rounder consensus.Rounder) bool {
-	return srm.DoWorkCalled(rounder)
+func (srm *SubroundHandlerMock) DoWork(roundHandler consensus.RoundHandler) bool {
+	return srm.DoWorkCalled(roundHandler)
 }
 
 // Previous -

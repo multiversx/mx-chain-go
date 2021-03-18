@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	dataProcessorDisabled "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor/disabled"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -32,7 +31,7 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer      indexer.Indexer
+	ElasticIndexer      StorageDataIndexer
 	DataReplayer        DataReplayerHandler
 	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
@@ -46,7 +45,7 @@ type ArgsDataProcessor struct {
 
 type dataProcessor struct {
 	startTime           time.Time
-	elasticIndexer      indexer.Indexer
+	elasticIndexer      StorageDataIndexer
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
 	ratingConfig        config.RatingsConfig

@@ -19,16 +19,6 @@ func TestBaseAccount_AddressContainer(t *testing.T) {
 	assert.Equal(t, address, ba.AddressBytes())
 }
 
-func TestBaseAccount_SetAndGetCode(t *testing.T) {
-	t.Parallel()
-
-	code := []byte("code")
-	ba := state.NewEmptyBaseAccount(nil, nil)
-
-	ba.SetCode(code)
-	assert.Equal(t, code, ba.GetCode())
-}
-
 func TestBaseAccount_DataTrieTracker(t *testing.T) {
 	t.Parallel()
 

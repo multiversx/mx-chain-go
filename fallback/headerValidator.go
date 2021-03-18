@@ -58,7 +58,7 @@ func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidation(headerHandler 
 
 	previousHeader, err := process.GetMetaHeader(headerHandler.GetPrevHash(), fhv.headersPool, fhv.marshalizer, fhv.storageService)
 	if err != nil {
-		log.Debug("ShouldApplyFallbackValidation.GetMetaHeader", "error", err.Error())
+		log.Debug("ShouldApplyFallbackValidation", "GetMetaHeader", err.Error())
 		return false
 	}
 

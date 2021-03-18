@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -61,7 +60,7 @@ type baseProcessor struct {
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
 	txCoordinator           process.TransactionCoordinator
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	bootStorer              process.BootStorer
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
@@ -78,7 +77,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            indexer.Indexer
+	indexer            process.Indexer
 	tpsBenchmark       statistics.TPSBenchmark
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
@@ -244,7 +243,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.rounder.Index() - 1
+		lastRound := bp.roundHandler.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
@@ -385,8 +384,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.RoundHandler) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
@@ -1223,7 +1222,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	}
 
 	waitTime := core.ExtraDelayForRequestBlockInfo
-	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}

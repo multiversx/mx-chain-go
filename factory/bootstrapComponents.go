@@ -148,7 +148,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Rater:                      bcf.coreComponents.Rater(),
 		DestinationShardAsObserver: destShardIdAsObserver,
 		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
-		Rounder:                    bcf.coreComponents.Rounder(),
+		RoundHandler:               bcf.coreComponents.RoundHandler(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),

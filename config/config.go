@@ -175,6 +175,7 @@ type Config struct {
 	Versions              VersionsConfig
 	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
+	TrieSync              TrieSyncConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -213,6 +214,13 @@ type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
 }
 
+// MaxNodesChangeConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
+type MaxNodesChangeConfig struct {
+	EpochEnable            uint32
+	MaxNumNodes            uint32
+	NodesToShufflePerShard uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
@@ -230,8 +238,12 @@ type GeneralSettingsConfig struct {
 	TransactionSignedWithTxHashEnableEpoch uint32
 	MetaProtectionEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch         uint32
+	GasPriceModifierEnableEpoch            uint32
+	RepairCallbackEnableEpoch              uint32
+	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
+	BlockGasAndFeesReCheckEnableEpoch      uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -335,14 +347,19 @@ type IncreaseFactorConfig struct {
 // VirtualMachineServicesConfig holds configuration for the Virtual Machine(s): both querying and execution services.
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
-	Querying  VirtualMachineConfig
+	Querying  QueryVirtualMachineConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
-	WarmInstanceEnabled bool
+	OutOfProcessEnabled bool
+}
+
+// QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
+type QueryVirtualMachineConfig struct {
+	VirtualMachineConfig
+	NumConcurrentVMs int
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
@@ -487,4 +504,10 @@ type ConfigurationPathsHolder struct {
 	SmartContracts             string
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
+}
+
+// TrieSyncConfig represents the trie synchronization configuration area
+type TrieSyncConfig struct {
+	NumConcurrentTrieSyncers  int
+	MaxHardCapForMissingNodes int
 }

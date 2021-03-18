@@ -304,7 +304,7 @@ func (messenger *Messenger) processFromQueue() {
 			continue
 		}
 
-		topic := messageObject.Topics()[0]
+		topic := messageObject.Topic()
 		if topic == "" {
 			continue
 		}

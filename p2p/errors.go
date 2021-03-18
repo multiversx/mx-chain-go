@@ -31,9 +31,6 @@ var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrEmptyTopicList signals that a message with empty topic ids has been received
-var ErrEmptyTopicList = errors.New("empty topicIDs")
-
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 

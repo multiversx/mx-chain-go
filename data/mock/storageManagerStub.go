@@ -1,14 +1,16 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
 
 // StorageManagerStub --
 type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
 	SetCheckpointCalled               func([]byte)
-	PruneCalled                       func([]byte)
-	CancelPruneCalled                 func([]byte)
+	PruneCalled                       func(rootHash []byte, identifier data.TriePruningIdentifier)
+	CancelPruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
 	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
@@ -27,23 +29,31 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 }
 
 // TakeSnapshot --
-func (sms *StorageManagerStub) TakeSnapshot([]byte) {
-
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte) {
+	if sms.TakeSnapshotCalled != nil {
+		sms.TakeSnapshotCalled(rootHash)
+	}
 }
 
 // SetCheckpoint --
-func (sms *StorageManagerStub) SetCheckpoint([]byte) {
-
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte) {
+	if sms.SetCheckpointCalled != nil {
+		sms.SetCheckpointCalled(rootHash)
+	}
 }
 
 // Prune --
-func (sms *StorageManagerStub) Prune([]byte, data.TriePruningIdentifier) {
-
+func (sms *StorageManagerStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	if sms.PruneCalled != nil {
+		sms.PruneCalled(rootHash, identifier)
+	}
 }
 
 // CancelPrune --
-func (sms *StorageManagerStub) CancelPrune([]byte, data.TriePruningIdentifier) {
-
+func (sms *StorageManagerStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
+	if sms.CancelPruneCalled != nil {
+		sms.CancelPruneCalled(rootHash, identifier)
+	}
 }
 
 // MarkForEviction --

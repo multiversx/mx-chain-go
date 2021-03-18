@@ -2,7 +2,9 @@ package process_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -36,6 +38,7 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		NodeDisplayName:      "undefined",
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.CurrentBlockProviderStub{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 }
 
@@ -80,7 +83,7 @@ func TestNewSender_NilPrivateKeyShouldErr(t *testing.T) {
 	sender, err := process.NewSender(arg)
 
 	assert.Nil(t, sender)
-	assert.Equal(t, heartbeat.ErrNilPrivateKey, err)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
 }
 
 func TestNewSender_NilMarshalizerShouldErr(t *testing.T) {
@@ -149,6 +152,32 @@ func TestNewSender_NilCurrentBlockProviderShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, heartbeat.ErrNilCurrentBlockProvider))
 }
 
+func TestNewSender_NilRedundancyHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.RedundancyHandler = nil
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilRedundancyHandler))
+}
+
+func TestNewSender_RedundancyHandlerReturnsANilObserverPrivateKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
+		ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+			return nil
+		},
+	}
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPrivateKey))
+}
+
 func TestNewSender_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -197,8 +226,7 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 			return pubKey
 		},
 	}
-	args := createMockArgHeartbeatSender()
-	args.PeerMessenger = &mock.MessengerStub{
+	arg.PeerMessenger = &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
@@ -209,9 +237,9 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 			return nil, signErr
 		},
 	}
-	args.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
 
-	args.Marshalizer = &mock.MarshalizerStub{
+	arg.Marshalizer = &mock.MarshalizerStub{
 		MarshalHandler: func(obj interface{}) (i []byte, e error) {
 			expectedErr = marshalErr
 			return nil, marshalErr
@@ -239,7 +267,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	arg := createMockArgHeartbeatSender()
@@ -261,7 +289,7 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -288,8 +316,204 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
+}
+
+func TestSender_SendHeartbeatNotABackupNodeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testTopic := "topic"
+	pkBytes := []byte("pub key")
+	pubKey := &mock.PublicKeyMock{
+		ToByteArrayHandler: func() (i []byte, e error) {
+			return pkBytes, nil
+		},
+	}
+	signature := []byte("signature")
+
+	broadcastCalled := false
+	signCalled := false
+	genPubKeyCalled := false
+
+	arg := createMockArgHeartbeatSender()
+	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Topic = testTopic
+	arg.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			fmt.Println(string(buff))
+			pkEncoded := base64.StdEncoding.EncodeToString(pkBytes)
+			if topic == testTopic && bytes.Contains(buff, []byte(pkEncoded)) {
+				broadcastCalled = true
+			}
+		},
+	}
+	singleSigner := &mock.SinglesignStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
+			signCalled = true
+			return signature, nil
+		},
+	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
+	arg.PrivKey = &mock.PrivateKeyStub{
+		GeneratePublicHandler: func() crypto.PublicKey {
+			genPubKeyCalled = true
+			return pubKey
+		},
+	}
+	sender, _ := process.NewSender(arg)
+
+	err := sender.SendHeartbeat()
+
+	assert.Nil(t, err)
+	assert.True(t, broadcastCalled)
+	assert.True(t, signCalled)
+	assert.True(t, genPubKeyCalled)
+}
+
+func TestSender_SendHeartbeatBackupNodeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testTopic := "topic"
+	originalPkBytes := []byte("aaaa")
+	pkBytes := []byte("bbbb")
+	pubKey := &mock.PublicKeyMock{
+		ToByteArrayHandler: func() (i []byte, e error) {
+			return originalPkBytes, nil
+		},
+	}
+	signature := []byte("signature")
+
+	broadcastCalled := false
+	signCalled := false
+	genPubKeyCalled := false
+
+	arg := createMockArgHeartbeatSender()
+	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+		IsMainMachineActiveCalled: func() bool {
+			return true
+		},
+		ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+			return &mock.PrivateKeyStub{
+				GeneratePublicHandler: func() crypto.PublicKey {
+					return &mock.PublicKeyMock{
+						ToByteArrayHandler: func() (i []byte, e error) {
+							return pkBytes, nil
+						},
+					}
+				},
+			}
+		},
+	}
+	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Topic = testTopic
+	arg.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			fmt.Println(string(buff))
+			pkEncoded := base64.StdEncoding.EncodeToString(pkBytes)
+			if topic == testTopic && bytes.Contains(buff, []byte(pkEncoded)) {
+				broadcastCalled = true
+			}
+		},
+	}
+	singleSigner := &mock.SinglesignStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
+			signCalled = true
+			return signature, nil
+		},
+	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
+	arg.PrivKey = &mock.PrivateKeyStub{
+		GeneratePublicHandler: func() crypto.PublicKey {
+			genPubKeyCalled = true
+			return pubKey
+		},
+	}
+	sender, _ := process.NewSender(arg)
+
+	err := sender.SendHeartbeat()
+
+	assert.Nil(t, err)
+	assert.True(t, broadcastCalled)
+	assert.True(t, signCalled)
+	assert.True(t, genPubKeyCalled)
+}
+
+func TestSender_SendHeartbeatIsBackupNodeButMainIsNotActiveShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testTopic := "topic"
+	originalPkBytes := []byte("aaaa")
+	pkBytes := []byte("bbbb")
+	pubKey := &mock.PublicKeyMock{
+		ToByteArrayHandler: func() (i []byte, e error) {
+			return originalPkBytes, nil
+		},
+	}
+	signature := []byte("signature")
+
+	broadcastCalled := false
+	signCalled := false
+	genPubKeyCalled := false
+
+	arg := createMockArgHeartbeatSender()
+	arg.RedundancyHandler = &mock.RedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+		IsMainMachineActiveCalled: func() bool {
+			return false
+		},
+		ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+			return &mock.PrivateKeyStub{
+				GeneratePublicHandler: func() crypto.PublicKey {
+					return &mock.PublicKeyMock{
+						ToByteArrayHandler: func() (i []byte, e error) {
+							return pkBytes, nil
+						},
+					}
+				},
+			}
+		},
+	}
+	arg.Marshalizer = &mock.MarshalizerMock{}
+	arg.Topic = testTopic
+	arg.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			fmt.Println(string(buff))
+			originalPkEncoded := base64.StdEncoding.EncodeToString(originalPkBytes)
+			if topic == testTopic && bytes.Contains(buff, []byte(originalPkEncoded)) {
+				broadcastCalled = true
+			}
+		},
+	}
+	singleSigner := &mock.SinglesignStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
+			signCalled = true
+			return signature, nil
+		},
+	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
+	arg.PrivKey = &mock.PrivateKeyStub{
+		GeneratePublicHandler: func() crypto.PublicKey {
+			genPubKeyCalled = true
+			return pubKey
+		},
+	}
+	sender, _ := process.NewSender(arg)
+
+	err := sender.SendHeartbeat()
+
+	assert.Nil(t, err)
+	assert.True(t, broadcastCalled)
+	assert.True(t, signCalled)
+	assert.True(t, genPubKeyCalled)
 }
 
 func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
@@ -306,7 +530,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 
 	broadcastCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	dataPayload := []byte("payload")
@@ -332,7 +556,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -368,7 +592,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, broadcastCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
 }
 
@@ -388,7 +612,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	broadcastCalled := false
 	broadcastTriggerCalled := false
 	signCalled := false
-	genPubKeyClled := false
+	genPubKeyCalled := false
 	marshalCalled := false
 
 	arg := createMockArgHeartbeatSender()
@@ -416,7 +640,7 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
-			genPubKeyClled = true
+			genPubKeyCalled = true
 			return pubKey
 		},
 	}
@@ -449,6 +673,6 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 	assert.True(t, broadcastCalled)
 	assert.True(t, broadcastTriggerCalled)
 	assert.True(t, signCalled)
-	assert.True(t, genPubKeyClled)
+	assert.True(t, genPubKeyCalled)
 	assert.True(t, marshalCalled)
 }

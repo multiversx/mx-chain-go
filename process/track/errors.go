@@ -28,5 +28,5 @@ var ErrNilFinalMetachainHeadersNotifier = errors.New("nil final metachain header
 // ErrNotarizedHeaderOffsetIsOutOfBound signals that a requested offset of the notarized header is out of bound
 var ErrNotarizedHeaderOffsetIsOutOfBound = errors.New("requested offset of the notarized header is out of bound")
 
-// ErrNilRounder signals that a nil rounder has been provided
-var ErrNilRounder = errors.New("nil rounder")
+// ErrNilRoundHandler signals that a nil roundHandler has been provided
+var ErrNilRoundHandler = errors.New("nil roundHandler")

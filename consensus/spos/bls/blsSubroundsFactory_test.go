@@ -35,8 +35,8 @@ func executeStoredMessages() {
 func resetConsensusMessages() {
 }
 
-func initRounderMock() *mock.RounderMock {
-	return &mock.RounderMock{
+func initRoundHandlerMock() *mock.RoundHandlerMock {
+	return &mock.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -291,13 +291,13 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
+func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	container := mock.InitConsensusCore()
 	worker := initWorker()
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 
 	fct, err := bls.NewSubroundsFactory(
 		container,
@@ -309,7 +309,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {

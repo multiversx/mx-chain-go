@@ -113,8 +113,8 @@ var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil
 // ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
@@ -235,6 +235,78 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrNilMetablockProcessor signals that a nil metablock processor was provided
 var ErrNilMetablockProcessor = errors.New("nil metablock processor")
+
+// ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
+var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
+
+// ErrNilLocalTxCache signals that nil local tx cache has been provided
+var ErrNilLocalTxCache = errors.New("nil local tx cache")
+
+// ErrSystemDelegationCall signals that delegation system sc returned with error
+var ErrSystemDelegationCall = errors.New("delegation system sc call returned with error")
+
+// ErrExecutingSystemScCode signals that an error occurred while executing system SC code
+var ErrExecutingSystemScCode = errors.New("error executing system SC code")
+
+// ErrNilSystemVmInstance signals that a nil system VM instance was provided
+var ErrNilSystemVmInstance = errors.New("nil system VM instance")
+
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
+// ErrNilDataTrie signals that a nil data trie was provided
+var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
+
+// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
+var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
+
+// ErrNilEconomicsDataProvider signals that the economics data provider is nil
+var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
+
+// ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
+var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")
+
+// ErrInvalidSystemSCReturn signals that system sc returned with something unexpected
+var ErrInvalidSystemSCReturn = errors.New("invalid system sc return")
+
+// ErrUnStakeExecuteError signals that unstaked returned with error
+var ErrUnStakeExecuteError = errors.New("unstake execution error")
+
+// ErrSystemValidatorSCCall signals that system validator sc call failed
+var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
+
+// ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
+var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
+
+// ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
+var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
+var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")
+
+// ErrInvalidInflationRate signals usage of an invalid inflation rate
+var ErrInvalidInflationRate = errors.New("inflation rate is invalid")
+
+// ErrInvalidAccumulatedFees signals that the accumulated fees are invalid
+var ErrInvalidAccumulatedFees = errors.New("accumulated rewards are invalid")
+
+// ErrInvalidEstimatedProtocolSustainabilityRewards signals that the estimated protocol sustainability rewards are invalid
+var ErrInvalidEstimatedProtocolSustainabilityRewards = errors.New("estimated protocol sustainability rewards are invalid")
+
+// ErrInvalidAmountMintedTokens signals that the amount of minted tokens is invalid
+var ErrInvalidAmountMintedTokens = errors.New("amount of minted tokens is invalid")
+
+// ErrInvalidTotalToDistribute signals that the computed total rewards to be distributed is invalid
+var ErrInvalidTotalToDistribute = errors.New("invalid total to distribute")
+
+// ErrInvalidRewardsPerBlock signals that the computed rewards per block are invalid
+var ErrInvalidRewardsPerBlock = errors.New("invalid rewards per block")
 
 // ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
 var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")

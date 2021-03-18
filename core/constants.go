@@ -315,6 +315,15 @@ const MetricMinGasPrice = "erd_min_gas_price"
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
 
+// MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
+const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
+
+// MetricGasPriceModifier is the metric that specifies the gas price modifier
+const MetricGasPriceModifier = "erd_gas_price_modifier"
+
+// MetricTopUpFactor is the metric that specifies the top up factor
+const MetricTopUpFactor = "erd_top_up_factor"
+
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
 
@@ -341,6 +350,12 @@ const MetricAverageBlockTxCount = "erd_average_block_tx_count"
 
 // MetricTotalSupply holds the total supply value for the last epoch
 const MetricTotalSupply = "erd_total_supply"
+
+// MetricTotalStakedValue holds the total staked value
+const MetricTotalStakedValue = "erd_total_staked_value"
+
+// MetricTopUpValue holds the total top up value
+const MetricTopUpValue = "erd_total_top_up_value"
 
 // MetricInflation holds the inflation value for the last epoch
 const MetricInflation = "erd_inflation"
@@ -522,8 +537,14 @@ const DefaultShardString = "Shard"
 // MetachainShardName is the string identifier of the metachain shard
 const MetachainShardName = "metachain"
 
+// TemporaryPath is the default temporary path directory
+const TemporaryPath = "temp"
+
 // SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
 const SecondsToWaitForP2PBootstrap = 20
+
+// DelegationSystemSCKey is the key under which there is data in case of system delegation smart contracts
+const DelegationSystemSCKey = "delegation"
 
 // ESDTKeyIdentifier is the key prefix for esdt tokens
 const ESDTKeyIdentifier = "esdt"
@@ -577,11 +598,11 @@ const DefaultLogProfileIdentifier = "[default log profile]"
 // NotSetDestinationShardID represents the shardIdString when the destinationShardId is not set in the prefs
 const NotSetDestinationShardID = "disabled"
 
-// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used by a node when it
-// includes sc calls in a miniblock.
-// Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
+// AdditionalScrForEachScCallOrSpecialTx specifies the additional number of smart contract results which should be
+// considered by a node, when it includes sc calls or special txs in a miniblock.
+// Ex.: normal txs -> aprox. 27000, sc calls or special txs -> aprox. 6250 = 27000 / (AdditionalScrForEachScCallOrSpecialTx + 1),
 // considering that constant below is set to 3
-const MultiplyFactorForScCall = 3
+const AdditionalScrForEachScCallOrSpecialTx = 3
 
 // MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
 // before a special action to be applied
@@ -592,6 +613,9 @@ const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
 const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+
+// MaxUserNameLength represents the maximum number of bytes a UserName can have
+const MaxUserNameLength = 32
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 //(that makes the node run properly)

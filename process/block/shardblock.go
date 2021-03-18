@@ -64,7 +64,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		appStatusHandler:        arguments.AppStatusHandler,
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.RoundHandler,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
@@ -259,6 +259,11 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return err
+	}
+
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(header, body)
 	if err != nil {
 		return err
 	}
@@ -1658,7 +1663,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	roundTooOld := sp.rounder.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
@@ -1787,6 +1792,11 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
 	shardHeader.MetaBlockHashes = metaBlockHashes[core.MetachainShardId]
+
+	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody)
+	if err != nil {
+		return nil, err
+	}
 
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(core.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))

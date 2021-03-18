@@ -154,7 +154,7 @@ type MessageP2P interface {
 	Data() []byte
 	Payload() []byte
 	SeqNo() []byte
-	Topics() []string
+	Topic() string
 	Signature() []byte
 	Key() []byte
 	Peer() core.PeerID

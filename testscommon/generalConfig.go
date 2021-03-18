@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+// GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
 		PublicKeyPeerId: config.CacheConfig{
@@ -303,6 +304,10 @@ func GetGeneralConfig() config.Config {
 		},
 		SoftwareVersionConfig: config.SoftwareVersionConfig{
 			PollingIntervalInMinutes: 30,
+		},
+		TrieSync: config.TrieSyncConfig{
+			NumConcurrentTrieSyncers:  50,
+			MaxHardCapForMissingNodes: 500,
 		},
 	}
 }
