@@ -193,6 +193,106 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *testing.T) {
+	t.Parallel()
+
+	shardC := mock.NewMultiShardsCoordinatorMock(2)
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardC,
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	scr := &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: nil, Value: big.NewInt(-100), PrevTxHash: []byte("hash")}
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return shardC.SelfId()
+	}
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Equal(t, process.ErrNilSndAddr, err)
+}
+
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *testing.T) {
+	t.Parallel()
+
+	shardC := mock.NewMultiShardsCoordinatorMock(2)
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardC,
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	scr := &smartContractResult.SmartContractResult{RcvAddr: nil, SndAddr: []byte("snd"), Value: big.NewInt(-100), PrevTxHash: []byte("hash")}
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return shardC.SelfId()
+	}
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Equal(t, process.ErrNilRcvAddr, err)
+}
+
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch(t *testing.T) {
+	t.Parallel()
+
+	shardC := &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return 0
+		},
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1
+		},
+	}
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardC,
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	scr := &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(100), PrevTxHash: []byte("hash")}
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Equal(t, process.ErrShardIdMissmatch, err)
+}
+
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIntraAndCrossShard(t *testing.T) {
 	t.Parallel()
 
@@ -229,7 +329,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 	}
 
 	err = irp.AddIntermediateTransactions(txs)
-	assert.Equal(t, err, process.ErrNegativeValue)
+	assert.Equal(t, process.ErrNegativeValue, err)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *testing.T) {

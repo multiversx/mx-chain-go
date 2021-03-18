@@ -45,7 +45,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		SelfNotarizedFromCrossHeadersNotifier: bbt.selfNotarizedFromCrossHeadersNotifier,
 		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
-		Rounder:                               arguments.Rounder,
+		RoundHandler:                          arguments.RoundHandler,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
@@ -101,7 +101,7 @@ func (sbt *shardBlockTrack) getTrackedShardHeaderWithNonceAndHash(
 
 	headers, headersHashes := sbt.GetTrackedHeadersWithNonce(shardID, nonce)
 	for i := 0; i < len(headers); i++ {
-		if bytes.Compare(headersHashes[i], hash) != 0 {
+		if !bytes.Equal(headersHashes[i], hash) {
 			continue
 		}
 

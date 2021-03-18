@@ -7,11 +7,22 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+)
+
+// BlockStatus is the status of a block
+type BlockStatus string
+
+const (
+	// BlockStatusOnChain represents the identifier for an on-chain block
+	BlockStatusOnChain = "on-chain"
+	// BlockStatusReverted represent the identifier for a reverted block
+	BlockStatusReverted = "reverted"
 )
 
 type baseAPIBockProcessor struct {
@@ -21,6 +32,7 @@ type baseAPIBockProcessor struct {
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
+	// TODO: use an interface instead of this function
 	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }
 
@@ -79,16 +91,16 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for txHash, txBytes := range marshalizedTxs {
-		tx, err := bap.unmarshalTx(txBytes, txType)
-		if err != nil {
+		tx, errUnmarshalTx := bap.unmarshalTx(txBytes, txType)
+		if errUnmarshalTx != nil {
 			log.Warn("cannot unmarshal transaction",
 				"hash", hex.EncodeToString([]byte(txHash)),
-				"error", err.Error())
+				"error", errUnmarshalTx.Error())
 			continue
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
 		tx.MiniBlockType = miniblock.Type.String()
-		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
+		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
 
@@ -125,4 +137,29 @@ func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key 
 func (bap *baseAPIBockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitType, key []byte, epoch uint32) ([]byte, error) {
 	storer := bap.store.GetStorer(unit)
 	return storer.GetFromEpoch(key, epoch)
+}
+
+func (bap *baseAPIBockProcessor) computeBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
+	nonceToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(blockAPI.Nonce)
+	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return "", err
+	}
+
+	if hex.EncodeToString(headerHash) != blockAPI.Hash {
+		return BlockStatusReverted, err
+	}
+
+	return BlockStatusOnChain, nil
+}
+
+func (bap *baseAPIBockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block, storerUnit dataRetriever.UnitType) (*api.Block, error) {
+	blockStatus, err := bap.computeBlockStatus(storerUnit, blockAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	blockAPI.Status = blockStatus
+
+	return blockAPI, nil
 }

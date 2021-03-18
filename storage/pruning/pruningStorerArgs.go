@@ -15,10 +15,10 @@ type StorerArgs struct {
 	PersisterFactory          DbFactoryHandler
 	BloomFilterConf           storageUnit.BloomConfig
 	Notifier                  EpochStartNotifier
+	MaxBatchSize              int
 	NumOfEpochsToKeep         uint32
 	NumOfActivePersisters     uint32
 	StartingEpoch             uint32
-	MaxBatchSize              int
 	PruningEnabled            bool
 	CleanOldEpochsData        bool
 	EnabledDbLookupExtensions bool

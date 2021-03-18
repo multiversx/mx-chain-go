@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
+var stepDelay = time.Second / 10
 var log = logger.GetOrCreate("integrationtests/node")
 
 // TestHeartbeatMonitorWillUpdateAnInactivePeer test what happen if a peer out of 2 stops being responsive on heartbeat status
@@ -225,6 +225,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.BlockChainMock{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 
 	sender, _ := process.NewSender(argSender)

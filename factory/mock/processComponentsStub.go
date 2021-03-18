@@ -17,7 +17,7 @@ type ProcessComponentsMock struct {
 	ShardCoord                     sharding.Coordinator
 	IntContainer                   process.InterceptorsContainer
 	ResFinder                      dataRetriever.ResolversFinder
-	RoundHandler                   consensus.Rounder
+	RoundHandlerField              consensus.RoundHandler
 	EpochTrigger                   epochStart.TriggerHandler
 	EpochNotifier                  factory.EpochStartNotifier
 	ForkDetect                     process.ForkDetector
@@ -41,6 +41,7 @@ type ProcessComponentsMock struct {
 	HistoryRepositoryInternal      dblookupext.HistoryRepository
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 }
 
 // Create -
@@ -78,9 +79,9 @@ func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinde
 	return pcm.ResFinder
 }
 
-// Rounder -
-func (pcm *ProcessComponentsMock) Rounder() consensus.Rounder {
-	return pcm.RoundHandler
+// RoundHandler -
+func (pcm *ProcessComponentsMock) RoundHandler() consensus.RoundHandler {
+	return pcm.RoundHandlerField
 }
 
 // EpochStartTrigger -
@@ -196,6 +197,11 @@ func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler
 // RequestedItemsHandler -
 func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcm.RequestedItemsHandlerInternal
+}
+
+// NodeRedundancyHandler -
+func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return pcm.NodeRedundancyHandlerInternal
 }
 
 // IsInterfaceNil -

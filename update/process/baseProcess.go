@@ -57,9 +57,9 @@ func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, e
 			return nil, update.ErrMiniBlockNotFoundInImportedMap
 		}
 
-		txsInfo, err := b.getTxsInfoFromMiniBlock(miniBlock, importedTransactionsMap)
-		if err != nil {
-			return nil, err
+		txsInfo, errGetTxsInfoFromMiniBlock := b.getTxsInfoFromMiniBlock(miniBlock, importedTransactionsMap)
+		if errGetTxsInfoFromMiniBlock != nil {
+			return nil, errGetTxsInfoFromMiniBlock
 		}
 
 		numPendingTransactions += len(miniBlock.TxHashes)

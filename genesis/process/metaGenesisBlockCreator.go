@@ -35,6 +35,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
+const unreachableEpoch = uint32(1000000)
+
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(
 	arg ArgsGenesisBlockCreator,
@@ -46,13 +48,7 @@ func CreateMetaGenesisBlock(
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	genesisOverrideConfig := config.GeneralSettingsConfig{
-		BuiltInFunctionsEnableEpoch:    0,
-		SCDeployEnableEpoch:            0,
-		RelayedTransactionsEnableEpoch: 0,
-		PenalizedTooMuchGasEnableEpoch: 0,
-	}
-	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -263,24 +259,25 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	if err != nil {
 		return nil, err
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		arg.Economics,
-		pubKeyVerifier,
-		arg.GasSchedule,
-		arg.InitialNodesSetup,
-		arg.Core.Hasher(),
-		arg.Core.InternalMarshalizer(),
-		&arg.SystemSCConfig,
-		arg.ValidatorAccounts,
-		&disabled.Rater{},
-		epochNotifier,
-	)
+	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           arg.Economics,
+		MessageSignVerifier: pubKeyVerifier,
+		GasSchedule:         arg.GasSchedule,
+		NodesConfigProvider: arg.InitialNodesSetup,
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		SystemSCConfig:      &arg.SystemSCConfig,
+		ValidatorAccountsDB: arg.ValidatorAccounts,
+		ChanceComputer:      &disabled.Rater{},
+		EpochNotifier:       epochNotifier,
+	}
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	vmContainer, err := virtualMachineFactory.Create()
+	vmContainer, err := virtualMachineFactory.CreateForGenesis()
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +320,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler)
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, generalConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +335,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		AccountsDB:                     arg.Accounts,
 		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
 		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
-		Coordinator:                    arg.ShardCoordinator,
+		ShardCoordinator:               arg.ShardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   genesisFeeHandler,
 		EconomicsFee:                   genesisFeeHandler,
@@ -352,6 +349,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
+		IsGenesisProcessing:            true,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -406,20 +406,24 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		arg.Core.Hasher(),
-		arg.Core.InternalMarshalizer(),
-		arg.ShardCoordinator,
-		arg.Accounts,
-		arg.Data.Datapool().MiniBlocks(),
-		disabledRequestHandler,
-		preProcContainer,
-		interimProcContainer,
-		gasHandler,
-		genesisFeeHandler,
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-	)
+	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
+		Hasher:                            arg.Core.Hasher(),
+		Marshalizer:                       arg.Core.InternalMarshalizer(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		Accounts:                          arg.Accounts,
+		MiniBlockPool:                     arg.Data.Datapool().MiniBlocks(),
+		RequestHandler:                    disabledRequestHandler,
+		PreProcessors:                     preProcContainer,
+		InterProcessors:                   interimProcContainer,
+		GasHandler:                        gasHandler,
+		FeeHandler:                        genesisFeeHandler,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
+		BalanceComputation:                disabledBalanceComputationHandler,
+		EconomicsFee:                      genesisFeeHandler,
+		TxTypeHandler:                     txTypeHandler,
+		BlockGasAndFeesReCheckEnableEpoch: generalConfig.BlockGasAndFeesReCheckEnableEpoch,
+	}
+	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +514,7 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
-			RcvAddr:   vm.AuctionSCAddress,
+			RcvAddr:   vm.ValidatorSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
 			GasLimit:  math.MaxUint64,

@@ -85,7 +85,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		advertiserAddr,
 	)
 	nodes = append(nodes, syncMetaNode)
-	syncMetaNode.Rounder.IndexField = int64(round)
+	syncMetaNode.RoundHandler.IndexField = int64(round)
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	integrationTests.StartP2PBootstrapOnProcessorNodes(syncNodesSlice)

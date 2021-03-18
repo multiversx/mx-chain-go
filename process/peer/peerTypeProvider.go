@@ -73,12 +73,12 @@ func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 	defer ptp.mutCache.RUnlock()
 
 	peerTypeInfos := make([]*state.PeerTypeInfo, 0, len(ptp.cache))
-	for pkString, peerListAndShard := range ptp.cache {
+	for pkString, peerListAndShardVal := range ptp.cache {
 		peerTypeInfos = append(peerTypeInfos, &state.PeerTypeInfo{
 			PublicKey:   pkString,
-			PeerType:    string(peerListAndShard.pType),
-			PeerSubType: peerListAndShard.pSubType,
-			ShardId:     peerListAndShard.pShard,
+			PeerType:    string(peerListAndShardVal.pType),
+			PeerSubType: peerListAndShardVal.pSubType,
+			ShardId:     peerListAndShardVal.pShard,
 		})
 	}
 

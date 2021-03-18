@@ -104,6 +104,7 @@ type TransactionHandler interface {
 	GetNonce() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetRcvUserName() []byte
 	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
@@ -113,6 +114,8 @@ type TransactionHandler interface {
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)
 	Size() int
+
+	CheckIntegrity() error
 }
 
 // LogHandler defines the type for a log resulted from executing a transaction or smart contract call
@@ -150,26 +153,20 @@ type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
-	Root() ([]byte, error)
+	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	Prune(rootHash []byte, identifier TriePruningIdentifier)
-	TakeSnapshot(rootHash []byte)
-	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	GetDirtyHashes() (ModifiedHashes, error)
 	SetNewHashes(ModifiedHashes)
-	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	IsPruningEnabled() bool
-	EnterPruningBufferingMode()
-	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
+	GetProof(key []byte) ([][]byte, error)
+	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	GetStorageManager() StorageManager
 	IsInterfaceNil() bool
 }
 

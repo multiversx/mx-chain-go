@@ -366,7 +366,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	}
 	si.tries[identifier] = dataTrie
 
-	rootHash, err := dataTrie.Root()
+	rootHash, err := dataTrie.RootHash()
 	if err != nil {
 		return err
 	}

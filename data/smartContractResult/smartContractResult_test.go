@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/stretchr/testify/assert"
 )
@@ -56,4 +57,54 @@ func TestTrimSlicePtr(t *testing.T) {
 
 	assert.Equal(t, 2, len(scrSlice))
 	assert.Equal(t, 2, len(scrSlice))
+}
+
+func TestSmartContractResult_CheckIntegrityShouldWork(t *testing.T) {
+	t.Parallel()
+
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:      1,
+		Value:      big.NewInt(10),
+		GasPrice:   1,
+		GasLimit:   10,
+		Data:       []byte("data"),
+		RcvAddr:    []byte("rcv-address"),
+		SndAddr:    []byte("snd-address"),
+		PrevTxHash: []byte("prev-hash"),
+	}
+
+	err := scr.CheckIntegrity()
+	assert.Nil(t, err)
+}
+
+func TestSmartContractResult_CheckIntegrityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scr := &smartContractResult.SmartContractResult{
+		Nonce: 1,
+		Data:  []byte("data"),
+	}
+
+	err := scr.CheckIntegrity()
+	assert.Equal(t, data.ErrNilRcvAddr, err)
+
+	scr.RcvAddr = []byte("rcv-address")
+
+	err = scr.CheckIntegrity()
+	assert.Equal(t, data.ErrNilSndAddr, err)
+
+	scr.SndAddr = []byte("snd-address")
+
+	err = scr.CheckIntegrity()
+	assert.Equal(t, data.ErrNilValue, err)
+
+	scr.Value = big.NewInt(-1)
+
+	err = scr.CheckIntegrity()
+	assert.Equal(t, data.ErrNegativeValue, err)
+
+	scr.Value = big.NewInt(10)
+
+	err = scr.CheckIntegrity()
+	assert.Equal(t, data.ErrNilTxHash, err)
 }

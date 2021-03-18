@@ -60,7 +60,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	idxSender := 0
 	shardId = nodes[idxSender].ShardCoordinator.SelfId()
-	balanceValue := big.NewInt(100000)
+	balanceValue := big.NewInt(1000000000)
 	transactionValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
@@ -146,7 +146,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	idxSender := 0
 	shardId = uint32(4)
-	mintingValue := big.NewInt(100000)
+	mintingValue := big.NewInt(1000000000)
 	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
@@ -265,7 +265,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	idxSender := 0
 	shardId := uint32(4)
-	mintingValue := big.NewInt(100000)
+	mintingValue := big.NewInt(1000000000)
 	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
@@ -369,7 +369,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 
 	senderShardId := uint32(0)
 	recvShardId := uint32(1)
-	balanceValue := big.NewInt(100000)
+	balanceValue := big.NewInt(1000000000)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), senderShardId)
 	dPool, txHashesGenerated, txsSndAddr := integrationTests.CreateResolversDataPool(t, txGenerated, senderShardId, recvShardId, shardCoordinator)
 

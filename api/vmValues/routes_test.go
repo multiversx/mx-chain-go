@@ -223,7 +223,7 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("no return data")
-	facade := mock.Facade{
+	facade := &mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return &vm.VMOutputApi{}, nil
 		},
@@ -235,7 +235,19 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 		Args:      []string{},
 	}
 
-	requireErrorOnGetSingleValueRoutes(t, &facade, request, errExpected)
+	response := simpleResponse{}
+
+	statusCode := doPost(facade, "/vm-values/hex", request, &response)
+	require.Equal(t, http.StatusOK, statusCode)
+	require.Contains(t, response.Error, errExpected.Error())
+
+	statusCode = doPost(facade, "/vm-values/string", request, &response)
+	require.Equal(t, http.StatusOK, statusCode)
+	require.Contains(t, response.Error, errExpected.Error())
+
+	statusCode = doPost(facade, "/vm-values/int", request, &response)
+	require.Equal(t, http.StatusOK, statusCode)
+	require.Contains(t, response.Error, errExpected.Error())
 }
 
 func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
@@ -357,7 +369,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"vm-values": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/hex", Open: true},
 					{Name: "/string", Open: true},
 					{Name: "/int", Open: true},

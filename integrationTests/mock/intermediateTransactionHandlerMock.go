@@ -61,6 +61,11 @@ func (ith *IntermediateTransactionHandlerMock) GetIntermediateTransactions() []d
 	return ith.intermediateTransactions
 }
 
+// Clean -
+func (ith *IntermediateTransactionHandlerMock) Clean() {
+	ith.intermediateTransactions = make([]data.TransactionHandler, 0)
+}
+
 // GetNumOfCrossInterMbsAndTxs -
 func (ith *IntermediateTransactionHandlerMock) GetNumOfCrossInterMbsAndTxs() (int, int) {
 	if ith.GetNumOfCrossInterMbsAndTxsCalled == nil {
@@ -95,6 +100,9 @@ func (ith *IntermediateTransactionHandlerMock) SaveCurrentIntermediateTxToStorag
 
 // CreateBlockStarted -
 func (ith *IntermediateTransactionHandlerMock) CreateBlockStarted() {
+	if len(ith.intermediateTransactions) > 0 {
+		ith.intermediateTransactions = make([]data.TransactionHandler, 0)
+	}
 	if ith.CreateBlockStartedCalled != nil {
 		ith.CreateBlockStartedCalled()
 	}

@@ -349,6 +349,8 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			LeaderPercentage:                 0.1,
 			ProtocolSustainabilityPercentage: 0.1,
 			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpFactor:                      0.25,
+			TopUpGradientPoint:               "3000000000000000000000000",
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     "1500000000",
@@ -356,7 +358,7 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			MinGasPrice:             "1000000000",
 			MinGasLimit:             "50000",
 			GasPerDataByte:          "1500",
-			DataLimitForBaseCalc:    "10000",
+			GasPriceModifier:        1,
 		},
 	}
 }

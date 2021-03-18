@@ -9,9 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
 
-var _ consensus.Rounder = (*round)(nil)
+var _ consensus.RoundHandler = (*round)(nil)
 
-// round defines the data needed by the rounder
+// round defines the data needed by the roundHandler
 type round struct {
 	index        int64         // represents the index of the round in the current chronology (current time - genesis time) / round duration
 	timeStamp    time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration

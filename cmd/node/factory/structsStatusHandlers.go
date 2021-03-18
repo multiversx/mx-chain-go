@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/urfave/cli"
 )
 
 const defaultTermuiRefreshTimeInMilliseconds = 500
@@ -42,7 +41,6 @@ type statusHandlersInfo struct {
 
 type statusHandlerUtilsFactory struct {
 	useTermUI                    bool
-	ctx                          *cli.Context
 }
 
 // NewStatusHandlersFactory will return the status handler factory
@@ -237,13 +235,18 @@ func (shi *statusHandlersInfo) IsInterfaceNil() bool {
 
 func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{}) {
 	for key, value := range metricsMap {
-		if key == core.MetricAverageBlockTxCount {
-			log.Trace("setting metric value", "key", key, "value string", value.(string))
-			shi.AppStatusHandler.SetStringValue(key, value.(string))
+		stringValue, isString := value.(string)
+		if isString {
+			log.Trace("setting metric value", "key", key, "value string", stringValue)
+			shi.AppStatusHandler.SetStringValue(key, stringValue)
 			continue
 		}
-		log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
-		shi.AppStatusHandler.SetUInt64Value(key, value.(uint64))
+
+		uint64Value, isUint64 := value.(uint64)
+		if isUint64 {
+			log.Trace("setting metric value", "key", key, "value uint64", uint64Value)
+			shi.AppStatusHandler.SetUInt64Value(key, uint64Value)
+		}
 	}
 }
 

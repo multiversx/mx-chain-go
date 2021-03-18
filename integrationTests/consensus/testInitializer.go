@@ -313,7 +313,7 @@ func createConsensusOnlyNode(
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
-	rounder, _ := round.NewRound(
+	roundHandler, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
@@ -336,7 +336,7 @@ func createConsensusOnlyNode(
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
-		rounder,
+		roundHandler,
 		timecache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		0,
@@ -375,7 +375,7 @@ func createConsensusOnlyNode(
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()
 	coreComponents.SyncTimerField = syncer
-	coreComponents.RounderField = rounder
+	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = testMarshalizer
 	coreComponents.VmMarshalizerField = &marshal.JsonMarshalizer{}
 	coreComponents.TxMarshalizerField = &marshal.JsonMarshalizer{}
@@ -421,8 +421,7 @@ func createConsensusOnlyNode(
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &mock.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
-	// TODO: have rounder only in one component
-	processComponents.RoundHandler = rounder
+	processComponents.RoundHandlerField = roundHandler
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
@@ -452,9 +451,10 @@ func createConsensusOnlyNode(
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithSignatureSize(signatureSize),
+		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
 	if err != nil {
@@ -535,6 +535,7 @@ func createNodes(
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
+
 		nodesList[i] = testNodeObject
 	}
 	nodes[0] = nodesList

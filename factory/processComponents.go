@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -46,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -66,7 +66,7 @@ type processComponents struct {
 	shardCoordinator            sharding.Coordinator
 	interceptorsContainer       process.InterceptorsContainer
 	resolversFinder             dataRetriever.ResolversFinder
-	rounder                     consensus.Rounder
+	roundHandler                consensus.RoundHandler
 	epochStartTrigger           epochStart.TriggerHandler
 	epochStartNotifier          EpochStartNotifier
 	forkDetector                process.ForkDetector
@@ -93,17 +93,19 @@ type processComponents struct {
 	importStartHandler          update.ImportStartHandler
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
 	importHandler               update.ImportHandler
+	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
+	PrefConfigs               config.PreferencesConfig
 	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
-	EconomicsData             process.EconomicsHandler
+	EconomicsData             process.EconomicsDataHandler
 	GasSchedule               core.GasScheduleNotifier
-	Rounder                   consensus.Rounder
+	RoundHandler              consensus.RoundHandler
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
 	Data                      DataComponentsHolder
@@ -131,21 +133,21 @@ type ProcessComponentsFactoryArgs struct {
 	Version                   string
 	ImportStartHandler        update.ImportStartHandler
 	WorkingDir                string
-	Indexer                   indexer.Indexer
+	Indexer                   process.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
-	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 }
 
 type processComponentsFactory struct {
 	config                    config.Config
+	prefConfigs               config.PreferencesConfig
 	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             process.EconomicsHandler
+	economicsData             process.EconomicsDataHandler
 	gasSchedule               core.GasScheduleNotifier
-	rounder                   consensus.Rounder
+	roundHandler              consensus.RoundHandler
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
 	data                      DataComponentsHolder
@@ -173,7 +175,7 @@ type processComponentsFactory struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
@@ -190,12 +192,13 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 	return &processComponentsFactory{
 		config:                    args.Config,
+		prefConfigs:               args.PrefConfigs,
 		importDBConfig:            args.ImportDBConfig,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
 		gasSchedule:               args.GasSchedule,
-		rounder:                   args.Rounder,
+		roundHandler:              args.RoundHandler,
 		shardCoordinator:          args.ShardCoordinator,
 		nodesCoordinator:          args.NodesCoordinator,
 		data:                      args.Data,
@@ -226,7 +229,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
-		epochNotifier:             args.EpochNotifier,
+		epochNotifier:             args.CoreData.EpochNotifier(),
 	}, nil
 }
 
@@ -391,7 +394,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
 		pcf.data.Datapool().MiniBlocks(),
-		pcf.rounder,
+		pcf.roundHandler,
 		pcf.shardCoordinator,
 	)
 	if err != nil {
@@ -403,7 +406,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.data.Datapool(),
-		pcf.rounder,
+		pcf.roundHandler,
 		pcf.shardCoordinator,
 	)
 	if err != nil {
@@ -498,13 +501,26 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:    pcf.prefConfigs.RedundancyLevel,
+		Messenger:          pcf.network.NetworkMessenger(),
+		ObserverPrivateKey: pcf.crypto.PrivateKey(),
+	}
+	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
+	if err != nil {
+		return nil, err
+	}
 
 	return &processComponents{
 		nodesCoordinator:            pcf.nodesCoordinator,
 		shardCoordinator:            pcf.shardCoordinator,
 		interceptorsContainer:       interceptorsContainer,
 		resolversFinder:             resolversFinder,
-		rounder:                     pcf.rounder,
+		roundHandler:                pcf.roundHandler,
 		forkDetector:                forkDetector,
 		blockProcessor:              blockProcessor,
 		epochStartTrigger:           epochStartTrigger,
@@ -531,6 +547,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importStartHandler:          pcf.importStartHandler,
 		requestedItemsHandler:       pcf.requestedItemsHandler,
 		importHandler:               pcf.importHandler,
+		nodeRedundancyHandler:       nodeRedundancyHandler,
 	}, nil
 }
 
@@ -565,6 +582,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
 		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -609,7 +627,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			Rounder:              pcf.rounder,
+			RoundHandler:         pcf.roundHandler,
 			AppStatusHandler:     pcf.coreData.StatusHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
@@ -714,7 +732,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.indexer.SaveAccounts(genesisAccounts)
+	pcf.indexer.SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
@@ -845,7 +863,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		HeaderValidator:  headerValidator,
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		RequestHandler:   requestHandler,
-		Rounder:          pcf.rounder,
+		RoundHandler:     pcf.roundHandler,
 		ShardCoordinator: pcf.shardCoordinator,
 		Store:            pcf.data.StorageService(),
 		StartHeaders:     genesisBlocks,
@@ -1171,10 +1189,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewShardForkDetector(pcf.roundHandler, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewMetaForkDetector(pcf.roundHandler, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")
@@ -1269,8 +1287,8 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if args.GasSchedule == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGasSchedule)
 	}
-	if check.IfNil(args.Rounder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRounder)
+	if check.IfNil(args.RoundHandler) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRoundHandler)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilShardCoordinator)
@@ -1323,7 +1341,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.CoreData.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
 	}
 

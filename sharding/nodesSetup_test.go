@@ -651,7 +651,7 @@ func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.
 
 	ns = createAndAssignNodes(*ns, 2169)
 
-	ns2 := &(*ns)
+	ns2 := &(*ns) //nolint
 	ns2.genesisMaxNumShards = 3
 	ns2 = createAndAssignNodes(*ns2, 2169)
 

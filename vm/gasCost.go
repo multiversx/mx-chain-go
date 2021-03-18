@@ -8,6 +8,7 @@ type BaseOperationCost struct {
 	PersistPerByte    uint64
 	CompilePerByte    uint64
 	AoTPreparePerByte uint64
+	GetCode           uint64
 }
 
 // MetaChainSystemSCsCost defines the cost of system staking SCs methods
@@ -27,6 +28,11 @@ type MetaChainSystemSCsCost struct {
 	DelegateVote        uint64
 	RevokeVote          uint64
 	CloseProposal       uint64
+	DelegationOps       uint64
+	UnStakeTokens       uint64
+	UnBondTokens        uint64
+	DelegationMgrOps    uint64
+	GetAllNodeStates    uint64
 }
 
 // BuiltInCost defines cost for built-in methods

@@ -55,12 +55,18 @@ func (ms *MessengerStub) Close() error {
 
 // CreateTopic -
 func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
-	return ms.CreateTopicCalled(name, createChannelForTopic)
+	if ms.CreateTopicCalled != nil {
+		return ms.CreateTopicCalled(name, createChannelForTopic)
+	}
+
+	return nil
 }
 
 // HasTopic -
 func (ms *MessengerStub) HasTopic(name string) bool {
-	return ms.HasTopicCalled(name)
+	if ms.HasTopicCalled != nil {
+		return ms.HasTopicCalled(name)
+	}
 }
 
 // BroadcastOnChannel -

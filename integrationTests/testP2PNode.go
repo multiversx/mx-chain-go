@@ -135,7 +135,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		EpochConfirmedNotifier:    epochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RounderMock{},
+		RoundHandler:              &mock.RoundHandlerMock{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
@@ -185,6 +185,8 @@ func (tP2pNode *TestP2PNode) initNode() {
 	dataComponents.Store = tP2pNode.Storage
 	dataComponents.BlockChain = &mock.BlockChainMock{}
 
+	redundancyHandler := &mock.RedundancyHandlerStub{}
+
 	tP2pNode.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
@@ -195,6 +197,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
+		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -214,6 +217,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		AppVersion:        "test",
 		GenesisTime:       time.Time{},
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    coreComponents,
 		DataComponents:    dataComponents,
 		NetworkComponents: networkComponents,

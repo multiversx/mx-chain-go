@@ -11,23 +11,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
 func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
-	vmOpGas := uint64(0)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	gasLimit := vmOpGas + uint64(len(scCode)) + 1
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -45,17 +53,16 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
 		transferOnCalls,
 		gasPrice,
-		gasLimit,
+		vmOpGas+uint64(len(data))+1,
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -66,7 +73,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 		senderAddressBytes,
 		senderNonce+2,
-		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
+		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit+vmOpGas+uint64(len(data))+1, gasPrice))
 
 	expectedValueForVariable := big.NewInt(0).Add(big.NewInt(int64(initialValueForInternalVariable)), big.NewInt(int64(addValue)))
 	vm.TestDeployedContractContents(
@@ -79,18 +86,25 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
-	vmOpGas := uint64(0)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	gasLimit := vmOpGas + uint64(len(scCode)) + 1
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -109,17 +123,16 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
 		transferOnCalls,
 		gasPrice,
-		gasLimit,
+		vmOpGas+uint64(len(data))+1,
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -130,7 +143,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		accnts,
 		senderAddressBytes,
 		senderNonce+2,
-		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit, gasPrice))
+		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit+vmOpGas+uint64(len(data))+1, gasPrice))
 
 	expectedValueForVariable := big.NewInt(0).Add(big.NewInt(int64(initialValueForInternalVariable)), big.NewInt(int64(addValue)))
 	vm.TestDeployedContractContents(
@@ -143,18 +156,25 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
-	vmOpGas := uint64(1000)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	gasLimit := vmOpGas + uint64(len(scCode)) + 1
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -173,17 +193,16 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
 		transferOnCalls,
 		gasPrice,
-		gasLimit,
+		vmOpGas+uint64(len(data))+1,
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -194,8 +213,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		accnts,
 		senderAddressBytes,
 		senderNonce+2,
-		//2*gasLimit because we do 2 operations: deploy and call
-		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, 2*gasLimit, gasPrice))
+		vm.ComputeExpectedBalance(senderBalance, transferOnCalls, gasLimit+vmOpGas+uint64(len(data))+1, gasPrice))
 
 	expectedValueForVariable := big.NewInt(0).Add(big.NewInt(int64(initialValueForInternalVariable)), big.NewInt(int64(addValue)))
 	vm.TestDeployedContractContents(
@@ -208,18 +226,25 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
-	vmOpGas := uint64(1000)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas - 1
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
+	gasLimit := vmOpGas + uint64(len(scCode)) + 1
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
@@ -227,7 +252,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderNonce,
 		big.NewInt(0),
 		gasPrice,
-		vmOpGas,
+		gasLimit,
 		scCode,
 		txProc,
 		accnts,
@@ -238,17 +263,16 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
 		transferOnCalls,
 		gasPrice,
-		gasLimit,
+		vmOpGas+uint64(len(data)),
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -260,7 +284,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderAddressBytes,
 		senderNonce+2,
 		//following operations happened: deploy and call, deploy succeed, call failed, transfer has been reverted, gas consumed
-		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), vmOpGas+gasLimit, gasPrice))
+		vm.ComputeExpectedBalance(senderBalance, big.NewInt(0), gasLimit+vmOpGas+uint64(len(data)), gasPrice))
 
 	//value did not change, remained initial
 	expectedValueForVariable := big.NewInt(0).SetUint64(initialValueForInternalVariable)
@@ -288,7 +312,6 @@ func deployContract(
 
 	//contract creation tx
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,

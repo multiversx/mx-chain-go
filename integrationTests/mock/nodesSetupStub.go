@@ -2,6 +2,7 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/sharding"
 
+// NodesSetupStub -
 type NodesSetupStub struct {
 	InitialNodesInfoForShardCalled            func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
 	InitialNodesInfoCalled                    func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
@@ -65,7 +66,7 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	if n.MinNumberOfNodesCalled != nil {
 		return n.MinNumberOfNodesCalled()
 	}
-	return 2
+	return 0
 }
 
 // GetStartTime -
@@ -174,7 +175,7 @@ func (n *NodesSetupStub) InitialNodesPubKeys() map[uint32][]string {
 	return map[uint32][]string{0: {"val1", "val2"}}
 }
 
-// MinNumberOfNodesWithHysteresis
+// MinNumberOfNodesWithHysteresis -
 func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 	if n.MinNumberOfNodesWithHysteresisCalled != nil {
 		return n.MinNumberOfNodesWithHysteresisCalled()

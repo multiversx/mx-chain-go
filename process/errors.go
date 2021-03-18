@@ -146,8 +146,8 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
@@ -164,8 +164,14 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
+// ErrInvalidRcvAddr signals that an invalid receiver address was provided
+var ErrInvalidRcvAddr = errors.New("invalid receiver address")
+
 // ErrNilSndAddr signals that an operation has been attempted to or with a nil sender address
 var ErrNilSndAddr = errors.New("nil sender address")
+
+// ErrInvalidSndAddr signals that an invalid sender address was provided
+var ErrInvalidSndAddr = errors.New("invalid sender address")
 
 // ErrNegativeValue signals that a negative value has been detected and it is not allowed
 var ErrNegativeValue = errors.New("negative value")
@@ -476,9 +482,6 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrHigherGasLimitRequiredInTx signals that a higher gas limit was required in tx
-var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
-
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
@@ -671,8 +674,8 @@ var ErrNilEpochEconomics = errors.New("nil epoch economics")
 // ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
 var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 
-// ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
-var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
+// ErrNilRewardsCreator signals that nil epoch start rewards creator was provided
+var ErrNilRewardsCreator = errors.New("nil epoch start rewards creator")
 
 // ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
 var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
@@ -761,14 +764,11 @@ var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
 // ErrUserNameChangeIsDisabled signals the user name change is not allowed
 var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
 
-// ErrDestinationNotInSelfShard signals that user is not in self shard
-var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
-
 // ErrUserNameDoesNotMatch signals that user name does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
 // ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
-var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("mismatch between receiver username and address")
 
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
@@ -908,6 +908,9 @@ var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 // ErrESDTIsFrozenForAccount signals that account is frozen for given esdt token
 var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt token")
 
+// ErrCannotWipeAccountNotFrozen signals that account isn't frozen so the wipe is not possible
+var ErrCannotWipeAccountNotFrozen = errors.New("cannot wipe because the account is not frozen for this esdt token")
+
 // ErrNilPayableHandler signals that nil payableHandler was provided
 var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
 
@@ -920,17 +923,38 @@ var ErrTransactionSignedWithHashIsNotEnabled = errors.New("transaction signed wi
 // ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
 var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
 
+// ErrInvalidRewardsTopUpGradientPoint signals that the top up gradient point is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("rewards top up gradient point is invalid")
+
 // ErrInvalidVMInputGasComputation signals that invalid vm input gas computation was provided
 var ErrInvalidVMInputGasComputation = errors.New("invalid vm input gas computation")
 
 // ErrMoreGasConsumedThanProvided signals that VM used more gas than provided
 var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 
-// ErrAdditionOverflow signals that uint64 addition overflowed
-var ErrAdditionOverflow = errors.New("uint64 addition overflow")
+// ErrInvalidGasModifier signals that provided gas modifier is invalid
+var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 
-// ErrSubtractionOverflow signals that uint64 subtraction overflowed
-var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+// ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
+var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
+
+// ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
+var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
+
+// ErrNegativeBalanceDeltaOnCrossShardAccount signals that negative balance delta was given on cross shard account
+var ErrNegativeBalanceDeltaOnCrossShardAccount = errors.New("negative balance delta on cross shard account")
+
+// ErrNilOrEmptyList signals that a nil or empty list was provided
+var ErrNilOrEmptyList = errors.New("nil or empty provided list")
+
+// ErrNilScQueryElement signals that a nil sc query service element was provided
+var ErrNilScQueryElement = errors.New("nil SC query service element")
+
+// ErrMaxAccumulatedFeesExceeded signals that max accumulated fees has been exceeded
+var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been exceeded")
+
+// ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
+var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
 
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")

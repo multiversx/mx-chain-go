@@ -13,7 +13,7 @@ type ArgumentParserMock struct {
 	GetStorageUpdatesCalled           func(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
-// ParseData -
+// ParseCallData -
 func (ap *ArgumentParserMock) ParseCallData(data string) (string, [][]byte, error) {
 	if ap.ParseCallDataCalled == nil {
 		return "", nil, nil
@@ -21,7 +21,7 @@ func (ap *ArgumentParserMock) ParseCallData(data string) (string, [][]byte, erro
 	return ap.ParseCallDataCalled(data)
 }
 
-// ParseData -
+// ParseDeployData -
 func (ap *ArgumentParserMock) ParseDeployData(data string) (*parsers.DeployArgs, error) {
 	if ap.ParseDeployDataCalled == nil {
 		return nil, nil

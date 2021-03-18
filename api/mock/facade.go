@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -23,28 +24,33 @@ type Facade struct {
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
+	GetCodeCalled              func(state.AccountHandler) []byte
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
-	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
 	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                       func(address string) (string, error)
+	GetKeyValuePairsCalled                  func(address string) (map[string]string, error)
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
+	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 }
 
 // GetUsername -
@@ -107,6 +113,15 @@ func (f *Facade) GetValueForKey(address string, key string) (string, error) {
 	return "", nil
 }
 
+// GetKeyValuePairs -
+func (f *Facade) GetKeyValuePairs(address string) (map[string]string, error) {
+	if f.GetKeyValuePairsCalled != nil {
+		return f.GetKeyValuePairsCalled(address)
+	}
+
+	return nil, nil
+}
+
 // GetESDTBalance -
 func (f *Facade) GetESDTBalance(address string, key string) (string, string, error) {
 	if f.GetESDTBalanceCalled != nil {
@@ -130,12 +145,23 @@ func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
 }
 
+// GetCode -
+func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
+	if f.GetCodeCalled != nil {
+		f.GetCodeCalled(account)
+	}
+
+	return nil
+}
+
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
 func (f *Facade) CreateTransaction(
 	nonce uint64,
 	value string,
-	receiverHex string,
-	senderHex string,
+	receiver string,
+	receiverUsername []byte,
+	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	data []byte,
@@ -144,7 +170,7 @@ func (f *Facade) CreateTransaction(
 	version uint32,
 	options uint32,
 ) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
@@ -168,8 +194,8 @@ func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation -
-func (f *Facade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	return f.ValidateTransactionForSimulationHandler(tx)
+func (f *Facade) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
+	return f.ValidateTransactionForSimulationHandler(tx, bypassSignature)
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
@@ -187,8 +213,13 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 	return f.StatusMetricsHandler()
 }
 
+// GetTotalStakedValue -
+func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
+	return f.GetTotalStakedValueHandler()
+}
+
 // ComputeTransactionGasLimit --
-func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }
 
@@ -233,6 +264,16 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	}
 
 	return 0
+}
+
+// GetBlockByNonce -
+func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
+	return f.GetBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetBlockByHash -
+func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
+	return f.GetBlockByHashCalled(hash, withTxs)
 }
 
 // Close -
