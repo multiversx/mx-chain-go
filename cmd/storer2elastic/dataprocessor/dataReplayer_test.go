@@ -384,7 +384,8 @@ func TestDataReplayer_Range_TransactionInPool(t *testing.T) {
 	handlerFunc := func(persistedData data.RoundPersistedData) bool {
 		return true
 	}
-	_ = dr.Range(handlerFunc)
+	err := dr.Range(handlerFunc)
+	require.Nil(t, err)
 }
 
 func getDataReplayArgs() dataprocessor.DataReplayerArgs {
