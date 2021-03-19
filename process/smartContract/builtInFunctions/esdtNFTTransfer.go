@@ -241,7 +241,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 	nftTransferCallArgs := make([][]byte, 0)
 	nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[:3]...)
 	nftTransferCallArgs = append(nftTransferCallArgs, marshalledNFTTransfer)
-	if len(vmInput.Arguments) > 4 {
+	if len(vmInput.Arguments) > core.MinLenArgumentsESDTNFTTransfer {
 		nftTransferCallArgs = append(nftTransferCallArgs, vmInput.Arguments[4:]...)
 	}
 
@@ -272,7 +272,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 		addOutputTransferToVMOutput(
 			string(vmInput.Arguments[core.MinLenArgumentsESDTNFTTransfer]),
 			callArgs,
-			vmInput.RecipientAddr,
+			dstAddress,
 			vmInput.GasLocked,
 			vmOutput)
 	}
