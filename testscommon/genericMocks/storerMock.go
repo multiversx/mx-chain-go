@@ -82,8 +82,8 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string]
 	return result, nil
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+// hasInEpoch -
+func (sm *StorerMock) hasInEpoch(key []byte, epoch uint32) error {
 	data := sm.GetEpochData(epoch)
 
 	_, ok := data.Get(string(key))
@@ -156,7 +156,7 @@ func (sm *StorerMock) Close() error {
 
 // Has -
 func (sm *StorerMock) Has(key []byte) error {
-	return sm.HasInEpoch(key, sm.currentEpoch.Get())
+	return sm.hasInEpoch(key, sm.currentEpoch.Get())
 }
 
 // Remove -

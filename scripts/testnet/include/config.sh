@@ -83,7 +83,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateJSONValue nodesSetup_edit.json "chainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
 	fi
 
   cp nodesSetup_edit.json nodesSetup.json

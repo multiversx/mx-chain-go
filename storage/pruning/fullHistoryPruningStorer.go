@@ -67,7 +67,7 @@ func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface
 			}
 		}
 
-		if pd.isClosed {
+		if pd.getIsClosed() {
 			return
 		}
 
@@ -138,7 +138,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 	if exists {
 		isClosed := pdata.getIsClosed()
 		if !isClosed {
-			return pdata.persister, nil
+			return pdata.getPersister(), nil
 		}
 	}
 
@@ -154,7 +154,8 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 
 		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), newPdata, 0)
 		fhps.persistersMapByEpoch[epoch] = newPdata
-		pdata = newPdata
+
+		return newPdata.getPersister(), nil
 	}
 	persister, _, err := fhps.createAndInitPersisterIfClosed(pdata)
 	if err != nil {

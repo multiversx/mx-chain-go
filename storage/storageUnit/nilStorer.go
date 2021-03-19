@@ -19,11 +19,6 @@ func (ns *NilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, 
 	return nil, nil
 }
 
-// HasInEpoch will do nothing
-func (ns *NilStorer) HasInEpoch(_ []byte, _ uint32) error {
-	return nil
-}
-
 // SearchFirst will do nothing
 func (ns *NilStorer) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, nil
