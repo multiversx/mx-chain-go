@@ -1848,10 +1848,10 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 	}
 
 	if function == core.BuiltInFunctionESDTTransfer {
-		return len(args) == 2
+		return len(args) == core.MinLenArgumentsESDTTransfer
 	}
 	if function == core.BuiltInFunctionESDTNFTTransfer {
-		return len(args) == 4
+		return len(args) == core.MinLenArgumentsESDTNFTTransfer
 	}
 
 	return false

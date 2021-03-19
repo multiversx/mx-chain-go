@@ -64,7 +64,7 @@ func (e *esdtLocalBurn) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT local burn function call
 func (e *esdtLocalBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -109,7 +109,7 @@ func checkBasicESDTArguments(vmInput *vmcommon.ContractCallInput) error {
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return process.ErrBuiltInFunctionCalledWithValue
 	}
-	if len(vmInput.Arguments) < 2 {
+	if len(vmInput.Arguments) < core.MinLenArgumentsESDTTransfer {
 		return process.ErrInvalidArguments
 	}
 	return nil
