@@ -1364,6 +1364,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, tpn.AccntState)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1386,6 +1387,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.EpochNotifier,
 		tpn.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1574,6 +1576,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:    tpn.EpochNotifier,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, tpn.AccntState)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1594,6 +1597,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EpochNotifier,
 		tpn.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

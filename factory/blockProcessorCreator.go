@@ -287,6 +287,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(transactionProcessor, pcf.state.AccountsAdapter())
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		pcf.shardCoordinator,
 		pcf.data.StorageService(),
@@ -308,6 +313,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.epochNotifier,
 		generalSettings.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -577,6 +583,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(transactionProcessor, pcf.state.AccountsAdapter())
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		pcf.shardCoordinator,
 		pcf.data.StorageService(),
@@ -596,6 +607,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.epochNotifier,
 		generalSettingsConfig.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err

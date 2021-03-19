@@ -432,6 +432,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -454,6 +455,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		epochNotifier,
 		generalConfig.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
+		disabledScheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err

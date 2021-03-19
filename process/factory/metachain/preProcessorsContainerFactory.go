@@ -35,6 +35,7 @@ type preProcessorsContainerFactory struct {
 	epochNotifier                  process.EpochNotifier
 	scheduledMiniBlocksEnableEpoch uint32
 	txTypeHandler                  process.TxTypeHandler
+	scheduledTxsExecutionHandler   preprocess.ScheduledTxsExecutionHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -57,6 +58,7 @@ func NewPreProcessorsContainerFactory(
 	epochNotifier process.EpochNotifier,
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
+	scheduledTxsExecutionHandler preprocess.ScheduledTxsExecutionHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -110,6 +112,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(scheduledTxsExecutionHandler) {
+		return nil, process.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:               shardCoordinator,
@@ -130,6 +135,7 @@ func NewPreProcessorsContainerFactory(
 		epochNotifier:                  epochNotifier,
 		scheduledMiniBlocksEnableEpoch: scheduledMiniBlocksEnableEpoch,
 		txTypeHandler:                  txTypeHandler,
+		scheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 	}, nil
 }
 
@@ -180,6 +186,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.epochNotifier,
 		ppcm.scheduledMiniBlocksEnableEpoch,
 		ppcm.txTypeHandler,
+		ppcm.scheduledTxsExecutionHandler,
 	)
 
 	return txPreprocessor, err

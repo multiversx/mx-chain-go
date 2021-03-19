@@ -955,3 +955,6 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
+
+// ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
+var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")

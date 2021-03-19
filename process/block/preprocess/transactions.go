@@ -53,6 +53,7 @@ type transactions struct {
 	scheduledMiniBlocksEnableEpoch uint32
 	flagScheduledMiniBlocks        atomic.Flag
 	txTypeHandler                  process.TxTypeHandler
+	scheduledTxsExecutionHandler   ScheduledTxsExecutionHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -75,6 +76,7 @@ func NewTransactionPreprocessor(
 	epochNotifier process.EpochNotifier,
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
+	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -125,6 +127,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(scheduledTxsExecutionHandler) {
+		return nil, process.ErrNilScheduledTxsExecutionHandler
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -148,6 +153,7 @@ func NewTransactionPreprocessor(
 		blockType:                      blockType,
 		scheduledMiniBlocksEnableEpoch: scheduledMiniBlocksEnableEpoch,
 		txTypeHandler:                  txTypeHandler,
+		scheduledTxsExecutionHandler:   scheduledTxsExecutionHandler,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -627,6 +633,8 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.mutAccountsInfo.Lock()
 	txs.accountsInfo = make(map[string]*txShardInfo)
 	txs.mutAccountsInfo.Unlock()
+
+	txs.scheduledTxsExecutionHandler.Init()
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body

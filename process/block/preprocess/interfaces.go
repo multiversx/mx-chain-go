@@ -3,6 +3,7 @@ package preprocess
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -52,5 +53,14 @@ type BalanceComputationHandler interface {
 	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
+type ScheduledTxsExecutionHandler interface {
+	Init()
+	Add(txHash []byte, tx data.TransactionHandler) bool
+	Execute(txHash []byte) error
+	ExecuteAll() error
 	IsInterfaceNil() bool
 }
