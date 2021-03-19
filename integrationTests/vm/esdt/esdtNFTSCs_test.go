@@ -241,7 +241,7 @@ func TestESDTSemiFTIssueCreateBurnSendViaAsyncViaExecuteOnSC(t *testing.T) {
 	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
 }
 
-func TestESDTTransferNFTBetweenContractsNotAcceptedByContractB(t *testing.T) {
+func TestESDTTransferNFTBetweenContractsAcceptAndNotAcceptWithRevert(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -292,7 +292,39 @@ func TestESDTTransferNFTBetweenContractsNotAcceptedByContractB(t *testing.T) {
 	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
 	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
 
-	destinationSCAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round)
+	destinationSCAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/nft-receiver.wasm")
+	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationSCAddress) +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()) +
+		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString([]byte("wrongFunctionToCall")))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	txData = []byte("transfer_nft_and_execute" + "@" + hex.EncodeToString(destinationSCAddress) +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(big.NewInt(2).Bytes()) +
+		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString([]byte("wrongFunctionToCall")))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
+
 	txData = []byte("transferNftViaAsyncCall" + "@" + hex.EncodeToString(destinationSCAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()) +
 		"@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString([]byte("acceptAndReturnCallData")))
@@ -320,10 +352,10 @@ func TestESDTTransferNFTBetweenContractsNotAcceptedByContractB(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
-	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, destinationSCAddress, nodes, tokenIdentifier, 2, big.NewInt(1))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 1, big.NewInt(0))
+	checkAddressHasNft(t, scAddress, scAddress, nodes, tokenIdentifier, 2, big.NewInt(0))
 }
 
 func deployAndIssueNFTSFTThroughSC(
@@ -335,7 +367,7 @@ func deployAndIssueNFTSFTThroughSC(
 	issueFunc string,
 	rolesEncoded string,
 ) ([]byte, string) {
-	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, nonce, round)
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, nonce, round, "./testdata/local-esdt-and-nft.wasm")
 
 	issuePrice := big.NewInt(1000)
 	txData := []byte(issueFunc + "@" + hex.EncodeToString([]byte("TOKEN")) +

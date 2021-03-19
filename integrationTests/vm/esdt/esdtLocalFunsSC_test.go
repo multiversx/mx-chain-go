@@ -35,7 +35,7 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round)
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/local-esdt-and-nft.wasm")
 	tokenIdentifier := prepareFungibleTokensWithLocalBurnAndMint(t, nodes, scAddress, idxProposers, &nonce, &round)
 
 	txData := []byte("localMint" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
@@ -111,7 +111,7 @@ func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round)
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/local-esdt-and-nft.wasm")
 
 	issuePrice := big.NewInt(1000)
 	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
@@ -203,9 +203,10 @@ func deployNonPayableSmartContract(
 	idxProposers []int,
 	nonce *uint64,
 	round *uint64,
+	fileName string,
 ) []byte {
 	// deploy Smart Contract which can do local mint and local burn
-	scCode := arwen.GetSCCode("./testdata/local-esdt-and-nft.wasm")
+	scCode := arwen.GetSCCode(fileName)
 	scAddress, _ := nodes[0].BlockchainHook.NewAddress(nodes[0].OwnAccount.Address, nodes[0].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(

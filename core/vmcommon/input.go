@@ -20,7 +20,7 @@ const (
 	AsynchronousCallBack
 
 	// ESDTTransferAndExecute means that there is a smart contract execution after the ESDT transfer
-	// this needed in order to skip the check whether a contract is payable or not
+	// this is needed in order to skip the check whether a contract is payable or not
 	ESDTTransferAndExecute
 )
 
