@@ -64,7 +64,7 @@ func (e *esdtLocalBurn) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-// ProcessBuiltinFunction resolves ESDT change roles function call
+// ProcessBuiltinFunction resolves ESDT local burn function call
 func (e *esdtLocalBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
