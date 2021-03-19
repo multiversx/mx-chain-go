@@ -44,7 +44,7 @@ func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifi
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
 		configDir:         args.ConfigDir,
 	}
-	log.Debug("gasSchedule: enable epoch for gas schedule directories paths epoch", g.gasScheduleConfig.GasScheduleByEpochs)
+	log.Debug("gasSchedule: enable epoch for gas schedule directories paths epoch", "epoch", g.gasScheduleConfig.GasScheduleByEpochs)
 
 	for _, gasScheduleConf := range g.gasScheduleConfig.GasScheduleByEpochs {
 		_, err := core.LoadGasScheduleConfig(filepath.Join(g.configDir, gasScheduleConf.FileName))
