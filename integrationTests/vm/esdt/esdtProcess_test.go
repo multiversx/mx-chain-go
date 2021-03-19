@@ -1521,7 +1521,8 @@ func checkNumCallBacks(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
-	expectedNumCallbacks int) {
+	expectedNumCallbacks int,
+) {
 
 	contractID := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
