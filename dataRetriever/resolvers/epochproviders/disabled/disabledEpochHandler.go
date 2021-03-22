@@ -8,7 +8,7 @@ func NewEpochHandler() *epochHandler {
 	return &epochHandler{}
 }
 
-// MetaEpoch returns the current meta epoch
+// MetaEpoch returns epoch 0 as this is a disabled component
 func (eh *epochHandler) MetaEpoch() uint32 {
 	return 0
 }
