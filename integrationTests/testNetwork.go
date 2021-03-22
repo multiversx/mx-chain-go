@@ -69,7 +69,7 @@ func (net *TestNetwork) MintNodeAccountsInt64(value int64) {
 
 func (net *TestNetwork) createAdvertiser() {
 	net.Advertiser = CreateMessengerWithKadDht(net.AdvertiserAddress)
-	err := net.Advertiser.Bootstrap()
+	err := net.Advertiser.Bootstrap(0)
 	require.Nil(net.T, err)
 }
 
