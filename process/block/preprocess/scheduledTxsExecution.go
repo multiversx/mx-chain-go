@@ -4,17 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type scheduledTxsExecution struct {
 	txProcessor     process.TransactionProcessor
-	accounts        state.AccountsAdapter
 	mapScheduledTxs map[string]data.TransactionHandler
 	scheduledTxs    []data.TransactionHandler
 	mutScheduledTxs sync.RWMutex
@@ -23,19 +22,14 @@ type scheduledTxsExecution struct {
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
 func NewScheduledTxsExecution(
 	txProcessor process.TransactionProcessor,
-	accounts state.AccountsAdapter,
 ) (*scheduledTxsExecution, error) {
 
 	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
-	}
 
 	ste := &scheduledTxsExecution{
 		txProcessor:     txProcessor,
-		accounts:        accounts,
 		mapScheduledTxs: make(map[string]data.TransactionHandler),
 		scheduledTxs:    make([]data.TransactionHandler, 0),
 	}
@@ -46,6 +40,8 @@ func NewScheduledTxsExecution(
 // Init method removes all the scheduled transactions
 func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Lock()
+	//TODO: Remove this log
+	log.Debug("scheduledTxsExecution.Init", "num scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
 	ste.scheduledTxs = make([]data.TransactionHandler, 0)
 	ste.mutScheduledTxs.Unlock()
@@ -77,15 +73,28 @@ func (ste *scheduledTxsExecution) Execute(txHash []byte) error {
 		return fmt.Errorf("%w: in scheduledTxsExecution.Execute", process.ErrMissingTransaction)
 	}
 
-	return ste.execute(txHandler)
+	err := ste.execute(txHandler)
+	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
+		return err
+	}
+
+	return nil
 }
 
 // ExecuteAll method executes all the scheduled transactions
-func (ste *scheduledTxsExecution) ExecuteAll() error {
+func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) error {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
+	if haveTime == nil {
+		return process.ErrNilHaveTimeHandler
+	}
+
 	for _, txHandler := range ste.scheduledTxs {
+		if haveTime() < 0 {
+			return process.ErrTimeIsOut
+		}
+
 		err := ste.execute(txHandler)
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			return err
@@ -101,16 +110,7 @@ func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) err
 		return fmt.Errorf("%w: in scheduledTxsExecution.execute", process.ErrWrongTypeAssertion)
 	}
 
-	snapshot := ste.accounts.JournalLen()
-
 	_, err := ste.txProcessor.ProcessTransaction(tx)
-	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
-		errRevert := ste.accounts.RevertToSnapshot(snapshot)
-		if errRevert != nil {
-			log.Error("scheduledTxsExecution.execute: revert to snapshot", "error", errRevert.Error())
-		}
-	}
-
 	return err
 }
 

@@ -63,11 +63,15 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	firstInvalidTxFound := false
 	firstCrossShardScCallOrSpecialTxFound := false
 
-	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := txs.initGasConsumed()
-	totalGasConsumedInSelfShard := txs.gasHandler.TotalGasConsumed()
 
-	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		totalGasConsumedInSelfShard:           txs.gasHandler.TotalGasConsumed(),
+	}
+
+	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard)
 
 	senderAddressToSkip := []byte("")
 
@@ -160,8 +164,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			txHash,
 			senderShardID,
 			receiverShardID,
-			&gasConsumedByMiniBlocksInSenderShard,
-			&totalGasConsumedInSelfShard,
+			&gasInfo,
 			mapGasConsumedByMiniBlockInReceiverShard,
 			&processingInfo)
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
@@ -176,8 +179,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
 		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] -= gasRefunded
 		if senderShardID == receiverShardID {
-			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-			totalGasConsumedInSelfShard -= gasRefunded
+			gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasRefunded
+			gasInfo.totalGasConsumedInSelfShard -= gasRefunded
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {
@@ -234,8 +237,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mapMiniBlocks, mapSCTxs)
 
 	txs.displayProcessingResults(
-		gasConsumedByMiniBlocksInSenderShard,
-		totalGasConsumedInSelfShard,
+		gasInfo.gasConsumedByMiniBlocksInSenderShard,
+		gasInfo.totalGasConsumedInSelfShard,
 		mapGasConsumedByMiniBlockInReceiverShard,
 		mapTxsForShard,
 		mapScsForShard,
@@ -287,17 +290,16 @@ func (txs *transactions) processTransaction(
 	txHash []byte,
 	senderShardID uint32,
 	receiverShardID uint32,
-	gasConsumedByMiniBlocksInSenderShard *uint64,
-	totalGasConsumedInSelfShard *uint64,
+	gasInfo *gasConsumedInfo,
 	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[TxType]uint64,
 	processingInfo *processedTxsInfo,
 ) error {
 	snapshot := txs.accounts.JournalLen()
 
-	gasConsumedByMiniBlockInReceiverShard := mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
-	oldGasConsumedByMiniBlocksInSenderShard := *gasConsumedByMiniBlocksInSenderShard
-	oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-	oldTotalGasConsumedInSelfShard := *totalGasConsumedInSelfShard
+	gasInfo.gasConsumedByMiniBlockInReceiverShard = mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
+	oldGasConsumedByMiniBlocksInSenderShard := gasInfo.gasConsumedByMiniBlocksInSenderShard
+	oldGasConsumedByMiniBlockInReceiverShard := gasInfo.gasConsumedByMiniBlockInReceiverShard
+	oldTotalGasConsumedInSelfShard := gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
 	err := txs.computeGasConsumed(
@@ -305,9 +307,7 @@ func (txs *transactions) processTransaction(
 		receiverShardID,
 		tx,
 		txHash,
-		gasConsumedByMiniBlocksInSenderShard,
-		&gasConsumedByMiniBlockInReceiverShard,
-		totalGasConsumedInSelfShard)
+		gasInfo)
 	elapsedTime := time.Since(startTime)
 	processingInfo.totalTimeUsedForComputeGasConsumed += elapsedTime
 	if err != nil {
@@ -315,7 +315,7 @@ func (txs *transactions) processTransaction(
 		return err
 	}
 
-	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = gasConsumedByMiniBlockInReceiverShard
+	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	// execute transaction to change the trie root hash
 	startTime = time.Now()
@@ -344,9 +344,9 @@ func (txs *transactions) processTransaction(
 		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 
-		*gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		*totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 	}
 
 	return err
@@ -435,9 +435,13 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 	firstCrossShardScCallTxFound := false
 
-	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := txs.initGasConsumed()
-	totalGasConsumedInSelfShard := uint64(0)
+
+	gasInfo := gasConsumedInfo{
+		gasConsumedByMiniBlockInReceiverShard: uint64(0),
+		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
+		totalGasConsumedInSelfShard:           uint64(0),
+	}
 
 	senderAddressToSkip := []byte("")
 
@@ -526,8 +530,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			txHash,
 			senderShardID,
 			receiverShardID,
-			&gasConsumedByMiniBlocksInSenderShard,
-			&totalGasConsumedInSelfShard,
+			&gasInfo,
 			mapGasConsumedByMiniBlockInReceiverShard,
 			&schedulingInfo)
 		if err != nil {
@@ -572,7 +575,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mapMiniBlocks, mapSCTxs)
 
 	txs.displayProcessingResultsOfScheduledMiniBlocks(
-		totalGasConsumedInSelfShard,
+		gasInfo.totalGasConsumedInSelfShard,
 		mapGasConsumedByMiniBlockInReceiverShard,
 		miniBlocks,
 		&schedulingInfo,
@@ -590,15 +593,14 @@ func (txs *transactions) verifyTransaction(
 	txHash []byte,
 	senderShardID uint32,
 	receiverShardID uint32,
-	gasConsumedByMiniBlocksInSenderShard *uint64,
-	totalGasConsumedInSelfShard *uint64,
+	gasInfo *gasConsumedInfo,
 	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[TxType]uint64,
 	schedulingInfo *scheduledTxsInfo,
 ) error {
-	gasConsumedByMiniBlockInReceiverShard := mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
-	oldGasConsumedByMiniBlocksInSenderShard := *gasConsumedByMiniBlocksInSenderShard
-	oldGasConsumedByMiniBlockInReceiverShard := gasConsumedByMiniBlockInReceiverShard
-	oldTotalGasConsumedInSelfShard := *totalGasConsumedInSelfShard
+	gasInfo.gasConsumedByMiniBlockInReceiverShard = mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
+	oldGasConsumedByMiniBlocksInSenderShard := gasInfo.gasConsumedByMiniBlocksInSenderShard
+	oldGasConsumedByMiniBlockInReceiverShard := gasInfo.gasConsumedByMiniBlockInReceiverShard
+	oldTotalGasConsumedInSelfShard := gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
 	err := txs.computeGasConsumed(
@@ -606,9 +608,7 @@ func (txs *transactions) verifyTransaction(
 		receiverShardID,
 		tx,
 		txHash,
-		gasConsumedByMiniBlocksInSenderShard,
-		&gasConsumedByMiniBlockInReceiverShard,
-		totalGasConsumedInSelfShard)
+		gasInfo)
 	elapsedTime := time.Since(startTime)
 	schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed += elapsedTime
 	if err != nil {
@@ -616,7 +616,7 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
-	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = gasConsumedByMiniBlockInReceiverShard
+	mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()
 	err = txs.txProcessor.VerifyTransaction(tx)
@@ -639,9 +639,9 @@ func (txs *transactions) verifyTransaction(
 
 		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 
-		*gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		*totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func(header data.HeaderHandler)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
@@ -44,9 +45,14 @@ func (bpm *BlockProcessorMock) CreateNewHeader(round uint64, nonce uint64) data.
 	return bpm.CreateNewHeaderCalled(round, nonce)
 }
 
-// ProcessBlock mocks pocessing a block
+// ProcessBlock mocks processing a block
 func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(header, body, haveTime)
+}
+
+// ProcessScheduledBlock mocks processing a scheduled block
+func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block

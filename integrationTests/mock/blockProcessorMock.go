@@ -14,6 +14,7 @@ type BlockProcessorMock struct {
 	NrCommitBlockCalled                     uint32
 	Marshalizer                             marshal.Marshalizer
 	ProcessBlockCalled                      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled             func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                       func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled                func(header data.HeaderHandler)
 	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
@@ -36,9 +37,14 @@ func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
 	}
 }
 
-// ProcessBlock mocks pocessing a block
+// ProcessBlock mocks processing a block
 func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(header, body, haveTime)
+}
+
+// ProcessScheduledBlock mocks processing a scheduled block
+func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
 // ApplyProcessedMiniBlocks -

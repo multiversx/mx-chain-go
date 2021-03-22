@@ -1,6 +1,8 @@
 package disabled
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -23,7 +25,7 @@ func (steh *ScheduledTxsExecutionHandler) Execute(_ []byte) error {
 }
 
 // ExecuteAll does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) ExecuteAll() error {
+func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) error {
 	return nil
 }
 

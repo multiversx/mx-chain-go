@@ -1364,7 +1364,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, tpn.AccntState)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1576,7 +1576,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:    tpn.EpochNotifier,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, tpn.AccntState)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1769,15 +1769,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:       tpn.HistoryRepository,
-		EpochNotifier:           tpn.EpochNotifier,
-		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:        &mock.AppStatusHandlerStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		StateCheckpointModulus:       stateCheckpointModulus,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		Indexer:                      indexer.NewNilIndexer(),
+		TpsBenchmark:                 &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:            tpn.HistoryRepository,
+		EpochNotifier:                tpn.EpochNotifier,
+		HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1948,6 +1949,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
+		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}

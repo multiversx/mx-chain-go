@@ -37,7 +37,7 @@ type preProcessorsContainerFactory struct {
 	epochNotifier                  process.EpochNotifier
 	scheduledMiniBlocksEnableEpoch uint32
 	txTypeHandler                  process.TxTypeHandler
-	scheduledTxsExecutionHandler   preprocess.ScheduledTxsExecutionHandler
+	scheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -62,7 +62,7 @@ func NewPreProcessorsContainerFactory(
 	epochNotifier process.EpochNotifier,
 	scheduledMiniBlocksEnableEpoch uint32,
 	txTypeHandler process.TxTypeHandler,
-	scheduledTxsExecutionHandler preprocess.ScheduledTxsExecutionHandler,
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {

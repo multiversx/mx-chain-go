@@ -269,6 +269,18 @@ func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
+func TestNewShardProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+	arguments.ScheduledTxsExecutionHandler = nil
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, sp)
+}
+
 func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 

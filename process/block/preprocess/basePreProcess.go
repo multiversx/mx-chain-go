@@ -17,6 +17,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+type gasConsumedInfo struct {
+	gasConsumedByMiniBlocksInSenderShard  uint64
+	gasConsumedByMiniBlockInReceiverShard uint64
+	totalGasConsumedInSelfShard           uint64
+}
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -313,9 +319,7 @@ func (bpp *basePreProcess) computeGasConsumed(
 	receiverShardId uint32,
 	tx data.TransactionHandler,
 	txHash []byte,
-	gasConsumedByMiniBlockInSenderShard *uint64,
-	gasConsumedByMiniBlockInReceiverShard *uint64,
-	totalGasConsumedInSelfShard *uint64,
+	gasInfo *gasConsumedInfo,
 ) error {
 	gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, err := bpp.computeGasConsumedByTx(
 		senderShardId,
@@ -330,24 +334,24 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
+		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
 			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
+		if gasInfo.gasConsumedByMiniBlocksInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
 			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
-	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
+	if gasInfo.totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
 		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
-	*gasConsumedByMiniBlockInSenderShard += gasConsumedByTxInSenderShard
-	*gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
-	*totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
+	gasInfo.gasConsumedByMiniBlocksInSenderShard += gasConsumedByTxInSenderShard
+	gasInfo.gasConsumedByMiniBlockInReceiverShard += gasConsumedByTxInReceiverShard
+	gasInfo.totalGasConsumedInSelfShard += gasConsumedByTxInSelfShard
 	bpp.gasHandler.SetGasConsumed(gasConsumedByTxInSelfShard, txHash)
 
 	return nil

@@ -224,6 +224,7 @@ type PreProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
@@ -1063,5 +1064,14 @@ type CryptoComponentsHolder interface {
 	SetMultiSigner(ms crypto.MultiSigner) error
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionHandler defines the functionality for execution of scheduled transactions
+type ScheduledTxsExecutionHandler interface {
+	Init()
+	Add(txHash []byte, tx data.TransactionHandler) bool
+	Execute(txHash []byte) error
+	ExecuteAll(haveTime func() time.Duration) error
 	IsInterfaceNil() bool
 }

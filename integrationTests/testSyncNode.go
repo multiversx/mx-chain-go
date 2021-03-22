@@ -189,15 +189,16 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:       tpn.HistoryRepository,
-		EpochNotifier:           tpn.EpochNotifier,
-		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:        &mock.AppStatusHandlerStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		StateCheckpointModulus:       stateCheckpointModulus,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		Indexer:                      indexer.NewNilIndexer(),
+		TpsBenchmark:                 &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:            tpn.HistoryRepository,
+		EpochNotifier:                tpn.EpochNotifier,
+		HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -222,6 +223,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
+		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}

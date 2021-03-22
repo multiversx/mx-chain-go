@@ -48,30 +48,31 @@ type hdrInfo struct {
 }
 
 type baseProcessor struct {
-	shardCoordinator        sharding.Coordinator
-	nodesCoordinator        sharding.NodesCoordinator
-	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
-	forkDetector            process.ForkDetector
-	hasher                  hashing.Hasher
-	marshalizer             marshal.Marshalizer
-	store                   dataRetriever.StorageService
-	uint64Converter         typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler      process.BlockSizeThrottler
-	epochStartTrigger       process.EpochStartTriggerHandler
-	headerValidator         process.HeaderConstructionValidator
-	blockChainHook          process.BlockChainHookHandler
-	txCoordinator           process.TransactionCoordinator
-	roundHandler            consensus.RoundHandler
-	bootStorer              process.BootStorer
-	requestBlockBodyHandler process.RequestBlockBodyHandler
-	requestHandler          process.RequestHandler
-	blockTracker            process.BlockTracker
-	dataPool                dataRetriever.PoolsHolder
-	feeHandler              process.TransactionFeeHandler
-	blockChain              data.ChainHandler
-	hdrsForCurrBlock        *hdrForBlock
-	genesisNonce            uint64
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
+	forkDetector                 process.ForkDetector
+	hasher                       hashing.Hasher
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler           process.BlockSizeThrottler
+	epochStartTrigger            process.EpochStartTriggerHandler
+	headerValidator              process.HeaderConstructionValidator
+	blockChainHook               process.BlockChainHookHandler
+	txCoordinator                process.TransactionCoordinator
+	roundHandler                 consensus.RoundHandler
+	bootStorer                   process.BootStorer
+	requestBlockBodyHandler      process.RequestBlockBodyHandler
+	requestHandler               process.RequestHandler
+	blockTracker                 process.BlockTracker
+	dataPool                     dataRetriever.PoolsHolder
+	feeHandler                   process.TransactionFeeHandler
+	blockChain                   data.ChainHandler
+	hdrsForCurrBlock             *hdrForBlock
+	genesisNonce                 uint64
+	headerIntegrityVerifier      process.HeaderIntegrityVerifier
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -429,6 +430,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.AppStatusHandler) {
 		return process.ErrNilAppStatusHandler
+	}
+	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
 	}
 
 	return nil
@@ -1338,4 +1342,19 @@ func isScheduledMiniBlock(miniBlock *block.MiniBlock) bool {
 		return false
 	}
 	return len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock)
+}
+
+// ProcessScheduledBlock processes a scheduled block
+func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
+	startTime := time.Now()
+	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to execute all scheduled transactions",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		bp.RevertAccountState(header)
+	}
+
+	return err
 }
