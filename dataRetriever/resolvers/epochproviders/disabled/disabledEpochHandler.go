@@ -3,7 +3,7 @@ package disabled
 type epochHandler struct {
 }
 
-// NewEpochHandler returns a nil implementation of epoch provider that knows only the epoch 0
+// NewEpochHandler returns a disabled implementation of epoch provider that will return epoch 0 for each request
 func NewEpochHandler() *epochHandler {
 	return &epochHandler{}
 }
