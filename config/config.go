@@ -236,6 +236,7 @@ type GeneralSettingsConfig struct {
 	BlockGasAndFeesReCheckEnableEpoch      uint32
 	ReturnDataToLastTransferEnableEpoch    uint32
 	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

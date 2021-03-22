@@ -53,12 +53,14 @@ type scProcessor struct {
 	repairCallBackEnableEpoch           uint32
 	stakingV2EnableEpoch                uint32
 	returnDataToLastTransferEnableEpoch uint32
+	senderInOutTransferEnableEpoch      uint32
 	flagStakingV2                       atomic.Flag
 	flagDeploy                          atomic.Flag
 	flagBuiltin                         atomic.Flag
 	flagPenalizedTooMuchGas             atomic.Flag
 	flagRepairCallBackData              atomic.Flag
 	flagReturnDataToLastTransfer        atomic.Flag
+	flagSenderInOutTransfer             atomic.Flag
 	isGenesisProcessing                 bool
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -99,6 +101,7 @@ type ArgsNewSmartContractProcessor struct {
 	RepairCallbackEnableEpoch           uint32
 	StakingV2EnableEpoch                uint32
 	ReturnDataToLastTransferEnableEpoch uint32
+	SenderInOutTransferEnableEpoch      uint32
 	EpochNotifier                       process.EpochNotifier
 	IsGenesisProcessing                 bool
 }
@@ -186,6 +189,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		isGenesisProcessing:                 args.IsGenesisProcessing,
 		stakingV2EnableEpoch:                args.StakingV2EnableEpoch,
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
+		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -1785,9 +1789,17 @@ func (sc *scProcessor) createSmartContractResults(
 			result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 		}
 
+		useSenderAddressFromOutTransfer := sc.flagSenderInOutTransfer.IsSet() &&
+			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
+			sc.shardCoordinator.ComputeId(outputTransfer.SenderAddress) == sc.shardCoordinator.SelfId()
+		if useSenderAddressFromOutTransfer {
+			result.SndAddr = outputTransfer.SenderAddress
+		}
+
+		isOutTransferTxRcvAddr := bytes.Equal(result.SndAddr, tx.GetRcvAddr())
 		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
-		if !createdAsyncCallBack && isLastOutTransfer &&
+		if !createdAsyncCallBack && isLastOutTransfer && isOutTransferTxRcvAddr &&
 			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
 			createdAsyncCallBack = true
 		}
@@ -2281,6 +2293,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 
 	sc.flagReturnDataToLastTransfer.Toggle(epoch > sc.returnDataToLastTransferEnableEpoch)
 	log.Debug("scProcessor: return data to last transfer", "enabled", sc.flagReturnDataToLastTransfer.IsSet())
+
+	sc.flagSenderInOutTransfer.Toggle(epoch > sc.senderInOutTransferEnableEpoch)
+	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

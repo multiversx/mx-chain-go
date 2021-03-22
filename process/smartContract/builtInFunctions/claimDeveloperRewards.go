@@ -69,10 +69,11 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:    big.NewInt(0).Set(value),
-		GasLimit: 0,
-		Data:     nil,
-		CallType: vmcommon.DirectCall,
+		Value:         big.NewInt(0).Set(value),
+		GasLimit:      0,
+		Data:          nil,
+		CallType:      vmcommon.DirectCall,
+		SenderAddress: vmInput.CallerAddr,
 	}
 	if vmInput.CallType == vmcommon.AsynchronousCall {
 		outTransfer.GasLocked = vmInput.GasLocked
