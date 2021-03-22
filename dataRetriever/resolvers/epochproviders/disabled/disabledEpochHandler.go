@@ -13,7 +13,7 @@ func (eh *epochHandler) MetaEpoch() uint32 {
 	return 0
 }
 
-// IsInterfaceNil returns if underlying struct is nil
+// IsInterfaceNil returns true if the underlying struct is nil
 func (eh *epochHandler) IsInterfaceNil() bool {
 	return eh == nil
 }
