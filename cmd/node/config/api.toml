@@ -60,9 +60,6 @@
          # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
         { Name = "/status", Open = true },
 
-        # /network/total-staked will return total staked value
-        { Name = "/total-staked", Open = true },
-
         # /network/economics will return all economics related metrics
         { Name = "/economics", Open = true },
 

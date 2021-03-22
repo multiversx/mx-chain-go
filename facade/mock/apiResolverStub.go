@@ -1,9 +1,8 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -14,7 +13,7 @@ type ApiResolverStub struct {
 	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler              func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (*transaction.CostResponse, error)
-	GetTotalStakedValueHandler        func() (*big.Int, error)
+	GetTotalStakedValueHandler        func() (*api.StakeValues, error)
 }
 
 // ExecuteSCQuery -
@@ -33,7 +32,7 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 }
 
 // GetTotalStakedValue -
-func (ars *ApiResolverStub) GetTotalStakedValue() (*big.Int, error) {
+func (ars *ApiResolverStub) GetTotalStakedValue() (*api.StakeValues, error) {
 	return ars.GetTotalStakedValueHandler()
 }
 
