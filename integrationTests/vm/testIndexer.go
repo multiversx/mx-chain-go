@@ -56,11 +56,7 @@ func CreateTestIndexer(
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer: testMarshalizer,
-		Options: &elasticIndexer.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
+		Marshalizer:        testMarshalizer,
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		ShardCoordinator:   coordinator,
@@ -102,10 +98,6 @@ func (ti *testIndexer) createElasticProcessor(
 		Hasher:                   testHasher,
 		AddressPubkeyConverter:   pubkeyConv,
 		ValidatorPubkeyConverter: pubkeyConv,
-		Options: &elasticIndexer.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               &mock.AccountsStub{},
