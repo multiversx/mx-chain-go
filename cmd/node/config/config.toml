@@ -58,7 +58,7 @@
    # ArwenESDTFunctionsEnableEpoch represents the epoch when the new ESDT functions are enabled in arwen
    ArwenESDTFunctionsEnableEpoch = 5
 
-   # SenderInOutTransferEnableEpoch represents the epoch when we enabled different senders in output transfer
+   # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
    SenderInOutTransferEnableEpoch = 5
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS

@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -482,11 +483,22 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		outAcc.OutputTransfers = make([]vm.OutputTransferApi, len(acc.OutputTransfers))
 		for i, outTransfer := range acc.OutputTransfers {
 			outTransferApi := vm.OutputTransferApi{
-				Value:    outTransfer.Value,
-				GasLimit: outTransfer.GasLimit,
-				Data:     outTransfer.Data,
-				CallType: outTransfer.CallType,
+				Value:         outTransfer.Value,
+				GasLimit:      outTransfer.GasLimit,
+				Data:          outTransfer.Data,
+				CallType:      outTransfer.CallType,
+				SenderAddress: outputAddress,
 			}
+
+			if len(outTransfer.SenderAddress) == len(acc.Address) && !bytes.Equal(outTransfer.SenderAddress, acc.Address) {
+				senderAddr, errEncode := nf.node.EncodeAddressPubkey(outTransfer.SenderAddress)
+				if errEncode != nil {
+					log.Warn("cannot encode address", "error", errEncode)
+					senderAddr = outputAddress
+				}
+				outTransferApi.SenderAddress = senderAddr
+			}
+
 			outAcc.OutputTransfers[i] = outTransferApi
 		}
 

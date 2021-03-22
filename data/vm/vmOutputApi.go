@@ -46,7 +46,7 @@ type OutputTransferApi struct {
 	GasLimit      uint64            `json:"gasLimit"`
 	Data          []byte            `json:"data"`
 	CallType      vmcommon.CallType `json:"callType"`
-	SenderAddress []byte            `json:"senderAddress"`
+	SenderAddress string            `json:"senderAddress"`
 }
 
 // LogEntryApi is a wrapper over vmcommon's LogEntry

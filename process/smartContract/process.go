@@ -1789,8 +1789,10 @@ func (sc *scProcessor) createSmartContractResults(
 			result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 		}
 
-		if sc.flagSenderInOutTransfer.IsSet() && len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
-			sc.shardCoordinator.ComputeId(outputTransfer.SenderAddress) == sc.shardCoordinator.SelfId() {
+		useSenderAddressFromOutTransfer := sc.flagSenderInOutTransfer.IsSet() &&
+			len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) &&
+			sc.shardCoordinator.ComputeId(outputTransfer.SenderAddress) == sc.shardCoordinator.SelfId()
+		if useSenderAddressFromOutTransfer {
 			result.SndAddr = outputTransfer.SenderAddress
 		}
 
