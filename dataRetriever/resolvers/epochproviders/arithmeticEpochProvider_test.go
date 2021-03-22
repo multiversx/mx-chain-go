@@ -215,7 +215,9 @@ func TestArithmeticEpochProvider_NotifyOrder(t *testing.T) {
 	assert.Equal(t, uint32(core.CurrentNetworkEpochProvider), aep.NotifyOrder())
 }
 
-func TestEpochsDiff(t *testing.T) {
+func TestArithmeticEpochProvider_EpochsDiff(t *testing.T) {
+	t.Parallel()
+
 	roundTimeInMilliseconds := uint64(5000)
 	roundsPerEpoch := 500
 	millisInASec := 1000
@@ -231,5 +233,5 @@ func TestEpochsDiff(t *testing.T) {
 	diffRounds := diffTimeStampInMilliseconds / roundTimeInMilliseconds
 	diffEpochs := diffRounds / uint64(roundsPerEpoch+1)
 
-	fmt.Println(diffEpochs)
+	assert.Equal(t, uint64(1), diffEpochs)
 }

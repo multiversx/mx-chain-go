@@ -167,6 +167,8 @@ fi
 let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
 export TOTAL_OBSERVERCOUNT=$total_observer_count
 
+export EXTRA_OBSERVERS_FLAGS="--full-archive"
+
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
