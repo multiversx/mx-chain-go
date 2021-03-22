@@ -1789,9 +1789,14 @@ func (sc *scProcessor) createSmartContractResults(
 			result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 		}
 
+		if sc.flagSenderInOutTransfer.IsSet() && len(outputTransfer.SenderAddress) == len(tx.GetSndAddr()) {
+			result.SndAddr = outputTransfer.SenderAddress
+		}
+
+		isOutTransferTxRcvAddr := bytes.Equal(result.SndAddr, tx.GetRcvAddr())
 		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
-		if !createdAsyncCallBack && isLastOutTransfer &&
+		if !createdAsyncCallBack && isLastOutTransfer && isOutTransferTxRcvAddr &&
 			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
 			createdAsyncCallBack = true
 		}
