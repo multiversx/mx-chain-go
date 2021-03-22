@@ -42,10 +42,11 @@ type OutputAccountApi struct {
 
 // OutputTransferApi is a wrapper over vmcommon's OutputTransfer
 type OutputTransferApi struct {
-	Value    *big.Int          `json:"value"`
-	GasLimit uint64            `json:"gasLimit"`
-	Data     []byte            `json:"data"`
-	CallType vmcommon.CallType `json:"callType"`
+	Value         *big.Int          `json:"value"`
+	GasLimit      uint64            `json:"gasLimit"`
+	Data          []byte            `json:"data"`
+	CallType      vmcommon.CallType `json:"callType"`
+	SenderAddress []byte            `json:"senderAddress"`
 }
 
 // LogEntryApi is a wrapper over vmcommon's LogEntry

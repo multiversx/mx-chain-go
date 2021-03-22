@@ -133,6 +133,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			}
 
 			addOutputTransferToVMOutput(
+				vmInput.CallerAddr,
 				string(vmInput.Arguments[core.MinLenArgumentsESDTTransfer]),
 				callArgs,
 				vmInput.RecipientAddr,
@@ -153,6 +154,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	// cross-shard ESDT transfer call through a smart contract
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
 		addOutputTransferToVMOutput(
+			vmInput.CallerAddr,
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
@@ -179,6 +181,7 @@ func mustVerifyPayable(vmInput *vmcommon.ContractCallInput, minLenArguments int)
 }
 
 func addOutputTransferToVMOutput(
+	senderAddress []byte,
 	function string,
 	arguments [][]byte,
 	recipient []byte,
@@ -190,11 +193,12 @@ func addOutputTransferToVMOutput(
 		esdtTransferTxData += "@" + hex.EncodeToString(arg)
 	}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:     big.NewInt(0),
-		GasLimit:  vmOutput.GasRemaining,
-		GasLocked: gasLocked,
-		Data:      []byte(esdtTransferTxData),
-		CallType:  vmcommon.AsynchronousCall,
+		Value:         big.NewInt(0),
+		GasLimit:      vmOutput.GasRemaining,
+		GasLocked:     gasLocked,
+		Data:          []byte(esdtTransferTxData),
+		CallType:      vmcommon.AsynchronousCall,
+		SenderAddress: senderAddress,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 	vmOutput.OutputAccounts[string(recipient)] = &vmcommon.OutputAccount{

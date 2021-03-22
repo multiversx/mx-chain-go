@@ -100,6 +100,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
 		addOutputTransferToVMOutput(
+			vmInput.CallerAddr,
 			core.BuiltInFunctionESDTBurn,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,

@@ -155,6 +155,7 @@ func (e *esdtNFTCreateRoleTransfer) executeTransferNFTCreateChangeAtCurrentOwner
 		Value: big.NewInt(0),
 		Data: []byte(core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
 			hex.EncodeToString(tokenID) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(nonce).Bytes())),
+		SenderAddress: vmInput.CallerAddr,
 	}
 	outAcc.OutputTransfers = append(outAcc.OutputTransfers, outTransfer)
 
