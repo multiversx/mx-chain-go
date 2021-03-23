@@ -756,3 +756,42 @@ func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)
 	assert.Nil(t, err)
 }
+
+func TestShouldNotDisconnectSnapshotDbIfItIsStillInUse(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = true
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	_ = tr.Commit()
+	rootHash1, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash1)
+	time.Sleep(snapshotDelay)
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Commit()
+	rootHash2, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash2)
+	time.Sleep(snapshotDelay)
+
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash1)
+
+	_ = tr.Update([]byte("dog"), []byte("pup"))
+
+	_ = tr.Commit()
+	rootHash3, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash3)
+	time.Sleep(snapshotDelay)
+
+	val, err := db.Get(rootHash1)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	db.DecreaseNumReferences()
+
+	val, err = db.Get(rootHash1)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+}
