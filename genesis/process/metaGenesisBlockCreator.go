@@ -398,7 +398,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
 		epochNotifier,
-		generalConfig.ScheduledMiniBlocksEnableEpoch,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
 		txTypeHandler,
 	)
 	if err != nil {

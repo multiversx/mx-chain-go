@@ -62,6 +62,9 @@
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 4
 
+    # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
+    ScheduledMiniBlocksEnableEpoch = 5
+
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
