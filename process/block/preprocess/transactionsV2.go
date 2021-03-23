@@ -402,7 +402,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 ) block.MiniBlockSlice {
 	log.Debug("createScheduledMiniBlocks has been started")
 
-	mapMiniBlocks := txs.createEmptyMiniBlocks(block.ScheduledBlock)
+	mapMiniBlocks := txs.createEmptyMiniBlocks(block.TxBlock)
 
 	for index := range sortedTxs {
 		if !haveTime() {
