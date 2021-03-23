@@ -39,7 +39,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	scCodeMetadataString := "0000"
 	txData := []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString)
 
-	// // deploy contract insufficient gas limit
+	// deploy contract insufficient gas limit
 	player0 := players[0]
 	tx := net.CreateSignedTxUint64(player0, net.DeploymentAddress, 0, txData)
 
