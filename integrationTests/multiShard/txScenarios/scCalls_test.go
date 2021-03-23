@@ -83,24 +83,21 @@ func TestTransaction_TransactionSCScenarios_Rewritten(t *testing.T) {
 
 	//check balance address that tried but failed to deploy contract should not be modified
 	senderAccount := net.GetAccountHandler(player0.Address)
-	require.Equal(t, uint64(0), senderAccount.GetNonce())
 	require.Equal(t, initialBalance, senderAccount.GetBalance().Uint64())
 
-	//check balance address that try to deploy contract should consume all the
-	//gas provided
+	// check balance address that try to deploy contract should consume all the
+	// gas provided
 	txFee := net.ComputeTxFeeUint64(tx2)
 	expectedBalance := initialBalance - txFee
 	senderAccount = net.GetAccountHandler(player2.Address)
-	require.Equal(t, player2.Nonce, senderAccount.GetNonce())
 	require.Equal(t, expectedBalance, senderAccount.GetBalance().Uint64())
 
-	//deploy should have worked: gas used should be greater than the gas limit computed from the transaction alone
+	// deploy should have worked: gas used should be greater than the gas limit computed from the transaction alone
 	gasUsed := net.ComputeGasLimit(tx3)
 	txFee = gasUsed * integrationTests.MinTxGasPrice
 	expectedBalance = initialBalance - txFee
 
 	senderAccount = net.GetAccountHandler(player4.Address)
-	require.Equal(t, player4.Nonce, senderAccount.GetNonce())
 	require.Greater(t, expectedBalance, senderAccount.GetBalance().Uint64())
 
 	// do some smart contract call from shard 1 to shard 0
@@ -124,11 +121,9 @@ func TestTransaction_TransactionSCScenarios_Rewritten(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	// check account nonce that called increment method
-	senderAccount = net.GetAccountHandler(players[1].Address)
-	require.Equal(t, players[1].Nonce, senderAccount.GetNonce())
-
 	// check value of counter from contract
 	counterValue := vm.GetIntValueFromSC(nil, net.DefaultNode.AccntState, scAddress, "get", nil)
 	require.Equal(t, int64(numIncrement+1), counterValue.Int64())
+
+	net.RequireWalletNoncesInSyncWithState()
 }

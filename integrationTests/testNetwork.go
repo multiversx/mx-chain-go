@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -42,6 +43,8 @@ type TestNetwork struct {
 	BypassErrorsOnce   bool
 }
 
+// NewTestNetwork creates an unsized TestNetwork; topology must be configured
+// afterwards, before starting.
 func NewTestNetwork(t *testing.T) *TestNetwork {
 	// TODO replace testing.T with testing.TB everywhere in integrationTest
 	return &TestNetwork{
@@ -50,7 +53,14 @@ func NewTestNetwork(t *testing.T) *TestNetwork {
 	}
 }
 
-func NewTestNetworkSized(t *testing.T, numShards int, nodesPerShard int, nodesInMetashard int) *TestNetwork {
+// NewTestNetworkSized creates a new TestNetwork containing topology
+// information; can be started immediately.
+func NewTestNetworkSized(
+	t *testing.T,
+	numShards int,
+	nodesPerShard int,
+	nodesInMetashard int,
+) *TestNetwork {
 	net := NewTestNetwork(t)
 	net.NumShards = numShards
 	net.NodesPerShard = nodesPerShard
@@ -140,16 +150,23 @@ func (net *TestNetwork) MintWalletsUint64(value uint64) {
 	MintAllPlayers(net.Nodes, net.Wallets, big.NewInt(0).SetUint64(value))
 }
 
+// SendTx submits the provided transaction to the test network; transaction
+// must be already signed.
 func (net *TestNetwork) SendTx(tx *transaction.Transaction) string {
 	node := net.firstNodeInShardOfAddress(tx.SndAddr)
 	return net.SendTxFromNode(tx, node)
 }
 
-func (net *TestNetwork) SignAndSendTx(sender *TestWalletAccount, tx *transaction.Transaction) string {
-	net.SignTx(sender, tx)
+// SignAndSendTx signs then submits the provided transaction to the test
+// network, using the provided signer account; use it to send transactions that
+// have been modified after being created.
+func (net *TestNetwork) SignAndSendTx(signer *TestWalletAccount, tx *transaction.Transaction) string {
+	net.SignTx(signer, tx)
 	return net.SendTx(tx)
 }
 
+// SendTxFromNode submits the provided transaction via the specified node;
+// transaction must be already signed.
 func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestProcessorNode) string {
 	hash, err := node.SendTransaction(tx)
 	net.handleOrBypassError(err)
@@ -157,6 +174,9 @@ func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestPr
 	return hash
 }
 
+// CreateSignedTx creates a new transaction from provided information and signs
+// it with the `sender` wallet; if modified, a transaction must be sent to the
+// network using SignAndSendTx instead of SendTx.
 func (net *TestNetwork) CreateSignedTx(
 	sender *TestWalletAccount,
 	recvAddress Address,
@@ -168,6 +188,9 @@ func (net *TestNetwork) CreateSignedTx(
 	return tx
 }
 
+// CreateSignedTxUint64 creates a new transaction from provided information and
+// signs it with the `sender` wallet; if modified, a transaction must be sent
+// to the network using SignAndSendTx instead of SendTx.
 func (net *TestNetwork) CreateSignedTxUint64(
 	sender *TestWalletAccount,
 	recvAddress Address,
@@ -179,6 +202,8 @@ func (net *TestNetwork) CreateSignedTxUint64(
 	return tx
 }
 
+// CreateTxUint64 creates a new transaction from the provided information; must
+// be signed before sending; the nonce of the `sender` wallet is incremented.
 func (net *TestNetwork) CreateTxUint64(
 	sender *TestWalletAccount,
 	recvAddress Address,
@@ -188,6 +213,8 @@ func (net *TestNetwork) CreateTxUint64(
 	return net.CreateTx(sender, recvAddress, big.NewInt(0).SetUint64(value), txData)
 }
 
+// CreateTx creates a new transaction from the provided information; must
+// be signed before sending; the nonce of the `sender` wallet is incremented.
 func (net *TestNetwork) CreateTx(
 	sender *TestWalletAccount,
 	recvAddress Address,
@@ -210,6 +237,7 @@ func (net *TestNetwork) CreateTx(
 	return tx
 }
 
+// SignTx signs a transaction with the provided `signer` wallet.
 func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transaction) {
 	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	net.handleOrBypassError(err)
@@ -220,6 +248,8 @@ func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transa
 	tx.Signature = signature
 }
 
+// NewAddress creates a new child address of the provided wallet; used to
+// compute the address of newly deployed smart contracts.
 func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
 	address, err := net.DefaultNode.BlockchainHook.NewAddress(
 		creator.Address,
@@ -230,6 +260,8 @@ func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
 	return address
 }
 
+// GetAccountHandler retrieves the `state.UserAccountHandler` instance for the
+// specified address by querying a node belonging to the shard of the address.
 func (net *TestNetwork) GetAccountHandler(address Address) state.UserAccountHandler {
 	node := net.firstNodeInShardOfAddress(address)
 	account, err := node.AccntState.GetExistingAccount(address)
@@ -241,26 +273,38 @@ func (net *TestNetwork) GetAccountHandler(address Address) state.UserAccountHand
 	return accountHandler
 }
 
+// ShardOfAddress returns the shard ID of the specified address.
 func (net *TestNetwork) ShardOfAddress(address Address) ShardIdentifier {
 	return net.DefaultNode.ShardCoordinator.ComputeId(address)
 }
 
+// ComputeTxFee calculates the cost of the provided transaction, smart contract
+// execution or built-in function calls notwithstanding.
 func (net *TestNetwork) ComputeTxFee(tx *transaction.Transaction) *big.Int {
 	return net.DefaultNode.EconomicsData.ComputeTxFee(tx)
 }
 
+// ComputeTxFeeUint64 calculates the cost of the provided transaction, smart contract
+// execution or built-in function calls notwithstanding.
 func (net *TestNetwork) ComputeTxFeeUint64(tx *transaction.Transaction) uint64 {
 	return net.DefaultNode.EconomicsData.ComputeTxFee(tx).Uint64()
 }
 
+// ComputeTxFeeUint64 calculates the base gas limit of the provided
+// transaction, smart contract execution or built-in function calls
+// notwithstanding.
 func (net *TestNetwork) ComputeGasLimit(tx *transaction.Transaction) uint64 {
 	return net.DefaultNode.EconomicsData.ComputeGasLimit(tx)
 }
 
+// RequireWalletNoncesInSyncWithState asserts that the nonces of all wallets
+// managed by the test network are in sync with the actual nonces in the
+// blockchain state.
 func (net *TestNetwork) RequireWalletNoncesInSyncWithState() {
-	for _, wallet := range net.Wallets {
+	for i, wallet := range net.Wallets {
 		account := net.GetAccountHandler(wallet.Address)
-		require.Equal(net.T, wallet.Nonce, account.GetNonce(), "wallet nonce out of sync")
+		require.Equal(net.T, wallet.Nonce, account.GetNonce(),
+			fmt.Sprintf("wallet %d has nonce out of sync", i))
 	}
 }
 
