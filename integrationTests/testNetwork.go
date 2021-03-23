@@ -145,12 +145,47 @@ func (net *TestNetwork) SendTx(tx *transaction.Transaction) string {
 	return net.SendTxFromNode(tx, node)
 }
 
-func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestProcessorNode,
-) string {
+func (net *TestNetwork) SignAndSendTx(sender *TestWalletAccount, tx *transaction.Transaction) string {
+	net.SignTx(sender, tx)
+	return net.SendTx(tx)
+}
+
+func (net *TestNetwork) SendTxFromNode(tx *transaction.Transaction, node *TestProcessorNode) string {
 	hash, err := node.SendTransaction(tx)
 	net.handleOrBypassError(err)
 
 	return hash
+}
+
+func (net *TestNetwork) CreateSignedTx(
+	sender *TestWalletAccount,
+	recvAddress Address,
+	value *big.Int,
+	txData []byte,
+) *transaction.Transaction {
+	tx := net.CreateTx(sender, recvAddress, value, txData)
+	net.SignTx(sender, tx)
+	return tx
+}
+
+func (net *TestNetwork) CreateSignedTxUint64(
+	sender *TestWalletAccount,
+	recvAddress Address,
+	value uint64,
+	txData []byte,
+) *transaction.Transaction {
+	tx := net.CreateTxUint64(sender, recvAddress, value, txData)
+	net.SignTx(sender, tx)
+	return tx
+}
+
+func (net *TestNetwork) CreateTxUint64(
+	sender *TestWalletAccount,
+	recvAddress Address,
+	value uint64,
+	txData []byte,
+) *transaction.Transaction {
+	return net.CreateTx(sender, recvAddress, big.NewInt(0).SetUint64(value), txData)
 }
 
 func (net *TestNetwork) CreateTx(
@@ -171,28 +206,18 @@ func (net *TestNetwork) CreateTx(
 		Version:  MinTransactionVersion,
 	}
 
-	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
-	net.handleOrBypassError(err)
-
-	signature, err := sender.SingleSigner.Sign(sender.SkTxSign, txBuff)
-	net.handleOrBypassError(err)
-
-	tx.Signature = signature
 	sender.Nonce++
 	return tx
 }
 
-func (net *TestNetwork) CreateTxUint64(
-	sender *TestWalletAccount,
-	recvAddress Address,
-	value uint64,
-	txData []byte,
-) *transaction.Transaction {
-	return net.CreateTx(
-		sender,
-		recvAddress,
-		big.NewInt(0).SetUint64(value),
-		txData)
+func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transaction) {
+	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	net.handleOrBypassError(err)
+
+	signature, err := signer.SingleSigner.Sign(signer.SkTxSign, txBuff)
+	net.handleOrBypassError(err)
+
+	tx.Signature = signature
 }
 
 func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
@@ -270,7 +295,7 @@ func (net *TestNetwork) createNodes() {
 func (net *TestNetwork) indexProposers() {
 	net.Proposers = make([]int, net.NumShards+1)
 	for i := 0; i < net.NumShards; i++ {
-		net.Proposers[i] = i * net.NumShards
+		net.Proposers[i] = i * net.NodesPerShard
 	}
 	net.Proposers[net.NumShards] = net.NumShards * net.NodesPerShard
 }
