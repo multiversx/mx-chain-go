@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -16,6 +17,8 @@ import (
 // that value is lowered at a maximum 1.
 const deltaEpochActive = uint32(1)
 const millisecondsInOneSecond = uint64(1000)
+
+var log = logger.GetOrCreate("resolvers/epochproviders")
 
 // ArgArithmeticEpochProvider is the argument structure for the arithmetic epoch provider
 type ArgArithmeticEpochProvider struct {
