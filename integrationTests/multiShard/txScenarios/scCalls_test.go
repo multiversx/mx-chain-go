@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransaction_TransactionSCScenarios_Rewritten(t *testing.T) {
+func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
