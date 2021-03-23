@@ -157,8 +157,15 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	log.Debug("config", "file", configurationPaths.P2p)
+
+	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
+	epochConfig, err := core.LoadEpochConfig(configurationPaths.Epoch)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.Epoch)
+
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -182,5 +189,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		ExternalConfig:           externalConfig,
 		P2pConfig:                p2pConfig,
 		ConfigurationPathsHolder: configurationPaths,
+		EpochConfig:              epochConfig,
 	}, nil
 }

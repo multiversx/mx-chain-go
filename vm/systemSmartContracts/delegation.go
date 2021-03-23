@@ -58,6 +58,7 @@ type delegation struct {
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
 	DelegationSCConfig     config.DelegationSystemSCConfig
+	EpochConfig            config.EpochConfig
 	StakingSCConfig        config.StakingSystemSCConfig
 	Eei                    vm.SystemEI
 	SigVerifier            vm.MessageSignVerifier
@@ -108,15 +109,17 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		gasCost:                args.GasCost,
 		marshalizer:            args.Marshalizer,
 		delegationEnabled:      atomic.Flag{},
-		enableDelegationEpoch:  args.DelegationSCConfig.EnabledEpoch,
+		enableDelegationEpoch:  args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
 		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
 		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
 		sigVerifier:            args.SigVerifier,
 		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
 		endOfEpochAddr:         args.EndOfEpochAddress,
-		stakingV2EnableEpoch:   args.StakingSCConfig.StakingV2Epoch,
+		stakingV2EnableEpoch:   args.EpochConfig.EnableEpochs.StakingV2Epoch,
 		stakingV2Enabled:       atomic.Flag{},
 	}
+	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
+	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
 
 	var okValue bool
 
