@@ -23,20 +23,21 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer      sharding.ChanceComputer
-	validatorAccountsDB state.AccountsAdapter
-	blockChainHookImpl  *hooks.BlockChainHookImpl
-	cryptoHook          vmcommon.CryptoHook
-	systemContracts     vm.SystemSCContainer
-	economics           process.EconomicsDataHandler
-	messageSigVerifier  vm.MessageSignVerifier
-	nodesConfigProvider vm.NodesConfigProvider
-	gasSchedule         core.GasScheduleNotifier
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	systemSCConfig      *config.SystemSmartContractsConfig
-	epochNotifier       process.EpochNotifier
+	chanceComputer         sharding.ChanceComputer
+	validatorAccountsDB    state.AccountsAdapter
+	blockChainHookImpl     *hooks.BlockChainHookImpl
+	cryptoHook             vmcommon.CryptoHook
+	systemContracts        vm.SystemSCContainer
+	economics              process.EconomicsDataHandler
+	messageSigVerifier     vm.MessageSignVerifier
+	nodesConfigProvider    vm.NodesConfigProvider
+	gasSchedule            core.GasScheduleNotifier
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
+	systemSCConfig         *config.SystemSmartContractsConfig
+	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
+	epochConfig            *config.EpochConfig
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -52,6 +53,7 @@ type ArgsNewVMContainerFactory struct {
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      sharding.ChanceComputer
 	EpochNotifier       process.EpochNotifier
+	EpochConfig         *config.EpochConfig
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -107,6 +109,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		chanceComputer:         args.ChanceComputer,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
+		epochConfig:            args.EpochConfig,
 	}, nil
 }
 
@@ -176,6 +179,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Economics:              vmf.economics,
 		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+		EpochConfig:            vmf.epochConfig,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

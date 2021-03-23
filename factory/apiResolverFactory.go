@@ -39,6 +39,7 @@ type ApiResolverArgs struct {
 
 type scQueryServiceArgs struct {
 	generalConfig       *config.Config
+	epochConfig         *config.EpochConfig
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
 	dataComponents      DataComponentsHolder
@@ -51,6 +52,7 @@ type scQueryServiceArgs struct {
 
 type scQueryElementArgs struct {
 	generalConfig       *config.Config
+	epochConfig         *config.EpochConfig
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
 	dataComponents      DataComponentsHolder
@@ -68,6 +70,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, core.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:       args.Configs.GeneralConfig,
+		epochConfig:         args.Configs.EpochConfig,
 		coreComponents:      args.CoreComponents,
 		dataComponents:      args.DataComponents,
 		stateComponents:     args.StateComponents,
@@ -147,6 +150,7 @@ func createScQueryService(
 
 	argsQueryElem := &scQueryElementArgs{
 		generalConfig:       args.generalConfig,
+		epochConfig:         args.epochConfig,
 		coreComponents:      args.coreComponents,
 		dataComponents:      args.dataComponents,
 		stateComponents:     args.stateComponents,
@@ -234,6 +238,7 @@ func createScQueryElement(
 			ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
 			ChanceComputer:      args.coreComponents.Rater(),
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
+			EpochConfig:         args.epochConfig,
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
@@ -247,10 +252,14 @@ func createScQueryElement(
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:                    args.gasScheduleNotifier,
 			ArgBlockChainHook:              argsHook,
-			DeployEnableEpoch:              args.generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			AheadOfTimeGasUsageEnableEpoch: args.generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-			ArwenV3EnableEpoch:             args.generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
 		}
+
+		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
+		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
+		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
