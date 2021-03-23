@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -8,17 +9,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
-		MiniblocksMetadataStorer:    genericmocks.NewStorerMock("MiniblocksMetadata", epoch),
-		MiniblockHashByTxHashStorer: genericmocks.NewStorerMock("MiniblockHashByTxHash", epoch),
-		EpochByHashStorer:           genericmocks.NewStorerMock("EpochByHash", epoch),
-		EventsHashesByTxHashStorer:  genericmocks.NewStorerMock("EventsHashesByTxHash", epoch),
+		MiniblocksMetadataStorer:    genericMocks.NewStorerMock("MiniblocksMetadata", epoch),
+		MiniblockHashByTxHashStorer: genericMocks.NewStorerMock("MiniblockHashByTxHash", epoch),
+		EpochByHashStorer:           genericMocks.NewStorerMock("EpochByHash", epoch),
+		EventsHashesByTxHashStorer:  genericMocks.NewStorerMock("EventsHashesByTxHash", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
 	}
@@ -100,11 +102,11 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil)
 	require.Nil(t, err)
 	// Two miniblocks
-	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericmocks.StorerMock).GetCurrentEpochData().Len())
+	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// One block, two miniblocks
-	require.Equal(t, 3, repo.epochByHashIndex.storer.(*genericmocks.StorerMock).GetCurrentEpochData().Len())
+	require.Equal(t, 3, repo.epochByHashIndex.storer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// Two transactions
-	require.Equal(t, 2, repo.miniblockHashByTxHashIndex.(*genericmocks.StorerMock).GetCurrentEpochData().Len())
+	require.Equal(t, 2, repo.miniblockHashByTxHashIndex.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 }
 
 func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
@@ -486,7 +488,7 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	)
 
 	// Now let's receive a metablock and the "notarized" notification, in the next epoch
-	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).SetCurrentEpoch(43)
+	args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).SetCurrentEpoch(43)
 	metablock := &block.MetaBlock{
 		Epoch: 43,
 		Nonce: 4001,
@@ -543,7 +545,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 	)
 
 	// Let's go to next epoch
-	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).SetCurrentEpoch(43)
+	args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).SetCurrentEpoch(43)
 
 	// Let's commit a block with the same miniblock, in the next epoch, on the canonical chain
 	_ = repo.RecordBlock([]byte("fooOnChain"),
@@ -585,13 +587,38 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 
 	// Epoch 42 will contain an orphaned record
 	orphanedMetadata := &MiniblockMetadata{}
-	_ = args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
+	_ = args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
 
 	require.Equal(t, 42, int(orphanedMetadata.Epoch))
 	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtSourceInMetaNonce))
 	require.Nil(t, orphanedMetadata.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtDestinationInMetaNonce))
 	require.Nil(t, orphanedMetadata.NotarizedAtDestinationInMetaHash)
+}
+
+func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	hr := &historyRepository{
+		epochByHashIndex: newHashToEpochIndex(
+			&mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("{}"), nil
+				},
+			},
+			&mock.MarshalizerMock{},
+		),
+		miniblocksMetadataStorer: &mock.StorerStub{
+			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
+	}
+
+	mbMetadata, err := hr.getMiniblockMetadataByMiniblockHash([]byte("hash"))
+	assert.Nil(t, mbMetadata)
+	assert.Equal(t, err, expectedErr)
 }
 
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {

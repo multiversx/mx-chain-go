@@ -165,6 +165,11 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		shardCoordinator:         args.ShardCoordinator,
 	}
 
+	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
+	log.Debug("systemSC: enable epoch for switch hysteresis for min nodes", "epoch", s.hystNodesEnableEpoch)
+	log.Debug("systemSC: enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
+	log.Debug("systemSC: enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
+
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
 	sort.Slice(s.maxNodesEnableConfig, func(i, j int) bool {
@@ -294,6 +299,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
 	for _, blsKey := range nodesToUnStake {
+		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
 		err = s.unStakeOneNode(blsKey, epoch)
 		if err != nil {
 			return 0, err
@@ -301,7 +307,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
-			return 0, epochStart.ErrNilValidatorInfo
+			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
+			continue
 		}
 
 		validatorInfo.List = string(core.LeavingList)
@@ -340,9 +347,14 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return err
 	}
 
-	peerAccount, errGet := s.getPeerAccount(blsKey)
-	if errGet != nil {
-		return errGet
+	account, errExists := s.peerAccountsDB.GetExistingAccount(blsKey)
+	if errExists != nil {
+		return nil
+	}
+
+	peerAccount, ok := account.(state.PeerAccountHandler)
+	if !ok {
+		return epochStart.ErrWrongTypeAssertion
 	}
 
 	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())

@@ -136,7 +136,9 @@ func TestSyncPendingTransactionsFor_MissingTxFromPool(t *testing.T) {
 	mb := &block.MiniBlock{TxHashes: [][]byte{[]byte("txHash")}}
 	miniBlocks["key"] = mb
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// we need a value larger than the request interval as to also test what happens after the normal request interval has expired
+	timeout := time.Second + time.Millisecond*500
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	err = pendingTxsSyncer.SyncPendingTransactionsFor(miniBlocks, 1, ctx)
 	cancel()
 	require.Equal(t, process.ErrTimeIsOut, err)

@@ -61,6 +61,8 @@ type ArgsExporter struct {
 	RoundHandler              process.RoundHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
+	MaxHardCapForMissingNodes int
+	NumConcurrentTrieSyncers  int
 }
 
 type exportHandlerFactory struct {
@@ -94,6 +96,8 @@ type exportHandlerFactory struct {
 	roundHandler              process.RoundHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
+	maxHardCapForMissingNodes int
+	numConcurrentTrieSyncers  int
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -197,6 +201,13 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.CoreComponents.EpochNotifier()) {
 		return nil, update.ErrNilEpochNotifier
 	}
+	if args.MaxHardCapForMissingNodes < 1 {
+		return nil, update.ErrInvalidMaxHardCapForMissingNodes
+	}
+	if args.NumConcurrentTrieSyncers < 1 {
+		return nil, update.ErrInvalidNumConcurrentTrieSyncers
+	}
+
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
 		CryptoComponents:          args.CryptoComponents,
@@ -226,7 +237,10 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		roundHandler:              args.RoundHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 	}
+	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
 	return e, nil
 }
@@ -329,14 +343,16 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:            e.dataPool.TrieNodes(),
-		RequestHandler:        e.requestHandler,
-		ShardCoordinator:      e.shardCoordinator,
-		Hasher:                e.CoreComponents.Hasher(),
-		Marshalizer:           e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager:    trieStorageManager,
-		TimoutGettingTrieNode: update.TimeoutGettingTrieNodes,
-		MaxTrieLevelInMemory:  e.maxTrieLevelInMemory,
+		TrieCacher:                e.dataPool.TrieNodes(),
+		RequestHandler:            e.requestHandler,
+		ShardCoordinator:          e.shardCoordinator,
+		Hasher:                    e.CoreComponents.Hasher(),
+		Marshalizer:               e.CoreComponents.InternalMarshalizer(),
+		TrieStorageManager:        trieStorageManager,
+		TimoutGettingTrieNode:     update.TimeoutGettingTrieNodes,
+		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
+		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

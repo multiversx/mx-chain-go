@@ -36,6 +36,9 @@
         # /address/:address/username will return the username of a given account
         { Name = "/:address/username", Open = true },
 
+        # /address/:address/keys will return all the key-value pairs of a given account
+        { Name = "/:address/keys", Open = true },
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
@@ -56,9 +59,6 @@
 	Routes = [
          # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
         { Name = "/status", Open = true },
-
-        # /network/total-staked will return total staked value
-        { Name = "/total-staked", Open = true },
 
         # /network/economics will return all economics related metrics
         { Name = "/economics", Open = true },
@@ -103,7 +103,7 @@
 
         # /transaction/simulate will receive a single transaction in JSON format and will simulate it's execution
         # in order to check that it will be successfully executed when sending it for propagation
-        { Name = "/simulate", Open = false },
+        { Name = "/simulate", Open = true },
 
          # /transaction/send-multiple will receive an array of transactions in JSON format and will propagate through
          # the network those whose fields are valid. It will return the number of valid transactions propagated

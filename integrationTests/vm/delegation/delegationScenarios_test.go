@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
@@ -38,7 +40,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 7 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -112,7 +114,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 7 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -160,6 +162,57 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-4], "staked")
 }
 
+func TestDelegationChangeConfig(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(1000)
+	numDelegators := 4
+	initialDelegationValue := int64(100)
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
+
+	// 4 delegators fill the delegation cap
+	delegators := getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(initialDelegationValue))
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(initialDelegationValue))
+
+	// increase the min delegation stake value
+	newMinDelegationAmount := big.NewInt(101)
+	changeAddress, err := integrationTests.TestAddressPubkeyConverter.Decode(integrationTests.DelegationManagerConfigChangeAddress)
+	require.Nil(t, err)
+	txData := fmt.Sprintf("changeMinDelegationAmount@%s", hex.EncodeToString(newMinDelegationAmount.Bytes()))
+	retCode, err := processTransaction(tpn, changeAddress, vm.DelegationManagerSCAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	//check that the min delegation amount has the correct value
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.DelegationManagerSCAddress,
+		FuncName:   "getContractConfig",
+		CallerAddr: vm.DelegationManagerSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  make([][]byte, 0),
+	}
+	vmOutput, err := tpn.SCQueryService.ExecuteQuery(scQuery)
+	require.Nil(t, err)
+	assert.Equal(t, newMinDelegationAmount.Bytes(), vmOutput.ReturnData[5])
+
+	//try delegate with initialDelegationValue, should fail
+	newDelegator := getAddresses(1)[0]
+	retCode, err = processTransaction(tpn, newDelegator, delegationScAddress, "delegate", big.NewInt(initialDelegationValue))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	//try delegate with the new value
+	delegators = getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", newMinDelegationAmount)
+}
+
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
 	tpn.InitDelegationManager()
@@ -172,7 +225,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 3 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -206,13 +259,12 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
-	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
+	verifyDelegatorIsDeleted(t, tpn, delegators[:numDelegators-2], delegationScAddress)
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
@@ -227,7 +279,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 3 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -261,7 +313,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
 	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
@@ -289,7 +341,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	// create 2 new delegation contracts
 	delegationScAddresses := make([][]byte, numContracts)
 	for i := range delegationScAddresses {
-		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), ownerAddresses[i])
+		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), ownerAddresses[i])
 	}
 
 	// add same BLS keys to all delegation contracts
@@ -358,7 +410,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	delegationScAddresses := make([][]byte, numContracts)
 
 	for i := range delegationScAddresses {
-		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), ownerAddresses[i])
+		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), ownerAddresses[i])
 
 		blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddresses[i], totalNumNodes)
 		txData := addNodesTxData(blsKeys, sigs)
@@ -388,15 +440,14 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
 	}
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	for i := range delegationScAddresses {
 		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorIsDeleted(t, tpn, firstTwoDelegators, delegationScAddresses[i])
 	}
 }
 
@@ -410,7 +461,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 5 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -507,7 +558,7 @@ func TestDelegationUnJail(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 5 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -578,7 +629,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
 	// set automatic activation on
-	txData = "setAutomaticActivation@796573"
+	txData = "setAutomaticActivation@" + hex.EncodeToString([]byte("true"))
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
@@ -594,18 +645,18 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal))
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2500))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2600))
 
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal*2))
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2500))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2600))
 
-	verifyValidatorSCStake(t, tpn, delegationScAddress, big.NewInt(22500))
+	verifyValidatorSCStake(t, tpn, delegationScAddress, big.NewInt(22600))
 	delegationAcc := getAsUserAccount(tpn, delegationScAddress)
 	assert.Equal(t, delegationAcc.GetBalance(), big.NewInt(0))
 
 	validatorAcc = getAsUserAccount(tpn, vm.ValidatorSCAddress)
-	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(22500)))
+	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(22600)))
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimRewardsMultipleTimeUndelegateClaimRewardsMultipleTime(t *testing.T) {
@@ -631,7 +682,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	quarterDelegationVal := halfDelegationVal / 2
 
 	for i := range delegationScAddresses {
-		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(2100), ownerAddresses[i])
+		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(2000), ownerAddresses[i])
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{ownerAddresses[i]}, delegationScAddresses[i], big.NewInt(2000))
 
 		blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddresses[i], totalNumNodes)
@@ -724,8 +775,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
-		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 	}
@@ -740,8 +789,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
@@ -752,8 +799,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
-		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1359)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6982)
@@ -772,7 +817,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(3100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(3000), tpn.OwnAccount.Address)
 
 	// add 2 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -911,7 +956,7 @@ func TestDelegationSystemCleanUpContract(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
-	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1000), tpn.OwnAccount.Address)
 
 	// add 7 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
@@ -1097,6 +1142,27 @@ func verifyDelegatorsStake(
 	for i := range addresses {
 		delegActiveStake := viewFuncSingleResult(t, tpn, delegationAddr, funcName, [][]byte{addresses[i]})
 		assert.Equal(t, expectedRes, big.NewInt(0).SetBytes(delegActiveStake))
+	}
+}
+
+func verifyDelegatorIsDeleted(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	addresses [][]byte,
+	delegationAddr []byte,
+) {
+	for _, address := range addresses {
+		query := &process.SCQuery{
+			ScAddress:  delegationAddr,
+			FuncName:   "isDelegator",
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{address},
+		}
+		vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+		assert.Nil(t, err)
+		assert.Equal(t, vmOutput.ReturnMessage, "view function works only for existing delegators")
+		assert.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
 	}
 }
 

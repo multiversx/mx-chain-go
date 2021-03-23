@@ -35,6 +35,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
+	secio "github.com/libp2p/go-libp2p-secio"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -140,6 +141,8 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
+		//backwards compatibility
+		libp2p.Security(secio.ID, secio.New),
 	}
 
 	setupExternalP2PLoggers()
@@ -816,7 +819,7 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
-			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
+			log.Trace("p2p validator - new message", "error", err.Error(), "topic", message.Topic)
 			return false
 		}
 
@@ -824,7 +827,7 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
-				"topics", message.TopicIDs,
+				"topic", message.Topic,
 				"originator", p2p.MessageOriginatorPid(msg),
 				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
@@ -1012,7 +1015,7 @@ func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) erro
 			From:      netMes.ID().Bytes(),
 			Data:      buff,
 			Seqno:     netMes.ds.NextSeqno(),
-			TopicIDs:  []string{topic},
+			Topic:     &topic,
 			Signature: netMes.ID().Bytes(),
 		},
 	}
@@ -1023,7 +1026,7 @@ func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) erro
 func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fromConnectedPeer core.PeerID) error {
 	var processor p2p.MessageProcessor
 
-	topic := message.TopicIDs[0]
+	topic := *message.Topic
 	msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
 	if err != nil {
 		return err
@@ -1048,7 +1051,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 		if errProcess != nil {
 			log.Trace("p2p validator",
 				"error", errProcess.Error(),
-				"topics", msg.Topics(),
+				"topic", msg.Topic(),
 				"originator", p2p.MessageOriginatorPid(msg),
 				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),

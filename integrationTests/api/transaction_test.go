@@ -50,7 +50,7 @@ func testTransactionGasCostWithMissingFields(tb testing.TB, node *integrationTes
 	loadResponse(tb, resp.Body, txCost)
 	assert.Empty(tb, txCost.Error)
 
-	assert.Equal(tb, uint64(integrationTests.MinTxGasLimit), txCost.Data.Cost)
+	assert.Equal(tb, integrationTests.MinTxGasLimit, txCost.Data.Cost)
 }
 
 func loadResponse(tb testing.TB, rsp io.Reader, destination interface{}) {

@@ -142,6 +142,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.fallbackHeaderValidator) {
 		return errors.ErrNilFallbackHeaderValidator
 	}
+	if check.IfNil(m.processComponents.nodeRedundancyHandler) {
+		return errors.ErrNilNodeRedundancyHandler
+	}
 
 	return nil
 }
@@ -480,6 +483,18 @@ func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.Request
 	}
 
 	return m.processComponents.requestedItemsHandler
+}
+
+// NodeRedundancyHandler returns the node redundancy handler
+func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler{
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

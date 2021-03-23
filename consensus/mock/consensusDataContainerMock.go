@@ -34,6 +34,7 @@ type ConsensusCoreMock struct {
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
+	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 }
 
 // GetAntiFloodHandler -
@@ -209,6 +210,16 @@ func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeader
 // SetFallbackHeaderValidator -
 func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
 	ccm.fallbackHeaderValidator = fallbackHeaderValidator
+}
+
+// NodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return ccm.nodeRedundancyHandler
+}
+
+// SetNodeRedundancyHandler -
+func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) {
+	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

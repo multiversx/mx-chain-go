@@ -66,7 +66,7 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	if n.MinNumberOfNodesCalled != nil {
 		return n.MinNumberOfNodesCalled()
 	}
-	return 2
+	return 0
 }
 
 // GetStartTime -

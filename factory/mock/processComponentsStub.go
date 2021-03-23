@@ -41,6 +41,7 @@ type ProcessComponentsMock struct {
 	HistoryRepositoryInternal      dblookupext.HistoryRepository
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 }
 
 // Create -
@@ -196,6 +197,11 @@ func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler
 // RequestedItemsHandler -
 func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcm.RequestedItemsHandlerInternal
+}
+
+// NodeRedundancyHandler -
+func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return pcm.NodeRedundancyHandlerInternal
 }
 
 // IsInterfaceNil -

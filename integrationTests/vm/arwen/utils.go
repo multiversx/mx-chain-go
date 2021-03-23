@@ -238,13 +238,16 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(
-		vmFactoryConfig,
-		maxGasLimit,
-		mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		args,
-		0,
-		0)
+	argsNewVMFactory := shard.ArgVMContainerFactory{
+		Config:                         vmFactoryConfig,
+		BlockGasLimit:                  maxGasLimit,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		ArgBlockChainHook:              args,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()

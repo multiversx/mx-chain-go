@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -144,7 +143,7 @@ func (msc *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
 }
 
 // ElasticIndexer returns the elastic indexer handler
-func (msc *managedStatusComponents) ElasticIndexer() indexer.Indexer {
+func (msc *managedStatusComponents) ElasticIndexer() process.Indexer {
 	msc.mutStatusComponents.RLock()
 	defer msc.mutStatusComponents.RUnlock()
 
@@ -364,7 +363,7 @@ func registerMemStatistics(_ context.Context, appStatusPollingHandler *appStatus
 }
 
 func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier sharding.EpochStartEventNotifier) error {
-	netStats := &machine.NetStatistics{}
+	netStats := machine.NewNetStatistics()
 	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
 		for {

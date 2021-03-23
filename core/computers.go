@@ -115,11 +115,21 @@ func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int
 	percentageString := strconv.FormatFloat(percentage, 'f', -1, 64)
 	exp, fra := splitExponentFraction(percentageString)
 	concatExpFra := exp + fra
-	concatBigInt, _ := big.NewInt(0).SetString(string(concatExpFra), 10)
+	concatBigInt, _ := big.NewInt(0).SetString(concatExpFra, 10)
 	intMultiplier, _ := big.NewInt(0).SetString("1"+strings.Repeat("0", len(fra)), 10)
 	x.Mul(x, concatBigInt)
 	x.Div(x, intMultiplier)
 	return x
+}
+
+// IsInRangeExclusive returns true if the provided value is in the given range, including the provided min and max values
+func IsInRangeInclusive(value, min, max *big.Int) bool {
+	return value.Cmp(min) >= 0 && value.Cmp(max) <= 0
+}
+
+// IsInRangeInclusiveFloat64 returns true if the provided value is in the given range including the provided min and max values
+func IsInRangeInclusiveFloat64(value, min, max float64) bool {
+	return value >= min && value <= max
 }
 
 func splitExponentFraction(val string) (string, string) {
