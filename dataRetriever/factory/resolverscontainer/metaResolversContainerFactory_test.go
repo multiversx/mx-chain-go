@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -192,6 +193,9 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
+	assert.Equal(t, int(args.ResolverConfig.NumIntraShardPeers), rcf.NumIntraShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 //------- Create
@@ -266,5 +270,10 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  1,
+			NumIntraShardPeers:  2,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }

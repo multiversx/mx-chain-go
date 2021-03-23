@@ -947,6 +947,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		NumConcurrentResolvingJobs:  pcf.numConcurrentResolverJobs,
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
+		ResolverConfig:              pcf.config.Resolvers,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -980,6 +981,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		NumConcurrentResolvingJobs:  pcf.numConcurrentResolverJobs,
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
+		ResolverConfig:              pcf.config.Resolvers,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

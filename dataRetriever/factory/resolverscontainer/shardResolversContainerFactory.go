@@ -48,6 +48,9 @@ func NewShardResolversContainerFactory(
 		throttler:                   thr,
 		isFullHistoryNode:           args.IsFullHistoryNode,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
+		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:          int(args.ResolverConfig.NumIntraShardPeers),
+		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
 	}
 
 	err = base.checkParams()
@@ -203,7 +206,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, srcf.currentNetworkEpochProvider)
+		0, srcf.numIntraShardPeers+srcf.numCrossShardPeers, srcf.numFullHistoryPeers, srcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}

@@ -176,6 +176,7 @@ type Config struct {
 	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
+	Resolvers             ResolverConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -510,4 +511,11 @@ type ConfigurationPathsHolder struct {
 type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
+}
+
+// ResolverConfig represents the config options to be used when setting up the resolver instances
+type ResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumIntraShardPeers  uint32
+	NumFullHistoryPeers uint32
 }

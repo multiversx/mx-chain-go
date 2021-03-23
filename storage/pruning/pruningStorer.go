@@ -67,16 +67,16 @@ func (pd *persisterData) getPersister() storage.Persister {
 }
 
 func (pd *persisterData) setPersister(persister storage.Persister) {
-	pd.RLock()
+	pd.Lock()
 	pd.persister = persister
-	pd.RUnlock()
+	pd.Unlock()
 }
 
 func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, isClosed bool) {
-	pd.RLock()
+	pd.Lock()
 	pd.persister = persister
 	pd.isClosed = isClosed
-	pd.RUnlock()
+	pd.Unlock()
 }
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters

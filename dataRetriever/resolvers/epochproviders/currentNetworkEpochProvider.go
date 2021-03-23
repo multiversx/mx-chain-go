@@ -48,6 +48,8 @@ type currentNetworkEpochProvider struct {
 }
 
 // NewCurrentNetworkEpochProvider will return a new instance of currentNetworkEpochProvider
+//TODO: refactor the code from this file - for now it is not used: remove possible deadlocks due to the locking mutexes
+// on possible infinite running functions, L176: the set instruction requires locking on the mutex
 func NewCurrentNetworkEpochProvider(args ArgsCurrentNetworkProvider) (*currentNetworkEpochProvider, error) {
 	err := checkArgs(args)
 	if err != nil {

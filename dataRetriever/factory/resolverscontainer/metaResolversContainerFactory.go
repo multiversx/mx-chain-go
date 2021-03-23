@@ -50,6 +50,9 @@ func NewMetaResolversContainerFactory(
 		throttler:                   thr,
 		isFullHistoryNode:           args.IsFullHistoryNode,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
+		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
+		numIntraShardPeers:          int(args.ResolverConfig.NumIntraShardPeers),
+		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
 	}
 
 	err = base.checkParams()
@@ -131,7 +134,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
+			mrcf.numCrossShardPeers, mrcf.numIntraShardPeers, mrcf.numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 		if err != nil {
 			return err
 		}
@@ -263,7 +266,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
+		0, mrcf.numIntraShardPeers+mrcf.numCrossShardPeers, mrcf.numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}
@@ -273,7 +276,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
+		0, mrcf.numIntraShardPeers+mrcf.numCrossShardPeers, mrcf.numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}

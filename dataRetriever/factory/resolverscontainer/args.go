@@ -1,6 +1,7 @@
 package resolverscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -10,6 +11,7 @@ import (
 
 // FactoryArgs will hold the arguments for ResolversContainerFactory for both shard and meta
 type FactoryArgs struct {
+	ResolverConfig              config.ResolverConfig
 	SizeCheckDelta              uint32
 	NumConcurrentResolvingJobs  int32
 	ShardCoordinator            sharding.Coordinator

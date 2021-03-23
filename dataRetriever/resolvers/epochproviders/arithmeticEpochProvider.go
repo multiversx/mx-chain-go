@@ -67,7 +67,8 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 	aep.RLock()
 	defer aep.RUnlock()
 
-	if aep.currentComputedEpoch < epoch {
+	subtractWillOverflow := aep.currentComputedEpoch < epoch
+	if subtractWillOverflow {
 		return true
 	}
 

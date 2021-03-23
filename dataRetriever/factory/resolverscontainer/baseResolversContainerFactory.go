@@ -19,11 +19,6 @@ import (
 const EmptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
 
-//TODO extract these in config
-const numCrossShardPeers = 2
-const numIntraShardPeers = 1
-const numFullHistoryPeers = 3
-
 type baseResolversContainerFactory struct {
 	container                   dataRetriever.ResolversContainer
 	shardCoordinator            sharding.Coordinator
@@ -41,6 +36,9 @@ type baseResolversContainerFactory struct {
 	intraShardTopic             string
 	isFullHistoryNode           bool
 	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
+	numCrossShardPeers          int
+	numIntraShardPeers          int
+	numFullHistoryPeers         int
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -79,6 +77,15 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.currentNetworkEpochProvider) {
 		return dataRetriever.ErrNilCurrentNetworkEpochProvider
+	}
+	if brcf.numCrossShardPeers <= 0 {
+		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
+	}
+	if brcf.numIntraShardPeers <= 0 {
+		return fmt.Errorf("%w for numIntraShardPeers", dataRetriever.ErrInvalidValue)
+	}
+	if brcf.numFullHistoryPeers <= 0 {
+		return fmt.Errorf("%w for numFullHistoryPeers", dataRetriever.ErrInvalidValue)
 	}
 
 	return nil
@@ -239,7 +246,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
-		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, brcf.currentNetworkEpochProvider)
+		brcf.numCrossShardPeers, brcf.numIntraShardPeers, brcf.numFullHistoryPeers, brcf.currentNetworkEpochProvider)
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(

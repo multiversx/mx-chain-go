@@ -1175,6 +1175,11 @@ func (tpn *TestProcessorNode) initResolvers() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 	}
 
 	var err error
