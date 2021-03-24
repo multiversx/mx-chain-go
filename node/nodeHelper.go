@@ -25,6 +25,7 @@ import (
 // TODO: move this to process components
 func CreateHardForkTrigger(
 	config *config.Config,
+	epochConfig *config.EpochConfig,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	nodesShuffledOut update.Closer,
@@ -77,7 +78,7 @@ func CreateHardForkTrigger(
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
 		RoundHandler:              process.RoundHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 	}

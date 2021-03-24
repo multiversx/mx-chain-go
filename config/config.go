@@ -173,7 +173,6 @@ type Config struct {
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
-	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
 }
@@ -221,27 +220,13 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec               int
-	MaxComputableRounds                    uint64
-	StartInEpochEnabled                    bool
-	ChainID                                string
-	MinTransactionVersion                  uint32
-	SCDeployEnableEpoch                    uint32
-	BuiltInFunctionsEnableEpoch            uint32
-	RelayedTransactionsEnableEpoch         uint32
-	PenalizedTooMuchGasEnableEpoch         uint32
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	BelowSignedThresholdEnableEpoch        uint32
-	TransactionSignedWithTxHashEnableEpoch uint32
-	MetaProtectionEnableEpoch              uint32
-	AheadOfTimeGasUsageEnableEpoch         uint32
-	GasPriceModifierEnableEpoch            uint32
-	RepairCallbackEnableEpoch              uint32
-	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
-	GenesisString                          string
-	GenesisMaxNumberOfShards               uint32
-	BlockGasAndFeesReCheckEnableEpoch      uint32
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
+	StartInEpochEnabled      bool
+	ChainID                  string
+	MinTransactionVersion    uint32
+	GenesisString            string
+	GenesisMaxNumberOfShards uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -475,17 +460,7 @@ type Configs struct {
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
-}
-
-// GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
-type GasScheduleByEpochs struct {
-	StartEpoch uint32
-	FileName   string
-}
-
-// GasScheduleConfig represents the versioning config area for the gas schedule toml
-type GasScheduleConfig struct {
-	GasScheduleByEpochs []GasScheduleByEpochs
+	EpochConfig              *EpochConfig
 }
 
 // ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
@@ -504,6 +479,7 @@ type ConfigurationPathsHolder struct {
 	SmartContracts             string
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
+	Epoch                      string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

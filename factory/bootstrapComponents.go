@@ -22,6 +22,7 @@ import (
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
+	EpochConfig       config.EpochConfig
 	PrefConfig        config.Preferences
 	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
@@ -32,6 +33,7 @@ type BootstrapComponentsFactoryArgs struct {
 
 type bootstrapComponentsFactory struct {
 	config            config.Config
+	epochConfig       config.EpochConfig
 	prefConfig        config.Preferences
 	importDbConfig    config.ImportDbConfig
 	workingDir        string
@@ -65,6 +67,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
+		epochConfig:       args.EpochConfig,
 		prefConfig:        args.PrefConfig,
 		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
@@ -142,6 +145,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CryptoComponentsHolder:     bcf.cryptoComponents,
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
+		EpochConfig:                bcf.epochConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:    genesisShardCoordinator,

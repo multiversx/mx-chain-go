@@ -56,7 +56,7 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig       config.HardforkConfig
 	TrieStorageManagers  map[string]data.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
-	GeneralConfig        *config.GeneralSettingsConfig
+	EpochConfig          *config.EpochConfig
 	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator

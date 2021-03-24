@@ -75,7 +75,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedStatusComponents)
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
 	}
