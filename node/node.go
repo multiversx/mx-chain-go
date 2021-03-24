@@ -532,6 +532,10 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 		return nil, err
 	}
 
+	if esdtToken.TokenMetaData != nil {
+		esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+	}
+
 	return esdtToken, nil
 }
 

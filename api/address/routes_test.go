@@ -56,6 +56,22 @@ type esdtTokenData struct {
 	Properties      string `json:"properties"`
 }
 
+type esdtNFTTokenData struct {
+	TokenIdentifier string   `json:"tokenIdentifier"`
+	Balance         string   `json:"balance"`
+	Properties      string   `json:"properties"`
+	Name            string   `json:"name"`
+	Creator         string   `json:"creator"`
+	Royalties       string   `json:"royalties"`
+	Hash            []byte   `json:"hash"`
+	URIs            [][]byte `json:"uris"`
+	Attributes      []byte   `json:"attributes"`
+}
+
+type esdtNFTResponseData struct {
+	esdtNFTTokenData `json:"tokenData"`
+}
+
 type esdtTokenResponseData struct {
 	esdtTokenData `json:"tokenData"`
 }
@@ -64,6 +80,12 @@ type esdtTokenResponse struct {
 	Data  esdtTokenResponseData `json:"data"`
 	Error string                `json:"error"`
 	Code  string                `json:"code"`
+}
+
+type esdtNFTResponse struct {
+	Data  esdtNFTResponseData `json:"data"`
+	Error string              `json:"error"`
+	Code  string              `json:"code"`
 }
 
 type esdtTokensResponseData struct {
@@ -549,7 +571,7 @@ func TestGetESDTNFTData_NilContextShouldError(t *testing.T) {
 
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/myAddress/esdtnft/newToken/10", nil)
+	req, _ := http.NewRequest("GET", "/address/myAddress/esdtnft/newToken/nonce/10", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -572,14 +594,14 @@ func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/10", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	usernameResponseObj := usernameResponse{}
-	loadResponse(resp.Body, &usernameResponseObj)
+	esdtResponseObj := esdtNFTResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
 }
 
 func TestGetESDTNFTData_ShouldWork(t *testing.T) {
@@ -590,21 +612,25 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	testProperties := "frozen"
 	facade := mock.Facade{
 		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
-			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: []byte(testProperties)}, nil
+			return &esdt.ESDigitalToken{
+				Value:         big.NewInt(100),
+				Properties:    []byte(testProperties),
+				TokenMetaData: &esdt.MetaData{Creator: []byte(testAddress)}}, nil
 		},
 	}
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/10", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	esdtBalanceResponseObj := esdtTokenResponse{}
-	loadResponse(resp.Body, &esdtBalanceResponseObj)
+	esdtResponseObj := esdtNFTResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
-	assert.Equal(t, testProperties, esdtBalanceResponseObj.Data.Properties)
+	assert.Equal(t, testValue, esdtResponseObj.Data.Balance)
+	assert.Equal(t, testProperties, esdtResponseObj.Data.Properties)
+	assert.Equal(t, testAddress, esdtResponseObj.Data.Creator)
 }
 
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
@@ -765,7 +791,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
-					{Name: "/:address/esdtnft/:tokenIdentifier/:nonce", Open: true},
+					{Name: "/:address/esdtnft/:tokenIdentifier/nonce/:nonce", Open: true},
 				},
 			},
 		},

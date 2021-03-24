@@ -22,7 +22,7 @@ const (
 	getKeyPath      = "/:address/key/:key"
 	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
-	getESDTNFTData  = "/:address/esdtnft/:tokenIdentifier/:nonce"
+	getESDTNFTData  = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -60,7 +60,7 @@ type esdtNFTTokenData struct {
 	Properties      string   `json:"properties"`
 	Name            string   `json:"name"`
 	Creator         string   `json:"creator"`
-	Royalties       string   `json:"roylaties"`
+	Royalties       string   `json:"royalties"`
 	Hash            []byte   `json:"hash"`
 	URIs            [][]byte `json:"uris"`
 	Attributes      []byte   `json:"attributes"`
@@ -386,7 +386,7 @@ func GetESDTBalance(c *gin.Context) {
 	)
 }
 
-// GetESDTNFTData return the nft data for the given token
+// GetESDTNFTData returns the nft data for the given token
 func GetESDTNFTData(c *gin.Context) {
 	facade, ok := getFacade(c)
 	if !ok {
@@ -425,7 +425,7 @@ func GetESDTNFTData(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrNonceInvalid.Error(), errors.ErrEmptyKey.Error()),
+				Error: fmt.Sprintf("%s", errors.ErrNonceInvalid.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)

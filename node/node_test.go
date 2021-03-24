@@ -313,9 +313,9 @@ func TestNode_GetESDTData(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	esdtData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), esdtData.Value.String())
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetESDTDataForNFT(t *testing.T) {
@@ -340,9 +340,9 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	esdtData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
 	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), esdtData.Value.String())
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
