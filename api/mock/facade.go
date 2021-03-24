@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -46,7 +47,7 @@ type Facade struct {
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
-	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
+	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
@@ -122,13 +123,13 @@ func (f *Facade) GetKeyValuePairs(address string) (map[string]string, error) {
 	return nil, nil
 }
 
-// GetESDTBalance -
-func (f *Facade) GetESDTBalance(address string, key string) (string, string, error) {
-	if f.GetESDTBalanceCalled != nil {
-		return f.GetESDTBalanceCalled(address, key)
+// GetESDTData -
+func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	if f.GetESDTDataCalled != nil {
+		return f.GetESDTDataCalled(address, key, nonce)
 	}
 
-	return "", "", nil
+	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
 // GetAllESDTTokens -
