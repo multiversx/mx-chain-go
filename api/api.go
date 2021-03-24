@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/proof"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
@@ -148,6 +149,12 @@ func RegisterRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
 	if err == nil {
 		block.Routes(wrappedBlockRouter)
+	}
+
+	proofRoutes := ws.Group("/proof")
+	wrappedProofRouter, err := wrapper.NewRouterWrapper("proof", proofRoutes, routesConfig)
+	if err == nil {
+		proof.Routes(wrappedProofRouter)
 	}
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)

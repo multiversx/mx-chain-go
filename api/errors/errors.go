@@ -72,3 +72,15 @@ var ErrGetPidInfo = errors.New("error getting peer id info")
 
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")
+
+// ErrValidationEmptyRootHash signals an empty root hash was provided
+var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
+
+// ErrValidationEmptyAddress signals an empty address was provided
+var ErrValidationEmptyAddress = errors.New("address is empty")
+
+// ErrGetProof signals an error happening when trying to compute a Merkle proof
+var ErrGetProof = errors.New("getting proof failed")
+
+// ErrVerifyProof signals an error happening when trying to verify a Merkle proof
+var ErrVerifyProof = errors.New("verifying proof failed")

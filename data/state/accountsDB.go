@@ -875,6 +875,19 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte, ctx context.Context) (m
 	return allTries, nil
 }
 
+// GetTrie returns the trie that has the given rootHash
+func (adb *AccountsDB) GetTrie(rootHash []byte) (data.Trie, error) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	newTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return newTrie, nil
+}
+
 // Journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
 	if check.IfNil(entry) {

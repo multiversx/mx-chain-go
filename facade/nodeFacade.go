@@ -465,6 +465,26 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
 }
 
+// GetProof returns the Merkle proof for the given address
+func (nf *nodeFacade) GetProof(rootHash []byte, address []byte) ([][]byte, error) {
+	trie, err := nf.accountsState.GetTrie(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return trie.GetProof(address)
+}
+
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash []byte, address []byte, proof [][]byte) (bool, error) {
+	trie, err := nf.accountsState.GetTrie(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	return trie.VerifyProof(address, proof)
+}
+
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
 func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()

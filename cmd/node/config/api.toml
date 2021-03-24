@@ -124,3 +124,13 @@
 	    # /block/by-hash/:hash will return the block in JSON format based on its hash
 	    { Name = "/by-hash/:hash", Open = true },
 	]
+
+
+[APIPackages.proof]
+	Routes = [
+	    # /proof/root-hash/:roothash/address/:address will compute and return the proof in JSON format
+	    { Name = "/root-hash/:roothash/address/:address", Open = true },
+
+	    # /proof/verify will return the response from Merkle proof verification in JSON format
+	    { Name = "/verify", Open = true },
+	]
