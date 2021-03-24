@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -271,9 +272,9 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 	return nf.node.GetValueForKey(address, key)
 }
 
-// GetESDTBalance returns the ESDT balance and if it is frozen
-func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string, error) {
-	return nf.node.GetESDTBalance(address, key)
+// GetESDTData returns the ESDT data for the given address, tokenID and nonce
+func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	return nf.node.GetESDTData(address, key, nonce)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address

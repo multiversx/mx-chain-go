@@ -292,7 +292,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(v1), value)
 }
 
-func TestNode_GetESDTBalance(t *testing.T) {
+func TestNode_GetESDTData(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -313,9 +313,36 @@ func TestNode_GetESDTBalance(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), value)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
+}
+
+func TestNode_GetESDTDataForNFT(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	nonce := int64(100)
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken + string(big.NewInt(100).Bytes()))
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {

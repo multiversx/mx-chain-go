@@ -504,31 +504,39 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	return hex.EncodeToString(valueBytes), nil
 }
 
-// GetESDTBalance returns the esdt balance and properties from a given account
-func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
+// GetESDTData returns the esdt balance and properties from a given account
+func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandler(address)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	userAccount, ok := n.castAccountToUserAccount(account)
 	if !ok {
-		return "", "", ErrAccountNotFound
+		return nil, ErrAccountNotFound
 	}
 
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID
+	if nonce > 0 {
+		tokenKey += string(big.NewInt(0).SetUint64(nonce).Bytes())
+	}
+
+	dataBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	if err != nil || len(dataBytes) == 0 {
+		return esdtToken, nil
+	}
+
+	err = n.internalMarshalizer.Unmarshal(esdtToken, dataBytes)
 	if err != nil {
-		return "0", "", nil
+		return nil, err
 	}
 
-	esdtToken := &esdt.ESDigitalToken{}
-	err = n.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
-	if err != nil {
-		return "", "", err
+	if esdtToken.TokenMetaData != nil {
+		esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
 	}
 
-	return esdtToken.Value.String(), hex.EncodeToString(esdtToken.Properties), nil
+	return esdtToken, nil
 }
 
 // GetAllESDTTokens returns the value of a key from a given account

@@ -45,8 +45,11 @@
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 
-        # /address/:address/esdt/:tokenName will return data of an esdt token for a given account
-        { Name = "/:address/esdt/:tokenIdentifier", Open = true }
+        # /address/:address/esdt/:tokenIdentifier will return the balance for a given account and esdt tokenID
+        { Name = "/:address/esdt/:tokenIdentifier", Open = true },
+
+        # /address/:address/esdtnft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
+        { Name = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce", Open = true }
 	]
 
 [APIPackages.hardfork]
