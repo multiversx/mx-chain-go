@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -555,14 +556,10 @@ func (mp *metaProcessor) indexBlock(
 
 	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
-	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-
-	for hash, tx := range scPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range rewardsTxs {
-		txPool[hash] = tx
+	pool := &indexer.Pool{
+		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
+		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
+		Rewards: rewardsTxs,
 	}
 
 	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
@@ -603,7 +600,15 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
+	args := &indexer.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   body,
+		Header:                 metaBlock,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeadersHashes,
+		TransactionsPool:       pool,
+	}
+	mp.indexer.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)

@@ -16,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -2079,10 +2078,8 @@ func createElasticIndexer(
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
 		TransactionFeeCalculator: economicsHandler,
-		Options: &elasticIndexer.Options{
-			UseKibana: elasticSearchConfig.UseKibana,
-		},
-		IsInImportDBMode: isInImportDBMode,
+		UseKibana:                elasticSearchConfig.UseKibana,
+		IsInImportDBMode:         isInImportDBMode,
 	}
 
 	return indexerFactory.NewIndexer(indexerFactoryArgs)
