@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -1849,17 +1850,18 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var saveBlockCalled map[string]data.TransactionHandler
+	var txsPool *indexer.Pool
 	saveBlockCalledMutex := sync.Mutex{}
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.Indexer = &mock.IndexerMock{
-		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
-			saveBlockCalled = txPool
+			txsPool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()
 		},
 	}
+
 	arguments.DataPool = tdp
 	arguments.Store = store
 	arguments.Hasher = hasher
@@ -1906,11 +1908,8 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	saveBlockCalledMutex.Lock()
-	wasCalled := saveBlockCalled
-	saveBlockCalledMutex.Unlock()
-
-	assert.Equal(t, 4, len(wasCalled))
+	assert.Equal(t, 2, len(txsPool.Txs))
+	assert.Equal(t, 2, len(txsPool.Scrs))
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {

@@ -1781,7 +1781,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1864,7 +1864,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1924,7 +1924,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1972,7 +1972,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -2002,7 +2002,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()

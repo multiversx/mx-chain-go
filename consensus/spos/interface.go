@@ -1,11 +1,11 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -153,6 +153,6 @@ type HeaderIntegrityVerifier interface {
 
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
-	SaveRoundsInfo(roundsInfos []workItems.RoundInfo)
+	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
 	IsInterfaceNil() bool
 }
