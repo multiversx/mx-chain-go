@@ -12,12 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ShardIdentifier is the numeric index of a shard
 type ShardIdentifier = uint32
+
+// Address is a slice of bytes used to identify an account
 type Address = []byte
+
+// NodeSlice is a slice of TestProcessorNode instances
 type NodeSlice = []*TestProcessorNode
+
+// NodesByShardMap is a map that groups TestProcessorNodes by their shard ID
 type NodesByShardMap = map[ShardIdentifier]NodeSlice
+
+// GasScheduleMap is a map containing the predefined gas costs
 type GasScheduleMap = map[string]map[string]uint64
 
+// TestNetwork wraps a set of TestProcessorNodes along with a set of test
+// Wallets, instantiates them, controls them and provides operations with them;
+// designed to be used in integration tests.
 // TODO combine TestNetwork with the preexisting TestContext and OneNodeNetwork
 // into a single struct containing the functionality of all three
 type TestNetwork struct {
@@ -123,7 +135,7 @@ func (net *TestNetwork) MintNodeAccounts(value *big.Int) {
 	MintAllNodes(net.Nodes, value)
 }
 
-// MintNodeAccountsInt64 adds the specified value to the accounts owned by the
+// MintNodeAccountsUint64 adds the specified value to the accounts owned by the
 // nodes of the TestNetwork.
 func (net *TestNetwork) MintNodeAccountsUint64(value uint64) {
 	MintAllNodes(net.Nodes, big.NewInt(0).SetUint64(value))
@@ -142,11 +154,13 @@ func (net *TestNetwork) CreateWallets(count int) {
 
 // MintWallets adds the specified value to the test wallets.
 func (net *TestNetwork) MintWallets(value *big.Int) {
+	// TODO rename Players to Wallets where this function is defined.
 	MintAllPlayers(net.Nodes, net.Wallets, value)
 }
 
-// MintWalletsInt64 adds the specified value to the test wallets.
+// MintWalletsUint64 adds the specified value to the test wallets.
 func (net *TestNetwork) MintWalletsUint64(value uint64) {
+	// TODO rename Players to Wallets where this function is defined.
 	MintAllPlayers(net.Nodes, net.Wallets, big.NewInt(0).SetUint64(value))
 }
 
@@ -290,7 +304,7 @@ func (net *TestNetwork) ComputeTxFeeUint64(tx *transaction.Transaction) uint64 {
 	return net.DefaultNode.EconomicsData.ComputeTxFee(tx).Uint64()
 }
 
-// ComputeTxFeeUint64 calculates the base gas limit of the provided
+// ComputeGasLimit calculates the base gas limit of the provided
 // transaction, smart contract execution or built-in function calls
 // notwithstanding.
 func (net *TestNetwork) ComputeGasLimit(tx *transaction.Transaction) uint64 {
@@ -348,10 +362,6 @@ func (net *TestNetwork) mapNodesByShard() {
 	net.NodesSharded = make(NodesByShardMap)
 	for _, node := range net.Nodes {
 		shardID := node.ShardCoordinator.SelfId()
-		_, exists := net.NodesSharded[shardID]
-		if !exists {
-			net.NodesSharded[shardID] = make(NodeSlice, 0)
-		}
 		net.NodesSharded[shardID] = append(net.NodesSharded[shardID], node)
 	}
 }
@@ -398,7 +408,7 @@ func (net *TestNetwork) firstNodeInShardOfAddress(address Address) *TestProcesso
 }
 
 func (net *TestNetwork) handleOrBypassError(err error) {
-	if net.BypassErrorsOnce == true {
+	if net.BypassErrorsOnce {
 		net.BypassErrorsOnce = false
 		return
 	}
