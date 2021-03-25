@@ -47,6 +47,7 @@ func GetGeneralConfig() config.Config {
 		GeneralSettings: config.GeneralSettingsConfig{
 			StartInEpochEnabled:      true,
 			GenesisMaxNumberOfShards: 100,
+			MaxComputableRounds:      1000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -308,6 +309,9 @@ func GetGeneralConfig() config.Config {
 		TrieSync: config.TrieSyncConfig{
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
+		},
+		Antiflood: config.AntifloodConfig{
+			NumConcurrentResolverJobs: 2,
 		},
 	}
 }

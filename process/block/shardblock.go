@@ -10,6 +10,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -29,7 +30,8 @@ type shardProcessor struct {
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
+	userStatePruningQueue core.Queue
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -57,26 +59,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		hasher:                  arguments.CoreComponents.Hasher(),
 		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
 		store:                   arguments.DataComponents.StorageService(),
-		shardCoordinator:        arguments.ShardCoordinator,
+		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
 		nodesCoordinator:        arguments.NodesCoordinator,
 		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        arguments.AppStatusHandler,
+		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		roundHandler:            arguments.RoundHandler,
+		roundHandler:            arguments.CoreComponents.RoundHandler(),
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
 		dataPool:                arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:  arguments.StateCheckpointModulus,
+		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		blockChain:              arguments.DataComponents.Blockchain(),
 		feeHandler:              arguments.FeeHandler,
-		indexer:                 arguments.Indexer,
-		tpsBenchmark:            arguments.TpsBenchmark,
+		indexer:                 arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
 		vmContainerFactory:      arguments.VMContainersFactory,
@@ -100,6 +102,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
+	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }
@@ -1025,6 +1028,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
+			sp.userStatePruningQueue,
 		)
 	}
 }
