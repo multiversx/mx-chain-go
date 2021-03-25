@@ -469,8 +469,6 @@ func hardForkImport(
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					StakingV2Epoch:                       1000000,
-					StakeEnableEpoch:                     0,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
@@ -479,15 +477,13 @@ func hardForkImport(
 					MinUnstakeTokensValue:                "1",
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					BaseIssuingCost:    "100",
-					MinCreationDeposit: "100",
-					EnabledEpoch:       0,
+					MinCreationDeposit:  "100",
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinStakeAmount: "100",
-					EnabledEpoch:   0,
-					MinServiceFee:  0,
-					MaxServiceFee:  100,
+					MinServiceFee: 0,
+					MaxServiceFee: 100,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
@@ -498,11 +494,17 @@ func hardForkImport(
 					return true
 				},
 			},
-			GeneralConfig: &config.GeneralSettingsConfig{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
+			EpochConfig: &config.EpochConfig{
+				EnableEpochs: config.EnableEpochs{
+					BuiltInFunctionsEnableEpoch:        0,
+					SCDeployEnableEpoch:                0,
+					RelayedTransactionsEnableEpoch:     0,
+					PenalizedTooMuchGasEnableEpoch:     0,
+					StakingV2Epoch:                     1000000,
+					StakeEnableEpoch:                   0,
+					DelegationManagerEnableEpoch:       0,
+					DelegationSmartContractEnableEpoch: 0,
+				},
 			},
 		}
 
@@ -636,6 +638,8 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
+			MaxHardCapForMissingNodes: 500,
+			NumConcurrentTrieSyncers:  50,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

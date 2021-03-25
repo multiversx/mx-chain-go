@@ -178,6 +178,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[core.MetricMinTransactionVersion] = sm.loadUint64Metric(core.MetricMinTransactionVersion)
 	configMetrics[core.MetricTopUpFactor] = sm.loadStringMetric(core.MetricTopUpFactor)
 	configMetrics[core.MetricGasPriceModifier] = sm.loadStringMetric(core.MetricGasPriceModifier)
+	configMetrics[core.MetricRoundsPerEpoch] = sm.loadUint64Metric(core.MetricRoundsPerEpoch)
 
 	return configMetrics
 }

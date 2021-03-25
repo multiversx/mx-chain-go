@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -245,6 +245,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
+	require.Nil(t, err)
 
 	expectedTx := &transaction.ApiTransactionResult{
 		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
@@ -441,8 +442,8 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
-	chainStorer := genericmocks.NewChainStorerMock(epoch)
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+	chainStorer := genericMocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
@@ -525,7 +526,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: []byte("invalid original sender"),
 	}
 
-	coreComponents:= getDefaultCoreComponents()
+	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize)
 
 	n, err := node.NewNode(

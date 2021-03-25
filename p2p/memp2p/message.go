@@ -15,7 +15,7 @@ type message struct {
 	from           []byte
 	data           []byte
 	seqNo          []byte
-	topics         []string
+	topic          string
 	signature      []byte
 	key            []byte
 	peer           core.PeerID
@@ -33,7 +33,7 @@ func newMessage(topic string, data []byte, peerID core.PeerID, seqNo uint64) *me
 		from:      []byte(peerID),
 		data:      data,
 		seqNo:     seqNoBytes,
-		topics:    []string{topic},
+		topic:     topic,
 		signature: empty,
 		key:       []byte(peerID),
 		peer:      peerID,
@@ -55,9 +55,9 @@ func (msg *message) SeqNo() []byte {
 	return msg.seqNo
 }
 
-// Topics returns the topic on which the message was sent
-func (msg *message) Topics() []string {
-	return msg.topics
+// Topic returns the topic on which the message was sent
+func (msg *message) Topic() string {
+	return msg.topic
 }
 
 // Signature returns the message signature

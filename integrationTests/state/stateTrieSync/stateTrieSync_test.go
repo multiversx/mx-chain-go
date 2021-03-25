@@ -99,6 +99,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             tss,
 		TimeoutBetweenTrieNodesCommits: timeout,
+		MaxHardCapForMissingNodes:      500,
 	}
 	trieSyncer, _ := trie.NewTrieSyncer(arg)
 
@@ -202,13 +203,14 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               integrationTests.TestHasher,
-			Marshalizer:          integrationTests.TestMarshalizer,
-			TrieStorageManager:   nRequester.TrieStorageManagers[factory2.UserAccountTrie],
-			RequestHandler:       requestHandler,
-			Timeout:              time.Second * 10,
-			Cacher:               nRequester.DataPool.TrieNodes(),
-			MaxTrieLevelInMemory: 5,
+			Hasher:                    integrationTests.TestHasher,
+			Marshalizer:               integrationTests.TestMarshalizer,
+			TrieStorageManager:        nRequester.TrieStorageManagers[factory2.UserAccountTrie],
+			RequestHandler:            requestHandler,
+			Timeout:                   time.Second * 10,
+			Cacher:                    nRequester.DataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      5,
+			MaxHardCapForMissingNodes: 500,
 		},
 		ShardId:   shardID,
 		Throttler: thr,

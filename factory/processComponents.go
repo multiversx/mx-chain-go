@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -46,6 +45,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/redundancy"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -93,11 +93,14 @@ type processComponents struct {
 	importStartHandler          update.ImportStartHandler
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
 	importHandler               update.ImportHandler
+	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
+	EpochConfig               config.EpochConfig
+	PrefConfigs               config.PreferencesConfig
 	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
@@ -131,7 +134,7 @@ type ProcessComponentsFactoryArgs struct {
 	Version                   string
 	ImportStartHandler        update.ImportStartHandler
 	WorkingDir                string
-	Indexer                   indexer.Indexer
+	Indexer                   process.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
@@ -139,6 +142,8 @@ type ProcessComponentsFactoryArgs struct {
 
 type processComponentsFactory struct {
 	config                    config.Config
+	epochConfig               config.EpochConfig
+	prefConfigs               config.PreferencesConfig
 	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
@@ -172,7 +177,7 @@ type processComponentsFactory struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	indexer                   process.Indexer
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
@@ -189,6 +194,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 	return &processComponentsFactory{
 		config:                    args.Config,
+		epochConfig:               args.EpochConfig,
+		prefConfigs:               args.PrefConfigs,
 		importDBConfig:            args.ImportDBConfig,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
@@ -497,6 +504,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:    pcf.prefConfigs.RedundancyLevel,
+		Messenger:          pcf.network.NetworkMessenger(),
+		ObserverPrivateKey: pcf.crypto.PrivateKey(),
+	}
+	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
+	if err != nil {
+		return nil, err
+	}
 
 	return &processComponents{
 		nodesCoordinator:            pcf.nodesCoordinator,
@@ -530,6 +550,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importStartHandler:          pcf.importStartHandler,
 		requestedItemsHandler:       pcf.requestedItemsHandler,
 		importHandler:               pcf.importHandler,
+		nodeRedundancyHandler:       nodeRedundancyHandler,
 	}, nil
 }
 
@@ -562,9 +583,9 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RatingEnableEpoch:               ratingEnabledEpoch,
 		GenesisNonce:                    pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
-		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		SwitchJailWaitingEnableEpoch:    pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            pcf.epochConfig.EnableEpochs.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -675,7 +696,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
-		GeneralConfig:        &pcf.config.GeneralSettings,
+		EpochConfig:          &pcf.epochConfig,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -714,7 +735,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.indexer.SaveAccounts(genesisAccounts)
+	pcf.indexer.SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
@@ -1116,8 +1137,10 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 	}
+	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
+
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
@@ -1154,8 +1177,10 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 	}
+	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
+
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err

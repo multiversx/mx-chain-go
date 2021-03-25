@@ -89,6 +89,13 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
+	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
+	epochConfigurationFile = cli.StringFlag{
+		Name: "epoch-config",
+		Usage: "The `" + filePathPlaceholder + "` for the epoch configuration file. This TOML file contains" +
+			" activation epochs configurations",
+		Value: "./config/enableEpochs.toml",
+	}
 	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
@@ -291,6 +298,12 @@ var (
 		Value: 0,
 		Usage: "This flag will specify the start in epoch value in import-db process",
 	}
+	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
+	redundancyLevel = cli.Int64Flag{
+		Name:  "redundancy-level",
+		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
+		Value: 0,
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -306,6 +319,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
+		epochConfigurationFile,
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
@@ -336,6 +350,7 @@ func getFlags() []cli.Flag {
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
 		importDbStartInEpoch,
+		redundancyLevel,
 	}
 }
 
@@ -379,6 +394,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	}
 	if ctx.IsSet(numActivePersisters.Name) {
 		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+	if ctx.IsSet(redundancyLevel.Name) {
+		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)

@@ -252,14 +252,9 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 		return nil
 	}
 
-	if scr.Value == nil {
-		return process.ErrNilValue
-	}
-	if scr.Value.Sign() < 0 {
-		return process.ErrNegativeValue
-	}
-	if len(scr.PrevTxHash) == 0 {
-		return process.ErrNilTxHash
+	err := scr.CheckIntegrity()
+	if err != nil {
+		return err
 	}
 
 	if sndShId != irp.shardCoordinator.SelfId() && dstShId != irp.shardCoordinator.SelfId() {
