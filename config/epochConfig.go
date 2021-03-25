@@ -34,6 +34,7 @@ type EnableEpochs struct {
 	GovernanceEnableEpoch                  uint32
 	DelegationManagerEnableEpoch           uint32
 	DelegationSmartContractEnableEpoch     uint32
+	ScheduledMiniBlocksEnableEpoch         uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

@@ -298,6 +298,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ScheduledMiniBlocksEnableEpoch    uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1394,6 +1395,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1604,6 +1608,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 

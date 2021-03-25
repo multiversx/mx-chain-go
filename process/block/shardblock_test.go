@@ -486,6 +486,9 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -703,6 +706,9 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2273,6 +2279,9 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2377,6 +2386,9 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2765,6 +2777,9 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
@@ -2942,6 +2957,9 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
 		&mock.BalanceComputationStub{},
+		&mock.EpochNotifierStub{},
+		0,
+		&mock.TxTypeHandlerMock{},
 	)
 	container, _ := factory.Create()
 
