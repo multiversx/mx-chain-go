@@ -167,8 +167,7 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 
 		mbTypeStr := miniBlock.Type.String()
 		if isScheduledMiniBlock(miniBlock) {
-			//mbTypeStr = block.ScheduledBlock.String()
-			mbTypeStr = "ScheduledBlock"
+			mbTypeStr = core.ScheduledBlock
 		}
 
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",

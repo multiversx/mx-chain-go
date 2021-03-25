@@ -744,11 +744,3 @@ func getAdditionalTimeFunc() func() bool {
 		return additionalTimeForCreatingScheduledMiniBlocks > time.Since(startTime)
 	}
 }
-
-// isScheduledMiniBlock returns if the given mini block is of type scheduled or not
-func isScheduledMiniBlock(miniBlock *block.MiniBlock) bool {
-	if miniBlock == nil {
-		return false
-	}
-	return len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock)
-}

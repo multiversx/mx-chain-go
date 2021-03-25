@@ -602,3 +602,6 @@ const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32
+
+// ScheduledBlock represents the name used to differentiate normal vs. scheduled transactions and mini blocks
+const ScheduledBlock = "ScheduledBlock"
