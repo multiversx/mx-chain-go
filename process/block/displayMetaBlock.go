@@ -179,7 +179,7 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 		miniBlock := body.MiniBlocks[i]
 
 		mbTypeStr := miniBlock.Type.String()
-		if isScheduledMiniBlock(miniBlock) {
+		if miniBlock.IsScheduledMiniBlock() {
 			mbTypeStr = core.ScheduledBlock
 		}
 
