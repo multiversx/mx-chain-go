@@ -413,6 +413,8 @@ const (
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
+	// CurrentNetworkEpochProvider defines the order in which the current network epoch provider component is notified of a start of epoch event
+	CurrentNetworkEpochProvider
 )
 
 // NodeState specifies what type of state a node could have

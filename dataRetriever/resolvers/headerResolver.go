@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -36,12 +36,11 @@ type HeaderResolver struct {
 	baseStorageResolver
 	dataRetriever.TopicResolverSender
 	messageProcessor
-	headers              dataRetriever.HeadersPool
-	hdrNoncesStorage     storage.Storer
-	nonceConverter       typeConverters.Uint64ByteSliceConverter
-	epochHandler         dataRetriever.EpochHandler
-	shardCoordinator     sharding.Coordinator
-	epochProviderByNonce dataRetriever.EpochProviderByNonce
+	headers          dataRetriever.HeadersPool
+	hdrNoncesStorage storage.Storer
+	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	epochHandler     dataRetriever.EpochHandler
+	shardCoordinator sharding.Coordinator
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -74,16 +73,15 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 		return nil, dataRetriever.ErrNilThrottler
 	}
 
-	epochHandler := epochproviders.NewNilEpochHandler()
+	epochHandler := disabled.NewEpochHandler()
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender:  arg.SenderResolver,
-		headers:              arg.Headers,
-		baseStorageResolver:  createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
-		hdrNoncesStorage:     arg.HeadersNoncesStorage,
-		nonceConverter:       arg.NonceConverter,
-		epochHandler:         epochHandler,
-		shardCoordinator:     arg.ShardCoordinator,
-		epochProviderByNonce: epochproviders.NewSimpleEpochProviderByNonce(epochHandler),
+		TopicResolverSender: arg.SenderResolver,
+		headers:             arg.Headers,
+		baseStorageResolver: createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
+		hdrNoncesStorage:    arg.HeadersNoncesStorage,
+		nonceConverter:      arg.NonceConverter,
+		epochHandler:        epochHandler,
+		shardCoordinator:    arg.ShardCoordinator,
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,

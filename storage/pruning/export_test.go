@@ -34,8 +34,8 @@ func (ps *PruningStorer) GetActivePersistersEpochs() []uint32 {
 	return sliceToRet
 }
 
-func (ps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cacher {
-	return ps.oldEpochsActivePersistersCache
+func (fhps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cacher {
+	return fhps.oldEpochsActivePersistersCache
 }
 
 func RemoveDirectoryIfEmpty(path string) {

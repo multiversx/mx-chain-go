@@ -98,7 +98,6 @@ type epochStartBootstrap struct {
 	epochNotifier              process.EpochNotifier
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
-	currentNetworkEpochSetter  CurrentNetworkEpochSetter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -155,7 +154,6 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
-	CurrentNetworkEpochSetter  CurrentNetworkEpochSetter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -188,7 +186,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
-		currentNetworkEpochSetter:  args.CurrentNetworkEpochSetter,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -408,7 +405,6 @@ func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
 
 		parameters, errPrepare := e.prepareEpochFromStorage()
 		if errPrepare == nil {
-			e.currentNetworkEpochSetter.SetNetworkEpochAtBootstrap(parameters.Epoch)
 			return parameters, false, nil
 		}
 
@@ -964,18 +960,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.messenger,
-		Store:                      storageService,
-		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                  e.dataPool,
-		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs: 10,
-		DataPacker:                 dataPacker,
-		TriesContainer:             e.trieContainer,
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

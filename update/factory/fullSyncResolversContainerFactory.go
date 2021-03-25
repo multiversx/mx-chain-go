@@ -10,7 +10,7 @@ import (
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -176,7 +176,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		NumCrossShardPeers:          numCrossShardPeers,
 		NumIntraShardPeers:          numIntraShardPeers,
 		NumFullHistoryPeers:         numFullHistoryPeers,
-		CurrentNetworkEpochProvider: &mock.NilCurrentNetworkEpochProviderHandler{},
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

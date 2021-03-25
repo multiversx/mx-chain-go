@@ -1091,9 +1091,3 @@ type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
 	IsInterfaceNil() bool
 }
-
-// CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
-type CurrentNetworkEpochSetter interface {
-	SetNetworkEpochAtBootstrap(epoch uint32)
-	IsInterfaceNil() bool
-}

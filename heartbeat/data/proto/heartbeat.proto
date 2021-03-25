@@ -38,6 +38,7 @@ message HeartbeatDTO {
     uint64  Nonce                        = 16;
     uint64  NumInstances                 = 17;
     uint32  PeerSubType                  = 18;
+    string  PidString                    = 19;
 }
 
 message DbTimeStamp {

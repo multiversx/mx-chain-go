@@ -211,6 +211,7 @@ func (nf *nodeFacade) startRest() {
 			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
 			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
+			"interface", nf.RestApiInterface(),
 		)
 
 		srv, err := api.CreateServer(nf, nf.apiRoutesConfig, limiters...)

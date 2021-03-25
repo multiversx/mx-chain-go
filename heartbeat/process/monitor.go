@@ -331,6 +331,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		hb.Nonce,
 		numInstances,
 		hb.PeerSubType,
+		core.PeerID(hb.Pid).Pretty(),
 	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
@@ -473,6 +474,7 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			Nonce:           v.nonce,
 			NumInstances:    v.numInstances,
 			PeerSubType:     v.peerSubType,
+			PidString:       v.pidString,
 		}
 		v.updateMutex.RUnlock()
 		status = append(status, tmp)
@@ -526,6 +528,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		Nonce:           v.nonce,
 		NumInstances:    v.numInstances,
 		PeerSubType:     v.peerSubType,
+		PidString:       v.pidString,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -551,6 +554,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		nonce:                       hbDTO.Nonce,
 		numInstances:                hbDTO.NumInstances,
 		peerSubType:                 hbDTO.PeerSubType,
+		pidString:                   hbDTO.PidString,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)

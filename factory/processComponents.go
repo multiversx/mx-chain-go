@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/epochProviders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -94,6 +95,7 @@ type processComponents struct {
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
 	importHandler               update.ImportHandler
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
+	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -235,6 +237,17 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
+		pcf.config,
+		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
+		pcf.coreData.GenesisTime().Unix(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.epochStartNotifier.RegisterHandler(currentEpochProvider)
+
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),
 		pcf.coreData.InternalMarshalizer(),
@@ -258,7 +271,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	resolversContainerFactory, err := pcf.newResolverContainerFactory()
+	resolversContainerFactory, err := pcf.newResolverContainerFactory(currentEpochProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -548,6 +561,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		requestedItemsHandler:       pcf.requestedItemsHandler,
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
+		currentEpochProvider:        currentEpochProvider,
 	}, nil
 }
 
@@ -891,22 +905,27 @@ func (pcf *processComponentsFactory) newBlockTracker(
 }
 
 // -- Resolvers container Factory begin
-func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newResolverContainerFactory(
+	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+) (dataRetriever.ResolversContainerFactory, error) {
+
 	if pcf.importDBConfig.IsImportDBMode {
 		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
 		return pcf.newStorageResolver()
 	}
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		return pcf.newShardResolverContainerFactory()
+		return pcf.newShardResolverContainerFactory(currentEpochProvider)
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		return pcf.newMetaResolverContainerFactory()
+		return pcf.newMetaResolverContainerFactory(currentEpochProvider)
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
 }
 
-func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newShardResolverContainerFactory(
+	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+) (dataRetriever.ResolversContainerFactory, error) {
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
 	if err != nil {
@@ -914,19 +933,21 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRet
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           pcf.shardCoordinator,
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      pcf.data.StorageService(),
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		DataPools:                  pcf.data.Datapool(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		TriesContainer:             pcf.state.TriesContainer(),
-		SizeCheckDelta:             pcf.sizeCheckDelta,
-		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs: pcf.numConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.config.StoragePruning.FullArchive,
+		ShardCoordinator:            pcf.shardCoordinator,
+		Messenger:                   pcf.network.NetworkMessenger(),
+		Store:                       pcf.data.StorageService(),
+		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
+		DataPools:                   pcf.data.Datapool(),
+		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                  dataPacker,
+		TriesContainer:              pcf.state.TriesContainer(),
+		SizeCheckDelta:              pcf.sizeCheckDelta,
+		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs:  pcf.numConcurrentResolverJobs,
+		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
+		CurrentNetworkEpochProvider: currentEpochProvider,
+		ResolverConfig:              pcf.config.Resolvers,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -936,26 +957,31 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRet
 	return resolversContainerFactory, nil
 }
 
-func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
+func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
+	currentEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
+) (dataRetriever.ResolversContainerFactory, error) {
+
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
 	if err != nil {
 		return nil, err
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           pcf.shardCoordinator,
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      pcf.data.StorageService(),
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		DataPools:                  pcf.data.Datapool(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		TriesContainer:             pcf.state.TriesContainer(),
-		SizeCheckDelta:             pcf.sizeCheckDelta,
-		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs: pcf.numConcurrentResolverJobs,
-		IsFullHistoryNode:          pcf.config.StoragePruning.FullArchive,
+		ShardCoordinator:            pcf.shardCoordinator,
+		Messenger:                   pcf.network.NetworkMessenger(),
+		Store:                       pcf.data.StorageService(),
+		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
+		DataPools:                   pcf.data.Datapool(),
+		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                  dataPacker,
+		TriesContainer:              pcf.state.TriesContainer(),
+		SizeCheckDelta:              pcf.sizeCheckDelta,
+		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs:  pcf.numConcurrentResolverJobs,
+		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
+		CurrentNetworkEpochProvider: currentEpochProvider,
+		ResolverConfig:              pcf.config.Resolvers,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

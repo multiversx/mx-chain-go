@@ -441,65 +441,77 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	importDbFlags := configs.ImportDbConfig
-	generalConfigs := configs.GeneralConfig
-	p2pConfigs := configs.P2pConfig
-	prefsConfig := configs.PreferencesConfig
-
 	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
 	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
+
 	if importDbFlags.IsImportDBMode {
-		importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
-		var err error
-
-		importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
-		if err != nil {
-			return err
-		}
-
-		if importDbFlags.ImportDBStartInEpoch == 0 {
-			generalConfigs.GeneralSettings.StartInEpochEnabled = false
-		}
-
-		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
-		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
-		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
-		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
-		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
-
-		alterStorageConfigsForDBImport(generalConfigs)
-
-		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
-			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
-			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
-			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
-			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
-			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
-			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
-			"kad dht discoverer", "off",
-		)
+		return processConfigImportDBMode(log, configs)
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
 	if configs.GeneralConfig.StoragePruning.FullArchive {
-		log.Debug("full archive node is enabled")
-		if configs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
-			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-		}
-		if configs.GeneralConfig.StoragePruning.CleanOldEpochsData {
-			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
-		}
-		if !configs.GeneralConfig.StoragePruning.Enabled {
-			log.Warn("StoragePruning is overridden by FullArchive and set to true")
-			configs.GeneralConfig.StoragePruning.Enabled = true
-		}
-		log.Warn("NumEpochsToKeep is overridden by FullArchive")
-		configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+		return processConfigFullArchiveMode(log, configs)
 	}
+
+	return nil
+}
+
+func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
+	importDbFlags := configs.ImportDbConfig
+	generalConfigs := configs.GeneralConfig
+	p2pConfigs := configs.P2pConfig
+	prefsConfig := configs.PreferencesConfig
+
+	importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+	var err error
+
+	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	if err != nil {
+		return err
+	}
+
+	if importDbFlags.ImportDBStartInEpoch == 0 {
+		generalConfigs.GeneralSettings.StartInEpochEnabled = false
+	}
+
+	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+	generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
+	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
+	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+
+	alterStorageConfigsForDBImport(generalConfigs)
+
+	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
+		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+		"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
+		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
+		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
+		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
+		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
+		"kad dht discoverer", "off",
+	)
+
+	return nil
+}
+
+func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) error {
+	generalConfigs := configs.GeneralConfig
+
+	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.Enabled = true
+	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+
+	log.Warn("the node is in full archive mode! Will auto-set some config values",
+		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+		"StoragePruning.CleanOldEpochsData", generalConfigs.StoragePruning.CleanOldEpochsData,
+		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
+		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
+	)
 
 	return nil
 }

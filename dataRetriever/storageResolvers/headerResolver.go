@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -58,7 +58,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
-	epochHandler := epochproviders.NewNilEpochHandler()
+	epochHandler := disabled.NewEpochHandler()
 	return &headerResolver{
 		storageResolver: &storageResolver{
 			messenger:                arg.Messenger,

@@ -192,12 +192,6 @@ type ManualEpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
-type EpochProviderByNonce interface {
-	EpochForNonce(nonce uint64) (uint32, error)
-	IsInterfaceNil() bool
-}
-
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
@@ -383,8 +377,9 @@ type ResolverDebugHandler interface {
 
 // CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
 type CurrentNetworkEpochProviderHandler interface {
-	SetNetworkEpochAtBootstrap(epoch uint32)
 	EpochIsActiveInNetwork(epoch uint32) bool
-	CurrentEpoch() uint32
+	EpochStartAction(header data.HeaderHandler)
+	EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler)
+	NotifyOrder() uint32
 	IsInterfaceNil() bool
 }

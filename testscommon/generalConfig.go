@@ -309,6 +309,11 @@ func GetGeneralConfig() config.Config {
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
 		},
+		Resolvers: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }
 

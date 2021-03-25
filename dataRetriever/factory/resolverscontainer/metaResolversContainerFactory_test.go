@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -192,6 +193,9 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
+	assert.Equal(t, int(args.ResolverConfig.NumIntraShardPeers), rcf.NumIntraShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 //------- Create
@@ -253,17 +257,23 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
-		Messenger:                  createStubTopicMessageHandlerForMeta("", ""),
-		Store:                      createStoreForMeta(),
-		Marshalizer:                &mock.MarshalizerMock{},
-		DataPools:                  createDataPoolsForMeta(),
-		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                 &mock.DataPackerStub{},
-		TriesContainer:             createTriesHolderForMeta(),
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
+		Messenger:                   createStubTopicMessageHandlerForMeta("", ""),
+		Store:                       createStoreForMeta(),
+		Marshalizer:                 &mock.MarshalizerMock{},
+		DataPools:                   createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                  &mock.DataPackerStub{},
+		TriesContainer:              createTriesHolderForMeta(),
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  1,
+			NumIntraShardPeers:  2,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }

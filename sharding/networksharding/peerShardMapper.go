@@ -106,6 +106,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 				"peer subtype", pInfo.PeerSubType.String(),
 				"pid", p2p.PeerIdToShortString(pid),
 				"pk", hex.EncodeToString(pInfo.PkBytes),
+				"shardID", pInfo.ShardID,
 			)
 		}
 	}()
@@ -119,6 +120,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	if ok {
 		pInfo.PeerType = core.ObserverPeer
 		pInfo.ShardID = shardId
+		pInfo.PeerSubType = psm.getPeerSubType(pid)
 
 		return *pInfo
 	}
@@ -182,6 +184,21 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 	return shard, true
 }
 
+func (psm *PeerShardMapper) getPeerSubType(pid core.PeerID) core.P2PPeerSubType {
+	subTypeObj, ok := psm.peerIdSubTypeCache.Get([]byte(pid))
+	if !ok {
+		return core.RegularPeer
+	}
+
+	subType, ok := subTypeObj.(core.P2PPeerSubType)
+	if !ok {
+		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type core.P2PPeerSubType")
+		return core.RegularPeer
+	}
+
+	return subType
+}
+
 func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.PeerID) *core.P2PPeerInfo {
 	shardObj, ok := psm.fallbackPidShardCache.Get([]byte(pid))
 	if !ok {
@@ -201,26 +218,9 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 		}
 	}
 
-	subTypeObj, ok := psm.peerIdSubTypeCache.Get([]byte(pid))
-	if !ok {
-		return &core.P2PPeerInfo{
-			PeerType: core.ObserverPeer,
-			ShardID:  shard,
-		}
-	}
-	subType, ok := subTypeObj.(core.P2PPeerSubType)
-	if !ok {
-		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type core.P2PPeerSubType")
-
-		return &core.P2PPeerInfo{
-			PeerType: core.ObserverPeer,
-			ShardID:  shard,
-		}
-	}
-
 	return &core.P2PPeerInfo{
 		PeerType:    core.ObserverPeer,
-		PeerSubType: subType,
+		PeerSubType: psm.getPeerSubType(pid),
 		ShardID:     shard,
 	}
 }
