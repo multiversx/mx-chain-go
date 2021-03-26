@@ -42,6 +42,7 @@ type delegationManager struct {
 type ArgsNewDelegationManager struct {
 	DelegationMgrSCConfig  config.DelegationManagerSystemSCConfig
 	DelegationSCConfig     config.DelegationSystemSCConfig
+	EpochConfig            config.EpochConfig
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
@@ -95,12 +96,13 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
 		delegationMgrEnabled:     atomic.Flag{},
-		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
+		enableDelegationMgrEpoch: args.EpochConfig.EnableEpochs.DelegationManagerEnableEpoch,
 		minCreationDeposit:       minCreationDeposit,
 		minDelegationAmount:      minDelegationAmount,
 		minFee:                   args.DelegationSCConfig.MinServiceFee,
 		maxFee:                   args.DelegationSCConfig.MaxServiceFee,
 	}
+	log.Debug("delegationManager: enable epoch for delegation manager", "epoch", d.enableDelegationMgrEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
 

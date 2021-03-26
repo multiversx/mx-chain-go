@@ -113,32 +113,37 @@ func (nr *nodeRunner) Start() error {
 }
 
 func printEnableEpochs(configs *config.Configs) {
-	generalSettings := configs.GeneralConfig.GeneralSettings
+	var readEpochFor = func(flag string) string {
+		return fmt.Sprintf("read enable epoch for %s", flag)
+	}
 
-	log.Debug("sc deploy enable epoch", "epoch", generalSettings.SCDeployEnableEpoch)
-	log.Debug("built in functions enable epoch", "epoch", generalSettings.BuiltInFunctionsEnableEpoch)
-	log.Debug("relayed transactions enable epoch", "epoch", generalSettings.RelayedTransactionsEnableEpoch)
-	log.Debug("penalized too much gas enable epoch", "epoch", generalSettings.PenalizedTooMuchGasEnableEpoch)
-	log.Debug("switch jail waiting enable epoch", "epoch", generalSettings.SwitchJailWaitingEnableEpoch)
-	log.Debug("switch hysteresis for min nodes enable epoch", "epoch", generalSettings.SwitchHysteresisForMinNodesEnableEpoch)
-	log.Debug("below signed threshold enable epoch", "epoch", generalSettings.BelowSignedThresholdEnableEpoch)
-	log.Debug("transaction signed with tx hash enable epoch", "epoch", generalSettings.TransactionSignedWithTxHashEnableEpoch)
-	log.Debug("meta protection enable epoch", "epoch", generalSettings.MetaProtectionEnableEpoch)
-	log.Debug("ahead of time gas usage enable epoch", "epoch", generalSettings.AheadOfTimeGasUsageEnableEpoch)
-	log.Debug("gas price modifier enable epoch", "epoch", generalSettings.GasPriceModifierEnableEpoch)
-	log.Debug("repair callback enable epoch", "epoch", generalSettings.RepairCallbackEnableEpoch)
-	log.Debug("max nodes change enable epoch", "epoch", generalSettings.MaxNodesChangeEnableEpoch)
-	log.Debug("block gas and fees re-check enable epoch", "epoch", generalSettings.BlockGasAndFeesReCheckEnableEpoch)
+	enableEpochs := configs.EpochConfig.EnableEpochs
 
-	systemSCConfig := configs.SystemSCConfig
+	log.Debug(readEpochFor("sc deploy"), "epoch", enableEpochs.SCDeployEnableEpoch)
+	log.Debug(readEpochFor("built in functions"), "epoch", enableEpochs.BuiltInFunctionsEnableEpoch)
+	log.Debug(readEpochFor("relayed transactions"), "epoch", enableEpochs.RelayedTransactionsEnableEpoch)
+	log.Debug(readEpochFor("penalized too much gas"), "epoch", enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	log.Debug(readEpochFor("switch jail waiting"), "epoch", enableEpochs.SwitchJailWaitingEnableEpoch)
+	log.Debug(readEpochFor("switch hysteresis for min nodes"), "epoch", enableEpochs.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug(readEpochFor("below signed threshold"), "epoch", enableEpochs.BelowSignedThresholdEnableEpoch)
+	log.Debug(readEpochFor("transaction signed with tx hash"), "epoch", enableEpochs.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug(readEpochFor("meta protection"), "epoch", enableEpochs.MetaProtectionEnableEpoch)
+	log.Debug(readEpochFor("ahead of time gas usage"), "epoch", enableEpochs.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug(readEpochFor("gas price modifier"), "epoch", enableEpochs.GasPriceModifierEnableEpoch)
+	log.Debug(readEpochFor("repair callback"), "epoch", enableEpochs.RepairCallbackEnableEpoch)
+	log.Debug(readEpochFor("max nodes change"), "epoch", enableEpochs.MaxNodesChangeEnableEpoch)
+	log.Debug(readEpochFor("block gas and fees re-check"), "epoch", enableEpochs.BlockGasAndFeesReCheckEnableEpoch)
+	log.Debug(readEpochFor("staking v2 epoch"), "epoch", enableEpochs.StakingV2Epoch)
+	log.Debug(readEpochFor("stake"), "epoch", enableEpochs.StakeEnableEpoch)
+	log.Debug(readEpochFor("double key protection"), "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
+	log.Debug(readEpochFor("esdt"), "epoch", enableEpochs.ESDTEnableEpoch)
+	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
+	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
+	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
 
-	log.Debug("staking v2 epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakingV2Epoch)
-	log.Debug("stake enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch)
-	log.Debug("double key protection enable epoch", "epoch", systemSCConfig.StakingSystemSCConfig.DoubleKeyProtectionEnableEpoch)
-	log.Debug("esdt enable epoch", "epoch", systemSCConfig.ESDTSystemSCConfig.EnabledEpoch)
-	log.Debug("governance enable epoch", "epoch", systemSCConfig.GovernanceSystemSCConfig.EnabledEpoch)
-	log.Debug("delegation manager enable epoch", "epoch", systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch)
-	log.Debug("delegation smart contract enable epoch", "epoch", systemSCConfig.DelegationSystemSCConfig.EnabledEpoch)
+	gasSchedule := configs.EpochConfig.GasSchedule
+
+	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
@@ -246,7 +251,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		}
 
 		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-			GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+			GasScheduleConfig: configs.EpochConfig.GasSchedule,
 			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 			EpochNotifier:     managedCoreComponents.EpochNotifier(),
 		}
@@ -266,7 +271,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
-
 		)
 		if err != nil {
 			return err
@@ -475,6 +479,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
 		nr.configs.GeneralConfig,
+		nr.configs.EpochConfig,
 		managedBootstrapComponents.ShardCoordinator(),
 		nodesCoordinator,
 		nodesShuffledOut,
@@ -820,45 +825,30 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
-		Config:                    *configs.GeneralConfig,
-		PrefConfigs:               configs.PreferencesConfig.Preferences,
-		ImportDBConfig:            *configs.ImportDbConfig,
-		AccountsParser:            accountsParser,
-		SmartContractParser:       smartContractParser,
-		GasSchedule:               gasScheduleNotifier,
-		RoundHandler:              managedCoreComponents.RoundHandler(),
-		ShardCoordinator:          managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:          nodesCoordinator,
-		Data:                      managedDataComponents,
-		CoreData:                  managedCoreComponents,
-		Crypto:                    managedCryptoComponents,
-		State:                     managedStateComponents,
-		Network:                   managedNetworkComponents,
-		RequestedItemsHandler:     requestedItemsHandler,
-		WhiteListHandler:          whiteListRequest,
-		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
-		EpochStartNotifier:        managedCoreComponents.EpochStartNotifierWithConfirm(),
-		EpochStart:                &configs.GeneralConfig.EpochStartConfig,
-		Rater:                     managedCoreComponents.Rater(),
-		RatingsData:               managedCoreComponents.RatingsData(),
-		StartEpochNum:             managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		SizeCheckDelta:            configs.GeneralConfig.Marshalizer.SizeCheckDelta,
-		StateCheckpointModulus:    configs.GeneralConfig.StateTriesConfig.CheckpointRoundsModulus,
-		MaxComputableRounds:       configs.GeneralConfig.GeneralSettings.MaxComputableRounds,
-		NumConcurrentResolverJobs: configs.GeneralConfig.Antiflood.NumConcurrentResolverJobs,
-		MinSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MinSizeInBytes,
-		MaxSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
-		MaxRating:                 configs.RatingsConfig.General.MaxRating,
-		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
-		SystemSCConfig:            configs.SystemSCConfig,
-		Version:                   configs.FlagsConfig.Version,
-		ImportStartHandler:        importStartHandler,
-		WorkingDir:                configs.FlagsConfig.WorkingDir,
-		Indexer:                   managedStatusComponents.ElasticIndexer(),
-		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
-		HistoryRepo:               historyRepository,
-		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
-		EconomicsData:             managedCoreComponents.EconomicsData(),
+		Config:                 *configs.GeneralConfig,
+		EpochConfig:            *configs.EpochConfig,
+		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		ImportDBConfig:         *configs.ImportDbConfig,
+		AccountsParser:         accountsParser,
+		SmartContractParser:    smartContractParser,
+		GasSchedule:            gasScheduleNotifier,
+		NodesCoordinator:       nodesCoordinator,
+		Data:                   managedDataComponents,
+		CoreData:               managedCoreComponents,
+		Crypto:                 managedCryptoComponents,
+		State:                  managedStateComponents,
+		Network:                managedNetworkComponents,
+		BootstrapComponents:    managedBootstrapComponents,
+		StatusComponents:       managedStatusComponents,
+		RequestedItemsHandler:  requestedItemsHandler,
+		WhiteListHandler:       whiteListRequest,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		MaxRating:              configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:         configs.SystemSCConfig,
+		Version:                configs.FlagsConfig.Version,
+		ImportStartHandler:     importStartHandler,
+		WorkingDir:             configs.FlagsConfig.WorkingDir,
+		HistoryRepo:            historyRepository,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -964,6 +954,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
+		EpochConfig:       *nr.configs.EpochConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
 		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
@@ -1040,6 +1031,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		EpochConfig:           *nr.configs.EpochConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,

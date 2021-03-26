@@ -138,6 +138,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
 		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
 	}
+	log.Debug("peer/process: enable epoch for switch jail waiting", "epoch", vs.jailedEnableEpoch)
+	log.Debug("peer/process: enable epoch for below signed threshold", "epoch", vs.belowSignedThresholdEnableEpoch)
+	log.Debug("peer/process: enable epoch for staking v2", "epoch", vs.stakingV2EnableEpoch)
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
