@@ -1,6 +1,8 @@
 package core
 
-import "time"
+import (
+	"time"
+)
 
 // AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
 type AppStatusHandler interface {
@@ -92,4 +94,9 @@ type GasScheduleNotifier interface {
 	LatestGasSchedule() map[string]map[string]uint64
 	UnRegisterAll()
 	IsInterfaceNil() bool
+}
+
+// Queue is an interface for queue implementations that evict the first element when the queue is full
+type Queue interface {
+	Add(hash []byte) []byte
 }

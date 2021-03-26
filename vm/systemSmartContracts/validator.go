@@ -32,40 +32,47 @@ const (
 )
 
 type validatorSC struct {
-	eei                   vm.SystemEI
-	unBondPeriod          uint64
-	sigVerifier           vm.MessageSignVerifier
-	baseConfig            ValidatorConfig
-	stakingV2Epoch        uint32
-	stakingSCAddress      []byte
-	validatorSCAddress    []byte
-	walletAddressLen      int
-	enableStakingEpoch    uint32
-	enableDoubleKeyEpoch  uint32
-	gasCost               vm.GasCost
-	marshalizer           marshal.Marshalizer
-	flagEnableStaking     atomic.Flag
-	flagEnableTopUp       atomic.Flag
-	flagDoubleKey         atomic.Flag
-	minUnstakeTokensValue *big.Int
-	minDeposit            *big.Int
-	mutExecution          sync.RWMutex
-	endOfEpochAddress     []byte
+	eei                      vm.SystemEI
+	unBondPeriod             uint64
+	unBondPeriodInEpochs     uint32
+	sigVerifier              vm.MessageSignVerifier
+	baseConfig               ValidatorConfig
+	stakingV2Epoch           uint32
+	stakingSCAddress         []byte
+	validatorSCAddress       []byte
+	walletAddressLen         int
+	enableStakingEpoch       uint32
+	enableDoubleKeyEpoch     uint32
+	gasCost                  vm.GasCost
+	marshalizer              marshal.Marshalizer
+	flagEnableStaking        atomic.Flag
+	flagEnableTopUp          atomic.Flag
+	flagDoubleKey            atomic.Flag
+	minUnstakeTokensValue    *big.Int
+	minDeposit               *big.Int
+	mutExecution             sync.RWMutex
+	endOfEpochAddress        []byte
+	enableDelegationMgrEpoch uint32
+	delegationMgrSCAddress   []byte
+	flagDelegationMgr        atomic.Flag
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
 type ArgsValidatorSmartContract struct {
-	StakingSCConfig    config.StakingSystemSCConfig
-	GenesisTotalSupply *big.Int
-	Eei                vm.SystemEI
-	SigVerifier        vm.MessageSignVerifier
-	StakingSCAddress   []byte
-	ValidatorSCAddress []byte
-	GasCost            vm.GasCost
-	Marshalizer        marshal.Marshalizer
-	EpochNotifier      vm.EpochNotifier
-	EndOfEpochAddress  []byte
-	MinDeposit         string
+	StakingSCConfig          config.StakingSystemSCConfig
+	GenesisTotalSupply       *big.Int
+	Eei                      vm.SystemEI
+	SigVerifier              vm.MessageSignVerifier
+	StakingSCAddress         []byte
+	ValidatorSCAddress       []byte
+	GasCost                  vm.GasCost
+	Marshalizer              marshal.Marshalizer
+	EpochNotifier            vm.EpochNotifier
+	EndOfEpochAddress        []byte
+	MinDeposit               string
+	DelegationMgrSCAddress   []byte
+	DelegationMgrEnableEpoch uint32
+	EpochConfig              config.EpochConfig
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -95,6 +102,9 @@ func NewValidatorSmartContract(
 	}
 	if len(args.EndOfEpochAddress) < 1 {
 		return nil, vm.ErrInvalidEndOfEpochAccessAddress
+	}
+	if len(args.DelegationMgrSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
 	}
 
 	baseConfig := ValidatorConfig{
@@ -128,22 +138,28 @@ func NewValidatorSmartContract(
 	}
 
 	reg := &validatorSC{
-		eei:                   args.Eei,
-		unBondPeriod:          args.StakingSCConfig.UnBondPeriod,
-		sigVerifier:           args.SigVerifier,
-		baseConfig:            baseConfig,
-		stakingV2Epoch:        args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:    args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:      args.StakingSCAddress,
-		validatorSCAddress:    args.ValidatorSCAddress,
-		gasCost:               args.GasCost,
-		marshalizer:           args.Marshalizer,
-		minUnstakeTokensValue: minUnstakeTokensValue,
-		walletAddressLen:      len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:  args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
-		endOfEpochAddress:     args.EndOfEpochAddress,
-		minDeposit:            minDeposit,
+		eei:                      args.Eei,
+		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
+		sigVerifier:              args.SigVerifier,
+		baseConfig:               baseConfig,
+		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
+		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingSCAddress:         args.StakingSCAddress,
+		validatorSCAddress:       args.ValidatorSCAddress,
+		gasCost:                  args.GasCost,
+		marshalizer:              args.Marshalizer,
+		minUnstakeTokensValue:    minUnstakeTokensValue,
+		walletAddressLen:         len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:     args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:        args.EndOfEpochAddress,
+		minDeposit:               minDeposit,
+		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
+		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
 	}
+	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 
@@ -1143,7 +1159,7 @@ func (v *validatorSC) processUnStakeTokensFromNodes(
 	registrationData *ValidatorDataV2,
 	validatorConfig ValidatorConfig,
 	numNodes uint64,
-	unStakeNonce uint64,
+	unStakedEpoch uint32,
 ) vmcommon.ReturnCode {
 	if numNodes == 0 {
 		return vmcommon.Ok
@@ -1153,7 +1169,7 @@ func (v *validatorSC) processUnStakeTokensFromNodes(
 		unStakeFromNodes.Set(registrationData.TotalStakeValue)
 	}
 
-	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakeNonce)
+	return v.processUnStakeValue(registrationData, unStakeFromNodes, unStakedEpoch)
 }
 
 // This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
@@ -1186,7 +1202,7 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentNonce())
+	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromActive, v.eei.BlockChainHook().CurrentEpoch())
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1495,11 +1511,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	unStakedNonce := v.eei.BlockChainHook().CurrentNonce()
+	unStakedEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	if registrationData.NumRegistered == 0 {
-		unStakedNonce = 0
+		unStakedEpoch = 0
 	}
-	returnCode = v.processUnStakeValue(registrationData, unStakeValue, unStakedNonce)
+	returnCode = v.processUnStakeValue(registrationData, unStakeValue, unStakedEpoch)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1518,12 +1534,30 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	return vmcommon.Ok
 }
 
+func (v *validatorSC) getMinUnStakeTokensValue() (*big.Int, error) {
+	if v.flagDelegationMgr.IsSet() {
+		delegationManagement, err := getDelegationManagement(v.eei, v.marshalizer, v.delegationMgrSCAddress)
+		if err != nil {
+			return nil, err
+		}
+		return delegationManagement.MinDelegationAmount, nil
+	}
+	return v.minUnstakeTokensValue, nil
+}
+
 func (v *validatorSC) processUnStakeValue(
 	registrationData *ValidatorDataV2,
 	unStakeValue *big.Int,
-	unStakedNonce uint64,
+	unStakedEpoch uint32,
 ) vmcommon.ReturnCode {
-	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(registrationData.TotalStakeValue) == 0
+
+	minUnstakeValue, err := v.getMinUnStakeTokensValue()
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	unstakeValueIsOk := unStakeValue.Cmp(minUnstakeValue) >= 0 || unStakeValue.Cmp(registrationData.TotalStakeValue) == 0
 	if !unstakeValueIsOk {
 		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
 			"is not the value left to be unStaked")
@@ -1536,13 +1570,21 @@ func (v *validatorSC) processUnStakeValue(
 
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, unStakeValue)
 	registrationData.TotalUnstaked.Add(registrationData.TotalUnstaked, unStakeValue)
-	registrationData.UnstakedInfo = append(
-		registrationData.UnstakedInfo,
-		&UnstakedValue{
-			UnstakedNonce: unStakedNonce,
-			UnstakedValue: unStakeValue,
-		},
-	)
+
+	lenUnStakedInfo := len(registrationData.UnstakedInfo)
+	if lenUnStakedInfo > 0 && registrationData.UnstakedInfo[lenUnStakedInfo-1].UnstakedEpoch == unStakedEpoch {
+		lastUnstakedInfo := registrationData.UnstakedInfo[lenUnStakedInfo-1]
+		lastUnstakedInfo.UnstakedValue.Add(lastUnstakedInfo.UnstakedValue, unStakeValue)
+	} else {
+		registrationData.UnstakedInfo = append(
+			registrationData.UnstakedInfo,
+			&UnstakedValue{
+				UnstakedEpoch: unStakedEpoch,
+				UnstakedValue: unStakeValue,
+			},
+		)
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1582,17 +1624,17 @@ func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vm
 		return returnCode
 	}
 
-	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	for _, unStakedValue := range registrationData.UnstakedInfo {
 		v.eei.Finish(unStakedValue.UnstakedValue.Bytes())
-		elapsedNonce := currentNonce - unStakedValue.UnstakedNonce
-		if elapsedNonce >= v.unBondPeriod {
+		elapsedEpoch := currentEpoch - unStakedValue.UnstakedEpoch
+		if elapsedEpoch >= v.unBondPeriodInEpochs {
 			v.eei.Finish(zero.Bytes())
 			continue
 		}
 
-		remainingNonce := v.unBondPeriod - elapsedNonce
-		v.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+		remainingEpoch := v.unBondPeriodInEpochs - elapsedEpoch
+		v.eei.Finish(big.NewInt(int64(remainingEpoch)).Bytes())
 	}
 	return vmcommon.Ok
 }
@@ -1659,7 +1701,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
 	var unstakedValue *UnstakedValue
-	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	totalUnBond := big.NewInt(0)
 	index := 0
 
@@ -1667,7 +1709,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 
 	splitUnStakedInfo := &UnstakedValue{UnstakedValue: big.NewInt(0)}
 	for _, unstakedValue = range registrationData.UnstakedInfo {
-		canUnbond := currentNonce-unstakedValue.UnstakedNonce >= v.unBondPeriod
+		canUnbond := currentEpoch-unstakedValue.UnstakedEpoch >= v.unBondPeriodInEpochs
 		if !canUnbond {
 			break
 		}
@@ -1676,7 +1718,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 		index++
 		if stopAtUnBondValue && totalUnBond.Cmp(valueToUnBond) >= 0 {
 			splitUnStakedInfo.UnstakedValue.Sub(totalUnBond, valueToUnBond)
-			splitUnStakedInfo.UnstakedNonce = unstakedValue.UnstakedNonce
+			splitUnStakedInfo.UnstakedEpoch = unstakedValue.UnstakedEpoch
 			totalUnBond.Set(valueToUnBond)
 			break
 		}
@@ -1806,8 +1848,10 @@ func (v *validatorSC) EpochConfirmed(epoch uint32) {
 	log.Debug("validatorSC: top up mechanism", "enabled", v.flagEnableTopUp.IsSet())
 
 	v.flagDoubleKey.Toggle(epoch >= v.enableDoubleKeyEpoch)
-	log.Debug("stakingAuctionSC: doubleKeyProtection", "enabled", v.flagDoubleKey.IsSet())
+	log.Debug("validatorSC: doubleKeyProtection", "enabled", v.flagDoubleKey.IsSet())
 
+	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
+	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
