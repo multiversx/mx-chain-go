@@ -358,7 +358,7 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		MaxSnapshots:       3,
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 

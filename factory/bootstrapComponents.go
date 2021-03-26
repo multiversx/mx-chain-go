@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -46,7 +47,7 @@ type bootstrapComponents struct {
 	bootstrapParamsHolder   BootstrapParamsHolder
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler
+	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -229,7 +230,7 @@ func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier
-func (bc *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
+func (bc *bootstrapComponents) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
 

@@ -85,42 +85,48 @@ func NewShardProcessorEmptyWith3shards(
 		IntMarsh:            &mock.MarshalizerMock{},
 		Hash:                &mock.HasherMock{},
 		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+		StatusField:         &mock.AppStatusHandlerStub{},
+		RoundField:          &mock.RoundHandlerMock{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &mock.ChainStorerMock{},
 		DataPool:   tdp,
 		BlockChain: blockChain,
 	}
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          shardCoordinator,
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+	}
+	statusComponents := &mock.StatusComponentsMock{
+		Indexer:      &mock.IndexerMock{},
+		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
+	}
 
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
-			CoreComponents:    coreComponents,
-			DataComponents:    dataComponents,
-			AccountsDB:        accountsDb,
-			ForkDetector:      &mock.ForkDetectorMock{},
-			ShardCoordinator:  shardCoordinator,
-			NodesCoordinator:  nodesCoordinator,
-			FeeHandler:        &mock.FeeAccumulatorStub{},
-			RequestHandler:    &mock.RequestHandlerStub{},
-			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-			TxCoordinator:     &mock.TransactionCoordinatorMock{},
-			EpochStartTrigger: &mock.EpochStartTriggerStub{},
-			HeaderValidator:   hdrValidator,
-			RoundHandler:      &mock.RoundHandlerMock{},
+			CoreComponents:      coreComponents,
+			DataComponents:      dataComponents,
+			BootstrapComponents: boostrapComponents,
+			StatusComponents:    statusComponents,
+			AccountsDB:          accountsDb,
+			ForkDetector:        &mock.ForkDetectorMock{},
+			NodesCoordinator:    nodesCoordinator,
+			FeeHandler:          &mock.FeeAccumulatorStub{},
+			RequestHandler:      &mock.RequestHandlerStub{},
+			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+			TxCoordinator:       &mock.TransactionCoordinatorMock{},
+			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+			HeaderValidator:     hdrValidator,
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
 				},
 			},
-			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			Indexer:                 &mock.IndexerMock{},
-			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-			Version:                 "softwareVersion",
-			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:           &mock.EpochNotifierStub{},
-			AppStatusHandler:        &mock.AppStatusHandlerStub{},
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
+			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:      &mock.EpochNotifierStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -381,4 +387,14 @@ func (mp *metaProcessor) RequestShardHeadersIfNeeded(hdrsAddedForShard map[uint3
 
 func (bp *baseProcessor) AddHeaderIntoTrackerPool(nonce uint64, shardID uint32) {
 	bp.addHeaderIntoTrackerPool(nonce, shardID)
+}
+
+func (bp *baseProcessor) UpdateState(
+	finalHeader data.HeaderHandler,
+	rootHash []byte,
+	prevRootHash []byte,
+	accounts state.AccountsAdapter,
+	statePruningQueue core.Queue,
+) {
+	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts, statePruningQueue)
 }
