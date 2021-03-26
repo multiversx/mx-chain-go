@@ -180,7 +180,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
+	mp.epochNotifier.CheckEpoch(headerHandler)
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -692,7 +692,7 @@ func (mp *metaProcessor) CreateBlock(
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
-	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
+	mp.epochNotifier.CheckEpoch(metaHdr)
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
 	var body data.BodyHandler

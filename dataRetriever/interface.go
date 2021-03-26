@@ -378,8 +378,6 @@ type ResolverDebugHandler interface {
 // CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
-	EpochStartAction(header data.HeaderHandler)
-	EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler)
-	NotifyOrder() uint32
+	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }

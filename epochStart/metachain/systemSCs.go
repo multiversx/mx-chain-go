@@ -1219,7 +1219,7 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
+func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 

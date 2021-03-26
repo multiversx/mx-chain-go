@@ -6,9 +6,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // deltaEpochActive represents how many epochs behind the current computed epoch are to be considered "active" and
@@ -78,27 +75,14 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 	return aep.currentComputedEpoch-epoch <= deltaEpochActive
 }
 
-// EpochStartAction is called whenever the epoch was changed and will cause the re-computation of the current epoch
-func (aep *arithmeticEpochProvider) EpochStartAction(header data.HeaderHandler) {
-	if check.IfNil(header) {
-		return
-	}
-
+// EpochConfirmed is called whenever the epoch was changed and will cause the re-computation of the network's current epoch
+func (aep *arithmeticEpochProvider) EpochConfirmed(newEpoch uint32, newTimestamp uint64) {
 	aep.Lock()
-	aep.headerEpoch = header.GetEpoch()
-	aep.headerTimestampForNewEpoch = header.GetTimeStamp()
+	aep.headerEpoch = newEpoch
+	aep.headerTimestampForNewEpoch = newTimestamp
 
 	aep.computeCurrentEpoch()
 	aep.Unlock()
-}
-
-// EpochStartPrepare does nothing
-func (aep *arithmeticEpochProvider) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
-}
-
-// NotifyOrder will return the core.CurrentNetworkEpochProvider value
-func (aep *arithmeticEpochProvider) NotifyOrder() uint32 {
-	return core.CurrentNetworkEpochProvider
 }
 
 func (aep *arithmeticEpochProvider) computeCurrentEpoch() {

@@ -3345,11 +3345,11 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 
 	sc.penalizedTooMuchGasEnableEpoch = 1
 
-	sc.EpochConfirmed(0)
+	sc.EpochConfirmed(0, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
 
-	sc.EpochConfirmed(1)
+	sc.EpochConfirmed(1, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
@@ -3550,7 +3550,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.NotNil(t, sc)
 
 	// activate staking V2
-	sc.EpochConfirmed(10)
+	sc.EpochConfirmed(10, 0)
 
 	tx := &transaction.Transaction{
 		RcvAddr:  scAccountAddress,
@@ -3639,7 +3639,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.NotNil(t, sc)
 
 			// activate staking V2
-			sc.EpochConfirmed(10)
+			sc.EpochConfirmed(10, 0)
 
 			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
@@ -3784,7 +3784,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.EpochConfirmed(100)
+	sc.EpochConfirmed(100, 0)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),

@@ -25,7 +25,7 @@ func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochSubscriber
 		ens.RegisterNotifyHandlerCalled(handler)
 	} else {
 		if !check.IfNil(handler) {
-			handler.EpochConfirmed(0)
+			handler.EpochConfirmed(0, 0)
 		}
 	}
 }

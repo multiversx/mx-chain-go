@@ -205,7 +205,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	pcf.coreData.EpochStartNotifierWithConfirm().RegisterHandler(currentEpochProvider)
+	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),

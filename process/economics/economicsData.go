@@ -442,7 +442,7 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFe
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (ed *economicsData) EpochConfirmed(epoch uint32) {
+func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 

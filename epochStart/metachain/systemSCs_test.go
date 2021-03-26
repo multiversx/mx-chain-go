@@ -300,7 +300,9 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys[0], blsKeys[1])
 	doStake(t, s.systemVM, s.userAccountsDB, owner2, big.NewInt(1000), blsKeys[2], blsKeys[3])
 
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 
 	for _, blsKey := range blsKeys {
 		checkOwnerOfBlsKey(t, s.systemVM, blsKey, []byte(""))
@@ -363,7 +365,9 @@ func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	}
 	sw.Stop("do stake")
 
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 
 	sw.Start("initial check")
 	for _, tkp := range keys {
@@ -1130,7 +1134,9 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 		make([]byte, 0),
 	)
 
-	args.EpochNotifier.CheckEpoch(10)
+	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: 10,
+	})
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 10)
 	assert.Nil(t, err)

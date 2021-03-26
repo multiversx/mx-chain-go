@@ -2252,7 +2252,7 @@ func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) EpochConfirmed(epoch uint32) {
+func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	sc.flagDeploy.Toggle(epoch >= sc.deployEnableEpoch)
 	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
 

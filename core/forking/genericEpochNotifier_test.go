@@ -34,7 +34,7 @@ func TestGenericEpochNotifier_RegisterNotifyHandlerShouldWork(t *testing.T) {
 
 	initialConfirmation := false
 	handler := &mock.EpochSubscriberHandlerStub{
-		EpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32, timestamp uint64) {
 			initialConfirmation = true
 		},
 	}
@@ -59,21 +59,45 @@ func TestGenericEpochNotifier_UnregisterAllShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(gep.Handlers()))
 }
 
+func TestGenericEpochNotifier_CheckEpochNilHeaderNotCall(t *testing.T) {
+	t.Parallel()
+
+	gep := NewGenericEpochNotifier()
+	numCalls := uint32(0)
+	gep.RegisterNotifyHandler(&mock.EpochSubscriberHandlerStub{
+		EpochConfirmedCalled: func(epoch uint32, timestamp uint64) {
+			atomic.AddUint32(&numCalls, 1)
+		},
+	})
+
+	gep.CheckEpoch(nil)
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+	assert.Equal(t, uint64(0), gep.CurrentTimestamp())
+}
+
 func TestGenericEpochNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 	t.Parallel()
 
 	gep := NewGenericEpochNotifier()
 	numCalls := uint32(0)
 	gep.RegisterNotifyHandler(&mock.EpochSubscriberHandlerStub{
-		EpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32, timestamp uint64) {
 			atomic.AddUint32(&numCalls, 1)
 		},
 	})
 
-	gep.CheckEpoch(0)
-	gep.CheckEpoch(0)
+	gep.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField:     0,
+		TimestampField: 11,
+	})
+	gep.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField:     0,
+		TimestampField: 12,
+	})
 
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+	assert.Equal(t, uint64(0), gep.CurrentTimestamp())
 }
 
 func TestGenericEpochNotifier_CheckEpochShouldCall(t *testing.T) {
@@ -81,19 +105,24 @@ func TestGenericEpochNotifier_CheckEpochShouldCall(t *testing.T) {
 
 	gep := NewGenericEpochNotifier()
 	newEpoch := uint32(839843)
+	newTimestamp := uint64(1389274)
 	numCalled := uint32(0)
 	gep.RegisterNotifyHandler(&mock.EpochSubscriberHandlerStub{
-		EpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32, timestamp uint64) {
 			if epoch == 0 || epoch == newEpoch {
 				atomic.AddUint32(&numCalled, 1)
 			}
 		},
 	})
 
-	gep.CheckEpoch(newEpoch)
+	gep.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField:     newEpoch,
+		TimestampField: newTimestamp,
+	})
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, newEpoch, gep.CurrentEpoch())
+	assert.Equal(t, newTimestamp, gep.CurrentTimestamp())
 }
 
 func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
@@ -106,7 +135,7 @@ func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 	numCalls := uint32(0)
 
 	handler := &mock.EpochSubscriberHandlerStub{
-		EpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32, timestamp uint64) {
 			time.Sleep(handlerWait)
 			atomic.AddUint32(&numCalls, 1)
 		},
@@ -114,7 +143,9 @@ func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 	gep.RegisterNotifyHandler(handler)
 
 	start := time.Now()
-	gep.CheckEpoch(newEpoch)
+	gep.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: newEpoch,
+	})
 	end := time.Now()
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalls))

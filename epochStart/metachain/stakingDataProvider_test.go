@@ -422,7 +422,9 @@ func createStakingDataProviderWithMockArgs(
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
-	args.EpochNotifier.CheckEpoch(1000000)
+	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
@@ -460,7 +462,9 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
 	args.StakingV2EnableEpoch = 0
-	args.EpochNotifier.CheckEpoch(1)
+	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+		EpochField: 1,
+	})
 	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)

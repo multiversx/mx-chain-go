@@ -263,13 +263,13 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	expectedCost := core.SafeMul(minGasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 
 	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	cost = economicsData.ComputeTxFee(tx)
 	assert.Equal(t, big.NewInt(5050), cost)
 }
