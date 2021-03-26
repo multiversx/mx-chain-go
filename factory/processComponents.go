@@ -205,7 +205,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	pcf.epochStartNotifier.RegisterHandler(currentEpochProvider)
+	pcf.coreData.EpochStartNotifierWithConfirm().RegisterHandler(currentEpochProvider)
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),
@@ -897,18 +897,18 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           pcf.bootstrapComponents.ShardCoordinator(),
-		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      pcf.data.StorageService(),
-		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		DataPools:                  pcf.data.Datapool(),
-		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                 dataPacker,
-		TriesContainer:             pcf.state.TriesContainer(),
-		SizeCheckDelta:             pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs: pcf.config.Antiflood.NumConcurrentResolverJobs,
+		ShardCoordinator:            pcf.bootstrapComponents.ShardCoordinator(),
+		Messenger:                   pcf.network.NetworkMessenger(),
+		Store:                       pcf.data.StorageService(),
+		Marshalizer:                 pcf.coreData.InternalMarshalizer(),
+		DataPools:                   pcf.data.Datapool(),
+		Uint64ByteSliceConverter:    pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                  dataPacker,
+		TriesContainer:              pcf.state.TriesContainer(),
+		SizeCheckDelta:              pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
