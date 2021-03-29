@@ -842,6 +842,11 @@ func TestEsdt_ExecuteToggleFreezeTooFewArgumentsShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 2"))
+
+	vmInput.Function = "freezeSingleNFT"
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 3"))
 }
 
 func TestEsdt_ExecuteToggleFreezeWrongCallValueShouldFail(t *testing.T) {
@@ -861,6 +866,12 @@ func TestEsdt_ExecuteToggleFreezeWrongCallValueShouldFail(t *testing.T) {
 	vmInput.CallValue = big.NewInt(1)
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfFunds, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("owner"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfFunds, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
 }
@@ -884,6 +895,12 @@ func TestEsdt_ExecuteToggleFreezeNotEnoughGasShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfGas, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
+
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("owner"))
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
 }
 
 func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
@@ -902,6 +919,12 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), []byte("owner")})
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("owner"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
@@ -930,6 +953,12 @@ func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte(tokenName), []byte("owner")})
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
+
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("owner"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
 }
@@ -962,6 +991,12 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
+
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, owner)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
 }
 
 func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
@@ -985,6 +1020,33 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), getAddress()})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("transfer error")
+	args := createMockArgumentsForESDT()
+	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+			OwnerAddress: []byte("owner"),
+			CanFreeze:    true,
+			TokenType:    []byte(core.NonFungibleESDT),
+		})
+		return marshalizedData
+	}
+	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		return err
+	}
+	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
+		assert.Equal(t, err.Error(), msg)
+	}
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("freezeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -1076,7 +1138,12 @@ func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid address to freeze/unfreeze"))
 
+	vmInput.Function = "freezeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, addressToFreeze)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid address to freeze/unfreeze"))
 }
 
@@ -1176,6 +1243,104 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
 }
 
+func TestEsdt_ExecuteToggleFreezeSingleNFTShouldWork(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanFreeze:    true,
+		TokenType:    []byte(core.NonFungibleESDT),
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	addressToFreeze := getAddress()
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("freezeSingleNFT", [][]byte{tokenName, big.NewInt(10).Bytes(), addressToFreeze})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmOutput := eei.CreateVMOutput()
+	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
+	assert.True(t, accCreated)
+
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToFreeze)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(destAcc.OutputTransfers) == 1)
+	outputTransfer := destAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
+	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+}
+
+func TestEsdt_ExecuteToggleUnFreezeSingleNFTShouldWork(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanFreeze:    true,
+		TokenType:    []byte(core.NonFungibleESDT),
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	addressToUnfreeze := getAddress()
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("unFreezeSingleNFT", [][]byte{tokenName, big.NewInt(10).Bytes(), addressToUnfreeze})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmOutput := eei.CreateVMOutput()
+	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
+	assert.True(t, accCreated)
+
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToUnfreeze)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(destAcc.OutputTransfers) == 1)
+	outputTransfer := destAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
+	expectedInput := core.BuiltInFunctionESDTUnFreeze + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+}
+
 func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -1194,6 +1359,11 @@ func TestEsdt_ExecuteWipeTooFewArgumentsShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 2"))
+
+	vmInput.Function = "wipeSingleNFT"
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 3"))
 }
 
 func TestEsdt_ExecuteWipeWrongCallValueShouldFail(t *testing.T) {
@@ -1213,6 +1383,12 @@ func TestEsdt_ExecuteWipeWrongCallValueShouldFail(t *testing.T) {
 	vmInput.CallValue = big.NewInt(1)
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfFunds, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfFunds, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
 }
@@ -1236,6 +1412,12 @@ func TestEsdt_ExecuteWipeNotEnoughGasShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfGas, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
 }
 
 func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
@@ -1254,6 +1436,12 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), []byte("owner")})
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
@@ -1282,6 +1470,12 @@ func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte(tokenName), []byte("owner")})
 
 	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
 }
@@ -1314,6 +1508,12 @@ func TestEsdt_ExecuteWipeNonWipeableTokenShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot wipe"))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot wipe"))
 }
 
 func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
@@ -1344,6 +1544,12 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
+
+	vmInput.Function = "wipeSingleNFT"
+	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
 func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
@@ -1355,6 +1561,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
 			OwnerAddress: []byte("owner"),
 			CanWipe:      true,
+			TokenType:    []byte(core.FungibleESDT),
 		})
 		return marshalizedData
 	}
@@ -1367,6 +1574,33 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), getAddress()})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	err := errors.New("transfer error")
+	args := createMockArgumentsForESDT()
+	args.Eei.(*mock.SystemEIStub).GetStorageCalled = func(key []byte) []byte {
+		marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+			OwnerAddress: []byte("owner"),
+			CanWipe:      true,
+			TokenType:    []byte(core.NonFungibleESDT),
+		})
+		return marshalizedData
+	}
+	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		return err
+	}
+	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
+		assert.Equal(t, err.Error(), msg)
+	}
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("wipeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -1389,6 +1623,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
 		TokenName:    tokenName,
+		TokenType:    []byte(core.FungibleESDT),
 		OwnerAddress: owner,
 		CanWipe:      true,
 	})
@@ -1415,6 +1650,54 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
 	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
 	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+}
+
+func TestEsdt_ExecuteWipeSingleNFTShouldWork(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	addressToWipe := getAddress()
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    tokenName,
+		TokenType:    []byte(core.NonFungibleESDT),
+		OwnerAddress: owner,
+		CanWipe:      true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("wipeSingleNFT", [][]byte{tokenName, big.NewInt(10).Bytes(), addressToWipe})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmOutput := eei.CreateVMOutput()
+	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
+	assert.True(t, accCreated)
+
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToWipe)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(destAcc.OutputTransfers) == 1)
+	outputTransfer := destAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
+	expectedInput := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(append(tokenName, big.NewInt(10).Bytes()...))
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
 	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
 }
