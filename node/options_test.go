@@ -855,7 +855,7 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	indexer := &mock.IndexerMock{}
+	indexer := &mock.IndexerStub{}
 	opt := WithIndexer(indexer)
 	err := opt(node)
 
