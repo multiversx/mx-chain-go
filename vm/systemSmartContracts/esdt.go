@@ -618,27 +618,8 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
-	if !token.CanWipe {
-		e.eei.AddReturnMessage("cannot wipe")
-		return vmcommon.UserError
-	}
-	if !e.isAddressValid(args.Arguments[1]) {
-		e.eei.AddReturnMessage("invalid address to wipe")
-		return vmcommon.UserError
-	}
-	if string(token.TokenType) != core.FungibleESDT {
-		e.eei.AddReturnMessage("only fungible tokens can be wiped, use wipeSingleNFT for NFTs")
-		return vmcommon.UserError
-	}
-
-	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(args.Arguments[0])
-	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
+	returnCode = e.wipeTokenFromAddress(args.Arguments[1], token, args.Arguments[0], args.Arguments[0])
+	return returnCode
 }
 
 func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
@@ -675,6 +656,38 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 	return vmcommon.Ok
 }
 
+func (e *esdt) wipeTokenFromAddress(
+	address []byte,
+	token *ESDTData,
+	tokenID []byte,
+	wipeArgument []byte,
+) vmcommon.ReturnCode {
+	if !token.CanWipe {
+		e.eei.AddReturnMessage("cannot wipe")
+		return vmcommon.UserError
+	}
+	if !e.isAddressValid(address) {
+		e.eei.AddReturnMessage("invalid address to wipe")
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(wipeArgument)
+	err := e.eei.Transfer(address, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	token.NumWiped++
+	err = e.saveToken(tokenID, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (e *esdt) wipeSingleNFT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 3 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 3")
@@ -684,28 +697,14 @@ func (e *esdt) wipeSingleNFT(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
-	if !token.CanWipe {
-		e.eei.AddReturnMessage("cannot wipe")
-		return vmcommon.UserError
-	}
-	if !e.isAddressValid(args.Arguments[2]) {
-		e.eei.AddReturnMessage("invalid address to wipe")
-		return vmcommon.UserError
-	}
 	if string(token.TokenType) == core.FungibleESDT {
 		e.eei.AddReturnMessage("only non fungible tokens can be wiped per nonce")
 		return vmcommon.UserError
 	}
 
 	composedArg := append(args.Arguments[0], args.Arguments[1]...)
-	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(composedArg)
-	err := e.eei.Transfer(args.Arguments[2], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
+	returnCode = e.wipeTokenFromAddress(args.Arguments[2], token, args.Arguments[0], composedArg)
+	return returnCode
 }
 
 func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
