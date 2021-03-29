@@ -21,7 +21,7 @@ const (
 	scTx    TxType = 1
 )
 
-const additionalTimeForCreatingScheduledMiniBlocks = 300 * time.Millisecond
+const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
 
 type processedTxsInfo struct {
 	numTxsAdded                        int
