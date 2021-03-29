@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -177,8 +178,13 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *bl
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
+		mbTypeStr := miniBlock.Type.String()
+		if miniBlock.IsScheduledMiniBlock() {
+			mbTypeStr = core.ScheduledBlock
+		}
+
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
-			miniBlock.Type.String(),
+			mbTypeStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
