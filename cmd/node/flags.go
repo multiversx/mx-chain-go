@@ -89,6 +89,13 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
+	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
+	epochConfigurationFile = cli.StringFlag{
+		Name: "epoch-config",
+		Usage: "The `" + filePathPlaceholder + "` for the epoch configuration file. This TOML file contains" +
+			" activation epochs configurations",
+		Value: "./config/enableEpochs.toml",
+	}
 	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
@@ -312,6 +319,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
+		epochConfigurationFile,
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,

@@ -194,8 +194,8 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Core.TxMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if arg.GeneralConfig == nil {
-		return genesis.ErrNilGeneralSettingsConfig
+	if arg.EpochConfig == nil {
+		return genesis.ErrNilEpochConfig
 	}
 
 	return nil

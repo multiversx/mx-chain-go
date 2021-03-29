@@ -91,8 +91,6 @@ func createMockArgument(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       1,
-				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -102,12 +100,10 @@ func createMockArgument(
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
 				ConfigChangeAddress: "aabb00",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
@@ -116,11 +112,13 @@ func createMockArgument(
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:    nodePrice,
-		GeneralConfig: &config.GeneralSettingsConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:    0,
+				SCDeployEnableEpoch:            0,
+				RelayedTransactionsEnableEpoch: 0,
+				PenalizedTooMuchGasEnableEpoch: 0,
+			},
 		},
 	}
 

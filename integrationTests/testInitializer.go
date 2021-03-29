@@ -15,7 +15,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -358,7 +358,7 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		MaxSnapshots:       3,
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
@@ -575,8 +575,6 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -586,11 +584,9 @@ func CreateFullGenesisBlocks(
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
 				MinStakeAmount:     "100",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
@@ -603,11 +599,17 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
-		GeneralConfig: &config.GeneralSettingsConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:        0,
+				SCDeployEnableEpoch:                0,
+				RelayedTransactionsEnableEpoch:     0,
+				PenalizedTooMuchGasEnableEpoch:     0,
+				StakingV2Epoch:                     StakingV2Epoch,
+				StakeEnableEpoch:                   0,
+				DelegationSmartContractEnableEpoch: 0,
+				DelegationManagerEnableEpoch:       0,
+			},
 		},
 	}
 
@@ -679,8 +681,6 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -690,12 +690,10 @@ func CreateGenesisMetaBlock(
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
 				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
@@ -703,11 +701,17 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
-		GeneralConfig: &config.GeneralSettingsConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:        0,
+				SCDeployEnableEpoch:                0,
+				RelayedTransactionsEnableEpoch:     0,
+				PenalizedTooMuchGasEnableEpoch:     0,
+				StakingV2Epoch:                     StakingV2Epoch,
+				StakeEnableEpoch:                   0,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
 		},
 	}
 
@@ -1111,7 +1115,7 @@ func CheckTxPresentAndRightNonce(
 	}
 
 	bitmap := make([]bool, noOfTxs+int(startingNonce))
-	//set for each nonce from found tx a true flag in bitmap
+	// set for each nonce from found tx a true flag in bitmap
 	for i := 0; i < noOfTxs; i++ {
 		selfId := shardCoordinator.SelfId()
 		shardDataStore := cache.ShardDataStore(process.ShardCacherIdentifier(selfId, selfId))
@@ -1124,8 +1128,8 @@ func CheckTxPresentAndRightNonce(
 		bitmap[nonce] = true
 	}
 
-	//for the first startingNonce values, the bitmap should be false
-	//for the rest, true
+	// for the first startingNonce values, the bitmap should be false
+	// for the rest, true
 	for i := 0; i < noOfTxs+int(startingNonce); i++ {
 		if i < int(startingNonce) {
 			assert.False(t, bitmap[i])

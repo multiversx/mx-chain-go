@@ -2,6 +2,7 @@ package round
 
 import (
 	"math"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -18,6 +19,8 @@ type round struct {
 	timeDuration time.Duration // represents the duration of the round in current chronology
 	syncTimer    ntp.SyncTimer
 	startRound   int64
+
+	*sync.RWMutex
 }
 
 // NewRound defines a new round object
@@ -38,6 +41,7 @@ func NewRound(
 		timeStamp:    genesisTimeStamp,
 		syncTimer:    syncTimer,
 		startRound:   startRound,
+		RWMutex:      &sync.RWMutex{},
 	}
 	rnd.UpdateRound(genesisTimeStamp, currentTimeStamp)
 	return &rnd, nil
@@ -49,24 +53,35 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 
 	index := int64(math.Floor(float64(delta)/float64(rnd.timeDuration.Nanoseconds()))) + rnd.startRound
 
+	rnd.Lock()
 	if rnd.index != index {
 		rnd.index = index
 		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - rnd.startRound) * rnd.timeDuration.Nanoseconds()))
 	}
+	rnd.Unlock()
 }
 
 // Index returns the index of the round in current epoch
 func (rnd *round) Index() int64 {
+	rnd.RLock()
+	defer rnd.RUnlock()
+
 	return rnd.index
 }
 
 // BeforeGenesis returns true if round index is before start round
 func (rnd *round) BeforeGenesis() bool {
+	rnd.RLock()
+	defer rnd.RUnlock()
+
 	return rnd.index <= rnd.startRound
 }
 
 // TimeStamp returns the time stamp of the round
 func (rnd *round) TimeStamp() time.Time {
+	rnd.RLock()
+	defer rnd.RUnlock()
+
 	return rnd.timeStamp
 }
 

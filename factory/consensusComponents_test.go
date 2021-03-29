@@ -322,6 +322,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = nil
 	args.DataComponents = dataComponents
+	args.ProcessComponents = getDefaultProcessComponents(shardCoordinator)
 	bcf, err := factory.NewConsensusComponentsFactory(args)
 	require.Nil(t, err)
 	require.NotNil(t, bcf)
@@ -397,8 +398,9 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		coreComponents,
 		networkComponents,
 		dataComponents,
-		processComponents,
 		stateComponents,
+		shardCoordinator,
+		processComponents.NodesCoordinator(),
 	)
 
 	return factory.ConsensusComponentsFactoryArgs{
