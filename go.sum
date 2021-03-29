@@ -27,6 +27,7 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.0.6/go.mod h1:XlB9GmvMG889+apktS9FcvKF
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.0/go.mod h1:JAwhEcPdsy/CH+0955f65dBnJhMafA4/S6DjJ8dTuy4=
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.1 h1:Zs6h/4sURSPKCfCZWlXvhPChHP5/zp7JENbr4FJz6cE=
 github.com/ElrondNetwork/arwen-wasm-vm v1.1.1/go.mod h1:4fNkXf7kVgXfjdGzH0ErHEw4c2hGc9g4/jmN3+Eza8U=
+github.com/ElrondNetwork/arwen-wasm-vm v1.1.2/go.mod h1:Bee6Liu4GPmecEGWN4+QH4hlVvdtbpsjHpk/SxZgf6Q=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -53,6 +54,7 @@ github.com/ElrondNetwork/elrond-go v1.1.28-0.20210211124017-b6038647eb13/go.mod 
 github.com/ElrondNetwork/elrond-go v1.1.28-0.20210217095315-1dac606233cf/go.mod h1:gkJB13DqJ5pbzhPUM0iocWVB6LRUEnZZYptC3z3jLzs=
 github.com/ElrondNetwork/elrond-go v1.1.28-0.20210223113334-ca37e112bec9/go.mod h1:OI98prLTyuTK2Yglm3lX2DcobtiY61JRKLVu/GxeHCo=
 github.com/ElrondNetwork/elrond-go v1.1.28-0.20210223140840-1bf7cdc66a37/go.mod h1:n12dVuNcz8xMm6X9jI81GZqW9Z1dYWTIK0Osfo+YMVE=
+github.com/ElrondNetwork/elrond-go v1.1.28/go.mod h1:MGuNmnaeY9ouMN23z0UT5Rn08QyDo9QN/mEUllGPn+I=
 github.com/ElrondNetwork/elrond-go-logger v1.0.2/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jxwk/QTivRwSZSTAQ=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
@@ -1014,6 +1016,7 @@ golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 h1:cg5LA/zNPRzIXIWSCxQW10Rvpy94aQh3LT/ShoCpkHw=
 golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4 h1:c2HOrn5iMezYjSlGPncknSEr/8x5LELb/ilJbXi9DEA=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/lint v0.0.0-20180702182130-06c8688daad7/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
