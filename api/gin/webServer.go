@@ -156,6 +156,13 @@ func (ws *webServer) GetHttpServer() shared.HttpServerCloser {
 }
 
 func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, error) {
+	middlewares := make([]shared.MiddlewareProcessor, 0)
+
+	if ws.apiConfig.Logging.LoggingEnabled {
+		responseLoggerMiddleware := middleware.NewResponseLoggerMiddleware(time.Duration(ws.apiConfig.Logging.ThresholdInMicroSeconds) * time.Microsecond)
+		middlewares = append(middlewares, responseLoggerMiddleware)
+	}
+
 	sourceLimiter, err := middleware.NewSourceThrottler(ws.antiFloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
@@ -166,12 +173,16 @@ func (ws *webServer) createMiddlewareLimiters() ([]shared.MiddlewareProcessor, e
 
 	go ws.sourceLimiterReset(ctx, sourceLimiter)
 
+	middlewares = append(middlewares, sourceLimiter)
+
 	globalLimiter, err := middleware.NewGlobalThrottler(ws.antiFloodConfig.SimultaneousRequests)
 	if err != nil {
 		return nil, err
 	}
 
-	return []shared.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
+	middlewares = append(middlewares, globalLimiter)
+
+	return middlewares, nil
 }
 
 func (ws *webServer) sourceLimiterReset(ctx context.Context, reset resetHandler) {

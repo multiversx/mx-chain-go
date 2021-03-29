@@ -6,7 +6,7 @@
 
     # ThresholdInMicroSeconds represents the maximum duration to consider a request as normal. Above this, if the LoggingEnabled
     # flag is set to true, then a log will be printed
-    ThresholdInMicroSeconds = 100
+    ThresholdInMicroSeconds = 1000
 
  # API routes configuration
 [APIPackages]
