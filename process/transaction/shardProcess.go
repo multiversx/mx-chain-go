@@ -140,6 +140,10 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
 	}
 
+	log.Debug("shardProcess: enable epoch for relayed transactions", "epoch", txProc.relayedTxEnableEpoch)
+	log.Debug("shardProcess: enable epoch for penalized too much gas", "epoch", txProc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("shardProcess: enable epoch for meta protection", "epoch", txProc.metaProtectionEnableEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil
@@ -208,20 +212,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
-}
-
-// VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error {
-	if check.IfNil(tx) {
-		return process.ErrNilTransaction
-	}
-
-	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		return err
-	}
-
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(

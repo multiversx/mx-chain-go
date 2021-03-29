@@ -291,7 +291,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile([]byte{}, dummyPk, nil)}
+	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: dummyLoadSkPkFromPemFile([]byte{}, dummyPk, nil)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
@@ -308,7 +308,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *test
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile([]byte{}, "", expectedError)}
+	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: dummyLoadSkPkFromPemFile([]byte{}, "", expectedError)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
@@ -341,7 +341,7 @@ func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 	setPk := []byte(dummyPk)
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile(setSk, string(setPk), nil)}
+	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: dummyLoadSkPkFromPemFile(setSk, string(setPk), nil)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	sk, pk, err := ccf.GetSkPk()
@@ -357,7 +357,7 @@ func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile(setSk, setPk, nil)}
+	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: dummyLoadSkPkFromPemFile(setSk, setPk, nil)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	sk, pk, err := ccf.GetSkPk()

@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
+	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -39,6 +39,7 @@ type ApiResolverArgs struct {
 
 type scQueryServiceArgs struct {
 	generalConfig       *config.Config
+	epochConfig         *config.EpochConfig
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
 	dataComponents      DataComponentsHolder
@@ -51,6 +52,7 @@ type scQueryServiceArgs struct {
 
 type scQueryElementArgs struct {
 	generalConfig       *config.Config
+	epochConfig         *config.EpochConfig
 	coreComponents      CoreComponentsHolder
 	stateComponents     StateComponentsHolder
 	dataComponents      DataComponentsHolder
@@ -68,6 +70,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, core.TemporaryPath)
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:       args.Configs.GeneralConfig,
+		epochConfig:         args.Configs.EpochConfig,
 		coreComponents:      args.CoreComponents,
 		dataComponents:      args.DataComponents,
 		stateComponents:     args.StateComponents,
@@ -113,14 +116,14 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	totaltakedHandlerArgs := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                     args.ProcessComponents.ShardCoordinator().SelfId(),
-		RoundDurationInMilliseconds: args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
-		InternalMarshalizer:         args.CoreComponents.InternalMarshalizer(),
-		Accounts:                    args.StateComponents.AccountsAdapter(),
+	totaltakedHandlerArgs := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
+		ShardID:             args.ProcessComponents.ShardCoordinator().SelfId(),
+		InternalMarshalizer: args.CoreComponents.InternalMarshalizer(),
+		Accounts:            args.StateComponents.AccountsAdapter(),
+		NodePrice:           args.Configs.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
 	}
 
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
+	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +150,7 @@ func createScQueryService(
 
 	argsQueryElem := &scQueryElementArgs{
 		generalConfig:       args.generalConfig,
+		epochConfig:         args.epochConfig,
 		coreComponents:      args.coreComponents,
 		dataComponents:      args.dataComponents,
 		stateComponents:     args.stateComponents,
@@ -234,6 +238,7 @@ func createScQueryElement(
 			ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
 			ChanceComputer:      args.coreComponents.Rater(),
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
+			EpochConfig:         args.epochConfig,
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
@@ -242,14 +247,21 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
-		vmFactory, err = shard.NewVMContainerFactory(
-			queryVirtualMachineConfig,
-			args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
-			args.gasScheduleNotifier,
-			argsHook,
-			args.generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			args.generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
+		argsNewVMFactory := shard.ArgVMContainerFactory{
+			Config:                         queryVirtualMachineConfig,
+			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
+			GasSchedule:                    args.gasScheduleNotifier,
+			ArgBlockChainHook:              argsHook,
+			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
+			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
+			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
+		}
+
+		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
+		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
+		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
+
+		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
 			return nil, nil, nil, err
 		}

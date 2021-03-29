@@ -25,6 +25,9 @@ var ErrGetUsername = errors.New("get username error")
 // ErrGetValueForKey signals an error in getting the value of a key for an account
 var ErrGetValueForKey = errors.New("get value for key error")
 
+// ErrGetKeyValuePairs signals an error in getting the key-value pairs of a key for an account
+var ErrGetKeyValuePairs = errors.New("get key-value pairs error")
+
 // ErrGetESDTTokens signals an error in getting esdt tokens for a given address
 var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
 

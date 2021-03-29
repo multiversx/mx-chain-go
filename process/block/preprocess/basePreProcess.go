@@ -91,7 +91,7 @@ func (bpp *basePreProcess) removeTxsFromPools(
 		}
 
 		//TODO: Remove this if when processing of scheduled mini blocks will be done in the source shard
-		if len(currentMiniBlock.Reserved) > 0 && currentMiniBlock.Reserved[0] == byte(block.ScheduledBlock) {
+		if currentMiniBlock.IsScheduledMiniBlock() {
 			log.Warn("removeTxsFromPools: deletion of scheduled transactions should be skipped for now")
 			continue
 		}

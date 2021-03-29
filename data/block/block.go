@@ -213,3 +213,8 @@ func (mb *MiniBlock) Clone() *MiniBlock {
 
 	return newMb
 }
+
+// IsScheduledMiniBlock returns if the mini block is of type scheduled or not
+func (mb *MiniBlock) IsScheduledMiniBlock() bool {
+	return len(mb.Reserved) > 0 && mb.Reserved[0] == byte(ScheduledBlock)
+}

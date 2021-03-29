@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -79,7 +78,7 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer            indexer.Indexer
+	indexer            process.Indexer
 	tpsBenchmark       statistics.TPSBenchmark
 	historyRepo        dblookupext.HistoryRepository
 	epochNotifier      process.EpochNotifier
@@ -1334,14 +1333,6 @@ func (bp *baseProcessor) Close() error {
 	}
 
 	return nil
-}
-
-// isScheduledMiniBlock returns if the given mini block is of type scheduled or not
-func isScheduledMiniBlock(miniBlock *block.MiniBlock) bool {
-	if miniBlock == nil {
-		return false
-	}
-	return len(miniBlock.Reserved) > 0 && miniBlock.Reserved[0] == byte(block.ScheduledBlock)
 }
 
 // ProcessScheduledBlock processes a scheduled block

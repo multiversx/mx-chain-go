@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -39,7 +38,7 @@ type ArgBaseBootstrapper struct {
 	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler    core.AppStatusHandler
-	Indexer             indexer.Indexer
+	Indexer             process.Indexer
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

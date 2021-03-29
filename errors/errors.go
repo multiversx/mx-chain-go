@@ -478,3 +478,6 @@ var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
 // ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
 var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
+
+// ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

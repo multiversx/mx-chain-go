@@ -15,32 +15,34 @@ import (
 )
 
 type baseAccountsSyncer struct {
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	trieSyncers          map[string]data.TrieSyncer
-	dataTries            map[string]data.Trie
-	mutex                sync.Mutex
-	trieStorageManager   data.StorageManager
-	requestHandler       trie.RequestHandler
-	timeout              time.Duration
-	shardId              uint32
-	cacher               storage.Cacher
-	rootHash             []byte
-	maxTrieLevelInMemory uint
-	name                 string
+	hasher                    hashing.Hasher
+	marshalizer               marshal.Marshalizer
+	trieSyncers               map[string]data.TrieSyncer
+	dataTries                 map[string]data.Trie
+	mutex                     sync.Mutex
+	trieStorageManager        data.StorageManager
+	requestHandler            trie.RequestHandler
+	timeout                   time.Duration
+	shardId                   uint32
+	cacher                    storage.Cacher
+	rootHash                  []byte
+	maxTrieLevelInMemory      uint
+	name                      string
+	maxHardCapForMissingNodes int
 }
 
 const timeBetweenStatisticsPrints = time.Second * 2
 
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	TrieStorageManager   data.StorageManager
-	RequestHandler       trie.RequestHandler
-	Timeout              time.Duration
-	Cacher               storage.Cacher
-	MaxTrieLevelInMemory uint
+	Hasher                    hashing.Hasher
+	Marshalizer               marshal.Marshalizer
+	TrieStorageManager        data.StorageManager
+	RequestHandler            trie.RequestHandler
+	Timeout                   time.Duration
+	Cacher                    storage.Cacher
+	MaxTrieLevelInMemory      uint
+	MaxHardCapForMissingNodes int
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -58,6 +60,9 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	}
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher
+	}
+	if args.MaxHardCapForMissingNodes < 1 {
+		return state.ErrInvalidMaxHardCapForMissingNodes
 	}
 
 	return nil
@@ -80,6 +85,7 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ssh
 		Topic:                          trieTopic,
 		TrieSyncStatistics:             ssh,
 		TimeoutBetweenTrieNodesCommits: b.timeout,
+		MaxHardCapForMissingNodes:      b.maxHardCapForMissingNodes,
 	}
 	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {

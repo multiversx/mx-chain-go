@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler/persister"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/urfave/cli"
 )
 
 const defaultTermuiRefreshTimeInMilliseconds = 500
@@ -42,7 +41,6 @@ type statusHandlersInfo struct {
 
 type statusHandlerUtilsFactory struct {
 	useTermUI                    bool
-	ctx                          *cli.Context
 }
 
 // NewStatusHandlersFactory will return the status handler factory

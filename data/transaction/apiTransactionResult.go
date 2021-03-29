@@ -82,3 +82,9 @@ type ReceiptApi struct {
 	Data    string   `json:"data,omitempty"`
 	TxHash  string   `json:"txHash"`
 }
+
+// CostResponse is structure used to return the transaction cost in gas units
+type CostResponse struct {
+	GasUnits   uint64 `json:"txGasUnits"`
+	RetMessage string `json:"returnMessage"`
+}

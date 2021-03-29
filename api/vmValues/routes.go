@@ -62,7 +62,7 @@ func getInt(context *gin.Context) {
 }
 
 func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
-	vmOutput, err := doExecuteQuery(context)
+	vmOutput, execErrMsg, err := doExecuteQuery(context)
 
 	if err != nil {
 		returnBadRequest(context, "doGetVMValue", err)
@@ -71,47 +71,56 @@ func doGetVMValue(context *gin.Context, asType vmcommon.ReturnDataKind) {
 
 	returnData, err := vmOutput.GetFirstReturnData(asType)
 	if err != nil {
-		returnBadRequest(context, "doGetVMValue", err)
-		return
+		execErrMsg += " " + err.Error()
 	}
 
-	returnOkResponse(context, returnData)
+	returnOkResponse(context, returnData, execErrMsg)
 }
 
 // executeQuery returns the data as string
 func executeQuery(context *gin.Context) {
-	vmOutput, err := doExecuteQuery(context)
+	vmOutput, execErrMsg, err := doExecuteQuery(context)
 	if err != nil {
 		returnBadRequest(context, "executeQuery", err)
 		return
 	}
 
-	returnOkResponse(context, vmOutput)
+	returnOkResponse(context, vmOutput, execErrMsg)
 }
 
-func doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, error) {
+func doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, string, error) {
 	efObj, ok := context.Get("facade")
 	if !ok {
-		return nil, errors.ErrNilAppContext
+		return nil, "", errors.ErrNilAppContext
 	}
 
 	ef, ok := efObj.(FacadeHandler)
 	if !ok {
-		return nil, errors.ErrInvalidAppContext
+		return nil, "", errors.ErrInvalidAppContext
 	}
 
 	request := VMValueRequest{}
 	err := context.ShouldBindJSON(&request)
 	if err != nil {
-		return nil, errors.ErrInvalidJSONRequest
+		return nil, "", errors.ErrInvalidJSONRequest
 	}
 
 	command, err := createSCQuery(ef, &request)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return ef.ExecuteSCQuery(command)
+	vmOutputApi, err := ef.ExecuteSCQuery(command)
+	if err != nil {
+		return nil, "", err
+	}
+
+	vmExecErrMsg := ""
+	if len(vmOutputApi.ReturnCode) > 0 && vmOutputApi.ReturnCode != vmcommon.Ok.String() {
+		vmExecErrMsg = vmOutputApi.ReturnCode + ":" + vmOutputApi.ReturnMessage
+	}
+
+	return vmOutputApi, vmExecErrMsg, nil
 }
 
 func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, error) {
@@ -169,12 +178,12 @@ func returnBadRequest(context *gin.Context, errScope string, err error) {
 	)
 }
 
-func returnOkResponse(context *gin.Context, data interface{}) {
+func returnOkResponse(context *gin.Context, data interface{}, errorMsg string) {
 	context.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"data": data},
-			Error: "",
+			Error: errorMsg,
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)

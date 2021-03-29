@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -348,6 +349,17 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {
 		n.isInImportMode = importMode
+		return nil
+	}
+}
+
+// WithNodeRedundancyHandler sets up a node redundancy handler for the node
+func WithNodeRedundancyHandler(nodeRedundancyHandler consensus.NodeRedundancyHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(nodeRedundancyHandler) {
+			return ErrNilNodeRedundancyHandler
+		}
+		n.nodeRedundancyHandler = nodeRedundancyHandler
 		return nil
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -245,6 +244,7 @@ type ProcessComponentsHolder interface {
 	HistoryRepository() dblookupext.HistoryRepository
 	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	IsInterfaceNil() bool
 }
 
@@ -272,7 +272,7 @@ type StateComponentsHolder interface {
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
 	TpsBenchmark() statistics.TPSBenchmark
-	ElasticIndexer() indexer.Indexer
+	ElasticIndexer() process.Indexer
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	IsInterfaceNil() bool
 }

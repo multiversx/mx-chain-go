@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -20,7 +20,7 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	indexer indexer.Indexer
+	indexer spos.ConsensusDataIndexer
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -43,7 +43,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
-		indexer:                       indexer.NewNilIndexer(),
+		indexer:                       elasticIndexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -69,7 +69,7 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetIndexer method set indexer
-func (sr *subroundStartRound) SetIndexer(indexer indexer.Indexer) {
+func (sr *subroundStartRound) SetIndexer(indexer spos.ConsensusDataIndexer) {
 	sr.indexer = indexer
 }
 
@@ -118,6 +118,17 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.RoundCanceled = true
 
 		return false
+	}
+
+	if sr.NodeRedundancyHandler().IsRedundancyNode() {
+		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(
+			sr.SelfPubKey(),
+			sr.ConsensusGroup(),
+			sr.RoundHandler().Index(),
+		)
+		if sr.NodeRedundancyHandler().IsMainMachineActive() {
+			return false
+		}
 	}
 
 	leader, err := sr.GetLeader()

@@ -205,3 +205,17 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 
 	return nil
 }
+
+// VerifyTransaction verifies the account states in respect with the transaction data
+func (txProc *txProcessor) VerifyTransaction(tx *transaction.Transaction) error {
+	if check.IfNil(tx) {
+		return process.ErrNilTransaction
+	}
+
+	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	if err != nil {
+		return err
+	}
+
+	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
+}

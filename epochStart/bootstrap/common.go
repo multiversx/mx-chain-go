@@ -97,6 +97,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEpochNotifier)
 	}
+	if args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes < 1 {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidMaxHardCapForMissingNodes)
+	}
+	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
+	}
 
 	return nil
 }

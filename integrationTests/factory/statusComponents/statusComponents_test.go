@@ -17,7 +17,7 @@ import (
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
-	time.Sleep(time.Second)
+	time.Sleep(time.Second*2)
 
 	nrBefore := runtime.NumGoroutine()
 	factory.PrintStack()
@@ -71,7 +71,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedStatusComponents)
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+		GasScheduleConfig: configs.EpochConfig.GasSchedule,
 		ConfigDir:         configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
 	}
