@@ -1,6 +1,10 @@
 package discovery
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 var _ p2p.PeerDiscoverer = (*NilDiscoverer)(nil)
 var _ p2p.Reconnecter = (*NilDiscoverer)(nil)
@@ -26,9 +30,8 @@ func (nd *NilDiscoverer) Name() string {
 	return nilName
 }
 
-// ReconnectToNetwork returns an empty channel
-func (nd *NilDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return make(chan struct{})
+// ReconnectToNetwork does nothing
+func (nd *NilDiscoverer) ReconnectToNetwork(_ context.Context) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

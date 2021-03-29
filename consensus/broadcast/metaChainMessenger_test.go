@@ -24,6 +24,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
+	alarmScheduler := &mock.AlarmSchedulerStub{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -37,6 +38,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			InterceptorsContainer:      interceptorsContainer,
 			MaxValidatorDelayCacheSize: 2,
 			MaxDelayCacheSize:          2,
+			AlarmScheduler:             alarmScheduler,
 		},
 	}
 }

@@ -60,6 +60,11 @@ func (af *AntiFlood) SetDebugger(_ process.AntifloodDebugger) error {
 func (af *AntiFlood) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
+// Close does nothing
+func (af *AntiFlood) Close() error {
+	return nil
+}
+
 // IsInterfaceNil return true if there is no value under the interface
 func (af *AntiFlood) IsInterfaceNil() bool {
 	return af == nil

@@ -475,7 +475,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
 	adrAndNonce := append(creatorAddress, buffNonce...)
-	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+	scAddress := keccak.NewKeccak().Compute(string(adrAndNonce))
 
 	return scAddress
 }
@@ -540,17 +540,18 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	}
 }
 
+// Close closes/cleans up the blockchain hook
+func (bh *BlockChainHookImpl) Close() error {
+	bh.compiledScPool.Clear()
+	return bh.compiledScStorage.DestroyUnit()
+}
+
 // ClearCompiledCodes deletes the compiled codes from storage and cache
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
 		log.Error("blockchainHook ClearCompiledCodes DestroyUnit", "error", err)
-	}
-
-	err = bh.compiledScStorage.Close()
-	if err != nil {
-		log.Error("blockchainHook ClearCompiledCodes Close", "error", err)
 	}
 
 	err = bh.makeCompiledSCStorage()

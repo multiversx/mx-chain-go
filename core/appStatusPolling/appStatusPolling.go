@@ -1,6 +1,7 @@
 package appStatusPolling
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -44,10 +45,14 @@ func (asp *AppStatusPolling) RegisterPollingFunc(handler func(appStatusHandler c
 }
 
 // Poll will notify the AppStatusHandler at a given time
-func (asp *AppStatusPolling) Poll() {
+func (asp *AppStatusPolling) Poll(ctx context.Context) {
 	go func() {
 		for {
-			time.Sleep(asp.pollingDuration)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(asp.pollingDuration):
+			}
 
 			asp.mutRegisteredFunc.RLock()
 			for _, handler := range asp.registeredFunctions {

@@ -30,7 +30,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,
@@ -112,9 +112,8 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 		assert.True(t, balancesAfterClaimRewards[i].Cmp(balancesBeforeClaimRewards[i]) > 0)
 	}
 
-	baseIssuingCost := big.NewInt(100)
 	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
-	assert.Equal(t, delegationMgr.GetBalance(), baseIssuingCost)
+	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
 }
 
 func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {

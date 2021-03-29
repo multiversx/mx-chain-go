@@ -15,11 +15,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
+const delegationManagementKey = "delegationManagement"
+
+func saveDelegationManagerConfig(nodes []*integrationTests.TestProcessorNode) {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := node.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		managementData := &systemSmartContracts.DelegationManagement{MinDelegationAmount: big.NewInt(1)}
+		marshaledData, _ := integrationTests.TestMarshalizer.Marshal(managementData)
+		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+		_ = node.AccntState.SaveAccount(userAcc)
+		_, _ = node.AccntState.Commit()
+	}
+}
+
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -29,7 +49,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -56,6 +76,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
+	saveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -91,6 +112,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
+
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -117,7 +144,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	verifyUnbound(t, nodes)
 }
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -129,7 +156,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -169,8 +196,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
-
 	verifyInitialBalance(t, nodes, initialVal)
+	saveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -219,6 +246,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
+
 	/////////----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
@@ -253,7 +286,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,

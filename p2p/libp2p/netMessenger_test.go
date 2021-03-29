@@ -172,6 +172,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
+		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
 		ProtocolID:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
@@ -189,6 +190,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
+		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
 		ProtocolID:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
@@ -1091,7 +1093,7 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes.SetPeerDiscoverer(pdm)
 
-	_ = mes.Bootstrap()
+	_ = mes.Bootstrap(0)
 
 	assert.True(t, wasCalled)
 

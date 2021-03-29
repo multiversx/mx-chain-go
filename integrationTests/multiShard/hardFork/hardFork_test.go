@@ -49,7 +49,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
@@ -130,7 +130,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
@@ -254,7 +254,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	consensusNodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
@@ -409,25 +409,38 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
+		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.HasherField = integrationTests.TestHasher
+		coreComponents.Uint64ByteSliceConverterField = integrationTests.TestUint64Converter
+		coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValidatorPubKeyConverterField = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.ChainIdCalled = func() string {
+			return string(node.ChainID)
+		}
+		coreComponents.MinTransactionVersionCalled = func() uint32 {
+			return integrationTests.MinTransactionVersion
+		}
+
+		dataComponents := integrationTests.GetDefaultDataComponents()
+		dataComponents.Store = node.Storage
+		dataComponents.DataPool = node.DataPool
+		dataComponents.BlockChain = node.BlockChain
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:              0,
-			StartEpochNum:            100,
-			Accounts:                 node.AccntState,
-			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
-			InitialNodesSetup:        node.NodesSetup,
-			Economics:                node.EconomicsData,
-			ShardCoordinator:         node.ShardCoordinator,
-			Store:                    node.Storage,
-			Blkc:                     node.BlockChain,
-			Marshalizer:              integrationTests.TestMarshalizer,
-			SignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-			Hasher:                   integrationTests.TestHasher,
-			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
-			DataPool:                 node.DataPool,
-			ValidatorAccounts:        node.PeerState,
-			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
-			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			GenesisTime:          0,
+			StartEpochNum:        100,
+			Core:                 coreComponents,
+			Data:                 dataComponents,
+			Accounts:             node.AccntState,
+			InitialNodesSetup:    node.NodesSetup,
+			Economics:            node.EconomicsData,
+			ShardCoordinator:     node.ShardCoordinator,
+			ValidatorAccounts:    node.PeerState,
+			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
+			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig: config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,
@@ -438,7 +451,6 @@ func hardForkImport(
 				AfterHardFork:            true,
 			},
 			TrieStorageManagers: node.TrieStorageManagers,
-			ChainID:             string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",
@@ -457,8 +469,6 @@ func hardForkImport(
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					StakingV2Epoch:                       1000000,
-					StakeEnableEpoch:                     0,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
@@ -467,15 +477,13 @@ func hardForkImport(
 					MinUnstakeTokensValue:                "1",
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					BaseIssuingCost:    "100",
-					MinCreationDeposit: "100",
-					EnabledEpoch:       0,
+					MinCreationDeposit:  "100",
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinStakeAmount: "100",
-					EnabledEpoch:   0,
-					MinServiceFee:  0,
-					MaxServiceFee:  100,
+					MinServiceFee: 0,
+					MaxServiceFee: 100,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
@@ -486,11 +494,17 @@ func hardForkImport(
 					return true
 				},
 			},
-			GeneralConfig: &config.GeneralSettingsConfig{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
+			EpochConfig: &config.EpochConfig{
+				EnableEpochs: config.EnableEpochs{
+					BuiltInFunctionsEnableEpoch:        0,
+					SCDeployEnableEpoch:                0,
+					RelayedTransactionsEnableEpoch:     0,
+					PenalizedTooMuchGasEnableEpoch:     0,
+					StakingV2Epoch:                     1000000,
+					StakeEnableEpoch:                   0,
+					DelegationManagerEnableEpoch:       0,
+					DelegationSmartContractEnableEpoch: 0,
+				},
 			},
 		}
 
@@ -557,12 +571,29 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], exportConfig)
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
+		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
+		coreComponents.HasherField = integrationTests.TestHasher
+		coreComponents.TxSignHasherField = integrationTests.TestTxSignHasher
+		coreComponents.Uint64ByteSliceConverterField = integrationTests.TestUint64Converter
+		coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValidatorPubKeyConverterField = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.ChainIdCalled = func() string {
+			return string(node.ChainID)
+		}
+
+		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
+		cryptoComponents.TxSig = node.OwnAccount.SingleSigner
+		cryptoComponents.MultiSig = node.MultiSigner
+		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
+		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
+
 		argsExportHandler := factory.ArgsExporter{
-			TxSignMarshalizer: integrationTests.TestTxSignMarshalizer,
-			Marshalizer:       integrationTests.TestMarshalizer,
-			Hasher:            integrationTests.TestHasher,
+			CoreComponents:    coreComponents,
+			CryptoComponents:  cryptoComponents,
 			HeaderValidator:   node.HeaderValidator,
-			Uint64Converter:   integrationTests.TestUint64Converter,
 			DataPool:          node.DataPool,
 			StorageService:    node.Storage,
 			RequestHandler:    node.RequestHandler,
@@ -591,21 +622,13 @@ func createHardForkExporter(
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:    node.InterceptorsContainer,
 			ExistingResolvers:        node.ResolversContainer,
-			MultiSigner:              node.MultiSigner,
 			NodesCoordinator:         node.NodesCoordinator,
-			SingleSigner:             node.OwnAccount.SingleSigner,
-			AddressPubKeyConverter:   integrationTests.TestAddressPubkeyConverter,
-			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
-			BlockKeyGen:              node.OwnAccount.KeygenBlockSign,
-			KeyGen:                   node.OwnAccount.KeygenTxSign,
-			BlockSigner:              node.OwnAccount.BlockSingleSigner,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
 			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			RoundHandler:             &mock.RounderMock{},
-			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+			RoundHandler:             &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,
@@ -615,8 +638,6 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			TxSignHasher:              integrationTests.TestHasher,
-			EpochNotifier:             &mock.EpochNotifierStub{},
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 		}

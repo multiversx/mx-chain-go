@@ -1,6 +1,7 @@
 package antiflooding
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/stretchr/testify/assert"
@@ -116,41 +116,32 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 //nolint
 func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, idxGoodPeers []int) []*messageProcessor {
 	processors := make([]*messageProcessor, 0, len(peers))
+	ctx := context.Background()
 	for i := 0; i < len(peers); i++ {
-		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.PeerBlackListCacher
-		var pkTimeCache process.TimeCacher
+		var antifloodComponents *factory.AntiFloodComponents
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
-				createDisabledConfig(),
-				&mock.AppStatusHandlerStub{},
-				peers[i].ID(),
-			)
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &mock.AppStatusHandlerStub{}, peers[i].ID())
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &mock.AppStatusHandlerStub{}
-			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
-				createWorkableConfig(),
-				statusHandler,
-				peers[i].ID(),
-			)
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID())
 			log.LogIfError(err)
 		}
 
 		pde, _ := blackList.NewPeerDenialEvaluator(
-			blackListHandler,
-			pkTimeCache,
+			antifloodComponents.BlacklistHandler,
+			antifloodComponents.PubKeysCacher,
 			&mock.PeerShardMapperStub{},
 		)
 
 		err = peers[i].SetPeerDenialEvaluator(pde)
 		log.LogIfError(err)
 
-		proc := NewMessageProcessor(antiflood, peers[i])
+		proc := NewMessageProcessor(antifloodComponents.AntiFloodHandler, peers[i])
 		processors = append(processors, proc)
 
 		err = proc.messenger.CreateTopic(topic, true)

@@ -131,7 +131,6 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetNumCheckpoints() uint32
 	GetCode(codeHash []byte) []byte
-
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
 	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)

@@ -40,7 +40,7 @@ type FacadeHandler interface {
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
@@ -533,7 +533,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"txGasUnits": cost},
+			Data:  cost,
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

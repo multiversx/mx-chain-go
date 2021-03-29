@@ -22,10 +22,13 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -33,8 +36,8 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 	}
 
 	return &interceptedMiniblockDataFactory{
-		marshalizer:      argument.ProtoMarshalizer,
-		hasher:           argument.Hasher,
+		marshalizer:      argument.CoreComponents.InternalMarshalizer(),
+		hasher:           argument.CoreComponents.Hasher(),
 		shardCoordinator: argument.ShardCoordinator,
 	}, nil
 }

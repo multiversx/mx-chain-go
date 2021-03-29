@@ -31,7 +31,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	//it is important to have all combinations here as to test more edgecases
@@ -113,7 +113,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	consensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -179,7 +179,7 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, shards := range nodesMap {
 		for _, n := range shards {
-			_ = n.Messenger.Bootstrap()
+			_ = n.Messenger.Bootstrap(0)
 		}
 	}
 }

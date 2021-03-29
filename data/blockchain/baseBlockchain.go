@@ -17,18 +17,6 @@ type baseBlockChain struct {
 	currentBlockHeaderHash []byte
 }
 
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (bbc *baseBlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-
-	bbc.mut.Lock()
-	bbc.appStatusHandler = ash
-	bbc.mut.Unlock()
-	return nil
-}
-
 // GetGenesisHeader returns the genesis block header pointer
 func (bbc *baseBlockChain) GetGenesisHeader() data.HeaderHandler {
 	bbc.mut.RLock()

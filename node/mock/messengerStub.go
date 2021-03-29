@@ -51,17 +51,29 @@ func (ms *MessengerStub) Close() error {
 
 // CreateTopic -
 func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
-	return ms.CreateTopicCalled(name, createChannelForTopic)
+	if ms.CreateTopicCalled != nil {
+		return ms.CreateTopicCalled(name, createChannelForTopic)
+	}
+
+	return nil
 }
 
 // HasTopic -
 func (ms *MessengerStub) HasTopic(name string) bool {
-	return ms.HasTopicCalled(name)
+	if ms.HasTopicCalled != nil {
+		return ms.HasTopicCalled(name)
+	}
+
+	return false
 }
 
 // HasTopicValidator -
 func (ms *MessengerStub) HasTopicValidator(name string) bool {
-	return ms.HasTopicValidatorCalled(name)
+	if ms.HasTopicValidatorCalled != nil {
+		return ms.HasTopicValidatorCalled(name)
+	}
+
+	return false
 }
 
 // BroadcastOnChannel -
@@ -70,7 +82,7 @@ func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff [
 }
 
 // Bootstrap -
-func (ms *MessengerStub) Bootstrap() error {
+func (ms *MessengerStub) Bootstrap(_ uint32) error {
 	return ms.BootstrapCalled()
 }
 
@@ -98,7 +110,82 @@ func (ms *MessengerStub) Peers() []core.PeerID {
 	return make([]core.PeerID, 0)
 }
 
+// Addresses -
+func (ms *MessengerStub) Addresses() []string {
+	return make([]string, 0)
+}
+
+// ConnectToPeer -
+func (ms *MessengerStub) ConnectToPeer(_ string) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil
+}
+
+// IsConnected
+func (ms *MessengerStub) IsConnected(_ core.PeerID) bool {
+	return false
+}
+
+// ConnectedPeers -
+func (ms *MessengerStub) ConnectedPeers() []core.PeerID {
+	return nil
+}
+
+// ConnectedAddresses -
+func (ms *MessengerStub) ConnectedAddresses() []string {
+	return nil
+}
+
+// ConnectedPeersOnTopic -
+func (ms *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
+	return nil
+}
+
+// UnregisterAllMessageProcessors -
+func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
+	return nil
+}
+
+// UnregisterMessageProcessor -
+func (ms *MessengerStub) UnregisterMessageProcessor(_ string) error {
+	return nil
+}
+
+// SendToConnectedPeer -
+func (ms *MessengerStub) SendToConnectedPeer(_ string, _ []byte, _ core.PeerID) error {
+	return nil
+}
+
+// ThresholdMinConnectedPeers -
+func (ms *MessengerStub) ThresholdMinConnectedPeers() int {
+	return 0
+}
+
+// SetThresholdMinConnectedPeers -
+func (ms *MessengerStub) SetThresholdMinConnectedPeers(_ int) error {
+	return nil
+}
+
+// SetPeerShardResolver -
+func (ms *MessengerStub) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
+	return nil
+}
+
+// SetPeerDenialEvaluator -
+func (ms *MessengerStub) SetPeerDenialEvaluator(_ p2p.PeerDenialEvaluator) error {
+	return nil
+}
+
+// GetConnectedPeersInfo -
+func (ms *MessengerStub) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
+	return nil
+}
+
+// UnjoinAllTopics -
+func (ms *MessengerStub) UnjoinAllTopics() error {
+	return nil
 }

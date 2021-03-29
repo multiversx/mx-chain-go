@@ -19,8 +19,7 @@ type SoftwareVersionChecker struct {
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
 	checkInterval             time.Duration
-	ctx                       context.Context
-	cancelFunc                func()
+	closeFunc                 func()
 }
 
 var log = logger.GetOrCreate("core/statistics")
@@ -43,41 +42,33 @@ func NewSoftwareVersionChecker(
 
 	checkInterval := time.Duration(pollingIntervalInMinutes) * time.Minute
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	return &SoftwareVersionChecker{
 		statusHandler:             appStatusHandler,
 		stableTagProvider:         stableTagProvider,
 		mostRecentSoftwareVersion: "",
 		checkInterval:             checkInterval,
-		ctx:                       ctx,
-		cancelFunc:                cancelFunc,
+		closeFunc:                 nil,
 	}, nil
 }
 
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
-	go svc.checkSoftwareVersion()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	svc.closeFunc = cancelFunc
+	go svc.checkSoftwareVersion(ctx)
 }
 
-func (svc *SoftwareVersionChecker) checkSoftwareVersion() {
+func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
 	for {
 		svc.readLatestStableVersion()
 
 		select {
-		case <-svc.ctx.Done():
+		case <-ctx.Done():
 			log.Debug("softwareVersionChecker's go routine is stopping...")
 			return
 		case <-time.After(svc.checkInterval):
 		}
 	}
-}
-
-// Close will close the endless running go routine
-func (svc *SoftwareVersionChecker) Close() error {
-	svc.cancelFunc()
-
-	return nil
 }
 
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
@@ -91,4 +82,17 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 	}
 
 	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (svc *SoftwareVersionChecker) IsInterfaceNil() bool {
+	return svc == nil
+}
+
+// Close will handle the closing of opened go routines
+func (svc *SoftwareVersionChecker) Close() error {
+	if svc.closeFunc != nil {
+		svc.closeFunc()
+	}
+	return nil
 }

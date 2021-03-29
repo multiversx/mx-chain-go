@@ -72,7 +72,7 @@ func (e *ElasticIndexerStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.Bod
 }
 
 // SaveAccounts -
-func (e *ElasticIndexerStub) SaveAccounts(_ []state.UserAccountHandler) {
+func (e *ElasticIndexerStub) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil -

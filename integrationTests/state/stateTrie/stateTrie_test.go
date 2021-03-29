@@ -1520,6 +1520,89 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
+func TestStatePruningIsBuffered(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap(0)
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	shardNode := nodes[0]
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	sendValue := big.NewInt(5)
+	receiverAddress := []byte("12345678901234567890123456789012")
+	initialVal := big.NewInt(10000000000)
+
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
+	stateTrie := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+
+	numRounds := 10
+	for i := 0; i < numRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
+		time.Sleep(integrationTests.StepDelay)
+
+		tr, err := stateTrie.Recreate(rootHash)
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	numDelayRounds := 10
+	for i := 0; i < numDelayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
+		time.Sleep(integrationTests.StepDelay)
+	}
+
+	tr, err := stateTrie.Recreate(rootHash)
+	assert.Nil(t, tr)
+	assert.NotNil(t, err)
+}
+
 func TestSnapshotOnEpochChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -1531,7 +1614,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	stateCheckpointModulus := uint(3)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
@@ -1597,11 +1680,16 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
 		)
+		time.Sleep(time.Second)
 	}
 
-	numDelayRounds := uint32(6)
+	numDelayRounds := uint32(15)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
 		time.Sleep(integrationTests.StepDelay)
 	}
 

@@ -14,11 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-//NodeHandler contains all functions that a node should contain.
+// NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	// StartConsensus will start the consesus service for the current node
-	StartConsensus() error
-
 	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
@@ -37,18 +34,18 @@ type NodeHandler interface {
 	// GetAllESDTTokens returns the value of a key from a given account
 	GetAllESDTTokens(address string) ([]string, error)
 
-	//CreateTransaction will return a transaction from all needed fields
+	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 
-	//ValidateTransaction will validate a transaction
+	// ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 
-	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
+	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	//GetTransaction will return a transaction based on the hash
+	// GetTransaction will return a transaction based on the hash
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
@@ -88,9 +85,10 @@ type TransactionSimulatorProcessor interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
-	GetTotalStakedValue() (*big.Int, error)
+	GetTotalStakedValue() (*api.StakeValues, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 

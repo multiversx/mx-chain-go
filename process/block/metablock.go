@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -19,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
@@ -40,6 +40,8 @@ type metaProcessor struct {
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
 	rewardsV2EnableEpoch         uint32
+	userStatePruningQueue        core.Queue
+	peerStatePruningQueue        core.Queue
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -48,10 +50,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(arguments.DataPool) {
+	if check.IfNil(arguments.DataComponents.Datapool()) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(arguments.DataPool.Headers()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 	if check.IfNil(arguments.SCToProtocol) {
@@ -79,36 +81,38 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
 
-	genesisHdr := arguments.BlockChain.GetGenesisHeader()
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:              arguments.AccountsDB,
 		blockSizeThrottler:      arguments.BlockSizeThrottler,
 		forkDetector:            arguments.ForkDetector,
-		hasher:                  arguments.Hasher,
-		marshalizer:             arguments.Marshalizer,
-		store:                   arguments.Store,
-		shardCoordinator:        arguments.ShardCoordinator,
+		hasher:                  arguments.CoreComponents.Hasher(),
+		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
+		store:                   arguments.DataComponents.StorageService(),
+		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
 		feeHandler:              arguments.FeeHandler,
 		nodesCoordinator:        arguments.NodesCoordinator,
-		uint64Converter:         arguments.Uint64Converter,
+		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        statusHandler.NewNilStatusHandler(),
+		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.CoreComponents.RoundHandler(),
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
-		dataPool:                arguments.DataPool,
-		blockChain:              arguments.BlockChain,
-		stateCheckpointModulus:  arguments.StateCheckpointModulus,
-		indexer:                 arguments.Indexer,
-		tpsBenchmark:            arguments.TpsBenchmark,
+		dataPool:                arguments.DataComponents.Datapool(),
+		blockChain:              arguments.DataComponents.Blockchain(),
+		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		indexer:                 arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainerFactory:      arguments.VMContainersFactory,
+		vmContainer:             arguments.VmContainer,
 	}
 
 	mp := metaProcessor{
@@ -125,6 +129,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rewardsV2EnableEpoch:         arguments.RewardsV2EnableEpoch,
 	}
 
+	log.Debug("metablock: enable epoch for staking v2", "epoch", mp.rewardsV2EnableEpoch)
+
 	mp.txCounter = NewTransactionCounter()
 	mp.requestBlockBodyHandler = &mp
 	mp.blockProcessor = &mp
@@ -139,6 +145,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
+	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
 	return &mp, nil
 }
@@ -1067,7 +1075,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		roundTooOld := mp.rounder.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
 		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
@@ -1216,7 +1224,7 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		numShardHeadersFromPool,
 		mp.blockTracker,
-		uint64(mp.rounder.TimeDuration().Seconds()),
+		uint64(mp.roundHandler.TimeDuration().Seconds()),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1342,6 +1350,17 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		ctx := context.Background()
 		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
 		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
+		go func() {
+			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
+			if !ok {
+				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				return
+			}
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, lastMetaBlock.GetRootHash())
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+			}
+		}()
 	}
 
 	mp.updateStateStorage(
@@ -1349,6 +1368,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		lastMetaBlock.GetRootHash(),
 		prevHeader.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
+		mp.userStatePruningQueue,
 	)
 
 	mp.updateStateStorage(
@@ -1356,6 +1376,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevHeader.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
+		mp.peerStatePruningQueue,
 	)
 }
 
@@ -2216,4 +2237,9 @@ func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
 	mp.validatorInfoCreator.RemoveBlockDataFromPools(metaBlock, body)
 
 	return nil
+}
+
+// Close - closes all underlying components
+func (mp *metaProcessor) Close() error {
+	return mp.baseProcessor.Close()
 }

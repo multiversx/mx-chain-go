@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v1.1.1
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.0
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.1
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -26,7 +26,7 @@ require (
 	github.com/ipfs/go-log v1.0.4
 	github.com/jbenet/goprocess v0.1.4
 	github.com/libp2p/go-libp2p v0.13.0
-	github.com/libp2p/go-libp2p-core v0.8.0
+	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1

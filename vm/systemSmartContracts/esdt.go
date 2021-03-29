@@ -67,6 +67,7 @@ type ArgsNewESDTSmartContract struct {
 	EpochNotifier          vm.EpochNotifier
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
+	EpochConfig            config.EpochConfig
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -100,10 +101,12 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		eSDTSCAddress:          args.ESDTSCAddress,
 		hasher:                 args.Hasher,
 		marshalizer:            args.Marshalizer,
-		enabledEpoch:           args.ESDTSCConfig.EnabledEpoch,
+		enabledEpoch:           args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
+	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
 	return e, nil
@@ -243,7 +246,7 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := sha256.Sha256{}.Compute(string(newRandomBase))
+	newRandom := sha256.NewSha256().Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
 
 	tickerPrefix := append(ticker, []byte(tickerSeparator)...)

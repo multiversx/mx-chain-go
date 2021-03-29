@@ -53,7 +53,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.Sha256{}
+var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -218,6 +218,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Name:     "SmartContractsStorage",
+				Type:     "LRU",
+				Capacity: 100,
+			},
+			DB: config.DBConfig{
+				FilePath:          "SmartContractsStorage",
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+			},
+		},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

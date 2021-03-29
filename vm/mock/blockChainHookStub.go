@@ -31,6 +31,7 @@ type BlockChainHookStub struct {
 	IsPayableCalled               func(address []byte) (bool, error)
 	NumberOfShardsCalled          func() uint32
 	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
+	CloseCalled                   func() error
 }
 
 // AccountExists -
@@ -220,6 +221,15 @@ func (b *BlockChainHookStub) IsPayable(address []byte) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// Close -
+func (b *BlockChainHookStub) Close() error {
+	if b.CloseCalled != nil {
+		return b.CloseCalled()
+	}
+
+	return nil
 }
 
 // NumberOfShards -

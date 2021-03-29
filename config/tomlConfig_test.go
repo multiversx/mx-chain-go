@@ -80,7 +80,7 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
+		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
 	}

@@ -20,7 +20,7 @@ import (
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
+	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
@@ -35,7 +35,7 @@ type Facade struct {
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                        func() map[string]interface{}
 	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
@@ -50,7 +50,7 @@ type Facade struct {
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetTotalStakedValueHandler              func() (*big.Int, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 }
 
 // GetUsername -
@@ -87,7 +87,7 @@ func (f *Facade) PprofEnabled() bool {
 }
 
 // TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
+func (f *Facade) TpsBenchmark() statistics.TPSBenchmark {
 	if f.TpsBenchmarkHandler != nil {
 		return f.TpsBenchmarkHandler()
 	}
@@ -214,12 +214,12 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue -
-func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return f.GetTotalStakedValueHandler()
 }
 
 // ComputeTransactionGasLimit --
-func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }
 
@@ -274,6 +274,11 @@ func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 // GetBlockByHash -
 func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
+}
+
+// Close -
+func (f *Facade) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

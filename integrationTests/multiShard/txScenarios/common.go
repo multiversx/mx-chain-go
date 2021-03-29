@@ -3,12 +3,29 @@ package txScenarios
 import (
 	"fmt"
 	"math/big"
+	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+func createGeneralTestnetForTxTest(
+	t *testing.T,
+	initialBalance uint64,
+) *integrationTests.TestNetwork {
+	net := integrationTests.NewTestNetworkSized(t, 2, 1, 1)
+	net.Start()
+
+	net.MintNodeAccountsUint64(initialBalance)
+
+	numPlayers := 10
+	net.CreateWallets(numPlayers)
+	net.MintWalletsUint64(initialBalance)
+
+	return net
+}
 
 func createGeneralSetupForTxTest(initialBalance *big.Int) (
 	[]*integrationTests.TestProcessorNode,
@@ -21,7 +38,7 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,

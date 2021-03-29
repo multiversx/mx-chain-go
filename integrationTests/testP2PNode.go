@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -76,13 +78,14 @@ func NewTestP2PNode(
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	startInEpoch := uint32(0)
-	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
-		pidPk,
-		pkShardId,
-		pidShardId,
-		coordinator,
-		startInEpoch,
-	)
+	arg := networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         pidPk,
+		FallbackPkShardCache:  pkShardId,
+		FallbackPidShardCache: pidShardId,
+		NodesCoordinator:      coordinator,
+		StartEpoch:            startInEpoch,
+	}
+	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
 	if err != nil {
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
@@ -132,7 +135,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		EpochConfirmedNotifier:    epochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RounderMock{},
+		RoundHandler:              &mock.RoundHandlerMock{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
@@ -146,37 +149,55 @@ func (tP2pNode *TestP2PNode) initNode() {
 	)
 	log.LogIfError(err)
 
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
+
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.BlKeyGen = tP2pNode.KeyGen
+	cryptoComponents.PrivKey = tP2pNode.NodeKeys.Sk
+	cryptoComponents.PubKey = tP2pNode.NodeKeys.Pk
+	cryptoComponents.BlockSig = tP2pNode.SingleSigner
+	cryptoComponents.PeerSignHandler = psh
+
+	processComponents := GetDefaultProcessComponents()
+	processComponents.ShardCoord = tP2pNode.ShardCoordinator
+	processComponents.NodesCoord = tP2pNode.NodesCoordinator
+	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			return map[uint32][]*state.ValidatorInfo{
+				0: {{PublicKey: []byte("pk0")}},
+			}, nil
+		},
+	}
+	processComponents.EpochNotifier = epochStartNotifier
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+	processComponents.PeerMapper = tP2pNode.NetworkShardingUpdater
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tP2pNode.Messenger
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = tP2pNode.Storage
+	dataComponents.BlockChain = &mock.BlockChainMock{}
+
+	redundancyHandler := &mock.RedundancyHandlerStub{}
+
 	tP2pNode.Node, err = node.NewNode(
-		node.WithMessenger(tP2pNode.Messenger),
-		node.WithInternalMarshalizer(TestMarshalizer, 100),
-		node.WithHasher(TestHasher),
-		node.WithKeyGen(tP2pNode.KeyGen),
-		node.WithShardCoordinator(tP2pNode.ShardCoordinator),
-		node.WithNodesCoordinator(tP2pNode.NodesCoordinator),
-		node.WithSingleSigner(tP2pNode.SingleSigner),
-		node.WithPrivKey(tP2pNode.NodeKeys.Sk),
-		node.WithPubKey(tP2pNode.NodeKeys.Pk),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
-		node.WithDataStore(tP2pNode.Storage),
 		node.WithInitialNodesPubKeys(pubkeys),
-		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(epochStartNotifier),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {{PublicKey: []byte("pk0")}},
-				}, nil
-			},
-		}),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
-		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
-		node.WithPeerSignatureHandler(psh),
-		node.WithBlockChain(&mock.BlockChainMock{}),
+		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -187,7 +208,27 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
-	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
+
+	hbCompArgs := factory.HeartbeatComponentsFactoryArgs{
+		Config: config.Config{
+			Heartbeat: hbConfig,
+		},
+		Prefs:             config.Preferences{},
+		AppVersion:        "test",
+		GenesisTime:       time.Time{},
+		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
+	}
+	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
+	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
+	log.LogIfError(err)
+
+	err = managedHBComponents.Create()
 	log.LogIfError(err)
 }
 
@@ -374,7 +415,7 @@ func createCryptoPair() TestKeyPair {
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -393,13 +434,14 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
-						len(peerInfo.IntraShardValidators),
-						len(peerInfo.CrossShardValidators),
-						len(peerInfo.IntraShardObservers),
-						len(peerInfo.CrossShardObservers),
+						peerInfo.NumIntraShardValidators,
+						peerInfo.NumCrossShardValidators,
+						peerInfo.NumIntraShardObservers,
+						peerInfo.NumCrossShardObservers,
 						len(peerInfo.UnknownPeers),
+						len(peerInfo.Seeders),
 					),
 				},
 			)

@@ -131,7 +131,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "smartcontracts.json"
 	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
@@ -305,7 +305,7 @@ func checkUserNamesAreDeleted(
 			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
-			keyFromTrie := "value_state" + string(keccak.Keccak{}.Compute(userName))
+			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
 			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)
@@ -314,7 +314,7 @@ func checkUserNamesAreDeleted(
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
-	hashedAddr := keccak.Keccak{}.Compute(userName)
+	hashedAddr := keccak.NewKeccak().Compute(userName)
 	return sortedDNSAddresses[hashedAddr[31]]
 }
 

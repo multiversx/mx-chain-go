@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -14,7 +15,7 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap() error
+	Bootstrap(numSecondsToWait uint32) error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
@@ -110,5 +111,13 @@ type ValidatorStatisticsProcessor interface {
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler
+	IsInterfaceNil() bool
+}
+
+// NodeRedundancyHandler defines the interface responsible for the redundancy management of the node
+type NodeRedundancyHandler interface {
+	IsRedundancyNode() bool
+	IsMainMachineActive() bool
+	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }

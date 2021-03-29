@@ -318,7 +318,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 			require.Equal(t, whiteListProp.WhiteListAddress, callerAddr)
 		},
 	}
-	args.GovernanceConfig.EnabledEpoch = 1
+	args.EpochConfig.EnableEpochs.GovernanceEnableEpoch = 1
 	gsc, _ := NewGovernanceContract(args)
 	gsc.ownerAddress = callerAddr
 

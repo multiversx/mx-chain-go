@@ -150,10 +150,11 @@ func (d *debugger) printContinuously(ctx context.Context) {
 		select {
 		case <-time.After(d.intervalAutoPrint):
 		case <-ctx.Done():
+			log.Debug("antiflood debugger printContinuously go routine is stopping...")
 			return
 		}
 
-		events := []string{"Antiflood events:"}
+		events := []string{"antiflood events:"}
 
 		d.mut.Lock()
 		events = append(events, d.getStringEvents()...)

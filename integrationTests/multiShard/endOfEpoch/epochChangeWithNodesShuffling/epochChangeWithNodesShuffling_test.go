@@ -21,7 +21,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	maxGasLimitPerBlock := uint64(100000)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 

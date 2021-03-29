@@ -26,7 +26,7 @@ func TestScDeploy(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	builtinEnableEpoch := uint32(0)
 	deployEnableEpoch := uint32(1)
@@ -73,7 +73,7 @@ func TestScDeploy(t *testing.T) {
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	log.Info("delaying for nodes p2p bootstrap...")
