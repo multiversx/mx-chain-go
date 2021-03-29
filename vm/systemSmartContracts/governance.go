@@ -37,6 +37,7 @@ type ArgsNewGovernanceContract struct {
 	StakingSCAddress    []byte
 	ValidatorSCAddress  []byte
 	EpochNotifier       vm.EpochNotifier
+	EpochConfig         config.EpochConfig
 }
 
 type governanceContract struct {
@@ -86,8 +87,10 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
-		enabledEpoch:        args.GovernanceConfig.EnabledEpoch,
+		enabledEpoch:        args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
+	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil

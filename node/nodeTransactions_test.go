@@ -245,7 +245,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	expectedTx := &transaction.ApiTransactionResult{
 		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},

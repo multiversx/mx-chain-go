@@ -70,9 +70,6 @@ var ErrDataFieldTooBig = errors.New("data field is too big")
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID in Node")
-
 // ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
 var ErrNilTxAccumulator = errors.New("nil tx accumulator")
 
@@ -109,14 +106,8 @@ var ErrNilCryptoComponents = errors.New("nil crypto components")
 // ErrNilDataComponents signals that a nil data components instance has been provided
 var ErrNilDataComponents = errors.New("nil data components")
 
-// ErrInvalidMaxTransactionValueLength signals that an invalid maximum transaction value length has been provided
-var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction value length")
-
 // ErrTransactionValueLengthTooBig signals that a too big value has been given to a transaction
 var ErrTransactionValueLengthTooBig = errors.New("value length is too big")
-
-// ErrNilHistoryRepository signals that history repository is nil
-var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilNetworkComponents signals that a nil network components instance has been provided
 var ErrNilNetworkComponents = errors.New("nil network components")
