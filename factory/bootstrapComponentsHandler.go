@@ -70,7 +70,7 @@ func (mbf *managedBootstrapComponents) CheckSubcomponents() error {
 	if mbf.bootstrapComponents == nil {
 		return errors.ErrNilBootstrapComponentsHolder
 	}
-	if check.IfNil(mbf.epochStartBootstraper) {
+	if check.IfNil(mbf.epochStartBootstrapper) {
 		return errors.ErrNilEpochStartBootstrapper
 	}
 	if check.IfNil(mbf.bootstrapParamsHolder) {
@@ -89,7 +89,7 @@ func (mbf *managedBootstrapComponents) EpochStartBootstrapper() EpochStartBootst
 		return nil
 	}
 
-	return mbf.bootstrapComponents.epochStartBootstraper
+	return mbf.bootstrapComponents.epochStartBootstrapper
 }
 
 // EpochBootstrapParams returns the epoch start bootstrap parameters handler
