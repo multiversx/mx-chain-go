@@ -30,7 +30,6 @@ const maxLengthForTokenName = 20
 const minNumberOfDecimals = 0
 const maxNumberOfDecimals = 18
 const configKeyPrefix = "esdtConfig"
-const allIssuedTokens = "allIssuedTokens"
 const burnable = "canBurn"
 const mintable = "canMint"
 const canPause = "canPause"
@@ -164,8 +163,6 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.controlChanges(args)
 	case "transferOwnership":
 		return e.transferOwnership(args)
-	case "getAllESDTTokens":
-		return e.getAllESDTTokens(args)
 	case "getTokenProperties":
 		return e.getTokenProperties(args)
 	case "setSpecialRole":
@@ -360,8 +357,6 @@ func (e *esdt) createNewToken(
 	if err != nil {
 		return nil, err
 	}
-
-	e.addToIssuedTokens(string(tokenIdentifier))
 
 	return tokenIdentifier, nil
 }
@@ -819,33 +814,6 @@ func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) getAllESDTTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(zero) != 0 {
-		e.eei.AddReturnMessage("callValue must be 0")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) != 0 {
-		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
-		return vmcommon.UserError
-	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.OutOfGas
-	}
-
-	savedData := e.eei.GetStorage([]byte(allIssuedTokens))
-	err = e.eei.UseGas(e.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(savedData)))
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	e.eei.Finish(savedData)
-
-	return vmcommon.Ok
-}
-
 func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		e.eei.AddReturnMessage("callValue must be 0")
@@ -884,17 +852,6 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish([]byte("CanAddSpecialRoles-" + getStringFromBool(esdtToken.CanAddSpecialRoles)))
 
 	return vmcommon.Ok
-}
-
-func (e *esdt) addToIssuedTokens(newToken string) {
-	allTokens := e.eei.GetStorage([]byte(allIssuedTokens))
-	if len(allTokens) == 0 {
-		e.eei.SetStorage([]byte(allIssuedTokens), []byte(newToken))
-		return
-	}
-
-	allTokens = append(allTokens, []byte("@"+newToken)...)
-	e.eei.SetStorage([]byte(allIssuedTokens), allTokens)
 }
 
 func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
