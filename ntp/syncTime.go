@@ -197,7 +197,8 @@ func (s *syncTime) sync() {
 
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
-	if clockOffsetHarmonicMean < -outOfBoundsDuration || clockOffsetHarmonicMean > outOfBoundsDuration {
+	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean)-outOfBoundsDuration > 0
+	if isOutOfBounds {
 		log.Error("syncTime.sync: clock offset is out of expected bounds",
 			"clock offset harmonic mean", clockOffsetHarmonicMean)
 
