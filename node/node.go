@@ -575,10 +575,19 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		}
 
 		tokenName := string(leaf.Key()[lenESDTPrefix:])
-		esdtToken := &esdt.ESDigitalToken{}
-		err = n.internalMarshalizer.Unmarshal(esdtToken, leaf.Value())
+		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, err := leaf.ValueWithoutSuffix(suffix)
 		if err != nil {
-			return nil, err
+			log.Warn("cannot get value without suffix", "error", err, "key", leaf.Key())
+			continue
+		}
+
+		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		if err != nil {
+			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			continue
 		}
 
 		if esdtToken.TokenMetaData != nil {
