@@ -2,46 +2,55 @@ package stakeValuesProcessor
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
 type stakedValuesProc struct {
-	marshalizer marshal.Marshalizer
-	accounts    state.AccountsAdapter
-	nodePrice   *big.Int
+	accounts           state.AccountsAdapter
+	blockChain         data.ChainHandler
+	queryService       process.SCQueryService
+	publicKeyConverter core.PubkeyConverter
+	mutex              *sync.Mutex
 }
 
 // NewTotalStakedValueProcessor will create a new instance of stakedValuesProc
 func NewTotalStakedValueProcessor(
-	nodePrice string,
-	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
+	blockChain data.ChainHandler,
+	queryService process.SCQueryService,
+	publicKeyConverter core.PubkeyConverter,
 ) (*stakedValuesProc, error) {
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
-	}
 	if check.IfNil(accounts) {
 		return nil, ErrNilAccountsAdapter
 	}
-
-	nodePriceBig, ok := big.NewInt(0).SetString(nodePrice, 10)
-	if !ok {
-		return nil, ErrInvalidNodePrice
+	if check.IfNil(blockChain) {
+		return nil, ErrNilBlockChain
+	}
+	if check.IfNil(queryService) {
+		return nil, ErrNilQueryService
+	}
+	if check.IfNil(publicKeyConverter) {
+		return nil, ErrNilPubkeyConverter
 	}
 
 	return &stakedValuesProc{
-		marshalizer: marshalizer,
-		accounts:    accounts,
-		nodePrice:   nodePriceBig,
+		accounts:           accounts,
+		blockChain:         blockChain,
+		mutex:              &sync.Mutex{},
+		queryService:       queryService,
+		publicKeyConverter: publicKeyConverter,
 	}, nil
 }
 
@@ -59,6 +68,19 @@ func (svp *stakedValuesProc) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
+	svp.mutex.Lock()
+	defer svp.mutex.Unlock()
+
+	currentHeader := svp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return nil, nil, nil
+	}
+
+	err := svp.accounts.RecreateTrie(currentHeader.GetRootHash())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	ah, err := svp.accounts.GetExistingAccount(vm.ValidatorSCAddress)
 	if err != nil {
 		return nil, nil, err
@@ -80,29 +102,47 @@ func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, e
 		return nil, nil, err
 	}
 
-	numRegistedNodes := uint64(0)
-	totalStakedValueAllLeaves := big.NewInt(0)
+	totalStaked, totalTopUp := big.NewInt(0), big.NewInt(0)
 	for leaf := range chLeaves {
-		validatorData := &systemSmartContracts.ValidatorDataV2{}
-		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
-		if errTrim != nil {
-			return nil, nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
-		}
-
-		err = svp.marshalizer.Unmarshal(validatorData, value)
-		if err != nil {
+		if len(leaf.Key()) != svp.publicKeyConverter.Len() {
 			continue
 		}
 
-		totalStakedValueAllLeaves.Add(totalStakedValueAllLeaves, validatorData.TotalStakeValue)
-		numRegistedNodes += uint64(validatorData.NumRegistered)
+		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leaf.Key())
+		if errGet != nil {
+			continue
+		}
+
+		totalStaked = totalStaked.Add(totalStaked, totalStakedCurrentAccount)
+		totalTopUp = totalTopUp.Add(totalTopUp, totalTopUpCurrentAccount)
 	}
 
-	totalStakedValue := totalStakedValueAllLeaves
+	return totalStaked, totalTopUp, nil
+}
 
-	numRegisteredNodesBig := big.NewInt(0).SetUint64(numRegistedNodes)
-	totalStakedValueWithoutTopUp := big.NewInt(0).Mul(numRegisteredNodesBig, svp.nodePrice)
-	topUpValue := big.NewInt(0).Sub(totalStakedValueAllLeaves, totalStakedValueWithoutTopUp)
+func (svp *stakedValuesProc) getValidatorInfoFromSC(validatorAddress []byte) (*big.Int, *big.Int, error) {
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getTotalStakedTopUpStakedBlsKeys",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{validatorAddress},
+	}
+
+	vmOutput, err := svp.queryService.ExecuteQuery(scQuery)
+	if err != nil {
+		return nil, nil, err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+
+	if len(vmOutput.ReturnData) < 3 {
+		return nil, nil, fmt.Errorf("%w, getTotalStakedTopUpStakedBlsKeys function should have at least three values", epochStart.ErrExecutingSystemScCode)
+	}
+
+	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	totalStakedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
 
 	return totalStakedValue, topUpValue, nil
 }

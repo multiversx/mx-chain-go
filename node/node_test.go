@@ -247,13 +247,21 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+		return nil
+	}
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
 	)
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
@@ -342,7 +350,11 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			},
 		})
 
-	accDB := &mock.AccountsStub{}
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -351,7 +363,12 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		}),
 	)
 
 	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))

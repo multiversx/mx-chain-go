@@ -89,6 +89,7 @@ type Node struct {
 	epochStartTrigger             epochStart.TriggerHandler
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	accounts                      state.AccountsAdapter
+	accountsAPI                   state.AccountsAdapter
 	addressPubkeyConverter        core.PubkeyConverter
 	validatorPubkeyConverter      core.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
@@ -446,7 +447,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -533,7 +534,7 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 
 // GetAllESDTTokens returns the value of a key from a given account
 func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -584,6 +585,32 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	return n.accounts.GetExistingAccount(addr)
+}
+
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+	if check.IfNil(n.addressPubkeyConverter) {
+		return nil, errors.New("initialize PubkeyConverter first")
+	}
+	if check.IfNil(n.accountsAPI) {
+		return nil, errors.New("initialize AccountsAdapterAPI first")
+	}
+
+	addr, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+	}
+
+	blockHeader := n.blkc.GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return nil, nil
+	}
+
+	err = n.accountsAPI.RecreateTrie(blockHeader.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return n.accountsAPI.GetExistingAccount(addr)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
