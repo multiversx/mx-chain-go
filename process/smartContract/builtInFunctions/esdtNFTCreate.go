@@ -248,6 +248,10 @@ func saveESDTNFTToken(
 
 	nonce := esdtData.TokenMetaData.Nonce
 	esdtNFTTokenKey := computeESDTNFTTokenKey(esdtTokenKey, nonce)
+	err = checkFrozeAndPause(acnt.AddressBytes(), esdtNFTTokenKey, esdtData, pauseHandler)
+	if err != nil {
+		return err
+	}
 
 	if esdtData.Value.Cmp(zero) <= 0 {
 		return acnt.DataTrieTracker().SaveKeyValue(esdtNFTTokenKey, nil)

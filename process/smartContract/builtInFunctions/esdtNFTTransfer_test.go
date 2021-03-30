@@ -524,6 +524,54 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationHoldsNFT(
 	testNFTTokenShouldExist(t, nftTransferDestinationShard.marshalizer, destination, tokenName, tokenNonce, expected)
 }
 
+func TestESDTNFTTransfer_SndDstFrozen(t *testing.T) {
+	t.Parallel()
+
+	transferFunc := createNftTransferWithMockArguments(0, 1, &mock.PauseHandlerStub{})
+	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
+
+	senderAddress := bytes.Repeat([]byte{2}, 32) // sender is in the same shard
+	destinationAddress := bytes.Repeat([]byte{1}, 32)
+	sender, err := transferFunc.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	tokenName := []byte("token")
+	tokenNonce := uint64(1)
+
+	initialTokens := big.NewInt(3)
+	createESDTToken(tokenName, core.NonFungible, tokenNonce, initialTokens, transferFunc.marshalizer, sender.(state.UserAccountHandler))
+	esdtFrozen := ESDTUserMetadata{Frozen: true}
+
+	_ = transferFunc.accounts.SaveAccount(sender)
+	_, _ = transferFunc.accounts.Commit()
+	//reload sender account
+	sender, err = transferFunc.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	nonceBytes := big.NewInt(int64(tokenNonce)).Bytes()
+	quantityBytes := big.NewInt(1).Bytes()
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:  big.NewInt(0),
+			CallerAddr: senderAddress,
+			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+		},
+		RecipientAddr: senderAddress,
+	}
+
+	destination, _ := transferFunc.accounts.LoadAccount(destinationAddress)
+	tokenId := append(keyPrefix, tokenName...)
+	esdtKey := computeESDTNFTTokenKey(tokenId, tokenNonce)
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0), Properties: esdtFrozen.ToBytes()}
+	marshaledData, _ := transferFunc.marshalizer.Marshal(esdtToken)
+	_ = destination.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = transferFunc.accounts.SaveAccount(destination)
+	_, _ = transferFunc.accounts.Commit()
+
+	_, err = transferFunc.ProcessBuiltinFunction(sender.(state.UserAccountHandler), sender.(state.UserAccountHandler), vmInput)
+	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
+}
+
 func extractScResultsFromVmOutput(t testing.TB, vmOutput *vmcommon.VMOutput) (string, [][]byte) {
 	require.NotNil(t, vmOutput)
 	require.Equal(t, 1, len(vmOutput.OutputAccounts))
