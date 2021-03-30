@@ -11,6 +11,7 @@ import (
 // BlockProcessorMock -
 type BlockProcessorMock struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func(header data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
@@ -42,6 +43,11 @@ func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 // ProcessBlock -
 func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(header, body, haveTime)
+}
+
+// ProcessScheduledBlock -
+func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bpm.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock -

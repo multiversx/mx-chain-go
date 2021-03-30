@@ -269,6 +269,18 @@ func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
+func TestNewShardProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+	arguments.ScheduledTxsExecutionHandler = nil
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
+	assert.Nil(t, sp)
+}
+
 func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -489,6 +501,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
@@ -709,6 +722,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2282,6 +2296,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2389,6 +2404,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2780,6 +2796,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2960,6 +2977,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
 
