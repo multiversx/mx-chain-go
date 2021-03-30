@@ -384,7 +384,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
-	assert.Equal(t, esdtToken, value[0])
+	assert.Equal(t, esdtData, value[esdtToken])
 }
 
 //------- GenerateTransaction
