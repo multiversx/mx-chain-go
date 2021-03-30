@@ -300,7 +300,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 		}
 	}
 
-	currentESDTData, isNew, err := getESDTNFTTokenOnDestination(userAccount, esdtTokenKey, esdtDataToTransfer.TokenMetaData.Nonce, e.marshalizer)
+	currentESDTData, _, err := getESDTNFTTokenOnDestination(userAccount, esdtTokenKey, esdtDataToTransfer.TokenMetaData.Nonce, e.marshalizer)
 	if err != nil && !errors.Is(err, process.ErrNFTTokenDoesNotExist) {
 		return err
 	}
@@ -309,7 +309,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 		return err
 	}
 
-	if !isNew && currentESDTData.TokenMetaData != nil {
+	if currentESDTData.TokenMetaData != nil {
 		if !bytes.Equal(currentESDTData.TokenMetaData.Hash, esdtDataToTransfer.TokenMetaData.Hash) {
 			return process.ErrWrongNFTOnDestination
 		}

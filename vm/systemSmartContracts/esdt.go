@@ -636,7 +636,7 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 		return vmcommon.UserError
 	}
 	if string(token.TokenType) == core.FungibleESDT {
-		e.eei.AddReturnMessage("only non fungible tokens can be wiped per nonce")
+		e.eei.AddReturnMessage("only non fungible tokens can be freezed per nonce")
 		return vmcommon.UserError
 	}
 
