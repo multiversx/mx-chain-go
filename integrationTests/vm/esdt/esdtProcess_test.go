@@ -1,6 +1,8 @@
 package esdt
 
 import (
+	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -1445,8 +1447,7 @@ func TestESDTMultiTransferFromSC(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64) {
-	ticker := "TKN"
+func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 
@@ -1458,33 +1459,6 @@ func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), core.MinMetaTxExtraGasCost)
-}
-
-func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		scQuery := &process.SCQuery{
-			ScAddress:  vm.ESDTSCAddress,
-			FuncName:   "getAllESDTTokens",
-			CallerAddr: vm.ESDTSCAddress,
-			CallValue:  big.NewInt(0),
-			Arguments:  [][]byte{},
-		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
-		if err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok {
-			return nil
-		}
-		if len(vmOutput.ReturnData) == 0 {
-			return nil
-		}
-
-		return vmOutput.ReturnData[0]
-	}
-
-	return nil
 }
 
 func getESDTTokenData(
