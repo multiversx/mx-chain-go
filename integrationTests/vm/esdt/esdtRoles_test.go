@@ -61,7 +61,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	// /////////------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
-	issueTestToken(nodes, initialSupply.Int64())
+	issueTestToken(nodes, initialSupply.Int64(), "FTT")
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -69,7 +69,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
 	// /////// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
@@ -175,7 +175,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	// /////////------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
-	issueTestToken(nodes, initialSupply.Int64())
+	issueTestToken(nodes, initialSupply.Int64(), "FTT")
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -183,7 +183,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
 
 	// /////// ----- set special role
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))

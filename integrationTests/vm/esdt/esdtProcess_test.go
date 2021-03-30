@@ -1,8 +1,6 @@
 package esdt
 
 import (
-	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -74,7 +72,8 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -82,7 +81,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
@@ -91,7 +90,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	// send tx to other nodes
 	valueToSend := int64(100)
 	for _, node := range nodes[1:] {
-		txData := txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
+		txData = txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
 		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
@@ -215,7 +214,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
@@ -280,7 +279,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 		Value:          issuePrice,
 		RcvAddr:        vm.ESDTSCAddress,
 		SndAddr:        metaNode.OwnAccount.Address,
-		Data:           []byte(txData.ToBytes()),
+		Data:           txData.ToBytes(),
 		PrevTxHash:     []byte("hash"),
 		OriginalTxHash: []byte("hash"),
 		GasLimit:       10000000,
@@ -346,7 +345,8 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 
 	// send token issue
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -354,7 +354,7 @@ func TestScSendsEsdtToUserWithMessage(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contract
@@ -448,7 +448,8 @@ func TestESDTcallsSC(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -456,7 +457,7 @@ func TestESDTcallsSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// send tx to other nodes
@@ -569,7 +570,8 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 
 	// send token issue
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -577,7 +579,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contracts
@@ -726,7 +728,8 @@ func TestCallbackPaymentEgld(t *testing.T) {
 
 	// send token issue
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -734,7 +737,7 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contracts
@@ -840,7 +843,8 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -848,7 +852,7 @@ func TestScCallsScWithEsdtCrossShard(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contracts
@@ -964,7 +968,8 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 
 	// send token issue
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -972,7 +977,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contracts
@@ -1083,7 +1088,8 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	// send token issue
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -1091,7 +1097,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy smart contracts
@@ -1254,7 +1260,8 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -1262,7 +1269,7 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	// deploy the smart contracts
@@ -1367,7 +1374,8 @@ func TestESDTMultiTransferFromSC(t *testing.T) {
 	// send token issue
 
 	initialSupply := int64(10000000000)
-	issueTestToken(nodes, initialSupply)
+	ticker := "TCK"
+	issueTestToken(nodes, initialSupply, ticker)
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -1375,7 +1383,7 @@ func TestESDTMultiTransferFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
 
 	txData := txDataBuilder.NewBuilder()

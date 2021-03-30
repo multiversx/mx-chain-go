@@ -634,9 +634,12 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 		e.eei.AddReturnMessage("only non fungible tokens can be freezed per nonce")
 		return vmcommon.UserError
 	}
-
 	if !e.isAddressValid(args.Arguments[2]) {
 		e.eei.AddReturnMessage("invalid address to freeze/unfreeze")
+		return vmcommon.UserError
+	}
+	if !isArgumentsUint64(args.Arguments[1]) {
+		e.eei.AddReturnMessage("invalid second argument, wanted nonce as bigInt")
 		return vmcommon.UserError
 	}
 
@@ -649,6 +652,11 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 	}
 
 	return vmcommon.Ok
+}
+
+func isArgumentsUint64(arg []byte) bool {
+	argAsBigInt := big.NewInt(0).SetBytes(arg)
+	return argAsBigInt.IsUint64()
 }
 
 func (e *esdt) wipeTokenFromAddress(
@@ -694,6 +702,10 @@ func (e *esdt) wipeSingleNFT(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 	if string(token.TokenType) == core.FungibleESDT {
 		e.eei.AddReturnMessage("only non fungible tokens can be wiped per nonce")
+		return vmcommon.UserError
+	}
+	if !isArgumentsUint64(args.Arguments[1]) {
+		e.eei.AddReturnMessage("invalid second argument, wanted nonce as bigInt")
 		return vmcommon.UserError
 	}
 
