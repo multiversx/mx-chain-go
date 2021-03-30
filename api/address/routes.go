@@ -22,8 +22,7 @@ const (
 	getKeyPath      = "/:address/key/:key"
 	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
-	getESDTNFTData  = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce"
-	getAllESDTData  = "/:address/completeEsdts"
+	getESDTNFTData  = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -76,8 +75,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getKeysPath, GetKeyValuePairs)
 	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
 	router.RegisterHandler(http.MethodGet, getESDTNFTData, GetESDTNFTData)
-	router.RegisterHandler(http.MethodGet, getESDTTokens, GetESDTTokens)
-	router.RegisterHandler(http.MethodGet, getAllESDTData, GetAllESDTData)
+	router.RegisterHandler(http.MethodGet, getESDTTokens, GetAllESDTData)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -478,54 +476,6 @@ func GetESDTNFTData(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"tokenData": tokenData},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
-}
-
-// GetESDTTokens returns the tokens list from this account
-func GetESDTTokens(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
-	addr := c.Param("address")
-	if addr == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), errors.ErrEmptyAddress.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
-		return
-	}
-
-	tokens, err := facade.GetAllESDTTokens(addr)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	listOfTokens := make([]string, 0, len(tokens))
-	for token := range tokens {
-		listOfTokens = append(listOfTokens, token)
-	}
-
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"tokens": listOfTokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

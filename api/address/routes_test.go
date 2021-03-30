@@ -581,7 +581,7 @@ func TestGetESDTNFTData_NilContextShouldError(t *testing.T) {
 
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/myAddress/esdtnft/newToken/nonce/10", nil)
+	req, _ := http.NewRequest("GET", "/address/myAddress/nft/newToken/nonce/10", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -604,7 +604,7 @@ func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/nonce/10", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -631,7 +631,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtnft/newToken/nonce/10", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -658,56 +658,6 @@ func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
-func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
-	t.Parallel()
-
-	testAddress := "address"
-	expectedErr := errors.New("expected error")
-	facade := mock.Facade{
-		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
-			return nil, expectedErr
-		},
-	}
-
-	ws := startNodeServer(&facade)
-
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	esdtTokenResponseObj := esdtTokensResponse{}
-	loadResponse(resp.Body, &esdtTokenResponseObj)
-	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(esdtTokenResponseObj.Error, expectedErr.Error()))
-}
-
-func TestGetESDTTokens_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	testAddress := "address"
-	testValue1 := "token1"
-	testValue2 := "token2"
-	facade := mock.Facade{
-		GetAllESDTTokensCalled: func(address string) (map[string]*esdt.ESDigitalToken, error) {
-			tokens := make(map[string]*esdt.ESDigitalToken)
-			tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
-			tokens[testValue2] = &esdt.ESDigitalToken{Value: big.NewInt(100)}
-			return tokens, nil
-		},
-	}
-
-	ws := startNodeServer(&facade)
-
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	esdtTokenResponseObj := esdtTokensResponse{}
-	loadResponse(resp.Body, &esdtTokenResponseObj)
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
-}
-
 func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -721,7 +671,7 @@ func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/completeEsdts", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -748,7 +698,7 @@ func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/completeEsdts", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -854,8 +804,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
-					{Name: "/:address/esdtnft/:tokenIdentifier/nonce/:nonce", Open: true},
-					{Name: "/:address/completeEsdts", Open: true},
+					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 				},
 			},
 		},
