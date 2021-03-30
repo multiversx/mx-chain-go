@@ -540,7 +540,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 }
 
 // GetAllESDTTokens returns the value of a key from a given account
-func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
+func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandler(address)
 	if err != nil {
 		return nil, err
@@ -551,11 +551,10 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		return nil, ErrAccountNotFound
 	}
 
+	allESDTs := make(map[string]*esdt.ESDigitalToken)
 	if check.IfNil(userAccount.DataTrie()) {
-		return []string{}, nil
+		return allESDTs, nil
 	}
-
-	foundTokens := make([]string, 0)
 
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
@@ -576,10 +575,20 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		}
 
 		tokenName := string(leaf.Key()[lenESDTPrefix:])
-		foundTokens = append(foundTokens, tokenName)
+		esdtToken := &esdt.ESDigitalToken{}
+		err = n.internalMarshalizer.Unmarshal(esdtToken, leaf.Value())
+		if err != nil {
+			return nil, err
+		}
+
+		if esdtToken.TokenMetaData != nil {
+			esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+		}
+
+		allESDTs[tokenName] = esdtToken
 	}
 
-	return foundTokens, nil
+	return allESDTs, nil
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {

@@ -23,6 +23,7 @@ const (
 	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
 	getESDTNFTData  = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce"
+	getAllESDTData  = "/:address/completeEsdts"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -33,7 +34,7 @@ type FacadeHandler interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 	GetCode(account state.UserAccountHandler) []byte
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokens(address string) ([]string, error)
+	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
 	IsInterfaceNil() bool
 }
@@ -76,6 +77,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
 	router.RegisterHandler(http.MethodGet, getESDTNFTData, GetESDTNFTData)
 	router.RegisterHandler(http.MethodGet, getESDTTokens, GetESDTTokens)
+	router.RegisterHandler(http.MethodGet, getAllESDTData, GetAllESDTData)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -515,10 +517,77 @@ func GetESDTTokens(c *gin.Context) {
 		return
 	}
 
+	listOfTokens := make([]string, 0, len(tokens))
+	for token := range tokens {
+		listOfTokens = append(listOfTokens, token)
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"tokens": tokens},
+			Data:  gin.H{"tokens": listOfTokens},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetAllESDTData returns the tokens list from this account
+func GetAllESDTData(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokens, err := facade.GetAllESDTTokens(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	formattedTokens := make(map[string]*esdtNFTTokenData)
+	for tokenID, esdtData := range tokens {
+		tokenData := &esdtNFTTokenData{
+			TokenIdentifier: tokenID,
+			Balance:         esdtData.Value.String(),
+			Properties:      string(esdtData.Properties),
+		}
+		if esdtData.TokenMetaData != nil {
+			tokenData.Name = string(esdtData.TokenMetaData.Name)
+			tokenData.Creator = string(esdtData.TokenMetaData.Creator)
+			tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
+			tokenData.Hash = esdtData.TokenMetaData.Hash
+			tokenData.URIs = esdtData.TokenMetaData.URIs
+			tokenData.Attributes = esdtData.TokenMetaData.Attributes
+		}
+
+		formattedTokens[tokenID] = tokenData
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"esdts": formattedTokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

@@ -49,7 +49,10 @@
         { Name = "/:address/esdt/:tokenIdentifier", Open = true },
 
         # /address/:address/esdtnft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
-        { Name = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce", Open = true }
+        { Name = "/:address/esdtnft/:tokenIdentifier/nonce/:nonce", Open = true },
+
+        # /address/:address/completeEsdts will return the list of esdt tokens and all the underlying data for a given account
+        { Name = "/:address/completeEsdts", Open = true }
 	]
 
 [APIPackages.hardfork]

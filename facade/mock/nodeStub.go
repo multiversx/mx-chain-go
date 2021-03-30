@@ -42,7 +42,7 @@ type NodeStub struct {
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
-	GetAllESDTTokensCalled                         func(address string) ([]string, error)
+	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 }
 
@@ -192,12 +192,12 @@ func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ES
 }
 
 // GetAllESDTTokens -
-func (ns *NodeStub) GetAllESDTTokens(address string) ([]string, error) {
+func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if ns.GetAllESDTTokensCalled != nil {
 		return ns.GetAllESDTTokensCalled(address)
 	}
 
-	return []string{""}, nil
+	return make(map[string]*esdt.ESDigitalToken), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
