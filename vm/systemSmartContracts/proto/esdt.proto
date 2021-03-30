@@ -27,6 +27,7 @@ message ESDTData {
     bool   NFTCreateStopped         = 17 [(gogoproto.jsontag) = "NFTCreateStopped"];
     bool   CanTransferNFTCreateRole = 18 [(gogoproto.jsontag) = "CanTransferNFTCreateRole"];
     repeated ESDTRoles SpecialRoles = 19 [(gogoproto.jsontag) = "SpecialRoles"];
+    uint32 NumWiped                 = 20 [(gogoproto.jsontag) = "NumWiped"];
 }
 
 message ESDTRoles {
