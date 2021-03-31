@@ -60,6 +60,8 @@ import (
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
+const esdtTickerNumChars = 6
+
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
 
@@ -592,12 +594,32 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 
 		if esdtToken.TokenMetaData != nil {
 			esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
 		allESDTs[tokenName] = esdtToken
 	}
 
 	return allESDTs, nil
+}
+
+func adjustNftTokenIdentifier(token string, nonce uint64) string {
+	splitToken := strings.Split(token, "-")
+	if len(splitToken) < 2 {
+		return token
+	}
+
+	if len(splitToken[1]) < esdtTickerNumChars {
+		return token
+	}
+
+	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()
+	formattedTokenIdentifier := fmt.Sprintf("%s-%s-%s",
+		splitToken[0],
+		splitToken[1][:esdtTickerNumChars],
+		hex.EncodeToString(nonceBytes))
+
+	return formattedTokenIdentifier
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {

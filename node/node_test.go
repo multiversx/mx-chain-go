@@ -390,6 +390,73 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	assert.Equal(t, esdtData, value[esdtToken])
 }
 
+func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	esdtToken := "TKKR-7q8w9e"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
+	nftToken := "TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKey = append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKey, acc.AddressBytes()...)
+
+	nftData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder, 2)
+
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					ch <- trieLeaf
+					wg.Done()
+					close(ch)
+				}()
+
+				wg.Wait()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	tokens, err := n.GetAllESDTTokens(hexAddress)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(tokens))
+	assert.Equal(t, esdtData, tokens[esdtToken])
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
 //------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
