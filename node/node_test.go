@@ -3038,3 +3038,84 @@ func TestNode_StartHeartbeat(t *testing.T) {
 
 	time.Sleep(time.Second)
 }
+
+func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
+}
+
+func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, nil
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, node.ErrAccountNotFound, err)
+}
+
+func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, nil
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				return expectedErr
+			},
+		}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, expectedErr, err)
+}

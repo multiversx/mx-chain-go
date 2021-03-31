@@ -588,13 +588,6 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 }
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
-	if check.IfNil(n.addressPubkeyConverter) {
-		return nil, errors.New("initialize PubkeyConverter first")
-	}
-	if check.IfNil(n.accountsAPI) {
-		return nil, errors.New("initialize AccountsAdapterAPI first")
-	}
-
 	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
