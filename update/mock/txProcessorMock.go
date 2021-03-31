@@ -11,6 +11,7 @@ import (
 // TxProcessorMock -
 type TxProcessorMock struct {
 	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled          func(tx *transaction.Transaction) error
 	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
 	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
@@ -22,6 +23,15 @@ func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transact
 	}
 
 	return 0, nil
+}
+
+// VerifyTransaction -
+func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) error {
+	if etm.VerifyTransactionCalled != nil {
+		return etm.VerifyTransactionCalled(tx)
+	}
+
+	return nil
 }
 
 // SetBalancesToTrie -

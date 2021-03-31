@@ -167,7 +167,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 ) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
-	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, *arg.GeneralConfig)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs)
 	if err != nil {
 		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
 	}
@@ -236,7 +236,7 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
@@ -271,6 +271,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		ValidatorAccountsDB: arg.ValidatorAccounts,
 		ChanceComputer:      &disabled.Rater{},
 		EpochNotifier:       epochNotifier,
+		EpochConfig:         arg.EpochConfig,
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
@@ -320,7 +321,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, generalConfig.SCDeployEnableEpoch)
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, enableEpochs.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -346,12 +347,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
-		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
+		DeployEnableEpoch:              enableEpochs.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             enableEpochs.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      enableEpochs.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		StakingV2EnableEpoch:           arg.EpochConfig.EnableEpochs.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -367,7 +368,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		ScProcessor:      scProcessor,
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     genesisFeeHandler,
-		ESDTEnableEpoch:  arg.SystemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		ESDTEnableEpoch:  arg.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		EpochNotifier:    epochNotifier,
 	}
 	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
@@ -379,6 +380,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	disabledBlockTracker := &disabled.BlockTracker{}
 	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
 	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
@@ -396,6 +398,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		arg.Core.AddressPubKeyConverter(),
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		epochNotifier,
+		enableEpochs.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		disabledScheduledTxsExecutionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -421,7 +427,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		BalanceComputation:                disabledBalanceComputationHandler,
 		EconomicsFee:                      genesisFeeHandler,
 		TxTypeHandler:                     txTypeHandler,
-		BlockGasAndFeesReCheckEnableEpoch: generalConfig.BlockGasAndFeesReCheckEnableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

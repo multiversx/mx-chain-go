@@ -11,6 +11,7 @@ import (
 // BlockProcessorStub mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled         func(header data.HeaderHandler)
 	CreateGenesisBlockCalled         func(balances map[string]*big.Int) (data.HeaderHandler, error)
@@ -35,9 +36,14 @@ func (bps *BlockProcessorStub) RestoreLastNotarizedHrdsToGenesis() {
 func (bps *BlockProcessorStub) SetNumProcessedObj(_ uint64) {
 }
 
-// ProcessBlock mocks pocessing a block
+// ProcessBlock mocks processing a block
 func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bps.ProcessBlockCalled(header, body, haveTime)
+}
+
+// ProcessScheduledBlock mocks processing a scheduled block
+func (bps *BlockProcessorStub) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return bps.ProcessScheduledBlockCalled(header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block

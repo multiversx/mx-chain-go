@@ -91,14 +91,15 @@ func createMockMetaArguments(
 					return nil
 				},
 			},
-			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			Indexer:                 &mock.IndexerMock{},
-			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:           &mock.EpochNotifierStub{},
-			AppStatusHandler:        &mock.AppStatusHandlerStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Indexer:                      &mock.IndexerMock{},
+			TpsBenchmark:                 &testscommon.TpsBenchmarkMock{},
+			HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
+			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:                &mock.EpochNotifierStub{},
+			AppStatusHandler:             &mock.AppStatusHandlerStub{},
+			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -356,6 +357,18 @@ func TestNewMetaProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilBlockSizeThrottler, err)
+	assert.Nil(t, be)
+}
+
+func TestNewMetaProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents)
+	arguments.ScheduledTxsExecutionHandler = nil
+
+	be, err := blproc.NewMetaProcessor(arguments)
+	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
 	assert.Nil(t, be)
 }
 

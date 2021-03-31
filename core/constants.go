@@ -348,6 +348,12 @@ const MetricAverageBlockTxCount = "erd_average_block_tx_count"
 // MetricTotalSupply holds the total supply value for the last epoch
 const MetricTotalSupply = "erd_total_supply"
 
+// MetricTotalStakedValue holds the total staked value
+const MetricTotalStakedValue = "erd_total_staked_value"
+
+// MetricTopUpValue holds the total top up value
+const MetricTopUpValue = "erd_total_top_up_value"
+
 // MetricInflation holds the inflation value for the last epoch
 const MetricInflation = "erd_inflation"
 
@@ -602,3 +608,6 @@ const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32
+
+// ScheduledBlock represents the name used to differentiate normal vs. scheduled transactions and mini blocks
+const ScheduledBlock = "ScheduledBlock"

@@ -173,8 +173,13 @@ func (txc *transactionCounter) displayTxBlockBody(lines []*display.LineData, bod
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 
+		mbTypeStr := miniBlock.Type.String()
+		if miniBlock.IsScheduledMiniBlock() {
+			mbTypeStr = core.ScheduledBlock
+		}
+
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
-			miniBlock.Type.String(),
+			mbTypeStr,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 

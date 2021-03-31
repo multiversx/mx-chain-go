@@ -99,6 +99,7 @@ type processComponents struct {
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
+	EpochConfig               config.EpochConfig
 	PrefConfigs               config.PreferencesConfig
 	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
@@ -141,6 +142,7 @@ type ProcessComponentsFactoryArgs struct {
 
 type processComponentsFactory struct {
 	config                    config.Config
+	epochConfig               config.EpochConfig
 	prefConfigs               config.PreferencesConfig
 	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
@@ -192,6 +194,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 	return &processComponentsFactory{
 		config:                    args.Config,
+		epochConfig:               args.EpochConfig,
 		prefConfigs:               args.PrefConfigs,
 		importDBConfig:            args.ImportDBConfig,
 		accountsParser:            args.AccountsParser,
@@ -585,9 +588,9 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RatingEnableEpoch:               ratingEnabledEpoch,
 		GenesisNonce:                    pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 		EpochNotifier:                   pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
-		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
-		StakingV2EnableEpoch:            pcf.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		SwitchJailWaitingEnableEpoch:    pcf.epochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: pcf.epochConfig.EnableEpochs.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            pcf.epochConfig.EnableEpochs.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -698,7 +701,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
-		GeneralConfig:        &pcf.config.GeneralSettings,
+		EpochConfig:          &pcf.epochConfig,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -1139,8 +1142,10 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 	}
+	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
+
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
@@ -1177,8 +1182,10 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
-		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 	}
+	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
+
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err

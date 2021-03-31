@@ -298,6 +298,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ScheduledMiniBlocksEnableEpoch    uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -389,6 +390,7 @@ func newBaseTestProcessorNode(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
+	tpn.ScheduledMiniBlocksEnableEpoch = uint32(1000000)
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
@@ -790,8 +792,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					StakingV2Epoch:                       0,
-					StakeEnableEpoch:                     0,
+					UnBondPeriodInEpochs:                 1,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
@@ -801,12 +802,10 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 					MinCreationDeposit:  "100",
-					EnabledEpoch:        0,
 					MinStakeAmount:      "100",
 					ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					EnabledEpoch:  0,
 					MinServiceFee: 0,
 					MaxServiceFee: 100000,
 				},
@@ -814,6 +813,14 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			EpochNotifier:       tpn.EpochNotifier,
+			EpochConfig: &config.EpochConfig{
+				EnableEpochs: config.EnableEpochs{
+					StakingV2Epoch:                     0,
+					StakeEnableEpoch:                   0,
+					DelegationSmartContractEnableEpoch: 0,
+					DelegationManagerEnableEpoch:       0,
+				},
+			},
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1370,6 +1377,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1389,6 +1397,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1496,8 +1508,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       0,
-				StakeEnableEpoch:                     0,
+				UnBondPeriodInEpochs:                 1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -1507,12 +1518,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
 				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100000,
 			},
@@ -1520,6 +1529,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       tpn.EpochNotifier,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:                     0,
+				StakeEnableEpoch:                   0,
+				DelegationSmartContractEnableEpoch: 0,
+				DelegationManagerEnableEpoch:       0,
+			},
+		},
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -1577,6 +1594,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:    tpn.EpochNotifier,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1594,6 +1612,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EpochNotifier,
+		tpn.ScheduledMiniBlocksEnableEpoch,
+		txTypeHandler,
+		scheduledTxsExecutionHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1765,15 +1787,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:       tpn.HistoryRepository,
-		EpochNotifier:           tpn.EpochNotifier,
-		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:        &mock.AppStatusHandlerStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		StateCheckpointModulus:       stateCheckpointModulus,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		Indexer:                      indexer.NewNilIndexer(),
+		TpsBenchmark:                 &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:            tpn.HistoryRepository,
+		EpochNotifier:                tpn.EpochNotifier,
+		HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1944,6 +1967,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
+		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}

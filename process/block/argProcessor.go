@@ -32,32 +32,33 @@ type dataComponentsHolder interface {
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	CoreComponents          coreComponentsHolder
-	DataComponents          dataComponentsHolder
-	AccountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector            process.ForkDetector
-	ShardCoordinator        sharding.Coordinator
-	NodesCoordinator        sharding.NodesCoordinator
-	FeeHandler              process.TransactionFeeHandler
-	RequestHandler          process.RequestHandler
-	BlockChainHook          process.BlockChainHookHandler
-	TxCoordinator           process.TransactionCoordinator
-	EpochStartTrigger       process.EpochStartTriggerHandler
-	HeaderValidator         process.HeaderConstructionValidator
-	RoundHandler            consensus.RoundHandler
-	BootStorer              process.BootStorer
-	BlockTracker            process.BlockTracker
-	StateCheckpointModulus  uint
-	BlockSizeThrottler      process.BlockSizeThrottler
-	Indexer                 process.Indexer
-	TpsBenchmark            statistics.TPSBenchmark
-	Version                 string
-	HistoryRepository       dblookupext.HistoryRepository
-	EpochNotifier           process.EpochNotifier
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	AppStatusHandler        core.AppStatusHandler
-	VMContainersFactory     process.VirtualMachinesContainerFactory
-	VmContainer             process.VirtualMachinesContainer
+	CoreComponents               coreComponentsHolder
+	DataComponents               dataComponentsHolder
+	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector                 process.ForkDetector
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             sharding.NodesCoordinator
+	FeeHandler                   process.TransactionFeeHandler
+	RequestHandler               process.RequestHandler
+	BlockChainHook               process.BlockChainHookHandler
+	TxCoordinator                process.TransactionCoordinator
+	EpochStartTrigger            process.EpochStartTriggerHandler
+	HeaderValidator              process.HeaderConstructionValidator
+	RoundHandler                 consensus.RoundHandler
+	BootStorer                   process.BootStorer
+	BlockTracker                 process.BlockTracker
+	StateCheckpointModulus       uint
+	BlockSizeThrottler           process.BlockSizeThrottler
+	Indexer                      process.Indexer
+	TpsBenchmark                 statistics.TPSBenchmark
+	Version                      string
+	HistoryRepository            dblookupext.HistoryRepository
+	EpochNotifier                process.EpochNotifier
+	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
+	AppStatusHandler             core.AppStatusHandler
+	VMContainersFactory          process.VirtualMachinesContainerFactory
+	VmContainer                  process.VirtualMachinesContainer
+	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

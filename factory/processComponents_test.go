@@ -172,8 +172,6 @@ func getProcessArgs(
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
 				UnBondPeriod:                         0,
-				StakingV2Epoch:                       0,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -183,12 +181,10 @@ func getProcessArgs(
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
 				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
