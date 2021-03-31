@@ -615,9 +615,10 @@ func distributeValidators(destLists map[uint32][]Validator, validators []Validat
 	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)
 	shuffledValidators := shuffleList(validators, randomness)
 	var shardId uint32
-
 	sortedShardIds := sortKeys(destLists)
 	destLength := uint32(len(sortedShardIds))
+
+	shuffledValidators = equalizeValidatorsLists(destLists, shuffledValidators)
 
 	for i, v := range shuffledValidators {
 		shardId = sortedShardIds[uint32(i)%destLength]
@@ -625,6 +626,41 @@ func distributeValidators(destLists map[uint32][]Validator, validators []Validat
 	}
 
 	return nil
+}
+
+func equalizeValidatorsLists(destLists map[uint32][]Validator, validators []Validator) []Validator {
+	maxListSize := getMaxListSize(destLists)
+	indexValidators := 0
+	remainingValidatorsNumber := len(validators)
+
+	sortedShardIds := sortKeys(destLists)
+
+	for _, shardID := range sortedShardIds {
+		shardList := destLists[shardID]
+		if len(shardList) < maxListSize {
+			toMove := maxListSize - len(shardList)
+			if toMove > remainingValidatorsNumber {
+				toMove = remainingValidatorsNumber
+			}
+
+			destLists[shardID] = append(destLists[shardID], validators[indexValidators:indexValidators+toMove]...)
+			remainingValidatorsNumber -= toMove
+			indexValidators += toMove
+		}
+	}
+
+	return validators[indexValidators : indexValidators+remainingValidatorsNumber]
+}
+
+func getMaxListSize(lists map[uint32][]Validator) int {
+	var maxSize int
+
+	for _, list := range lists {
+		if maxSize < len(list) {
+			maxSize = len(list)
+		}
+	}
+	return maxSize
 }
 
 func sortKeys(nodes map[uint32][]Validator) []uint32 {

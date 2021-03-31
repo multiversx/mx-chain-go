@@ -712,6 +712,42 @@ func Test_shuffleListConsistentShuffling(t *testing.T) {
 	}
 }
 
+func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T){
+	t.Parallel()
+	valToGenerate := map[uint32]int{0:30, 1:10, core.MetachainShardId:20}
+	validatorsMap := make(map[uint32][]Validator)
+	for i, nbValidators := range valToGenerate {
+		validatorsMap[i] = generateValidatorList(nbValidators)
+	}
+
+	nbLists := len(validatorsMap)
+	newNodesPerShard := 20
+	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
+	validatorsCopy := copyValidatorMap(validatorsMap)
+
+	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
+	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
+
+	testDistributeValidators(t, validatorsCopy, validatorsMap, v)
+}
+
+func Test_equalizeValidatorsListsUnbalancedListsNotEnoughToDistribute(t *testing.T){
+	t.Parallel()
+	valToGenerate := map[uint32]int{0:30, 1:10, core.MetachainShardId:20}
+	validatorsMap := make(map[uint32][]Validator)
+	for i, nbValidators := range valToGenerate {
+		validatorsMap[i] = generateValidatorList(nbValidators)
+	}
+
+	validatorsToDistribute := generateValidatorList(25)
+	validatorsCopy := copyValidatorMap(validatorsMap)
+
+	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
+	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
+
+	testDistributeValidators(t, validatorsCopy, validatorsMap, v)
+}
+
 func Test_distributeValidatorsEqualNumber(t *testing.T) {
 	t.Parallel()
 
