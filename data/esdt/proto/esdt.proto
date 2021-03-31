@@ -14,6 +14,7 @@ message ESDigitalToken {
 	bytes  Value           = 2 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes  Properties      = 3 [(gogoproto.jsontag) = "Properties"];
 	MetaData TokenMetaData = 4 [(gogoproto.jsontag) = "MetaData"];
+	bytes  Reserved        = 5 [(gogoproto.jsontag) = "Reserved"];
 }
 
 // ESDTRoles holds the roles for a given token and the given address
