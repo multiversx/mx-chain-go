@@ -7,11 +7,48 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewSaveKeyValueStorageFunc(t *testing.T) {
+	t.Parallel()
+
+	funcGasCost := uint64(1)
+	gasConfig := process.BaseOperationCost{
+		StorePerByte: 1,
+	}
+
+	kvs, err := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
+	require.NoError(t, err)
+	require.False(t, check.IfNil(kvs))
+	require.Equal(t, funcGasCost, kvs.funcGasCost)
+	require.Equal(t, gasConfig, kvs.gasConfig)
+}
+
+func TestSaveKeyValueStorageFunc_SetNewGasConfig(t *testing.T) {
+	t.Parallel()
+
+	funcGasCost := uint64(1)
+	gasConfig := process.BaseOperationCost{
+		StorePerByte: 1,
+	}
+
+	kvs, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
+	require.NotNil(t, kvs)
+
+	newGasConfig := process.BaseOperationCost{
+		StorePerByte: 37,
+	}
+	newGasCost := &process.GasCost{BaseOperationCost: newGasConfig}
+
+	kvs.SetNewGasConfig(newGasCost)
+
+	require.Equal(t, newGasConfig, kvs.gasConfig)
+}
 
 func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	t.Parallel()

@@ -270,6 +270,7 @@ func readNFTData(t *testing.T, accounts state.AccountsAdapter, marshalizer marsh
 
 	nonceKey := getNonceKey(tokenID)
 	latestNonceBytes, err := account.(state.UserAccountHandler).DataTrieTracker().RetrieveValue(nonceKey)
+	require.Nil(t, err)
 	latestNonce := big.NewInt(0).SetBytes(latestNonceBytes).Uint64()
 
 	createdTokenID := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)

@@ -121,6 +121,7 @@ func TestESDTNFTCreateRoleTransfer_ProcessAtCurrentShard(t *testing.T) {
 
 	esdtTokenRoleKey := append(roleKeyPrefix, tokenID...)
 	err = saveRolesToAccount(userAcc, esdtTokenRoleKey, &esdt.ESDTRoles{Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTAddQuantity)}}, e.marshalizer)
+	assert.Nil(t, err)
 	_ = saveLatestNonce(userAcc, tokenID, 100)
 	_ = e.accounts.SaveAccount(userAcc)
 	_, _ = e.accounts.Commit()
