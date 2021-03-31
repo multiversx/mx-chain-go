@@ -16,12 +16,14 @@ const (
 	getConfigPath = "/config"
 	getStatusPath = "/status"
 	economicsPath = "/economics"
+	getESDTsPath  = "/esdts"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	StatusMetrics() external.StatusMetricsHandler
+	GetAllIssuedESDTs() ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -30,6 +32,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -126,6 +129,36 @@ func EconomicsMetrics(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetAllIssuedESDTs returns all the issued esdts from the metachain
+func GetAllIssuedESDTs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	tokens, err := facade.GetAllIssuedESDTs()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

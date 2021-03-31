@@ -44,6 +44,7 @@ type NodeStub struct {
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
+	GetAllIssuedESDTsCalled                        func() ([]string, error)
 }
 
 // GetUsername -
@@ -198,6 +199,14 @@ func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigital
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetAllIssuedESDTs -
+func (ns *NodeStub) GetAllIssuedESDTs() ([]string, error) {
+	if ns.GetAllIssuedESDTsCalled != nil {
+		return ns.GetAllIssuedESDTsCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

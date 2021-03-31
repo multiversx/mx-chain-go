@@ -88,16 +88,6 @@ type esdtNFTResponse struct {
 	Code  string              `json:"code"`
 }
 
-type esdtTokensResponseData struct {
-	Tokens []string `json:"tokens"`
-}
-
-type esdtTokensResponse struct {
-	Data  esdtTokensResponseData `json:"data"`
-	Error string                 `json:"error"`
-	Code  string
-}
-
 type esdtTokensCompleteResponseData struct {
 	Tokens map[string]esdtNFTTokenData `json:"esdts"`
 }

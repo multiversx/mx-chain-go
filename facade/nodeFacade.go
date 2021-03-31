@@ -287,6 +287,11 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 	return nf.node.GetAllESDTTokens(address)
 }
 
+// GetAllIssuedESDTs returns all the issued esdts for a given address
+func (nf *nodeFacade) GetAllIssuedESDTs() ([]string, error) {
+	return nf.node.GetAllIssuedESDTs()
+}
+
 // CreateTransaction creates a transaction from all needed fields
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,

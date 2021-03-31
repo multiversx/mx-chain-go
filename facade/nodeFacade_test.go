@@ -733,6 +733,41 @@ func TestNodeFacade_GetValueForKey(t *testing.T) {
 	assert.Equal(t, expectedValue, res)
 }
 
+func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := []string{"value"}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return expectedValue, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetAllIssuedESDTs()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local")
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return nil, localErr
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	_, err := nf.GetAllIssuedESDTs()
+	assert.Equal(t, err, localErr)
+}
+
 func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
 	t.Parallel()
 
