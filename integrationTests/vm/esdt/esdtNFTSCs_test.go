@@ -386,7 +386,7 @@ func deployAndIssueNFTSFTThroughSC(
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
 	txData = []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + rolesEncoded)
 	integrationTests.CreateAndSendTransaction(

@@ -165,11 +165,6 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-
-	eei.output = make([][]byte, 0)
-	vmInput = getDefaultVmInputForFunc("getAllESDTTokens", [][]byte{})
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {

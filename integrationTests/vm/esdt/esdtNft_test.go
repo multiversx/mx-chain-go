@@ -654,14 +654,14 @@ func prepareNFTWithRoles(
 	quantity int64,
 	roles [][]byte,
 ) (string, *nftArguments) {
-	issueNFT(nodes, esdtType)
+	issueNFT(nodes, esdtType, "SFT")
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 5
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("SFT")))
 
 	//// /////// ----- set special roles
 	setRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
@@ -699,8 +699,7 @@ func prepareNFTWithRoles(
 	return tokenIdentifier, &nftMetaData
 }
 
-func issueNFT(nodes []*integrationTests.TestProcessorNode, esdtType string) {
-	ticker := "SFT"
+func issueNFT(nodes []*integrationTests.TestProcessorNode, esdtType string, ticker string) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 

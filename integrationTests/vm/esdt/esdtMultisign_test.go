@@ -72,7 +72,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	//----- issue ESDT token
 	initalSupply := big.NewInt(10000000000)
-	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0)
+	ticker := "TCK"
+	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0, ticker)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
@@ -94,7 +95,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := getTokenIdentifier(nodes)
+	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
 	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
 
 	checkCallBackWasSaved(t, nodes, multisignContractAddress)
@@ -102,7 +103,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	//----- transfer ESDT token
 	destinationAddress, _ := integrationTests.TestAddressPubkeyConverter.Decode("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5")
 	transferValue := big.NewInt(10)
-	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress)
+	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress, tokenIdentifier)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
@@ -197,10 +198,10 @@ func proposeIssueTokenAndTransferFunds(
 	multisignContractAddress []byte,
 	initalSupply *big.Int,
 	ownerIdx int,
+	ticker string,
 ) {
 	tokenName := []byte("token")
 	issuePrice := big.NewInt(1000)
-	ticker := "TKN"
 	multisigParams := []string{
 		"proposeSCCall",
 		hex.EncodeToString(vm.ESDTSCAddress),
@@ -310,8 +311,8 @@ func proposeTransferToken(
 	transferValue *big.Int,
 	ownerIdx int,
 	destinationAddress []byte,
+	tokenID []byte,
 ) {
-	tokenID := getTokenIdentifier(nodes)
 	multisigParams := []string{
 		"proposeSCCall",
 		hex.EncodeToString(destinationAddress),
