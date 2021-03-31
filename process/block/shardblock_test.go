@@ -1904,7 +1904,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	statusComponents.Indexer = &mock.IndexerMock{
-		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
 			txsPool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -211,13 +210,9 @@ func (scf *statusComponentsFactory) createElasticIndexer() (process.Indexer, err
 		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
-		Options: &indexer.Options{
-			UseKibana: elasticSearchConfig.UseKibana,
-		},
-		IsInImportDBMode: scf.isInImportMode,
+		UseKibana:                elasticSearchConfig.UseKibana,
+		IsInImportDBMode:         scf.isInImportMode,
 	}
-
-
 
 	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
