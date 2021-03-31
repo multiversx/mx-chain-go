@@ -8,14 +8,6 @@ type AccountsDBSyncerStub struct {
 	SyncAccountsCalled   func(rootHash []byte) error
 }
 
-// GetSyncedTries -
-func (a *AccountsDBSyncerStub) GetSyncedTries() map[string]data.Trie {
-	if a.GetSyncedTriesCalled != nil {
-		return a.GetSyncedTriesCalled()
-	}
-	return nil
-}
-
 // SyncAccounts -
 func (a *AccountsDBSyncerStub) SyncAccounts(rootHash []byte) error {
 	if a.SyncAccountsCalled != nil {

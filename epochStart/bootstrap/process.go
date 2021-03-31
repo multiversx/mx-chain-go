@@ -66,8 +66,6 @@ type ComponentsNeededForBootstrap struct {
 	NodesConfig         *sharding.NodesCoordinatorRegistry
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
-	UserAccountTries    map[string]data.Trie
-	PeerAccountTries    map[string]data.Trie
 	PendingMiniBlocks   map[string]*block.MiniBlock
 }
 
@@ -128,8 +126,6 @@ type epochStartBootstrap struct {
 	prevEpochStartMeta *block.MetaBlock
 	syncedHeaders      map[string]data.HeaderHandler
 	nodesConfig        *sharding.NodesCoordinatorRegistry
-	userAccountTries   map[string]data.Trie
-	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	startRound         int64
 	nodeType           core.NodeType
@@ -699,7 +695,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
+	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
@@ -712,8 +708,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -812,8 +806,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
@@ -868,7 +860,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.userAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 
@@ -939,7 +930,6 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.peerAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 

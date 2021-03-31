@@ -50,8 +50,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
-		trieSyncers:               make(map[string]data.TrieSyncer),
-		dataTries:                 make(map[string]data.Trie),
+		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
 		timeout:                   args.Timeout,
@@ -82,12 +81,11 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	tss := statistics.NewTrieSyncStatistics()
 	go u.printStatistics(tss, ctx)
 
-	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, tss, ctx)
+	mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, tss, ctx)
 	if err != nil {
 		return err
 	}
 
-	mainTrie := u.dataTries[string(rootHash)]
 	rootHashes, err := u.findAllAccountRootHashes(mainTrie, ctx)
 	if err != nil {
 		return err
@@ -145,7 +143,8 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	u.throttler.StartProcessing()
 
 	u.syncerMutex.Lock()
-	if _, ok := u.dataTries[string(rootHash)]; ok {
+	_, ok := u.dataTries[string(rootHash)]
+	if ok {
 		u.syncerMutex.Unlock()
 		u.throttler.EndProcessing()
 		return nil
@@ -157,7 +156,9 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		return err
 	}
 
-	u.dataTries[string(rootHash)] = dataTrie
+	u.dataTries[string(rootHash)] = struct{}{}
+	u.syncerMutex.Unlock()
+
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 u.requestHandler,
 		InterceptedNodes:               u.cacher,
@@ -170,11 +171,9 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	}
 	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {
-		u.syncerMutex.Unlock()
+
 		return err
 	}
-	u.trieSyncers[string(rootHash)] = trieSyncer
-	u.syncerMutex.Unlock()
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {

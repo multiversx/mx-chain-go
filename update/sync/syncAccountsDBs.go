@@ -155,7 +155,8 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID s
 		return err
 	}
 
-	st.setTries(shardId, accAdapterIdentifier, rootHash, accountsDBSyncer.GetSyncedTries())
+	//TODO(iulian) fix here in this PR
+	//st.setTries(shardId, accAdapterIdentifier, rootHash, accountsDBSyncer.GetSyncedTries())
 
 	return nil
 }

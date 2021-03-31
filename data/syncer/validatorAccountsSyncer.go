@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -31,8 +30,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
-		trieSyncers:               make(map[string]data.TrieSyncer),
-		dataTries:                 make(map[string]data.Trie),
+		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
 		timeout:                   args.Timeout,
@@ -62,5 +60,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	tss := statistics.NewTrieSyncStatistics()
 	go v.printStatistics(tss, ctx)
 
-	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+	_, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
+
+	return err
 }
