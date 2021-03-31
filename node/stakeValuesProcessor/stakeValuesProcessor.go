@@ -18,11 +18,11 @@ import (
 )
 
 type stakedValuesProc struct {
-	accounts           state.AccountsAdapter
-	blockChain         data.ChainHandler
-	queryService       process.SCQueryService
-	publicKeyConverter core.PubkeyConverter
-	mutex              *sync.Mutex
+	accounts                        state.AccountsAdapter
+	blockChain                      data.ChainHandler
+	queryService                    process.SCQueryService
+	publicKeyConverter              core.PubkeyConverter
+	mutexComputeStakedValueAndTopUp *sync.Mutex
 }
 
 // NewTotalStakedValueProcessor will create a new instance of stakedValuesProc
@@ -46,11 +46,11 @@ func NewTotalStakedValueProcessor(
 	}
 
 	return &stakedValuesProc{
-		accounts:           accounts,
-		blockChain:         blockChain,
-		mutex:              &sync.Mutex{},
-		queryService:       queryService,
-		publicKeyConverter: publicKeyConverter,
+		accounts:                        accounts,
+		blockChain:                      blockChain,
+		mutexComputeStakedValueAndTopUp: &sync.Mutex{},
+		queryService:                    queryService,
+		publicKeyConverter:              publicKeyConverter,
 	}, nil
 }
 
@@ -68,8 +68,8 @@ func (svp *stakedValuesProc) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
-	svp.mutex.Lock()
-	defer svp.mutex.Unlock()
+	svp.mutexComputeStakedValueAndTopUp.Lock()
+	defer svp.mutexComputeStakedValueAndTopUp.Unlock()
 
 	currentHeader := svp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
@@ -104,11 +104,12 @@ func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, e
 
 	totalStaked, totalTopUp := big.NewInt(0), big.NewInt(0)
 	for leaf := range chLeaves {
-		if len(leaf.Key()) != svp.publicKeyConverter.Len() {
+		leafKey := leaf.Key()
+		if len(leafKey) != svp.publicKeyConverter.Len() {
 			continue
 		}
 
-		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leaf.Key())
+		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leafKey)
 		if errGet != nil {
 			continue
 		}
