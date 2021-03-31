@@ -36,7 +36,7 @@ type NodeHandler interface {
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string) ([]string, error)
+	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
 	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,

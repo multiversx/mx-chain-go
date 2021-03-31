@@ -283,7 +283,7 @@ func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
+func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	return nf.node.GetAllESDTTokens(address)
 }
 

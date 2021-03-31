@@ -354,13 +354,16 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
 	acc.DataTrieTracker().SetDataTrie(
 		&mock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, marshalledData)
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
@@ -381,10 +384,10 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
+	value, err := n.GetAllESDTTokens(hexAddress)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
-	assert.Equal(t, esdtToken, value[0])
+	assert.Equal(t, esdtData, value[esdtToken])
 }
 
 //------- GenerateTransaction
