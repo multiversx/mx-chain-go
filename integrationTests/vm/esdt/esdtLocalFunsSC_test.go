@@ -130,7 +130,7 @@ func TestESDTSetRolesAndLocalMintAndBurnFromSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKR")))
 	txData = []byte("setLocalRoles" + "@" + hex.EncodeToString(scAddress) +
 		"@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + "01" + "@" + "02")
 	integrationTests.CreateAndSendTransaction(
@@ -233,14 +233,14 @@ func prepareFungibleTokensWithLocalBurnAndMint(
 	round *uint64,
 	nonce *uint64,
 ) string {
-	issueTestToken(nodes, 100)
+	issueTestToken(nodes, 100, "TKN")
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 5
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := string(getTokenIdentifier(nodes))
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKN")))
 
 	setRoles(nodes, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
 

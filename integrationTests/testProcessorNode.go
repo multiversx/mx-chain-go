@@ -1,6 +1,8 @@
 package integrationTests
 
 import (
+	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -2498,4 +2500,29 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	}
 	err = tpn.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	log.LogIfError(err)
+}
+
+// GetTokenIdentifier returns the token identifier from the metachain for the given ticker
+func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := n.AccntState.LoadAccount(vm.ESDTSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		rootHash, _ := userAcc.DataTrie().RootHash()
+		ctx := context.Background()
+		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+		for leaf := range chLeaves {
+			if !bytes.HasPrefix(leaf.Key(), ticker) {
+				continue
+			}
+
+			return leaf.Key()
+		}
+	}
+
+	return nil
 }
