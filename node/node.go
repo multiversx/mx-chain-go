@@ -57,10 +57,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// SendTransactionsPipe is the pipe used for sending new transactions
-const SendTransactionsPipe = "send transactions pipe"
+const (
+	// SendTransactionsPipe is the pipe used for sending new transactions
+	SendTransactionsPipe = "send transactions pipe"
 
-const esdtTickerNumChars = 6
+	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
+	esdtTickerNumChars = 6
+)
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
