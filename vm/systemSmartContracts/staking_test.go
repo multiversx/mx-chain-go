@@ -1963,11 +1963,6 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
-	doSwitchJailedWithWaiting(t, stakingSmartContract, []byte("firsstKey"))
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
-
-	waitingList, _ := stakingSmartContract.getWaitingListHead()
-	assert.Equal(t, waitingList.LastJailedKey, []byte("w_firsstKey"))
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "resetLastUnJailedFromQueue"
@@ -1975,6 +1970,15 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 	arguments.CallerAddr = stakingSmartContract.endOfEpochAccessAddr
 
 	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	doSwitchJailedWithWaiting(t, stakingSmartContract, []byte("firsstKey"))
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+
+	waitingList, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, waitingList.LastJailedKey, []byte("w_firsstKey"))
+
+	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
