@@ -287,7 +287,7 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 	return nf.node.GetAllESDTTokens(address)
 }
 
-// GetAllIssuedESDTs returns all the issued esdts for a given address
+// GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
 func (nf *nodeFacade) GetAllIssuedESDTs() ([]string, error) {
 	return nf.node.GetAllIssuedESDTs()
 }

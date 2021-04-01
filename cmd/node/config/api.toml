@@ -74,7 +74,7 @@
         { Name = "/config", Open = true },
 
         # /network/esdts will return all the issued esdts on the protocol
-        { Name = "/esdts", Open = true },
+        { Name = "/esdts", Open = true }
 	]
 
 [APIPackages.log]
