@@ -57,13 +57,13 @@ type esdtTokenData struct {
 type esdtNFTTokenData struct {
 	TokenIdentifier string   `json:"tokenIdentifier"`
 	Balance         string   `json:"balance"`
-	Properties      string   `json:"properties"`
-	Name            string   `json:"name"`
-	Creator         string   `json:"creator"`
-	Royalties       string   `json:"royalties"`
-	Hash            []byte   `json:"hash"`
-	URIs            [][]byte `json:"uris"`
-	Attributes      []byte   `json:"attributes"`
+	Properties      string   `json:"properties,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	Creator         string   `json:"creator,omitempty"`
+	Royalties       string   `json:"royalties,omitempty"`
+	Hash            []byte   `json:"hash,omitempty"`
+	URIs            [][]byte `json:"uris,omitempty"`
+	Attributes      []byte   `json:"attributes,omitempty"`
 }
 
 // Routes defines address related routes
