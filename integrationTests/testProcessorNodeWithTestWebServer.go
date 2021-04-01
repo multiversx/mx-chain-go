@@ -151,9 +151,10 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:             tpn.ShardCoordinator.SelfId(),
-		InternalMarshalizer: TestMarshalizer,
-		Accounts:            tpn.AccntState,
+		ShardID:      tpn.ShardCoordinator.SelfId(),
+		Accounts:     tpn.AccntState,
+		QueryService: tpn.SCQueryService,
+		BlockChain:   tpn.BlockChain,
 	}
 	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
