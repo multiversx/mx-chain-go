@@ -68,7 +68,10 @@
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/esdts will return all the issued esdts on the protocol
+        { Name = "/esdts", Open = true }
 	]
 
 [APIPackages.log]

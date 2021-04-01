@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 const (
@@ -449,6 +450,44 @@ func (n *Node) GetUsername(address string) (string, error) {
 	return string(username), nil
 }
 
+// GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
+func (n *Node) GetAllIssuedESDTs() ([]string, error) {
+	account, err := n.accounts.GetExistingAccount(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		key := string(leaf.Key())
+		if strings.Contains(key, "-") {
+			tokens = append(tokens, key)
+		}
+	}
+
+	return tokens, nil
+}
+
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 	account, err := n.getAccountHandler(address)
@@ -478,7 +517,14 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 
 	mapToReturn := make(map[string]string)
 	for leaf := range chLeaves {
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
 	}
 
 	return mapToReturn, nil
@@ -583,9 +629,9 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 
 		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, err := leaf.ValueWithoutSuffix(suffix)
-		if err != nil {
-			log.Warn("cannot get value without suffix", "error", err, "key", leaf.Key())
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
 			continue
 		}
 

@@ -52,6 +52,7 @@ type Facade struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
+	GetAllIssuedESDTsCalled                 func() ([]string, error)
 }
 
 // GetUsername -
@@ -139,6 +140,14 @@ func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalTok
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetAllIssuedESDTs -
+func (f *Facade) GetAllIssuedESDTs() ([]string, error) {
+	if f.GetAllIssuedESDTsCalled != nil {
+		return f.GetAllIssuedESDTsCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // GetAccount is the mock implementation of a handler's GetAccount method

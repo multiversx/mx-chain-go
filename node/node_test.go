@@ -232,10 +232,12 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					suffix := append(k1, acc.AddressBytes()...)
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
 					ch <- trieLeaf
 
-					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					suffix = append(k2, acc.AddressBytes()...)
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					ch <- trieLeaf2
 					close(ch)
 				}()
@@ -455,6 +457,50 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	expectedNftFormattedKey := "TCKR-67tgv3-01"
 	assert.NotNil(t, tokens[expectedNftFormattedKey])
 	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func TestNode_GetAllIssuedESDTs(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := []byte("TCK-RANDOM")
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	suffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, suffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
+	)
+
+	value, err := n.GetAllIssuedESDTs()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, string(esdtToken), value[0])
 }
 
 //------- GenerateTransaction
