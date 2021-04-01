@@ -445,12 +445,8 @@ func (n *Node) GetUsername(address string) (string, error) {
 	return string(username), nil
 }
 
-// GetAllIssuedESDTs returns all the issued esdt tokens, works if not is on metachain
+// GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs() ([]string, error) {
-	if n.shardCoordinator.SelfId() != core.MetachainShardId {
-		return nil, ErrAccountNotFound
-	}
-
 	account, err := n.accounts.GetExistingAccount(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
