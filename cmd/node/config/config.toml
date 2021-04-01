@@ -52,7 +52,7 @@
    # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
    BlockGasAndFeesReCheckEnableEpoch = 4
 
-   # BalanceListsEnabledEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
+   # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
    BalanceWaitingListsEnableEpoch = 6
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
