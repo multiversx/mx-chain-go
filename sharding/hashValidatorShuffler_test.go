@@ -760,7 +760,7 @@ func Test_distributeValidatorsEqualNumber(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness, false)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 }
@@ -782,7 +782,7 @@ func Test_distributeValidatorsEqualNumberNoMeta(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness, false)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 	assert.Nil(t, validatorsMap[core.MetachainShardId])
@@ -800,11 +800,11 @@ func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness, false)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 
-	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness)
+	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness, false)
 	assert.Nil(t, err)
 	for i := range validatorsCopy {
 		assert.Equal(t, validatorsMap[i], validatorsCopy[i])
@@ -824,7 +824,7 @@ func Test_distributeValidatorsUnequalNumber(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness, false)
 	assert.Nil(t, err)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 }
@@ -842,11 +842,11 @@ func Test_distributeValidatorsUnequalNumberConsistent(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness, false)
 	assert.Nil(t, err)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 
-	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness)
+	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness, false)
 	assert.Nil(t, err)
 	for i := range validatorsCopy {
 		assert.Equal(t, validatorsMap[i], validatorsCopy[i])
@@ -865,10 +865,10 @@ func Test_distributeValidatorsNilOrEmptyDestination(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(nil, validatorsToDistribute, randomness)
+	err := distributeValidators(nil, validatorsToDistribute, randomness, false)
 	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 
-	err = distributeValidators(make(map[uint32][]Validator), validatorsToDistribute, randomness)
+	err = distributeValidators(make(map[uint32][]Validator), validatorsToDistribute, randomness, false)
 	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
