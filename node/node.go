@@ -453,7 +453,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs() ([]string, error) {
-	account, err := n.accounts.GetExistingAccount(vm.ESDTSCAddress)
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -690,17 +690,21 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandle
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 
+	return n.getAccountHandlerForPubKey(addr)
+}
+
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
 	blockHeader := n.blkc.GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
-		return nil, nil
+		return nil, ErrNilBlockHeader
 	}
 
-	err = n.accountsAPI.RecreateTrie(blockHeader.GetRootHash())
+	err := n.accountsAPI.RecreateTrie(blockHeader.GetRootHash())
 	if err != nil {
 		return nil, err
 	}
 
-	return n.accountsAPI.GetExistingAccount(addr)
+	return n.accountsAPI.GetExistingAccount(address)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {

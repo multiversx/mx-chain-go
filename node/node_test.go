@@ -453,7 +453,11 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 			},
 		})
 
-	accDB := &mock.AccountsStub{}
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -463,6 +467,12 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
 	)
 
 	tokens, err := n.GetAllESDTTokens(hexAddress)
@@ -501,7 +511,11 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			},
 		})
 
-	accDB := &mock.AccountsStub{}
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -511,7 +525,11 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
+		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		}}),
 	)
 
 	value, err := n.GetAllIssuedESDTs()
@@ -3364,7 +3382,7 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 
 	res, err := n.GetKeyValuePairs("addr")
 	require.Nil(t, res)
-	require.Equal(t, node.ErrAccountNotFound, err)
+	require.Equal(t, node.ErrNilBlockHeader, err)
 }
 
 func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
