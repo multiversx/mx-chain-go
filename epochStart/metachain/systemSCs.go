@@ -43,6 +43,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
+	CorrectLastUnJailEnableEpoch           uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
 	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
@@ -69,6 +70,7 @@ type systemSCProcessor struct {
 	hystNodesEnableEpoch      uint32
 	delegationEnableEpoch     uint32
 	stakingV2EnableEpoch      uint32
+	correctLastUnJailEpoch    uint32
 	maxNodesEnableConfig      []config.MaxNodesChangeConfig
 	maxNodes                  uint32
 	flagSwitchJailedWaiting   atomic.Flag
@@ -77,6 +79,7 @@ type systemSCProcessor struct {
 	flagSetOwnerEnabled       atomic.Flag
 	flagChangeMaxNodesEnabled atomic.Flag
 	flagStakingV2Enabled      atomic.Flag
+	flagCorrectLastUnjailed   atomic.Flag
 	mapNumSwitchedPerShard    map[uint32]uint32
 	mapNumSwitchablePerShard  map[uint32]uint32
 }
@@ -163,6 +166,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		stakingDataProvider:      args.StakingDataProvider,
 		nodesConfigProvider:      args.NodesConfigProvider,
 		shardCoordinator:         args.ShardCoordinator,
+		correctLastUnJailEpoch:   args.CorrectLastUnJailEnableEpoch,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -197,6 +201,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 	if s.flagChangeMaxNodesEnabled.IsSet() {
 		err := s.updateMaxNodes(validatorInfos, nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagCorrectLastUnjailed.IsSet() {
+		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
@@ -570,6 +581,34 @@ func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 	err := s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
 
 	return err
+}
+
+func (s *systemSCProcessor) resetLastUnJailed() error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "resetLastUnJailedFromQueue",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrResetLastUnJailedFromQueue
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // updates the configuration of the system SC if the flags permit
@@ -1245,4 +1284,6 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
 	)
+
+	s.flagCorrectLastUnjailed.Toggle(epoch == s.correctLastUnJailEpoch)
 }
