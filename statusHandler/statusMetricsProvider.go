@@ -183,6 +183,11 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	return configMetrics
 }
 
+// EnableEpochMetrics will return metric related to activation epochs
+func (sm *statusMetrics) EnableEpochMetrics() map[string]interface{} {
+	return nil
+}
+
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	networkMetrics := make(map[string]interface{})

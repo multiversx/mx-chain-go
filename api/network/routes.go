@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	getConfigPath = "/config"
-	getStatusPath = "/status"
-	economicsPath = "/economics"
+	getConfigPath    = "/config"
+	getStatusPath    = "/status"
+	economicsPath    = "/economics"
+	enableEpochsPath = "/enable-epochs"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -30,6 +31,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, enableEpochsPath, GetEnableEpochs)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -74,6 +76,24 @@ func GetNetworkConfig(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"config": configMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetEnableEpochs returns metrics related to the activation epochs of the network
+func GetEnableEpochs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	enableEpochsMetrics := facade.StatusMetrics().EnableEpochMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
