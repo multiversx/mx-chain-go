@@ -95,6 +95,7 @@ type Node struct {
 	epochStartTrigger             epochStart.TriggerHandler
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	accounts                      state.AccountsAdapter
+	accountsAPI                   state.AccountsAdapter
 	addressPubkeyConverter        core.PubkeyConverter
 	validatorPubkeyConverter      core.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
@@ -452,7 +453,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs() ([]string, error) {
-	account, err := n.accounts.GetExistingAccount(vm.ESDTSCAddress)
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +491,7 @@ func (n *Node) GetAllIssuedESDTs() ([]string, error) {
 
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -592,7 +593,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 
 // GetAllESDTTokens returns the value of a key from a given account
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -681,6 +682,29 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	return n.accounts.GetExistingAccount(addr)
+}
+
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+	addr, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+	}
+
+	return n.getAccountHandlerForPubKey(addr)
+}
+
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
+	blockHeader := n.blkc.GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return nil, ErrNilBlockHeader
+	}
+
+	err := n.accountsAPI.RecreateTrie(blockHeader.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return n.accountsAPI.GetExistingAccount(address)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
