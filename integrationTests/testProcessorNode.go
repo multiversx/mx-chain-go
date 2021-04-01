@@ -1214,6 +1214,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -1225,6 +1226,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.Storage,
 		dataBlock.SmartContractResultBlock,
 		tpn.DataPool.CurrentBlockTxs(),
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
@@ -1406,6 +1408,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -1417,6 +1420,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.Storage,
 		dataBlock.SmartContractResultBlock,
 		tpn.DataPool.CurrentBlockTxs(),
+		tpn.EconomicsData,
 	)
 
 	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)

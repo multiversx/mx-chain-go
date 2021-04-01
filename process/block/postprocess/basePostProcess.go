@@ -1,7 +1,6 @@
 package postprocess
 
 import (
-	"bytes"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -41,6 +40,7 @@ type basePostProcessor struct {
 	interResultsForBlock    map[string]*txInfo
 	mapTxToResult           map[string][]string
 	intraShardMiniBlock     *block.MiniBlock
+	economicsFee            process.FeeHandler
 }
 
 // SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
@@ -112,16 +112,21 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 	return scrPool
 }
 
-func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBlock, mb *block.MiniBlock) error {
-	createdScrMb, ok := createMBs[mb.ReceiverShardID]
+func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32][]*block.MiniBlock, mb *block.MiniBlock) error {
+	createdScrMbs, ok := createMBs[mb.ReceiverShardID]
 	if !ok {
-		log.Debug("missing miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		log.Debug("missing mini block", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
 		return process.ErrNilMiniBlocks
 	}
 
-	createdHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, createdScrMb)
-	if err != nil {
-		return err
+	mapCreatedHashes := make(map[string]struct{})
+	for _, createdScrMb := range createdScrMbs {
+		createdHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, createdScrMb)
+		if err != nil {
+			return err
+		}
+
+		mapCreatedHashes[string(createdHash)] = struct{}{}
 	}
 
 	receivedHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, mb)
@@ -129,9 +134,12 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 		return err
 	}
 
-	if !bytes.Equal(createdHash, receivedHash) {
-		log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
-		log.Debug("created miniblock", "type", createdScrMb.Type, "sender", createdScrMb.SenderShardID, "receiver", createdScrMb.ReceiverShardID, "numTxs", len(createdScrMb.TxHashes))
+	_, existsHash := mapCreatedHashes[string(receivedHash)]
+	if !existsHash {
+		log.Debug("received mini block", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		for _, createdScrMb := range createdScrMbs {
+			log.Debug("created mini block", "type", createdScrMb.Type, "sender", createdScrMb.SenderShardID, "receiver", createdScrMb.ReceiverShardID, "numTxs", len(createdScrMb.TxHashes))
+		}
 		return process.ErrMiniBlockHashMismatch
 	}
 
@@ -169,5 +177,56 @@ func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
 			delete(bpp.interResultsForBlock, resultHash)
 		}
 		delete(bpp.mapTxToResult, string(txHash))
+	}
+}
+
+func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
+	splitMiniBlocks := make([]*block.MiniBlock, 0)
+	mapGasLimitInReceiverShard := make(map[uint32]uint64)
+
+	for _, miniBlock := range miniBlocks {
+		receiverShardID := miniBlock.ReceiverShardID
+		currentMiniBlock := createEmptyMiniBlock(miniBlock)
+		mapGasLimitInReceiverShard[receiverShardID] = 0
+
+		for _, txHash := range miniBlock.TxHashes {
+			interResult, ok := bpp.interResultsForBlock[string(txHash)]
+			if !ok {
+				log.Warn("basePostProcessor.splitMiniBlocksIfNeeded: missing tx", "hash", txHash)
+				continue
+			}
+
+			isGasLimitExceeded := mapGasLimitInReceiverShard[receiverShardID]+interResult.tx.GetGasLimit() >
+				bpp.economicsFee.MaxGasLimitPerBlock(receiverShardID)
+			if isGasLimitExceeded {
+				log.Debug("basePostProcessor.splitMiniBlocksIfNeeded: gas limit exceeded",
+					"mb type", currentMiniBlock.Type,
+					"sender shard", currentMiniBlock.SenderShardID,
+					"receiver shard", currentMiniBlock.ReceiverShardID,
+					"initial num txs", len(miniBlock.TxHashes),
+					"adjusted num txs", len(currentMiniBlock.TxHashes),
+				)
+				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+				currentMiniBlock = createEmptyMiniBlock(miniBlock)
+				mapGasLimitInReceiverShard[receiverShardID] = 0
+			}
+
+			mapGasLimitInReceiverShard[receiverShardID] += interResult.tx.GetGasLimit()
+			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
+		}
+
+		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+	}
+
+	return splitMiniBlocks
+}
+
+func createEmptyMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
+	return &block.MiniBlock{
+		SenderShardID:   miniBlock.SenderShardID,
+		ReceiverShardID: miniBlock.ReceiverShardID,
+		Type:            miniBlock.Type,
+		Reserved:        miniBlock.Reserved,
+		TxHashes:        make([][]byte, 0),
 	}
 }
