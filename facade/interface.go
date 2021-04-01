@@ -32,6 +32,9 @@ type NodeHandler interface {
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string) (map[string]string, error)
 
+	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
+	GetAllIssuedESDTs() ([]string, error)
+
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
