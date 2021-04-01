@@ -232,10 +232,12 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					suffix := append(k1, acc.AddressBytes()...)
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
 					ch <- trieLeaf
 
-					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					suffix = append(k2, acc.AddressBytes()...)
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					ch <- trieLeaf2
 					close(ch)
 				}()
