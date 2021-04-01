@@ -1938,6 +1938,49 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 }
 
+func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doSwitchJailedWithWaiting(t, stakingSmartContract, []byte("firsstKey"))
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+
+	waitingList, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, waitingList.LastJailedKey, []byte("w_firsstKey"))
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "resetLastUnJailedFromQueue"
+	arguments.Arguments = [][]byte{}
+	arguments.CallerAddr = stakingSmartContract.endOfEpochAccessAddr
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, len(waitingList.LastJailedKey), 0)
+}
+
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = sc.endOfEpochAccessAddr
