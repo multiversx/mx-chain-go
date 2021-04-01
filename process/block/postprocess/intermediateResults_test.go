@@ -1020,8 +1020,6 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	)
 
 	irp.mutInterResultsForBlock.Lock()
-	defer irp.mutInterResultsForBlock.Unlock()
-
 	tx1 := transaction.Transaction{Nonce: 0, GasLimit: 100}
 	tx2 := transaction.Transaction{Nonce: 1, GasLimit: 100}
 	tx3 := transaction.Transaction{Nonce: 2, GasLimit: 100}
@@ -1032,6 +1030,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	irp.interResultsForBlock["hash3"] = &txInfo{tx: &tx3}
 	irp.interResultsForBlock["hash4"] = &txInfo{tx: &tx4}
 	irp.interResultsForBlock["hash5"] = &txInfo{tx: &tx5}
+	irp.mutInterResultsForBlock.Unlock()
 
 	miniBlocks := make([]*block.MiniBlock, 0)
 
@@ -1048,10 +1047,14 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	miniBlocks = append(miniBlocks, &mb2)
 
 	gasLimit = 300
+	irp.mutInterResultsForBlock.Lock()
 	splitMiniBlocks := irp.splitMiniBlocksIfNeeded(miniBlocks)
+	irp.mutInterResultsForBlock.Unlock()
 	assert.Equal(t, 2, len(splitMiniBlocks))
 
 	gasLimit = 199
+	irp.mutInterResultsForBlock.Lock()
 	splitMiniBlocks = irp.splitMiniBlocksIfNeeded(miniBlocks)
+	irp.mutInterResultsForBlock.Unlock()
 	assert.Equal(t, 5, len(splitMiniBlocks))
 }
