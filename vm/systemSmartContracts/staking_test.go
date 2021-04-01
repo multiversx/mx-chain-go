@@ -1979,6 +1979,19 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, len(waitingList.LastJailedKey), 0)
+
+	arguments.CallerAddr = []byte("anotherAddress")
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	arguments.CallerAddr = stakingSmartContract.endOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("someArg")}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	stakingSmartContract.flagCorrectLastUnjailed.Unset()
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
