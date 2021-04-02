@@ -1,8 +1,10 @@
 package preprocess
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -82,4 +84,64 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 	assert.False(t, res)
 	assert.Equal(t, 3, len(scheduledTxsExec.mapScheduledTxs))
 	assert.Equal(t, 3, len(scheduledTxsExec.scheduledTxs))
+}
+
+func TestScheduledTxsExecution_ExecuteShouldErrMissingTransaction(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+	)
+
+	err := scheduledTxsExec.Execute([]byte("txHash1"))
+	assert.True(t, errors.Is(err, process.ErrMissingTransaction))
+}
+
+func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("error")
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, localError
+			},
+		},
+	)
+
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	err := scheduledTxsExec.Execute([]byte("txHash1"))
+	assert.Equal(t, localError, err)
+}
+
+func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, process.ErrFailedTransaction
+			},
+		},
+	)
+
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	err := scheduledTxsExec.Execute([]byte("txHash1"))
+	assert.Nil(t, err)
+}
+
+func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, nil
+			},
+		},
+	)
+
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	err := scheduledTxsExec.Execute([]byte("txHash1"))
+	assert.Nil(t, err)
 }
