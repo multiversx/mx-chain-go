@@ -546,7 +546,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return returnCode
 	}
 	if len(args.Arguments[1]) > core.MaxLenForESDTIssueMint {
-		returnMessage := fmt.Sprintf("max length for esdt issue is %d", core.MaxLenForESDTIssueMint)
+		returnMessage := fmt.Sprintf("max length for esdt mint is %d", core.MaxLenForESDTIssueMint)
 		e.eei.AddReturnMessage(returnMessage)
 		return vmcommon.UserError
 	}

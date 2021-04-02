@@ -167,7 +167,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 }
 
-func TestEsdt_ExecuteIssueToMuchSupply(t *testing.T) {
+func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
