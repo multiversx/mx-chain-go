@@ -2584,7 +2584,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
-		&mock.FeeHandlerStub{},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+		},
 	)
 	container, _ := interFactory.Create()
 
