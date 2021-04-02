@@ -167,6 +167,41 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 }
 
+func TestEsdt_ExecuteIssueTooMuchSupply(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
+	tooMuchToIssue := make([]byte, 101)
+	tooMuchToIssue[0] = 1
+	vmInput.Arguments = append(vmInput.Arguments, tooMuchToIssue)
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(10).Bytes())
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
 func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
 	t.Parallel()
 
@@ -635,6 +670,10 @@ func TestEsdt_ExecuteMintSavesTokenWithMintedTokensAdded(t *testing.T) {
 	esdtData := &ESDTData{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
 	assert.Equal(t, big.NewInt(300), esdtData.MintedValue)
+
+	vmInput.Arguments[1] = make([]byte, 101)
+	returnCode := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
