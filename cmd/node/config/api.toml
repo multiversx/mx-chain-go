@@ -65,7 +65,10 @@
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/enable-epochs will return metric related to activation epochs
+        { Name = "/enable-epochs", Open = true }
 	]
 
 [APIPackages.log]

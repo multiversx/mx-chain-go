@@ -37,6 +37,10 @@ func (d *disabledStatusMetricsHandler) ConfigMetrics() map[string]interface{} {
 	return getReturnMap()
 }
 
+func (d *disabledStatusMetricsHandler) EnableEpochMetrics() map[string]interface{} {
+	return getReturnMap()
+}
+
 // NetworkMetrics returns a default response map
 func (d *disabledStatusMetricsHandler) NetworkMetrics() map[string]interface{} {
 	return getReturnMap()

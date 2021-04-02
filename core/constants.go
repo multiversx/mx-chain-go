@@ -398,6 +398,73 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
+	// MetricScDeployEpoch represents the epoch when the deployment of smart contracts will be enabled
+	MetricScDeployEpoch = "smart_contract_deploy"
+
+	//MetricBuiltInFunctionsEpoch represents the epoch when the built in functions will be enabled
+	MetricBuiltInFunctionsEpoch = "built_in_functions"
+
+	//MetricRelayedTransactionsEpoch represents the epoch when the relayed transactions will be enabled
+	MetricRelayedTransactionsEpoch = "relayed_transactions"
+
+	//MetricPenalizedTooMuchGasEpoch represents the epoch when the penalization for using too much gas will be enabled
+	MetricPenalizedTooMuchGasEpoch = "penalized_too_much_gas"
+
+	//MetricSwitchJailWaitingEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+	MetricSwitchJailWaitingEpoch = "switch_jail_waiting"
+
+	//MetricSwitchHysteresisForMinNodesEpoch represents the epoch when the system smart contract changes its config to consider
+	//also (minimum) hysteresis nodes for the minimum number of nodes
+	MetricSwitchHysteresisForMinNodesEpoch = "switch_hysteresis_for_min_nodes"
+
+	//MetricBelowSignedThresholdEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+	MetricBelowSignedThresholdEpoch = "below_signed_threshold"
+
+	//MetricTransactionSignedWithTxHashEpoch represents the epoch when the node will also accept transactions that are
+	//signed with the hash of transaction
+	MetricTransactionSignedWithTxHashEpoch = "transaction_signed_with_txhash"
+
+	//MetricMetaProtectionEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+	MetricMetaProtectionEpoch = "meta_protection"
+
+	//MetricAheadOfTimeGasUsageEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	MetricAheadOfTimeGasUsageEpoch = "ahead_of_time_gas_usage"
+
+	//MetricGasPriceModifierEpoch represents the epoch when the gas price modifier in fee computation is enabled
+	MetricGasPriceModifierEpoch = "gas_price_modifier"
+
+	//MetricRepairCallbackEpoch represents the epoch when the callback repair is activated for scrs
+	MetricRepairCallbackEpoch = "repair_callback"
+
+	//MetricMaxNodesChange
+	MetricMaxNodesChange = "max_nodes_change"
+
+	//MetricBlockGasAndFreeRecheckEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+	MetricBlockGasAndFreeRecheckEpoch = "block_gas_and_fee_recheck"
+
+	//MetricStakingV2Epoch represents the epoch when staking v2 is enabled
+	MetricStakingV2Epoch = "staking_v2"
+
+	//MetricStakeEpoch represents the epoch when staking is enabled
+	MetricStakeEpoch = "stake"
+
+	//MetricDoubleKeyProtectionEpoch
+	MetricDoubleKeyProtectionEpoch = "double_key_protection"
+
+	//MetricEsdtEpoch represents the epoch when ESDT is enabled
+	MetricEsdtEpoch = "esdt"
+
+	//MetricGovernanceEpoch  represents the epoch when governance is enabled
+	MetricGovernanceEpoch = "governance"
+
+	//MetricDelegationManagerEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	MetricDelegationManagerEpoch = "delegation_manager"
+
+	//MetricDelegationSmartContractEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	MetricDelegationSmartContractEpoch = "delegation_smart_contract"
+)
+
+const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
