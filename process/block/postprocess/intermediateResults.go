@@ -163,15 +163,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
-	createdMapMbs := make(map[uint32][]*block.MiniBlock)
-	for _, mb := range scrMbs {
-		_, ok := createdMapMbs[mb.ReceiverShardID]
-		if !ok {
-			createdMapMbs[mb.ReceiverShardID] = make([]*block.MiniBlock, 0)
-		}
-
-		createdMapMbs[mb.ReceiverShardID] = append(createdMapMbs[mb.ReceiverShardID], mb)
-	}
+	createdMapMbs := createMiniBlocksMap(scrMbs)
 
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {

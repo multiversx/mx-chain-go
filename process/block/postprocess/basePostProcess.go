@@ -182,42 +182,44 @@ func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
 	splitMiniBlocks := make([]*block.MiniBlock, 0)
-	mapGasLimitInReceiverShard := make(map[uint32]uint64)
-
 	for _, miniBlock := range miniBlocks {
-		receiverShardID := miniBlock.ReceiverShardID
-		currentMiniBlock := createEmptyMiniBlock(miniBlock)
-		mapGasLimitInReceiverShard[receiverShardID] = 0
+		splitMiniBlocks = append(splitMiniBlocks, bpp.splitMiniBlockIfNeeded(miniBlock)...)
+	}
+	return splitMiniBlocks
+}
 
-		for _, txHash := range miniBlock.TxHashes {
-			interResult, ok := bpp.interResultsForBlock[string(txHash)]
-			if !ok {
-				log.Warn("basePostProcessor.splitMiniBlocksIfNeeded: missing tx", "hash", txHash)
-				continue
-			}
+func (bpp *basePostProcessor) splitMiniBlockIfNeeded(miniBlock *block.MiniBlock) []*block.MiniBlock {
+	splitMiniBlocks := make([]*block.MiniBlock, 0)
+	currentMiniBlock := createEmptyMiniBlock(miniBlock)
+	gasLimitInReceiverShard := uint64(0)
 
-			isGasLimitExceeded := mapGasLimitInReceiverShard[receiverShardID]+interResult.tx.GetGasLimit() >
-				bpp.economicsFee.MaxGasLimitPerBlock(receiverShardID)
-			if isGasLimitExceeded {
-				log.Debug("basePostProcessor.splitMiniBlocksIfNeeded: gas limit exceeded",
-					"mb type", currentMiniBlock.Type,
-					"sender shard", currentMiniBlock.SenderShardID,
-					"receiver shard", currentMiniBlock.ReceiverShardID,
-					"initial num txs", len(miniBlock.TxHashes),
-					"adjusted num txs", len(currentMiniBlock.TxHashes),
-				)
-				splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
-				currentMiniBlock = createEmptyMiniBlock(miniBlock)
-				mapGasLimitInReceiverShard[receiverShardID] = 0
-			}
-
-			mapGasLimitInReceiverShard[receiverShardID] += interResult.tx.GetGasLimit()
-			currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
+	for _, txHash := range miniBlock.TxHashes {
+		interResult, ok := bpp.interResultsForBlock[string(txHash)]
+		if !ok {
+			log.Warn("basePostProcessor.splitMiniBlockIfNeeded: missing tx", "hash", txHash)
+			continue
 		}
 
-		splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+		isGasLimitExceeded := gasLimitInReceiverShard+interResult.tx.GetGasLimit() >
+			bpp.economicsFee.MaxGasLimitPerBlock(currentMiniBlock.ReceiverShardID)
+		if isGasLimitExceeded {
+			log.Debug("basePostProcessor.splitMiniBlockIfNeeded: gas limit exceeded",
+				"mb type", currentMiniBlock.Type,
+				"sender shard", currentMiniBlock.SenderShardID,
+				"receiver shard", currentMiniBlock.ReceiverShardID,
+				"initial num txs", len(miniBlock.TxHashes),
+				"adjusted num txs", len(currentMiniBlock.TxHashes),
+			)
+			splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
+			currentMiniBlock = createEmptyMiniBlock(miniBlock)
+			gasLimitInReceiverShard = 0
+		}
+
+		gasLimitInReceiverShard += interResult.tx.GetGasLimit()
+		currentMiniBlock.TxHashes = append(currentMiniBlock.TxHashes, txHash)
 	}
 
+	splitMiniBlocks = append(splitMiniBlocks, currentMiniBlock)
 	return splitMiniBlocks
 }
 
@@ -229,4 +231,18 @@ func createEmptyMiniBlock(miniBlock *block.MiniBlock) *block.MiniBlock {
 		Reserved:        miniBlock.Reserved,
 		TxHashes:        make([][]byte, 0),
 	}
+}
+
+func createMiniBlocksMap(scrMbs []*block.MiniBlock) map[uint32][]*block.MiniBlock {
+	createdMapMbs := make(map[uint32][]*block.MiniBlock)
+	for _, mb := range scrMbs {
+		_, ok := createdMapMbs[mb.ReceiverShardID]
+		if !ok {
+			createdMapMbs[mb.ReceiverShardID] = make([]*block.MiniBlock, 0)
+		}
+
+		createdMapMbs[mb.ReceiverShardID] = append(createdMapMbs[mb.ReceiverShardID], mb)
+	}
+
+	return createdMapMbs
 }
