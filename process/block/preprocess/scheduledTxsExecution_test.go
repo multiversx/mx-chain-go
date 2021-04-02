@@ -3,6 +3,7 @@ package preprocess
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -144,4 +145,116 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
 	assert.Nil(t, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+	)
+
+	err := scheduledTxsExec.ExecuteAll(nil)
+	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+	)
+
+	haveTimeFunction := func() time.Duration { return time.Duration(-1) }
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("error")
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, localError
+			},
+		},
+	)
+
+	haveTimeFunction := func() time.Duration { return time.Duration(100) }
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	assert.Equal(t, localError, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, process.ErrFailedTransaction
+			},
+		},
+	)
+
+	haveTimeFunction := func() time.Duration { return time.Duration(100) }
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	assert.Nil(t, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numTxsExecuted := 0
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				numTxsExecuted++
+				return vmcommon.Ok, nil
+			},
+		},
+	)
+
+	haveTimeFunction := func() time.Duration { return time.Duration(100) }
+	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
+	scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
+	scheduledTxsExec.Add([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
+
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, numTxsExecuted)
+}
+
+func TestScheduledTxsExecution_executeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+	)
+
+	err := scheduledTxsExec.execute(nil)
+	assert.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
+}
+
+func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	response := errors.New("response")
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return vmcommon.Ok, response
+			},
+		},
+	)
+
+	err := scheduledTxsExec.execute(&transaction.Transaction{Nonce: 0})
+	assert.Equal(t, response, err)
 }
