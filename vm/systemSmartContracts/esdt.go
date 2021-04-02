@@ -232,6 +232,12 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return returnCode
 	}
 
+	if len(args.Arguments[2]) > core.MaxLenForESDTIssueMint {
+		returnMessage := fmt.Sprintf("max length for esdt issue is %d", core.MaxLenForESDTIssueMint)
+		e.eei.AddReturnMessage(returnMessage)
+		return vmcommon.UserError
+	}
+
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
 	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
@@ -539,6 +545,12 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if len(args.Arguments[1]) > core.MaxLenForESDTIssueMint {
+		returnMessage := fmt.Sprintf("max length for esdt issue is %d", core.MaxLenForESDTIssueMint)
+		e.eei.AddReturnMessage(returnMessage)
+		return vmcommon.UserError
+	}
+
 	mintValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if mintValue.Cmp(big.NewInt(0)) <= 0 {
 		e.eei.AddReturnMessage("negative or zero mint value")

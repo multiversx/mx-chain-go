@@ -174,4 +174,16 @@ func TestEsdtLocalMint_ProcessBuiltinFunction_ShouldWork(t *testing.T) {
 		GasRemaining: 450,
 	}
 	require.Equal(t, expectedVMOutput, vmOutput)
+
+	mintTooMuch := make([]byte, 101)
+	mintTooMuch[0] = 1
+	vmOutput, err = esdtLocalMintF.ProcessBuiltinFunction(sndAccout, &mock.AccountWrapMock{}, &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:   big.NewInt(0),
+			Arguments:   [][]byte{[]byte("arg1"), mintTooMuch},
+			GasProvided: 500,
+		},
+	})
+	require.True(t, errors.Is(err, process.ErrInvalidArguments))
+	require.Nil(t, vmOutput)
 }

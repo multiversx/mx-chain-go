@@ -654,3 +654,6 @@ const MinLenArgumentsESDTTransfer = 2
 
 // MinLenArgumentsESDTNFTTransfer defines the minimum length for esdt nft transfer
 const MinLenArgumentsESDTNFTTransfer = 4
+
+// MaxLenForESDTIssueMint defines the maximum length in bytes for the issued/minted balance
+const MaxLenForESDTIssueMint = 100

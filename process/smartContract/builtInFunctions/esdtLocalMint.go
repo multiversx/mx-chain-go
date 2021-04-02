@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -80,6 +81,10 @@ func (e *esdtLocalMint) ProcessBuiltinFunction(
 	err = e.rolesHandler.CheckAllowedToExecute(acntSnd, tokenID, []byte(core.ESDTRoleLocalMint))
 	if err != nil {
 		return nil, err
+	}
+
+	if len(vmInput.Arguments[1]) > core.MaxLenForESDTIssueMint {
+		return nil, fmt.Errorf("%w max length for esdt issue is %d", process.ErrInvalidArguments, core.MaxLenForESDTIssueMint)
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
