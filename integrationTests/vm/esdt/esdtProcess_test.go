@@ -675,7 +675,7 @@ func TestScCallsScWithEsdtIntraShard(t *testing.T) {
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
 
 	time.Sleep(5 * time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(5 * time.Second)
 
 	tokenIssuerBalance -= valueToTransferWithExecSc
