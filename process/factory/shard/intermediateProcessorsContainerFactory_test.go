@@ -59,6 +59,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -76,6 +77,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -93,6 +95,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -110,6 +113,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -127,10 +131,46 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		createMockPubkeyConverter(),
 		nil,
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
 	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) {
+	t.Parallel()
+
+	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		nil,
+		&mock.FeeHandlerStub{},
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilPoolsHolder, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *testing.T) {
+	t.Parallel()
+
+	dPool := createDataPools()
+	ipcf, err := shard.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		dPool,
+		nil,
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
@@ -144,6 +184,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -162,6 +203,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, err)

@@ -30,6 +30,7 @@ func NewOneMiniBlockPostProcessor(
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	storageType dataRetriever.UnitType,
+	economicsFee process.FeeHandler,
 ) (*oneMBPostProcessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -43,6 +44,9 @@ func NewOneMiniBlockPostProcessor(
 	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	base := &basePostProcessor{
 		hasher:           hasher,
@@ -51,6 +55,7 @@ func NewOneMiniBlockPostProcessor(
 		store:            store,
 		storageType:      storageType,
 		mapTxToResult:    make(map[string][]string),
+		economicsFee:     economicsFee,
 	}
 
 	opp := &oneMBPostProcessor{
@@ -113,10 +118,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 // VerifyInterMiniBlocks verifies if the receipts/bad transactions added to the block are valid
 func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := opp.CreateAllInterMiniBlocks()
-	createdMapMbs := make(map[uint32]*block.MiniBlock)
-	for _, mb := range scrMbs {
-		createdMapMbs[mb.ReceiverShardID] = mb
-	}
+	createdMapMbs := createMiniBlocksMap(scrMbs)
 
 	verifiedOne := false
 	for i := 0; i < len(body.MiniBlocks); i++ {
