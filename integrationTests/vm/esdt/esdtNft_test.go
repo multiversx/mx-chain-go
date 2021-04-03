@@ -310,7 +310,7 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	var nodeInSameShard = nodes[0]
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == nodes[1].ShardCoordinator.SelfId() &&
-			bytes.Compare(node.OwnAccount.Address, node.OwnAccount.Address) != 0 {
+			!bytes.Equal(node.OwnAccount.Address, node.OwnAccount.Address) {
 			nodeInSameShard = node
 			break
 		}
