@@ -1595,6 +1595,7 @@ func newShardBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1924,6 +1925,7 @@ func newMetaBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
+		economicsData,
 	)
 	if err != nil {
 		return nil, err
@@ -2306,6 +2308,7 @@ func createShardTxSimulatorProcessor(
 		stateComponents.AddressPubkeyConverter,
 		disabled.NewChainStorer(),
 		data.Datapool,
+		&processDisabled.FeeHandler{},
 	)
 	if err != nil {
 		return err
@@ -2376,6 +2379,7 @@ func createMetaTxSimulatorProcessor(
 		stateComponents.AddressPubkeyConverter,
 		disabled.NewChainStorer(),
 		data.Datapool,
+		&processDisabled.FeeHandler{},
 	)
 	if err != nil {
 		return err

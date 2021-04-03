@@ -1189,14 +1189,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("sixthhKey"), vmcommon.Ok, 4)
 
 	outPut := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
-	assert.Equal(t, 8, len(outPut))
-	for i, out := range outPut {
-		if i%2 == 1 {
-			assert.Equal(t, []byte(strconv.Itoa(0)), out)
-		} else {
-			assert.Equal(t, []byte(hex.EncodeToString(stakerAddress)), out)
-		}
-	}
+	assert.Equal(t, 12, len(outPut))
 
 	stakingSmartContract.unBondPeriod = 0
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.Ok)
@@ -1234,9 +1227,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("seventKey"))
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
 	outPut = doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
-	assert.Equal(t, 4, len(outPut))
-	assert.Equal(t, []byte(strconv.Itoa(101)), outPut[3])
-	assert.Equal(t, []byte(hex.EncodeToString(stakerAddress)), outPut[2])
+	assert.Equal(t, 6, len(outPut))
 
 	arguments.Function = "getTotalNumberOfRegisteredNodes"
 	arguments.Arguments = [][]byte{}
@@ -1783,7 +1774,7 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
 	waitingReturn := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
-	assert.Equal(t, len(waitingReturn), 6)
+	assert.Equal(t, len(waitingReturn), 9)
 
 	newMaxNodes := int64(100)
 	arguments := CreateVmContractCallInput()

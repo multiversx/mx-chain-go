@@ -22,6 +22,7 @@ type StateComponents struct {
 	ValidatorPubkeyConverter core.PubkeyConverter
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
+	AccountsAdapterAPI       state.AccountsAdapter
 	InBalanceForShard        map[string]*big.Int
 }
 
