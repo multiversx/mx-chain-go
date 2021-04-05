@@ -192,3 +192,56 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	configMetrics := sm.ConfigMetrics()
 	assert.Equal(t, expectedConfig, configMetrics)
 }
+
+func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(core.MetricScDeployEpoch, 4)
+	sm.SetUInt64Value(core.MetricBuiltInFunctionsEpoch, 2)
+	sm.SetUInt64Value(core.MetricRelayedTransactionsEpoch, 4)
+	sm.SetUInt64Value(core.MetricPenalizedTooMuchGasEpoch, 2)
+	sm.SetUInt64Value(core.MetricSwitchJailWaitingEpoch, 2)
+	sm.SetUInt64Value(core.MetricSwitchHysteresisForMinNodesEpoch, 4)
+	sm.SetUInt64Value(core.MetricBelowSignedThresholdEpoch, 2)
+	sm.SetUInt64Value(core.MetricTransactionSignedWithTxHashEpoch, 4)
+	sm.SetUInt64Value(core.MetricMetaProtectionEpoch, 6)
+	sm.SetUInt64Value(core.MetricAheadOfTimeGasUsageEpoch, 2)
+	sm.SetUInt64Value(core.MetricGasPriceModifierEpoch, 2)
+	sm.SetUInt64Value(core.MetricRepairCallbackEpoch, 2)
+	sm.SetUInt64Value(core.MetricBlockGasAndFreeRecheckEpoch, 2)
+	sm.SetUInt64Value(core.MetricStakingV2Epoch, 2)
+	sm.SetUInt64Value(core.MetricStakeEpoch, 2)
+	sm.SetUInt64Value(core.MetricDoubleKeyProtectionEpoch, 2)
+	sm.SetUInt64Value(core.MetricEsdtEpoch, 4)
+	sm.SetUInt64Value(core.MetricGovernanceEpoch, 3)
+	sm.SetUInt64Value(core.MetricDelegationManagerEpoch, 1)
+	sm.SetUInt64Value(core.MetricDelegationSmartContractEpoch, 2)
+
+	expectedMetrics := map[string]interface{}{
+		core.MetricScDeployEpoch:                    uint64(4),
+		core.MetricBuiltInFunctionsEpoch:            uint64(2),
+		core.MetricRelayedTransactionsEpoch:         uint64(4),
+		core.MetricPenalizedTooMuchGasEpoch:         uint64(2),
+		core.MetricSwitchJailWaitingEpoch:           uint64(2),
+		core.MetricSwitchHysteresisForMinNodesEpoch: uint64(4),
+		core.MetricBelowSignedThresholdEpoch:        uint64(2),
+		core.MetricTransactionSignedWithTxHashEpoch: uint64(4),
+		core.MetricMetaProtectionEpoch:              uint64(6),
+		core.MetricAheadOfTimeGasUsageEpoch:         uint64(2),
+		core.MetricGasPriceModifierEpoch:            uint64(2),
+		core.MetricRepairCallbackEpoch:              uint64(2),
+		core.MetricBlockGasAndFreeRecheckEpoch:      uint64(2),
+		core.MetricStakingV2Epoch:                   uint64(2),
+		core.MetricStakeEpoch:                       uint64(2),
+		core.MetricDoubleKeyProtectionEpoch:         uint64(2),
+		core.MetricEsdtEpoch:                        uint64(4),
+		core.MetricGovernanceEpoch:                  uint64(3),
+		core.MetricDelegationManagerEpoch:           uint64(1),
+		core.MetricDelegationSmartContractEpoch:     uint64(2),
+	}
+
+	epochsMetrics := sm.EnableEpochMetrics()
+	assert.Equal(t, expectedMetrics, epochsMetrics)
+}

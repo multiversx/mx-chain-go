@@ -197,7 +197,7 @@ func (sm *statusMetrics) EnableEpochMetrics() map[string]interface{} {
 	enableEpochMetrics[core.MetricTransactionSignedWithTxHashEpoch] = sm.loadUint64Metric(core.MetricTransactionSignedWithTxHashEpoch)
 	enableEpochMetrics[core.MetricMetaProtectionEpoch] = sm.loadUint64Metric(core.MetricMetaProtectionEpoch)
 	enableEpochMetrics[core.MetricAheadOfTimeGasUsageEpoch] = sm.loadUint64Metric(core.MetricAheadOfTimeGasUsageEpoch)
-	enableEpochMetrics[core.MetricGasPriceModifierEpoch] = sm.loadUint64Metric(core.MetricScDeployEpoch)
+	enableEpochMetrics[core.MetricGasPriceModifierEpoch] = sm.loadUint64Metric(core.MetricGasPriceModifierEpoch)
 	enableEpochMetrics[core.MetricRepairCallbackEpoch] = sm.loadUint64Metric(core.MetricRepairCallbackEpoch)
 	enableEpochMetrics[core.MetricBlockGasAndFreeRecheckEpoch] = sm.loadUint64Metric(core.MetricBlockGasAndFreeRecheckEpoch)
 	enableEpochMetrics[core.MetricStakingV2Epoch] = sm.loadUint64Metric(core.MetricStakingV2Epoch)
