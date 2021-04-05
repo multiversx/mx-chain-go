@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -785,7 +786,13 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 
 	if !pcf.statusComponents.ElasticIndexer().IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		pcf.statusComponents.ElasticIndexer().SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+
+		arg := &indexer.ArgsSaveBlockData{
+			HeaderHash: genesisBlockHash,
+			Body:       &dataBlock.Body{},
+			Header:     genesisBlockHeader,
+		}
+		pcf.statusComponents.ElasticIndexer().SaveBlock(arg)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
