@@ -259,7 +259,6 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}
 
 	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness, false)
-
 	if err != nil {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
@@ -708,7 +707,7 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 	)
 
 	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
-	log.Trace("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
+	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {
