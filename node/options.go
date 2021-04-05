@@ -104,6 +104,17 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
+// WithAccountsAdapterAPI sets up the accounts API adapter option for the Node
+func WithAccountsAdapterAPI(accountsAPI state.AccountsAdapter) Option {
+	return func(n *Node) error {
+		if check.IfNil(accountsAPI) {
+			return ErrNilAccountsAdapter
+		}
+		n.accountsAPI = accountsAPI
+		return nil
+	}
+}
+
 // WithAddressPubkeyConverter sets up the address public key converter adapter option for the Node
 func WithAddressPubkeyConverter(pubkeyConverter core.PubkeyConverter) Option {
 	return func(n *Node) error {
