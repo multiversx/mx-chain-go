@@ -10,8 +10,10 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -29,7 +31,8 @@ type shardProcessor struct {
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
 
-	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
+	processedMiniBlocks   *processedMb.ProcessedMiniBlockTracker
+	userStatePruningQueue core.Queue
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -57,26 +60,26 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		hasher:                  arguments.CoreComponents.Hasher(),
 		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
 		store:                   arguments.DataComponents.StorageService(),
-		shardCoordinator:        arguments.ShardCoordinator,
+		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
 		nodesCoordinator:        arguments.NodesCoordinator,
 		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        arguments.AppStatusHandler,
+		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		roundHandler:            arguments.RoundHandler,
+		roundHandler:            arguments.CoreComponents.RoundHandler(),
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
 		dataPool:                arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:  arguments.StateCheckpointModulus,
+		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		blockChain:              arguments.DataComponents.Blockchain(),
 		feeHandler:              arguments.FeeHandler,
-		indexer:                 arguments.Indexer,
-		tpsBenchmark:            arguments.TpsBenchmark,
+		indexer:                 arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
 		vmContainerFactory:      arguments.VMContainersFactory,
@@ -100,6 +103,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
+	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }
@@ -525,23 +529,13 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
-	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
-	invalidPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
-	receiptPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 
-	for hash, tx := range scPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range rewardPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range invalidPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range receiptPool {
-		txPool[hash] = tx
+	pool := &indexer.Pool{
+		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
+		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
+		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
+		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
+		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
@@ -594,7 +588,16 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil, headerHash)
+	args := &indexer.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   body,
+		Header:                 header,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: nil,
+		TransactionsPool:       pool,
+	}
+
+	sp.indexer.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
@@ -1025,6 +1028,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
+			sp.userStatePruningQueue,
 		)
 	}
 }

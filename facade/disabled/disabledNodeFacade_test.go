@@ -1,4 +1,4 @@
-package facade
+package disabled
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
+func TestDisabledNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	t.Parallel()
 	defer func() {
 		r := recover()
@@ -17,17 +17,17 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	dnf := NewDisabledNodeFacade()
+	apiInterface := "127.0.0.1:7799"
+	dnf := NewDisabledNodeFacade(apiInterface)
 
 	dnf.SetSyncer(nil)
 	dnf.SetTpsBenchmark(nil)
 	r := dnf.TpsBenchmark()
 	assert.Nil(t, r)
-	dnf.StartBackgroundServices()
 	b := dnf.RestAPIServerDebugMode()
 	assert.Equal(t, false, b)
 	s1 := dnf.RestApiInterface()
-	assert.Equal(t, emptyString, s1)
+	assert.Equal(t, apiInterface, s1)
 	s1, s2, err := dnf.GetESDTBalance("", "")
 	assert.Equal(t, emptyString, s1+s2)
 	assert.Equal(t, errNodeStarting, err)
@@ -88,7 +88,7 @@ func TestDisabledNodeFacade_AllMethodesShouldNotPanic(t *testing.T) {
 	assert.NotNil(t, errNodeStarting, err)
 
 	sm := dnf.StatusMetrics()
-	assert.Nil(t, sm)
+	assert.NotNil(t, sm)
 
 	vo, err := dnf.ExecuteSCQuery(nil)
 	assert.Nil(t, vo)

@@ -1390,9 +1390,10 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 		return vmcommon.UserError
 	}
 
-	for _, stakedData := range waitingListData.stakedDataList {
-		s.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
-		s.eei.Finish([]byte(strconv.Itoa(int(stakedData.RegisterNonce))))
+	for index, stakedData := range waitingListData.stakedDataList {
+		s.eei.Finish(waitingListData.blsKeys[index])
+		s.eei.Finish(stakedData.RewardAddress)
+		s.eei.Finish(big.NewInt(int64(stakedData.RegisterNonce)).Bytes())
 	}
 
 	return vmcommon.Ok

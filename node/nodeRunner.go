@@ -16,6 +16,8 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/api/gin"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -29,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -177,6 +180,12 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			return err
 		}
 
+		log.Debug("creating disabled API services")
+		httpServerWrapper, err := nr.createInitialHttpServer()
+		if err != nil {
+			return err
+		}
+
 		log.Debug("creating bootstrap components")
 		managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 		if err != nil {
@@ -271,7 +280,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedStatusComponents,
 			gasScheduleNotifier,
 			nodesCoordinator,
-
 		)
 		if err != nil {
 			return err
@@ -350,7 +358,8 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			)
 		}
 
-		ef, err := nr.createApiFacade(currentNode, gasScheduleNotifier)
+		log.Debug("updating the API service after creating the node facade")
+		ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
 		if err != nil {
 			return err
 		}
@@ -359,7 +368,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, currentNode, goRoutinesNumberStart)
+		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, httpServerWrapper, currentNode, goRoutinesNumberStart)
 		if err != nil {
 			break
 		}
@@ -367,7 +376,11 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 	return nil
 }
 
-func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier core.GasScheduleNotifier) (closing.Closer, error) {
+func (nr *nodeRunner) createApiFacade(
+	currentNode *Node,
+	upgradableHttpServer shared.UpgradeableHttpServerHandler,
+	gasScheduleNotifier core.GasScheduleNotifier,
+) (closing.Closer, error) {
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
@@ -415,9 +428,50 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 	ef.SetTpsBenchmark(currentNode.statusComponents.TpsBenchmark())
 
+	err = upgradableHttpServer.GetHttpServer().Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = upgradableHttpServer.UpdateFacade(ef)
+	if err != nil {
+		return nil, err
+	}
+
+	go upgradableHttpServer.GetHttpServer().Start()
+
+	log.Debug("updated node facade and restarted the API services")
+
 	log.Trace("starting background services")
-	ef.StartBackgroundServices()
+
 	return ef, nil
+}
+
+func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+	httpServerArgs := gin.ArgsNewWebServer{
+		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
+		ApiConfig:       *nr.configs.ApiRoutesConfig,
+		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
+	}
+
+	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	httpSever, err := httpServerWrapper.CreateHttpServer()
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpServerWrapper.SetHttpServer(httpSever)
+	if err != nil {
+		return nil, err
+	}
+
+	go httpSever.Start()
+
+	return httpServerWrapper, nil
 }
 
 func (nr *nodeRunner) createMetrics(
@@ -577,6 +631,7 @@ func waitForSignal(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	healthService closing.Closer,
 	ef closing.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
 ) error {
@@ -594,7 +649,7 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, ef, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, ef, httpServer, currentNode, chanCloseComponents)
 	}()
 
 	select {
@@ -826,46 +881,30 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
-		Config:                    *configs.GeneralConfig,
-		EpochConfig:               *configs.EpochConfig,
-		PrefConfigs:               configs.PreferencesConfig.Preferences,
-		ImportDBConfig:            *configs.ImportDbConfig,
-		AccountsParser:            accountsParser,
-		SmartContractParser:       smartContractParser,
-		GasSchedule:               gasScheduleNotifier,
-		RoundHandler:              managedCoreComponents.RoundHandler(),
-		ShardCoordinator:          managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:          nodesCoordinator,
-		Data:                      managedDataComponents,
-		CoreData:                  managedCoreComponents,
-		Crypto:                    managedCryptoComponents,
-		State:                     managedStateComponents,
-		Network:                   managedNetworkComponents,
-		RequestedItemsHandler:     requestedItemsHandler,
-		WhiteListHandler:          whiteListRequest,
-		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
-		EpochStartNotifier:        managedCoreComponents.EpochStartNotifierWithConfirm(),
-		EpochStart:                &configs.GeneralConfig.EpochStartConfig,
-		Rater:                     managedCoreComponents.Rater(),
-		RatingsData:               managedCoreComponents.RatingsData(),
-		StartEpochNum:             managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		SizeCheckDelta:            configs.GeneralConfig.Marshalizer.SizeCheckDelta,
-		StateCheckpointModulus:    configs.GeneralConfig.StateTriesConfig.CheckpointRoundsModulus,
-		MaxComputableRounds:       configs.GeneralConfig.GeneralSettings.MaxComputableRounds,
-		NumConcurrentResolverJobs: configs.GeneralConfig.Antiflood.NumConcurrentResolverJobs,
-		MinSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MinSizeInBytes,
-		MaxSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
-		MaxRating:                 configs.RatingsConfig.General.MaxRating,
-		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
-		SystemSCConfig:            configs.SystemSCConfig,
-		Version:                   configs.FlagsConfig.Version,
-		ImportStartHandler:        importStartHandler,
-		WorkingDir:                configs.FlagsConfig.WorkingDir,
-		Indexer:                   managedStatusComponents.ElasticIndexer(),
-		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
-		HistoryRepo:               historyRepository,
-		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
-		EconomicsData:             managedCoreComponents.EconomicsData(),
+		Config:                 *configs.GeneralConfig,
+		EpochConfig:            *configs.EpochConfig,
+		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		ImportDBConfig:         *configs.ImportDbConfig,
+		AccountsParser:         accountsParser,
+		SmartContractParser:    smartContractParser,
+		GasSchedule:            gasScheduleNotifier,
+		NodesCoordinator:       nodesCoordinator,
+		Data:                   managedDataComponents,
+		CoreData:               managedCoreComponents,
+		Crypto:                 managedCryptoComponents,
+		State:                  managedStateComponents,
+		Network:                managedNetworkComponents,
+		BootstrapComponents:    managedBootstrapComponents,
+		StatusComponents:       managedStatusComponents,
+		RequestedItemsHandler:  requestedItemsHandler,
+		WhiteListHandler:       whiteListRequest,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		MaxRating:              configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:         configs.SystemSCConfig,
+		Version:                configs.FlagsConfig.Version,
+		ImportStartHandler:     importStartHandler,
+		WorkingDir:             configs.FlagsConfig.WorkingDir,
+		HistoryRepo:            historyRepository,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1114,12 +1153,16 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 func closeAllComponents(
 	healthService io.Closer,
 	facade mainFactory.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
+
+	log.Debug("closing http server")
+	log.LogIfError(httpServer.Close())
 
 	log.Debug("closing facade")
 	log.LogIfError(facade.Close())

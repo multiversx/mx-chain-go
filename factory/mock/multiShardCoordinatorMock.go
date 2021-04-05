@@ -2,6 +2,8 @@ package mock
 
 import (
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // MultipleShardsCoordinatorMock -
@@ -58,14 +60,29 @@ func (scm *MultipleShardsCoordinatorMock) SetNoShards(noShards uint32) {
 // identifier is generated such as the first shard from identifier is always smaller than the last
 func (scm *MultipleShardsCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
 	if destShardID == scm.CurrentShard {
-		return fmt.Sprintf("_%d", scm.CurrentShard)
+		return ShardIdToString(destShardID)
 	}
 
 	if destShardID < scm.CurrentShard {
-		return fmt.Sprintf("_%d_%d", destShardID, scm.CurrentShard)
+		return ShardIdToString(destShardID) + ShardIdToString(scm.CurrentShard)
 	}
 
-	return fmt.Sprintf("_%d_%d", scm.CurrentShard, destShardID)
+	if destShardID == core.AllShardId {
+		return ShardIdToString(core.AllShardId)
+	}
+
+	return ShardIdToString(scm.CurrentShard) + ShardIdToString(destShardID)
+}
+
+// ShardIdToString returns the string according to the shard id
+func ShardIdToString(shardId uint32) string {
+	if shardId == core.MetachainShardId {
+		return "_META"
+	}
+	if shardId == core.AllShardId {
+		return "_ALL"
+	}
+	return fmt.Sprintf("_%d", shardId)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -84,3 +84,9 @@ var ErrGetProof = errors.New("getting proof failed")
 
 // ErrVerifyProof signals an error happening when trying to verify a Merkle proof
 var ErrVerifyProof = errors.New("verifying proof failed")
+
+// ErrNilHttpServer signals that a nil http server has been provided
+var ErrNilHttpServer = errors.New("nil http server")
+
+// ErrCannotCreateGinWebServer signals that the gin web server cannot be created
+var ErrCannotCreateGinWebServer = errors.New("cannot create gin web server")

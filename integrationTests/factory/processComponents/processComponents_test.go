@@ -16,8 +16,12 @@ import (
 
 // ------------ Test TestProcessComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	defer factory.CleanupWorkingDir()
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 4)
 
 	nrBefore := runtime.NumGoroutine()
 	factory.PrintStack()

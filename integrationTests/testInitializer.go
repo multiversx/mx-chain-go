@@ -15,7 +15,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -358,7 +358,7 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
 		SnapshotsBufferLen: 10,
-		MaxSnapshots:       2,
+		MaxSnapshots:       3,
 	}
 	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
@@ -1115,7 +1115,7 @@ func CheckTxPresentAndRightNonce(
 	}
 
 	bitmap := make([]bool, noOfTxs+int(startingNonce))
-	//set for each nonce from found tx a true flag in bitmap
+	// set for each nonce from found tx a true flag in bitmap
 	for i := 0; i < noOfTxs; i++ {
 		selfId := shardCoordinator.SelfId()
 		shardDataStore := cache.ShardDataStore(process.ShardCacherIdentifier(selfId, selfId))
@@ -1128,8 +1128,8 @@ func CheckTxPresentAndRightNonce(
 		bitmap[nonce] = true
 	}
 
-	//for the first startingNonce values, the bitmap should be false
-	//for the rest, true
+	// for the first startingNonce values, the bitmap should be false
+	// for the rest, true
 	for i := 0; i < noOfTxs+int(startingNonce); i++ {
 		if i < int(startingNonce) {
 			assert.False(t, bitmap[i])

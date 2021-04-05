@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -42,11 +43,11 @@ type bootstrapComponentsFactory struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstraper   EpochStartBootstrapper
+	epochStartBootstrapper  EpochStartBootstrapper
 	bootstrapParamsHolder   BootstrapParamsHolder
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler
+	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -159,7 +160,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 	}
 
-	var epochStartBootstraper EpochStartBootstrapper
+	var epochStartBootstrapper EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
 			ArgsEpochStartBootstrap:    epochStartBootstrapArgs,
@@ -168,18 +169,18 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
 		}
 
-		epochStartBootstraper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
+		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
 		}
 	} else {
-		epochStartBootstraper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+		epochStartBootstrapper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 		}
 	}
 
-	bootstrapParameters, err := epochStartBootstraper.Bootstrap()
+	bootstrapParameters, err := epochStartBootstrapper.Bootstrap()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errors.ErrBootstrap, err)
 	}
@@ -198,7 +199,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	return &bootstrapComponents{
-		epochStartBootstraper: epochStartBootstraper,
+		epochStartBootstrapper: epochStartBootstrapper,
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
@@ -211,8 +212,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 // Close closes the bootstrap components, closing at the same time any running goroutines
 func (bc *bootstrapComponents) Close() error {
 	// TODO: close all components
-	if !check.IfNil(bc.epochStartBootstraper) {
-		return bc.epochStartBootstraper.Close()
+	if !check.IfNil(bc.epochStartBootstrapper) {
+		return bc.epochStartBootstrapper.Close()
 	}
 
 	return nil
@@ -229,7 +230,7 @@ func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier
-func (bc *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
+func (bc *bootstrapComponents) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
 

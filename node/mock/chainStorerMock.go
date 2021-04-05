@@ -84,7 +84,7 @@ func (bc *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 }
 
 // SetEpochForPutOperation won't do anything
-func (bc *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+func (bc *ChainStorerMock) SetEpochForPutOperation(_ uint32) {
 }
 
 // Destroy removes the underlying files/resources used by the storage service

@@ -86,18 +86,14 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	require.Nil(t, err)
 	networkComponents := getNetworkComponents()
 	dataComponents := getDataComponents(coreComponents, shardCoordinator)
-	cryptoComponents := getCryptoComponents(coreComponents)
 	stateComponents := getStateComponents(coreComponents, shardCoordinator)
-	processComponents := getProcessComponents(
-		shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents,
-	)
 
 	statusArgs := factory.StatusComponentsFactoryArgs{
 		Config:               testscommon.GetGeneralConfig(),
 		ExternalConfig:       config.ExternalConfig{},
-		ShardCoordinator:     processComponents.ShardCoordinator(),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
+		ShardCoordinator:     shardCoordinator,
+		NodesCoordinator:     &mock.NodesCoordinatorMock{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
@@ -154,8 +150,9 @@ func getStatusComponents(
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
-	processComponents factory.ProcessComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
+	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 ) factory.StatusComponentsHandler {
 	indexerURL := "url"
 	elasticUsername := "user"
@@ -172,9 +169,9 @@ func getStatusComponents(
 			},
 		},
 		EconomicsConfig:    config.EconomicsConfig{},
-		ShardCoordinator:   processComponents.ShardCoordinator(),
-		NodesCoordinator:   processComponents.NodesCoordinator(),
-		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		ShardCoordinator:   shardCoordinator,
+		NodesCoordinator:   nodesCoordinator,
+		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
 		NetworkComponents:  networkComponents,
@@ -229,8 +226,8 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		},
 		EconomicsConfig:      config.EconomicsConfig{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
+		NodesCoordinator:     &mock.NodesCoordinatorMock{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		NetworkComponents:    networkComponents,
