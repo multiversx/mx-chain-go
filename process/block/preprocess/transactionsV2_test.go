@@ -29,3 +29,5 @@ func TestTransactionPreprocessor_SplitMiniBlockIfNeededShouldWork(t *testing.T) 
 	assert.Equal(t, txHash2, mbs[0].TxHashes[0])
 	assert.Equal(t, txHash1, mbs[1].TxHashes[0])
 }
+
+//TODO: Add more unit tests for transactionV2.go
