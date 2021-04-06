@@ -21,7 +21,7 @@ type StatusMetricsHandler interface {
 	StatusMetricsWithoutP2PPrometheusString() string
 	EconomicsMetrics() map[string]interface{}
 	ConfigMetrics() map[string]interface{}
-	EnableEpochMetrics() map[string]interface{}
+	EnableEpochsMetrics() map[string]interface{}
 	NetworkMetrics() map[string]interface{}
 	IsInterfaceNil() bool
 }

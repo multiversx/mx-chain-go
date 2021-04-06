@@ -37,7 +37,7 @@ func (d *disabledStatusMetricsHandler) ConfigMetrics() map[string]interface{} {
 	return getReturnMap()
 }
 
-func (d *disabledStatusMetricsHandler) EnableEpochMetrics() map[string]interface{} {
+func (d *disabledStatusMetricsHandler) EnableEpochsMetrics() map[string]interface{} {
 	return getReturnMap()
 }
 

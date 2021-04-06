@@ -25,8 +25,8 @@ func (sms *StatusMetricsStub) ConfigMetrics() map[string]interface{} {
 	return sms.ConfigMetricsCalled()
 }
 
-// EnableEpochMetrics
-func (sms *StatusMetricsStub) EnableEpochMetrics() map[string]interface{} {
+// EnableEpochsMetrics
+func (sms *StatusMetricsStub) EnableEpochsMetrics() map[string]interface{} {
 	return sms.EnableEpochMetricsCalled()
 }
 

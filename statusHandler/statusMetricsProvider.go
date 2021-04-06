@@ -183,32 +183,32 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	return configMetrics
 }
 
-// EnableEpochMetrics will return metric related to activation epochs
-func (sm *statusMetrics) EnableEpochMetrics() map[string]interface{} {
-	enableEpochMetrics := make(map[string]interface{})
+// EnableEpochsMetrics will return metrics related to activation epochs
+func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
+	enableEpochsMetrics := make(map[string]interface{})
 
-	enableEpochMetrics[core.MetricScDeployEpoch] = sm.loadUint64Metric(core.MetricScDeployEpoch)
-	enableEpochMetrics[core.MetricBuiltInFunctionsEpoch] = sm.loadUint64Metric(core.MetricBuiltInFunctionsEpoch)
-	enableEpochMetrics[core.MetricRelayedTransactionsEpoch] = sm.loadUint64Metric(core.MetricRelayedTransactionsEpoch)
-	enableEpochMetrics[core.MetricPenalizedTooMuchGasEpoch] = sm.loadUint64Metric(core.MetricPenalizedTooMuchGasEpoch)
-	enableEpochMetrics[core.MetricSwitchJailWaitingEpoch] = sm.loadUint64Metric(core.MetricSwitchJailWaitingEpoch)
-	enableEpochMetrics[core.MetricSwitchHysteresisForMinNodesEpoch] = sm.loadUint64Metric(core.MetricSwitchHysteresisForMinNodesEpoch)
-	enableEpochMetrics[core.MetricBelowSignedThresholdEpoch] = sm.loadUint64Metric(core.MetricBelowSignedThresholdEpoch)
-	enableEpochMetrics[core.MetricTransactionSignedWithTxHashEpoch] = sm.loadUint64Metric(core.MetricTransactionSignedWithTxHashEpoch)
-	enableEpochMetrics[core.MetricMetaProtectionEpoch] = sm.loadUint64Metric(core.MetricMetaProtectionEpoch)
-	enableEpochMetrics[core.MetricAheadOfTimeGasUsageEpoch] = sm.loadUint64Metric(core.MetricAheadOfTimeGasUsageEpoch)
-	enableEpochMetrics[core.MetricGasPriceModifierEpoch] = sm.loadUint64Metric(core.MetricGasPriceModifierEpoch)
-	enableEpochMetrics[core.MetricRepairCallbackEpoch] = sm.loadUint64Metric(core.MetricRepairCallbackEpoch)
-	enableEpochMetrics[core.MetricBlockGasAndFreeRecheckEpoch] = sm.loadUint64Metric(core.MetricBlockGasAndFreeRecheckEpoch)
-	enableEpochMetrics[core.MetricStakingV2Epoch] = sm.loadUint64Metric(core.MetricStakingV2Epoch)
-	enableEpochMetrics[core.MetricStakeEpoch] = sm.loadUint64Metric(core.MetricStakeEpoch)
-	enableEpochMetrics[core.MetricDoubleKeyProtectionEpoch] = sm.loadUint64Metric(core.MetricDoubleKeyProtectionEpoch)
-	enableEpochMetrics[core.MetricEsdtEpoch] = sm.loadUint64Metric(core.MetricEsdtEpoch)
-	enableEpochMetrics[core.MetricGovernanceEpoch] = sm.loadUint64Metric(core.MetricGovernanceEpoch)
-	enableEpochMetrics[core.MetricDelegationManagerEpoch] = sm.loadUint64Metric(core.MetricDelegationManagerEpoch)
-	enableEpochMetrics[core.MetricDelegationSmartContractEpoch] = sm.loadUint64Metric(core.MetricDelegationSmartContractEpoch)
+	enableEpochsMetrics[core.MetricScDeployEnableEpoch] = sm.loadUint64Metric(core.MetricScDeployEnableEpoch)
+	enableEpochsMetrics[core.MetricBuiltInFunctionsEnableEpoch] = sm.loadUint64Metric(core.MetricBuiltInFunctionsEnableEpoch)
+	enableEpochsMetrics[core.MetricRelayedTransactionsEnableEpoch] = sm.loadUint64Metric(core.MetricRelayedTransactionsEnableEpoch)
+	enableEpochsMetrics[core.MetricPenalizedTooMuchGasEnableEpoch] = sm.loadUint64Metric(core.MetricPenalizedTooMuchGasEnableEpoch)
+	enableEpochsMetrics[core.MetricSwitchJailWaitingEnableEpoch] = sm.loadUint64Metric(core.MetricSwitchJailWaitingEnableEpoch)
+	enableEpochsMetrics[core.MetricSwitchHysteresisForMinNodesEnableEpoch] = sm.loadUint64Metric(core.MetricSwitchHysteresisForMinNodesEnableEpoch)
+	enableEpochsMetrics[core.MetricBelowSignedThresholdEnableEpoch] = sm.loadUint64Metric(core.MetricBelowSignedThresholdEnableEpoch)
+	enableEpochsMetrics[core.MetricTransactionSignedWithTxHashEnableEpoch] = sm.loadUint64Metric(core.MetricTransactionSignedWithTxHashEnableEpoch)
+	enableEpochsMetrics[core.MetricMetaProtectionEnableEpoch] = sm.loadUint64Metric(core.MetricMetaProtectionEnableEpoch)
+	enableEpochsMetrics[core.MetricAheadOfTimeGasUsageEnableEpoch] = sm.loadUint64Metric(core.MetricAheadOfTimeGasUsageEnableEpoch)
+	enableEpochsMetrics[core.MetricGasPriceModifierEnableEpoch] = sm.loadUint64Metric(core.MetricGasPriceModifierEnableEpoch)
+	enableEpochsMetrics[core.MetricRepairCallbackEnableEpoch] = sm.loadUint64Metric(core.MetricRepairCallbackEnableEpoch)
+	enableEpochsMetrics[core.MetricBlockGasAndFreeRecheckEnableEpoch] = sm.loadUint64Metric(core.MetricBlockGasAndFreeRecheckEnableEpoch)
+	enableEpochsMetrics[core.MetricStakingV2EnableEpoch] = sm.loadUint64Metric(core.MetricStakingV2EnableEpoch)
+	enableEpochsMetrics[core.MetricStakeEnableEpoch] = sm.loadUint64Metric(core.MetricStakeEnableEpoch)
+	enableEpochsMetrics[core.MetricDoubleKeyProtectionEnableEpoch] = sm.loadUint64Metric(core.MetricDoubleKeyProtectionEnableEpoch)
+	enableEpochsMetrics[core.MetricEsdtEnableEpoch] = sm.loadUint64Metric(core.MetricEsdtEnableEpoch)
+	enableEpochsMetrics[core.MetricGovernanceEnableEpoch] = sm.loadUint64Metric(core.MetricGovernanceEnableEpoch)
+	enableEpochsMetrics[core.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationManagerEnableEpoch)
+	enableEpochsMetrics[core.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationSmartContractEnableEpoch)
 
-	return enableEpochMetrics
+	return enableEpochsMetrics
 }
 
 // NetworkMetrics will return metrics related to current configuration

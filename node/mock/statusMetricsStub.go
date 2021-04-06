@@ -46,7 +46,7 @@ func (sms *StatusMetricsStub) StatusP2pMetricsMap() map[string]interface{} {
 }
 
 // EnableEpochsMetrics -
-func (sms *StatusMetricsStub) EnableEpochMetrics() map[string]interface{} {
+func (sms *StatusMetricsStub) EnableEpochsMetrics() map[string]interface{} {
 	return sms.EnableEpochsMetricsCalled()
 }
 

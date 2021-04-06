@@ -225,7 +225,7 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	statusMetrics := statusHandler.NewStatusMetrics()
-	key := core.MetricScDeployEpoch
+	key := core.MetricScDeployEnableEpoch
 	value := uint64(4)
 	statusMetrics.SetUInt64Value(key, value)
 

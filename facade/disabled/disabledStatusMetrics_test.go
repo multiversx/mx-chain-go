@@ -23,6 +23,6 @@ func TestDisabledStatusMetricsHandler_AllMethods(t *testing.T) {
 	require.Equal(t, expectedMap, dsm.NetworkMetrics())
 	require.Equal(t, expectedMap, dsm.StatusMetricsMapWithoutP2P())
 	require.Equal(t, expectedMap, dsm.StatusP2pMetricsMap())
-	require.Equal(t, expectedMap, dsm.EnableEpochMetrics())
+	require.Equal(t, expectedMap, dsm.EnableEpochsMetrics())
 	require.Equal(t, responseValue, dsm.StatusMetricsWithoutP2PPrometheusString())
 }

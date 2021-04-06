@@ -89,7 +89,7 @@ func GetEnableEpochs(c *gin.Context) {
 		return
 	}
 
-	enableEpochsMetrics := facade.StatusMetrics().EnableEpochMetrics()
+	enableEpochsMetrics := facade.StatusMetrics().EnableEpochsMetrics()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

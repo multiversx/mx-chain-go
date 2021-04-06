@@ -67,7 +67,7 @@
         # consensus group size and so on)
         { Name = "/config", Open = true },
 
-        # /network/enable-epochs will return metric related to activation epochs
+        # /network/enable-epochs will return metrics related to activation epochs
         { Name = "/enable-epochs", Open = true }
 	]
 

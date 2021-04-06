@@ -398,70 +398,70 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
-	// MetricScDeployEpoch represents the epoch when the deployment of smart contracts will be enabled
-	MetricScDeployEpoch = "smart_contract_deploy"
+	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
 
-	//MetricBuiltInFunctionsEpoch represents the epoch when the built in functions will be enabled
-	MetricBuiltInFunctionsEpoch = "built_in_functions"
+	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
 
-	//MetricRelayedTransactionsEpoch represents the epoch when the relayed transactions will be enabled
-	MetricRelayedTransactionsEpoch = "relayed_transactions"
+	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+	MetricRelayedTransactionsEnableEpoch = "erd_relayed_transactions_enable_epoch"
 
-	//MetricPenalizedTooMuchGasEpoch represents the epoch when the penalization for using too much gas will be enabled
-	MetricPenalizedTooMuchGasEpoch = "penalized_too_much_gas"
+	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+	MetricPenalizedTooMuchGasEnableEpoch = "erd_penalized_too_much_gas_enable_epoch"
 
-	//MetricSwitchJailWaitingEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-	MetricSwitchJailWaitingEpoch = "switch_jail_waiting"
+	//MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+	MetricSwitchJailWaitingEnableEpoch = "erd_switch_jail_waiting_enable_epoch"
 
-	//MetricSwitchHysteresisForMinNodesEpoch represents the epoch when the system smart contract changes its config to consider
+	//MetricSwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
 	//also (minimum) hysteresis nodes for the minimum number of nodes
-	MetricSwitchHysteresisForMinNodesEpoch = "switch_hysteresis_for_min_nodes"
+	MetricSwitchHysteresisForMinNodesEnableEpoch = "erd_switch_hysteresis_for_min_nodes_enable_epoch"
 
-	//MetricBelowSignedThresholdEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-	MetricBelowSignedThresholdEpoch = "below_signed_threshold"
+	//MetricBelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+	MetricBelowSignedThresholdEnableEpoch = "erd_below_signed_threshold_enable_epoch"
 
-	//MetricTransactionSignedWithTxHashEpoch represents the epoch when the node will also accept transactions that are
+	//MetricTransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
 	//signed with the hash of transaction
-	MetricTransactionSignedWithTxHashEpoch = "transaction_signed_with_txhash"
+	MetricTransactionSignedWithTxHashEnableEpoch = "erd_transaction_signed_with_txhash_enable_epoch"
 
-	//MetricMetaProtectionEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-	MetricMetaProtectionEpoch = "meta_protection"
+	//MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+	MetricMetaProtectionEnableEpoch = "erd_meta_protection_enable_epoch"
 
-	//MetricAheadOfTimeGasUsageEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-	MetricAheadOfTimeGasUsageEpoch = "ahead_of_time_gas_usage"
+	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
 
-	//MetricGasPriceModifierEpoch represents the epoch when the gas price modifier in fee computation is enabled
-	MetricGasPriceModifierEpoch = "gas_price_modifier"
+	//MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
 
-	//MetricRepairCallbackEpoch represents the epoch when the callback repair is activated for scrs
-	MetricRepairCallbackEpoch = "repair_callback"
+	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
 	//MetricMaxNodesChange
-	MetricMaxNodesChange = "max_nodes_change"
+	MetricMaxNodesChange = "erd_max_nodes_change_enable_epoch"
 
-	//MetricBlockGasAndFreeRecheckEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
-	MetricBlockGasAndFreeRecheckEpoch = "block_gas_and_fee_recheck"
+	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+	MetricBlockGasAndFreeRecheckEnableEpoch = "erd_block_gas_and_fee_recheck_enable_epoch"
 
-	//MetricStakingV2Epoch represents the epoch when staking v2 is enabled
-	MetricStakingV2Epoch = "staking_v2"
+	//MetricStakingV2EnableEpoch represents the epoch when staking v2 is enabled
+	MetricStakingV2EnableEpoch = "erd_staking_v2_enable_epoch"
 
-	//MetricStakeEpoch represents the epoch when staking is enabled
-	MetricStakeEpoch = "stake"
+	//MetricStakeEnableEpoch represents the epoch when staking is enabled
+	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEpoch
-	MetricDoubleKeyProtectionEpoch = "double_key_protection"
+	//MetricDoubleKeyProtectionEnableEpoch
+	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
-	//MetricEsdtEpoch represents the epoch when ESDT is enabled
-	MetricEsdtEpoch = "esdt"
+	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
+	MetricEsdtEnableEpoch = "erd_esdt_enable_epoch"
 
-	//MetricGovernanceEpoch  represents the epoch when governance is enabled
-	MetricGovernanceEpoch = "governance"
+	//MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
+	MetricGovernanceEnableEpoch = "erd_governance_enable_epoch"
 
-	//MetricDelegationManagerEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
-	MetricDelegationManagerEpoch = "delegation_manager"
+	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	MetricDelegationManagerEnableEpoch = "erd_delegation_manager_enable_epoch"
 
-	//MetricDelegationSmartContractEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
-	MetricDelegationSmartContractEpoch = "delegation_smart_contract"
+	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
 )
 
 const (
