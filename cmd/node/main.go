@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,7 +58,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -2533,19 +2535,43 @@ func createApiResolver(
 		return nil, err
 	}
 
-	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: accountsAPI,
+	}
+
+	args := &trieIteratorsFactory.ArgStakeProcessors{
 		ShardID:            shardCoordinator.SelfId(),
-		Accounts:           accountsAPI,
+		Accounts:           accountsWrapper,
 		PublicKeyConverter: pubkeyConv,
 		BlockChain:         blockChain,
 		QueryService:       scQueryService,
 	}
-	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler, totalStakedValueHandler)
+	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          scQueryService,
+		StatusMetricsHandler:    statusMetrics,
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
+	}
+
+	return external.NewNodeApiResolver(argsApiResolver)
 }
 
 //TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists

@@ -65,7 +65,15 @@
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/direct-staked-info will return the metrics related to current direct staked list of addresses
+        # and their staked values
+        {Name = "/direct-staked-info", Open = true},
+
+        # /network/delegated-info will return the metrics related to current delegated list of addresses
+        # and their staked values on the system delegation smart contracts
+        {Name = "/delegated-info", Open = true}
 	]
 
 [APIPackages.log]

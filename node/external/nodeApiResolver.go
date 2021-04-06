@@ -14,33 +14,48 @@ type NodeApiResolver struct {
 	statusMetricsHandler    StatusMetricsHandler
 	txCostHandler           TransactionCostHandler
 	totalStakedValueHandler TotalStakedValueHandler
+	directStakedListHandler DirectStakedListHandler
+	delegatedListHandler    DelegatedListHandler
+}
+
+// ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
+type ArgNodeApiResolver struct {
+	SCQueryService          SCQueryService
+	StatusMetricsHandler    StatusMetricsHandler
+	TxCostHandler           TransactionCostHandler
+	TotalStakedValueHandler TotalStakedValueHandler
+	DirectStakedListHandler DirectStakedListHandler
+	DelegatedListHandler    DelegatedListHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(
-	scQueryService SCQueryService,
-	statusMetricsHandler StatusMetricsHandler,
-	txCostHandler TransactionCostHandler,
-	totalStakedValueHandler TotalStakedValueHandler,
-) (*NodeApiResolver, error) {
-	if check.IfNil(scQueryService) {
+func NewNodeApiResolver(arg ArgNodeApiResolver) (*NodeApiResolver, error) {
+	if check.IfNil(arg.SCQueryService) {
 		return nil, ErrNilSCQueryService
 	}
-	if check.IfNil(statusMetricsHandler) {
+	if check.IfNil(arg.StatusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
-	if check.IfNil(txCostHandler) {
+	if check.IfNil(arg.TxCostHandler) {
 		return nil, ErrNilTransactionCostHandler
 	}
-	if check.IfNil(totalStakedValueHandler) {
+	if check.IfNil(arg.TotalStakedValueHandler) {
 		return nil, ErrNilTotalStakedValueHandler
+	}
+	if check.IfNil(arg.DirectStakedListHandler) {
+		return nil, ErrNilDirectStakeListHandler
+	}
+	if check.IfNil(arg.DelegatedListHandler) {
+		return nil, ErrNilDelegatedListHandler
 	}
 
 	return &NodeApiResolver{
-		scQueryService:          scQueryService,
-		statusMetricsHandler:    statusMetricsHandler,
-		txCostHandler:           txCostHandler,
-		totalStakedValueHandler: totalStakedValueHandler,
+		scQueryService:          arg.SCQueryService,
+		statusMetricsHandler:    arg.StatusMetricsHandler,
+		txCostHandler:           arg.TxCostHandler,
+		totalStakedValueHandler: arg.TotalStakedValueHandler,
+		directStakedListHandler: arg.DirectStakedListHandler,
+		delegatedListHandler:    arg.DelegatedListHandler,
 	}, nil
 }
 
@@ -62,6 +77,16 @@ func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 // GetTotalStakedValue will return total staked value
 func (nar *NodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
+}
+
+// GetDirectStakedList will output the list for the direct staked addresses
+func (nar *NodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return nar.directStakedListHandler.GetDirectStakedList()
+}
+
+// GetDelegatorsList will output the delegators list
+func (nar *NodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
+	return nar.delegatedListHandler.GetDelegatorsList()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

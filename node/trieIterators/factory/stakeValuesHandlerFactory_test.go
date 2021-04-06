@@ -1,33 +1,38 @@
-package stakeValuesProcessor
+package factory
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateTotalStakedValueHandler_DisabledTotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
-	args := &ArgsTotalStakedValueHandler{
+	args := &ArgStakeProcessors{
 		ShardID: 0,
 	}
 
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
-
-	_, ok := totalStakedValueHandler.(*stakedValuesProc)
-	require.False(t, ok)
+	assert.Equal(t, "*disabled.stakeValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
 }
 
 func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
-	args := &ArgsTotalStakedValueHandler{
-		ShardID:            core.MetachainShardId,
-		Accounts:           &mock.AccountsStub{},
+	args := &ArgStakeProcessors{
+		ShardID: core.MetachainShardId,
+		Accounts: &trieIterators.AccountsWrapper{
+			Mutex:           &sync.Mutex{},
+			AccountsAdapter: &mock.AccountsStub{},
+		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 		BlockChain:         &mock.BlockChainMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
@@ -35,8 +40,5 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
 	require.Nil(t, err)
-
-	totalStakedValueProc, ok := totalStakedValueHandler.(*stakedValuesProc)
-	require.True(t, ok)
-	require.NotNil(t, totalStakedValueProc)
+	assert.Equal(t, "*trieIterators.stakedValuesProc", fmt.Sprintf("%T", totalStakedValueHandler))
 }
