@@ -204,14 +204,14 @@ func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uin
 // AssignShardForPubKeyWhenNotSpecified will return the same shard ID when the same seed source is set to the randomizer
 // This function sums all the bytes from the public key and based on a modulo operation it will return a shard ID
 func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint32 {
-	sum := 0
-	for _, b := range pubKey {
-		sum += int(b)
+	if len(pubKey) == 0 {
+		return 0 // should never happen
 	}
 
+	lastByte := pubKey[len(pubKey)-1]
 	numShardsIncludingMeta := numShards + 1
 
-	randomShardID := uint32(sum) % numShardsIncludingMeta
+	randomShardID := uint32(lastByte) % numShardsIncludingMeta
 	if randomShardID == numShards {
 		randomShardID = MetachainShardId
 	}

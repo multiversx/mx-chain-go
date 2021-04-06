@@ -243,19 +243,22 @@ func TestAssignShardForPubKeyWhenNotSpecified(t *testing.T) {
 
 	numShards := uint32(3)
 
-	key := []byte{5, 7, 4} // sum = 16 ; 16 % 4 = 0
+	key := []byte{5, 7, 4} // 4 % 4 = 0
 	require.Equal(t, uint32(0), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
 
-	key = []byte{5, 7, 5} // sum = 17 ; 17 % 4 = 1
+	key = []byte{5, 7, 5} // 5 % 4 = 1
 	require.Equal(t, uint32(1), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
 
-	key = []byte{5, 7, 6} // sum = 18 ; 18 % 4 = 2
+	key = []byte{5, 7, 6} // 6 % 4 = 2
 	require.Equal(t, uint32(2), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
 
-	key = []byte{5, 7, 7} // sum = 19 ; 19 % 4 = 3 => metachain
+	key = []byte{5, 7, 7} // 7 % 4 = 3 => metachain
 	require.Equal(t, core.MetachainShardId, core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
 
-	key = []byte{5, 7, 8} // sum = 20 ; 20 % 4 = 0
+	key = []byte{5, 7, 8} // 8 % 4 = 0
+	require.Equal(t, uint32(0), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+
+	key = []byte{} // empty
 	require.Equal(t, uint32(0), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
 }
 
