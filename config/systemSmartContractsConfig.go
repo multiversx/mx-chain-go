@@ -24,6 +24,7 @@ type StakingSystemSCConfig struct {
 	MaxNumberOfNodesForStake             uint64
 	StakingV2Epoch                       uint32
 	StakeEnableEpoch                     uint32
+	CorrectLastUnjailedEpoch             uint32
 	DoubleKeyProtectionEnableEpoch       uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
