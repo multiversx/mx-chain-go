@@ -382,7 +382,7 @@ func deployAndIssueNFTSFTThroughSC(
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 10
+	nrRoundsToPropagateMultiShard := 12
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
