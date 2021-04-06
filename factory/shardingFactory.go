@@ -40,8 +40,7 @@ func CreateShardCoordinator(
 		if selfShardId == core.DisabledShardIDAsObserver {
 			pubKeyBytes, err := pubKey.ToByteArray()
 			if err != nil {
-				log.Warn("cannot get public key bytes", "error", err)
-				return nil, core.NodeTypeObserver, err
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
 			}
 
 			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -108,8 +107,7 @@ func CreateNodesCoordinator(
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
 		pubKeyBytes, err := pubKey.ToByteArray()
 		if err != nil {
-			log.Warn("cannot get public key bytes", "error", err)
-			return nil, err
+			return nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
 		}
 
 		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())

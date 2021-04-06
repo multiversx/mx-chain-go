@@ -212,7 +212,6 @@ func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint3
 	numShardsIncludingMeta := numShards + 1
 
 	randomShardID := uint32(sum) % numShardsIncludingMeta
-
 	if randomShardID == numShards {
 		randomShardID = MetachainShardId
 	}
