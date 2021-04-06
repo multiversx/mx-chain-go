@@ -86,7 +86,7 @@ func createNftTransferWithMockArguments(shardID uint32, numShards uint32, pauseH
 	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator())
 
 	nftTransfer, _ := NewESDTNFTTransferFunc(
-		0,
+		1,
 		marshalizer,
 		pauseHandler,
 		accounts,
@@ -312,9 +312,10 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShardWithScCall(t *testing.
 	scCallArgs := [][]byte{[]byte(scCallFunctionAsHex), []byte(scCallArg)}
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallValue:  big.NewInt(0),
-			CallerAddr: senderAddress,
-			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			GasProvided: 1,
 		},
 		RecipientAddr: senderAddress,
 	}
@@ -381,9 +382,10 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationDoesNotHo
 	scCallArgs := [][]byte{[]byte(scCallFunctionAsHex), []byte(scCallArg)}
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallValue:  big.NewInt(0),
-			CallerAddr: senderAddress,
-			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			GasProvided: 1,
 		},
 		RecipientAddr: senderAddress,
 	}
@@ -469,9 +471,10 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnCrossShardsDestinationHoldsNFT(
 	quantityBytes := big.NewInt(1).Bytes()
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallValue:  big.NewInt(0),
-			CallerAddr: senderAddress,
-			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			GasProvided: 1,
 		},
 		RecipientAddr: senderAddress,
 	}
@@ -552,9 +555,10 @@ func TestESDTNFTTransfer_SndDstFrozen(t *testing.T) {
 	quantityBytes := big.NewInt(1).Bytes()
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallValue:  big.NewInt(0),
-			CallerAddr: senderAddress,
-			Arguments:  [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			GasProvided: 1,
 		},
 		RecipientAddr: senderAddress,
 	}
@@ -570,6 +574,44 @@ func TestESDTNFTTransfer_SndDstFrozen(t *testing.T) {
 
 	_, err = transferFunc.ProcessBuiltinFunction(sender.(state.UserAccountHandler), sender.(state.UserAccountHandler), vmInput)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
+}
+
+func TestESDTNFTTransfer_NotEnoughGas(t *testing.T) {
+	t.Parallel()
+
+	transferFunc := createNftTransferWithMockArguments(0, 1, &mock.PauseHandlerStub{})
+	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
+
+	senderAddress := bytes.Repeat([]byte{2}, 32) // sender is in the same shard
+	destinationAddress := bytes.Repeat([]byte{1}, 32)
+	sender, err := transferFunc.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	tokenName := []byte("token")
+	tokenNonce := uint64(1)
+
+	initialTokens := big.NewInt(3)
+	createESDTToken(tokenName, core.NonFungible, tokenNonce, initialTokens, transferFunc.marshalizer, sender.(state.UserAccountHandler))
+	_ = transferFunc.accounts.SaveAccount(sender)
+	_, _ = transferFunc.accounts.Commit()
+	//reload sender account
+	sender, err = transferFunc.accounts.LoadAccount(senderAddress)
+	require.Nil(t, err)
+
+	nonceBytes := big.NewInt(int64(tokenNonce)).Bytes()
+	quantityBytes := big.NewInt(1).Bytes()
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, nonceBytes, quantityBytes, destinationAddress},
+			GasProvided: 0,
+		},
+		RecipientAddr: senderAddress,
+	}
+
+	_, err = transferFunc.ProcessBuiltinFunction(sender.(state.UserAccountHandler), sender.(state.UserAccountHandler), vmInput)
+	assert.Equal(t, err, process.ErrNotEnoughGas)
 }
 
 func extractScResultsFromVmOutput(t testing.TB, vmOutput *vmcommon.VMOutput) (string, [][]byte) {
