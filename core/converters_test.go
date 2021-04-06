@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCalculateHash_NilMarshalizer(t *testing.T) {
@@ -235,4 +236,37 @@ func TestConvertShardIDToUint32(t *testing.T) {
 	shardID, err = core.ConvertShardIDToUint32("wrongID")
 	assert.Error(t, err)
 	assert.Equal(t, uint32(0), shardID)
+}
+
+func TestAssignShardForPubKeyWhenNotSpecified(t *testing.T) {
+	t.Parallel()
+
+	numShards := uint32(3)
+
+	key := []byte{5, 7, 4} // sum = 16 ; 16 % 4 = 0
+	require.Equal(t, uint32(0), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+
+	key = []byte{5, 7, 5} // sum = 17 ; 17 % 4 = 1
+	require.Equal(t, uint32(1), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+
+	key = []byte{5, 7, 6} // sum = 18 ; 18 % 4 = 2
+	require.Equal(t, uint32(2), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+
+	key = []byte{5, 7, 7} // sum = 19 ; 19 % 4 = 3 => metachain
+	require.Equal(t, core.MetachainShardId, core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+
+	key = []byte{5, 7, 8} // sum = 20 ; 20 % 4 = 0
+	require.Equal(t, uint32(0), core.AssignShardForPubKeyWhenNotSpecified(key, numShards))
+}
+
+func TestAssignShardForPubKeyWhenNotSpecifiedShouldReturnSameShardForSameKey(t *testing.T) {
+	t.Parallel()
+
+	key := []byte("test pub key number 0")
+	numShards := uint32(3)
+
+	result0 := core.AssignShardForPubKeyWhenNotSpecified(key, numShards)
+	result1 := core.AssignShardForPubKeyWhenNotSpecified(key, numShards)
+
+	require.Equal(t, result0, result1)
 }
