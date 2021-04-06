@@ -116,6 +116,34 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 	}
 }
 
+// Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
+//TODO remove this function after fixing the hardfork sync state mechanism
+func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	if err != nil {
+		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
+		return make(map[string]data.Trie)
+	}
+
+	var recreatedTrie data.Trie
+	clonedMap := make(map[string]data.Trie, len(b.dataTries))
+	for key := range b.dataTries {
+		recreatedTrie, err = dataTrie.Recreate([]byte(key))
+		if err != nil {
+			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
+				"roothash", []byte(key), "error", err)
+			continue
+		}
+
+		clonedMap[key] = recreatedTrie
+	}
+
+	return clonedMap
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (b *baseAccountsSyncer) IsInterfaceNil() bool {
 	return b == nil
