@@ -639,9 +639,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("removing cached received trie nodes")
 	e.dataPool.TrieNodes().Clear()
 
-	//TODO remove this sleep
-	time.Sleep(time.Second * 5)
-
 	parameters := Parameters{
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.baseData.shardId,

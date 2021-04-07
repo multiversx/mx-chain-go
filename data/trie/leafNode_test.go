@@ -772,3 +772,27 @@ func TestLeafNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextHash)
 	assert.Nil(t, nextKey)
 }
+
+func TestLeafNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var ln *leafNode
+	assert.Equal(t, 0, ln.sizeInBytes())
+
+	value := []byte("value")
+	key := []byte("key")
+	hash := []byte("hash")
+	ln = &leafNode{
+		CollapsedLn: CollapsedLn{
+			Key:   key,
+			Value: value,
+		},
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+}

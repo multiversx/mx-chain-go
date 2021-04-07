@@ -81,16 +81,13 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		return nil, fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
 	}
 	if check.IfNil(arg.DB) {
-		//todo extract var here
-		return nil, fmt.Errorf("nil db")
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilDatabase)
 	}
 	if check.IfNil(arg.Marshalizer) {
-		//todo extract var here
-		return nil, fmt.Errorf("nil marshalizer")
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilMarshalizer)
 	}
 	if check.IfNil(arg.Hasher) {
-		//todo extract var here
-		return nil, fmt.Errorf("nil hasher")
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilHasher)
 	}
 
 	ts := &trieSyncer{

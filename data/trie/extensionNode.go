@@ -643,7 +643,6 @@ func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
-//TODO(iulian) add tests
 func (en *extensionNode) sizeInBytes() int {
 	if en == nil {
 		return 0

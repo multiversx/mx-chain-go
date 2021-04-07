@@ -1084,3 +1084,28 @@ func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextHash)
 	assert.Nil(t, nextKey)
 }
+
+func TestExtensionNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	assert.Equal(t, 0, en.sizeInBytes())
+
+	collapsed := []byte("collapsed")
+	key := []byte("key")
+	hash := []byte("hash")
+	en = &extensionNode{
+		CollapsedEn: CollapsedEn{
+			Key:          key,
+			EncodedChild: collapsed,
+		},
+		child: nil,
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
+}

@@ -387,7 +387,6 @@ func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, nil, nil
 }
 
-//TODO(iulian) add tests
 func (ln *leafNode) sizeInBytes() int {
 	if ln == nil {
 		return 0

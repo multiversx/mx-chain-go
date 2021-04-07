@@ -790,7 +790,6 @@ func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
-//TODO(iulian) add tests
 func (bn *branchNode) sizeInBytes() int {
 	if bn == nil {
 		return 0
