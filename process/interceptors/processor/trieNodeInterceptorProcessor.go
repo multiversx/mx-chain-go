@@ -38,7 +38,7 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ c
 		return process.ErrWrongTypeAssertion
 	}
 
-	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, nodeData.SizeInBytes())
+	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, nodeData.SizeInBytes()+len(nodeData.Hash()))
 	return nil
 }
 
