@@ -44,7 +44,7 @@ func TestGetProof_GetProofError(t *testing.T) {
 
 	err := fmt.Errorf("GetProof error")
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash []byte, address []byte) ([][]byte, error) {
+		GetProofCalled: func(rootHash string, address string) ([][]byte, error) {
 			return nil, err
 		},
 	}
@@ -65,9 +65,9 @@ func TestGetProof(t *testing.T) {
 
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	facade := &mock.Facade{
-		GetProofCalled: func(rootHash []byte, address []byte) ([][]byte, error) {
-			assert.Equal(t, []byte("roothash"), rootHash)
-			assert.Equal(t, []byte("addr"), address)
+		GetProofCalled: func(rootHash string, address string) ([][]byte, error) {
+			assert.Equal(t, "roothash", rootHash)
+			assert.Equal(t, "addr", address)
 			return validProof, nil
 		},
 	}
@@ -131,14 +131,14 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 
 	err := fmt.Errorf("VerifyProof err")
 	facade := &mock.Facade{
-		VerifyProofCalled: func(rootHash []byte, address []byte, proof [][]byte) (bool, error) {
+		VerifyProofCalled: func(rootHash string, address string, proof [][]byte) (bool, error) {
 			return false, err
 		},
 	}
 
 	varifyProofParams := proof.VerifyProofRequest{
-		RootHash: []byte("rootHash"),
-		Address:  []byte("address"),
+		RootHash: "rootHash",
+		Address:  "address",
 		Proof:    [][]byte{[]byte("valid"), []byte("proof")},
 	}
 	verifyProofBytes, _ := json.Marshal(varifyProofParams)
@@ -159,8 +159,8 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 func TestVerifyProof(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("rootHash")
-	address := []byte("address")
+	rootHash := "rootHash"
+	address := "address"
 	validProof := [][]byte{[]byte("valid"), []byte("proof")}
 	varifyProofParams := proof.VerifyProofRequest{
 		RootHash: rootHash,
@@ -170,7 +170,7 @@ func TestVerifyProof(t *testing.T) {
 	verifyProofBytes, _ := json.Marshal(varifyProofParams)
 
 	facade := &mock.Facade{
-		VerifyProofCalled: func(rH []byte, addr []byte, proof [][]byte) (bool, error) {
+		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
 			assert.Equal(t, rootHash, rH)
 			assert.Equal(t, address, addr)
 			assert.Equal(t, validProof, proof)

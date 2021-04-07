@@ -20,8 +20,8 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	GetProof(rootHash []byte, address []byte) ([][]byte, error)
-	VerifyProof(rootHash []byte, address []byte, proof [][]byte) (bool, error)
+	GetProof(rootHash string, address string) ([][]byte, error)
+	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
 // Routes defines Merkle proof related routes
@@ -42,8 +42,8 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // VerifyProofRequest represents the parameters needed to verify a Merkle proof
 type VerifyProofRequest struct {
-	RootHash []byte   `json:"roothash"`
-	Address  []byte   `json:"address"`
+	RootHash string   `json:"roothash"`
+	Address  string   `json:"address"`
 	Proof    [][]byte `json:"proof"`
 }
 
@@ -80,7 +80,7 @@ func GetProof(c *gin.Context) {
 		return
 	}
 
-	proof, err := facade.GetProof([]byte(rootHash), []byte(address))
+	proof, err := facade.GetProof(rootHash, address)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

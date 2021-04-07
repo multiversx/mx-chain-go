@@ -369,23 +369,43 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 }
 
 // GetProof returns the Merkle proof for the given address
-func (nf *nodeFacade) GetProof(rootHash []byte, address []byte) ([][]byte, error) {
-	trie, err := nf.accountsState.GetTrie(rootHash)
+func (nf *nodeFacade) GetProof(rootHash string, address string) ([][]byte, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	return trie.GetProof(address)
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return trie.GetProof(addressBytes)
 }
 
 // VerifyProof verifies the given Merkle proof
-func (nf *nodeFacade) VerifyProof(rootHash []byte, address []byte, proof [][]byte) (bool, error) {
-	trie, err := nf.accountsState.GetTrie(rootHash)
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
 	if err != nil {
 		return false, err
 	}
 
-	return trie.VerifyProof(address, proof)
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return false, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return false, err
+	}
+
+	return trie.VerifyProof(addressBytes, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state

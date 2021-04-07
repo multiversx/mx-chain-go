@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/api/proof"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
@@ -237,6 +239,12 @@ func (ws *webServer) registerRoutes(gws *gin.Engine) {
 	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
 	if err == nil {
 		block.Routes(wrappedBlockRouter)
+	}
+
+	proofRoutes := gws.Group("/proof")
+	wrappedProofRouter, err := wrapper.NewRouterWrapper("proof", proofRoutes, routesConfig)
+	if err == nil {
+		proof.Routes(wrappedProofRouter)
 	}
 
 	if ws.facade.PprofEnabled() {
