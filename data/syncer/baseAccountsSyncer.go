@@ -17,8 +17,7 @@ import (
 type baseAccountsSyncer struct {
 	hasher                    hashing.Hasher
 	marshalizer               marshal.Marshalizer
-	trieSyncers               map[string]data.TrieSyncer
-	dataTries                 map[string]data.Trie
+	dataTries                 map[string]struct{}
 	mutex                     sync.Mutex
 	trieStorageManager        data.StorageManager
 	requestHandler            trie.RequestHandler
@@ -68,15 +67,20 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	return nil
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ssh data.SyncStatisticsHandler, ctx context.Context) error {
+func (b *baseAccountsSyncer) syncMainTrie(
+	rootHash []byte,
+	trieTopic string,
+	ssh data.SyncStatisticsHandler,
+	ctx context.Context,
+) (data.Trie, error) {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	b.dataTries[string(rootHash)] = dataTrie
+	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 b.requestHandler,
 		InterceptedNodes:               b.cacher,
@@ -89,29 +93,15 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ssh
 	}
 	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	b.trieSyncers[string(rootHash)] = trieSyncer
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
-}
-
-// GetSyncedTries returns the synced map of data trie
-func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	clonedMap := make(map[string]data.Trie, len(b.dataTries))
-	for key, value := range b.dataTries {
-		clonedMap[key] = value
-	}
-
-	return clonedMap
+	return dataTrie, nil
 }
 
 func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {
@@ -124,6 +114,34 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 			log.Info("trie sync in progress", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
 		}
 	}
+}
+
+// Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
+//TODO remove this function after fixing the hardfork sync state mechanism
+func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	if err != nil {
+		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
+		return make(map[string]data.Trie)
+	}
+
+	var recreatedTrie data.Trie
+	clonedMap := make(map[string]data.Trie, len(b.dataTries))
+	for key := range b.dataTries {
+		recreatedTrie, err = dataTrie.Recreate([]byte(key))
+		if err != nil {
+			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
+				"roothash", []byte(key), "error", err)
+			continue
+		}
+
+		clonedMap[key] = recreatedTrie
+	}
+
+	return clonedMap
 }
 
 // IsInterfaceNil returns true if underlying object is nil
