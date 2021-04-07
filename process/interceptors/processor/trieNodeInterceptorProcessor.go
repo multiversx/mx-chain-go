@@ -10,6 +10,8 @@ import (
 
 var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
 
+const innerNodePointersSize = 16 //hasher + marshalizer
+
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes
 type TrieNodeInterceptorProcessor struct {
 	interceptedNodes storage.Cacher
@@ -38,7 +40,8 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ c
 		return process.ErrWrongTypeAssertion
 	}
 
-	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, len(nodeData.EncodedNode()))
+	size := 2*len(nodeData.EncodedNode()) + 2*len(nodeData.Hash()) + innerNodePointersSize
+	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, size)
 	return nil
 }
 
