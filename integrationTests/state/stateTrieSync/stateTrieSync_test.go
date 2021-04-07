@@ -94,7 +94,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 requestHandler,
 		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
-		Trie:                           requesterTrie,
+		DB:                             requesterTrie.GetStorageManager().Database(),
+		Marshalizer:                    integrationTests.TestMarshalizer,
+		Hasher:                         integrationTests.TestHasher,
 		ShardId:                        shardID,
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             tss,

@@ -84,7 +84,9 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 b.requestHandler,
 		InterceptedNodes:               b.cacher,
-		Trie:                           dataTrie,
+		DB:                             b.trieStorageManager.Database(),
+		Marshalizer:                    b.marshalizer,
+		Hasher:                         b.hasher,
 		ShardId:                        b.shardId,
 		Topic:                          trieTopic,
 		TrieSyncStatistics:             ssh,
@@ -101,7 +103,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		return nil, err
 	}
 
-	return dataTrie, nil
+	return dataTrie.Recreate(rootHash)
 }
 
 func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {

@@ -150,19 +150,15 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		return nil
 	}
 
-	dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
-	if err != nil {
-		u.syncerMutex.Unlock()
-		return err
-	}
-
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 u.requestHandler,
 		InterceptedNodes:               u.cacher,
-		Trie:                           dataTrie,
+		DB:                             u.trieStorageManager.Database(),
+		Marshalizer:                    u.marshalizer,
+		Hasher:                         u.hasher,
 		ShardId:                        u.shardId,
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             ssh,
