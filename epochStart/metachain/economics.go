@@ -412,6 +412,8 @@ func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev *block.
 	for _, shardData := range prev.EpochStart.LastFinalizedHeaders {
 		maxBlocks += currentRound - shardData.Round
 	}
+	// For metaChain blocks
+	maxBlocks += currentRound - prev.Round
 
 	return maxBlocks
 }
@@ -461,7 +463,7 @@ func (e *economics) checkEconomicsInvariants(
 	}
 
 	actualMaxBlocks := maxBlocksInEpoch
-	if maxPossibleNotarizedBlocks > actualMaxBlocks{
+	if maxPossibleNotarizedBlocks > actualMaxBlocks {
 		actualMaxBlocks = maxPossibleNotarizedBlocks
 	}
 
