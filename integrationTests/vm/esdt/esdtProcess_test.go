@@ -1249,6 +1249,10 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 		}
 	}()
 
+	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+	}
+
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
@@ -1282,12 +1286,13 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	txDeployData := txDataBuilder.NewBuilder()
 	txDeployData.Func("deployChildContract").Str(receiverScCode)
 
+	indirectDeploy := "deployChildContract@" + receiverScCode
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		callerScAddress,
-		txDeployData.ToString(),
+		indirectDeploy,
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1311,7 +1316,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 		issueCost,
 		callerScAddress,
 		txIssueData.ToString(),
-		integrationTests.AdditionalGasLimit,
+		1000000000,
 	)
 
 	nrRoundsToPropagateMultiShard := 12
@@ -1322,7 +1327,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	scQuery := nodes[0].SCQueryService
 	childScAddressQuery := &process.SCQuery{
 		ScAddress:  callerScAddress,
-		FuncName:   "childContractAddress",
+		FuncName:   "getChildContractAddress",
 		CallerAddr: nil,
 		CallValue:  big.NewInt(0),
 		Arguments:  [][]byte{},

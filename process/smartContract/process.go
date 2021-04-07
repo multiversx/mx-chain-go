@@ -2294,7 +2294,7 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 	sc.flagReturnDataToLastTransfer.Toggle(epoch > sc.returnDataToLastTransferEnableEpoch)
 	log.Debug("scProcessor: return data to last transfer", "enabled", sc.flagReturnDataToLastTransfer.IsSet())
 
-	sc.flagSenderInOutTransfer.Toggle(epoch > sc.senderInOutTransferEnableEpoch)
+	sc.flagSenderInOutTransfer.Toggle(epoch >= sc.senderInOutTransferEnableEpoch)
 	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
 }
 
