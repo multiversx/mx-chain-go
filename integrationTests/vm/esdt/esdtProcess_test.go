@@ -1215,6 +1215,146 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	require.EqualValues(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
 }
 
+func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+	}
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	tokenIssuer := nodes[0]
+
+	// deploy parent contract
+	callerScCode := arwen.GetSCCode("./testdata/parent.wasm")
+	callerScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxDataNonPayable(callerScCode),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(callerScAddress)
+	require.Nil(t, err)
+
+	// deploy child contract by calling deployChildContract endpoint
+	receiverScCode := arwen.GetSCCode("./testdata/child.wasm")
+	txDeployData := txDataBuilder.NewBuilder()
+	txDeployData.Func("deployChildContract").Str(receiverScCode)
+
+	indirectDeploy := "deployChildContract@" + receiverScCode
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		callerScAddress,
+		indirectDeploy,
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// issue ESDT by calling exec on dest context on child contract
+	ticker := "DSN"
+	name := "DisplayName"
+	issueCost := big.NewInt(1000)
+	txIssueData := txDataBuilder.NewBuilder()
+	txIssueData.Func("executeOnDestIssueToken").
+		Str(name).
+		Str(ticker).
+		BigInt(big.NewInt(500000))
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		issueCost,
+		callerScAddress,
+		txIssueData.ToString(),
+		1000000000,
+	)
+
+	nrRoundsToPropagateMultiShard := 12
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenID := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+
+	scQuery := nodes[0].SCQueryService
+	childScAddressQuery := &process.SCQuery{
+		ScAddress:  callerScAddress,
+		FuncName:   "getChildContractAddress",
+		CallerAddr: nil,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{},
+	}
+
+	res, err := scQuery.ExecuteQuery(childScAddressQuery)
+	require.Nil(t, err)
+
+	receiverScAddress := res.ReturnData[0]
+
+	tokenIdQuery := &process.SCQuery{
+		ScAddress:  receiverScAddress,
+		FuncName:   "getWrappedEgldTokenIdentifier",
+		CallerAddr: nil,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{},
+	}
+
+	res, err = scQuery.ExecuteQuery(tokenIdQuery)
+	require.Nil(t, err)
+	require.True(t, strings.Contains(string(res.ReturnData[0]), ticker))
+
+	checkAddressHasESDTTokens(t, receiverScAddress, nodes, string(tokenID), 500000)
+}
+
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
