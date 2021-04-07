@@ -285,6 +285,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 
 	n, ok := ts.interceptedNodes.Get(hash)
 	if ok {
+		ts.interceptedNodes.Remove(hash)
 		return trieNode(n)
 	}
 
@@ -306,7 +307,7 @@ func trieNode(data interface{}) (node, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return n.node.deepClone(), nil
+	return n.node, nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {
