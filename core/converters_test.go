@@ -11,6 +11,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -272,4 +274,38 @@ func TestAssignShardForPubKeyWhenNotSpecifiedShouldReturnSameShardForSameKey(t *
 	result1 := core.AssignShardForPubKeyWhenNotSpecified(key, numShards)
 
 	require.Equal(t, result0, result1)
+}
+
+func TestShardAssignment(t *testing.T) {
+	t.Skip()
+
+	numShards := uint32(3)
+	counts := map[uint32]uint64{
+		0:                     0,
+		1:                     0,
+		2:                     0,
+		core.MetachainShardId: 0,
+	}
+
+	numAccounts := 1000
+
+	for i := 0; i < numAccounts; i++ {
+		pubKey := generatePubKey()
+		shId := core.AssignShardForPubKeyWhenNotSpecified(pubKey, numShards)
+		counts[shId]++
+	}
+
+	for sh, cnt := range counts {
+		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
+	}
+
+}
+
+var keyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+func generatePubKey() []byte {
+	_, pk := keyGen.GeneratePair()
+	pkB, _ := pk.ToByteArray()
+
+	return pkB
 }
