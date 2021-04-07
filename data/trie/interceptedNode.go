@@ -120,6 +120,12 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 	return big.NewInt(0)
 }
 
+// SizeInBytes returns the size in bytes held by this instance plus the inner node's instance size
+//TODO(iulian) add tests
+func (inTn *InterceptedTrieNode) SizeInBytes() int {
+	return len(inTn.hash) + len(inTn.encNode) + inTn.node.sizeInBytes()
+}
+
 // Identifiers returns the identifiers used in requests
 func (inTn *InterceptedTrieNode) Identifiers() [][]byte {
 	return [][]byte{inTn.hash}

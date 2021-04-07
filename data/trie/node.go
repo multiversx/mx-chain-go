@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	nrOfChildren  = 17
-	firstByte     = 0
-	hexTerminator = 16
-	nibbleSize    = 4
-	nibbleMask    = 0x0f
+	nrOfChildren       = 17
+	firstByte          = 0
+	hexTerminator      = 16
+	nibbleSize         = 4
+	nibbleMask         = 0x0f
+	pointerSizeInBytes = 8
 )
 
 type baseNode struct {
