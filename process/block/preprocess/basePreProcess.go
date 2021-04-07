@@ -3,6 +3,7 @@ package preprocess
 import (
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -17,10 +18,80 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+
+type txType int32
+
+const (
+	nonScTx txType = 0
+	scTx    txType = 1
+)
+
 type gasConsumedInfo struct {
 	gasConsumedByMiniBlocksInSenderShard  uint64
 	gasConsumedByMiniBlockInReceiverShard uint64
 	totalGasConsumedInSelfShard           uint64
+}
+
+type txAndMbInfo struct {
+	numNewTxs                      int
+	numNewMiniBlocks               int
+	isReceiverSmartContractAddress bool
+	isCrossShardScCallOrSpecialTx  bool
+	txType                         txType
+}
+
+type scheduledTxAndMbInfo struct {
+	numNewTxs            int
+	numNewMiniBlocks     int
+	isCrossShardScCallTx bool
+}
+
+type processedTxsInfo struct {
+	numTxsAdded                        int
+	numBadTxs                          int
+	numTxsSkipped                      int
+	numTxsFailed                       int
+	numTxsWithInitialBalanceConsumed   int
+	numCrossShardScCallsOrSpecialTxs   int
+	totalTimeUsedForProcess            time.Duration
+	totalTimeUsedForComputeGasConsumed time.Duration
+}
+
+type createAndProcessMiniBlocksInfo struct {
+	mapSCTxs                                 map[string]struct{}
+	mapTxsForShard                           map[uint32]int
+	mapScsForShard                           map[uint32]int
+	mapCrossShardScCallsOrSpecialTxs         map[uint32]int
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	mapMiniBlocks                            map[uint32]*block.MiniBlock
+	senderAddressToSkip                      []byte
+	maxCrossShardScCallsOrSpecialTxsPerShard int
+	firstInvalidTxFound                      bool
+	firstCrossShardScCallOrSpecialTxFound    bool
+	processingInfo                           processedTxsInfo
+	gasInfo                                  gasConsumedInfo
+}
+
+type scheduledTxsInfo struct {
+	numScheduledTxsAdded                        int
+	numScheduledBadTxs                          int
+	numScheduledTxsSkipped                      int
+	numScheduledTxsWithInitialBalanceConsumed   int
+	numScheduledCrossShardScCalls               int
+	totalTimeUsedForScheduledVerify             time.Duration
+	totalTimeUsedForScheduledComputeGasConsumed time.Duration
+}
+
+type createScheduledMiniBlocksInfo struct {
+	mapMiniBlocks                            map[uint32]*block.MiniBlock
+	mapCrossShardScCallTxs                   map[uint32]int
+	maxCrossShardScCallTxsPerShard           int
+	schedulingInfo                           scheduledTxsInfo
+	firstCrossShardScCallTxFound             bool
+	mapGasConsumedByMiniBlockInReceiverShard map[uint32]map[txType]uint64
+	gasInfo                                  gasConsumedInfo
+	senderAddressToSkip                      []byte
 }
 
 type txShardInfo struct {
