@@ -186,7 +186,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rewardsForProtocolSustainability,
 	)
 
-	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.Epoch)
+	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.Round, prevEpochStart)
+	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.Epoch, maxPossibleNotarizedBlocks)
 	if err != nil {
 		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
 
@@ -406,6 +407,15 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	return mapShardIdNonce, previousEpochStartMeta, nil
 }
 
+func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev *block.MetaBlock) uint64 {
+	maxBlocks := uint64(0)
+	for _, shardData := range prev.EpochStart.LastFinalizedHeaders {
+		maxBlocks += currentRound - shardData.Round
+	}
+
+	return maxBlocks
+}
+
 func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
@@ -427,6 +437,7 @@ func (e *economics) checkEconomicsInvariants(
 	totalNumBlocksInEpoch uint64,
 	metaBlock *block.MetaBlock,
 	epoch uint32,
+	maxPossibleNotarizedBlocks uint64,
 ) error {
 	if epoch <= e.stakingV2EnableEpoch {
 		return nil
@@ -449,7 +460,12 @@ func (e *economics) checkEconomicsInvariants(
 		)
 	}
 
-	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	actualMaxBlocks := maxBlocksInEpoch
+	if maxPossibleNotarizedBlocks > actualMaxBlocks{
+		actualMaxBlocks = maxPossibleNotarizedBlocks
+	}
+
+	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
 	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
 		maxRewardsInEpoch = metaBlock.AccumulatedFeesInEpoch
@@ -462,7 +478,6 @@ func (e *economics) checkEconomicsInvariants(
 			maxRewardsInEpoch,
 		)
 	}
-
 	if !core.IsInRangeInclusive(computedEconomics.TotalNewlyMinted, zero, maxRewardsInEpoch) {
 		return fmt.Errorf("%w, computed minted tokens %s, max allowed %s",
 			epochStart.ErrInvalidAmountMintedTokens,
