@@ -279,6 +279,14 @@ func TestAssignShardForPubKeyWhenNotSpecifiedShouldReturnSameShardForSameKey(t *
 func TestShardAssignment(t *testing.T) {
 	t.Skip()
 
+	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+	generatePubKey := func() []byte {
+		_, pk := keyGen.GeneratePair()
+		pkB, _ := pk.ToByteArray()
+
+		return pkB
+	}
+
 	numShards := uint32(3)
 	counts := map[uint32]uint64{
 		0:                     0,
@@ -299,13 +307,4 @@ func TestShardAssignment(t *testing.T) {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
 
-}
-
-var keyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
-
-func generatePubKey() []byte {
-	_, pk := keyGen.GeneratePair()
-	pkB, _ := pk.ToByteArray()
-
-	return pkB
 }
