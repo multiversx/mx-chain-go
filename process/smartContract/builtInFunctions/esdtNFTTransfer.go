@@ -168,6 +168,9 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 	if bytes.Equal(dstAddress, vmInput.CallerAddr) {
 		return nil, fmt.Errorf("%w, can not transfer to self", process.ErrInvalidArguments)
 	}
+	if vmInput.GasProvided < e.funcGasCost {
+		return nil, process.ErrNotEnoughGas
+	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	nonce := big.NewInt(0).SetBytes(vmInput.Arguments[1]).Uint64()
