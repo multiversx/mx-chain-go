@@ -3,12 +3,15 @@ package processor
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
+
+type interceptedTrieNodeHandler interface {
+	SizeInBytes() int
+}
 
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes
 type TrieNodeInterceptorProcessor struct {
@@ -33,12 +36,12 @@ func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save saves the intercepted trie node in the intercepted nodes cacher
 func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
-	nodeData, ok := data.(*trie.InterceptedTrieNode)
+	nodeData, ok := data.(interceptedTrieNodeHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, nodeData.SizeInBytes()+len(nodeData.Hash()))
+	tnip.interceptedNodes.Put(data.Hash(), nodeData, nodeData.SizeInBytes()+len(data.Hash()))
 	return nil
 }
 
