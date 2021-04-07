@@ -1324,6 +1324,8 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
+	tokenID := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+
 	scQuery := nodes[0].SCQueryService
 	childScAddressQuery := &process.SCQuery{
 		ScAddress:  callerScAddress,
@@ -1349,6 +1351,8 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	res, err = scQuery.ExecuteQuery(tokenIdQuery)
 	require.Nil(t, err)
 	require.True(t, strings.Contains(string(res.ReturnData[0]), ticker))
+
+	checkAddressHasESDTTokens(t, receiverScAddress, nodes, string(tokenID), 500000)
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
