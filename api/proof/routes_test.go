@@ -99,7 +99,7 @@ func TestVerifyProof_NilContextShouldErr(t *testing.T) {
 
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/proof/verify", nil)
+	req, _ := http.NewRequest("POST", "/proof/verify", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -114,7 +114,7 @@ func TestVerifyProof_BadRequestShouldErr(t *testing.T) {
 
 	ws := startNodeServer(&mock.Facade{})
 
-	req, _ := http.NewRequest("GET", "/proof/verify", bytes.NewBuffer([]byte("invalid bytes")))
+	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer([]byte("invalid bytes")))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -144,7 +144,7 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 	verifyProofBytes, _ := json.Marshal(varifyProofParams)
 
 	ws := startNodeServer(facade)
-	req, _ := http.NewRequest("GET", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
+	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -179,7 +179,7 @@ func TestVerifyProof(t *testing.T) {
 	}
 
 	ws := startNodeServer(facade)
-	req, _ := http.NewRequest("GET", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
+	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)

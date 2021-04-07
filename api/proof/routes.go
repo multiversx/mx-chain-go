@@ -33,7 +33,7 @@ func Routes(router *wrapper.RouterWrapper) {
 		GetProof,
 	)
 	router.RegisterHandler(
-		http.MethodGet,
+		http.MethodPost,
 		verifyProofPath,
 		middleware.CreateEndpointThrottler(verifyProofEndpoint),
 		VerifyProof,
