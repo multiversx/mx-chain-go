@@ -307,6 +307,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
+	genesisFeeHandler := &disabled.FeeHandler{}
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Marshalizer,
@@ -314,6 +315,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		arg.PubkeyConv,
 		arg.Store,
 		arg.DataPool,
+		genesisFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -358,7 +360,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:                    vmContainer,
 		ArgsParser:                     smartContract.NewArgumentParser(),

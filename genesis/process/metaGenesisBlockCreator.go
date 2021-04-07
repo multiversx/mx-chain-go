@@ -282,6 +282,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
+	genesisFeeHandler := &disabled.FeeHandler{}
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Marshalizer,
@@ -289,6 +290,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		arg.PubkeyConv,
 		arg.Store,
 		arg.DataPool,
+		genesisFeeHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -326,7 +328,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	}
 
 	argsParser := smartContract.NewArgumentParser()
-	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:                    vmContainer,
 		ArgsParser:                     argsParser,
@@ -351,7 +352,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch: arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
