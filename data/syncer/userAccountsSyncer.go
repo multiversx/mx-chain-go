@@ -141,12 +141,12 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
 	u.throttler.StartProcessing()
+	defer u.throttler.EndProcessing()
 
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
 		u.syncerMutex.Unlock()
-		u.throttler.EndProcessing()
 		return nil
 	}
 
@@ -175,8 +175,6 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	if err != nil {
 		return err
 	}
-
-	u.throttler.EndProcessing()
 
 	return nil
 }
