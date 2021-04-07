@@ -122,6 +122,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.Nil(t, err)
 	cancel()
 
+	requesterTrie, err = requesterTrie.Recreate(rootHash)
+	require.Nil(t, err)
+
 	newRootHash, _ := requesterTrie.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)

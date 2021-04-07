@@ -306,7 +306,7 @@ func trieNode(data interface{}) (node, error) {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return n.node, nil
+	return n.node.deepClone(), nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {
