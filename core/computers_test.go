@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
@@ -384,6 +385,15 @@ func TestSplitExponentFraction(t *testing.T) {
 	exp, fra = core.SplitExponentFraction(a)
 	require.Equal(t, expectedExp, exp)
 	require.Equal(t, expectedFra, fra)
+}
+
+func TestAbsDuration(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, time.Second, core.AbsDuration(time.Second))
+	assert.Equal(t, time.Nanosecond, core.AbsDuration(time.Nanosecond))
+	assert.Equal(t, time.Second, core.AbsDuration(-time.Second))
+	assert.Equal(t, time.Duration(0), core.AbsDuration(0))
 }
 
 func BenchmarkSplitExponentFraction(b *testing.B) {
