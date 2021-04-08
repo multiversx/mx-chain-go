@@ -883,6 +883,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)

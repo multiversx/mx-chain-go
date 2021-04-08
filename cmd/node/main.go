@@ -842,12 +842,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: generalConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return err
+	}
+
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: gasScheduleNotifier,
+	})
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    generalConfig.GeneralSettings.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -1217,17 +1237,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		isInImportMode,
 	)
-	if err != nil {
-		return err
-	}
-
-	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: generalConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-	}
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
 		return err
 	}

@@ -68,6 +68,7 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 		Economics:                      createDummyEconomicsConfig(feeSettings),
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	return args
 }
@@ -78,6 +79,7 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 		Economics:                      createDummyEconomicsConfig(feeSettings),
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	return args
 }

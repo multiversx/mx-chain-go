@@ -970,3 +970,6 @@ var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
 
 // ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
 var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")
+
+// ErrNilBuiltInFunctionsCostHandler signals that a nil built in functions cost handler has been provided
+var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
