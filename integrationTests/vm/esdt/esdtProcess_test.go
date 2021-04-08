@@ -1409,11 +1409,12 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/local-esdt-and-nft.wasm")
 
+	alice := nodes[0]
 	issuePrice := big.NewInt(1000)
 	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
 		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
 	integrationTests.CreateAndSendTransaction(
-		nodes[0],
+		alice,
 		nodes,
 		issuePrice,
 		scAddress,
@@ -1422,12 +1423,17 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	userAccount := getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
+	accountAfterTransfer := userAccount.GetBalance()
+
 	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
-
-	userAccount := getUserAccountWithAddress(t, scAddress, nodes)
-	require.Equal(t, userAccount.GetBalance(), issuePrice)
+	userAccount = getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
+	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(accountAfterTransfer, issuePrice))
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
