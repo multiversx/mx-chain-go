@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	nrOfChildren       = 17
-	firstByte          = 0
-	hexTerminator      = 16
-	nibbleSize         = 4
-	nibbleMask         = 0x0f
-	pointerSizeInBytes = 8
+	nrOfChildren         = 17
+	firstByte            = 0
+	hexTerminator        = 16
+	nibbleSize           = 4
+	nibbleMask           = 0x0f
+	pointerSizeInBytes   = 8
+	numNodeInnerPointers = 2 //each trie node contains a marshalizer and a hasher
 )
 
 type baseNode struct {
