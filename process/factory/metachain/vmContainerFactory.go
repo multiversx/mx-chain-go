@@ -37,6 +37,7 @@ type vmContainerFactory struct {
 	systemSCConfig         *config.SystemSmartContractsConfig
 	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
+	scFactory              vm.SystemSCContainerFactory
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -213,6 +214,8 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
+	vmf.scFactory = scFactory
+
 	return vmf.finalizeSystemVMCreation(systemEI)
 }
 
@@ -239,6 +242,11 @@ func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandle
 // SystemSmartContractContainer return the created system smart contracts
 func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContainer {
 	return vmf.systemContracts
+}
+
+// SystemSmartContractContainerFactory return the system smart contract container factory
+func (vmf *vmContainerFactory) SystemSmartContractContainerFactory() vm.SystemSCContainerFactory {
+	return vmf.scFactory
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

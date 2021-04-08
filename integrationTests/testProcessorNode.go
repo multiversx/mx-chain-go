@@ -242,6 +242,7 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
 	SmartContractParser    genesis.InitialSmartContractParser
+	SystemSCFactory        vm.SystemSCContainerFactory
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
@@ -1521,7 +1522,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-
+	tpn.SystemSCFactory = vmFactory.SystemSmartContractContainerFactory()
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
