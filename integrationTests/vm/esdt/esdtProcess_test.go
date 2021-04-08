@@ -1422,7 +1422,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 12
+	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 

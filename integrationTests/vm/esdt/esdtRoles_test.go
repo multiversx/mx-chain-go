@@ -284,7 +284,7 @@ func unsetRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 }
 
-func TestESDTMintAndTransferAndExecute(t *testing.T) {
+func TestESDTMintTransferAndExecute(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

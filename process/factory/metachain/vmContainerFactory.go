@@ -244,7 +244,7 @@ func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContain
 	return vmf.systemContracts
 }
 
-// SystemSmartContractContainerFactory return the system smart contract container factory
+// SystemSmartContractContainerFactory returns the system smart contract container factory
 func (vmf *vmContainerFactory) SystemSmartContractContainerFactory() vm.SystemSCContainerFactory {
 	return vmf.scFactory
 }
