@@ -3,7 +3,7 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v1.2.2
+	github.com/ElrondNetwork/arwen-wasm-vm v1.2.3-0.20210408170208-68205f586721
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4

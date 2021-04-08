@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/stretchr/testify/require"
 )
 
 // Test scenario
@@ -388,13 +389,14 @@ func TestESDTMintAndTransferAndExecute(t *testing.T) {
 	}
 
 	for _, n := range nodes {
-		txData := []byte("unwrapEgld")
+		txUnWrap := txDataBuilder.NewBuilder()
+		txUnWrap.Func(core.BuiltInFunctionESDTTransfer).Str(string(tokenIdentifier)).BigInt(valueToWrap).Str("unwrapEgld")
 		integrationTests.CreateAndSendTransaction(
 			n,
 			nodes,
-			valueToWrap,
+			big.NewInt(0),
 			scAddress,
-			string(txData),
+			txUnWrap.ToString(),
 			integrationTests.AdditionalGasLimit,
 		)
 	}
@@ -402,4 +404,7 @@ func TestESDTMintAndTransferAndExecute(t *testing.T) {
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
+
+	userAccount := getUserAccountWithAddress(t, scAddress, nodes)
+	require.Equal(t, userAccount.GetBalance(), big.NewInt(0))
 }

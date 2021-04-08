@@ -1407,10 +1407,10 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/local-esdt-and-nft.wasm")
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/child.wasm")
 
 	issuePrice := big.NewInt(1000)
-	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
+	txData := []byte("issueWrappedEgld" + "@" + hex.EncodeToString([]byte("TOKEN")) +
 		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
