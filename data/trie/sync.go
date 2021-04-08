@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -27,7 +29,9 @@ type trieSyncer struct {
 	rootHash                  []byte
 	nodesForTrie              map[string]trieNodeInfo
 	waitTimeBetweenRequests   time.Duration
-	trie                      *patriciaMerkleTrie
+	marshalizer               marshal.Marshalizer
+	hasher                    hashing.Hasher
+	db                        data.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodes          storage.Cacher
 	mutOperation              sync.RWMutex
@@ -43,9 +47,11 @@ const minTimeoutBetweenNodesCommits = time.Second
 
 // ArgTrieSyncer is the argument for the trie syncer
 type ArgTrieSyncer struct {
+	Marshalizer                    marshal.Marshalizer
+	Hasher                         hashing.Hasher
+	DB                             data.DBWriteCacher
 	RequestHandler                 RequestHandler
 	InterceptedNodes               storage.Cacher
-	Trie                           data.Trie
 	ShardId                        uint32
 	Topic                          string
 	TrieSyncStatistics             data.SyncStatisticsHandler
@@ -61,9 +67,6 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	if check.IfNil(arg.InterceptedNodes) {
 		return nil, data.ErrNilCacher
 	}
-	if check.IfNil(arg.Trie) {
-		return nil, ErrNilTrie
-	}
 	if len(arg.Topic) == 0 {
 		return nil, ErrInvalidTrieTopic
 	}
@@ -77,16 +80,22 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	if arg.MaxHardCapForMissingNodes < 1 {
 		return nil, fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
 	}
-
-	pmt, ok := arg.Trie.(*patriciaMerkleTrie)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
+	if check.IfNil(arg.DB) {
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilDatabase)
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilMarshalizer)
+	}
+	if check.IfNil(arg.Hasher) {
+		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilHasher)
 	}
 
 	ts := &trieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodes:          arg.InterceptedNodes,
-		trie:                      pmt,
+		db:                        arg.DB,
+		marshalizer:               arg.Marshalizer,
+		hasher:                    arg.Hasher,
 		nodesForTrie:              make(map[string]trieNodeInfo),
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
@@ -126,7 +135,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 		numUnResolved := ts.requestNodes()
 		if !shouldRetryAfterRequest && numUnResolved == 0 {
-			return ts.trie.Commit()
+			return nil
 		}
 
 		select {
@@ -203,7 +212,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				continue
 			}
 
-			nextNodes, err = currentNode.getChildren(ts.trie.trieStorage.Database())
+			nextNodes, err = currentNode.getChildren(ts.db)
 			if err != nil {
 				return false, err
 			}
@@ -213,20 +222,13 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			err = encodeNodeAndCommitToDB(currentNode, ts.trie.trieStorage.Database())
+			err = encodeNodeAndCommitToDB(currentNode, ts.db)
 			if err != nil {
 				return false, err
 			}
 			ts.resetWatchdog()
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
-				var collapsedRoot node
-				collapsedRoot, err = currentNode.getCollapsed()
-				if err != nil {
-					return false, err
-				}
-
-				ts.trie.root = collapsedRoot
 				ts.rootFound = true
 			}
 		}
@@ -272,11 +274,6 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 	return newElement
 }
 
-// Trie returns the synced trie
-func (ts *trieSyncer) Trie() data.Trie {
-	return ts.trie
-}
-
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	nodeInfo, ok := ts.nodesForTrie[string(hash)]
 	if ok && nodeInfo.received {
@@ -285,10 +282,11 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 
 	n, ok := ts.interceptedNodes.Get(hash)
 	if ok {
+		ts.interceptedNodes.Remove(hash)
 		return trieNode(n)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.trieStorage.Database(), ts.trie.marshalizer, ts.trie.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, ts.db, ts.marshalizer, ts.hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}

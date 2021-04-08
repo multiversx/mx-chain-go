@@ -2,9 +2,11 @@ package syncer
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -84,7 +86,9 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 b.requestHandler,
 		InterceptedNodes:               b.cacher,
-		Trie:                           dataTrie,
+		DB:                             b.trieStorageManager.Database(),
+		Marshalizer:                    b.marshalizer,
+		Hasher:                         b.hasher,
 		ShardId:                        b.shardId,
 		Topic:                          trieTopic,
 		TrieSyncStatistics:             ssh,
@@ -101,7 +105,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		return nil, err
 	}
 
-	return dataTrie, nil
+	return dataTrie.Recreate(rootHash)
 }
 
 func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {
@@ -111,7 +115,11 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 			log.Info("finished trie sync", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
-			log.Info("trie sync in progress", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
+			log.Info("trie sync in progress",
+				"name", b.name,
+				"num received", ssh.NumReceived(),
+				"num missing", ssh.NumMissing(),
+				"intercepted trie nodes cache", fmt.Sprintf("len: %d, size: %s", b.cacher.Len(), core.ConvertBytes(b.cacher.SizeInBytesContained())))
 		}
 	}
 }

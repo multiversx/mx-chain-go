@@ -49,6 +49,7 @@ type node interface {
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
+	sizeInBytes() int
 }
 
 type atomicBuffer interface {
