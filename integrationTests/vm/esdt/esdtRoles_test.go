@@ -8,7 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/stretchr/testify/require"
 )
 
 // Test scenario
@@ -280,4 +282,129 @@ func unsetRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, 
 		"@" + hex.EncodeToString(addrForRole) +
 		"@" + hex.EncodeToString(roles)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+}
+
+func TestESDTMintTransferAndExecute(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/egld-esdt-swap.wasm")
+
+	// issue ESDT by calling exec on dest context on child contract
+	ticker := "DSN"
+	name := "DisplayName"
+	issueCost := big.NewInt(1000)
+	txIssueData := txDataBuilder.NewBuilder()
+	txIssueData.Func("issueWrappedEgld").
+		Str(name).
+		Str(ticker).
+		BigInt(big.NewInt(1))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		issueCost,
+		scAddress,
+		txIssueData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 15
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		"setLocalMintRole",
+		integrationTests.AdditionalGasLimit,
+	)
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	valueToWrap := big.NewInt(1000)
+	for _, n := range nodes {
+		txData := []byte("wrapEgld")
+		integrationTests.CreateAndSendTransaction(
+			n,
+			nodes,
+			valueToWrap,
+			scAddress,
+			string(txData),
+			integrationTests.AdditionalGasLimit,
+		)
+	}
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	for i, n := range nodes {
+		if i == 0 {
+			continue
+		}
+		checkAddressHasESDTTokens(t, n.OwnAccount.Address, nodes, string(tokenIdentifier), valueToWrap.Int64())
+	}
+
+	for _, n := range nodes {
+		txUnWrap := txDataBuilder.NewBuilder()
+		txUnWrap.Func(core.BuiltInFunctionESDTTransfer).Str(string(tokenIdentifier)).BigInt(valueToWrap).Str("unwrapEgld")
+		integrationTests.CreateAndSendTransaction(
+			n,
+			nodes,
+			big.NewInt(0),
+			scAddress,
+			txUnWrap.ToString(),
+			integrationTests.AdditionalGasLimit,
+		)
+	}
+	time.Sleep(time.Second)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	userAccount := getUserAccountWithAddress(t, scAddress, nodes)
+	require.Equal(t, userAccount.GetBalance(), big.NewInt(0))
 }
