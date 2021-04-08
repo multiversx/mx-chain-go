@@ -1427,13 +1427,13 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	time.Sleep(time.Second)
 
 	userAccount := getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
-	accountAfterTransfer := userAccount.GetBalance()
+	balanceAfterTransfer := userAccount.GetBalance()
 
 	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 	userAccount = getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
-	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(accountAfterTransfer, issuePrice))
+	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(balanceAfterTransfer, issuePrice))
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
