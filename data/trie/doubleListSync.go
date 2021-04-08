@@ -8,6 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -19,7 +21,9 @@ type doubleListTrieSyncer struct {
 	topic                     string
 	rootHash                  []byte
 	waitTimeBetweenChecks     time.Duration
-	trie                      *patriciaMerkleTrie
+	marshalizer               marshal.Marshalizer
+	hasher                    hashing.Hasher
+	db                        data.DBWriteCacher
 	requestHandler            RequestHandler
 	interceptedNodes          storage.Cacher
 	mutOperation              sync.RWMutex
@@ -41,15 +45,12 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		return nil, err
 	}
 
-	pmt, ok := arg.Trie.(*patriciaMerkleTrie)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
 	d := &doubleListTrieSyncer{
 		requestHandler:            arg.RequestHandler,
 		interceptedNodes:          arg.InterceptedNodes,
-		trie:                      pmt,
+		db:                        arg.DB,
+		marshalizer:               arg.Marshalizer,
+		hasher:                    arg.Hasher,
 		topic:                     arg.Topic,
 		shardId:                   arg.ShardId,
 		waitTimeBetweenChecks:     time.Millisecond * 100,
@@ -151,23 +152,13 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		err := encodeNodeAndCommitToDB(element, d.trie.trieStorage.Database())
+		err := encodeNodeAndCommitToDB(element, d.db)
 		if err != nil {
 			return err
 		}
 
 		d.trieSyncStatistics.AddNumReceived(1)
 		d.resetWatchdog()
-
-		if !d.rootFound && bytes.Equal([]byte(hash), d.rootHash) {
-			var collapsedRoot node
-			collapsedRoot, err = element.getCollapsed()
-			if err != nil {
-				return nil
-			}
-
-			d.trie.root = collapsedRoot
-		}
 
 		var children []node
 		var missingChildrenHashes [][]byte
@@ -198,18 +189,14 @@ func (d *doubleListTrieSyncer) resetWatchdog() {
 	d.lastSyncedTrieNode = time.Now()
 }
 
-// Trie returns the synced trie
-func (d *doubleListTrieSyncer) Trie() data.Trie {
-	return d.trie
-}
-
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
 	n, ok := d.interceptedNodes.Get(hash)
 	if ok {
+		d.interceptedNodes.Remove(hash)
 		return trieNode(n)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, d.trie.trieStorage.Database(), d.trie.marshalizer, d.trie.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, d.db, d.marshalizer, d.hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}

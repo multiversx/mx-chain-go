@@ -63,6 +63,19 @@ func createInMemoryTrie() (data.Trie, storage.Storer) {
 	return tr, memUnit
 }
 
+func createInMemoryTrieFromDB(db storage.Persister) (data.Trie, storage.Storer) {
+	capacity := uint32(10)
+	shards := uint32(1)
+	sizeInBytes := uint64(0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
+	unit, _ := storageUnit.NewStorageUnit(cache, db)
+
+	tsm, _ := createTrieStorageManager(unit)
+	tr, _ := NewTrie(tsm, marshalizer, hasher, 6)
+
+	return tr, unit
+}
+
 func addDataToTrie(numKeysValues int, tr data.Trie) {
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
@@ -114,12 +127,6 @@ func TestNewDoubleListTrieSyncer_InvalidParametersShouldErr(t *testing.T) {
 	d, err := NewDoubleListTrieSyncer(arg)
 	assert.True(t, check.IfNil(d))
 	assert.Equal(t, ErrNilRequestHandler, err)
-
-	arg = createMockArgument()
-	arg.Trie = &mock.TrieStub{}
-	d, err = NewDoubleListTrieSyncer(arg)
-	assert.True(t, check.IfNil(d))
-	assert.Equal(t, ErrWrongTypeAssertion, err)
 }
 
 func TestNewDoubleListTrieSyncer(t *testing.T) {
@@ -129,15 +136,6 @@ func TestNewDoubleListTrieSyncer(t *testing.T) {
 	d, err := NewDoubleListTrieSyncer(arg)
 	assert.False(t, check.IfNil(d))
 	assert.Nil(t, err)
-}
-
-func TestDoubleListTrieSyncer_Trie(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	d, _ := NewDoubleListTrieSyncer(arg)
-
-	assert.True(t, d.Trie() == arg.Trie) //pointer testing
 }
 
 func TestDoubleListTrieSyncer_StartSyncingNilRootHashShouldReturnNil(t *testing.T) {
@@ -179,7 +177,6 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	log.Info("source trie", "root hash", roothash)
 
 	arg := createMockArgument()
-	arg.Trie, _ = createInMemoryTrie()
 
 	d, _ := NewDoubleListTrieSyncer(arg)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
@@ -198,7 +195,6 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	log.Info("source trie", "root hash", roothash)
 
 	arg := createMockArgument()
-	arg.Trie, _ = createInMemoryTrie()
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
@@ -208,13 +204,14 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	syncedRootHash, _ := arg.Trie.RootHash()
-	require.Equal(t, roothash, syncedRootHash)
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*mock.MemDbMock))
+	trie, _ = trie.Recreate(roothash)
+	require.False(t, check.IfNil(trie))
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
-		val, err = arg.Trie.Get(keyVal)
+		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
@@ -229,8 +226,6 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	log.Info("source trie", "root hash", roothash)
 
 	arg := createMockArgument()
-	var memUnitDestination storage.Storer
-	arg.Trie, memUnitDestination = createInMemoryTrie()
 
 	exceptionHashes := make([][]byte, 0)
 	//copy half of the nodes from source to destination, add them also to exception list and than try to sync the trie
@@ -239,7 +234,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 		if numKeysCopied >= numKeysValues/2 {
 			return false
 		}
-		_ = memUnitDestination.Put(key, val)
+		_ = arg.DB.Put(key, val)
 		exceptionHashes = append(exceptionHashes, key)
 		numKeysCopied++
 		return true
@@ -256,13 +251,14 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	err := d.StartSyncing(roothash, ctx)
 	require.Nil(t, err)
 
-	syncedRootHash, _ := arg.Trie.RootHash()
-	require.Equal(t, roothash, syncedRootHash)
+	trie, _ := createInMemoryTrieFromDB(arg.DB.(*mock.MemDbMock))
+	trie, _ = trie.Recreate(roothash)
+	require.False(t, check.IfNil(trie))
 
 	var val []byte
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasher.Compute(fmt.Sprintf("%d", i))
-		val, err = arg.Trie.Get(keyVal)
+		val, err = trie.Get(keyVal)
 		require.Nil(t, err)
 		require.Equal(t, keyVal, val)
 	}
