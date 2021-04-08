@@ -1355,6 +1355,87 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	checkAddressHasESDTTokens(t, receiverScAddress, nodes, string(tokenID), 500000)
 }
 
+func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		if check.IfNil(n.SystemSCFactory) {
+			continue
+		}
+		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
+		gasScheduleHandler.GasScheduleChange(gasSchedule)
+	}
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/local-esdt-and-nft.wasm")
+
+	alice := nodes[0]
+	issuePrice := big.NewInt(1000)
+	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
+		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
+	integrationTests.CreateAndSendTransaction(
+		alice,
+		nodes,
+		issuePrice,
+		scAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	userAccount := getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
+	balanceAfterTransfer := userAccount.GetBalance()
+
+	nrRoundsToPropagateMultiShard := 15
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+	userAccount = getUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
+	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(balanceAfterTransfer, issuePrice))
+}
+
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
