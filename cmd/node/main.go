@@ -2540,7 +2540,7 @@ func createApiResolver(
 		AccountsAdapter: accountsAPI,
 	}
 
-	args := &trieIteratorsFactory.ArgStakeProcessors{
+	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID:            shardCoordinator.SelfId(),
 		Accounts:           accountsWrapper,
 		PublicKeyConverter: pubkeyConv,

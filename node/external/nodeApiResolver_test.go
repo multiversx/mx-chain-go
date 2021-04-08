@@ -5,9 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/node/trieIterators/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,9 +17,9 @@ func createMockAgrs() external.ArgNodeApiResolver {
 		SCQueryService:          &mock.SCQueryServiceStub{},
 		StatusMetricsHandler:    &mock.StatusMetricsStub{},
 		TxCostHandler:           &mock.TransactionCostEstimatorMock{},
-		TotalStakedValueHandler: disabled.NewDisabledStakeValuesProcessor(),
-		DirectStakedListHandler: disabled.NewDisabledDirectStakedListProcessor(),
-		DelegatedListHandler:    disabled.NewDisabledDelegatedListProcessor(),
+		TotalStakedValueHandler: &mock.StakeValuesProcessorStub{},
+		DirectStakedListHandler: &mock.DirectStakedListProcessorStub{},
+		DelegatedListHandler:    &mock.DelegatedListProcessorStub{},
 	}
 }
 
@@ -171,4 +171,62 @@ func TestNodeApiResolver_NetworkMetricsMapShouldBeCalled(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-//TODO add more unit tests
+func TestNodeApiResolver_GetTotalStakedValue(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	arg := createMockAgrs()
+	stakeValue := &api.StakeValues{}
+	arg.TotalStakedValueHandler = &mock.StakeValuesProcessorStub{
+		GetTotalStakedValueCalled: func() (*api.StakeValues, error) {
+			wasCalled = true
+			return stakeValue, nil
+		},
+	}
+
+	nar, _ := external.NewNodeApiResolver(arg)
+	recoveredStakeValue, err := nar.GetTotalStakedValue()
+	assert.Nil(t, err)
+	assert.True(t, recoveredStakeValue == stakeValue) //pointer testing
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_GetDelegatorsList(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	arg := createMockAgrs()
+	delegators := make([]*api.Delegator, 1)
+	arg.DelegatedListHandler = &mock.DelegatedListProcessorStub{
+		GetDelegatorsListCalled: func() ([]*api.Delegator, error) {
+			wasCalled = true
+			return delegators, nil
+		},
+	}
+
+	nar, _ := external.NewNodeApiResolver(arg)
+	recoveredDelegatorsList, err := nar.GetDelegatorsList()
+	assert.Nil(t, err)
+	assert.Equal(t, recoveredDelegatorsList, delegators)
+	assert.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_GetDirectStakedList(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	arg := createMockAgrs()
+	directStakedValueList := make([]*api.DirectStakedValue, 1)
+	arg.DirectStakedListHandler = &mock.DirectStakedListProcessorStub{
+		GetDirectStakedListCalled: func() ([]*api.DirectStakedValue, error) {
+			wasCalled = true
+			return directStakedValueList, nil
+		},
+	}
+
+	nar, _ := external.NewNodeApiResolver(arg)
+	recoveredDirectStakedValueList, err := nar.GetDirectStakedList()
+	assert.Nil(t, err)
+	assert.Equal(t, recoveredDirectStakedValueList, directStakedValueList)
+	assert.True(t, wasCalled)
+}

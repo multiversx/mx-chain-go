@@ -140,7 +140,6 @@ func EconomicsMetrics(c *gin.Context) {
 
 // DirectStakedInfo is the endpoint that will return the directed staked info list
 func DirectStakedInfo(c *gin.Context) {
-	//TODO add unit tests
 	facade, ok := getFacade(c)
 	if !ok {
 		return
@@ -171,7 +170,6 @@ func DirectStakedInfo(c *gin.Context) {
 
 // DelegatedInfo is the endpoint that will return the delegated list
 func DelegatedInfo(c *gin.Context) {
-	//TODO add unit tests
 	facade, ok := getFacade(c)
 	if !ok {
 		return

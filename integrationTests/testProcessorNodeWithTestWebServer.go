@@ -155,11 +155,12 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		AccountsAdapter: tpn.AccntState,
 	}
 
-	args := &factory.ArgStakeProcessors{
-		ShardID:      tpn.ShardCoordinator.SelfId(),
-		Accounts:     accountsWrapper,
-		QueryService: tpn.SCQueryService,
-		BlockChain:   tpn.BlockChain,
+	args := trieIterators.ArgTrieIteratorProcessor{
+		ShardID:            tpn.ShardCoordinator.SelfId(),
+		Accounts:           accountsWrapper,
+		QueryService:       tpn.SCQueryService,
+		BlockChain:         tpn.BlockChain,
+		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)

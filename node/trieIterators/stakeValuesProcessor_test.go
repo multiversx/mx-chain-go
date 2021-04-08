@@ -27,52 +27,79 @@ func createAccountsWrapper() *AccountsWrapper {
 	}
 }
 
+func createMockArgs() ArgTrieIteratorProcessor {
+	return ArgTrieIteratorProcessor{
+		Accounts:           createAccountsWrapper(),
+		BlockChain:         &mock.BlockChainMock{},
+		QueryService:       &mock.SCQueryServiceStub{},
+		PublicKeyConverter: &mock.PubkeyConverterMock{},
+	}
+}
+
 func TestNewTotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
-		argsFunc func() (
-			accounts *AccountsWrapper,
-			blockChain data.ChainHandler,
-			queryService process.SCQueryService,
-			publicKeyConverter core.PubkeyConverter)
-		exError error
+		argsFunc func() ArgTrieIteratorProcessor
+		exError  error
 	}{
 		{
 			name: "NilAccounts",
-			argsFunc: func() (accounts *AccountsWrapper, blockChain data.ChainHandler, queryService process.SCQueryService, publicKeyConverter core.PubkeyConverter) {
-				return nil, &mock.BlockChainMock{}, &mock.SCQueryServiceStub{}, &mock.PubkeyConverterMock{}
+			argsFunc: func() ArgTrieIteratorProcessor {
+				arg := createMockArgs()
+				arg.Accounts = nil
+
+				return arg
 			},
 			exError: ErrNilAccountsAdapter,
 		},
 		{
 			name: "ShouldWork",
-			argsFunc: func() (accounts *AccountsWrapper, blockChain data.ChainHandler, queryService process.SCQueryService, publicKeyConverter core.PubkeyConverter) {
-				return createAccountsWrapper(), &mock.BlockChainMock{}, &mock.SCQueryServiceStub{}, &mock.PubkeyConverterMock{}
+			argsFunc: func() ArgTrieIteratorProcessor {
+				return createMockArgs()
 			},
 			exError: nil,
 		},
 		{
 			name: "NilBlockChain",
-			argsFunc: func() (accounts *AccountsWrapper, blockChain data.ChainHandler, queryService process.SCQueryService, publicKeyConverter core.PubkeyConverter) {
-				return createAccountsWrapper(), nil, &mock.SCQueryServiceStub{}, &mock.PubkeyConverterMock{}
+			argsFunc: func() ArgTrieIteratorProcessor {
+				arg := createMockArgs()
+				arg.BlockChain = nil
+
+				return arg
 			},
 			exError: ErrNilBlockChain,
 		},
 		{
 			name: "NilQueryService",
-			argsFunc: func() (accounts *AccountsWrapper, blockChain data.ChainHandler, queryService process.SCQueryService, publicKeyConverter core.PubkeyConverter) {
-				return createAccountsWrapper(), &mock.BlockChainMock{}, nil, &mock.PubkeyConverterMock{}
+			argsFunc: func() ArgTrieIteratorProcessor {
+				arg := createMockArgs()
+				arg.QueryService = nil
+
+				return arg
 			},
 			exError: ErrNilQueryService,
 		},
 		{
 			name: "NilPubKeyConverter",
-			argsFunc: func() (accounts *AccountsWrapper, blockChain data.ChainHandler, queryService process.SCQueryService, publicKeyConverter core.PubkeyConverter) {
-				return createAccountsWrapper(), &mock.BlockChainMock{}, &mock.SCQueryServiceStub{}, nil
+			argsFunc: func() ArgTrieIteratorProcessor {
+				arg := createMockArgs()
+				arg.PublicKeyConverter = nil
+
+				return arg
 			},
 			exError: ErrNilPubkeyConverter,
+		},
+		{
+			name: "NilAccountsWrapperMutex",
+			argsFunc: func() ArgTrieIteratorProcessor {
+				arg := createMockArgs()
+				arg.Accounts.Mutex = nil
+
+				return arg
+			},
+			exError: ErrNilMutex,
 		},
 	}
 
@@ -88,26 +115,21 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-				GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
-					return nil, expectedErr
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return nil, expectedErr
 		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
 	require.Nil(t, resTotalStaked)
@@ -117,19 +139,13 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 func TestTotalStakedValueProcessor_GetTotalStakedValueNilHeaderShouldError(t *testing.T) {
 	t.Parallel()
 
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex:           &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{},
+	arg := createMockArgs()
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return nil
-			},
-		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
 	require.Nil(t, resTotalStaked)
@@ -140,23 +156,18 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *tes
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return expectedErr
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return expectedErr
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
 		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	require.False(t, totalStakedProc.IsInterfaceNil())
 
@@ -168,26 +179,21 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *tes
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *testing.T) {
 	t.Parallel()
 
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
-					return nil, nil
-				},
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return nil, nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
 		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
 	require.Nil(t, resTotalStaked)
@@ -205,26 +211,21 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 		},
 	})
 
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
-					return acc, nil
-				},
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return acc, nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
 		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
 	require.Nil(t, resTotalStaked)
@@ -242,26 +243,21 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 		},
 	})
 
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
-					return acc, nil
-				},
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return acc, nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
 		},
-		&mock.SCQueryServiceStub{},
-		&mock.PubkeyConverterMock{},
-	)
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue()
 	require.Nil(t, resTotalStaked)
@@ -322,53 +318,52 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	})
 
 	expectedErr := errors.New("expected error")
-	totalStakedProc, _ := NewTotalStakedValueProcessor(
-		&AccountsWrapper{
-			Mutex: &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{
-				GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
-					return acc, nil
-				},
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			},
+	arg := createMockArgs()
+	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return acc, nil
 		},
-		&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlock{}
-			},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
 		},
-		&mock.SCQueryServiceStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-				switch string(query.Arguments[0]) {
-				case leafKey3:
-					return &vmcommon.VMOutput{
-						ReturnCode: vmcommon.UserError,
-					}, nil
+	}
+	arg.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{}
+		},
+	}
+	arg.QueryService = &mock.SCQueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			switch string(query.Arguments[0]) {
+			case leafKey3:
+				return &vmcommon.VMOutput{
+					ReturnCode: vmcommon.UserError,
+				}, nil
 
-				case leafKey4:
-					return &vmcommon.VMOutput{}, nil
+			case leafKey4:
+				return &vmcommon.VMOutput{}, nil
 
-				case leafKey5:
-					return &vmcommon.VMOutput{
-						ReturnData: [][]byte{
-							big.NewInt(50).Bytes(), big.NewInt(100).Bytes(), big.NewInt(0).Bytes(),
-						},
-					}, nil
+			case leafKey5:
+				return &vmcommon.VMOutput{
+					ReturnData: [][]byte{
+						big.NewInt(50).Bytes(), big.NewInt(100).Bytes(), big.NewInt(0).Bytes(),
+					},
+				}, nil
 
-				case leafKey6:
-					return &vmcommon.VMOutput{
-						ReturnData: [][]byte{
-							big.NewInt(60).Bytes(), big.NewInt(500).Bytes(), big.NewInt(0).Bytes(),
-						},
-					}, nil
+			case leafKey6:
+				return &vmcommon.VMOutput{
+					ReturnData: [][]byte{
+						big.NewInt(60).Bytes(), big.NewInt(500).Bytes(), big.NewInt(0).Bytes(),
+					},
+				}, nil
 
-				default:
-					return nil, expectedErr
-				}
-			},
-		}, mock.NewPubkeyConverterMock(10))
+			default:
+				return nil, expectedErr
+			}
+		},
+	}
+	arg.PublicKeyConverter = mock.NewPubkeyConverterMock(10)
+	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	stakeValues, err := totalStakedProc.GetTotalStakedValue()
 	require.Equal(t, &api.StakeValues{

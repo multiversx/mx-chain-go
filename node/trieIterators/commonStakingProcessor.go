@@ -57,12 +57,12 @@ func (csp *commonStakingProcessor) getAccount(scAddress []byte) (state.UserAccou
 		return nil, err
 	}
 
-	validatorAccount, err := csp.accounts.GetExistingAccount(scAddress)
+	accountHandler, err := csp.accounts.GetExistingAccount(scAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	account, ok := validatorAccount.(state.UserAccountHandler)
+	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
 		return nil, ErrCannotCastAccountHandlerToUserAccount
 	}

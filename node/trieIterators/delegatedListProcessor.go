@@ -9,55 +9,37 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-type delegatedListProc struct {
+type delegatedListProcessor struct {
 	*commonStakingProcessor
 	publicKeyConverter core.PubkeyConverter
 }
 
 // NewDelegatedListProcessor will create a new instance of delegatedListProc
-func NewDelegatedListProcessor(
-	accounts *AccountsWrapper,
-	blockChain data.ChainHandler,
-	queryService process.SCQueryService,
-	publicKeyConverter core.PubkeyConverter,
-) (*delegatedListProc, error) {
-	if accounts == nil || check.IfNil(accounts) {
-		return nil, ErrNilAccountsAdapter
-	}
-	if check.IfNil(blockChain) {
-		return nil, ErrNilBlockChain
-	}
-	if check.IfNil(queryService) {
-		return nil, ErrNilQueryService
-	}
-	if check.IfNil(publicKeyConverter) {
-		return nil, ErrNilPubkeyConverter
-	}
-	if accounts.Mutex == nil {
-		return nil, fmt.Errorf("%w in NewDelegatedListProcessor", ErrNilMutex)
+func NewDelegatedListProcessor(arg ArgTrieIteratorProcessor) (*delegatedListProcessor, error) {
+	err := checkArguments(arg)
+	if err != nil {
+		return nil, err
 	}
 
-	return &delegatedListProc{
+	return &delegatedListProcessor{
 		commonStakingProcessor: &commonStakingProcessor{
-			queryService: queryService,
-			blockChain:   blockChain,
-			accounts:     accounts,
+			queryService: arg.QueryService,
+			blockChain:   arg.BlockChain,
+			accounts:     arg.Accounts,
 		},
-		publicKeyConverter: publicKeyConverter,
+		publicKeyConverter: arg.PublicKeyConverter,
 	}, nil
 }
 
 // GetDelegatorsList will return the delegators list
-func (dlp *delegatedListProc) GetDelegatorsList() ([]*api.Delegator, error) {
+func (dlp *delegatedListProcessor) GetDelegatorsList() ([]*api.Delegator, error) {
 	dlp.accounts.Lock()
 	defer dlp.accounts.Unlock()
 
@@ -77,7 +59,7 @@ func (dlp *delegatedListProc) GetDelegatorsList() ([]*api.Delegator, error) {
 	return dlp.mapToSlice(delegatorsInfo), nil
 }
 
-func (dlp *delegatedListProc) getAllDelegationContractAddresses() ([][]byte, error) {
+func (dlp *delegatedListProcessor) getAllDelegationContractAddresses() ([][]byte, error) {
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.DelegationManagerSCAddress,
 		FuncName:   "getAllContractAddresses",
@@ -97,7 +79,7 @@ func (dlp *delegatedListProc) getAllDelegationContractAddresses() ([][]byte, err
 	return vmOutput.ReturnData, nil
 }
 
-func (dlp *delegatedListProc) getDelegatorsInfo(delegationSC []byte, delegatorsMap map[string]*api.Delegator) error {
+func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delegatorsMap map[string]*api.Delegator) error {
 	delegatorsList, err := dlp.getDelegatorsList(delegationSC)
 	if err != nil {
 		return err
@@ -133,7 +115,7 @@ func (dlp *delegatedListProc) getDelegatorsInfo(delegationSC []byte, delegatorsM
 	return nil
 }
 
-func (dlp *delegatedListProc) getDelegatorsList(delegationSC []byte) ([][]byte, error) {
+func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]byte, error) {
 	delegatorAccount, err := dlp.getAccount(delegationSC)
 	if err != nil {
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
@@ -163,7 +145,7 @@ func (dlp *delegatedListProc) getDelegatorsList(delegationSC []byte) ([][]byte, 
 	return delegators, nil
 }
 
-func (dlp *delegatedListProc) getActiveFund(delegationSC []byte, delegator []byte) (*big.Int, error) {
+func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator []byte) (*big.Int, error) {
 	scQuery := &process.SCQuery{
 		ScAddress:  delegationSC,
 		FuncName:   "getUserActiveStake",
@@ -189,7 +171,7 @@ func (dlp *delegatedListProc) getActiveFund(delegationSC []byte, delegator []byt
 	return value, nil
 }
 
-func (dlp *delegatedListProc) mapToSlice(mapDelegators map[string]*api.Delegator) []*api.Delegator {
+func (dlp *delegatedListProcessor) mapToSlice(mapDelegators map[string]*api.Delegator) []*api.Delegator {
 	keys := make([]string, 0, len(mapDelegators))
 	for key := range mapDelegators {
 		keys = append(keys, key)
@@ -208,6 +190,6 @@ func (dlp *delegatedListProc) mapToSlice(mapDelegators map[string]*api.Delegator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (dlp *delegatedListProc) IsInterfaceNil() bool {
+func (dlp *delegatedListProcessor) IsInterfaceNil() bool {
 	return dlp == nil
 }

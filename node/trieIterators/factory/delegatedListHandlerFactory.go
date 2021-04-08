@@ -8,16 +8,11 @@ import (
 )
 
 // CreateDelegatedListHandler will create a new instance of DirectStakedListHandler
-func CreateDelegatedListHandler(args *ArgStakeProcessors) (external.DelegatedListHandler, error) {
+func CreateDelegatedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
 	//TODO add unit tests
 	if args.ShardID != core.MetachainShardId {
 		return disabled.NewDisabledDelegatedListProcessor(), nil
 	}
 
-	return trieIterators.NewDelegatedListProcessor(
-		args.Accounts,
-		args.BlockChain,
-		args.QueryService,
-		args.PublicKeyConverter,
-	)
+	return trieIterators.NewDelegatedListProcessor(args)
 }

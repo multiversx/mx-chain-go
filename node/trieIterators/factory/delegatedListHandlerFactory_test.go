@@ -12,19 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateTotalStakedValueHandler_Disabled(t *testing.T) {
+func TestCreateDelegatedListHandlerHandler_Disabled(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID: 0,
 	}
 
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
+	delegatedListHandler, err := CreateDelegatedListHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*disabled.stakeValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	assert.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }
 
-func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
+func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
@@ -38,7 +38,7 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
+	delegatedListHandler, err := CreateDelegatedListHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	assert.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }

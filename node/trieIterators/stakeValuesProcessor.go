@@ -21,46 +21,59 @@ type AccountsWrapper struct {
 	state.AccountsAdapter
 }
 
-type stakedValuesProc struct {
+type stakedValuesProcessor struct {
 	*commonStakingProcessor
 	publicKeyConverter core.PubkeyConverter
 }
 
+// ArgTrieIteratorProcessor represents the arguments DTO used in trie iterator processors constructors
+type ArgTrieIteratorProcessor struct {
+	ShardID            uint32
+	Accounts           *AccountsWrapper
+	BlockChain         data.ChainHandler
+	QueryService       process.SCQueryService
+	PublicKeyConverter core.PubkeyConverter
+}
+
 // NewTotalStakedValueProcessor will create a new instance of stakedValuesProc
-func NewTotalStakedValueProcessor(
-	accounts *AccountsWrapper,
-	blockChain data.ChainHandler,
-	queryService process.SCQueryService,
-	publicKeyConverter core.PubkeyConverter,
-) (*stakedValuesProc, error) {
-	if accounts == nil || check.IfNil(accounts) {
-		return nil, ErrNilAccountsAdapter
-	}
-	if check.IfNil(blockChain) {
-		return nil, ErrNilBlockChain
-	}
-	if check.IfNil(queryService) {
-		return nil, ErrNilQueryService
-	}
-	if check.IfNil(publicKeyConverter) {
-		return nil, ErrNilPubkeyConverter
-	}
-	if accounts.Mutex == nil {
-		return nil, fmt.Errorf("%w in NewTotalStakedValueProcessor", ErrNilMutex)
+func NewTotalStakedValueProcessor(arg ArgTrieIteratorProcessor) (*stakedValuesProcessor, error) {
+	err := checkArguments(arg)
+	if err != nil {
+		return nil, err
 	}
 
-	return &stakedValuesProc{
+	return &stakedValuesProcessor{
 		commonStakingProcessor: &commonStakingProcessor{
-			queryService: queryService,
-			blockChain:   blockChain,
-			accounts:     accounts,
+			queryService: arg.QueryService,
+			blockChain:   arg.BlockChain,
+			accounts:     arg.Accounts,
 		},
-		publicKeyConverter: publicKeyConverter,
+		publicKeyConverter: arg.PublicKeyConverter,
 	}, nil
 }
 
+func checkArguments(arg ArgTrieIteratorProcessor) error {
+	if arg.Accounts == nil || check.IfNil(arg.Accounts) {
+		return ErrNilAccountsAdapter
+	}
+	if check.IfNil(arg.BlockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(arg.QueryService) {
+		return ErrNilQueryService
+	}
+	if check.IfNil(arg.PublicKeyConverter) {
+		return ErrNilPubkeyConverter
+	}
+	if arg.Accounts.Mutex == nil {
+		return fmt.Errorf("%w in NewTotalStakedValueProcessor", ErrNilMutex)
+	}
+
+	return nil
+}
+
 // GetTotalStakedValue will calculate total staked value if needed and return calculated value
-func (svp *stakedValuesProc) GetTotalStakedValue() (*api.StakeValues, error) {
+func (svp *stakedValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
 	totalStaked, topUp, err := svp.computeStakedValueAndTopUp()
 	if err != nil {
 		return nil, err
@@ -72,7 +85,7 @@ func (svp *stakedValuesProc) GetTotalStakedValue() (*api.StakeValues, error) {
 	}, nil
 }
 
-func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
+func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
 	svp.accounts.Lock()
 	defer svp.accounts.Unlock()
 
@@ -113,6 +126,6 @@ func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, e
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (svp *stakedValuesProc) IsInterfaceNil() bool {
+func (svp *stakedValuesProcessor) IsInterfaceNil() bool {
 	return svp == nil
 }

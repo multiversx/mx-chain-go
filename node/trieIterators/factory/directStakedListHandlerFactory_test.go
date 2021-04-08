@@ -12,19 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateTotalStakedValueHandler_Disabled(t *testing.T) {
+func TestCreateDirectStakedListHandlerHandler_Disabled(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID: 0,
 	}
 
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
+	directStakedListHandler, err := CreateDirectStakedListHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*disabled.stakeValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	assert.Equal(t, "*disabled.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
 }
 
-func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
+func TestCreateDirectStakedListHandlerHandler_DirectStakedListProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
@@ -38,7 +38,7 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
+	directStakedListHandler, err := CreateDirectStakedListHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	assert.Equal(t, "*trieIterators.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
 }
