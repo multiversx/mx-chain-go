@@ -826,6 +826,30 @@ func dumpTrieContents(tr data.Trie, values [][]byte) {
 	}
 }
 
+func TestPatriciaMerkleTrie_GetNumNodesNilRootShouldReturnEmpty(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	numNodes := tr.GetNumNodes()
+	assert.Equal(t, data.NumNodesDTO{}, numNodes)
+}
+
+func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	_ = tr.Update([]byte("eod"), []byte("reindeer"))
+	_ = tr.Update([]byte("god"), []byte("puppy"))
+	_ = tr.Update([]byte("eggod"), []byte("cat"))
+
+	numNodes := tr.GetNumNodes()
+	assert.Equal(t, 5, numNodes.MaxLevel)
+	assert.Equal(t, 3, numNodes.Leaves)
+	assert.Equal(t, 2, numNodes.Extensions)
+	assert.Equal(t, 2, numNodes.Branches)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

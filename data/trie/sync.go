@@ -61,33 +61,9 @@ type ArgTrieSyncer struct {
 
 // NewTrieSyncer creates a new instance of trieSyncer
 func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
-	if check.IfNil(arg.RequestHandler) {
-		return nil, ErrNilRequestHandler
-	}
-	if check.IfNil(arg.InterceptedNodes) {
-		return nil, data.ErrNilCacher
-	}
-	if len(arg.Topic) == 0 {
-		return nil, ErrInvalidTrieTopic
-	}
-	if check.IfNil(arg.TrieSyncStatistics) {
-		return nil, ErrNilTrieSyncStatistics
-	}
-	if arg.TimeoutBetweenTrieNodesCommits < minTimeoutBetweenNodesCommits {
-		return nil, fmt.Errorf("%w provided: %v, minimum %v",
-			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
-	}
-	if arg.MaxHardCapForMissingNodes < 1 {
-		return nil, fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
-	}
-	if check.IfNil(arg.DB) {
-		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilDatabase)
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilMarshalizer)
-	}
-	if check.IfNil(arg.Hasher) {
-		return nil, fmt.Errorf("%w in NewTrieSyncer", ErrNilHasher)
+	err := checkArguments(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	ts := &trieSyncer{
@@ -107,6 +83,39 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 	}
 
 	return ts, nil
+}
+
+func checkArguments(arg ArgTrieSyncer) error {
+	if check.IfNil(arg.RequestHandler) {
+		return ErrNilRequestHandler
+	}
+	if check.IfNil(arg.InterceptedNodes) {
+		return data.ErrNilCacher
+	}
+	if check.IfNil(arg.DB) {
+		return fmt.Errorf("%w in NewTrieSyncer", ErrNilDatabase)
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return fmt.Errorf("%w in NewTrieSyncer", ErrNilMarshalizer)
+	}
+	if check.IfNil(arg.Hasher) {
+		return fmt.Errorf("%w in NewTrieSyncer", ErrNilHasher)
+	}
+	if len(arg.Topic) == 0 {
+		return ErrInvalidTrieTopic
+	}
+	if check.IfNil(arg.TrieSyncStatistics) {
+		return ErrNilTrieSyncStatistics
+	}
+	if arg.TimeoutBetweenTrieNodesCommits < minTimeoutBetweenNodesCommits {
+		return fmt.Errorf("%w provided: %v, minimum %v",
+			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
+	}
+	if arg.MaxHardCapForMissingNodes < 1 {
+		return fmt.Errorf("%w provided: %v", ErrInvalidMaxHardCapForMissingNodes, arg.MaxHardCapForMissingNodes)
+	}
+
+	return nil
 }
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network

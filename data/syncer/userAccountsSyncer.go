@@ -60,6 +60,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 
 	u := &userAccountsSyncer{
@@ -85,6 +86,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
 	rootHashes, err := u.findAllAccountRootHashes(mainTrie, ctx)
 	if err != nil {
@@ -165,7 +168,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 		TimeoutBetweenTrieNodesCommits: u.timeout,
 		MaxHardCapForMissingNodes:      u.maxHardCapForMissingNodes,
 	}
-	trieSyncer, err := trie.NewTrieSyncer(arg)
+	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
 
 		return err

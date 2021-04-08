@@ -1085,6 +1085,15 @@ func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextKey)
 }
 
+func TestExtensionNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	numNodes := en.getNumNodes()
+
+	assert.Equal(t, data.NumNodesDTO{}, numNodes)
+}
+
 func TestExtensionNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 

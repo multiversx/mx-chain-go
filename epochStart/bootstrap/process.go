@@ -106,6 +106,7 @@ type epochStartBootstrap struct {
 	epochNotifier              process.EpochNotifier
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
+	trieSyncerVersion          int
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -221,6 +222,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochNotifier:              args.EpochNotifier,
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -849,6 +851,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 		ShardId:   e.shardCoordinator.SelfId(),
 		Throttler: thr,
@@ -921,6 +924,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

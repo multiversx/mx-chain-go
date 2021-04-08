@@ -40,6 +40,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		name:                      "peer accounts",
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 
 	u := &validatorAccountsSyncer{
