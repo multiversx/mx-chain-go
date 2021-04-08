@@ -190,7 +190,7 @@ func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, e
 	return f.SendBulkTransactionsHandler(txs)
 }
 
-//ValidateTransaction -
+// ValidateTransaction -
 func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
 }

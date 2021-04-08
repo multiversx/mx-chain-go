@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-// AccountsWrapper extends the AccountsAdapter interfec
+// AccountsWrapper extends the AccountsAdapter interface
 type AccountsWrapper struct {
 	*sync.Mutex
 	state.AccountsAdapter
@@ -87,6 +87,7 @@ func (svp *stakedValuesProc) computeStakedValueAndTopUp() (*big.Int, *big.Int, e
 	}
 
 	ctx := context.Background()
+	//TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
 	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
 	if err != nil {
 		return nil, nil, err

@@ -33,7 +33,7 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 		return nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+		return nil, nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
 	if len(vmOutput.ReturnData) < 3 {

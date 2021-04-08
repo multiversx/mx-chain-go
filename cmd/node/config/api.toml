@@ -67,12 +67,14 @@
         # consensus group size and so on)
         { Name = "/config", Open = true },
 
-        # /network/direct-staked-info will return the metrics related to current direct staked list of addresses
+        # /network/direct-staked-info will return a list containing direct staked list of addresses
         # and their staked values
+        # TODO make this endpoint closed by default after the initial tests are performed
         {Name = "/direct-staked-info", Open = true},
 
-        # /network/delegated-info will return the metrics related to current delegated list of addresses
+        # /network/delegated-info will return a list containing delegated list of addresses
         # and their staked values on the system delegation smart contracts
+        # TODO make this endpoint closed by default after the initial tests are performed
         {Name = "/delegated-info", Open = true}
 	]
 

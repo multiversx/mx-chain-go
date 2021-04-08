@@ -79,12 +79,12 @@ func (nar *NodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
 }
 
-// GetDirectStakedList will output the list for the direct staked addresses
+// GetDirectStakedList will return the list for the direct staked addresses
 func (nar *NodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
 	return nar.directStakedListHandler.GetDirectStakedList()
 }
 
-// GetDelegatorsList will output the delegators list
+// GetDelegatorsList will return the delegators list
 func (nar *NodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
 	return nar.delegatedListHandler.GetDelegatorsList()
 }

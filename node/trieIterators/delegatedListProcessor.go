@@ -56,7 +56,7 @@ func NewDelegatedListProcessor(
 	}, nil
 }
 
-// GetDelegatorsList will output the delegators list
+// GetDelegatorsList will return the delegators list
 func (dlp *delegatedListProc) GetDelegatorsList() ([]*api.Delegator, error) {
 	dlp.accounts.Lock()
 	defer dlp.accounts.Unlock()
@@ -91,7 +91,7 @@ func (dlp *delegatedListProc) getAllDelegationContractAddresses() ([][]byte, err
 		return nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+		return nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
 	return vmOutput.ReturnData, nil
@@ -114,18 +114,19 @@ func (dlp *delegatedListProc) getDelegatorsInfo(delegationSC []byte, delegatorsM
 		delegatorInfo, ok := delegatorsMap[string(delegatorAddress)]
 		if !ok {
 			delegatorInfo = &api.Delegator{
-				DelegatorAddress: delegatorAddress,
-				DelegatedTo:      make([]api.DelegatedValue, 0),
-				Total:            big.NewInt(0),
+				DelegatorAddress: dlp.publicKeyConverter.Encode(delegatorAddress),
+				DelegatedTo:      make([]*api.DelegatedValue, 0),
+				TotalAsBigInt:    big.NewInt(0),
 			}
 
 			delegatorsMap[string(delegatorAddress)] = delegatorInfo
 		}
 
-		delegatorInfo.Total = big.NewInt(0).Add(delegatorInfo.Total, value)
-		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, api.DelegatedValue{
-			DelegationScAddress: delegationSC,
-			Value:               big.NewInt(0).Set(value),
+		delegatorInfo.TotalAsBigInt = big.NewInt(0).Add(delegatorInfo.TotalAsBigInt, value)
+		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
+		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
+			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
+			Value:               big.NewInt(0).Set(value).String(),
 		})
 	}
 
@@ -176,11 +177,11 @@ func (dlp *delegatedListProc) getActiveFund(delegationSC []byte, delegator []byt
 		return nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
+		return nil, fmt.Errorf("%w, return code: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
 	if len(vmOutput.ReturnData) != 1 {
-		return nil, fmt.Errorf("%w, getActiveFund function should have at least one value", epochStart.ErrExecutingSystemScCode)
+		return nil, fmt.Errorf("%w, getActiveFund function should have returned one value", epochStart.ErrExecutingSystemScCode)
 	}
 
 	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])

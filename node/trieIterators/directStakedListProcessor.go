@@ -2,7 +2,6 @@ package trieIterators
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -22,7 +21,7 @@ type directStakedListProc struct {
 	publicKeyConverter core.PubkeyConverter
 }
 
-var metachainIdentifier, _ = hex.DecodeString("ff")
+var metachainIdentifier = []byte{255}
 
 // NewDirectStakedListProcessor will create a new instance of stakedValuesProc
 func NewDirectStakedListProcessor(
@@ -57,7 +56,7 @@ func NewDirectStakedListProcessor(
 	}, nil
 }
 
-// GetDirectStakedList will output the list for the direct staked addresses
+// GetDirectStakedList will return the list for the direct staked addresses
 func (dslp *directStakedListProc) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
 	dslp.accounts.Lock()
 	defer dslp.accounts.Unlock()
@@ -98,10 +97,10 @@ func (dslp *directStakedListProc) getAllStakedAccounts(validatorAccount state.Us
 		}
 
 		val := &api.DirectStakedValue{
-			Address: leafKey,
-			Staked:  totalStakedCurrentAccount,
-			TopUp:   totalTopUpCurrentAccount,
-			Total:   big.NewInt(0).Add(totalTopUpCurrentAccount, totalStakedCurrentAccount),
+			Address: dslp.publicKeyConverter.Encode(leafKey),
+			Staked:  totalStakedCurrentAccount.String(),
+			TopUp:   totalTopUpCurrentAccount.String(),
+			Total:   big.NewInt(0).Add(totalTopUpCurrentAccount, totalStakedCurrentAccount).String(),
 		}
 
 		stakedAccounts = append(stakedAccounts, val)

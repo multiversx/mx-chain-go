@@ -20,5 +20,5 @@ var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 // ErrNodeNotInitialized signals that the node is not initialized and can not compute the required task yet
 var ErrNodeNotInitialized = errors.New("the node is not fully initialized")
 
-// ErrNilMutex signals that a nil mutex hax been provided
+// ErrNilMutex signals that a nil mutex has been provided
 var ErrNilMutex = errors.New("nil mutex")

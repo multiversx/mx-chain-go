@@ -114,7 +114,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTotalStakedValueProcessor_GetTotalStakedValueilHeaderShouldError(t *testing.T) {
+func TestTotalStakedValueProcessor_GetTotalStakedValueNilHeaderShouldError(t *testing.T) {
 	t.Parallel()
 
 	totalStakedProc, _ := NewTotalStakedValueProcessor(

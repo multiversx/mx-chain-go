@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// ArgStakeProcessors is struct that contains components that are needed to create a TotalStakedValueHandler
+// ArgStakeProcessors is a struct that contains components that are needed to create a TotalStakedValueHandler
 type ArgStakeProcessors struct {
 	ShardID            uint32
 	Accounts           *trieIterators.AccountsWrapper
