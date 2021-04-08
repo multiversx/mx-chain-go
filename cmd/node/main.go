@@ -1464,6 +1464,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		epochNotifier,
 		apiWorkingDir,
+		stateComponents.AccountsAdapterAPI,
 	)
 	if err != nil {
 		return err
@@ -2366,6 +2367,7 @@ func createNode(
 		node.WithTxVersionChecker(txVersionCheckerHandler),
 		node.WithImportMode(isInImportDbMode),
 		node.WithNodeRedundancyHandler(nodeRedundancyHandler),
+		node.WithAccountsAdapterAPI(stateComponents.AccountsAdapterAPI),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2480,6 +2482,7 @@ func createApiResolver(
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
 	workingDir string,
+	accountsAPI state.AccountsAdapter,
 ) (facade.ApiResolver, error) {
 	scQueryService, err := createScQueryService(
 		generalConfig,
@@ -2532,10 +2535,11 @@ func createApiResolver(
 	}
 
 	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:             shardCoordinator.SelfId(),
-		InternalMarshalizer: marshalizer,
-		Accounts:            accnts,
-		NodePrice:           systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		ShardID:            shardCoordinator.SelfId(),
+		Accounts:           accountsAPI,
+		PublicKeyConverter: pubkeyConv,
+		BlockChain:         blockChain,
+		QueryService:       scQueryService,
 	}
 	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
 	if err != nil {

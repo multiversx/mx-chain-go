@@ -5,11 +5,14 @@ import "errors"
 // ErrCannotCastAccountHandlerToUserAccount signal that returned account is wrong
 var ErrCannotCastAccountHandlerToUserAccount = errors.New("cannot cast AccountHandler to UserAccount")
 
-// ErrNilMarshalizer signals that a nil marshalizer has been provided
-var ErrNilMarshalizer = errors.New("trying to set nil marshalizer")
-
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
 var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
-// ErrInvalidNodePrice signals that an invalid node price has been provided
-var ErrInvalidNodePrice = errors.New("invalid node price")
+// ErrNilQueryService signals that a nil query service has been provided
+var ErrNilQueryService = errors.New("nil query service")
+
+// ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
+var ErrNilBlockChain = errors.New("nil block chain")
+
+// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")

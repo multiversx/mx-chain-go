@@ -155,7 +155,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 requestHandler,
 		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
-		Trie:                           requesterTrie,
+		DB:                             requesterTrie.GetStorageManager().Database(),
+		Marshalizer:                    integrationTests.TestMarshalizer,
+		Hasher:                         integrationTests.TestHasher,
 		ShardId:                        shardID,
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             tss,
@@ -180,6 +182,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	err = trieSyncer.StartSyncing(rootHash, context.Background())
 	assert.Nil(t, err)
 	cancel()
+
+	requesterTrie, err = requesterTrie.Recreate(rootHash)
+	require.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)

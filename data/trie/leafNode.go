@@ -394,6 +394,17 @@ func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, nil, nil
 }
 
+func (ln *leafNode) sizeInBytes() int {
+	if ln == nil {
+		return 0
+	}
+
+	// hasher + marshalizer  + dirty flag = 2 * pointerSizeInBytes + 1
+	nodeSize := len(ln.hash) + len(ln.Key) + len(ln.Value) + 2*pointerSizeInBytes + 1
+
+	return nodeSize
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil

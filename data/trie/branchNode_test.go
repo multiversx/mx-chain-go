@@ -1402,3 +1402,27 @@ func TestBranchNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
 
 	assert.Equal(t, data.NumNodesDTO{}, numNodes)
 }
+
+func TestBranchNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var bn *branchNode
+	assert.Equal(t, 0, bn.sizeInBytes())
+
+	collapsed1 := []byte("collapsed1")
+	collapsed2 := []byte("collapsed2")
+	hash := []byte("hash")
+	bn = &branchNode{
+		CollapsedBn: CollapsedBn{
+			EncodedChildren: [][]byte{collapsed1, collapsed2},
+		},
+		children: [17]node{},
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes, bn.sizeInBytes())
+}

@@ -818,6 +818,21 @@ func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
+func (bn *branchNode) sizeInBytes() int {
+	if bn == nil {
+		return 0
+	}
+
+	// hasher + marshalizer + dirty flag = 2 * pointerSizeInBytes + 1
+	nodeSize := len(bn.hash) + 2*pointerSizeInBytes + 1
+	for _, collapsed := range bn.EncodedChildren {
+		nodeSize += len(collapsed)
+	}
+	nodeSize += len(bn.children) * pointerSizeInBytes
+
+	return nodeSize
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil

@@ -655,6 +655,18 @@ func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, wantHash, nextKey
 }
 
+func (en *extensionNode) sizeInBytes() int {
+	if en == nil {
+		return 0
+	}
+
+	// hasher + marshalizer + child + dirty flag = 3 * pointerSizeInBytes + 1
+	nodeSize := len(en.hash) + len(en.Key) + 3*pointerSizeInBytes + 1
+	nodeSize += len(en.EncodedChild)
+
+	return nodeSize
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil
