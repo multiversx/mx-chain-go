@@ -118,6 +118,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			TrieSync: config.TrieSyncConfig{
 				NumConcurrentTrieSyncers:  50,
 				MaxHardCapForMissingNodes: 500,
+				TrieSyncerVersion:         2,
 			},
 		},
 		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
