@@ -311,7 +311,7 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(100000)
+	persist, _ := memorydb.NewlruDB(10000000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit

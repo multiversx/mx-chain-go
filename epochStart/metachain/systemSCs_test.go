@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -1441,6 +1442,27 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
 	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
+}
+
+func TestSystemSCProcessor_ResetUnJailListErrors(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local error")
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	s, _ := NewSystemSCProcessor(args)
+	s.systemVM = &mock.VMExecutionHandlerStub{RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	err := s.resetLastUnJailed()
+	assert.Equal(t, localErr, err)
+
+	s.systemVM = &mock.VMExecutionHandlerStub{RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+	}}
+
+	err = s.resetLastUnJailed()
+	assert.Equal(t, epochStart.ErrResetLastUnJailedFromQueue, err)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T) {

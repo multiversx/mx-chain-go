@@ -12,6 +12,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestWithAccountsAdapterAPI_NilAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithAccountsAdapterAPI(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.accountsAPI)
+	assert.Equal(t, ErrNilAccountsAdapter, err)
+}
+
+func TestWithAccountsAdapterAPI_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	accounts := &mock.AccountsStub{}
+
+	opt := WithAccountsAdapterAPI(accounts)
+	err := opt(node)
+
+	assert.True(t, node.accountsAPI == accounts)
+	assert.Nil(t, err)
+}
+
 func TestWithInitialNodesPubKeys(t *testing.T) {
 	t.Parallel()
 

@@ -88,6 +88,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
+	accountsAdapterAPI, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	if err != nil {
+		return nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())
+	}
+
 	accountFactory = factoryState.NewPeerAccountCreator()
 	merkleTrie = scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
@@ -100,6 +105,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		accountsAdapter:     accountsAdapter,
 		triesContainer:      scf.triesContainer,
 		trieStorageManagers: scf.trieStorageManagers,
+		AccountsAdapterAPI:       accountsAdapterAPI,
 	}, nil
 }
 
