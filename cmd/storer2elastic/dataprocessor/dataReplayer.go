@@ -371,7 +371,7 @@ func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.
 func (dr *dataReplayer) getShardHeader(
 	shardPersisters *persistersHolder,
 	hash []byte,
-) (data.HeaderHandler, error) {
+) (data.ShardHeaderHandler, error) {
 	shardHeaderBytes, err := shardPersisters.shardHeadersPersister.Get(hash)
 	if err != nil {
 		return nil, err

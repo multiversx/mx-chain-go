@@ -2,105 +2,116 @@ package block
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-// GetPendingMiniBlockHeaderHandlers -
-func (m *EpochStartShardData) GetPendingMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
-	if m == nil {
+// GetPendingMiniBlockHeaderHandlers returns the pending miniBlock header handlers
+func (essd *EpochStartShardData) GetPendingMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	if essd == nil {
 		return nil
 	}
 
-	pendingMbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(m.PendingMiniBlockHeaders))
-	for i := range m.PendingMiniBlockHeaders {
-		pendingMbHeaderHandlers[i] = &m.PendingMiniBlockHeaders[i]
+	pendingMbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(essd.PendingMiniBlockHeaders))
+	for i := range essd.PendingMiniBlockHeaders {
+		pendingMbHeaderHandlers[i] = &essd.PendingMiniBlockHeaders[i]
 	}
 
 	return pendingMbHeaderHandlers
 }
 
-// SetShardID -
-func (m *EpochStartShardData) SetShardID(shardID uint32) {
-	if m == nil {
-		return
+// SetShardID sets the epoch start shardData shardID
+func (essd *EpochStartShardData) SetShardID(shardID uint32) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.ShardID = shardID
+	essd.ShardID = shardID
+	return nil
 }
 
-// SetEpoch -
-func (m *EpochStartShardData) SetEpoch(epoch uint32) {
-	if m == nil {
-		return
+// SetEpoch sets the epoch start shardData epoch
+func (essd *EpochStartShardData) SetEpoch(epoch uint32) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.Epoch = epoch
+	essd.Epoch = epoch
+	return nil
 }
 
-// SetRound -
-func (m *EpochStartShardData) SetRound(round uint64) {
-	if m == nil {
-		return
+// SetRound sets the epoch start shardData round
+func (essd *EpochStartShardData) SetRound(round uint64) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.Round = round
+	essd.Round = round
+	return nil
 }
 
-// SetNonce -
-func (m *EpochStartShardData) SetNonce(nonce uint64) {
-	if m == nil {
-		return
+// SetNonce sets the epoch start shardData nonce
+func (essd *EpochStartShardData) SetNonce(nonce uint64) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.Nonce = nonce
+	essd.Nonce = nonce
+	return nil
 }
 
-// SetHeaderHash -
-func (m *EpochStartShardData) SetHeaderHash(hash []byte) {
-	if m == nil {
-		return
+// SetHeaderHash sets the epoch start shardData header hash
+func (essd *EpochStartShardData) SetHeaderHash(hash []byte) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.HeaderHash = hash
+	essd.HeaderHash = hash
+	return nil
 }
 
-// SetRootHash -
-func (m *EpochStartShardData) SetRootHash(rootHash []byte) {
-	if m == nil {
-		return
+// SetRootHash sets the epoch start shardData root hash
+func (essd *EpochStartShardData) SetRootHash(rootHash []byte) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.RootHash = rootHash
+	essd.RootHash = rootHash
+	return nil
 }
 
-// SetFirstPendingMetaBlock -
-func (m *EpochStartShardData) SetFirstPendingMetaBlock(metaBlock []byte) {
-	if m == nil {
-		return
+// SetFirstPendingMetaBlock sets the epoch start shardData first pending metaBlock
+func (essd *EpochStartShardData) SetFirstPendingMetaBlock(metaBlock []byte) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.FirstPendingMetaBlock = metaBlock
+	essd.FirstPendingMetaBlock = metaBlock
+	return nil
 }
 
-// SetLastFinishedMetaBlock -
-func (m *EpochStartShardData) SetLastFinishedMetaBlock(lastFinishedMetaBlock []byte) {
-	if m == nil {
-		return
+// SetLastFinishedMetaBlock sets the epoch start shardData last finished metaBlock
+func (essd *EpochStartShardData) SetLastFinishedMetaBlock(lastFinishedMetaBlock []byte) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
-	m.LastFinishedMetaBlock = lastFinishedMetaBlock
+	essd.LastFinishedMetaBlock = lastFinishedMetaBlock
+	return nil
 }
 
-// SetPendingMiniBlockHeaders -
-func (m *EpochStartShardData) SetPendingMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) {
-	if m == nil {
-		return
+// SetPendingMiniBlockHeaders sets the epoch start shardData pending miniBlock headers
+func (essd *EpochStartShardData) SetPendingMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) error {
+	if essd == nil {
+		return data.ErrNilPointerReceiver
 	}
 
 	pendingMiniBlockHeaders := make([]MiniBlockHeader, len(miniBlockHeaderHandlers))
 	for i := range miniBlockHeaderHandlers {
 		mbHeader, ok := miniBlockHeaderHandlers[i].(*MiniBlockHeader)
 		if !ok {
-			m.PendingMiniBlockHeaders = nil
-			return
+			return data.ErrInvalidTypeAssertion
+		}
+		if mbHeader == nil {
+			return data.ErrNilPointerDereference
 		}
 		pendingMiniBlockHeaders[i] = *mbHeader
 	}
 
-	m.PendingMiniBlockHeaders = pendingMiniBlockHeaders
+	essd.PendingMiniBlockHeaders = pendingMiniBlockHeaders
+	return nil
 }

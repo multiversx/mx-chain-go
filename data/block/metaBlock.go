@@ -2,7 +2,6 @@
 package block
 
 import (
-	"math"
 	"math/big"
 	"sort"
 
@@ -20,118 +19,221 @@ func (m *MetaBlock) GetShardID() uint32 {
 }
 
 // SetNonce sets header nonce
-func (m *MetaBlock) SetNonce(n uint64) {
+func (m *MetaBlock) SetNonce(n uint64) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.Nonce = n
+
+	return nil
 }
 
 // SetEpoch sets header epoch
-func (m *MetaBlock) SetEpoch(e uint32) {
+func (m *MetaBlock) SetEpoch(e uint32) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.Epoch = e
+
+	return nil
 }
 
 // SetRound sets header round
-func (m *MetaBlock) SetRound(r uint64) {
+func (m *MetaBlock) SetRound(r uint64) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.Round = r
+
+	return nil
 }
 
 // SetRootHash sets root hash
-func (m *MetaBlock) SetRootHash(rHash []byte) {
+func (m *MetaBlock) SetRootHash(rHash []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.RootHash = rHash
+
+	return nil
 }
 
 // SetValidatorStatsRootHash set's the root hash for the validator statistics trie
-func (m *MetaBlock) SetValidatorStatsRootHash(rHash []byte) {
+func (m *MetaBlock) SetValidatorStatsRootHash(rHash []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.ValidatorStatsRootHash = rHash
+
+	return nil
 }
 
 // SetPrevHash sets prev hash
-func (m *MetaBlock) SetPrevHash(pvHash []byte) {
+func (m *MetaBlock) SetPrevHash(pvHash []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.PrevHash = pvHash
+
+	return nil
 }
 
 // SetPrevRandSeed sets the previous randomness seed
-func (m *MetaBlock) SetPrevRandSeed(pvRandSeed []byte) {
+func (m *MetaBlock) SetPrevRandSeed(pvRandSeed []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.PrevRandSeed = pvRandSeed
+
+	return nil
 }
 
 // SetRandSeed sets the current random seed
-func (m *MetaBlock) SetRandSeed(randSeed []byte) {
+func (m *MetaBlock) SetRandSeed(randSeed []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.RandSeed = randSeed
+
+	return nil
 }
 
 // SetPubKeysBitmap sets publick key bitmap
-func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
+func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.PubKeysBitmap = pkbm
+
+	return nil
 }
 
 // SetSignature set header signature
-func (m *MetaBlock) SetSignature(sg []byte) {
+func (m *MetaBlock) SetSignature(sg []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.Signature = sg
+
+	return nil
 }
 
 // SetLeaderSignature will set the leader's signature
-func (m *MetaBlock) SetLeaderSignature(sg []byte) {
+func (m *MetaBlock) SetLeaderSignature(sg []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.LeaderSignature = sg
+
+	return nil
 }
 
 // SetChainID sets the chain ID on which this block is valid on
-func (m *MetaBlock) SetChainID(chainID []byte) {
+func (m *MetaBlock) SetChainID(chainID []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.ChainID = chainID
+
+	return nil
 }
 
 // SetSoftwareVersion sets the software version of the block
-func (m *MetaBlock) SetSoftwareVersion(version []byte) {
+func (m *MetaBlock) SetSoftwareVersion(version []byte) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.SoftwareVersion = version
+
+	return nil
 }
 
 // SetAccumulatedFees sets the accumulated fees in the header
-func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
+func (m *MetaBlock) SetAccumulatedFees(value *big.Int) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if m.AccumulatedFees == nil {
 		m.AccumulatedFees = big.NewInt(0)
 	}
 	m.AccumulatedFees.Set(value)
+
+	return nil
 }
 
 // SetAccumulatedFeesInEpoch sets the epoch accumulated fees in the header
-func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) {
+func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if m.AccumulatedFeesInEpoch == nil {
 		m.AccumulatedFeesInEpoch = big.NewInt(0)
 	}
 	m.AccumulatedFeesInEpoch.Set(value)
+
+	return nil
 }
 
 // SetDeveloperFees sets the developer fees in the header
-func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
+func (m *MetaBlock) SetDeveloperFees(value *big.Int) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if m.DeveloperFees == nil {
 		m.DeveloperFees = big.NewInt(0)
 	}
 	m.DeveloperFees.Set(value)
+
+	return nil
 }
 
 // SetDeveloperFees sets the developer fees in the header
-func (m *MetaBlock) SetDevFeesInEpoch(value *big.Int) {
+func (m *MetaBlock) SetDevFeesInEpoch(value *big.Int) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if m.DevFeesInEpoch == nil {
 		m.DevFeesInEpoch = big.NewInt(0)
 	}
 	m.DevFeesInEpoch.Set(value)
+
+	return nil
 }
 
 // SetTimeStamp sets header timestamp
-func (m *MetaBlock) SetTimeStamp(ts uint64) {
+func (m *MetaBlock) SetTimeStamp(ts uint64) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.TimeStamp = ts
+
+	return nil
 }
 
 // SetTxCount sets the transaction count of the current meta block
-func (m *MetaBlock) SetTxCount(txCount uint32) {
+func (m *MetaBlock) SetTxCount(txCount uint32) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	m.TxCount = txCount
+
+	return nil
 }
 
 // SetShardID sets header shard ID
-func (m *MetaBlock) SetShardID(_ uint32) {
+func (m *MetaBlock) SetShardID(_ uint32) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
+
+	return nil
 }
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	if m == nil {
+		return nil
+	}
 	hashDst := make(map[string]uint32)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
@@ -160,6 +262,10 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 // GetOrderedCrossMiniblocksWithDst gets all cross miniblocks with the given destination shard ID, ordered in a
 // chronological way, taking into consideration the round in which they were created/executed in the sender shard
 func (m *MetaBlock) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
+	if m == nil {
+		return nil
+	}
+
 	miniBlocks := make([]*data.MiniBlockInfo, 0)
 
 	for i := 0; i < len(m.ShardInfo); i++ {
@@ -200,10 +306,15 @@ func (m *MetaBlock) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.Mini
 
 // GetMiniBlockHeadersHashes gets the miniblock hashes
 func (m *MetaBlock) GetMiniBlockHeadersHashes() [][]byte {
+	if m == nil {
+		return nil
+	}
+
 	result := make([][]byte, 0, len(m.MiniBlockHeaders))
 	for _, miniblock := range m.MiniBlockHeaders {
 		result = append(result, miniblock.Hash)
 	}
+
 	return result
 }
 
@@ -214,32 +325,29 @@ func (m *MetaBlock) IsInterfaceNil() bool {
 
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (m *MetaBlock) IsStartOfEpochBlock() bool {
+	if m == nil {
+		return false
+	}
+
 	return len(m.EpochStart.LastFinalizedHeaders) > 0
 }
 
 // Clone will return a clone of the object
 func (m *MetaBlock) ShallowClone() data.HeaderHandler {
+	if m == nil {
+		return nil
+	}
 	metaBlockCopy := *m
+
 	return &metaBlockCopy
-}
-
-// GetEpochStartMetaHash returns the hash of the epoch start meta block
-func (m *MetaBlock) GetEpochStartMetaHash() []byte {
-	return nil
-}
-
-// GetMetaBlockHashes() - the metaBlock does not hold any metaBlock hashes
-func (m *MetaBlock) GetMetaBlockHashes() [][]byte {
-	return nil
-}
-
-// GetBlockBodyType - currently there is no block body type for metaBlock so return MaxInt32
-func (m *MetaBlock) GetBlockBodyTypeInt32() int32 {
-	return math.MaxInt32
 }
 
 // GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
 func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	if m == nil {
+		return nil
+	}
+
 	mbHeaders := m.GetMiniBlockHeaders()
 	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
 
@@ -251,35 +359,46 @@ func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 }
 
 // SetMiniBlockHeaderHandlers sets the miniBlock headers from the given miniBlock header handlers
-func (m *MetaBlock) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHeaderHandler) {
+func (m *MetaBlock) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHeaderHandler) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if mbHeaderHandlers == nil {
 		m.MiniBlockHeaders = nil
-		return
+		return nil
 	}
 
-	m.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
+	mbHeaders := make([]MiniBlockHeader, len(mbHeaderHandlers))
 	for i := range mbHeaderHandlers {
 		mbHeader, ok := mbHeaderHandlers[i].(*MiniBlockHeader)
 		if !ok {
-			m.MiniBlockHeaders = nil
-			return
+			return data.ErrInvalidTypeAssertion
 		}
-		m.MiniBlockHeaders[i] = *mbHeader
+		if mbHeader == nil {
+			return data.ErrNilPointerDereference
+		}
+		mbHeaders[i] = *mbHeader
 	}
+
+	m.MiniBlockHeaders = mbHeaders
+
+	return nil
 }
 
 // SetReceiptsHash sets the receipts hash
-func (m *MetaBlock) SetReceiptsHash(hash []byte) {
-	m.ReceiptsHash = hash
-}
+func (m *MetaBlock) SetReceiptsHash(hash []byte) error {
+	if m == nil {
+		return nil
+	}
 
-// SetMetaBlockHashes - for metaBlock does nothing
-func (m *MetaBlock) SetMetaBlockHashes(_ [][]byte) {
+	m.ReceiptsHash = hash
+
+	return nil
 }
 
 // GetShardInfoHandlers - gets the shardInfo as an array of ShardDataHandler
 func (m *MetaBlock) GetShardInfoHandlers() []data.ShardDataHandler {
-	if m.ShardInfo == nil {
+	if m == nil || m.ShardInfo == nil {
 		return nil
 	}
 
@@ -300,19 +419,28 @@ func (m *MetaBlock) GetEpochStartHandler() data.EpochStartHandler {
 }
 
 // SetShardInfoHandlers -
-func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) {
+func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) error {
+	if m == nil {
+		return data.ErrNilPointerReceiver
+	}
 	if shardInfo == nil {
 		m.ShardInfo = nil
-		return
+		return nil
 	}
 
-	m.ShardInfo = make([]ShardData, len(shardInfo))
+	sInfo := make([]ShardData, len(shardInfo))
 	for i := range shardInfo {
 		shData, ok := shardInfo[i].(*ShardData)
 		if !ok {
-			m.ShardInfo = nil
-			return
+			return data.ErrInvalidTypeAssertion
 		}
-		m.ShardInfo[i] = *shData
+		if shData == nil {
+			return data.ErrNilPointerDereference
+		}
+		sInfo[i] = *shData
 	}
+
+	m.ShardInfo = sInfo
+
+	return nil
 }

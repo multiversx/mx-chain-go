@@ -4,55 +4,62 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// GetLastFinalizedHeaderHandlers -
-func (m *EpochStart) GetLastFinalizedHeaderHandlers() []data.EpochStartShardDataHandler {
-	if m == nil {
+// GetLastFinalizedHeaderHandlers returns the last finalized header handlers
+func (es *EpochStart) GetLastFinalizedHeaderHandlers() []data.EpochStartShardDataHandler {
+	if es == nil {
 		return nil
 	}
 
-	epochStartShardDataHandlers := make([]data.EpochStartShardDataHandler, len(m.LastFinalizedHeaders))
-	for i := range m.LastFinalizedHeaders {
-		epochStartShardDataHandlers[i] = &m.LastFinalizedHeaders[i]
+	epochStartShardDataHandlers := make([]data.EpochStartShardDataHandler, len(es.LastFinalizedHeaders))
+	for i := range es.LastFinalizedHeaders {
+		epochStartShardDataHandlers[i] = &es.LastFinalizedHeaders[i]
 	}
 
 	return epochStartShardDataHandlers
 }
 
-// GetEconomicsHandler -
-func (m *EpochStart) GetEconomicsHandler() data.EconomicsHandler {
-	if m == nil {
+// GetEconomicsHandler  returns the economics handler
+func (es *EpochStart) GetEconomicsHandler() data.EconomicsHandler {
+	if es == nil {
 		return nil
 	}
 
-	return &m.Economics
+	return &es.Economics
 }
 
-// SetLastFinalizedHeaders -
-func (m *EpochStart) SetLastFinalizedHeaders(epochStartDataHandlers []data.EpochStartShardDataHandler) {
-	if m == nil {
-		return
+// SetLastFinalizedHeaders sets the last finalized header
+func (es *EpochStart) SetLastFinalizedHeaders(epochStartDataHandlers []data.EpochStartShardDataHandler) error {
+	if es == nil {
+		return data.ErrNilPointerReceiver
 	}
 
 	epochStartData := make([]EpochStartShardData, len(epochStartDataHandlers))
 	for i := range epochStartDataHandlers {
 		shardData, ok := epochStartDataHandlers[i].(*EpochStartShardData)
 		if !ok {
-			m.LastFinalizedHeaders = nil
-			return
+			return data.ErrInvalidTypeAssertion
+		}
+		if shardData == nil {
+			return data.ErrNilPointerDereference
 		}
 		epochStartData[i] = *shardData
 	}
-	m.LastFinalizedHeaders = epochStartData
+	es.LastFinalizedHeaders = epochStartData
+	return nil
 }
 
-// SetEconomics -
-func (m *EpochStart) SetEconomics(economicsHandler data.EconomicsHandler) {
-	if m == nil {
-		return
+// SetEconomics sets the economics data
+func (es *EpochStart) SetEconomics(economicsHandler data.EconomicsHandler) error {
+	if es == nil {
+		return data.ErrNilPointerReceiver
 	}
 	ec, ok := economicsHandler.(*Economics)
 	if !ok {
-		m.Economics = Economics{}
+		return data.ErrInvalidTypeAssertion
 	}
-	m.Economics = *ec
+	if ec == nil {
+		return data.ErrNilPointerDereference
+	}
+	es.Economics = *ec
+	return nil
 }

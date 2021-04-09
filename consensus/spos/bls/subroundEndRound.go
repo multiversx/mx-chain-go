@@ -120,11 +120,25 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 	}
 
 	header := sr.Header.ShallowClone()
-	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
-	header.SetSignature(cnsDta.AggregateSignature)
-	header.SetLeaderSignature(cnsDta.LeaderSignature)
+	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.SetPubKeysBitmap", "error", err.Error())
+		return false
+	}
 
-	err := sr.HeaderSigVerifier().VerifyLeaderSignature(header)
+	err = header.SetSignature(cnsDta.AggregateSignature)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.SetSignature", "error", err.Error())
+		return false
+	}
+
+	err = header.SetLeaderSignature(cnsDta.LeaderSignature)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.SetLeaderSignature", "error", err.Error())
+		return false
+	}
+
+	err = sr.HeaderSigVerifier().VerifyLeaderSignature(header)
 	if err != nil {
 		log.Debug("isBlockHeaderFinalInfoValid.VerifyLeaderSignature", "error", err.Error())
 		return false
@@ -181,8 +195,17 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	sr.Header.SetPubKeysBitmap(bitmap)
-	sr.Header.SetSignature(sig)
+	err = sr.Header.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Debug("doEndRoundJob.SetPubKeysBitmap", "error", err.Error())
+		return false
+	}
+
+	err = sr.Header.SetSignature(sig)
+	if err != nil {
+		log.Debug("doEndRoundJob.SetSignature", "error", err.Error())
+		return false
+	}
 
 	// Header is complete so the leader can sign it
 	leaderSignature, err := sr.signBlockHeader()
@@ -190,7 +213,12 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		log.Error(err.Error())
 		return false
 	}
-	sr.Header.SetLeaderSignature(leaderSignature)
+
+	err = sr.Header.SetLeaderSignature(leaderSignature)
+	if err != nil {
+		log.Debug("doEndRoundJob.SetLeaderSignature", "error", err.Error())
+		return false
+	}
 
 	// broadcast header and final info section
 
@@ -357,9 +385,20 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 	}
 
 	header := sr.Header.ShallowClone()
-	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
-	header.SetSignature(cnsDta.AggregateSignature)
-	header.SetLeaderSignature(cnsDta.LeaderSignature)
+	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
+	if err != nil {
+		return false, nil
+	}
+
+	err = header.SetSignature(cnsDta.AggregateSignature)
+	if err != nil {
+		return false, nil
+	}
+
+	err = header.SetLeaderSignature(cnsDta.LeaderSignature)
+	if err != nil {
+		return false, nil
+	}
 
 	return true, header
 }

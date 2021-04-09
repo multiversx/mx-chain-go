@@ -33,11 +33,13 @@ func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
 }
 
 // SetAccumulatedFees -
-func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
+func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) error {
+	return nil
 }
 
 // SetDeveloperFees -
-func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) error {
+	return nil
 }
 
 // GetReceiptsHash -
@@ -46,7 +48,8 @@ func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 }
 
 // SetShardID -
-func (hhs *HeaderHandlerStub) SetShardID(_ uint32) {
+func (hhs *HeaderHandlerStub) SetShardID(_ uint32) error {
+	return nil
 }
 
 // IsStartOfEpochBlock -
@@ -54,7 +57,7 @@ func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
 	return false
 }
 
-// Clone -
+// ShallowClone -
 func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 	return hhs.CloneCalled()
 }
@@ -139,67 +142,67 @@ func (hhs *HeaderHandlerStub) GetReserved() []byte {
 }
 
 // SetNonce -
-func (hhs *HeaderHandlerStub) SetNonce(_ uint64) {
+func (hhs *HeaderHandlerStub) SetNonce(_ uint64) error {
 	panic("implement me")
 }
 
 // SetEpoch -
-func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) {
+func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) error {
 	panic("implement me")
 }
 
 // SetRound -
-func (hhs *HeaderHandlerStub) SetRound(_ uint64) {
+func (hhs *HeaderHandlerStub) SetRound(_ uint64) error {
 	panic("implement me")
 }
 
 // SetTimeStamp -
-func (hhs *HeaderHandlerStub) SetTimeStamp(_ uint64) {
+func (hhs *HeaderHandlerStub) SetTimeStamp(_ uint64) error {
 	panic("implement me")
 }
 
 // SetRootHash -
-func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) {
+func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) error {
 	panic("implement me")
 }
 
 // SetPrevHash -
-func (hhs *HeaderHandlerStub) SetPrevHash(_ []byte) {
+func (hhs *HeaderHandlerStub) SetPrevHash(_ []byte) error {
 	panic("implement me")
 }
 
 // SetPrevRandSeed -
-func (hhs *HeaderHandlerStub) SetPrevRandSeed(_ []byte) {
+func (hhs *HeaderHandlerStub) SetPrevRandSeed(_ []byte) error {
 	panic("implement me")
 }
 
 // SetRandSeed -
-func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) {
+func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) error {
 	panic("implement me")
 }
 
 // SetPubKeysBitmap -
-func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) {
+func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) error {
 	panic("implement me")
 }
 
 // SetSignature -
-func (hhs *HeaderHandlerStub) SetSignature(_ []byte) {
+func (hhs *HeaderHandlerStub) SetSignature(_ []byte) error {
 	panic("implement me")
 }
 
 // SetLeaderSignature -
-func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) {
+func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) error {
 	panic("implement me")
 }
 
 // SetChainID -
-func (hhs *HeaderHandlerStub) SetChainID(_ []byte) {
+func (hhs *HeaderHandlerStub) SetChainID(_ []byte) error {
 	panic("implement me")
 }
 
 // SetTxCount -
-func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) {
+func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) error {
 	panic("implement me")
 }
 
@@ -218,7 +221,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 	panic("implement me")
 }
 
-// GetMiniBlockHeaders -
+// GetMiniBlockHeaderHandlers -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	panic("implement me")
 }
@@ -228,7 +231,7 @@ func (hhs *HeaderHandlerStub) GetMetaBlockHashes() [][]byte {
 	panic("implement me")
 }
 
-// GetBlockBodyType -
+// GetBlockBodyTypeInt32 -
 func (hhs *HeaderHandlerStub) GetBlockBodyTypeInt32() int32 {
 	panic("implement me")
 }
@@ -239,12 +242,12 @@ func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 }
 
 // SetValidatorStatsRootHash -
-func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
+func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) error {
 	panic("implement me")
 }
 
 // SetMiniBlockHeaderHandlers -
-func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(_ []data.MiniBlockHeaderHandler) {
+func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(_ []data.MiniBlockHeaderHandler) error {
 	panic("implement me")
 }
 
@@ -264,15 +267,18 @@ func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
 }
 
 // SetSoftwareVersion -
-func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) {
+func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) error {
+	return nil
 }
 
 // SetReceiptsHash -
-func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) {
+func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) error {
+	return nil
 }
 
 // SetMetaBlockHashes -
-func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) {
+func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
+	return nil
 }
 
 // GetShardInfoHandlers -
@@ -291,16 +297,16 @@ func (hhs *HeaderHandlerStub) GetDevFeesInEpoch() *big.Int {
 }
 
 // SetDevFeesInEpoch -
-func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(_ *big.Int) {
+func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(_ *big.Int) error {
 	panic("implement me")
 }
 
 // SetShardInfoHandlers -
-func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) {
+func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) error {
 	panic("implement me")
 }
 
 // SetAccumulatedFeesInEpoch -
-func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) {
+func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 	panic("implement me")
 }

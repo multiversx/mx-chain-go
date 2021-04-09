@@ -47,25 +47,25 @@ type HeaderHandler interface {
 	GetMiniBlockHeadersHashes() [][]byte
 	GetMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
 
-	SetAccumulatedFees(value *big.Int)
-	SetDeveloperFees(value *big.Int)
-	SetShardID(shId uint32)
-	SetNonce(n uint64)
-	SetEpoch(e uint32)
-	SetRound(r uint64)
-	SetTimeStamp(ts uint64)
-	SetRootHash(rHash []byte)
-	SetPrevHash(pvHash []byte)
-	SetPrevRandSeed(pvRandSeed []byte)
-	SetRandSeed(randSeed []byte)
-	SetPubKeysBitmap(pkbm []byte)
-	SetSignature(sg []byte)
-	SetLeaderSignature(sg []byte)
-	SetChainID(chainID []byte)
-	SetSoftwareVersion(version []byte)
-	SetTxCount(txCount uint32)
-	SetMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler)
-	SetReceiptsHash(hash []byte)
+	SetAccumulatedFees(value *big.Int) error
+	SetDeveloperFees(value *big.Int) error
+	SetShardID(shId uint32) error
+	SetNonce(n uint64) error
+	SetEpoch(e uint32) error
+	SetRound(r uint64) error
+	SetTimeStamp(ts uint64) error
+	SetRootHash(rHash []byte) error
+	SetPrevHash(pvHash []byte) error
+	SetPrevRandSeed(pvRandSeed []byte) error
+	SetRandSeed(randSeed []byte) error
+	SetPubKeysBitmap(pkbm []byte) error
+	SetSignature(sg []byte) error
+	SetLeaderSignature(sg []byte) error
+	SetChainID(chainID []byte) error
+	SetSoftwareVersion(version []byte) error
+	SetTxCount(txCount uint32) error
+	SetMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler) error
+	SetReceiptsHash(hash []byte) error
 
 	IsStartOfEpochBlock() bool
 	ShallowClone() HeaderHandler
@@ -77,7 +77,7 @@ type ShardHeaderHandler interface {
 	GetMetaBlockHashes() [][]byte
 	GetEpochStartMetaHash() []byte
 	GetBlockBodyTypeInt32() int32
-	SetMetaBlockHashes(hashes [][]byte)
+	SetMetaBlockHashes(hashes [][]byte) error
 }
 
 type MetaHeaderHandler interface {
@@ -86,10 +86,10 @@ type MetaHeaderHandler interface {
 	GetEpochStartHandler() EpochStartHandler
 	GetDevFeesInEpoch() *big.Int
 	GetShardInfoHandlers() []ShardDataHandler
-	SetValidatorStatsRootHash(rHash []byte)
-	SetDevFeesInEpoch(value *big.Int)
-	SetShardInfoHandlers(shardInfo []ShardDataHandler)
-	SetAccumulatedFeesInEpoch(value *big.Int)
+	SetValidatorStatsRootHash(rHash []byte) error
+	SetDevFeesInEpoch(value *big.Int) error
+	SetShardInfoHandlers(shardInfo []ShardDataHandler) error
+	SetAccumulatedFeesInEpoch(value *big.Int) error
 }
 
 // MiniBlockHeaderHandler defines setters and getters for miniBlock headers
@@ -101,12 +101,12 @@ type MiniBlockHeaderHandler interface {
 	GetTypeInt32() int32
 	GetReserved() []byte
 
-	SetHash(hash []byte)
-	SetSenderShardID(shardID uint32)
-	SetReceiverShardID(shardID uint32)
-	SetTxCount(count uint32)
-	SetType(t int32)
-	SetReserved(reserved []byte)
+	SetHash(hash []byte) error
+	SetSenderShardID(shardID uint32) error
+	SetReceiverShardID(shardID uint32) error
+	SetTxCount(count uint32) error
+	SetType(t int32) error
+	SetReserved(reserved []byte) error
 	ShallowClone() MiniBlockHeaderHandler
 }
 
@@ -115,8 +115,8 @@ type PeerChangeHandler interface {
 	GetPubKey() []byte
 	GetShardIdDest() uint32
 
-	SetPubKey(pubKey []byte)
-	SetShardIdDest(shardID uint32)
+	SetPubKey(pubKey []byte) error
+	SetShardIdDest(shardID uint32) error
 }
 
 // ShardDataHandler defines setters and getters for ShardDataHandler
@@ -136,20 +136,20 @@ type ShardDataHandler interface {
 	GetShardID() uint32
 	GetTxCount() uint32
 
-	SetHeaderHash(hash []byte)
-	SetShardMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler)
-	SetPrevRandSeed(prevRandSeed []byte)
-	SetPubKeysBitmap(pubKeysBitmap []byte)
-	SetSignature(signature []byte)
-	SetRound(round uint64)
-	SetPrevHash(prevHash []byte)
-	SetNonce(nonce uint64)
-	SetAccumulatedFees(fees *big.Int)
-	SetDeveloperFees(fees *big.Int)
-	SetNumPendingMiniBlocks(num uint32)
-	SetLastIncludedMetaNonce(nonce uint64)
-	SetShardID(shardID uint32)
-	SetTxCount(txCount uint32)
+	SetHeaderHash(hash []byte) error
+	SetShardMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler) error
+	SetPrevRandSeed(prevRandSeed []byte) error
+	SetPubKeysBitmap(pubKeysBitmap []byte) error
+	SetSignature(signature []byte) error
+	SetRound(round uint64) error
+	SetPrevHash(prevHash []byte) error
+	SetNonce(nonce uint64) error
+	SetAccumulatedFees(fees *big.Int) error
+	SetDeveloperFees(fees *big.Int) error
+	SetNumPendingMiniBlocks(num uint32) error
+	SetLastIncludedMetaNonce(nonce uint64) error
+	SetShardID(shardID uint32) error
+	SetTxCount(txCount uint32) error
 
 	ShallowClone() ShardDataHandler
 }
@@ -166,15 +166,15 @@ type EpochStartShardDataHandler interface {
 	GetLastFinishedMetaBlock() []byte
 	GetPendingMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
 
-	SetShardID(uint32)
-	SetEpoch(uint32)
-	SetRound(uint64)
-	SetNonce(uint64)
-	SetHeaderHash([]byte)
-	SetRootHash([]byte)
-	SetFirstPendingMetaBlock([]byte)
-	SetLastFinishedMetaBlock([]byte)
-	SetPendingMiniBlockHeaders([]MiniBlockHeaderHandler)
+	SetShardID(uint32) error
+	SetEpoch(uint32) error
+	SetRound(uint64) error
+	SetNonce(uint64) error
+	SetHeaderHash([]byte) error
+	SetRootHash([]byte) error
+	SetFirstPendingMetaBlock([]byte) error
+	SetLastFinishedMetaBlock([]byte) error
+	SetPendingMiniBlockHeaders([]MiniBlockHeaderHandler) error
 }
 
 // EconomicHandler defines setters and getters for Economics
@@ -188,14 +188,14 @@ type EconomicsHandler interface {
 	GetPrevEpochStartRound() uint64
 	GetPrevEpochStartHash() []byte
 
-	SetTotalSupply(totalSupply *big.Int)
-	SetTotalToDistribute(totalToDistribute *big.Int)
-	SetTotalNewlyMinted(totalNewlyMinted *big.Int)
-	SetRewardsPerBlock(rewardsPerBlock *big.Int)
-	SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int)
-	SetNodePrice(nodePrice *big.Int)
-	SetPrevEpochStartRound(prevEpochStart uint64)
-	SetPrevEpochStartHash(prevEpochStartHash []byte)
+	SetTotalSupply(totalSupply *big.Int) error
+	SetTotalToDistribute(totalToDistribute *big.Int) error
+	SetTotalNewlyMinted(totalNewlyMinted *big.Int) error
+	SetRewardsPerBlock(rewardsPerBlock *big.Int) error
+	SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int) error
+	SetNodePrice(nodePrice *big.Int) error
+	SetPrevEpochStartRound(prevEpochStart uint64) error
+	SetPrevEpochStartHash(prevEpochStartHash []byte) error
 }
 
 // EpochStartHandler defines setters and getters for EpochStart
@@ -203,8 +203,8 @@ type EpochStartHandler interface {
 	GetLastFinalizedHeaderHandlers() []EpochStartShardDataHandler
 	GetEconomicsHandler() EconomicsHandler
 
-	SetLastFinalizedHeaders(epochStartDataHandlers []EpochStartShardDataHandler)
-	SetEconomics(economicsHandler EconomicsHandler)
+	SetLastFinalizedHeaders(epochStartDataHandlers []EpochStartShardDataHandler) error
+	SetEconomics(economicsHandler EconomicsHandler) error
 }
 
 // BodyHandler interface for a block body

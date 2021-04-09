@@ -285,18 +285,40 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	round := uint64(sr.RoundHandler().Index())
 	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
-	hdr.SetPrevHash(prevHash)
+	err := hdr.SetPrevHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
-	hdr.SetPrevRandSeed(prevRandSeed)
-	hdr.SetRandSeed(randSeed)
-	hdr.SetChainID(sr.ChainID())
+	err = hdr.SetShardID(sr.ShardCoordinator().SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevRandSeed(prevRandSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetRandSeed(randSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetChainID(sr.ChainID())
+	if err != nil {
+		return nil, err
+	}
 
 	return hdr, nil
 }

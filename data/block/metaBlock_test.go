@@ -143,8 +143,9 @@ func TestMetaBlock_SetEpoch(t *testing.T) {
 
 	epoch := uint32(10)
 	m := block.MetaBlock{}
-	m.SetEpoch(epoch)
+	err := m.SetEpoch(epoch)
 
+	assert.Nil(t, err)
 	assert.Equal(t, epoch, m.GetEpoch())
 }
 
@@ -153,8 +154,9 @@ func TestMetaBlock_SetNonce(t *testing.T) {
 
 	nonce := uint64(11)
 	m := block.MetaBlock{}
-	m.SetNonce(nonce)
+	err := m.SetNonce(nonce)
 
+	assert.Nil(t, err)
 	assert.Equal(t, nonce, m.GetNonce())
 }
 
@@ -163,8 +165,9 @@ func TestMetaBlock_SetPrevHash(t *testing.T) {
 
 	prevHash := []byte("prev hash")
 	m := block.MetaBlock{}
-	m.SetPrevHash(prevHash)
+	err := m.SetPrevHash(prevHash)
 
+	assert.Nil(t, err)
 	assert.Equal(t, prevHash, m.GetPrevHash())
 }
 
@@ -173,8 +176,9 @@ func TestMetaBlock_SetPubKeysBitmap(t *testing.T) {
 
 	pubKeysBitmap := []byte{12, 13, 14, 15}
 	m := block.MetaBlock{}
-	m.SetPubKeysBitmap(pubKeysBitmap)
+	err := m.SetPubKeysBitmap(pubKeysBitmap)
 
+	assert.Nil(t, err)
 	assert.Equal(t, pubKeysBitmap, m.GetPubKeysBitmap())
 }
 
@@ -183,8 +187,9 @@ func TestMetaBlock_SetPrevRandSeed(t *testing.T) {
 
 	prevRandSeed := []byte("previous random seed")
 	m := block.MetaBlock{}
-	m.SetPrevRandSeed(prevRandSeed)
+	err := m.SetPrevRandSeed(prevRandSeed)
 
+	assert.Nil(t, err)
 	assert.Equal(t, prevRandSeed, m.GetPrevRandSeed())
 }
 
@@ -193,8 +198,9 @@ func TestMetaBlock_SetRandSeed(t *testing.T) {
 
 	randSeed := []byte("random seed")
 	m := block.MetaBlock{}
-	m.SetRandSeed(randSeed)
+	err := m.SetRandSeed(randSeed)
 
+	assert.Nil(t, err)
 	assert.Equal(t, randSeed, m.GetRandSeed())
 }
 
@@ -203,8 +209,9 @@ func TestMetaBlock_SetRootHash(t *testing.T) {
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{}
-	m.SetRootHash(rootHash)
+	err := m.SetRootHash(rootHash)
 
+	assert.Nil(t, err)
 	assert.Equal(t, rootHash, m.GetRootHash())
 }
 
@@ -213,8 +220,9 @@ func TestMetaBlock_SetRound(t *testing.T) {
 
 	rootHash := []byte("root hash")
 	m := block.MetaBlock{}
-	m.SetRootHash(rootHash)
+	err := m.SetRootHash(rootHash)
 
+	assert.Nil(t, err)
 	assert.Equal(t, rootHash, m.GetRootHash())
 }
 
@@ -223,8 +231,9 @@ func TestMetaBlock_SetSignature(t *testing.T) {
 
 	signature := []byte("signature")
 	m := block.MetaBlock{}
-	m.SetSignature(signature)
+	err := m.SetSignature(signature)
 
+	assert.Nil(t, err)
 	assert.Equal(t, signature, m.GetSignature())
 }
 
@@ -233,8 +242,9 @@ func TestMetaBlock_SetTimeStamp(t *testing.T) {
 
 	timestamp := uint64(100000)
 	m := block.MetaBlock{}
-	m.SetTimeStamp(timestamp)
+	err := m.SetTimeStamp(timestamp)
 
+	assert.Nil(t, err)
 	assert.Equal(t, timestamp, m.GetTimeStamp())
 }
 
@@ -243,8 +253,9 @@ func TestMetaBlock_SetTxCount(t *testing.T) {
 
 	txCount := uint32(100)
 	m := block.MetaBlock{}
-	m.SetTxCount(txCount)
+	err := m.SetTxCount(txCount)
 
+	assert.Nil(t, err)
 	assert.Equal(t, txCount, m.GetTxCount())
 }
 

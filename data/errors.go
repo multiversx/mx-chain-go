@@ -60,3 +60,12 @@ var ErrNilRcvAddr = errors.New("nil receiver address")
 
 // ErrNilSndAddr signals that an operation has been attempted to or with a nil sender address
 var ErrNilSndAddr = errors.New("nil sender address")
+
+// ErrNilPointerReceiver signals that a nil pointer receiver was used
+var ErrNilPointerReceiver = errors.New("nil pointer receiver")
+
+// ErrNilPointerDereference signals that a nil pointer dereference was detected and avoided
+var ErrNilPointerDereference = errors.New("nil pointer dereference")
+
+// ErrInvalidTypeAssertion signals an invalid type assertion
+var ErrInvalidTypeAssertion = errors.New("invalid type assertion")

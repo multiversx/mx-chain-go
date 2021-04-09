@@ -1,67 +1,87 @@
 package block
 
-import "math/big"
+import (
+	"math/big"
 
-// SetTotalSupply -
-func (m *Economics) SetTotalSupply(totalSupply *big.Int) {
-	if m != nil {
-		return
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
+// SetTotalSupply sets the total supply
+func (e *Economics) SetTotalSupply(totalSupply *big.Int) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.TotalSupply = totalSupply
+
+	e.TotalSupply = totalSupply
+	return nil
 }
 
-// SetTotalToDistribute -
-func (m *Economics) SetTotalToDistribute(totalToDistribute *big.Int) {
-	if m != nil {
-		return
+// SetTotalToDistribute sets the total to be distributed
+func (e *Economics) SetTotalToDistribute(totalToDistribute *big.Int) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.TotalToDistribute = totalToDistribute
+
+	e.TotalToDistribute = totalToDistribute
+	return nil
 }
 
-// SetTotalNewlyMinted -
-func (m *Economics) SetTotalNewlyMinted(totalNewlyMinted *big.Int) {
-	if m != nil {
-		return
+// SetTotalNewlyMinted sets the total number of minted tokens
+func (e *Economics) SetTotalNewlyMinted(totalNewlyMinted *big.Int) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.TotalNewlyMinted = totalNewlyMinted
+
+	e.TotalNewlyMinted = totalNewlyMinted
+	return nil
 }
 
-// SetRewardsPerBlock -
-func (m *Economics) SetRewardsPerBlock(rewardsPerBlock *big.Int) {
-	if m != nil {
-		return
+// SetRewardsPerBlock sets the rewards per block
+func (e *Economics) SetRewardsPerBlock(rewardsPerBlock *big.Int) error {
+	if e == nil {
+		 return data.ErrNilPointerReceiver
 	}
-	m.RewardsPerBlock = rewardsPerBlock
+
+	e.RewardsPerBlock = rewardsPerBlock
+	return nil
 }
 
-// SetRewardsForProtocolSustainability -
-func (m *Economics) SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int) {
-	if m != nil {
-		return
+// SetRewardsForProtocolSustainability sets the rewards for protocol sustainability
+func (e *Economics) SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.RewardsForProtocolSustainability = rewardsForProtocolSustainability
+
+	e.RewardsForProtocolSustainability = rewardsForProtocolSustainability
+	return nil
 }
 
-// SetNodePrice -
-func (m *Economics) SetNodePrice(nodePrice *big.Int) {
-	if m != nil {
-		return
+// SetNodePrice sets the node price
+func (e *Economics) SetNodePrice(nodePrice *big.Int) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.NodePrice = nodePrice
+
+	e.NodePrice = nodePrice
+	return nil
 }
 
-// SetPrevEpochStartRound -
-func (m *Economics) SetPrevEpochStartRound(prevEpochStartRound uint64) {
-	if m != nil {
-		return
+// SetPrevEpochStartRound sets the previous epoch start round
+func (e *Economics) SetPrevEpochStartRound(prevEpochStartRound uint64) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.PrevEpochStartRound = prevEpochStartRound
+
+	e.PrevEpochStartRound = prevEpochStartRound
+	return nil
 }
 
-// SetPrevEpochStartHash -
-func (m *Economics) SetPrevEpochStartHash(prevEpochStartHash []byte) {
-	if m != nil {
-		return
+// SetPrevEpochStartHash sets the previous epoch start hash
+func (e *Economics) SetPrevEpochStartHash(prevEpochStartHash []byte) error {
+	if e == nil {
+		return data.ErrNilPointerReceiver
 	}
-	m.PrevEpochStartHash = prevEpochStartHash
+
+	e.PrevEpochStartHash = prevEpochStartHash
+	return nil
 }

@@ -107,7 +107,11 @@ func CreateMetaGenesisBlock(
 	if err != nil {
 		return nil, nil, err
 	}
-	header.SetValidatorStatsRootHash(validatorRootHash)
+
+	err = header.SetValidatorStatsRootHash(validatorRootHash)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), header)
 	if err != nil {
@@ -141,7 +145,11 @@ func createMetaGenesisBlockAfterHardFork(
 	if err != nil {
 		return nil, nil, err
 	}
-	hdrHandler.SetTimeStamp(arg.GenesisTime)
+
+	err = hdrHandler.SetTimeStamp(arg.GenesisTime)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
