@@ -21,7 +21,12 @@ type builtInFunctionsCost struct {
 
 // NewBuiltInFunctionsCost will create a new instance of builtInFunctionsCost
 func NewBuiltInFunctionsCost(args *ArgsBuiltInFunctionCost) (*builtInFunctionsCost, error) {
-	var err error
+	if args == nil {
+		return nil, process.ErrNilArgsBuiltInFunctionsConstHandler
+	}
+	if check.IfNil(args.ArgsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
 	if check.IfNil(args.GasSchedule) {
 		return nil, process.ErrNilGasSchedule
 	}
@@ -32,6 +37,7 @@ func NewBuiltInFunctionsCost(args *ArgsBuiltInFunctionCost) (*builtInFunctionsCo
 
 	bs.initSpecialBuiltInFunctionCostMap()
 
+	var err error
 	bs.gasConfig, err = createGasConfig(args.GasSchedule.LatestGasSchedule())
 	if err != nil {
 		return nil, err
