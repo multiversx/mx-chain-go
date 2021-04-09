@@ -66,8 +66,6 @@ type ComponentsNeededForBootstrap struct {
 	NodesConfig         *sharding.NodesCoordinatorRegistry
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
-	UserAccountTries    map[string]data.Trie
-	PeerAccountTries    map[string]data.Trie
 	PendingMiniBlocks   map[string]*block.MiniBlock
 }
 
@@ -108,6 +106,7 @@ type epochStartBootstrap struct {
 	epochNotifier              process.EpochNotifier
 	numConcurrentTrieSyncers   int
 	maxHardCapForMissingNodes  int
+	trieSyncerVersion          int
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -128,8 +127,6 @@ type epochStartBootstrap struct {
 	prevEpochStartMeta *block.MetaBlock
 	syncedHeaders      map[string]data.HeaderHandler
 	nodesConfig        *sharding.NodesCoordinatorRegistry
-	userAccountTries   map[string]data.Trie
-	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	startRound         int64
 	nodeType           core.NodeType
@@ -225,6 +222,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochNotifier:              args.EpochNotifier,
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -640,6 +638,9 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		}
 	}
 
+	log.Debug("removing cached received trie nodes")
+	e.dataPool.TrieNodes().Clear()
+
 	parameters := Parameters{
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.baseData.shardId,
@@ -699,7 +700,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
+	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
@@ -712,8 +713,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -812,8 +811,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
@@ -854,6 +851,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 		ShardId:   e.shardCoordinator.SelfId(),
 		Throttler: thr,
@@ -868,7 +866,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.userAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 
@@ -927,6 +924,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Cacher:                    e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -939,7 +937,6 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.peerAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 
