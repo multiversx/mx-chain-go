@@ -328,12 +328,12 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
-	nodesToStakeFromWaiting := uint32(len(nodesToUnStake))
+	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
 	if s.flagCorrectLastUnjailedEnabled.IsSet() {
-		nodesToStakeFromWaiting -= nodesUnStakedFromAdditionalQueue
+		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
-	return nodesToStakeFromWaiting, nil
+	return nodesToStakeFromQueue, nil
 }
 
 func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
