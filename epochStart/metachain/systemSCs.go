@@ -303,6 +303,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
+	nodesUnStakedFromAdditionalQueue := uint32(0)
+
 	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
 	for _, blsKey := range nodesToUnStake {
 		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
@@ -313,6 +315,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
+			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
 		}
@@ -325,7 +328,12 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
-	return uint32(len(nodesToUnStake)), nil
+	nodesToStakeFromWaiting := uint32(len(nodesToUnStake))
+	if s.flagCorrectLastUnjailedEnabled.IsSet() {
+		nodesToStakeFromWaiting -= nodesUnStakedFromAdditionalQueue
+	}
+
+	return nodesToStakeFromWaiting, nil
 }
 
 func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
