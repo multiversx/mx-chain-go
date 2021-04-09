@@ -20,7 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -276,11 +278,19 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
@@ -397,11 +407,19 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
 	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
@@ -2747,26 +2765,28 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 	require.NoError(t, err)
 }
 
-
 func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
-			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}),
-		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
-		node.WithBlockChain(&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{}
-			},
-		}),
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
 	)
 
 	res, err := n.GetKeyValuePairs("addr")
@@ -2777,21 +2797,24 @@ func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 	t.Parallel()
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
-			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return nil, nil
-			},
-		}),
-		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
-		node.WithBlockChain(&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return nil
-			},
-		}),
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
 	)
 
 	res, err := n.GetKeyValuePairs("addr")
@@ -2803,25 +2826,31 @@ func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("local err")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return expectedErr
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
-			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return nil, nil
-			},
-		}),
-		node.WithAccountsAdapterAPI(&mock.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				return expectedErr
-			},
-		}),
-		node.WithBlockChain(&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{}
-			},
-		}),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
 	)
 
 	res, err := n.GetKeyValuePairs("addr")

@@ -62,15 +62,15 @@ type Node struct {
 
 	networkShardingCollector NetworkShardingCollector
 
-	consensusType  string
+	consensusType string
 
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	txSentCounter  uint32
-	txAcumulator   core.Accumulator
+	txSentCounter uint32
+	txAcumulator  core.Accumulator
 
 	addressSignatureSize    int
 	addressSignatureHexSize int
@@ -336,22 +336,29 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 }
 
 func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
-	addr, err := n.addressPubkeyConverter.Decode(address)
+	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
+		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
+		check.IfNil(n.dataComponents.Blockchain())
+	if componentsNotInitialized {
+		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first")
+	}
+
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 
-	blockHeader := n.blkc.GetCurrentBlockHeader()
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
 		return nil, nil
 	}
 
-	err = n.accountsAPI.RecreateTrie(blockHeader.GetRootHash())
+	err = n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
 	if err != nil {
 		return nil, err
 	}
 
-	return n.accountsAPI.GetExistingAccount(addr)
+	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
@@ -966,7 +973,7 @@ func (n *Node) Close() error {
 	return closeError
 }
 
-// Returns true if the node is in import mode
+// IsInImportMode returns true if the node is in import mode
 func (n *Node) IsInImportMode() bool {
 	return n.isInImportMode
 }
