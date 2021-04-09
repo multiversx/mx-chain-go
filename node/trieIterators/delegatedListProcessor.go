@@ -108,7 +108,7 @@ func (dlp *delegatedListProcessor) getDelegatorsInfo(delegationSC []byte, delega
 		delegatorInfo.Total = delegatorInfo.TotalAsBigInt.String()
 		delegatorInfo.DelegatedTo = append(delegatorInfo.DelegatedTo, &api.DelegatedValue{
 			DelegationScAddress: dlp.publicKeyConverter.Encode(delegationSC),
-			Value:               big.NewInt(0).Set(value).String(),
+			Value:               value.String(),
 		})
 	}
 
