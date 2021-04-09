@@ -1017,31 +1017,8 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	_, err = nodes[0].AccntState.GetExistingAccount(firstScAddress)
 	require.Nil(t, err)
 
-	txData := txDataBuilder.NewBuilder()
-
-	// call first sc with esdt, and first sc automatically calls second sc which returns error
-	valueToSendToSc := int64(1000)
-	txData.Clear().TransferESDT(tokenIdentifier, valueToSendToSc)
-	txData.Str("transfer_to_second_contract_rejected")
-	integrationTests.CreateAndSendTransaction(
-		tokenIssuer,
-		nodes,
-		big.NewInt(0),
-		firstScAddress,
-		txData.ToString(),
-		integrationTests.AdditionalGasLimit)
-
-	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
-
-	esdtData := getESDTTokenData(t, firstScAddress, nodes, tokenIdentifier)
-	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToSendToSc)}, esdtData)
-
-	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdentifier)
-	require.Equal(t, &esdt.ESDigitalToken{}, esdtData)
+	nonce, round = transferRejectedBySecondContract(t, nonce, round, nodes, tokenIssuer, idxProposers, initialSupply, tokenIdentifier, firstScAddress, secondScAddress, "transferToSecondContractRejected", 2)
+	_, _ = transferRejectedBySecondContract(t, nonce, round, nodes, tokenIssuer, idxProposers, initialSupply, tokenIdentifier, firstScAddress, secondScAddress, "transferToSecondContractRejectedWithTransferAndExecute", 2)
 }
 
 func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
@@ -1529,16 +1506,38 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	_, err = nodes[2].AccntState.GetExistingAccount(firstScAddress)
 	require.Nil(t, err)
 
-	txData := txDataBuilder.NewBuilder()
+	nonce, round = transferRejectedBySecondContract(t, nonce, round, nodes, tokenIssuer, idxProposers, initialSupply, tokenIdentifier, firstScAddress, secondScAddress, "transferToSecondContractRejected", 20)
+	_, _ = transferRejectedBySecondContract(t, nonce, round, nodes, tokenIssuer, idxProposers, initialSupply, tokenIdentifier, firstScAddress, secondScAddress, "transferToSecondContractRejectedWithTransferAndExecute", 20)
+}
 
+func transferRejectedBySecondContract(
+	t *testing.T,
+	nonce, round uint64,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenIssuer *integrationTests.TestProcessorNode,
+	idxProposers []int,
+	initialSupply int64,
+	tokenIdentifier string,
+	firstScAddress []byte,
+	secondScAddress []byte,
+	functionToCall string,
+	nrRoundToPropagate int,
+) (uint64, uint64) {
 	// call first sc with esdt, and first sc automatically calls second sc which returns error
 	valueToSendToSc := int64(1000)
+	txData := txDataBuilder.NewBuilder()
 	txData.Clear().TransferESDT(tokenIdentifier, valueToSendToSc)
-	txData.Str("transfer_to_second_contract_rejected")
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData.ToString(), integrationTests.AdditionalGasLimit)
+	txData.Str(functionToCall)
+	integrationTests.CreateAndSendTransaction(
+		tokenIssuer,
+		nodes,
+		big.NewInt(0),
+		firstScAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard*2, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundToPropagate, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-valueToSendToSc)
@@ -1548,6 +1547,8 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 
 	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdentifier)
 	require.Equal(t, &esdt.ESDigitalToken{}, esdtData)
+
+	return nonce, round
 }
 
 func TestESDTMultiTransferFromSC(t *testing.T) {

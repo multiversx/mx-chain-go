@@ -111,13 +111,13 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	tx.Data = []byte(string(tx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractRejected")))
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(5000))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(0))
 
 	expectedSenderBalance := big.NewInt(95000000)
