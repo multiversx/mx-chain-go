@@ -264,6 +264,7 @@ func GetGeneralConfig() config.Config {
 		TrieSync: config.TrieSyncConfig{
 			NumConcurrentTrieSyncers:  50,
 			MaxHardCapForMissingNodes: 500,
+			TrieSyncerVersion:         2,
 		},
 	}
 }
