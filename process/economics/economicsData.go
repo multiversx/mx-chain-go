@@ -60,7 +60,7 @@ type ArgsNewEconomicsData struct {
 
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
-	if args.BuiltInFunctionsCostHandler == nil {
+	if check.IfNil(args.BuiltInFunctionsCostHandler) {
 		return nil, process.ErrNilBuiltInFunctionsCostHandler
 	}
 
@@ -414,7 +414,7 @@ func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 // ComputeGasUsedAndFeeBasedOnRefundValue will compute gas used value and transaction fee using refund value from a SCR
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
-		if ed.builtInFunctionsCostHandler.IsSpecialBuiltIn(tx) {
+		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
 			cost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
 			gasLimit := ed.ComputeGasLimit(tx)
 

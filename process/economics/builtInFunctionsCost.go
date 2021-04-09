@@ -123,8 +123,8 @@ func calculateLenOfArguments(arguments [][]byte) uint64 {
 	return totalLen
 }
 
-// IsSpecialBuiltIn will check is the provided transaction is a special build in function call
-func (bc *builtInFunctionsCost) IsSpecialBuiltIn(tx process.TransactionWithFeeHandler) bool {
+// IsBuiltInFuncCall will check is the provided transaction is a build in function call
+func (bc *builtInFunctionsCost) IsBuiltInFuncCall(tx process.TransactionWithFeeHandler) bool {
 	function, arguments, err := bc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return false

@@ -13,7 +13,12 @@ func (b BuiltInCostHandlerStub) ComputeBuiltInCost(_ process.TransactionWithFeeH
 	return 1
 }
 
-// IsSpecialBuiltIn -
-func (b BuiltInCostHandlerStub) IsSpecialBuiltIn(_ process.TransactionWithFeeHandler) bool {
+// IsBuiltInFuncCall -
+func (b BuiltInCostHandlerStub) IsBuiltInFuncCall(_ process.TransactionWithFeeHandler) bool {
 	return false
+}
+
+// IsInterfaceNil -
+func (b *BuiltInCostHandlerStub) IsInterfaceNil() bool {
+	return b == nil
 }
