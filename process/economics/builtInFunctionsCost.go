@@ -61,7 +61,6 @@ func (bc *builtInFunctionsCost) initSpecialBuiltInFunctionCostMap() {
 		core.ESDTRoleNFTAddQuantity:               {},
 		core.BuiltInFunctionESDTNFTBurn:           {},
 		core.BuiltInFunctionESDTNFTCreate:         {},
-		core.BuiltInFunctionESDTNFTTransfer:       {},
 	}
 }
 
@@ -81,7 +80,6 @@ func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx process.TransactionWithFee
 	if err != nil {
 		return 0
 	}
-	costStorage := calculateLenOfArguments(arguments) * bc.gasConfig.BaseOperationCost.StorePerByte
 
 	switch function {
 	case core.BuiltInFunctionClaimDeveloperRewards:
@@ -105,10 +103,8 @@ func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx process.TransactionWithFee
 	case core.BuiltInFunctionESDTNFTBurn:
 		return bc.gasConfig.BuiltInCost.ESDTNFTBurn
 	case core.BuiltInFunctionESDTNFTCreate:
+		costStorage := calculateLenOfArguments(arguments) * bc.gasConfig.BaseOperationCost.StorePerByte
 		return bc.gasConfig.BuiltInCost.ESDTNFTCreate + costStorage
-	case core.BuiltInFunctionESDTNFTTransfer:
-		// TODO not done here
-		return bc.gasConfig.BuiltInCost.ESDTNFTTransfer + costStorage
 	default:
 		return 0
 	}
