@@ -21,6 +21,8 @@ type TrieStub struct {
 	ResetOldHashesCalled        func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled           func() data.NumNodesDTO
 	GetAllHashesCalled          func() ([][]byte, error)
 	ClosePersisterCalled        func() error
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
@@ -163,6 +165,24 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
 	}
 	return nil, 0, nil
+}
+
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
+	}
+
+	return make([]byte, 0), nil
+}
+
+// GetNumNodes -
+func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+	if ts.GetNumNodesCalled != nil {
+		return ts.GetNumNodesCalled()
+	}
+
+	return data.NumNodesDTO{}
 }
 
 // GetDirtyHashes -

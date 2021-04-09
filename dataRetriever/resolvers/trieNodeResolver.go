@@ -12,7 +12,7 @@ import (
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
+var maxBuffToSendTrieNodes = 1 << 18 //256KB
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
@@ -94,33 +94,87 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	}
 	hashes := b.Data
 
+	nodes := make(map[string]struct{})
+	spaceUsed, usedAllSpace := tnRes.resolveOnlyRequestedHashes(hashes, nodes)
+	if usedAllSpace {
+		return tnRes.sendResponse(convertMapToSlice(nodes), message)
+	}
+
+	tnRes.resolveSubTries(hashes, nodes, spaceUsed)
+
+	return tnRes.sendResponse(convertMapToSlice(nodes), message)
+}
+
+func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
+	spaceUsed := 0
+	usedAllSpace := false
 	remainingSpace := maxBuffToSendTrieNodes
-	nodes := make([][]byte, 0, maxBuffToSendTrieNodes)
-	var nextNodes [][]byte
 	for _, hash := range hashes {
-		nextNodes, remainingSpace, err = tnRes.getSubTrie(hash, remainingSpace)
+		serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 		if err != nil {
 			continue
 		}
 
-		nodes = append(nodes, nextNodes...)
-
-		lenNextNodes := uint64(len(nextNodes))
-		if lenNextNodes == 0 || remainingSpace == 0 {
+		if remainingSpace-len(serializedNode) < 0 {
+			usedAllSpace = true
 			break
 		}
+
+		spaceUsed += len(serializedNode)
+		nodes[string(serializedNode)] = struct{}{}
+		remainingSpace -= len(serializedNode)
 	}
 
-	return tnRes.sendResponse(nodes, message)
+	usedAllSpace = usedAllSpace || remainingSpace == 0
+	return spaceUsed, usedAllSpace
+}
+
+func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
+	var serialiazedNodes [][]byte
+	var err error
+	var serializedNode []byte
+	for _, hash := range hashes {
+		remainingForSubtries := maxBuffToSendTrieNodes - spaceUsedAlready
+		if remainingForSubtries < 0 {
+			return
+		}
+
+		serialiazedNodes, _, err = tnRes.getSubTrie(hash, uint64(remainingForSubtries))
+		if err != nil {
+			continue
+		}
+
+		for _, serializedNode = range serialiazedNodes {
+			_, exists := nodes[string(serializedNode)]
+			if exists {
+				continue
+			}
+
+			if remainingForSubtries-len(serializedNode) < 0 {
+				return
+			}
+			spaceUsedAlready += len(serializedNode)
+			nodes[string(serializedNode)] = struct{}{}
+		}
+	}
+}
+
+func convertMapToSlice(m map[string]struct{}) [][]byte {
+	buff := make([][]byte, 0, len(m))
+	for data := range m {
+		buff = append(buff, []byte(data))
+	}
+
+	return buff
 }
 
 func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, message p2p.MessageP2P) error {
-	nodes, _, err := tnRes.getSubTrie(hash, maxBuffToSendTrieNodes)
+	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 	if err != nil {
 		return err
 	}
 
-	return tnRes.sendResponse(nodes, message)
+	return tnRes.sendResponse([][]byte{serializedNode}, message)
 }
 
 func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
@@ -141,6 +195,11 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 }
 
 func (tnRes *TrieNodeResolver) sendResponse(serializedNodes [][]byte, message p2p.MessageP2P) error {
+	if len(serializedNodes) == 0 {
+		//do not send useless message
+		return nil
+	}
+
 	buff, err := tnRes.marshalizer.Marshal(&batch.Batch{Data: serializedNodes})
 	if err != nil {
 		return err
