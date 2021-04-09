@@ -265,12 +265,26 @@ func checkFrozeAndPause(
 	return nil
 }
 
+func arePropertiesEmpty(properties []byte) bool {
+	for _, property := range properties {
+		if property != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func saveESDTData(
 	userAcnt state.UserAccountHandler,
 	esdtData *esdt.ESDigitalToken,
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) error {
+	isValueZero := esdtData.Value.Cmp(zero) == 0
+	if isValueZero && arePropertiesEmpty(esdtData.Properties) {
+		return userAcnt.DataTrieTracker().SaveKeyValue(key, nil)
+	}
+
 	marshaledData, err := marshalizer.Marshal(esdtData)
 	if err != nil {
 		return err

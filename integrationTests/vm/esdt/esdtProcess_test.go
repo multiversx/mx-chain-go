@@ -1041,7 +1041,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToSendToSc)}, esdtData)
 
 	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdentifier)
-	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
+	require.Equal(t, &esdt.ESDigitalToken{}, esdtData)
 }
 
 func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
@@ -1093,7 +1093,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 12
+	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -1212,7 +1212,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	// no tokens in caller contract
 	esdtData = getESDTTokenData(t, callerScAddress, nodes, tokenIdentifier)
-	require.EqualValues(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
+	require.EqualValues(t, &esdt.ESDigitalToken{}, esdtData)
 }
 
 func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testing.T) {
