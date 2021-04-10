@@ -84,7 +84,7 @@ var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
 var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
 
 // ErrNilEndOfEpochSmartContractAddress signals that the end of epoch smart contract address is nil
-var ErrNilEndOfEpochSmartContractAddress = errors.New("nil end of epoch contract address")
+var ErrNilEndOfEpochSmartContractAddress = errors.New("nil end of epoch smart contract address")
 
 // ErrNilArgumentsParser signals that arguments parses is nil
 var ErrNilArgumentsParser = errors.New("nil arguments parser")

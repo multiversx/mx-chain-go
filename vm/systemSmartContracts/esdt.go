@@ -769,8 +769,8 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 }
 
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	icCorrectCaller := bytes.Equal(args.CallerAddr, e.ownerAddress) || bytes.Equal(args.CallerAddr, e.endOfEpochSCAddress)
-	if !icCorrectCaller {
+	isCorrectCaller := bytes.Equal(args.CallerAddr, e.ownerAddress) || bytes.Equal(args.CallerAddr, e.endOfEpochSCAddress)
+	if !isCorrectCaller {
 		e.eei.AddReturnMessage("configChange can be called by whitelisted address only")
 		return vmcommon.UserError
 	}
