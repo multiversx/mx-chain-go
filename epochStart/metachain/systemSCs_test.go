@@ -883,7 +883,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				return 63
 			},
 		},
-		ShardCoordinator: shardCoordinator,
+		ShardCoordinator:      shardCoordinator,
+		ESDTOwnerAddressBytes: bytes.Repeat([]byte{1}, 32),
+		ESDTEnableEpoch:       1000000,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -1136,6 +1138,30 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+}
+
+func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.ESDTEnableEpoch = 1
+	args.SwitchJailWaitingEnableEpoch = 1000000
+	args.EpochNotifier.CheckEpoch(1)
+	s, _ := NewSystemSCProcessor(args)
+
+	contractConfig, err := s.extractConfigFromESDTContract()
+	require.Nil(t, err)
+	require.Equal(t, 4, len(contractConfig))
+	require.Equal(t, []byte("aaaaaa"), contractConfig[0])
+
+	err = s.ProcessSystemSmartContract(nil, 1, 1)
+
+	require.Nil(t, err)
+
+	contractConfig, err = s.extractConfigFromESDTContract()
+	require.Nil(t, err)
+	require.Equal(t, 4, len(contractConfig))
+	require.Equal(t, args.ESDTOwnerAddressBytes, contractConfig[0])
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t *testing.T) {
