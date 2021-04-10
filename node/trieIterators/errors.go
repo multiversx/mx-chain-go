@@ -1,4 +1,4 @@
-package stakeValuesProcessor
+package trieIterators
 
 import "errors"
 
@@ -16,3 +16,9 @@ var ErrNilBlockChain = errors.New("nil block chain")
 
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
+
+// ErrNodeNotInitialized signals that the node is not initialized and can not compute the required task yet
+var ErrNodeNotInitialized = errors.New("the node is not fully initialized")
+
+// ErrNilMutex signals that a nil mutex has been provided
+var ErrNilMutex = errors.New("nil mutex")
