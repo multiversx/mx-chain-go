@@ -80,6 +80,7 @@ type systemSCProcessor struct {
 	flagChangeMaxNodesEnabled      atomic.Flag
 	flagStakingV2Enabled           atomic.Flag
 	flagCorrectLastUnjailedEnabled atomic.Flag
+	flagCorrectNumNodesToStake     atomic.Flag
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
 }
@@ -329,7 +330,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	if s.flagCorrectLastUnjailedEnabled.IsSet() {
+	if s.flagCorrectNumNodesToStake.IsSet() {
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
@@ -1295,4 +1296,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	s.flagCorrectLastUnjailedEnabled.Toggle(epoch == s.correctLastUnJailEpoch)
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
+
+	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
+	log.Debug("systemSCProcessor: correct num nodes to stake", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 }
