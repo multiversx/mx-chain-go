@@ -1149,19 +1149,23 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	args.EpochNotifier.CheckEpoch(1)
 	s, _ := NewSystemSCProcessor(args)
 
-	contractConfig, err := s.extractConfigFromESDTContract()
+	initialContractConfig, err := s.extractConfigFromESDTContract()
 	require.Nil(t, err)
-	require.Equal(t, 4, len(contractConfig))
-	require.Equal(t, []byte("aaaaaa"), contractConfig[0])
+	require.Equal(t, 4, len(initialContractConfig))
+	require.Equal(t, []byte("aaaaaa"), initialContractConfig[0])
 
 	err = s.ProcessSystemSmartContract(nil, 1, 1)
 
 	require.Nil(t, err)
 
-	contractConfig, err = s.extractConfigFromESDTContract()
+	updatedContractConfig, err := s.extractConfigFromESDTContract()
 	require.Nil(t, err)
-	require.Equal(t, 4, len(contractConfig))
-	require.Equal(t, args.ESDTOwnerAddressBytes, contractConfig[0])
+	require.Equal(t, 4, len(updatedContractConfig))
+	require.Equal(t, args.ESDTOwnerAddressBytes, updatedContractConfig[0])
+	//the other config values should be unchanged
+	for i := 1; i < len(initialContractConfig); i++ {
+		assert.Equal(t, initialContractConfig[i], updatedContractConfig[i])
+	}
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t *testing.T) {
