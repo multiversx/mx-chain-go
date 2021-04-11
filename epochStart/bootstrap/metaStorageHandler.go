@@ -150,11 +150,6 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = msh.commitTries(components)
-	if err != nil {
-		return err
-	}
-
 	log.Debug("saved bootstrap data to storage", "round", roundToUseAsKey)
 	return nil
 }

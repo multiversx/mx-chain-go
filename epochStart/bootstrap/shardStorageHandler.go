@@ -144,11 +144,6 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	err = ssh.commitTries(components)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

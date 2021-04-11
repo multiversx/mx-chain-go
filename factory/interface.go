@@ -257,6 +257,7 @@ type StateComponentsHandler interface {
 type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
+	AccountsAdapterAPI() state.AccountsAdapter
 	TriesContainer() state.TriesHolder
 	TrieStorageManagers() map[string]data.StorageManager
 	IsInterfaceNil() bool

@@ -336,9 +336,9 @@
 
 [TrieNodesDataPool]
     Name = "TrieNodesDataPool"
-    Capacity = 900000
+    Capacity = 300000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 104857600 #100MB
 
 [SmartContractDataPool]
     Name = "SmartContractDataPool"
@@ -745,5 +745,7 @@
     LogFileLifeSpanInSec = 86400
 
 [TrieSync]
-    NumConcurrentTrieSyncers  = 2000
-    MaxHardCapForMissingNodes = 500
+    NumConcurrentTrieSyncers  = 200
+    MaxHardCapForMissingNodes = 5000
+    #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
+    TrieSyncerVersion         = 2
