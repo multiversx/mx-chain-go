@@ -1,7 +1,6 @@
 package systemSmartContracts
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -33,6 +32,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		Hasher:                 &mock.HasherMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
+		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 	}
 }
 
@@ -2514,7 +2514,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	assert.Equal(t, vmInput.CallerAddr, eei.output[2])
 }
 
-func TestEsdt_ExecuteConfigChange(t *testing.T) {
+func TestEsdt_ExecuteConfigChangeGetContractCongig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -2533,19 +2533,34 @@ func TestEsdt_ExecuteConfigChange(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
+	newBaseIssingCost := big.NewInt(100)
+	newMinTokenNameLength := int64(5)
+	newMaxTokenNameLength := int64(20)
 	newOwner := vmInput.RecipientAddr
 	vmInput = getDefaultVmInputForFunc("configChange",
-		[][]byte{newOwner, big.NewInt(100).Bytes(), big.NewInt(5).Bytes(), big.NewInt(20).Bytes()})
+		[][]byte{newOwner, newBaseIssingCost.Bytes(), big.NewInt(newMinTokenNameLength).Bytes(),
+			big.NewInt(newMaxTokenNameLength).Bytes()})
 	vmInput.CallerAddr = e.ownerAddress
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
 	esdtData := &ESDTConfig{}
 	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage([]byte(configKeyPrefix)))
-	assert.True(t, esdtData.BaseIssuingCost.Cmp(big.NewInt(100)) == 0)
-	assert.Equal(t, esdtData.MaxTokenNameLength, uint32(20))
-	assert.Equal(t, esdtData.MinTokenNameLength, uint32(5))
-	assert.True(t, bytes.Equal(newOwner, esdtData.OwnerAddress))
+	assert.True(t, esdtData.BaseIssuingCost.Cmp(newBaseIssingCost) == 0)
+	assert.Equal(t, uint32(newMaxTokenNameLength), esdtData.MaxTokenNameLength)
+	assert.Equal(t, uint32(newMinTokenNameLength), esdtData.MinTokenNameLength)
+	assert.Equal(t, newOwner, esdtData.OwnerAddress)
+
+	vmInput = getDefaultVmInputForFunc("getContractConfig", make([][]byte, 0))
+	vmInput.CallerAddr = []byte("any address")
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	require.Equal(t, 4, len(eei.output))
+	assert.Equal(t, newOwner, eei.output[0])
+	assert.Equal(t, newBaseIssingCost.Bytes(), eei.output[1])
+	assert.Equal(t, big.NewInt(newMinTokenNameLength).Bytes(), eei.output[2])
+	assert.Equal(t, big.NewInt(newMaxTokenNameLength).Bytes(), eei.output[3])
+
 }
 
 func TestEsdt_ExecuteClaim(t *testing.T) {

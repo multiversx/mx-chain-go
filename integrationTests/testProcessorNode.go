@@ -1884,6 +1884,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			StakingDataProvider:     stakingDataProvider,
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
+			ESDTEnableEpoch:         0,
+			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

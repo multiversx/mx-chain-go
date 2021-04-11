@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 
@@ -44,7 +45,9 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
 	CorrectLastUnJailEnableEpoch           uint32
+	ESDTEnableEpoch                        uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
+	ESDTOwnerAddressBytes                  []byte
 
 	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
 	EpochNotifier       process.EpochNotifier
@@ -71,6 +74,7 @@ type systemSCProcessor struct {
 	delegationEnableEpoch          uint32
 	stakingV2EnableEpoch           uint32
 	correctLastUnJailEpoch         uint32
+	esdtEnableEpoch                uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -80,6 +84,8 @@ type systemSCProcessor struct {
 	flagChangeMaxNodesEnabled      atomic.Flag
 	flagStakingV2Enabled           atomic.Flag
 	flagCorrectLastUnjailedEnabled atomic.Flag
+	flagESDTEnabled                atomic.Flag
+	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
 }
@@ -145,6 +151,9 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
 	}
+	if len(args.ESDTOwnerAddressBytes) == 0 {
+		return nil, epochStart.ErrEmptyESDTOwnerAddress
+	}
 
 	s := &systemSCProcessor{
 		systemVM:                 args.SystemVM,
@@ -163,10 +172,12 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
 		delegationEnableEpoch:    args.DelegationEnableEpoch,
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
+		esdtEnableEpoch:          args.ESDTEnableEpoch,
 		stakingDataProvider:      args.StakingDataProvider,
 		nodesConfigProvider:      args.NodesConfigProvider,
 		shardCoordinator:         args.ShardCoordinator,
 		correctLastUnJailEpoch:   args.CorrectLastUnJailEnableEpoch,
+		esdtOwnerAddressBytes:    args.ESDTOwnerAddressBytes,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -251,6 +262,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		err = s.stakeNodesFromQueue(validatorInfos, numUnStaked, nonce)
 		if err != nil {
 			return err
+		}
+	}
+
+	if s.flagESDTEnabled.IsSet() {
+		err := s.initESDT()
+		if err != nil {
+			//not a critical error
+			log.Error("error while initializing ESDT", "err", err)
 		}
 	}
 
@@ -1247,6 +1266,65 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 	return nil
 }
 
+func (s *systemSCProcessor) initESDT() error {
+	currentConfigValues, err := s.extractConfigFromESDTContract()
+	if err != nil {
+		return err
+	}
+
+	return s.changeESDTOwner(currentConfigValues)
+}
+
+func (s *systemSCProcessor) extractConfigFromESDTContract() ([][]byte, error) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  s.endOfEpochCallerAddress,
+			Arguments:   [][]byte{},
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		Function:      "getContractConfig",
+		RecipientAddr: vm.ESDTSCAddress,
+	}
+
+	output, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return nil, err
+	}
+	if len(output.ReturnData) != 4 {
+		return nil, fmt.Errorf("%w getContractConfig should have returned 4 values", epochStart.ErrInvalidSystemSCReturn)
+	}
+
+	return output.ReturnData, nil
+}
+
+func (s *systemSCProcessor) changeESDTOwner(currentConfigValues [][]byte) error {
+	baseIssuingCost := currentConfigValues[1]
+	minTokenNameLength := currentConfigValues[2]
+	maxTokenNameLength := currentConfigValues[3]
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  s.endOfEpochCallerAddress,
+			Arguments:   [][]byte{s.esdtOwnerAddressBytes, baseIssuingCost, minTokenNameLength, maxTokenNameLength},
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		Function:      "configChange",
+		RecipientAddr: vm.ESDTSCAddress,
+	}
+
+	output, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+	if output.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("%w changeESDTOwner should have returned Ok", epochStart.ErrInvalidSystemSCReturn)
+	}
+
+	return s.processSCOutputAccounts(output)
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -1287,4 +1365,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	s.flagCorrectLastUnjailedEnabled.Toggle(epoch == s.correctLastUnJailEpoch)
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
+
+	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
+	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
 }

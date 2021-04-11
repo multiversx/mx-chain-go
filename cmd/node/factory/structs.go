@@ -2242,6 +2242,11 @@ func newMetaBlockProcessor(
 		EpochNotifier:           epochNotifier,
 	}
 
+	esdtOwnerAddress, err := stateComponents.AddressPubkeyConverter.Decode(systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress in structs.go", err)
+	}
+
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                               systemVM,
 		UserAccountsDB:                         stateComponents.AccountsAdapter,
@@ -2262,6 +2267,9 @@ func newMetaBlockProcessor(
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
 		ShardCoordinator:                       shardCoordinator,
+		CorrectLastUnJailEnableEpoch:           systemSCConfig.StakingSystemSCConfig.CorrectLastUnjailedEpoch,
+		ESDTOwnerAddressBytes:                  esdtOwnerAddress,
+		ESDTEnableEpoch:                        systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

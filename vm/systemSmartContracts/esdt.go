@@ -87,6 +87,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
+	if len(args.EndOfEpochSCAddress) == 0 {
+		return nil, vm.ErrNilEndOfEpochSmartContractAddress
+	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
@@ -94,9 +97,11 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 
 	e := &esdt{
-		eei:                    args.Eei,
-		gasCost:                args.GasCost,
-		baseIssuingCost:        baseIssuingCost,
+		eei:             args.Eei,
+		gasCost:         args.GasCost,
+		baseIssuingCost: baseIssuingCost,
+		//we should have called pubkeyConverter.Decode here instead of a byte slice cast. Since that change would break
+		//backwards compatibility, the fix was carried in the epochStart/metachain/systemSCs.go
 		ownerAddress:           []byte(args.ESDTSCConfig.OwnerAddress),
 		eSDTSCAddress:          args.ESDTSCAddress,
 		hasher:                 args.Hasher,
@@ -175,6 +180,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.stopNFTCreateForever(args)
 	case "getAllAddressesAndRoles":
 		return e.getAllAddressesAndRoles(args)
+	case "getContractConfig":
+		return e.getContractConfig(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -762,7 +769,8 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 }
 
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+	isCorrectCaller := bytes.Equal(args.CallerAddr, e.ownerAddress) || bytes.Equal(args.CallerAddr, e.endOfEpochSCAddress)
+	if !isCorrectCaller {
 		e.eei.AddReturnMessage("configChange can be called by whitelisted address only")
 		return vmcommon.UserError
 	}
@@ -1435,6 +1443,44 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 // CanUseContract returns true if contract can be used
 func (e *esdt) CanUseContract() bool {
 	return true
+}
+
+func (e *esdt) getContractConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := e.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	esdtConfig, err := e.getESDTConfig()
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(esdtConfig.OwnerAddress)
+	e.eei.Finish(esdtConfig.BaseIssuingCost.Bytes())
+	e.eei.Finish(big.NewInt(int64(esdtConfig.MinTokenNameLength)).Bytes())
+	e.eei.Finish(big.NewInt(int64(esdtConfig.MaxTokenNameLength)).Bytes())
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil returns true if underlying object is nil
