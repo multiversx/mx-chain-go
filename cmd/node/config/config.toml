@@ -61,6 +61,9 @@
    # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
    SenderInOutTransferEnableEpoch = 5
 
+   # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
+   BalanceWaitingListsEnableEpoch = 6
+
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
