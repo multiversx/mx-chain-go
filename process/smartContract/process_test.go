@@ -3723,6 +3723,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		GasPriceModifierEnableEpoch:    0,
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 }
 

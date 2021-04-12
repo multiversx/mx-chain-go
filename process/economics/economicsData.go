@@ -46,10 +46,12 @@ type economicsData struct {
 	topUpGradientPoint               *big.Int
 	topUpFactor                      float64
 	statusHandler                    core.AppStatusHandler
+	builtInFunctionsCostHandler      BuiltInFunctionsCostHandler
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
+	BuiltInFunctionsCostHandler    BuiltInFunctionsCostHandler
 	Economics                      *config.EconomicsConfig
 	EpochNotifier                  process.EpochNotifier
 	PenalizedTooMuchGasEnableEpoch uint32
@@ -58,6 +60,10 @@ type ArgsNewEconomicsData struct {
 
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
+	if check.IfNil(args.BuiltInFunctionsCostHandler) {
+		return nil, process.ErrNilBuiltInFunctionsCostHandler
+	}
+
 	convertedData, err := convertValues(args.Economics)
 	if err != nil {
 		return nil, err
@@ -98,6 +104,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		topUpGradientPoint:               topUpGradientPoint,
 		topUpFactor:                      args.Economics.RewardsSettings.TopUpFactor,
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
+		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -407,6 +414,21 @@ func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 // ComputeGasUsedAndFeeBasedOnRefundValue will compute gas used value and transaction fee using refund value from a SCR
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
+		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
+			cost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
+			gasLimit := ed.ComputeGasLimit(tx)
+
+			gasLimitWithBuiltInCost := cost + gasLimit
+			txFee := ed.ComputeTxFeeBasedOnGasUsed(tx, gasLimitWithBuiltInCost)
+
+			// transaction will consume all the gas if sender provided too much gas
+			if isTooMuchGasProvided(tx.GetGasLimit(), tx.GetGasLimit()-gasLimitWithBuiltInCost) {
+				return tx.GetGasLimit(), ed.ComputeTxFee(tx)
+			}
+
+			return gasLimitWithBuiltInCost, txFee
+		}
+
 		txFee := ed.ComputeTxFee(tx)
 		return tx.GetGasLimit(), txFee
 	}
@@ -423,6 +445,15 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.Trans
 	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
 
 	return gasUsed, txFee
+}
+
+func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
+	if gasProvided <= gasRemained {
+		return false
+	}
+
+	gasUsed := gasProvided - gasRemained
+	return gasProvided > gasUsed*process.MaxGasFeeHigherFactorAccepted
 }
 
 // ComputeTxFeeBasedOnGasUsed will compute transaction fee
