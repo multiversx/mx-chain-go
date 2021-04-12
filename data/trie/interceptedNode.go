@@ -3,7 +3,6 @@ package trie
 import (
 	"fmt"
 	"math/big"
-	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -20,7 +19,6 @@ type InterceptedTrieNode struct {
 	node    node
 	encNode []byte
 	hash    []byte
-	mutex   sync.Mutex
 }
 
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
@@ -72,9 +70,6 @@ func (inTn *InterceptedTrieNode) IsForCurrentShard() bool {
 
 // Hash returns the hash of the intercepted node
 func (inTn *InterceptedTrieNode) Hash() []byte {
-	inTn.mutex.Lock()
-	defer inTn.mutex.Unlock()
-
 	return inTn.hash
 }
 
@@ -123,6 +118,11 @@ func (inTn *InterceptedTrieNode) SenderAddress() []byte {
 // Fee returns big.NewInt(0)
 func (inTn *InterceptedTrieNode) Fee() *big.Int {
 	return big.NewInt(0)
+}
+
+// SizeInBytes returns the size in bytes held by this instance plus the inner node's instance size
+func (inTn *InterceptedTrieNode) SizeInBytes() int {
+	return len(inTn.hash) + len(inTn.encNode) + inTn.node.sizeInBytes()
 }
 
 // Identifiers returns the identifiers used in requests

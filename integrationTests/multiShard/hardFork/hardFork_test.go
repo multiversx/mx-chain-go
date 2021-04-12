@@ -619,6 +619,7 @@ func createHardForkExporter(
 			EpochNotifier:             &mock.EpochNotifierStub{},
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
+			TrieSyncerVersion:         2,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

@@ -2255,6 +2255,7 @@ func newMetaBlockProcessor(
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
 		ShardCoordinator:                       shardCoordinator,
+		CorrectLastUnJailEnableEpoch:           systemSCConfig.StakingSystemSCConfig.CorrectLastUnjailedEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
