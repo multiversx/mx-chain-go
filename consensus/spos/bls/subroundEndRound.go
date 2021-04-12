@@ -205,10 +205,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// broadcast section
 
 	//TODO: Move this if before L205 before committing it, just to keep the induced hard forks system test functionality
-	if sr.Rounder().Index() > sr.RoundIndex {
+	roundHandler := sr.Rounder()
+	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
 		log.Debug("doEndRoundJob: time is out -> cancel broadcasting final info and header",
-			"initial round", sr.RoundIndex,
-			"current round", sr.Rounder().Index())
+			"round time stamp", roundHandler.TimeStamp(),
+			"current time", time.Now())
 		return false
 	}
 

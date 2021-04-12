@@ -361,9 +361,11 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	sr := *initSubroundEndRoundWithContainer(container)
 	sr.SetSelfPubKey("A")
 
-	sr.RoundIndex = 1
+	remainingTime := time.Millisecond
 	roundHandlerMock := &mock.RounderMock{
-		RoundIndex: 1,
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return remainingTime
+		},
 	}
 
 	container.SetRounder(roundHandlerMock)
@@ -372,7 +374,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
 
-	roundHandlerMock.RoundIndex++
+	remainingTime = -time.Millisecond
 
 	r = sr.DoEndRoundJob()
 	assert.False(t, r)
