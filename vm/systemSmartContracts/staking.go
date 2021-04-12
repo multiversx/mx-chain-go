@@ -1543,23 +1543,24 @@ func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput)
 
 func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
 	waitingListData *waitingListReturnData,
-	mapCheckedOwners map[string]bool,
+	mapCheckedOwners map[string]*validatorFundInfo,
 ) error {
 	if !s.flagCorrectLastUnjailed.IsSet() {
 		return nil
 	}
 
-	for i, blsKey := range waitingListData.blsKeys {
+	for i := len(waitingListData.blsKeys) - 1; i >= 0; i-- {
 		stakedData := waitingListData.stakedDataList[i]
-
-		hasEnoughFunds, err := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
+		validatorInfo, err := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
 		if err != nil {
 			return err
 		}
-		if hasEnoughFunds {
+		if validatorInfo.qualifiedToStake || validatorInfo.numNodesToUnstake == 0 {
 			continue
 		}
 
+		validatorInfo.numNodesToUnstake--
+		blsKey := waitingListData.blsKeys[i]
 		err = s.removeFromWaitingList(blsKey)
 		if err != nil {
 			return err
@@ -1610,19 +1611,19 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	stakedNodes := uint64(0)
-	mapCheckedOwners := make(map[string]bool)
+	mapCheckedOwners := make(map[string]*validatorFundInfo)
 	for i, blsKey := range waitingListData.blsKeys {
 		stakedData := waitingListData.stakedDataList[i]
 		if stakedNodes >= numNodesToStake {
 			break
 		}
 
-		hasEnoughFunds, errCheck := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
+		validatorInfo, errCheck := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
 		if errCheck != nil {
 			s.eei.AddReturnMessage(errCheck.Error())
 			return vmcommon.UserError
 		}
-		if !hasEnoughFunds {
+		if !validatorInfo.qualifiedToStake {
 			continue
 		}
 
@@ -1657,38 +1658,72 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+type validatorFundInfo struct {
+	numNodesToUnstake uint32
+	qualifiedToStake  bool
+}
+
 func (s *stakingSC) checkValidatorFunds(
-	mapCheckedOwners map[string]bool,
+	mapCheckedOwners map[string]*validatorFundInfo,
 	owner []byte,
-) (bool, error) {
-	hasFunds, okInMap := mapCheckedOwners[string(owner)]
+) (*validatorFundInfo, error) {
+	validatorInfo, okInMap := mapCheckedOwners[string(owner)]
 	if okInMap {
-		return hasFunds, nil
+		return validatorInfo, nil
 	}
 
 	marshaledData := s.eei.GetStorageFromAddress(s.stakeAccessAddr, owner)
 	if len(marshaledData) == 0 {
-		mapCheckedOwners[string(owner)] = false
-		return false, nil
+		validatorInfo = &validatorFundInfo{
+			numNodesToUnstake: math.MaxUint32,
+			qualifiedToStake:  false,
+		}
+		mapCheckedOwners[string(owner)] = validatorInfo
+		return validatorInfo, nil
 	}
 
 	validatorData := &ValidatorDataV2{}
 	err := s.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	numRegisteredKeys := int64(len(validatorData.BlsPubKeys))
 	numQualified := big.NewInt(0).Div(validatorData.TotalStakeValue, s.minNodePrice).Int64()
 
-	if numQualified < numRegisteredKeys {
-		mapCheckedOwners[string(owner)] = false
-		return false, nil
+	if numQualified >= numRegisteredKeys {
+		validatorInfo = &validatorFundInfo{
+			numNodesToUnstake: 0,
+			qualifiedToStake:  true,
+		}
+		mapCheckedOwners[string(owner)] = validatorInfo
+		return validatorInfo, nil
 	}
 
-	mapCheckedOwners[string(owner)] = true
+	numActiveNodes := int64(0)
+	for _, blsKey := range validatorData.BlsPubKeys {
+		stakedData, errGet := s.getOrCreateRegisteredData(blsKey)
+		if errGet != nil {
+			return nil, errGet
+		}
 
-	return true, nil
+		if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
+			numActiveNodes++
+		}
+	}
+
+	numToUnStake := uint32(0)
+	if numActiveNodes > numQualified {
+		numToUnStake = uint32(numActiveNodes - numQualified)
+	}
+
+	validatorInfo = &validatorFundInfo{
+		numNodesToUnstake: numToUnStake,
+		qualifiedToStake:  false,
+	}
+	mapCheckedOwners[string(owner)] = validatorInfo
+
+	return validatorInfo, nil
 }
 
 func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingListReturnData, error) {

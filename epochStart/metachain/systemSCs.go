@@ -1169,7 +1169,7 @@ func (s *systemSCProcessor) stakeNodesFromQueue(
 	nodesToStake uint32,
 	nonce uint64,
 ) error {
-	if nodesToStake == 0 {
+	if nodesToStake == 0 && !s.flagCorrectNumNodesToStake.IsSet() {
 		return nil
 	}
 

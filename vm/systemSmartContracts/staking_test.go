@@ -1872,15 +1872,26 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
+	validatorData := &ValidatorDataV2{
+		TotalStakeValue: big.NewInt(200),
+		TotalUnstaked:   big.NewInt(0),
+		RewardAddress:   stakerAddress,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirdKeyy"), []byte("fourthKey")},
+	}
+	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
+
 	currentOutPutIndex := len(eei.output)
 	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	// nothing to stake - as not enough funds
+	// nothing to stake - as not enough funds - one remains in waiting queue
 	assert.Equal(t, currentOutPutIndex, len(eei.output))
 	newHead, _ := stakingSmartContract.getWaitingListHead()
-	assert.Equal(t, uint32(0), newHead.Length)
+	assert.Equal(t, uint32(1), newHead.Length)
+
+	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "queued")
 
 	newMaxNodes = int64(1)
 	arguments = CreateVmContractCallInput()
@@ -1891,17 +1902,13 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	assert.Equal(t, retCode, vmcommon.Ok)
 
 	// stake them again - as they were deleted from waiting list
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKeyy"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	validatorData := &ValidatorDataV2{
+	validatorData = &ValidatorDataV2{
 		TotalStakeValue: big.NewInt(400),
-		TotalUnstaked:   big.NewInt(0),
-		RewardAddress:   stakerAddress,
-		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirdKey"), []byte("fourthKey")},
 	}
-	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
+	marshaledData, _ = stakingSmartContract.marshalizer.Marshal(validatorData)
 	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
 
 	newMaxNodes = int64(100)
