@@ -143,6 +143,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
 	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
 	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
+	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 

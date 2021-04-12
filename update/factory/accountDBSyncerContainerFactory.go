@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -29,6 +30,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	MaxTrieLevelInMemory      uint
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -43,6 +45,7 @@ type accountDBSyncersContainerFactory struct {
 	maxTrieLevelinMemory      uint
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int
+	trieSyncerVersion         int
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -71,6 +74,10 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if args.MaxHardCapForMissingNodes < 1 {
 		return nil, update.ErrInvalidMaxHardCapForMissingNodes
 	}
+	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,
@@ -83,6 +90,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		maxTrieLevelinMemory:      args.MaxTrieLevelInMemory,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 
 	return t, nil
@@ -128,6 +136,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			Cacher:                    a.trieCacher,
 			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         a.trieSyncerVersion,
 		},
 		ShardId:   shardId,
 		Throttler: thr,
@@ -152,6 +161,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			Cacher:                    a.trieCacher,
 			MaxTrieLevelInMemory:      a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes: a.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         a.trieSyncerVersion,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)
