@@ -23,6 +23,7 @@ func (m *MetaBlock) SetNonce(n uint64) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Nonce = n
 
 	return nil
@@ -33,6 +34,7 @@ func (m *MetaBlock) SetEpoch(e uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Epoch = e
 
 	return nil
@@ -43,6 +45,7 @@ func (m *MetaBlock) SetRound(r uint64) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Round = r
 
 	return nil
@@ -53,6 +56,7 @@ func (m *MetaBlock) SetRootHash(rHash []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.RootHash = rHash
 
 	return nil
@@ -63,6 +67,7 @@ func (m *MetaBlock) SetValidatorStatsRootHash(rHash []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.ValidatorStatsRootHash = rHash
 
 	return nil
@@ -73,6 +78,7 @@ func (m *MetaBlock) SetPrevHash(pvHash []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.PrevHash = pvHash
 
 	return nil
@@ -83,6 +89,7 @@ func (m *MetaBlock) SetPrevRandSeed(pvRandSeed []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.PrevRandSeed = pvRandSeed
 
 	return nil
@@ -93,16 +100,18 @@ func (m *MetaBlock) SetRandSeed(randSeed []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.RandSeed = randSeed
 
 	return nil
 }
 
-// SetPubKeysBitmap sets publick key bitmap
+// SetPubKeysBitmap sets public key bitmap
 func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.PubKeysBitmap = pkbm
 
 	return nil
@@ -113,6 +122,7 @@ func (m *MetaBlock) SetSignature(sg []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Signature = sg
 
 	return nil
@@ -123,6 +133,7 @@ func (m *MetaBlock) SetLeaderSignature(sg []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.LeaderSignature = sg
 
 	return nil
@@ -133,6 +144,7 @@ func (m *MetaBlock) SetChainID(chainID []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.ChainID = chainID
 
 	return nil
@@ -143,6 +155,7 @@ func (m *MetaBlock) SetSoftwareVersion(version []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.SoftwareVersion = version
 
 	return nil
@@ -153,9 +166,13 @@ func (m *MetaBlock) SetAccumulatedFees(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if value == nil {
+		return data.ErrInvalidValue
+	}
 	if m.AccumulatedFees == nil {
 		m.AccumulatedFees = big.NewInt(0)
 	}
+
 	m.AccumulatedFees.Set(value)
 
 	return nil
@@ -166,9 +183,13 @@ func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if value == nil{
+		return data.ErrInvalidValue
+	}
 	if m.AccumulatedFeesInEpoch == nil {
 		m.AccumulatedFeesInEpoch = big.NewInt(0)
 	}
+
 	m.AccumulatedFeesInEpoch.Set(value)
 
 	return nil
@@ -179,9 +200,13 @@ func (m *MetaBlock) SetDeveloperFees(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if value == nil{
+		return data.ErrInvalidValue
+	}
 	if m.DeveloperFees == nil {
 		m.DeveloperFees = big.NewInt(0)
 	}
+
 	m.DeveloperFees.Set(value)
 
 	return nil
@@ -192,9 +217,13 @@ func (m *MetaBlock) SetDevFeesInEpoch(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if value == nil {
+		return data.ErrInvalidValue
+	}
 	if m.DevFeesInEpoch == nil {
 		m.DevFeesInEpoch = big.NewInt(0)
 	}
+
 	m.DevFeesInEpoch.Set(value)
 
 	return nil
@@ -205,6 +234,7 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.TimeStamp = ts
 
 	return nil
@@ -215,6 +245,7 @@ func (m *MetaBlock) SetTxCount(txCount uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.TxCount = txCount
 
 	return nil
@@ -234,6 +265,7 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	if m == nil {
 		return nil
 	}
+
 	hashDst := make(map[string]uint32)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
@@ -332,11 +364,12 @@ func (m *MetaBlock) IsStartOfEpochBlock() bool {
 	return len(m.EpochStart.LastFinalizedHeaders) > 0
 }
 
-// Clone will return a clone of the object
+// ShallowClone will return a clone of the object
 func (m *MetaBlock) ShallowClone() data.HeaderHandler {
 	if m == nil {
 		return nil
 	}
+
 	metaBlockCopy := *m
 
 	return &metaBlockCopy
@@ -415,6 +448,7 @@ func (m *MetaBlock) GetEpochStartHandler() data.EpochStartHandler {
 	if m == nil {
 		return nil
 	}
+
 	return &m.EpochStart
 }
 

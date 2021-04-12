@@ -23,6 +23,7 @@ func (essd *EpochStartShardData) SetShardID(shardID uint32) error {
 	}
 
 	essd.ShardID = shardID
+
 	return nil
 }
 
@@ -33,6 +34,7 @@ func (essd *EpochStartShardData) SetEpoch(epoch uint32) error {
 	}
 
 	essd.Epoch = epoch
+
 	return nil
 }
 
@@ -43,6 +45,7 @@ func (essd *EpochStartShardData) SetRound(round uint64) error {
 	}
 
 	essd.Round = round
+
 	return nil
 }
 
@@ -53,6 +56,7 @@ func (essd *EpochStartShardData) SetNonce(nonce uint64) error {
 	}
 
 	essd.Nonce = nonce
+
 	return nil
 }
 
@@ -63,6 +67,7 @@ func (essd *EpochStartShardData) SetHeaderHash(hash []byte) error {
 	}
 
 	essd.HeaderHash = hash
+
 	return nil
 }
 
@@ -71,7 +76,9 @@ func (essd *EpochStartShardData) SetRootHash(rootHash []byte) error {
 	if essd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	essd.RootHash = rootHash
+
 	return nil
 }
 
@@ -80,7 +87,9 @@ func (essd *EpochStartShardData) SetFirstPendingMetaBlock(metaBlock []byte) erro
 	if essd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	essd.FirstPendingMetaBlock = metaBlock
+
 	return nil
 }
 
@@ -91,6 +100,7 @@ func (essd *EpochStartShardData) SetLastFinishedMetaBlock(lastFinishedMetaBlock 
 	}
 
 	essd.LastFinishedMetaBlock = lastFinishedMetaBlock
+
 	return nil
 }
 
@@ -113,5 +123,6 @@ func (essd *EpochStartShardData) SetPendingMiniBlockHeaders(miniBlockHeaderHandl
 	}
 
 	essd.PendingMiniBlockHeaders = pendingMiniBlockHeaders
+
 	return nil
 }

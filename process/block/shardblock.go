@@ -699,7 +699,11 @@ func (sp *shardProcessor) CreateBlock(
 		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
 	}
 
-	shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
+	err := shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
 	shardHdr.SoftwareVersion = []byte(sp.headerIntegrityVerifier.GetVersion(shardHdr.Epoch))
@@ -1232,7 +1236,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
-	if check.IfNil(header){
+	if check.IfNil(header) {
 		return nil, process.ErrNilBlockHeader
 	}
 
@@ -1260,7 +1264,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(header data.Head
 	}
 
 	shardHeader, ok := header.(data.ShardHeaderHandler)
-	if !ok{
+	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 	miniBlockHashes := make(map[int][]byte, len(header.GetMiniBlockHeaderHandlers()))
@@ -1762,8 +1766,16 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	shardHeader.SetMiniBlockHeaderHandlers(nil)
-	shardHeader.SetRootHash(sp.getRootHash())
+	var err error
+	err = shardHeader.SetMiniBlockHeaderHandlers(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetRootHash(sp.getRootHash())
+	if err != nil {
+		return nil, err
+	}
 
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing()
@@ -1773,7 +1785,6 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 		return nil, process.ErrNilBlockBody
 	}
 
-	var err error
 	var receiptsHash []byte
 	sw.Start("CreateReceiptsHash")
 	receiptsHash, err = sp.txCoordinator.CreateReceiptsHash()
@@ -1781,7 +1792,11 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 	if err != nil {
 		return nil, err
 	}
-	shardHeader.SetReceiptsHash(receiptsHash)
+
+	err = shardHeader.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return nil, err
+	}
 
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
@@ -1792,15 +1807,33 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader data.ShardHeaderHandler,
 		return nil, err
 	}
 
-	shardHeader.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
-	shardHeader.SetTxCount(uint32(totalTxCount))
-	shardHeader.SetAccumulatedFees(sp.feeHandler.GetAccumulatedFees())
-	shardHeader.SetDeveloperFees(sp.feeHandler.GetDeveloperFees())
+	err = shardHeader.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetTxCount(uint32(totalTxCount))
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetAccumulatedFees(sp.feeHandler.GetAccumulatedFees())
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetDeveloperFees(sp.feeHandler.GetDeveloperFees())
+	if err != nil {
+		return nil, err
+	}
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
-	shardHeader.SetMetaBlockHashes(metaBlockHashes[core.MetachainShardId])
+	err = shardHeader.SetMetaBlockHashes(metaBlockHashes[core.MetachainShardId])
+	if err != nil {
+		return nil, err
+	}
 
 	err = sp.txCoordinator.VerifyCreatedMiniBlocks(shardHeader, newBody)
 	if err != nil {

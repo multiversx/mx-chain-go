@@ -11,8 +11,15 @@ func (e *Economics) SetTotalSupply(totalSupply *big.Int) error {
 	if e == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if totalSupply == nil{
+		return data.ErrInvalidValue
+	}
+	if e.TotalSupply == nil {
+		e.TotalSupply = big.NewInt(0)
+	}
 
-	e.TotalSupply = totalSupply
+	e.TotalSupply.Set(totalSupply)
+
 	return nil
 }
 
@@ -21,8 +28,15 @@ func (e *Economics) SetTotalToDistribute(totalToDistribute *big.Int) error {
 	if e == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if totalToDistribute == nil {
+		return data.ErrInvalidValue
+	}
+	if e.TotalToDistribute == nil {
+		e.TotalToDistribute = big.NewInt(0)
+	}
 
-	e.TotalToDistribute = totalToDistribute
+	e.TotalToDistribute.Set(totalToDistribute)
+
 	return nil
 }
 
@@ -31,8 +45,15 @@ func (e *Economics) SetTotalNewlyMinted(totalNewlyMinted *big.Int) error {
 	if e == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if totalNewlyMinted == nil{
+		return data.ErrInvalidValue
+	}
+	if e.TotalNewlyMinted == nil{
+		e.TotalNewlyMinted = big.NewInt(0)
+	}
 
-	e.TotalNewlyMinted = totalNewlyMinted
+	e.TotalNewlyMinted.Set(totalNewlyMinted)
+
 	return nil
 }
 
@@ -41,8 +62,15 @@ func (e *Economics) SetRewardsPerBlock(rewardsPerBlock *big.Int) error {
 	if e == nil {
 		 return data.ErrNilPointerReceiver
 	}
+	if rewardsPerBlock == nil{
+		return data.ErrInvalidValue
+	}
+	if e.RewardsPerBlock == nil{
+		e.RewardsPerBlock = big.NewInt(0)
+	}
 
-	e.RewardsPerBlock = rewardsPerBlock
+	e.RewardsPerBlock.Set(rewardsPerBlock)
+
 	return nil
 }
 
@@ -51,8 +79,15 @@ func (e *Economics) SetRewardsForProtocolSustainability(rewardsForProtocolSustai
 	if e == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if rewardsForProtocolSustainability == nil{
+		return data.ErrInvalidValue
+	}
+	if e.RewardsForProtocolSustainability == nil{
+		e.RewardsForProtocolSustainability = big.NewInt(0)
+	}
 
-	e.RewardsForProtocolSustainability = rewardsForProtocolSustainability
+	e.RewardsForProtocolSustainability.Set(rewardsForProtocolSustainability)
+
 	return nil
 }
 
@@ -61,8 +96,15 @@ func (e *Economics) SetNodePrice(nodePrice *big.Int) error {
 	if e == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if nodePrice == nil{
+		return data.ErrInvalidValue
+	}
+	if e.NodePrice == nil{
+		e.NodePrice = big.NewInt(0)
+	}
 
-	e.NodePrice = nodePrice
+	e.NodePrice.Set(nodePrice)
+
 	return nil
 }
 

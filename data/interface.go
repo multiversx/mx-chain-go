@@ -72,6 +72,7 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ShardHeaderHandler defines getters and setters for the shard block header
 type ShardHeaderHandler interface {
 	HeaderHandler
 	GetMetaBlockHashes() [][]byte
@@ -80,6 +81,7 @@ type ShardHeaderHandler interface {
 	SetMetaBlockHashes(hashes [][]byte) error
 }
 
+// MetaHeaderHandler defines getters and setters for the meta block header
 type MetaHeaderHandler interface {
 	HeaderHandler
 	GetValidatorStatsRootHash() []byte

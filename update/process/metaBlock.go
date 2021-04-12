@@ -93,8 +93,9 @@ func (m *metaBlockCreator) CreateBlock(
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
 	epochStart, ok:= hardForkMeta.GetEpochStartHandler().(*block.EpochStart)
 	if !ok{
-		return nil, update.ErrInvalidValue
+		return nil, update.ErrWrongTypeAssertion
 	}
+
 	metaHeader := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,

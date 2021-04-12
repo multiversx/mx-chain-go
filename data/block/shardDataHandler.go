@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// GetShardMiniBlockHeaderHandlers - returns the shard miniBlockHeaders as MiniBlockHeaderHandlers
+// GetShardMiniBlockHeaderHandlers returns the shard miniBlockHeaders as MiniBlockHeaderHandlers
 func (sd *ShardData) GetShardMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	if sd == nil || sd.ShardMiniBlockHeaders == nil {
 		return nil
@@ -16,10 +16,11 @@ func (sd *ShardData) GetShardMiniBlockHeaderHandlers() []data.MiniBlockHeaderHan
 	for i := range sd.ShardMiniBlockHeaders {
 		miniBlockHeaderHandlers[i] = &sd.ShardMiniBlockHeaders[i]
 	}
+
 	return miniBlockHeaderHandlers
 }
 
-// SetHeaderHash - setter for header hash
+// SetHeaderHash sets the header hash
 func (sd *ShardData) SetHeaderHash(hash []byte) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
@@ -29,12 +30,11 @@ func (sd *ShardData) SetHeaderHash(hash []byte) error {
 	return nil
 }
 
-// SetShardMiniBlockHeaderHandlers - setter for miniBlockHeaders from a list of MiniBlockHeaderHandler
+// SetShardMiniBlockHeaderHandlers sets the miniBlockHeaders from a list of MiniBlockHeaderHandler
 func (sd *ShardData) SetShardMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHeaderHandler) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
-
 	if mbHeaderHandlers == nil {
 		sd.ShardMiniBlockHeaders = nil
 		return nil
@@ -54,128 +54,161 @@ func (sd *ShardData) SetShardMiniBlockHeaderHandlers(mbHeaderHandlers []data.Min
 	}
 
 	sd.ShardMiniBlockHeaders = miniBlockHeaders
+
 	return nil
 }
 
-// SetPrevRandSeed - setter for prevRandSeed
+// SetPrevRandSeed sets the prevRandSeed
 func (sd *ShardData) SetPrevRandSeed(prevRandSeed []byte) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.PrevRandSeed = prevRandSeed
+
 	return nil
 }
 
-// SetPubKeysBitmap - setter for pubKeysBitmap
+// SetPubKeysBitmap sets the pubKeysBitmap
 func (sd *ShardData) SetPubKeysBitmap(pubKeysBitmap []byte) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.PubKeysBitmap = pubKeysBitmap
+
 	return nil
 }
 
-// SetSignature - setter for signature
+// SetSignature sets the signature
 func (sd *ShardData) SetSignature(signature []byte) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.Signature = signature
+
 	return nil
 }
 
-// SetRound - setter for round
+// SetRound sets the round
 func (sd *ShardData) SetRound(round uint64) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.Round = round
+
 	return nil
 }
 
-// SetPrevHash - setter for prevHash
+// SetPrevHash sets the prevHash
 func (sd *ShardData) SetPrevHash(prevHash []byte) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.PrevHash = prevHash
+
 	return nil
 }
 
-// SetNonce - setter for nonce
+// SetNonce sets the nonce
 func (sd *ShardData) SetNonce(nonce uint64) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.Nonce = nonce
+
 	return nil
 }
 
-// SetAccumulatedFees - setter for accumulatedFees
+// SetAccumulatedFees sets the accumulatedFees
 func (sd *ShardData) SetAccumulatedFees(fees *big.Int) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if fees == nil {
+		return data.ErrInvalidValue
+	}
 	if sd.AccumulatedFees == nil {
 		sd.AccumulatedFees = big.NewInt(0)
 	}
+
 	sd.AccumulatedFees.Set(fees)
+
 	return nil
 }
 
-// SetDeveloperFees - setter for developerFees
+// SetDeveloperFees sets the developerFees
 func (sd *ShardData) SetDeveloperFees(fees *big.Int) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+	if fees == nil {
+		return data.ErrInvalidValue
+	}
 	if sd.DeveloperFees == nil {
 		sd.DeveloperFees = big.NewInt(0)
 	}
+
 	sd.DeveloperFees.Set(fees)
+
 	return nil
 }
 
-// SetNumPendingMiniBlocks - setter for number of pending miniBlocks
+// SetNumPendingMiniBlocks sets the number of pending miniBlocks
 func (sd *ShardData) SetNumPendingMiniBlocks(num uint32) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.NumPendingMiniBlocks = num
+
 	return nil
 }
 
-// SetLastIncludedMetaNonce - setter for the last included metaBlock nonce
+// SetLastIncludedMetaNonce sets the last included metaBlock nonce
 func (sd *ShardData) SetLastIncludedMetaNonce(nonce uint64) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.LastIncludedMetaNonce = nonce
+
 	return nil
 }
 
-// SetShardID - setter for the shardID
+// SetShardID sets the shardID
 func (sd *ShardData) SetShardID(shardID uint32) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.ShardID = shardID
+
 	return nil
 }
 
-// SetTxCount - setter for the transaction count
+// SetTxCount sets the transaction count
 func (sd *ShardData) SetTxCount(txCount uint32) error {
 	if sd == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	sd.TxCount = txCount
+
 	return nil
 }
 
-// ShallowClone - clones the shardData and returns the clone
+// ShallowClone creates and returns a shallow clone of shardData
 func (sd *ShardData) ShallowClone() data.ShardDataHandler {
 	if sd == nil {
 		return nil
 	}
+
 	n := *sd
+
 	return &n
 }

@@ -2,38 +2,45 @@ package block
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-// SetType -
+// SetType sets the type
 func (m *MiniBlockHeader) GetTypeInt32() int32 {
 	if m == nil {
 		return -1
 	}
+
 	return int32(m.Type)
 }
 
-// SetHash -
+// SetHash sets the miniBlock header hash
 func (m *MiniBlockHeader) SetHash(hash []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Hash = hash
+
 	return nil
 }
 
-// SetSenderShardID -
+// SetSenderShardID sets the sender shardID
 func (m *MiniBlockHeader) SetSenderShardID(shardID uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.SenderShardID = shardID
+
 	return nil
 }
 
-// SetReceiverShardID -
+// SetReceiverShardID sets the receiver ShardID
 func (m *MiniBlockHeader) SetReceiverShardID(shardID uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.ReceiverShardID = shardID
+
 	return nil
 }
 
@@ -42,7 +49,9 @@ func (m *MiniBlockHeader) SetTxCount(count uint32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.TxCount = count
+
 	return nil
 }
 

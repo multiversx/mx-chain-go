@@ -44,7 +44,9 @@ func (es *EpochStart) SetLastFinalizedHeaders(epochStartDataHandlers []data.Epoc
 		}
 		epochStartData[i] = *shardData
 	}
+
 	es.LastFinalizedHeaders = epochStartData
+
 	return nil
 }
 
@@ -53,6 +55,7 @@ func (es *EpochStart) SetEconomics(economicsHandler data.EconomicsHandler) error
 	if es == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	ec, ok := economicsHandler.(*Economics)
 	if !ok {
 		return data.ErrInvalidTypeAssertion
@@ -60,6 +63,8 @@ func (es *EpochStart) SetEconomics(economicsHandler data.EconomicsHandler) error
 	if ec == nil {
 		return data.ErrNilPointerDereference
 	}
+
 	es.Economics = *ec
+
 	return nil
 }
