@@ -692,17 +692,6 @@ func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
 	assert.True(t, called)
 }
 
-func TestNodeFacade_CreateMiddlewareLimiters(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArguments()
-	nf, _ := NewNodeFacade(arg)
-
-	result, err := nf.CreateMiddlewareLimiters()
-	require.NoError(t, err)
-	require.Equal(t, 2, len(result))
-}
-
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 	t.Parallel()
 
