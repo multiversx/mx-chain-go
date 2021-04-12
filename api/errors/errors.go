@@ -46,10 +46,10 @@ var ErrValidation = errors.New("validation error")
 // ErrTxGenerationFailed signals an error generating a transaction
 var ErrTxGenerationFailed = errors.New("transaction generation failed")
 
-// ErrValidationEmptyTxHash signals an empty tx hash was provided
+// ErrValidationEmptyTxHash signals that an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
-// ErrInvalidBlockNonce signals an invalid block nonce was provided
+// ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
@@ -73,10 +73,10 @@ var ErrGetPidInfo = errors.New("error getting peer id info")
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")
 
-// ErrValidationEmptyRootHash signals an empty root hash was provided
+// ErrValidationEmptyRootHash signals that an empty root hash was provided
 var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
 
-// ErrValidationEmptyAddress signals an empty address was provided
+// ErrValidationEmptyAddress signals that an empty address was provided
 var ErrValidationEmptyAddress = errors.New("address is empty")
 
 // ErrGetProof signals an error happening when trying to compute a Merkle proof

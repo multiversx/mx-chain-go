@@ -1,9 +1,7 @@
 package api
 
 import (
-	"bytes"
 	"net/http"
-	"reflect"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
@@ -19,22 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/websocket"
-	"gopkg.in/go-playground/validator.v8"
 )
 
 var log = logger.GetOrCreate("api")
-
-type validatorInput struct {
-	Name      string
-	Validator validator.Func
-}
 
 // MiddlewareProcessor defines a processor used internally by the web server when processing requests
 type MiddlewareProcessor interface {
@@ -48,57 +37,6 @@ type MainApiHandler interface {
 	RestAPIServerDebugMode() bool
 	PprofEnabled() bool
 	IsInterfaceNil() bool
-}
-
-type ginWriter struct {
-}
-
-func (gv *ginWriter) Write(p []byte) (n int, err error) {
-	trimmed := bytes.TrimSpace(p)
-	log.Trace("gin server", "message", string(trimmed))
-
-	return len(p), nil
-}
-
-type ginErrorWriter struct {
-}
-
-func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
-	trimmed := bytes.TrimSpace(p)
-	log.Trace("gin server", "error", string(trimmed))
-
-	return len(p), nil
-}
-
-// CreateServer will create the api and appropriate routes, handlers and validators
-func CreateServer(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) (*http.Server, error) {
-	var ws *gin.Engine
-	if !elrondFacade.RestAPIServerDebugMode() {
-		gin.DefaultWriter = &ginWriter{}
-		gin.DefaultErrorWriter = &ginErrorWriter{}
-		gin.DisableConsoleColor()
-		gin.SetMode(gin.ReleaseMode)
-	}
-	ws = gin.Default()
-	ws.Use(cors.Default())
-	ws.Use(middleware.WithFacade(elrondFacade))
-	for _, proc := range processors {
-		if check.IfNil(proc) {
-			continue
-		}
-
-		ws.Use(proc.MiddlewareHandlerFunc())
-	}
-
-	err := RegisterDefaultValidators()
-	if err != nil {
-		return nil, err
-	}
-
-	RegisterRoutes(ws, routesConfig, elrondFacade)
-
-	server := &http.Server{Addr: elrondFacade.RestApiInterface(), Handler: ws}
-	return server, nil
 }
 
 // RegisterRoutes will register all routes available on the web server
@@ -183,22 +121,6 @@ func isLogRouteEnabled(routesConfig config.ApiRoutesConfig) bool {
 	return false
 }
 
-// RegisterDefaultValidators will call register validation on all validator functions
-func RegisterDefaultValidators() error {
-	validators := []validatorInput{
-		{Name: "skValidator", Validator: skValidator},
-	}
-	for _, validatorFunc := range validators {
-		if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-			err := v.RegisterValidation(validatorFunc.Name, validatorFunc.Validator)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 func registerLoggerWsRoute(ws *gin.Engine, marshalizer marshal.Marshalizer) {
 	upgrader := websocket.Upgrader{}
 
@@ -221,17 +143,4 @@ func registerLoggerWsRoute(ws *gin.Engine, marshalizer marshal.Marshalizer) {
 
 		ls.StartSendingBlocking()
 	})
-}
-
-// skValidator validates a secret key from user input for correctness
-func skValidator(
-	_ *validator.Validate,
-	_ reflect.Value,
-	_ reflect.Value,
-	_ reflect.Value,
-	_ reflect.Type,
-	_ reflect.Kind,
-	_ string,
-) bool {
-	return true
 }

@@ -880,12 +880,7 @@ func (adb *AccountsDB) GetTrie(rootHash []byte) (data.Trie, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	newTrie, err := adb.mainTrie.Recreate(rootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return newTrie, nil
+	return adb.mainTrie.Recreate(rootHash)
 }
 
 // Journalize adds a new object to entries list.

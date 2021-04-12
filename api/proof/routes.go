@@ -1,6 +1,7 @@
 package proof
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
@@ -44,7 +45,7 @@ func Routes(router *wrapper.RouterWrapper) {
 type VerifyProofRequest struct {
 	RootHash string   `json:"roothash"`
 	Address  string   `json:"address"`
-	Proof    [][]byte `json:"proof"`
+	Proof    []string `json:"proof"`
 }
 
 // GetProof will receive a rootHash and an address from the client, and it will return the Merkle proof
@@ -93,10 +94,15 @@ func GetProof(c *gin.Context) {
 		return
 	}
 
+	hexProof := make([]string, 0)
+	for _, byteProof := range proof {
+		hexProof = append(hexProof, hex.EncodeToString(byteProof))
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"proof": proof},
+			Data:  gin.H{"proof": hexProof},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -125,7 +131,25 @@ func VerifyProof(c *gin.Context) {
 		return
 	}
 
-	ok, err = facade.VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, verifyProofParams.Proof)
+	proof := make([][]byte, 0)
+	for _, hexProof := range verifyProofParams.Proof {
+		bytesProof, err := hex.DecodeString(hexProof)
+		if err != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+					Code:  shared.ReturnCodeRequestError,
+				},
+			)
+			return
+		}
+
+		proof = append(proof, bytesProof)
+	}
+
+	ok, err = facade.VerifyProof(verifyProofParams.RootHash, verifyProofParams.Address, proof)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

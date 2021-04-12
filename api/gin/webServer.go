@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/api/proof"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/block"
@@ -17,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/proof"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"

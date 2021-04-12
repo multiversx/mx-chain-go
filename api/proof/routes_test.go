@@ -2,7 +2,7 @@ package proof_test
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -90,8 +90,8 @@ func TestGetProof(t *testing.T) {
 	proof1 := proofs[0].(string)
 	proof2 := proofs[1].(string)
 
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte("valid")), proof1)
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte("proof")), proof2)
+	assert.Equal(t, hex.EncodeToString([]byte("valid")), proof1)
+	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
 func TestVerifyProof_NilContextShouldErr(t *testing.T) {
@@ -139,7 +139,7 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 	varifyProofParams := proof.VerifyProofRequest{
 		RootHash: "rootHash",
 		Address:  "address",
-		Proof:    [][]byte{[]byte("valid"), []byte("proof")},
+		Proof:    []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))},
 	}
 	verifyProofBytes, _ := json.Marshal(varifyProofParams)
 
@@ -156,12 +156,37 @@ func TestVerifyProof_VerifyProofErr(t *testing.T) {
 	assert.True(t, strings.Contains(response.Error, apiErrors.ErrVerifyProof.Error()))
 }
 
+func TestVerifyProof_VerifyProofCanNotDecodeProof(t *testing.T) {
+	t.Parallel()
+
+	facade := &mock.Facade{}
+
+	varifyProofParams := proof.VerifyProofRequest{
+		RootHash: "rootHash",
+		Address:  "address",
+		Proof:    []string{"invalid", "hex"},
+	}
+	verifyProofBytes, _ := json.Marshal(varifyProofParams)
+
+	ws := startNodeServer(facade)
+	req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeRequestError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrValidation.Error()))
+}
+
 func TestVerifyProof(t *testing.T) {
 	t.Parallel()
 
 	rootHash := "rootHash"
 	address := "address"
-	validProof := [][]byte{[]byte("valid"), []byte("proof")}
+	validProof := []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))}
 	varifyProofParams := proof.VerifyProofRequest{
 		RootHash: rootHash,
 		Address:  address,
@@ -173,7 +198,10 @@ func TestVerifyProof(t *testing.T) {
 		VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
 			assert.Equal(t, rootHash, rH)
 			assert.Equal(t, address, addr)
-			assert.Equal(t, validProof, proof)
+			for i := range proof {
+				assert.Equal(t, validProof[i], hex.EncodeToString(proof[i]))
+			}
+
 			return true, nil
 		},
 	}
