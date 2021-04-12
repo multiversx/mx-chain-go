@@ -59,6 +59,7 @@ type esdtNFTTokenData struct {
 	Balance         string   `json:"balance"`
 	Properties      string   `json:"properties,omitempty"`
 	Name            string   `json:"name,omitempty"`
+	Nonce           uint64   `json:"nonce,omitempty"`
 	Creator         string   `json:"creator,omitempty"`
 	Royalties       string   `json:"royalties,omitempty"`
 	Hash            []byte   `json:"hash,omitempty"`
@@ -465,6 +466,7 @@ func GetESDTNFTData(c *gin.Context) {
 	}
 	if esdtData.TokenMetaData != nil {
 		tokenData.Name = string(esdtData.TokenMetaData.Name)
+		tokenData.Nonce = esdtData.TokenMetaData.Nonce
 		tokenData.Creator = string(esdtData.TokenMetaData.Creator)
 		tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
 		tokenData.Hash = esdtData.TokenMetaData.Hash
@@ -524,6 +526,7 @@ func GetAllESDTData(c *gin.Context) {
 		}
 		if esdtData.TokenMetaData != nil {
 			tokenData.Name = string(esdtData.TokenMetaData.Name)
+			tokenData.Nonce = esdtData.TokenMetaData.Nonce
 			tokenData.Creator = string(esdtData.TokenMetaData.Creator)
 			tokenData.Royalties = big.NewInt(int64(esdtData.TokenMetaData.Royalties)).String()
 			tokenData.Hash = esdtData.TokenMetaData.Hash

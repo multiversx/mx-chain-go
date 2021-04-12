@@ -61,6 +61,7 @@ type esdtNFTTokenData struct {
 	Balance         string   `json:"balance"`
 	Properties      string   `json:"properties"`
 	Name            string   `json:"name"`
+	Nonce           uint64   `json:"nonce"`
 	Creator         string   `json:"creator"`
 	Royalties       string   `json:"royalties"`
 	Hash            []byte   `json:"hash"`
@@ -609,13 +610,14 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 
 	testAddress := "address"
 	testValue := big.NewInt(100).String()
+	testNonce := uint64(37)
 	testProperties := "frozen"
 	facade := mock.Facade{
 		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
 			return &esdt.ESDigitalToken{
 				Value:         big.NewInt(100),
 				Properties:    []byte(testProperties),
-				TokenMetaData: &esdt.MetaData{Creator: []byte(testAddress)}}, nil
+				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, nil
 		},
 	}
 
@@ -631,6 +633,7 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	assert.Equal(t, testValue, esdtResponseObj.Data.Balance)
 	assert.Equal(t, testProperties, esdtResponseObj.Data.Properties)
 	assert.Equal(t, testAddress, esdtResponseObj.Data.Creator)
+	assert.Equal(t, testNonce, esdtResponseObj.Data.Nonce)
 }
 
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
