@@ -16,7 +16,7 @@ func TestCrossShardValidatorDistributor_DistributeValidators_NilDestination(t *t
 
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	err := vd.DistributeValidators(nil, waitingMap, random)
+	err := vd.DistributeValidators(nil, waitingMap, random, false)
 	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
@@ -31,7 +31,7 @@ func TestCrossShardValidatorDistributor_DistributeValidators_DistributesEqually(
 	eligibleMap := generateValidatorMap(nbEligible, nbShards)
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	err := vd.DistributeValidators(eligibleMap, waitingMap, random)
+	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)
 
 	totalNumberAfterDistribution := nbEligible + nbWaiting
@@ -53,7 +53,7 @@ func TestCrossShardValidatorDistributor_DistributeValidators_ShufflesBetweenShar
 
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	err := vd.DistributeValidators(eligibleMap, waitingMap, random)
+	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)
 
 	differentShardCounter := 0
@@ -87,7 +87,7 @@ func TestIntraShardValidatorDistributor_DistributeValidators_NilDestination(t *t
 
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	err := vd.DistributeValidators(nil, waitingMap, random)
+	err := vd.DistributeValidators(nil, waitingMap, random, false)
 	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
@@ -102,7 +102,7 @@ func TestIntraShardValidatorDistributor_DistributeValidators_DistributesEqually(
 	eligibleMap := generateValidatorMap(nbEligible, nbShards)
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
-	err := vd.DistributeValidators(eligibleMap, waitingMap, random)
+	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)
 
 	totalNumberAfterDistribution := nbEligible + nbWaiting
@@ -124,7 +124,7 @@ func TestIntraShardValidatorDistributor_DistributeValidators_ShufflesIntraShard(
 
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	err := vd.DistributeValidators(eligibleMap, waitingMap, random)
+	err := vd.DistributeValidators(eligibleMap, waitingMap, random, false)
 	assert.Nil(t, err)
 
 	differentShardCounter := 0
