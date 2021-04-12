@@ -657,7 +657,7 @@ func prepareNFTWithRoles(
 	issueNFT(nodes, esdtType, "SFT")
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 5
+	nrRoundsToPropagateMultiShard := 10
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -667,7 +667,6 @@ func prepareNFTWithRoles(
 	setRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -682,8 +681,7 @@ func prepareNFTWithRoles(
 	createNFT([]byte(tokenIdentifier), nftCreator, nodes, &nftMetaData)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 5
-	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
+	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 3, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
 	checkNftData(
