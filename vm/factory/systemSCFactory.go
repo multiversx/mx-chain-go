@@ -203,6 +203,7 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 		ESDTSCConfig:           scf.systemSCConfig.ESDTSystemSCConfig,
 		EpochNotifier:          scf.epochNotifier,
 		AddressPubKeyConverter: scf.addressPubKeyConverter,
+		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err

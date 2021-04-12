@@ -13,15 +13,19 @@ import (
 )
 
 const (
-	getConfigPath = "/config"
-	getStatusPath = "/status"
-	economicsPath = "/economics"
-	getESDTsPath  = "/esdts"
+	getConfigPath        = "/config"
+	getStatusPath        = "/status"
+	economicsPath        = "/economics"
+	getESDTsPath         = "/esdts"
+	directStakedInfoPath = "/direct-staked-info"
+	delegatedInfoPath    = "/delegated-info"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetAllIssuedESDTs() ([]string, error)
 	IsInterfaceNil() bool
@@ -33,6 +37,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
 	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
+	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
+	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -159,6 +165,66 @@ func GetAllIssuedESDTs(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"tokens": tokens},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// DirectStakedInfo is the endpoint that will return the directed staked info list
+func DirectStakedInfo(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	directStakedList, err := facade.GetDirectStakedList()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"list": directStakedList},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// DelegatedInfo is the endpoint that will return the delegated list
+func DelegatedInfo(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	delegatedList, err := facade.GetDelegatorsList()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"list": delegatedList},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug/factory"
@@ -82,6 +83,7 @@ type ArgsExporter struct {
 	EpochNotifier             process.EpochNotifier
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
+	TrieSyncerVersion         int
 }
 
 type exportHandlerFactory struct {
@@ -131,6 +133,7 @@ type exportHandlerFactory struct {
 	epochNotifier             process.EpochNotifier
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
+	trieSyncerVersion         int
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -237,6 +240,10 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if args.NumConcurrentTrieSyncers < 1 {
 		return nil, update.ErrInvalidNumConcurrentTrieSyncers
 	}
+	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:         args.TxSignMarshalizer,
@@ -283,6 +290,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		epochNotifier:             args.EpochNotifier,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 
 	return e, nil
@@ -385,6 +393,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
+		TrieSyncerVersion:         e.trieSyncerVersion,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
