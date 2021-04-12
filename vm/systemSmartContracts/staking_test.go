@@ -1872,8 +1872,6 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	oldHead, _ := stakingSmartContract.getWaitingListHead()
-
 	currentOutPutIndex := len(eei.output)
 	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
@@ -1882,8 +1880,20 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	// nothing to stake - as not enough funds
 	assert.Equal(t, currentOutPutIndex, len(eei.output))
 	newHead, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(0), newHead.Length)
 
-	assert.Equal(t, oldHead.Length, newHead.Length)
+	newMaxNodes = int64(1)
+	arguments = CreateVmContractCallInput()
+	arguments.Function = "updateConfigMaxNodes"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{big.NewInt(0).SetInt64(newMaxNodes).Bytes()}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	// stake them again - as they were deleted from waiting list
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKeyy"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
 	validatorData := &ValidatorDataV2{
 		TotalStakeValue: big.NewInt(400),
@@ -1894,6 +1904,13 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
 	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
 
+	newMaxNodes = int64(100)
+	arguments.Arguments = [][]byte{big.NewInt(0).SetInt64(newMaxNodes).Bytes()}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	currentOutPutIndex = len(eei.output)
+	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 	newHead, _ = stakingSmartContract.getWaitingListHead()

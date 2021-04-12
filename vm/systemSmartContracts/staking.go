@@ -1541,6 +1541,49 @@ func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput)
 	return vmcommon.Ok
 }
 
+func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
+	waitingListData *waitingListReturnData,
+	mapCheckedOwners map[string]bool,
+) error {
+	if !s.flagCorrectLastUnjailed.IsSet() {
+		return nil
+	}
+
+	for i, blsKey := range waitingListData.blsKeys {
+		stakedData := waitingListData.stakedDataList[i]
+
+		hasEnoughFunds, err := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
+		if err != nil {
+			return err
+		}
+		if hasEnoughFunds {
+			continue
+		}
+
+		err = s.removeFromWaitingList(blsKey)
+		if err != nil {
+			return err
+		}
+
+		registrationData, err := s.getOrCreateRegisteredData(blsKey)
+		if err != nil {
+			return err
+		}
+
+		registrationData.Staked = false
+		registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+		registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+		registrationData.Waiting = false
+
+		err = s.saveStakingData(blsKey, registrationData)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagStakingV2.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
@@ -1604,6 +1647,12 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	s.addToStakedNodes(int64(stakedNodes))
+
+	err = s.cleanAdditionalQueueNotEnoughFunds(waitingListData, mapCheckedOwners)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
