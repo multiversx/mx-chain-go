@@ -418,6 +418,7 @@ func (nr *nodeRunner) createApiFacade(
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
 		PeerState:       currentNode.stateComponents.PeerAccounts(),
+		Blockchain:      currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)

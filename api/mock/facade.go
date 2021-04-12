@@ -52,6 +52,7 @@ type Facade struct {
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
 	GetProofCalled                          func(string, string) ([][]byte, error)
+	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
 	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
 }
 
@@ -62,6 +63,15 @@ func (f *Facade) GetProof(rootHash string, address string) ([][]byte, error) {
 	}
 
 	return nil, nil
+}
+
+// GetProofCurrentRootHash -
+func (f *Facade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	if f.GetProofCurrentRootHashCalled != nil {
+		return f.GetProofCurrentRootHashCalled(address)
+	}
+
+	return nil, nil, nil
 }
 
 // VerifyProof -

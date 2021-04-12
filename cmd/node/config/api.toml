@@ -131,6 +131,9 @@
 	    # /proof/root-hash/:roothash/address/:address will compute and return the proof in JSON format
 	    { Name = "/root-hash/:roothash/address/:address", Open = true },
 
+	    # /proof/address/:address will compute and return the proof and root hash in JSON format
+        { Name = "/address/:address", Open = true },
+
 	    # /proof/verify will return the response from Merkle proof verification in JSON format
 	    { Name = "/verify", Open = true },
 	]

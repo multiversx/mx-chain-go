@@ -13,15 +13,19 @@ import (
 )
 
 const (
-	getProofEndpoint    = "/proof/root-hash/:roothash/address/:address"
-	verifyProofEndpoint = "/proof/verify"
-	getProofPath        = "/root-hash/:roothash/address/:address"
-	verifyProofPath     = "/verify"
+	getProofCurrentRootHashEndpoint = "/proof/address/:address"
+	getProofEndpoint                = "/proof/root-hash/:roothash/address/:address"
+	verifyProofEndpoint             = "/proof/verify"
+
+	getProofCurrentRootHashPath = "/address/:address"
+	getProofPath                = "/root-hash/:roothash/address/:address"
+	verifyProofPath             = "/verify"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetProof(rootHash string, address string) ([][]byte, error)
+	GetProofCurrentRootHash(address string) ([][]byte, []byte, error)
 	VerifyProof(rootHash string, address string, proof [][]byte) (bool, error)
 }
 
@@ -32,6 +36,12 @@ func Routes(router *wrapper.RouterWrapper) {
 		getProofPath,
 		middleware.CreateEndpointThrottler(getProofEndpoint),
 		GetProof,
+	)
+	router.RegisterHandler(
+		http.MethodGet,
+		getProofCurrentRootHashPath,
+		middleware.CreateEndpointThrottler(getProofCurrentRootHashEndpoint),
+		GetProofCurrentRootHash,
 	)
 	router.RegisterHandler(
 		http.MethodPost,
@@ -103,6 +113,58 @@ func GetProof(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"proof": hexProof},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetProofCurrentRootHash will receive an address from the client, and it will return the
+// Merkle proof for the current root hash
+func GetProofCurrentRootHash(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	address := c.Param("address")
+	if address == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	proof, rootHash, err := facade.GetProofCurrentRootHash(address)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetProof.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	hexProof := make([]string, 0)
+	for _, byteProof := range proof {
+		hexProof = append(hexProof, hex.EncodeToString(byteProof))
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data: gin.H{
+				"proof":    hexProof,
+				"rootHash": hex.EncodeToString(rootHash),
+			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

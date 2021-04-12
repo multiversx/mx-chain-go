@@ -85,6 +85,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		ApiRoutesConfig: createTestApiConfig(),
 		AccountsState:   tpn.AccntState,
 		PeerState:       tpn.PeerState,
+		Blockchain:      tpn.BlockChain,
 	}
 }
 

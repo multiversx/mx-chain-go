@@ -94,6 +94,80 @@ func TestGetProof(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
 }
 
+func TestGetProofCurrentRootHash_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetProofCurrentRootHash_GetProofError(t *testing.T) {
+	t.Parallel()
+
+	err := fmt.Errorf("GetProof error")
+	facade := &mock.Facade{
+		GetProofCurrentRootHashCalled: func(address string) ([][]byte, []byte, error) {
+			return nil, nil, err
+		},
+	}
+
+	ws := startNodeServer(facade)
+	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrGetProof.Error()))
+}
+
+func TestGetProofCurrentRootHash(t *testing.T) {
+	t.Parallel()
+
+	validProof := [][]byte{[]byte("valid"), []byte("proof")}
+	rootHash := []byte("rootHash")
+	facade := &mock.Facade{
+		GetProofCurrentRootHashCalled: func(address string) ([][]byte, []byte, error) {
+			assert.Equal(t, "addr", address)
+			return validProof, rootHash, nil
+		},
+	}
+
+	ws := startNodeServer(facade)
+	req, _ := http.NewRequest("GET", "/proof/address/addr", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeSuccess, response.Code)
+
+	responseMap, ok := response.Data.(map[string]interface{})
+	assert.True(t, ok)
+
+	proofs, ok := responseMap["proof"].([]interface{})
+	assert.True(t, ok)
+
+	proof1 := proofs[0].(string)
+	proof2 := proofs[1].(string)
+
+	assert.Equal(t, hex.EncodeToString([]byte("valid")), proof1)
+	assert.Equal(t, hex.EncodeToString([]byte("proof")), proof2)
+
+	rh, ok := responseMap["rootHash"].(string)
+	assert.True(t, ok)
+	assert.Equal(t, hex.EncodeToString(rootHash), rh)
+}
+
 func TestVerifyProof_NilContextShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -251,6 +325,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			"proof": {
 				Routes: []config.RouteConfig{
 					{Name: "/root-hash/:roothash/address/:address", Open: true},
+					{Name: "/address/:address", Open: true},
 					{Name: "/verify", Open: true},
 				},
 			},

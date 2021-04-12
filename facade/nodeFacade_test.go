@@ -51,6 +51,7 @@ func createMockArguments() ArgNodeFacade {
 		}},
 		AccountsState: &mock.AccountsStub{},
 		PeerState:     &mock.AccountsStub{},
+		Blockchain:    &mock.ChainHandlerStub{},
 	}
 }
 
