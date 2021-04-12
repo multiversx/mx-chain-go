@@ -412,14 +412,21 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	if !ok {
 		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
-	sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
+	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
+	if err != nil {
+		return err
+	}
 
 	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
 	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
 		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
-	sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
+
+	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
+	if err != nil {
+		return err
+	}
 
 	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
 	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
@@ -432,15 +439,23 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 // on the available resolver and should be called only from this storage-base bootstrap instance.
 // This method also copies the MiniBlockHeaders slice pointer. Otherwise the node will end up stating
 // "start of epoch metablock mismatch"
-func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) {
+func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
 	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
+	var err error
+
 	for i := range originalMiniblocksHeaders {
 		mb := originalMiniblocksHeaders[i].ShallowClone()
-		mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) //it is safe to modify here as mbh is passed by value
+		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) //it is safe to modify here as mbh is passed by value
+		if err != nil {
+			return err
+		}
+
 		mbsHeaderHandlersToSet = append(mbsHeaderHandlersToSet, mb)
 	}
-	metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
+
+	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
+	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

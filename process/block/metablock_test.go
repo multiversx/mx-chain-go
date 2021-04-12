@@ -2634,10 +2634,17 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	assert.Nil(t, err)
 
 	headerHandler := mp.CreateNewHeader(round, nonce)
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	err = headerHandler.SetRound(uint64(1))
+	assert.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	assert.Nil(t, err)
 
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
@@ -2783,12 +2790,21 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	err = headerHandler.SetRound(uint64(1))
+	assert.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	assert.Nil(t, err)
+
 	metaHeaderHandler, _ := headerHandler.(data.MetaHeaderHandler)
-	metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	err = metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	assert.Nil(t, err)
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false

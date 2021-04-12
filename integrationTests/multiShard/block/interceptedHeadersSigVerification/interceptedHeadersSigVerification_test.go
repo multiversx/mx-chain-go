@@ -64,8 +64,11 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	round := uint64(1)
 	nonce := uint64(1)
 
+	var err error
 	body, header, _, _ := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
-	header = fillHeaderFields(nodesMap[0][0], header, singleSigner)
+	header, err = fillHeaderFields(nodesMap[0][0], header, singleSigner)
+	assert.Nil(t, err)
+
 	nodesMap[0][0].BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
@@ -216,8 +219,12 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 
 	body, header, _, consensusNodes := integrationTests.ProposeBlockWithConsensusSignature(0, nodesMap, round, nonce, randomness, 0)
 	nodeToSendFrom := consensusNodes[0]
-	header.SetPrevRandSeed(randomness)
-	header = fillHeaderFields(nodeToSendFrom, header, singleSigner)
+	err := header.SetPrevRandSeed(randomness)
+	assert.Nil(t, err)
+
+	header, err = fillHeaderFields(nodeToSendFrom, header, singleSigner)
+	assert.Nil(t, err)
+
 	nodeToSendFrom.BroadcastBlock(body, header)
 
 	time.Sleep(broadcastDelay)
@@ -309,17 +316,27 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	}
 }
 
-func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) data.HeaderHandler {
+func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) (data.HeaderHandler, error) {
 	leaderSk := proposer.NodeKeys.Sk
 
 	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
-	hdr.SetRandSeed(randSeed)
+	err := hdr.SetRandSeed(randSeed)
+	if err != nil {
+		return nil, err
+	}
 
 	hdrClone := hdr.ShallowClone()
-	hdrClone.SetLeaderSignature(nil)
+	err = hdrClone.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	headerJsonBytes, _ := integrationTests.TestMarshalizer.Marshal(hdrClone)
 	leaderSign, _ := signer.Sign(leaderSk, headerJsonBytes)
-	hdr.SetLeaderSignature(leaderSign)
+	err = hdr.SetLeaderSignature(leaderSign)
+	if err != nil {
+		return nil, err
+	}
 
-	return hdr
+	return hdr, nil
 }

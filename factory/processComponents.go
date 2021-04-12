@@ -370,7 +370,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, errors.New("genesis meta block invalid")
 	}
 
-	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
 		return nil, err

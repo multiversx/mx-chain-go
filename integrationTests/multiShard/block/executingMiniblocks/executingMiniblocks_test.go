@@ -435,7 +435,8 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	}
 
 	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
-	header.SetPubKeysBitmap(bitmap)
+	err := header.SetPubKeysBitmap(bitmap)
+	assert.Nil(t, err)
 
 	firstNodeOnMeta.CommitBlock(body, header)
 
