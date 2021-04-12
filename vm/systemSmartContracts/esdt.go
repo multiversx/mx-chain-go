@@ -46,7 +46,7 @@ type esdt struct {
 	eei                    vm.SystemEI
 	gasCost                vm.GasCost
 	baseIssuingCost        *big.Int
-	ownerAddress           []byte
+	ownerAddress           []byte // do not use this in functions. Should use e.getEsdtOwner()
 	eSDTSCAddress          []byte
 	endOfEpochSCAddress    []byte
 	marshalizer            marshal.Marshalizer
@@ -769,7 +769,13 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 }
 
 func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	isCorrectCaller := bytes.Equal(args.CallerAddr, e.ownerAddress) || bytes.Equal(args.CallerAddr, e.endOfEpochSCAddress)
+	owner, err := e.getEsdtOwner()
+	if err != nil {
+		e.eei.AddReturnMessage(fmt.Sprintf("could not get stored owner, error: %s", err.Error()))
+		return vmcommon.UserError
+	}
+
+	isCorrectCaller := bytes.Equal(args.CallerAddr, owner) || bytes.Equal(args.CallerAddr, e.endOfEpochSCAddress)
 	if !isCorrectCaller {
 		e.eei.AddReturnMessage("configChange can be called by whitelisted address only")
 		return vmcommon.UserError
@@ -778,7 +784,7 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.UserError
 	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err = e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -818,7 +824,13 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+	owner, err := e.getEsdtOwner()
+	if err != nil {
+		e.eei.AddReturnMessage(fmt.Sprintf("could not get stored owner, error: %s", err.Error()))
+		return vmcommon.UserError
+	}
+
+	if !bytes.Equal(args.CallerAddr, owner) {
 		e.eei.AddReturnMessage("claim can be called by whitelisted address only")
 		return vmcommon.UserError
 	}
@@ -826,7 +838,7 @@ func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.UserError
 	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err = e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -1404,6 +1416,15 @@ func (e *esdt) getESDTConfig() (*ESDTConfig, error) {
 
 	err := e.marshalizer.Unmarshal(esdtConfig, marshalledData)
 	return esdtConfig, err
+}
+
+func (e *esdt) getEsdtOwner() ([]byte, error) {
+	esdtConfig, err := e.getESDTConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return esdtConfig.OwnerAddress, nil
 }
 
 func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
