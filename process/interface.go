@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -1071,14 +1071,12 @@ type CryptoComponentsHolder interface {
 // This could be an elastic search index, a MySql database or any other external services.
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc TransactionLogProcessorDatabase)
-	//SaveBlock TODO add a structure instead of these params
-	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler,
-		signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
+	SaveBlock(args *indexer.ArgsSaveBlockData)
 	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfo(roundsInfos []workItems.RoundInfo)
+	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo)
+	SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo)
 	SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool

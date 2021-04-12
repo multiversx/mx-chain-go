@@ -20,6 +20,7 @@ type intermediateProcessorsContainerFactory struct {
 	pubkeyConverter  core.PubkeyConverter
 	store            dataRetriever.StorageService
 	poolsHolder      dataRetriever.PoolsHolder
+	economicsFee     process.FeeHandler
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -30,6 +31,7 @@ func NewIntermediateProcessorsContainerFactory(
 	pubkeyConverter core.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
+	economicsFee process.FeeHandler,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -50,6 +52,9 @@ func NewIntermediateProcessorsContainerFactory(
 	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	return &intermediateProcessorsContainerFactory{
 		shardCoordinator: shardCoordinator,
@@ -58,6 +63,7 @@ func NewIntermediateProcessorsContainerFactory(
 		pubkeyConverter:  pubkeyConverter,
 		store:            store,
 		poolsHolder:      poolsHolder,
+		economicsFee:     economicsFee,
 	}, nil
 }
 
@@ -107,6 +113,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),
+		ppcm.economicsFee,
 	)
 
 	return irp, err
@@ -120,6 +127,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createReceiptIntermediatePro
 		ppcm.store,
 		block.ReceiptBlock,
 		dataRetriever.UnsignedTransactionUnit,
+		ppcm.economicsFee,
 	)
 
 	return irp, err
@@ -133,6 +141,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		ppcm.store,
 		block.InvalidBlock,
 		dataRetriever.TransactionUnit,
+		ppcm.economicsFee,
 	)
 
 	return irp, err

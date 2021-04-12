@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"net/http"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
@@ -74,7 +73,6 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
-	server                 *http.Server
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -358,12 +356,6 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Bloc
 
 // Close will cleanup started go routines
 func (nf *nodeFacade) Close() error {
-	log.Debug("shutting down webserver...")
-	err := nf.server.Shutdown(nf.ctx)
-	if err != nil {
-		log.Error("failed shutting down the webserver", "error", err.Error())
-	}
-
 	log.LogIfError(nf.apiResolver.Close())
 
 	nf.cancelFunc()

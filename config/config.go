@@ -493,4 +493,5 @@ type ConfigurationPathsHolder struct {
 type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
 }

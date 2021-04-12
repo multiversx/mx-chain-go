@@ -18,7 +18,6 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-const minHashesToRequest = 10
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
 //TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
@@ -373,15 +372,16 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.whiteList.Add(itemsToRequest)
 
 	elapsedTime := time.Since(rrh.lastTrieRequestTime)
-	if len(rrh.trieHashesAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
+	if elapsedTime < timeToAccumulateTrieHashes {
 		return
 	}
 
-	log.Debug("requesting trie nodes from network",
+	log.Trace("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(rrh.trieHashesAccumulator),
 		"firstHash", unrequestedHashes[0],
+		"added", len(hashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
@@ -400,15 +400,23 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	for _, txHash := range rrh.trieHashesAccumulator {
-		log.Trace("requestByHashes", "hash", txHash)
-	}
+	rrh.logTrieHashesFromAccumulator()
 
 	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
 
 	rrh.addRequestedItems(itemsToRequest)
 	rrh.lastTrieRequestTime = time.Now()
 	rrh.trieHashesAccumulator = make(map[string]struct{})
+}
+
+func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	for _, txHash := range rrh.trieHashesAccumulator {
+		log.Trace("requestByHashes", "hash", txHash)
+	}
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce

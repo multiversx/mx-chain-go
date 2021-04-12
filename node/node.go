@@ -62,15 +62,15 @@ type Node struct {
 
 	networkShardingCollector NetworkShardingCollector
 
-	consensusType  string
+	consensusType string
 
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	txSentCounter  uint32
-	txAcumulator   core.Accumulator
+	txSentCounter uint32
+	txAcumulator  core.Accumulator
 
 	addressSignatureSize    int
 	addressSignatureHexSize int
@@ -195,7 +195,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 
 // GetAllESDTTokens returns the value of a key from a given account
 func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
-	account, err := n.getAccountHandler(address)
+	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
 	}
@@ -333,6 +333,32 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
+}
+
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
+		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
+		check.IfNil(n.dataComponents.Blockchain())
+	if componentsNotInitialized {
+		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first")
+	}
+
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+	}
+
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return nil, nil
+	}
+
+	err = n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
@@ -947,7 +973,7 @@ func (n *Node) Close() error {
 	return closeError
 }
 
-// Returns true if the node is in import mode
+// IsInImportMode returns true if the node is in import mode
 func (n *Node) IsInImportMode() bool {
 	return n.isInImportMode
 }
