@@ -40,6 +40,11 @@ func (cache *DisabledCache) Len() int {
 	return 0
 }
 
+// SizeInBytesContained returns 0
+func (cache *DisabledCache) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // NumBytes returns zero
 func (cache *DisabledCache) NumBytes() int {
 	return 0

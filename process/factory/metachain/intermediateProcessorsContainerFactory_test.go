@@ -24,6 +24,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -40,6 +41,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -56,6 +58,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -72,6 +75,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -88,10 +92,45 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		createMockPubkeyConverter(),
 		nil,
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, ipcf)
 	assert.Equal(t, process.ErrNilStorage, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilPoolsHolder(t *testing.T) {
+	t.Parallel()
+
+	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		nil,
+		&mock.FeeHandlerStub{},
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilPoolsHolder, err)
+}
+
+func TestNewIntermediateProcessorsContainerFactory_NilEconomicsFeeHandler(t *testing.T) {
+	t.Parallel()
+
+	ipcf, err := metachain.NewIntermediateProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		testscommon.NewPoolsHolderMock(),
+		nil,
+	)
+
+	assert.Nil(t, ipcf)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
@@ -104,6 +143,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -121,6 +161,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		testscommon.NewPoolsHolderMock(),
+		&mock.FeeHandlerStub{},
 	)
 
 	assert.Nil(t, err)

@@ -9,6 +9,7 @@ import (
 type StateComponentsHolderStub struct {
 	PeerAccountsCalled        func() state.AccountsAdapter
 	AccountsAdapterCalled     func() state.AccountsAdapter
+	AccountsAdapterAPICalled  func() state.AccountsAdapter
 	TriesContainerCalled      func() state.TriesHolder
 	TrieStorageManagersCalled func() map[string]data.StorageManager
 }
@@ -26,6 +27,15 @@ func (s *StateComponentsHolderStub) PeerAccounts() state.AccountsAdapter {
 func (s *StateComponentsHolderStub) AccountsAdapter() state.AccountsAdapter {
 	if s.AccountsAdapterCalled != nil {
 		return s.AccountsAdapterCalled()
+	}
+
+	return nil
+}
+
+// AccountsAdapterAPI -
+func (s *StateComponentsHolderStub) AccountsAdapterAPI() state.AccountsAdapter {
+	if s.AccountsAdapterAPICalled != nil {
+		return s.AccountsAdapterAPICalled()
 	}
 
 	return nil

@@ -197,6 +197,11 @@ func (cache *TxCache) Len() int {
 	return int(cache.CountTx())
 }
 
+// SizeInBytesContained returns 0
+func (cache *TxCache) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // CountSenders gets the number of senders in the cache
 func (cache *TxCache) CountSenders() uint64 {
 	return cache.txListBySender.counter.GetUint64()
