@@ -151,6 +151,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 			callArgs,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 
@@ -263,6 +264,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 			nftTransferCallArgs,
 			vmInput.GasLocked,
 			gasToTransfer,
+			vmInput.CallType,
 			vmOutput)
 
 		return nil
@@ -280,6 +282,7 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 			callArgs,
 			dstAddress,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 
@@ -333,6 +336,7 @@ func addNFTTransferToVMOutput(
 	arguments [][]byte,
 	gasLocked uint64,
 	gasLimit uint64,
+	callType vmcommon.CallType,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	nftTransferTxData := core.BuiltInFunctionESDTNFTTransfer
@@ -344,7 +348,7 @@ func addNFTTransferToVMOutput(
 		GasLimit:      gasLimit,
 		GasLocked:     gasLocked,
 		Data:          []byte(nftTransferTxData),
-		CallType:      vmcommon.AsynchronousCall,
+		CallType:      callType,
 		SenderAddress: senderAddress,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)

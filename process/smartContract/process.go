@@ -346,7 +346,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
-	vmExec, err := findVMByTransaction(sc.vmContainer, tx)
+	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
@@ -793,7 +793,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		}
 	}
 
-	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, acntDst, snapshot)
+	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
@@ -921,10 +921,9 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
 	acntSnd state.UserAccountHandler,
-	acntDst state.UserAccountHandler,
 	snapshot int,
 ) (bool, *vmcommon.VMOutput, *vmcommon.ContractCallInput, error) {
-	isSCCall, newVMInput, err := sc.isSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntDst)
+	isSCCall, newVMInput, err := sc.isSCExecutionAfterBuiltInFunc(tx, vmInput, vmOutput)
 	if !isSCCall {
 		return false, vmOutput, vmInput, nil
 	}
@@ -936,13 +935,17 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	err = sc.checkUpgradePermission(acntDst, newVMInput)
+	newDestSC, err := sc.getAccountFromAddress(vmInput.RecipientAddr)
+	if err != nil {
+		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
+	}
+	err = sc.checkUpgradePermission(newDestSC, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
 		return true, userErrorVmOutput, newVMInput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, acntDst)
+	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, newDestSC)
 	if err != nil {
 		return true, userErrorVmOutput, newVMInput, err
 	}
@@ -957,12 +960,8 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	tx data.TransactionHandler,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
-	acntDst state.UserAccountHandler,
 ) (bool, *vmcommon.ContractCallInput, error) {
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return false, nil, nil
-	}
-	if check.IfNil(acntDst) {
 		return false, nil, nil
 	}
 	recipient := vmInput.RecipientAddr
@@ -973,6 +972,9 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		recipient = vmInput.Arguments[3]
 	}
 	if !core.IsSmartContractAddress(recipient) {
+		return false, nil, nil
+	}
+	if sc.shardCoordinator.ComputeId(recipient) != sc.shardCoordinator.SelfId() {
 		return false, nil, nil
 	}
 
