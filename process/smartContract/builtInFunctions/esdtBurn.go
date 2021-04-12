@@ -105,6 +105,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 

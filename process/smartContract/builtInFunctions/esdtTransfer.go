@@ -138,6 +138,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				callArgs,
 				vmInput.RecipientAddr,
 				vmInput.GasLocked,
+				vmInput.CallType,
 				vmOutput)
 
 			return vmOutput, nil
@@ -159,6 +160,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 
@@ -186,6 +188,7 @@ func addOutputTransferToVMOutput(
 	arguments [][]byte,
 	recipient []byte,
 	gasLocked uint64,
+	callType vmcommon.CallType,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	esdtTransferTxData := function
@@ -197,7 +200,7 @@ func addOutputTransferToVMOutput(
 		GasLimit:      vmOutput.GasRemaining,
 		GasLocked:     gasLocked,
 		Data:          []byte(esdtTransferTxData),
-		CallType:      vmcommon.AsynchronousCall,
+		CallType:      callType,
 		SenderAddress: senderAddress,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
