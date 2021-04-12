@@ -232,6 +232,11 @@ func (s *stakingSC) canStake() bool {
 	return stakeConfig.StakedNodes < stakeConfig.MaxNumNodes
 }
 
+func (s *stakingSC) canStakeIfOneRemoved() bool {
+	stakeConfig := s.getConfig()
+	return stakeConfig.StakedNodes <= stakeConfig.MaxNumNodes
+}
+
 func (s *stakingSC) canUnStake() bool {
 	return s.numSpareNodes() > 0
 }
@@ -652,11 +657,15 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	_, err = s.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
+	if addOneFromQueue {
+		_, err = s.moveFirstFromWaitingToStaked()
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
+
 	if !s.canUnStake() {
 		s.eei.AddReturnMessage("unStake is not possible as too many left")
 		return vmcommon.UserError
@@ -685,6 +694,10 @@ func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, e
 		return false, s.removeFromWaitingList(blsKey)
 	}
 
+	return s.moveFirstFromWaitingToStaked()
+}
+
+func (s *stakingSC) moveFirstFromWaitingToStaked() (bool, error) {
 	waitingList, err := s.getWaitingListHead()
 	if err != nil {
 		return false, err
