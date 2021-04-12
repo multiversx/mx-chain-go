@@ -52,7 +52,7 @@ const durationCheckConnections = time.Second
 const refreshPeersOnTopic = time.Second * 3
 const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
-const acceptMessagesInAdvanceDuration = 5 * time.Second //we are accepting the messages with timestamp in the future only fot this delta
+const acceptMessagesInAdvanceDuration = 20 * time.Second //we are accepting the messages with timestamp in the future only for this delta
 const broadcastGoRoutines = 1000
 const timeBetweenPeerPrints = time.Second * 20
 const timeBetweenExternalLoggersCheck = time.Second * 20
@@ -819,7 +819,7 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
-			log.Trace("p2p validator - new message", "error", err.Error(), "topic", message.Topic)
+			log.Trace("p2p validator - new message", "error", err.Error(), "topic", topic)
 			return false
 		}
 
@@ -827,7 +827,7 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
-				"topic", message.Topic,
+				"topic", topic,
 				"originator", p2p.MessageOriginatorPid(msg),
 				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
@@ -903,8 +903,7 @@ func (netMes *networkMessenger) validMessageByTimestamp(msg p2p.MessageP2P) erro
 			p2p.ErrMessageTooNew, now.Unix(), msg.Timestamp())
 	}
 
-	past := now.Unix() - int64(pubsubTimeCacheDuration.Seconds()) + int64(acceptMessagesInAdvanceDuration.Seconds())
-
+	past := now.Unix() - int64(pubsubTimeCacheDuration.Seconds())
 	if msg.Timestamp() < past {
 		return fmt.Errorf("%w, self timestamp %d, message timestamp %d",
 			p2p.ErrMessageTooOld, now.Unix(), msg.Timestamp())
@@ -1057,7 +1056,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 		}
-		netMes.debugger.AddIncomingMessage(topic, uint64(len(msg.Data())), errProcess != nil)
+		netMes.debugger.AddIncomingMessage(msg.Topic(), uint64(len(msg.Data())), errProcess != nil)
 	}(msg)
 
 	return nil

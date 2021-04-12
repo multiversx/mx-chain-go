@@ -62,6 +62,9 @@
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 4
 
+    # CorrectLastUnjailedEpoch represents the epoch when the fix regaring the last unjailed node should apply
+    CorrectLastUnjailedEpoch = 6
+
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
