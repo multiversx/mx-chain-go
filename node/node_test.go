@@ -247,13 +247,21 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+		return nil
+	}
 
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
 	)
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
@@ -342,7 +350,11 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			},
 		})
 
-	accDB := &mock.AccountsStub{}
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
@@ -351,7 +363,12 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		}),
 	)
 
 	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
@@ -1781,7 +1798,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1864,7 +1881,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1924,7 +1941,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1972,7 +1989,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -2002,7 +2019,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
+		node.WithIndexer(&mock.IndexerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -2725,6 +2742,9 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 	assert.Equal(t, len(txsToSend), int(numTxs))
 	assert.Nil(t, err)
 
+	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
+	time.Sleep(time.Second + time.Millisecond*500)
+
 	select {
 	case <-chDone:
 	case <-time.After(timeoutWait):
@@ -3017,4 +3037,85 @@ func TestNode_StartHeartbeat(t *testing.T) {
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
+}
+
+func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
+}
+
+func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, nil
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, node.ErrAccountNotFound, err)
+}
+
+func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return nil, nil
+			},
+		}),
+		node.WithAccountsAdapterAPI(&mock.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				return expectedErr
+			},
+		}),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, expectedErr, err)
 }

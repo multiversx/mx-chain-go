@@ -467,15 +467,15 @@ func hardForkImport(
 					MinUnstakeTokensValue:                "1",
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-					BaseIssuingCost:    "100",
-					MinCreationDeposit: "100",
-					EnabledEpoch:       0,
+					MinCreationDeposit:  "100",
+					EnabledEpoch:        0,
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-					MinStakeAmount: "100",
-					EnabledEpoch:   0,
-					MinServiceFee:  0,
-					MaxServiceFee:  100,
+					EnabledEpoch:  0,
+					MinServiceFee: 0,
+					MaxServiceFee: 100,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
@@ -619,6 +619,7 @@ func createHardForkExporter(
 			EpochNotifier:             &mock.EpochNotifierStub{},
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
+			TrieSyncerVersion:         2,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

@@ -367,8 +367,18 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue will return total staked value
-func (nf *nodeFacade) GetTotalStakedValue() (*big.Int, error) {
+func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
 	return nf.apiResolver.GetTotalStakedValue()
+}
+
+// GetDirectStakedList will output the list for the direct staked addresses
+func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error) {
+	return nf.apiResolver.GetDirectStakedList()
+}
+
+// GetDelegatorsList will output the list for the delegators addresses
+func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
+	return nf.apiResolver.GetDelegatorsList()
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie

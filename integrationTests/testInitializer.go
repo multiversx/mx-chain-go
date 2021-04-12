@@ -318,7 +318,7 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(100000)
+	persist, _ := memorydb.NewlruDB(10000000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
@@ -580,15 +580,14 @@ func CreateFullGenesisBlocks(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "100",
 				MinCreationDeposit: "100",
 				EnabledEpoch:       0,
+				MinStakeAmount:     "100",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "100",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
 		AccountsParser:      accountsParser,
@@ -680,15 +679,15 @@ func CreateGenesisMetaBlock(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "100",
-				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
+				MinCreationDeposit:  "100",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "100",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
 		BlockSignKeyGen:    &mock.KeyGenMock{},

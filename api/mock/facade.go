@@ -50,7 +50,9 @@ type Facade struct {
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
-	GetTotalStakedValueHandler              func() (*big.Int, error)
+	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
+	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
 }
 
 // GetUsername -
@@ -188,7 +190,7 @@ func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, e
 	return f.SendBulkTransactionsHandler(txs)
 }
 
-//ValidateTransaction --
+// ValidateTransaction -
 func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
 }
@@ -214,11 +216,21 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // GetTotalStakedValue -
-func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return f.GetTotalStakedValueHandler()
 }
 
-// ComputeTransactionGasLimit --
+// GetDirectStakedList -
+func (f *Facade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return f.GetDirectStakedListHandler()
+}
+
+// GetDelegatorsList -
+func (f *Facade) GetDelegatorsList() ([]*api.Delegator, error) {
+	return f.GetDelegatorsListHandler()
+}
+
+// ComputeTransactionGasLimit -
 func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }

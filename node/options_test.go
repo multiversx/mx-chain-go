@@ -176,6 +176,32 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithAccountsAdapterAPI_NilAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithAccountsAdapterAPI(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.accountsAPI)
+	assert.Equal(t, ErrNilAccountsAdapter, err)
+}
+
+func TestWithAccountsAdapterAPI_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	accounts := &mock.AccountsStub{}
+
+	opt := WithAccountsAdapterAPI(accounts)
+	err := opt(node)
+
+	assert.True(t, node.accountsAPI == accounts)
+	assert.Nil(t, err)
+}
+
 func TestWithAddressPubkeyConverter_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -855,7 +881,7 @@ func TestWithIndexer_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	indexer := &mock.IndexerMock{}
+	indexer := &mock.IndexerStub{}
 	opt := WithIndexer(indexer)
 	err := opt(node)
 

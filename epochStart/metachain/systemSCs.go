@@ -43,6 +43,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
+	CorrectLastUnJailEnableEpoch           uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
 	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
@@ -52,33 +53,36 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 }
 
 type systemSCProcessor struct {
-	systemVM                  vmcommon.VMExecutionHandler
-	userAccountsDB            state.AccountsAdapter
-	marshalizer               marshal.Marshalizer
-	peerAccountsDB            state.AccountsAdapter
-	chanceComputer            sharding.ChanceComputer
-	shardCoordinator          sharding.Coordinator
-	startRating               uint32
-	validatorInfoCreator      epochStart.ValidatorInfoCreator
-	genesisNodesConfig        sharding.GenesisNodesSetupHandler
-	nodesConfigProvider       epochStart.NodesConfigProvider
-	stakingDataProvider       epochStart.StakingDataProvider
-	endOfEpochCallerAddress   []byte
-	stakingSCAddress          []byte
-	switchEnableEpoch         uint32
-	hystNodesEnableEpoch      uint32
-	delegationEnableEpoch     uint32
-	stakingV2EnableEpoch      uint32
-	maxNodesEnableConfig      []config.MaxNodesChangeConfig
-	maxNodes                  uint32
-	flagSwitchJailedWaiting   atomic.Flag
-	flagHystNodesEnabled      atomic.Flag
-	flagDelegationEnabled     atomic.Flag
-	flagSetOwnerEnabled       atomic.Flag
-	flagChangeMaxNodesEnabled atomic.Flag
-	flagStakingV2Enabled      atomic.Flag
-	mapNumSwitchedPerShard    map[uint32]uint32
-	mapNumSwitchablePerShard  map[uint32]uint32
+	systemVM                       vmcommon.VMExecutionHandler
+	userAccountsDB                 state.AccountsAdapter
+	marshalizer                    marshal.Marshalizer
+	peerAccountsDB                 state.AccountsAdapter
+	chanceComputer                 sharding.ChanceComputer
+	shardCoordinator               sharding.Coordinator
+	startRating                    uint32
+	validatorInfoCreator           epochStart.ValidatorInfoCreator
+	genesisNodesConfig             sharding.GenesisNodesSetupHandler
+	nodesConfigProvider            epochStart.NodesConfigProvider
+	stakingDataProvider            epochStart.StakingDataProvider
+	endOfEpochCallerAddress        []byte
+	stakingSCAddress               []byte
+	switchEnableEpoch              uint32
+	hystNodesEnableEpoch           uint32
+	delegationEnableEpoch          uint32
+	stakingV2EnableEpoch           uint32
+	correctLastUnJailEpoch         uint32
+	maxNodesEnableConfig           []config.MaxNodesChangeConfig
+	maxNodes                       uint32
+	flagSwitchJailedWaiting        atomic.Flag
+	flagHystNodesEnabled           atomic.Flag
+	flagDelegationEnabled          atomic.Flag
+	flagSetOwnerEnabled            atomic.Flag
+	flagChangeMaxNodesEnabled      atomic.Flag
+	flagStakingV2Enabled           atomic.Flag
+	flagCorrectLastUnjailedEnabled atomic.Flag
+	flagCorrectNumNodesToStake     atomic.Flag
+	mapNumSwitchedPerShard         map[uint32]uint32
+	mapNumSwitchablePerShard       map[uint32]uint32
 }
 
 type validatorList []*state.ValidatorInfo
@@ -163,6 +167,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		stakingDataProvider:      args.StakingDataProvider,
 		nodesConfigProvider:      args.NodesConfigProvider,
 		shardCoordinator:         args.ShardCoordinator,
+		correctLastUnJailEpoch:   args.CorrectLastUnJailEnableEpoch,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -197,6 +202,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 	if s.flagChangeMaxNodesEnabled.IsSet() {
 		err := s.updateMaxNodes(validatorInfos, nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagCorrectLastUnjailedEnabled.IsSet() {
+		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
@@ -292,6 +304,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
+	nodesUnStakedFromAdditionalQueue := uint32(0)
+
 	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
 	for _, blsKey := range nodesToUnStake {
 		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
@@ -302,6 +316,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
+			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
 		}
@@ -314,7 +329,12 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
-	return uint32(len(nodesToUnStake)), nil
+	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
+	if s.flagCorrectNumNodesToStake.IsSet() {
+		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	}
+
+	return nodesToStakeFromQueue, nil
 }
 
 func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
@@ -570,6 +590,34 @@ func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 	err := s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
 
 	return err
+}
+
+func (s *systemSCProcessor) resetLastUnJailed() error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "resetLastUnJailedFromQueue",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrResetLastUnJailedFromQueue
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // updates the configuration of the system SC if the flags permit
@@ -1245,4 +1293,10 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
 	)
+
+	s.flagCorrectLastUnjailedEnabled.Toggle(epoch == s.correctLastUnJailEpoch)
+	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
+
+	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
+	log.Debug("systemSCProcessor: correct num nodes to stake", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 }

@@ -60,15 +60,22 @@
          # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
         { Name = "/status", Open = true },
 
-        # /network/total-staked will return total staked value
-        { Name = "/total-staked", Open = true },
-
         # /network/economics will return all economics related metrics
         { Name = "/economics", Open = true },
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/direct-staked-info will return a list containing direct staked list of addresses
+        # and their staked values
+        # TODO make this endpoint closed by default after the initial tests are performed
+        {Name = "/direct-staked-info", Open = true},
+
+        # /network/delegated-info will return a list containing delegated list of addresses
+        # and their staked values on the system delegation smart contracts
+        # TODO make this endpoint closed by default after the initial tests are performed
+        {Name = "/delegated-info", Open = true}
 	]
 
 [APIPackages.log]

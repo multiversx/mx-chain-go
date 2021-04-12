@@ -1,9 +1,8 @@
 package external
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -34,6 +33,18 @@ type TransactionCostHandler interface {
 
 // TotalStakedValueHandler defines the behavior of a component able to return total staked value
 type TotalStakedValueHandler interface {
-	GetTotalStakedValue() (*big.Int, error)
+	GetTotalStakedValue() (*api.StakeValues, error)
+	IsInterfaceNil() bool
+}
+
+// DirectStakedListHandler defines the behavior of a component able to return the direct stake list
+type DirectStakedListHandler interface {
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	IsInterfaceNil() bool
+}
+
+// DelegatedListHandler defines the behavior of a component able to return the complete delegated list
+type DelegatedListHandler interface {
+	GetDelegatorsList() ([]*api.Delegator, error)
 	IsInterfaceNil() bool
 }

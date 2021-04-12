@@ -17,12 +17,14 @@ type StakingSystemSCConfig struct {
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
+	UnBondPeriodInEpochs                 uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
 	StakingV2Epoch                       uint32
 	StakeEnableEpoch                     uint32
+	CorrectLastUnjailedEpoch             uint32
 	DoubleKeyProtectionEnableEpoch       uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
@@ -46,15 +48,15 @@ type GovernanceSystemSCConfig struct {
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract
 type DelegationManagerSystemSCConfig struct {
-	BaseIssuingCost    string
-	MinCreationDeposit string
-	EnabledEpoch       uint32
+	MinCreationDeposit  string
+	EnabledEpoch        uint32
+	MinStakeAmount      string
+	ConfigChangeAddress string
 }
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract
 type DelegationSystemSCConfig struct {
-	MinStakeAmount string
-	EnabledEpoch   uint32
-	MinServiceFee  uint64
-	MaxServiceFee  uint64
+	EnabledEpoch  uint32
+	MinServiceFee uint64
+	MaxServiceFee uint64
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -700,7 +701,13 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 
 	if !args.indexer.IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+
+		arg := &indexer.ArgsSaveBlockData{
+			HeaderHash: genesisBlockHash,
+			Body:       &dataBlock.Body{},
+			Header:     genesisBlockHeader,
+		}
+		args.indexer.SaveBlock(arg)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
@@ -1588,6 +1595,7 @@ func newShardBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
+		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1917,6 +1925,7 @@ func newMetaBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
+		economicsData,
 	)
 	if err != nil {
 		return nil, err
@@ -2246,6 +2255,7 @@ func newMetaBlockProcessor(
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
 		ShardCoordinator:                       shardCoordinator,
+		CorrectLastUnJailEnableEpoch:           systemSCConfig.StakingSystemSCConfig.CorrectLastUnjailedEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -2299,6 +2309,7 @@ func createShardTxSimulatorProcessor(
 		stateComponents.AddressPubkeyConverter,
 		disabled.NewChainStorer(),
 		data.Datapool,
+		&processDisabled.FeeHandler{},
 	)
 	if err != nil {
 		return err
@@ -2369,6 +2380,7 @@ func createMetaTxSimulatorProcessor(
 		stateComponents.AddressPubkeyConverter,
 		disabled.NewChainStorer(),
 		data.Datapool,
+		&processDisabled.FeeHandler{},
 	)
 	if err != nil {
 		return err

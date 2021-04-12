@@ -44,6 +44,8 @@ type stakingSC struct {
 	stakeValue               *big.Int
 	flagEnableStaking        atomic.Flag
 	flagStakingV2            atomic.Flag
+	flagCorrectLastUnjailed  atomic.Flag
+	correctLastUnjailedEpoch uint32
 	stakingV2Epoch           uint32
 	walletAddressLen         int
 	mutExecution             sync.RWMutex
@@ -124,6 +126,7 @@ func NewStakingSmartContract(
 		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
+		correctLastUnjailedEpoch: args.StakingSCConfig.CorrectLastUnjailedEpoch,
 	}
 
 	var conversionOk bool
@@ -198,6 +201,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.unStakeAtEndOfEpoch(args)
 	case "getTotalNumberOfRegisteredNodes":
 		return s.getTotalNumberOfRegisteredNodes(args)
+	case "resetLastUnJailedFromQueue":
+		return s.resetLastUnJailedFromQueue(args)
 	}
 
 	return vmcommon.UserError
@@ -960,6 +965,7 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return nil
 	}
 
+	// remove the first element
 	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
 		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 			waitingList.LastJailedKey = make([]byte, 0)
@@ -975,8 +981,11 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
-	copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
+	if !s.flagCorrectLastUnjailed.IsSet() || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
+		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
+	}
+
 	previousElement, err := s.getWaitingListElement(elementToRemove.PreviousKey)
 	if err != nil {
 		return err
@@ -1387,9 +1396,10 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 		return vmcommon.UserError
 	}
 
-	for _, stakedData := range waitingListData.stakedDataList {
-		s.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
-		s.eei.Finish([]byte(strconv.Itoa(int(stakedData.RegisterNonce))))
+	for index, stakedData := range waitingListData.stakedDataList {
+		s.eei.Finish(waitingListData.blsKeys[index])
+		s.eei.Finish(stakedData.RewardAddress)
+		s.eei.Finish(big.NewInt(int64(stakedData.RegisterNonce)).Bytes())
 	}
 
 	return vmcommon.Ok
@@ -1481,6 +1491,40 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 
 	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
 	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
+	return vmcommon.Ok
+}
+
+func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagCorrectLastUnjailed.IsSet() {
+		// backward compatibility
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
+		s.eei.AddReturnMessage("stake nodes from waiting list can be called by endOfEpochAccess address only")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("number of arguments must be equal to 0")
+		return vmcommon.UserError
+	}
+
+	waitingList, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(waitingList.LastJailedKey) == 0 {
+		return vmcommon.Ok
+	}
+
+	waitingList.LastJailedKey = make([]byte, 0)
+	err = s.saveWaitingListHead(waitingList)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
@@ -1635,6 +1679,9 @@ func (s *stakingSC) EpochConfirmed(epoch uint32) {
 
 	s.flagStakingV2.Toggle(epoch >= s.stakingV2Epoch)
 	log.Debug("stakingSC: set owner", "enabled", s.flagStakingV2.IsSet())
+
+	s.flagCorrectLastUnjailed.Toggle(epoch >= s.correctLastUnjailedEpoch)
+	log.Debug("stakingSC: correct last unjailed", "enabled", s.flagCorrectLastUnjailed.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

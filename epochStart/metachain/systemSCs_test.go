@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -237,7 +238,6 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	require.NotNil(t, s)
 
 	owner1 := append([]byte("owner1"), bytes.Repeat([]byte{1}, 26)...)
-
 	blsKeys := [][]byte{
 		[]byte("bls key 1"),
 		[]byte("bls key 2"),
@@ -245,6 +245,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 		[]byte("bls key 4"),
 	}
 
+	_ = s.initDelegationSystemSC()
 	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
 	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys[:3]...)
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
@@ -543,7 +544,7 @@ func addValidatorDataWithUnStakedKey(
 
 	for _, bls := range registeredKeys {
 		validatorData.UnstakedInfo = append(validatorData.UnstakedInfo, &systemSmartContracts.UnstakedValue{
-			UnstakedNonce: 1,
+			UnstakedEpoch: 1,
 			UnstakedValue: nodePrice,
 		})
 
@@ -837,15 +838,15 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "100",
-				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
+				MinCreationDeposit:  "100",
+				EnabledEpoch:        0,
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "aabb00",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "100",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				EnabledEpoch:  0,
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
 		ValidatorAccountsDB: peerAccountsDB,
@@ -1437,6 +1438,27 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
 	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
 	assert.True(t, value[0] == 0)
+}
+
+func TestSystemSCProcessor_ResetUnJailListErrors(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local error")
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	s, _ := NewSystemSCProcessor(args)
+	s.systemVM = &mock.VMExecutionHandlerStub{RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localErr
+	}}
+
+	err := s.resetLastUnJailed()
+	assert.Equal(t, localErr, err)
+
+	s.systemVM = &mock.VMExecutionHandlerStub{RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+	}}
+
+	err = s.resetLastUnJailed()
+	assert.Equal(t, epochStart.ErrResetLastUnJailedFromQueue, err)
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T) {
