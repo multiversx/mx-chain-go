@@ -882,12 +882,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	argsNodesShuffler := &sharding.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNodesPerShard,
-		NodesMeta:            genesisNodesConfig.MetaChainMinNodes,
-		Hysteresis:           genesisNodesConfig.Hysteresis,
-		Adaptivity:           genesisNodesConfig.Adaptivity,
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		NodesShard:                     genesisNodesConfig.MinNodesPerShard,
+		NodesMeta:                      genesisNodesConfig.MetaChainMinNodes,
+		Hysteresis:                     genesisNodesConfig.Hysteresis,
+		Adaptivity:                     genesisNodesConfig.Adaptivity,
+		ShuffleBetweenShards:           true,
+		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
