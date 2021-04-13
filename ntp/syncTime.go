@@ -39,6 +39,8 @@ const maxOffsetPercent = 0.2
 // minTimeout represents the minimum time in milliseconds to wait for a response from a host after a NTP request
 const minTimeout = 100
 
+const outOfBoundsDuration = time.Second
+
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
 	Hosts        []string
@@ -195,17 +197,20 @@ func (s *syncTime) sync() {
 
 	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
 	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
+	isOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean)-outOfBoundsDuration > 0
+	if isOutOfBounds {
+		log.Error("syncTime.sync: clock offset is out of expected bounds",
+			"clock offset harmonic mean", clockOffsetHarmonicMean)
+
+		return
+	}
+
 	s.setClockOffset(clockOffsetHarmonicMean)
 
 	log.Debug("sync.setClockOffset done",
 		"num clock offsets", len(clockOffsets),
 		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
 		"clock offset harmonic mean", clockOffsetHarmonicMean)
-
-	if clockOffsetHarmonicMean < -time.Second || clockOffsetHarmonicMean > time.Second {
-		log.Warn("syncTime.sync: clock offset is out of expected bounds",
-			"clock offset harmonic mean", clockOffsetHarmonicMean)
-	}
 }
 
 func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
@@ -240,6 +245,7 @@ func (s *syncTime) getHarmonicMean(clockOffsets []time.Duration) time.Duration {
 	}
 
 	harmonicMean := float64(len(clockOffsets)) / inverseClockOffsetSum
+	//TODO: figure out why do we need to add 0.5 here
 	return time.Duration(harmonicMean + 0.5)
 }
 

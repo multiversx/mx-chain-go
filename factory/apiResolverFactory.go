@@ -117,10 +117,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	totaltakedHandlerArgs := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:             args.ProcessComponents.ShardCoordinator().SelfId(),
-		InternalMarshalizer: args.CoreComponents.InternalMarshalizer(),
-		Accounts:            args.StateComponents.AccountsAdapter(),
-		NodePrice:           args.Configs.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		ShardID:            args.ProcessComponents.ShardCoordinator().SelfId(),
+		Accounts:           args.StateComponents.AccountsAdapter(),
+		BlockChain:         args.DataComponents.Blockchain(),
+		QueryService:       scQueryService,
+		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	}
 
 	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(totaltakedHandlerArgs)

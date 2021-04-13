@@ -99,6 +99,11 @@ func (cacher *CacherStub) Len() int {
 	return 0
 }
 
+// SizeInBytesContained -
+func (cacher *CacherStub) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // MaxSize -
 func (cacher *CacherStub) MaxSize() int {
 	if cacher.MaxSizeCalled != nil {

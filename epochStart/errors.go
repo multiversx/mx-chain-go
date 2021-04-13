@@ -307,3 +307,6 @@ var ErrInvalidTotalToDistribute = errors.New("invalid total to distribute")
 
 // ErrInvalidRewardsPerBlock signals that the computed rewards per block are invalid
 var ErrInvalidRewardsPerBlock = errors.New("invalid rewards per block")
+
+// ErrResetLastUnJailedFromQueue signals that reset unjailed from queue failed
+var ErrResetLastUnJailedFromQueue = errors.New("reset last unjailed from queue failed")
