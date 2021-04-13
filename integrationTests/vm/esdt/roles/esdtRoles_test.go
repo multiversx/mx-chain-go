@@ -1,4 +1,4 @@
-package esdt
+package roles
 
 import (
 	"encoding/hex"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/require"
@@ -27,14 +28,10 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -46,7 +43,6 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -63,7 +59,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	// /////////------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
-	issueTestToken(nodes, initialSupply.Int64(), "FTT")
+	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -81,7 +77,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
 
 	// mint local new tokens
 	txData := []byte(core.BuiltInFunctionESDTLocalMint + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
@@ -100,7 +96,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000500).Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000500).Int64())
 
 	// burn local  tokens
 	txData = []byte(core.BuiltInFunctionESDTLocalBurn + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
@@ -119,7 +115,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000300).Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000300).Int64())
 }
 
 // Test scenario
@@ -138,14 +134,10 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -157,7 +149,6 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -174,7 +165,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	// /////////------- send token issue
 
 	initialSupply := big.NewInt(10000000000)
-	issueTestToken(nodes, initialSupply.Int64(), "FTT")
+	esdt.IssueTestToken(nodes, initialSupply.Int64(), "FTT")
 	tokenIssuer := nodes[0]
 
 	time.Sleep(time.Second)
@@ -198,8 +189,8 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply.Int64())
 
 	// mint local new tokens
 	txData := []byte(core.BuiltInFunctionESDTLocalMint + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
@@ -219,7 +210,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000000).Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(10000000000).Int64())
 
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalBurn))
 	time.Sleep(time.Second)
@@ -243,7 +234,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(9999999800).Int64())
+	esdt.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, big.NewInt(9999999800).Int64())
 }
 
 func setRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles []byte) {
@@ -253,20 +244,6 @@ func setRole(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, to
 		"@" + hex.EncodeToString(tokenIdentifier) +
 		"@" + hex.EncodeToString(addrForRole) +
 		"@" + hex.EncodeToString(roles)
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
-}
-
-func setRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
-	tokenIssuer := nodes[0]
-
-	txData := "setSpecialRole" +
-		"@" + hex.EncodeToString(tokenIdentifier) +
-		"@" + hex.EncodeToString(addrForRole)
-
-	for _, role := range roles {
-		txData += "@" + hex.EncodeToString(role)
-	}
-
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 }
 
@@ -289,14 +266,10 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -308,7 +281,6 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -322,7 +294,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := deployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "./testdata/egld-esdt-swap.wasm")
+	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/egld-esdt-swap.wasm")
 
 	// issue ESDT by calling exec on dest context on child contract
 	ticker := "DSN"
@@ -381,7 +353,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		if i == 0 {
 			continue
 		}
-		checkAddressHasESDTTokens(t, n.OwnAccount.Address, nodes, string(tokenIdentifier), valueToWrap.Int64())
+		esdt.CheckAddressHasESDTTokens(t, n.OwnAccount.Address, nodes, string(tokenIdentifier), valueToWrap.Int64())
 	}
 
 	for _, n := range nodes {
@@ -401,6 +373,6 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	userAccount := getUserAccountWithAddress(t, scAddress, nodes)
+	userAccount := esdt.GetUserAccountWithAddress(t, scAddress, nodes)
 	require.Equal(t, userAccount.GetBalance(), big.NewInt(0))
 }

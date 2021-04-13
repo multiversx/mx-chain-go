@@ -1,4 +1,4 @@
-package esdt
+package nft
 
 import (
 	"bytes"
@@ -10,8 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/require"
 )
@@ -25,14 +24,10 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -44,7 +39,6 @@ func TestESDTNonFungibleTokenCreateAndBurn(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -117,14 +111,10 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -136,7 +126,6 @@ func TestESDTSemiFungibleTokenCreateAddAndBurn(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -255,14 +244,10 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -274,7 +259,6 @@ func TestESDTNonFungibleTokenTransferSelfShard(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -368,14 +352,10 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -387,7 +367,6 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -517,35 +496,10 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	)
 }
 
-func createNodesAndPrepareBalances(numOfShards int) (p2p.Messenger, []*integrationTests.TestProcessorNode, []int) {
-	nodesPerShard := 1
-	numMetachainNodes := 1
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
-	)
-
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
-	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	return advertiser, nodes, idxProposers
-}
-
 func testNFTSendCreateRole(t *testing.T, numOfShards int) {
-	advertiser, nodes, idxProposers := createNodesAndPrepareBalances(numOfShards)
+	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(numOfShards)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -654,7 +608,7 @@ func prepareNFTWithRoles(
 	quantity int64,
 	roles [][]byte,
 ) (string, *nftArguments) {
-	issueNFT(nodes, esdtType, "SFT")
+	esdt.IssueNFT(nodes, esdtType, "SFT")
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 10
@@ -664,7 +618,7 @@ func prepareNFTWithRoles(
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("SFT")))
 
 	//// /////// ----- set special roles
-	setRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
+	esdt.SetRoles(nodes, nftCreator.OwnAccount.Address, []byte(tokenIdentifier), roles)
 
 	time.Sleep(time.Second)
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, *nonce, *round, idxProposers)
@@ -695,24 +649,6 @@ func prepareNFTWithRoles(
 	)
 
 	return tokenIdentifier, &nftMetaData
-}
-
-func issueNFT(nodes []*integrationTests.TestProcessorNode, esdtType string, ticker string) {
-	tokenName := "token"
-	issuePrice := big.NewInt(1000)
-
-	tokenIssuer := nodes[0]
-
-	txData := txDataBuilder.NewBuilder()
-
-	issueFunc := "issueNonFungible"
-	if esdtType == core.SemiFungibleESDT {
-		issueFunc = "issueSemiFungible"
-	}
-	txData.Clear().Func(issueFunc).Str(tokenName).Str(ticker)
-	txData.CanFreeze(false).CanWipe(false).CanPause(false).CanTransferNFTCreateRole(true)
-
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), core.MinMetaTxExtraGasCost)
 }
 
 type nftArguments struct {
@@ -750,7 +686,7 @@ func checkNftData(
 ) {
 	tokenIdentifierPlusNonce := []byte(tokenName)
 	tokenIdentifierPlusNonce = append(tokenIdentifierPlusNonce, big.NewInt(0).SetUint64(nonce).Bytes()...)
-	esdtData := getESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
+	esdtData := esdt.GetESDTTokenData(t, address, nodes, string(tokenIdentifierPlusNonce))
 
 	if args.quantity == 0 {
 		require.Nil(t, esdtData.TokenMetaData)

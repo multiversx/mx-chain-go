@@ -26,9 +26,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -80,9 +79,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -171,9 +169,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -264,9 +261,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
