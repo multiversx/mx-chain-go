@@ -80,6 +80,7 @@ type systemSCProcessor struct {
 	flagChangeMaxNodesEnabled      atomic.Flag
 	flagStakingV2Enabled           atomic.Flag
 	flagCorrectLastUnjailedEnabled atomic.Flag
+	flagCorrectNumNodesToStake     atomic.Flag
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
 }
@@ -308,6 +309,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
+	nodesUnStakedFromAdditionalQueue := uint32(0)
+
 	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
 	for _, blsKey := range nodesToUnStake {
 		log.Debug("unStake at end of epoch for node", "blsKey", blsKey)
@@ -318,6 +321,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
+			nodesUnStakedFromAdditionalQueue++
 			log.Debug("unStaked node which was in additional queue", "blsKey", blsKey)
 			continue
 		}
@@ -330,7 +334,12 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
-	return uint32(len(nodesToUnStake)), nil
+	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
+	if s.flagCorrectNumNodesToStake.IsSet() {
+		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	}
+
+	return nodesToStakeFromQueue, nil
 }
 
 func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
@@ -1292,4 +1301,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	s.flagCorrectLastUnjailedEnabled.Toggle(epoch == s.correctLastUnJailEpoch)
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
+
+	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
+	log.Debug("systemSCProcessor: correct num nodes to stake", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 }

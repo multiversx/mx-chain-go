@@ -28,21 +28,39 @@ type nodeApiResolver struct {
 	vmContainer             process.VirtualMachinesContainer
 	vmFactory               process.VirtualMachinesContainerFactory
 	totalStakedValueHandler TotalStakedValueHandler
+	directStakedListHandler DirectStakedListHandler
+	delegatedListHandler    DelegatedListHandler
+}
+
+// ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
+type ArgNodeApiResolver struct {
+	SCQueryService          SCQueryService
+	StatusMetricsHandler    StatusMetricsHandler
+	TxCostHandler           TransactionCostHandler
+	TotalStakedValueHandler TotalStakedValueHandler
+	DirectStakedListHandler DirectStakedListHandler
+	DelegatedListHandler    DelegatedListHandler
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
-func NewNodeApiResolver(args ApiResolverArgs) (*nodeApiResolver, error) {
-	if check.IfNil(args.ScQueryService) {
+func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
+	if check.IfNil(arg.SCQueryService) {
 		return nil, ErrNilSCQueryService
 	}
-	if check.IfNil(args.StatusMetrics) {
+	if check.IfNil(arg.StatusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
-	if check.IfNil(args.TxCostHandler) {
+	if check.IfNil(arg.TxCostHandler) {
 		return nil, ErrNilTransactionCostHandler
 	}
-	if check.IfNil(args.StakedValueHandler) {
+	if check.IfNil(arg.TotalStakedValueHandler) {
 		return nil, ErrNilTotalStakedValueHandler
+	}
+	if check.IfNil(arg.DirectStakedListHandler) {
+		return nil, ErrNilDirectStakeListHandler
+	}
+	if check.IfNil(arg.DelegatedListHandler) {
+		return nil, ErrNilDelegatedListHandler
 	}
 	if check.IfNil(args.VmContainer) {
 		return nil, ErrNilVmContainer
@@ -51,13 +69,13 @@ func NewNodeApiResolver(args ApiResolverArgs) (*nodeApiResolver, error) {
 		return nil, ErrNilVmFactory
 	}
 
-	return &nodeApiResolver{
-		scQueryService:          args.ScQueryService,
-		statusMetricsHandler:    args.StatusMetrics,
-		txCostHandler:           args.TxCostHandler,
-		vmContainer:             args.VmContainer,
-		vmFactory:               args.VmFactory,
-		totalStakedValueHandler: args.StakedValueHandler,
+	return &NodeApiResolver{
+		scQueryService:          arg.SCQueryService,
+		statusMetricsHandler:    arg.StatusMetricsHandler,
+		txCostHandler:           arg.TxCostHandler,
+		totalStakedValueHandler: arg.TotalStakedValueHandler,
+		directStakedListHandler: arg.DirectStakedListHandler,
+		delegatedListHandler:    arg.DelegatedListHandler,
 	}, nil
 }
 
@@ -94,6 +112,16 @@ func (nar *nodeApiResolver) Close() error {
 // GetTotalStakedValue will return total staked value
 func (nar *nodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 	return nar.totalStakedValueHandler.GetTotalStakedValue()
+}
+
+// GetDirectStakedList will return the list for the direct staked addresses
+func (nar *NodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return nar.directStakedListHandler.GetDirectStakedList()
+}
+
+// GetDelegatorsList will return the delegators list
+func (nar *NodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
+	return nar.delegatedListHandler.GetDelegatorsList()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
