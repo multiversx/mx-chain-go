@@ -787,6 +787,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    pcf.nodesCoordinator,
 		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
+		CorrectLastUnJailEnableEpoch:           enableEpochs.CorrectLastUnjailedEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

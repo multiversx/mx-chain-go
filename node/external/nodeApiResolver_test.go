@@ -1,7 +1,6 @@
 package external_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -57,42 +56,6 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
 }
 
-func TestNewNodeApiResolver_NilVmFactory(t *testing.T) {
-	t.Parallel()
-
-	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-	args := external.ApiResolverArgs{
-		ScQueryService:     &mock.SCQueryServiceStub{},
-		StatusMetrics:      &mock.StatusMetricsStub{},
-		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
-		VmFactory:          nil,
-		VmContainer:        &mock.VMContainerMock{},
-		StakedValueHandler: totalStakedAPIHandler,
-	}
-	nar, err := external.NewNodeApiResolver(args)
-
-	assert.Nil(t, nar)
-	assert.Equal(t, external.ErrNilVmFactory, err)
-}
-
-func TestNewNodeApiResolver_NilVmContainer(t *testing.T) {
-	t.Parallel()
-
-	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-	args := external.ApiResolverArgs{
-		ScQueryService:     &mock.SCQueryServiceStub{},
-		StatusMetrics:      &mock.StatusMetricsStub{},
-		TxCostHandler:      &mock.TransactionCostEstimatorMock{},
-		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
-		VmContainer:        nil,
-		StakedValueHandler: totalStakedAPIHandler,
-	}
-	nar, err := external.NewNodeApiResolver(args)
-
-	assert.Nil(t, nar)
-	assert.Equal(t, external.ErrNilVmContainer, err)
-}
-
 func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
 	t.Parallel()
 
@@ -136,52 +99,14 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(nar))
 }
 
-func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
+func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
-	calledClose := false
-	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-	args := external.ApiResolverArgs{
-		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		VmFactory:      &mock.VmMachinesContainerFactoryMock{},
-		VmContainer: &mock.VMContainerMock{
-			CloseCalled: func() error {
-				calledClose = true
-				return nil
-			},
-		},
-		StakedValueHandler: totalStakedAPIHandler,
-	}
-
+	args := createMockAgrs()
 	nar, _ := external.NewNodeApiResolver(args)
 
 	err := nar.Close()
 	assert.Nil(t, err)
-	assert.True(t, calledClose)
-}
-
-func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
-	t.Parallel()
-
-	totalStakedAPIHandler, _ := disabled.NewDisabledStakeValuesProcessor()
-	args := external.ApiResolverArgs{
-		ScQueryService: &mock.SCQueryServiceStub{},
-		StatusMetrics:  &mock.StatusMetricsStub{},
-		TxCostHandler:  &mock.TransactionCostEstimatorMock{},
-		VmFactory:      &mock.VmMachinesContainerFactoryMock{},
-		VmContainer: &mock.VMContainerMock{
-			CloseCalled: func() error {
-				return fmt.Errorf("error")
-			},
-		},
-		StakedValueHandler: totalStakedAPIHandler,
-	}
-	nar, _ := external.NewNodeApiResolver(args)
-
-	err := nar.Close()
-	assert.NotNil(t, err)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

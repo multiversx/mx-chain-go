@@ -1,36 +1,12 @@
 package external
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
-
-// ApiResolverArgs holds the arguments for a node API resolver
-type ApiResolverArgs struct {
-	ScQueryService     SCQueryService
-	StatusMetrics      StatusMetricsHandler
-	TxCostHandler      TransactionCostHandler
-	VmFactory          process.VirtualMachinesContainerFactory
-	VmContainer        process.VirtualMachinesContainer
-	StakedValueHandler TotalStakedValueHandler
-}
-
-// nodeApiResolver can resolve API requests
-type nodeApiResolver struct {
-	scQueryService          SCQueryService
-	statusMetricsHandler    StatusMetricsHandler
-	txCostHandler           TransactionCostHandler
-	vmContainer             process.VirtualMachinesContainer
-	vmFactory               process.VirtualMachinesContainerFactory
-	totalStakedValueHandler TotalStakedValueHandler
-	directStakedListHandler DirectStakedListHandler
-	delegatedListHandler    DelegatedListHandler
-}
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
@@ -40,6 +16,16 @@ type ArgNodeApiResolver struct {
 	TotalStakedValueHandler TotalStakedValueHandler
 	DirectStakedListHandler DirectStakedListHandler
 	DelegatedListHandler    DelegatedListHandler
+}
+
+// nodeApiResolver can resolve API requests
+type nodeApiResolver struct {
+	scQueryService          SCQueryService
+	statusMetricsHandler    StatusMetricsHandler
+	txCostHandler           TransactionCostHandler
+	totalStakedValueHandler TotalStakedValueHandler
+	directStakedListHandler DirectStakedListHandler
+	delegatedListHandler    DelegatedListHandler
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -62,14 +48,8 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.DelegatedListHandler) {
 		return nil, ErrNilDelegatedListHandler
 	}
-	if check.IfNil(args.VmContainer) {
-		return nil, ErrNilVmContainer
-	}
-	if check.IfNil(args.VmFactory) {
-		return nil, ErrNilVmFactory
-	}
 
-	return &NodeApiResolver{
+	return &nodeApiResolver{
 		scQueryService:          arg.SCQueryService,
 		statusMetricsHandler:    arg.StatusMetricsHandler,
 		txCostHandler:           arg.TxCostHandler,
@@ -96,16 +76,6 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // Close closes all underlying components
 func (nar *nodeApiResolver) Close() error {
-	var err1, err2 error
-	if !check.IfNil(nar.vmContainer) {
-		err1 = nar.vmContainer.Close()
-	}
-	if !check.IfNil(nar.vmFactory) {
-		err2 = nar.vmFactory.Close()
-	}
-	if err1 != nil || err2 != nil {
-		return fmt.Errorf("err closing vmContainer: %v, err closing vmFactory: %v", err1, err2)
-	}
 	return nil
 }
 
@@ -115,12 +85,12 @@ func (nar *nodeApiResolver) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 // GetDirectStakedList will return the list for the direct staked addresses
-func (nar *NodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+func (nar *nodeApiResolver) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
 	return nar.directStakedListHandler.GetDirectStakedList()
 }
 
 // GetDelegatorsList will return the delegators list
-func (nar *NodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
+func (nar *nodeApiResolver) GetDelegatorsList() ([]*api.Delegator, error) {
 	return nar.delegatedListHandler.GetDelegatorsList()
 }
 

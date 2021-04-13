@@ -254,12 +254,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	argsNodesShuffler := &sharding.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNumberOfShardNodes(),
-		NodesMeta:            genesisNodesConfig.MinNumberOfMetaNodes(),
-		Hysteresis:           genesisNodesConfig.GetHysteresis(),
-		Adaptivity:           genesisNodesConfig.GetAdaptivity(),
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
+		Adaptivity:                     genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards:           true,
+		MaxNodesEnableConfig:           ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch: ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
