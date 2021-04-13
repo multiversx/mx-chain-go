@@ -53,13 +53,13 @@
    BlockGasAndFeesReCheckEnableEpoch = 1
 
    # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
-   ReturnDataToLastTransferEnableEpoch = 5
+   ReturnDataToLastTransferEnableEpoch = 2
 
    # ArwenESDTFunctionsEnableEpoch represents the epoch when the new ESDT functions are enabled in arwen
-   ArwenESDTFunctionsEnableEpoch = 5
+   ArwenESDTFunctionsEnableEpoch = 2
 
    # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
-   SenderInOutTransferEnableEpoch = 5
+   SenderInOutTransferEnableEpoch = 2
 
    # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
    BalanceWaitingListsEnableEpoch = 2
