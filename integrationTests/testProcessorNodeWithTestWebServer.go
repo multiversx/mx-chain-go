@@ -13,7 +13,8 @@ import (
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -149,24 +150,37 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, tpn.SCQueryService, gasScheduleNotifier)
 	log.LogIfError(err)
 
-	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:      tpn.ShardCoordinator.SelfId(),
-		Accounts:     tpn.AccntState,
-		QueryService: tpn.SCQueryService,
-		BlockChain:   tpn.BlockChain,
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: tpn.AccntState,
 	}
-	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
+
+	args := trieIterators.ArgTrieIteratorProcessor{
+		ShardID:            tpn.ShardCoordinator.SelfId(),
+		Accounts:           accountsWrapper,
+		QueryService:       tpn.SCQueryService,
+		BlockChain:         tpn.BlockChain,
+		PublicKeyConverter: TestAddressPubkeyConverter,
+	}
+	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
 
-	apiResolverArgs := external.ApiResolverArgs{
-		ScQueryService:     tpn.SCQueryService,
-		StatusMetrics:      &mock.StatusMetricsStub{},
-		TxCostHandler:      txCostHandler,
-		VmFactory:          &mock.VmMachinesContainerFactoryMock{},
-		VmContainer:        &mock.VMContainerMock{},
-		StakedValueHandler: totalStakedValueHandler,
+	directStakedListHandler, err := factory.CreateDirectStakedListHandler(args)
+	log.LogIfError(err)
+
+	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
+	log.LogIfError(err)
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          tpn.SCQueryService,
+		StatusMetricsHandler:    &mock.StatusMetricsStub{},
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
 	}
-	apiResolver, err := external.NewNodeApiResolver(apiResolverArgs)
+
+	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
 	log.LogIfError(err)
 
 	argSimulator := txsimulator.ArgsTxSimulator{
