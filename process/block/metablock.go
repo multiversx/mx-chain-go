@@ -1511,7 +1511,7 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	err = mp.epochStartTrigger.RevertStateToBlock(metaHeader)
 	if err != nil {
 		log.Debug("revert epoch start trigger for header",
-			"nonce", header.GetNonce(),
+			"nonce", metaHeader.GetNonce(),
 			"error", err,
 		)
 		return err
@@ -2169,7 +2169,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 func getTxCount(shardInfo []data.ShardDataHandler) uint32 {
 	txs := uint32(0)
 	for i := 0; i < len(shardInfo); i++ {
-		shardDataHandlers :=shardInfo[i].GetShardMiniBlockHeaderHandlers()
+		shardDataHandlers := shardInfo[i].GetShardMiniBlockHeaderHandlers()
 		for j := 0; j < len(shardDataHandlers); j++ {
 			txs += shardDataHandlers[j].GetTxCount()
 		}

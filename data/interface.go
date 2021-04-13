@@ -196,7 +196,7 @@ type EconomicsHandler interface {
 	SetRewardsPerBlock(rewardsPerBlock *big.Int) error
 	SetRewardsForProtocolSustainability(rewardsForProtocolSustainability *big.Int) error
 	SetNodePrice(nodePrice *big.Int) error
-	SetPrevEpochStartRound(prevEpochStart uint64) error
+	SetPrevEpochStartRound(prevEpochStartRound uint64) error
 	SetPrevEpochStartHash(prevEpochStartHash []byte) error
 }
 
@@ -205,7 +205,7 @@ type EpochStartHandler interface {
 	GetLastFinalizedHeaderHandlers() []EpochStartShardDataHandler
 	GetEconomicsHandler() EconomicsHandler
 
-	SetLastFinalizedHeaders(epochStartDataHandlers []EpochStartShardDataHandler) error
+	SetLastFinalizedHeaders(epochStartShardDataHandlers []EpochStartShardDataHandler) error
 	SetEconomics(economicsHandler EconomicsHandler) error
 }
 

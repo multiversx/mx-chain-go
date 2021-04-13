@@ -9,7 +9,7 @@ type ValidatorInfoSyncerStub struct {
 }
 
 // SyncMiniBlocks -
-func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(handler data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
+func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(_ data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
 	return nil, nil, nil
 }
 

@@ -60,7 +60,9 @@ func (m *MiniBlockHeader) SetType(t int32) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Type = Type(t)
+
 	return nil
 }
 
@@ -69,7 +71,9 @@ func (m *MiniBlockHeader) SetReserved(reserved []byte) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
+
 	m.Reserved = reserved
+
 	return nil
 }
 
@@ -78,6 +82,8 @@ func (m *MiniBlockHeader) ShallowClone() data.MiniBlockHeaderHandler {
 	if m == nil {
 		return nil
 	}
+
 	mbhCopy := *m
+
 	return &mbhCopy
 }

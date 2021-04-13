@@ -44,7 +44,7 @@ func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 	return []byte("hash")
 }
 
-// Clone --
+// ShallowClone --
 func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 	panic("implement me")
 }
@@ -230,7 +230,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 	panic("implement me")
 }
 
-// GetMiniBlockHeaders -
+// GetMiniBlockHeaderHandlers -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	panic("implement me")
 }
@@ -240,7 +240,7 @@ func (hhs *HeaderHandlerStub) GetMetaBlockHashes() [][]byte {
 	panic("implement me")
 }
 
-// GetBlockBodyType -
+// GetBlockBodyTypeInt32 -
 func (hhs *HeaderHandlerStub) GetBlockBodyTypeInt32() int32 {
 	panic("implement me")
 }

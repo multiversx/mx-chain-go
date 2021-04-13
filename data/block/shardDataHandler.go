@@ -208,7 +208,7 @@ func (sd *ShardData) ShallowClone() data.ShardDataHandler {
 		return nil
 	}
 
-	n := *sd
+	shardDataCopy := *sd
 
-	return &n
+	return &shardDataCopy
 }
