@@ -28,3 +28,6 @@ var ErrNilTransactionSimulatorProcessor = errors.New("nil transaction simulator 
 
 // ErrNilBlockchain signals that a nil blockchain has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
+
+// ErrNilBlockHeader signals that the current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")
