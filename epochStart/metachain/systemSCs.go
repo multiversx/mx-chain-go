@@ -341,6 +341,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		}
 	}
 
+	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
 	return nodesToStakeFromQueue, nil
 }
 
