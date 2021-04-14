@@ -1746,7 +1746,7 @@ func (s *stakingSC) checkValidatorFunds(
 		return validatorInfo, nil
 	}
 
-	numActiveNodes := int64(0)
+	numRegisteredNodesWithMinStake := int64(0)
 	for _, blsKey := range validatorData.BlsPubKeys {
 		stakedData, errGet := s.getOrCreateRegisteredData(blsKey)
 		if errGet != nil {
@@ -1754,13 +1754,13 @@ func (s *stakingSC) checkValidatorFunds(
 		}
 
 		if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
-			numActiveNodes++
+			numRegisteredNodesWithMinStake++
 		}
 	}
 
 	numToUnStake := uint32(0)
-	if numActiveNodes > numQualified {
-		numToUnStake = uint32(numActiveNodes - numQualified)
+	if numRegisteredNodesWithMinStake > numQualified {
+		numToUnStake = uint32(numRegisteredNodesWithMinStake - numQualified)
 	}
 
 	validatorInfo = &validatorFundInfo{
