@@ -232,6 +232,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
+	if s.flagCorrectNumNodesToStake.IsSet() {
+		err := s.cleanAdditionalQueue()
+		if err != nil {
+			return err
+		}
+	}
+
 	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
@@ -351,13 +358,6 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
 	if s.flagCorrectNumNodesToStake.IsSet() {
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
-	}
-
-	if s.flagCorrectNumNodesToStake.IsSet() {
-		err = s.cleanAdditionalQueue()
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
