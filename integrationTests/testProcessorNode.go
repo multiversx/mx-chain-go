@@ -197,6 +197,14 @@ type CryptoParams struct {
 	TxKeys       map[uint32][]*TestKeyPair
 }
 
+// Connectable defines the operations for a struct to become connectable by other struct
+// In other words, all instances that implement this interface are able to connect with each other
+type Connectable interface {
+	ConnectTo(connectable Connectable) error
+	GetConnectableAddress() string
+	IsInterfaceNil() bool
+}
+
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
@@ -317,7 +325,6 @@ func newBaseTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -370,7 +377,7 @@ func newBaseTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -403,10 +410,8 @@ func NewTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
-
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNode()
 
 	return tpn
@@ -418,11 +423,10 @@ func NewTestProcessorNodeWithStorageTrieAndGasModel(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	trieStore storage.Storer,
 	gasMap map[string]map[string]uint64,
 ) *TestProcessorNode {
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNodeWithTrieDBAndGasModel(trieStore, gasMap)
 
 	return tpn
@@ -434,10 +438,9 @@ func NewTestProcessorNodeWithBLSSigVerifier(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.UseValidVmBlsSigVerifier = true
 	tpn.initTestNode()
 
@@ -449,14 +452,13 @@ func NewTestProcessorNodeSoftFork(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	builtinEnableEpoch uint32,
 	deployEnableEpoch uint32,
 	relayedTxEnableEpoch uint32,
 	penalizedTooMuchGasEnableEpoch uint32,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.BuiltinEnableEpoch = builtinEnableEpoch
 	tpn.DeployEnableEpoch = deployEnableEpoch
 	tpn.RelayedTxEnableEpoch = relayedTxEnableEpoch
@@ -471,13 +473,12 @@ func NewTestProcessorNodeWithFullGenesis(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	accountParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	heartbeatPk string,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
@@ -537,10 +538,10 @@ func NewTestProcessorNodeWithFullGenesis(
 }
 
 // NewTestProcessorNodeWithCustomDataPool returns a new TestProcessorNode instance with the given data pool
-func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
+func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
@@ -578,6 +579,24 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	tpn.initTestNode()
 
 	return tpn
+}
+
+// ConnectTo will try to initiate a connection to the provided parameter
+func (tpn *TestProcessorNode) ConnectTo(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tpn.Messenger.ConnectToPeer(connectable.GetConnectableAddress())
+}
+
+// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tpn *TestProcessorNode) GetConnectableAddress() string {
+	if tpn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tpn.Messenger)
 }
 
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
@@ -2508,6 +2527,11 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	}
 	err = tpn.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	log.LogIfError(err)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tpn *TestProcessorNode) IsInterfaceNil() bool {
+	return tpn == nil
 }
 
 // GetTokenIdentifier returns the token identifier from the metachain for the given ticker

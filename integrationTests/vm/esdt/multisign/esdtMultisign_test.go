@@ -1,4 +1,4 @@
-package esdt
+package multisign
 
 import (
 	"encoding/hex"
@@ -11,6 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
@@ -30,14 +31,10 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -49,7 +46,6 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -96,7 +92,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	time.Sleep(time.Second)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
-	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
+	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
 
 	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
@@ -126,8 +122,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)
 	expectedBalance.Sub(expectedBalance, transferValue)
-	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance.Int64())
-	checkAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue.Int64())
+	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance.Int64())
+	esdt.CheckAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue.Int64())
 }
 
 func checkCallBackWasSaved(t *testing.T, nodes []*integrationTests.TestProcessorNode, contract []byte) {
@@ -158,7 +154,7 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 		Readable:    true,
 	}
 
-	contractBytes, err := ioutil.ReadFile("./testdata/multisig-callback.wasm")
+	contractBytes, err := ioutil.ReadFile("../testdata/multisig-callback.wasm")
 	require.Nil(t, err)
 	proposers := make([]string, 0, len(proposersIndexes)+1)
 	proposers = append(proposers, hex.EncodeToString(nodes[ownerIdx].OwnAccount.Address))

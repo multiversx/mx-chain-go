@@ -37,10 +37,9 @@ func NewTestProcessorNodeWithTestWebServer(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNode()
 
 	argFacade := createFacadeArg(tpn)
