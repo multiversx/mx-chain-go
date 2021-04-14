@@ -16,9 +16,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -82,9 +81,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

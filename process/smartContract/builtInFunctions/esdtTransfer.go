@@ -55,6 +55,10 @@ func NewESDTTransferFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
 	e.mutExecution.Unlock()
@@ -68,14 +72,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	if vmInput == nil {
-		return nil, process.ErrNilVmInput
-	}
-	if vmInput.CallValue.Cmp(zero) != 0 {
-		return nil, process.ErrBuiltInFunctionCalledWithValue
-	}
-	if len(vmInput.Arguments) < 2 {
-		return nil, process.ErrInvalidArguments
+	err := checkBasicESDTArguments(vmInput)
+	if err != nil {
+		return nil, err
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
@@ -93,21 +92,20 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2
+	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > core.MinLenArgumentsESDTTransfer
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
-		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
-			isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
-			if err != nil {
-				return nil, err
+		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer) {
+			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
+			if errPayable != nil {
+				return nil, errPayable
 			}
 			if !isPayable {
 				if !check.IfNil(acntSnd) {
@@ -121,7 +119,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			}
 		}
 
-		err := addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -130,15 +128,17 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmOutput.GasRemaining, err = core.SafeSubUint64(vmInput.GasProvided, e.funcGasCost)
 			log.LogIfError(err, "esdtTransfer", "isSCCallAfter")
 			var callArgs [][]byte
-			if len(vmInput.Arguments) > 3 {
-				callArgs = vmInput.Arguments[3:]
+			if len(vmInput.Arguments) > core.MinLenArgumentsESDTTransfer+1 {
+				callArgs = vmInput.Arguments[core.MinLenArgumentsESDTTransfer+1:]
 			}
 
-			addOutPutTransferToVMOutput(
-				string(vmInput.Arguments[2]),
+			addOutputTransferToVMOutput(
+				vmInput.CallerAddr,
+				string(vmInput.Arguments[core.MinLenArgumentsESDTTransfer]),
 				callArgs,
 				vmInput.RecipientAddr,
 				vmInput.GasLocked,
+				vmInput.CallType,
 				vmOutput)
 
 			return vmOutput, nil
@@ -154,22 +154,41 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	// cross-shard ESDT transfer call through a smart contract
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
+			vmInput.CallerAddr,
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 
 	return vmOutput, nil
 }
 
-func addOutPutTransferToVMOutput(
+func mustVerifyPayable(vmInput *vmcommon.ContractCallInput, minLenArguments int) bool {
+	if vmInput.CallType == vmcommon.AsynchronousCallBack || vmInput.CallType == vmcommon.ESDTTransferAndExecute {
+		return false
+	}
+	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
+		return false
+	}
+
+	if len(vmInput.Arguments) > minLenArguments {
+		return false
+	}
+
+	return true
+}
+
+func addOutputTransferToVMOutput(
+	senderAddress []byte,
 	function string,
 	arguments [][]byte,
 	recipient []byte,
 	gasLocked uint64,
+	callType vmcommon.CallType,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	esdtTransferTxData := function
@@ -177,11 +196,12 @@ func addOutPutTransferToVMOutput(
 		esdtTransferTxData += "@" + hex.EncodeToString(arg)
 	}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:     big.NewInt(0),
-		GasLimit:  vmOutput.GasRemaining,
-		GasLocked: gasLocked,
-		Data:      []byte(esdtTransferTxData),
-		CallType:  vmcommon.AsynchronousCall,
+		Value:         big.NewInt(0),
+		GasLimit:      vmOutput.GasRemaining,
+		GasLocked:     gasLocked,
+		Data:          []byte(esdtTransferTxData),
+		CallType:      callType,
+		SenderAddress: senderAddress,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 	vmOutput.OutputAccounts[string(recipient)] = &vmcommon.OutputAccount{
@@ -204,15 +224,13 @@ func addToESDTBalance(
 		return err
 	}
 
-	if !bytes.Equal(senderAddr, vm.ESDTSCAddress) {
-		esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
-		if esdtUserMetaData.Frozen {
-			return process.ErrESDTIsFrozenForAccount
-		}
+	if esdtData.Type != uint32(core.Fungible) {
+		return process.ErrOnlyFungibleTokensHaveBalanceTransfer
+	}
 
-		if pauseHandler.IsPaused(key) {
-			return process.ErrESDTTokenIsPaused
-		}
+	err = checkFrozeAndPause(senderAddr, key, esdtData, pauseHandler)
+	if err != nil {
+		return err
 	}
 
 	esdtData.Value.Add(esdtData.Value, value)
@@ -228,12 +246,48 @@ func addToESDTBalance(
 	return nil
 }
 
+func checkFrozeAndPause(
+	senderAddr []byte,
+	key []byte,
+	esdtData *esdt.ESDigitalToken,
+	pauseHandler process.ESDTPauseHandler,
+) error {
+	if bytes.Equal(senderAddr, vm.ESDTSCAddress) {
+		return nil
+	}
+
+	esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
+	if esdtUserMetaData.Frozen {
+		return process.ErrESDTIsFrozenForAccount
+	}
+
+	if pauseHandler.IsPaused(key) {
+		return process.ErrESDTTokenIsPaused
+	}
+
+	return nil
+}
+
+func arePropertiesEmpty(properties []byte) bool {
+	for _, property := range properties {
+		if property != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func saveESDTData(
 	userAcnt state.UserAccountHandler,
 	esdtData *esdt.ESDigitalToken,
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) error {
+	isValueZero := esdtData.Value.Cmp(zero) == 0
+	if isValueZero && arePropertiesEmpty(esdtData.Properties) {
+		return userAcnt.DataTrieTracker().SaveKeyValue(key, nil)
+	}
+
 	marshaledData, err := marshalizer.Marshal(esdtData)
 	if err != nil {
 		return err
@@ -248,7 +302,7 @@ func getESDTDataFromKey(
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil

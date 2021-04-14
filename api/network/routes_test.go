@@ -27,6 +27,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type esdtTokensResponseData struct {
+	Tokens []string `json:"tokens"`
+}
+
+type esdtTokensResponse struct {
+	Data  esdtTokensResponseData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string
+}
+
 func TestNetworkConfigMetrics_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
@@ -200,6 +210,42 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+}
+
+func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
+	tokens := []string{"tokenA", "tokenB"}
+	facade := mock.Facade{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return tokens, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/esdts", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := esdtTokensResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	assert.Equal(t, tokens, response.Data.Tokens)
+}
+
+func TestGetAllIssuedESDTs_Error(t *testing.T) {
+	localErr := fmt.Errorf("%s", "local error")
+	facade := mock.Facade{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return nil, localErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/esdts", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -425,6 +471,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/config", Open: true},
 					{Name: "/status", Open: true},
 					{Name: "/economics", Open: true},
+					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},

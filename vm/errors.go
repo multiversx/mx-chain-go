@@ -83,11 +83,11 @@ var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
 // ErrNilStakingSmartContractAddress signals that staking smart contract address is nil
 var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
 
+// ErrNilEndOfEpochSmartContractAddress signals that the end of epoch smart contract address is nil
+var ErrNilEndOfEpochSmartContractAddress = errors.New("nil end of epoch smart contract address")
+
 // ErrNilArgumentsParser signals that arguments parses is nil
 var ErrNilArgumentsParser = errors.New("nil arguments parser")
-
-// ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
-var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
 // ErrNilValidatorSmartContractAddress signals that validator smart contract address is nil
 var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contract address")
@@ -154,9 +154,6 @@ var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 
 // ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
-
-// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
-var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
 
 // ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
 var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
@@ -229,3 +226,6 @@ var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract sti
 
 // ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
 var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
+
+// ErrNFTCreateRoleAlreadyExists signals that NFT create role already exists
+var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")
