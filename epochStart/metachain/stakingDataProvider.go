@@ -237,10 +237,13 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 	}
 
 	ownerData := &ownerStats{
-		numEligible:    0,
-		numStakedNodes: numStakedWaiting.Int64(),
-		topUpValue:     topUpValue,
-		totalStaked:    totalStakedValue,
+		numEligible:        0,
+		numStakedNodes:     numStakedWaiting.Int64(),
+		topUpValue:         topUpValue,
+		totalStaked:        totalStakedValue,
+		eligibleBaseStake:  big.NewInt(0).Set(sdp.minNodePrice),
+		eligibleTopUpStake: big.NewInt(0),
+		topUpPerNode:       big.NewInt(0),
 	}
 
 	ownerData.blsKeys = make([][]byte, len(blsKeys))
