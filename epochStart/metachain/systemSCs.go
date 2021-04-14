@@ -334,6 +334,13 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
+	if s.flagCorrectNumNodesToStake.IsSet() {
+		err = s.cleanAdditionalQueue()
+		if err != nil {
+			return 0, err
+		}
+	}
+
 	return nodesToStakeFromQueue, nil
 }
 
@@ -1164,12 +1171,57 @@ func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte)
 	return nil
 }
 
+func (s *systemSCProcessor) cleanAdditionalQueue() error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "cleanAdditionalQueue",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when cleaning additional queue", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s, return message %s when cleaning additional queue", vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	// returnData format is list(address - all blsKeys which were unstaked for that)
+	addressLength := len(s.endOfEpochCallerAddress)
+	mapOwnersKeys := make(map[string][][]byte)
+	currentOwner := ""
+	for _, returnData := range vmOutput.ReturnData {
+		if len(returnData) == addressLength {
+			currentOwner = string(returnData)
+			continue
+		}
+
+		mapOwnersKeys[currentOwner] = append(mapOwnersKeys[currentOwner], returnData)
+	}
+
+	err = s.updateDelegationContracts(mapOwnersKeys)
+	if err != nil {
+		log.Error("update delegation contracts failed after cleaning additional queue", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) stakeNodesFromQueue(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	nodesToStake uint32,
 	nonce uint64,
 ) error {
-	if nodesToStake == 0 && !s.flagCorrectNumNodesToStake.IsSet() {
+	if nodesToStake == 0 {
 		return nil
 	}
 

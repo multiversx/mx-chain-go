@@ -1830,7 +1830,6 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 func TestStakingSc_StakeFromQueue(t *testing.T) {
 	t.Parallel()
 
-	stakeValue := big.NewInt(100)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
@@ -1842,7 +1841,6 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	stakingAccessAddress := vm.ValidatorSCAddress
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
-	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.Eei = eei
@@ -1888,6 +1886,13 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 
 	// nothing to stake - as not enough funds - one remains in waiting queue
 	assert.Equal(t, currentOutPutIndex, len(eei.output))
+
+	cleanAdditionalInput := CreateVmContractCallInput()
+	cleanAdditionalInput.Function = "cleanAdditionalQueue"
+	cleanAdditionalInput.CallerAddr = args.EndOfEpochAccessAddr
+	retCode = stakingSmartContract.Execute(cleanAdditionalInput)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
 	newHead, _ := stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, uint32(1), newHead.Length)
 
@@ -1920,8 +1925,6 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
-	newHead, _ = stakingSmartContract.getWaitingListHead()
-	assert.Equal(t, uint32(0), newHead.Length)
 
 	for i := currentOutPutIndex; i < len(eei.output); i += 2 {
 		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
@@ -1929,6 +1932,11 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	assert.Equal(t, 6, len(eei.output)-currentOutPutIndex)
 	stakingConfig := stakingSmartContract.getConfig()
 	assert.Equal(t, stakingConfig.StakedNodes, int64(4))
+
+	retCode = stakingSmartContract.Execute(cleanAdditionalInput)
+	assert.Equal(t, retCode, vmcommon.Ok)
+	newHead, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(0), newHead.Length)
 }
 
 func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
