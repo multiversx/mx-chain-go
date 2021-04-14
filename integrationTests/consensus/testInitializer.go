@@ -116,7 +116,6 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			testPubkeyConverter.Encode(pkBuff),
 		)
-		_ = n.mesenger.Bootstrap(0)
 	}
 }
 

@@ -137,8 +137,6 @@ func prepareNodes(
 		} else {
 			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
 		}
-
-		_ = nodes[i].Bootstrap(0)
 	}
 
 	for i := 0; i < len(nodes)-1; i++ {

@@ -855,6 +855,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			DeployEnableEpoch:              0,
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
+			ArwenESDTFunctionsEnableEpoch:  0,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1326,6 +1327,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 

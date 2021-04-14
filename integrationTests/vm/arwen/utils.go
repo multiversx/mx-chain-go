@@ -248,6 +248,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)

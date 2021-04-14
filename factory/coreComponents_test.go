@@ -324,6 +324,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		ConfigPathsHolder:     config.ConfigurationPathsHolder{},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),
 		NodesFilename:         "mock/testdata/nodesSetupMock.json",
