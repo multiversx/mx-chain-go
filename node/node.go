@@ -37,8 +37,13 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 )
 
-// SendTransactionsPipe is the pipe used for sending new transactions
-const SendTransactionsPipe = "send transactions pipe"
+const (
+	// SendTransactionsPipe is the pipe used for sending new transactions
+	SendTransactionsPipe = "send transactions pipe"
+
+	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
+	esdtTickerNumChars = 6
+)
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
@@ -193,6 +198,44 @@ func (n *Node) GetUsername(address string) (string, error) {
 	return string(username), nil
 }
 
+// GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
+func (n *Node) GetAllIssuedESDTs() ([]string, error) {
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		key := string(leaf.Key())
+		if strings.Contains(key, "-") {
+			tokens = append(tokens, key)
+		}
+	}
+
+	return tokens, nil
+}
+
 // GetKeyValuePairs returns all the key-value pairs under the address
 func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 	account, err := n.getAccountHandlerAPIAccounts(address)
@@ -222,7 +265,14 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 
 	mapToReturn := make(map[string]string)
 	for leaf := range chLeaves {
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
 	}
 
 	return mapToReturn, nil
@@ -253,35 +303,43 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	return hex.EncodeToString(valueBytes), nil
 }
 
-// GetESDTBalance returns the esdt balance and properties from a given account
-func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
+// GetESDTData returns the esdt balance and properties from a given account
+func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandler(address)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	userAccount, ok := n.castAccountToUserAccount(account)
 	if !ok {
-		return "", "", ErrAccountNotFound
+		return nil, ErrAccountNotFound
 	}
 
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID
+	if nonce > 0 {
+		tokenKey += string(big.NewInt(0).SetUint64(nonce).Bytes())
+	}
+
+	dataBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	if err != nil || len(dataBytes) == 0 {
+		return esdtToken, nil
+	}
+
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, dataBytes)
 	if err != nil {
-		return "0", "", nil
+		return nil, err
 	}
 
-	esdtToken := &esdt.ESDigitalToken{}
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, valueBytes)
-	if err != nil {
-		return "", "", err
+	if esdtToken.TokenMetaData != nil {
+		esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
 	}
 
-	return esdtToken.Value.String(), hex.EncodeToString(esdtToken.Properties), nil
+	return esdtToken, nil
 }
 
 // GetAllESDTTokens returns the value of a key from a given account
-func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
+func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
 		return nil, err
@@ -292,11 +350,10 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		return nil, ErrAccountNotFound
 	}
 
+	allESDTs := make(map[string]*esdt.ESDigitalToken)
 	if check.IfNil(userAccount.DataTrie()) {
-		return []string{}, nil
+		return allESDTs, nil
 	}
-
-	foundTokens := make([]string, 0)
 
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
@@ -317,10 +374,49 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		}
 
 		tokenName := string(leaf.Key()[lenESDTPrefix:])
-		foundTokens = append(foundTokens, tokenName)
+		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		if err != nil {
+			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			continue
+		}
+
+		if esdtToken.TokenMetaData != nil {
+			esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
+		}
+
+		allESDTs[tokenName] = esdtToken
 	}
 
-	return foundTokens, nil
+	return allESDTs, nil
+}
+
+func adjustNftTokenIdentifier(token string, nonce uint64) string {
+	splitToken := strings.Split(token, "-")
+	if len(splitToken) < 2 {
+		return token
+	}
+
+	if len(splitToken[1]) < esdtTickerNumChars {
+		return token
+	}
+
+	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()
+	formattedTokenIdentifier := fmt.Sprintf("%s-%s-%s",
+		splitToken[0],
+		splitToken[1][:esdtTickerNumChars],
+		hex.EncodeToString(nonceBytes))
+
+	return formattedTokenIdentifier
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
@@ -348,17 +444,21 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandle
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 
-	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
+	return n.getAccountHandlerForPubKey(addr)
+}
+
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
+	blockHeader := n.blkc.GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
-		return nil, nil
+		return nil, ErrNilBlockHeader
 	}
 
-	err = n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
+	err := n.coreComponents.InternalMarshalizer().RecreateTrie(blockHeader.GetRootHash())
 	if err != nil {
 		return nil, err
 	}
 
-	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(addr)
+	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {

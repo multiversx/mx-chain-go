@@ -1,4 +1,4 @@
-package esdt
+package multisign
 
 import (
 	"encoding/hex"
@@ -11,6 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
@@ -30,14 +31,10 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -49,7 +46,6 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -72,7 +68,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	//----- issue ESDT token
 	initalSupply := big.NewInt(10000000000)
-	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0)
+	ticker := "TCK"
+	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0, ticker)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
@@ -94,15 +91,15 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	tokenIdentifier := getTokenIdentifier(nodes)
-	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply)
+	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), initalSupply.Int64())
 
 	checkCallBackWasSaved(t, nodes, multisignContractAddress)
 
 	//----- transfer ESDT token
 	destinationAddress, _ := integrationTests.TestAddressPubkeyConverter.Decode("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5")
 	transferValue := big.NewInt(10)
-	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress)
+	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress, tokenIdentifier)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
@@ -125,8 +122,8 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)
 	expectedBalance.Sub(expectedBalance, transferValue)
-	checkAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance)
-	checkAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue)
+	esdt.CheckAddressHasESDTTokens(t, multisignContractAddress, nodes, string(tokenIdentifier), expectedBalance.Int64())
+	esdt.CheckAddressHasESDTTokens(t, destinationAddress, nodes, string(tokenIdentifier), transferValue.Int64())
 }
 
 func checkCallBackWasSaved(t *testing.T, nodes []*integrationTests.TestProcessorNode, contract []byte) {
@@ -157,7 +154,7 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 		Readable:    true,
 	}
 
-	contractBytes, err := ioutil.ReadFile("./testdata/multisig-callback.wasm")
+	contractBytes, err := ioutil.ReadFile("../testdata/multisig-callback.wasm")
 	require.Nil(t, err)
 	proposers := make([]string, 0, len(proposersIndexes)+1)
 	proposers = append(proposers, hex.EncodeToString(nodes[ownerIdx].OwnAccount.Address))
@@ -197,10 +194,10 @@ func proposeIssueTokenAndTransferFunds(
 	multisignContractAddress []byte,
 	initalSupply *big.Int,
 	ownerIdx int,
+	ticker string,
 ) {
 	tokenName := []byte("token")
 	issuePrice := big.NewInt(1000)
-	ticker := "TKN"
 	multisigParams := []string{
 		"proposeSCCall",
 		hex.EncodeToString(vm.ESDTSCAddress),
@@ -310,8 +307,8 @@ func proposeTransferToken(
 	transferValue *big.Int,
 	ownerIdx int,
 	destinationAddress []byte,
+	tokenID []byte,
 ) {
-	tokenID := getTokenIdentifier(nodes)
 	multisigParams := []string{
 		"proposeSCCall",
 		hex.EncodeToString(destinationAddress),

@@ -26,6 +26,10 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *claimDeveloperRewards) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ClaimDeveloperRewards
 	c.mutExecution.Unlock()
@@ -65,10 +69,11 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:    big.NewInt(0).Set(value),
-		GasLimit: 0,
-		Data:     nil,
-		CallType: vmcommon.DirectCall,
+		Value:         big.NewInt(0).Set(value),
+		GasLimit:      0,
+		Data:          nil,
+		CallType:      vmcommon.DirectCall,
+		SenderAddress: vmInput.CallerAddr,
 	}
 	if vmInput.CallType == vmcommon.AsynchronousCall {
 		outTransfer.GasLocked = vmInput.GasLocked

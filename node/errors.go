@@ -135,3 +135,6 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 
 // ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilBlockHeader signals that current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")

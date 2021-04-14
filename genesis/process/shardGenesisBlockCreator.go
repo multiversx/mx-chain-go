@@ -265,6 +265,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Core.InternalMarshalizer(),
 		Accounts:             arg.Accounts,
+		ShardCoordinator:     arg.ShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -296,10 +297,12 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DeployEnableEpoch:              arg.EpochConfig.EnableEpochs.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: arg.EpochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.EpochConfig.EnableEpochs.RepairCallbackEnableEpoch,
+		ArwenESDTFunctionsEnableEpoch:  arg.GeneralConfig.ArwenESDTFunctionsEnableEpoch,
 	}
 	log.Debug("shardGenesisCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
 	log.Debug("shardGenesisCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("shardGenesisCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
+	//TODO: add log
 
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -392,6 +395,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DeployEnableEpoch:              enableEpochs.SCDeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      enableEpochs.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:            true,
 		StakingV2EnableEpoch:           arg.EpochConfig.EnableEpochs.StakingV2Epoch,
 	}

@@ -30,10 +30,6 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-
 	//it is important to have all combinations here as to test more edgecases
 	mapAssignements := map[uint32][]uint32{
 		0:                     {1, 0},
@@ -41,10 +37,9 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		core.MetachainShardId: {0, 1},
 	}
 
-	nodesMap, _ := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1, advertiserAddr)
+	nodesMap, _ := integrationTests.CreateProcessorNodesWithNodesCoordinator(mapAssignements, 1, 1)
 
 	defer func() {
-		_ = advertiser.Close()
 		closeNodes(nodesMap)
 	}()
 
@@ -112,11 +107,6 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	nbShards := 1
 	consensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -124,11 +114,9 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -175,14 +163,6 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	}
 }
 
-//nolint
-func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
-	for _, shards := range nodesMap {
-		for _, n := range shards {
-			_ = n.Messenger.Bootstrap(0)
-		}
-	}
-}
 
 //nolint
 func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.TestProcessorNode) {

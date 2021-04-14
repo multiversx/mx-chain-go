@@ -352,6 +352,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BuiltinEnableEpoch:             enableEpochs.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      enableEpochs.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:            true,
 		StakingV2EnableEpoch:           arg.EpochConfig.EnableEpochs.StakingV2Epoch,
 	}

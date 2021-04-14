@@ -14,7 +14,7 @@ import (
 )
 
 func TestTransactionGroup(t *testing.T) {
-	node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, 0, 0, "")
+	node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, 0, 0)
 
 	testTransactionGasCostWithMissingFields(t, node)
 }

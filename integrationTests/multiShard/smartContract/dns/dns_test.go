@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,9 +26,8 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -56,9 +54,8 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -91,9 +88,8 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -125,20 +121,16 @@ func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrat
 	return relayer
 }
 
-func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
+func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int) {
 	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "smartcontracts.json"
 	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
 
@@ -166,7 +158,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	return nodes, players, idxProposers, advertiser
+	return nodes, players, idxProposers
 }
 
 func getDNSContractsData(node *integrationTests.TestProcessorNode) (*big.Int, []string) {

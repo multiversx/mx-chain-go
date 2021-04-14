@@ -1286,10 +1286,10 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	numNodesPerShard := 1
 	numNodesMeta := 1
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
-	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
+	integrationTests.BootstrapDelay()
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -1392,10 +1392,10 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	numNodesPerShard := 1
 	numNodesMeta := 1
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
-	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
+	integrationTests.BootstrapDelay()
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -1462,10 +1462,10 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	valMinting := big.NewInt(1000000000)
 	valToTransferPerTx := big.NewInt(2)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders and receivers...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
@@ -1613,14 +1613,10 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		stateCheckpointModulus,
 	)
 
@@ -1638,7 +1634,6 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -1787,10 +1782,10 @@ func TestContinuouslyAccountCodeChanges(t *testing.T) {
 	nonce := uint64(0)
 	valMinting := big.NewInt(1000000000)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
@@ -1960,10 +1955,10 @@ func TestAccountRemoval(t *testing.T) {
 	nonce := uint64(0)
 	valMinting := big.NewInt(1000000000)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
