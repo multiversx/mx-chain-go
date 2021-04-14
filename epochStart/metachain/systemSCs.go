@@ -1192,6 +1192,13 @@ func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte)
 }
 
 func (s *systemSCProcessor) cleanAdditionalQueue() error {
+	sw := core.NewStopWatch()
+	sw.Start("systemSCProcessor")
+	defer func() {
+		sw.Stop("systemSCProcessor")
+		log.Info("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
+	}()
+
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.EndOfEpochAddress,
