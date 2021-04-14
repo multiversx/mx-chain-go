@@ -12,67 +12,67 @@
    StartInEpochEnabled = true
 
    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-   SCDeployEnableEpoch = 1
+   SCDeployEnableEpoch = 180
 
    # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-   BuiltInFunctionsEnableEpoch = 1
+   BuiltInFunctionsEnableEpoch = 180
 
    # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-   RelayedTransactionsEnableEpoch = 1
+   RelayedTransactionsEnableEpoch = 180
 
    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-   PenalizedTooMuchGasEnableEpoch = 0
+   PenalizedTooMuchGasEnableEpoch = 124
 
    # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-   SwitchJailWaitingEnableEpoch = 0
+   SwitchJailWaitingEnableEpoch = 124
 
    # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-   BelowSignedThresholdEnableEpoch = 0
+   BelowSignedThresholdEnableEpoch = 124
 
    # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
    # also (minimum) hysteresis nodes for the minimum number of nodes
-   SwitchHysteresisForMinNodesEnableEpoch = 1
+   SwitchHysteresisForMinNodesEnableEpoch = 124
 
    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
    # signed with the hash of transaction
-   TransactionSignedWithTxHashEnableEpoch = 1
+   TransactionSignedWithTxHashEnableEpoch = 239
 
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-   MetaProtectionEnableEpoch = 1
+   MetaProtectionEnableEpoch = 180
 
    # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnableEpoch = 1
+   AheadOfTimeGasUsageEnableEpoch = 180
 
    # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
-   GasPriceModifierEnableEpoch = 1
+   GasPriceModifierEnableEpoch = 180
 
    # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
-   RepairCallbackEnableEpoch = 1
+   RepairCallbackEnableEpoch = 239
 
    # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
-   BlockGasAndFeesReCheckEnableEpoch = 1
+   BlockGasAndFeesReCheckEnableEpoch = 239
 
    # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
-   ReturnDataToLastTransferEnableEpoch = 2
+   ReturnDataToLastTransferEnableEpoch = 1000000
 
    # ArwenESDTFunctionsEnableEpoch represents the epoch when the new ESDT functions are enabled in arwen
-   ArwenESDTFunctionsEnableEpoch = 2
+   ArwenESDTFunctionsEnableEpoch = 1000000
 
    # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
-   SenderInOutTransferEnableEpoch = 2
+   SenderInOutTransferEnableEpoch = 1000000
 
    # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
-   BalanceWaitingListsEnableEpoch = 2
+   BalanceWaitingListsEnableEpoch = 1000000
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
+        { EpochEnable = 249, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
-   GenesisString = "67656E65736973"
+   GenesisString = "546f207369676e69666963616e746c7920616363656c657261746520616c6c20746563686e6f6c6f676965732c20616e64207261646963616c6c7920696d70726f766520736f63696574792c2068756d616e6974792077696c6c206861766520746f206d69677261746520746f206120706f737420736361726369747920776f726c642e20456c726f6e642069732074686520666972737420636f6d706c65746520736f6c7574696f6e20746861742077696c6c20617474656d707420616e64206163686965766520746869732e0a0a54686520666f756e64696e67207465616d206f6620456c726f6e642069733a0a42656e69616d696e204d696e63750a4c756369616e204d696e63750a4c756369616e20546f6465610a41647269616e20446f62726974610a526f6265727420536173750a5261647520436869730a49756c69616e2050617363616c61750a53656261737469616e204d617269616e0a416e64726569204d6172696e6963610a437269737469616e20436f72636f7665616e750a44616e20566f6963750a44616e69656c20536572620a0a4e6f7461626c6520636f6e7472696275746f72733a0a42656e69616d696e20447261736f7665616e0a46656c69782043726973616e0a436f6e7374616e74696e20546f766973690a43616d696c2042616e63696f69750a416e647265692042616e63696f69750a416e64726569204164616d0a5365766572204d6f6c646f7665616e"
 
    # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
    GenesisMaxNumberOfShards  = 3
@@ -90,7 +90,8 @@
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV3.toml" },
+        { StartEpoch = 180, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 239, FileName = "gasScheduleV3.toml" },
     ]
 
 [StoragePruning]
@@ -391,7 +392,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 209715200 #200MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -505,7 +506,7 @@
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 30 },
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 60 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
     [Antiflood.WebServer]
@@ -572,15 +573,15 @@
    Type = "json"
 
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
+    MinRoundsBetweenEpochs = 14400
+    RoundsPerEpoch         = 14400
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
-    MinShuffledOutRestartThreshold = 0.05
-    MaxShuffledOutRestartThreshold = 0.25
+    MinShuffledOutRestartThreshold = 0.01
+    MaxShuffledOutRestartThreshold = 0.05
 
-    MinNumConnectedPeersToStart       = 2
-    MinNumOfPeersToConsiderBlockValid = 2
+    MinNumConnectedPeersToStart       = 6
+    MinNumOfPeersToConsiderBlockValid = 6
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -592,11 +593,11 @@
 # Heartbeat, if enabled, will output a heartbeat signal once x seconds,
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
-   MinTimeToWaitBetweenBroadcastsInSec  = 20
-   MaxTimeToWaitBetweenBroadcastsInSec  = 25
+   MinTimeToWaitBetweenBroadcastsInSec  = 50
+   MaxTimeToWaitBetweenBroadcastsInSec  = 70
    HeartbeatRefreshIntervalInSec        = 60
-   HideInactiveValidatorIntervalInSec   = 3600
-   DurationToConsiderUnresponsiveInSec  = 60
+   HideInactiveValidatorIntervalInSec   = 600
+   DurationToConsiderUnresponsiveInSec  = 300
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
             Name = "HeartbeatStorage"
@@ -652,7 +653,7 @@
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
-    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
+    PublicKeyToListenFrom = "6a02b93375e78aed4e0e3369ef2182dfc060eea01df640eacc5eca5f759f62c8271fbbf90863e896e2453384118be20179433cb1dfc1bd8df962c80f3da94ea42dffaf70025b6fd6a5b4814bc4b15cf6751c990fe21d392f1bc88c15bd354a8c"
 	CloseAfterExportInMinutes = 10000
 	AfterHardFork = false
 	ImportFolder = "export"
@@ -719,9 +720,9 @@
 
 [Debug]
     [Debug.InterceptorResolver]
-        Enabled = true
+        Enabled = false
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint	= false
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
@@ -740,7 +741,7 @@
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]
-    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-config-mainnet/releases/latest"
     PollingIntervalInMinutes = 65
 
 [DbLookupExtensions]
