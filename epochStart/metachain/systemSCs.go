@@ -232,6 +232,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
+	if s.flagCorrectNumNodesToStake.IsSet() {
+		err := s.cleanAdditionalQueue()
+		if err != nil {
+			return err
+		}
+	}
+
 	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
@@ -353,6 +360,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
+	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
 	return nodesToStakeFromQueue, nil
 }
 
@@ -1178,6 +1186,58 @@ func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte)
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) cleanAdditionalQueue() error {
+	sw := core.NewStopWatch()
+	sw.Start("systemSCProcessor")
+	defer func() {
+		sw.Stop("systemSCProcessor")
+		log.Info("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
+	}()
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "cleanAdditionalQueue",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when cleaning additional queue", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s, return message %s when cleaning additional queue", vmOutput.ReturnCode, vmOutput.ReturnMessage)
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	// returnData format is list(address - all blsKeys which were unstaked for that)
+	addressLength := len(s.endOfEpochCallerAddress)
+	mapOwnersKeys := make(map[string][][]byte)
+	currentOwner := ""
+	for _, returnData := range vmOutput.ReturnData {
+		if len(returnData) == addressLength {
+			currentOwner = string(returnData)
+			continue
+		}
+
+		mapOwnersKeys[currentOwner] = append(mapOwnersKeys[currentOwner], returnData)
+	}
+
+	err = s.updateDelegationContracts(mapOwnersKeys)
+	if err != nil {
+		log.Error("update delegation contracts failed after cleaning additional queue", "error", err.Error())
+		return err
 	}
 
 	return nil
