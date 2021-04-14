@@ -1244,7 +1244,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 
 	nrRoundsToPropagateMultiShard := 12
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	tokenID := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
@@ -1279,8 +1279,6 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 }
 
 func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
-	//TODO(this PR) fix this test
-	t.Skip()
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1309,7 +1307,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 		}
 	}()
 
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
 		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
 		if check.IfNil(n.SystemSCFactory) {
