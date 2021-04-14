@@ -1175,7 +1175,7 @@ func CreateNodes(
 func ConnectNodes(nodes []Connectable) {
 	encounteredErrors := make([]error, 0)
 
-	for i := 0; i < len(nodes); i++ {
+	for i := 0; i < len(nodes)-1; i++ {
 		for j := i + 1; j < len(nodes); j++ {
 			src := nodes[i]
 			dst := nodes[j]

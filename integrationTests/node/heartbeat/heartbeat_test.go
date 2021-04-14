@@ -141,7 +141,7 @@ func prepareNodes(
 		_ = nodes[i].Bootstrap()
 	}
 
-	for i := 0; i < len(nodes); i++ {
+	for i := 0; i < len(nodes)-1; i++ {
 		for j := i + 1; j < len(nodes); j++ {
 			_ = nodes[i].ConnectToPeer(integrationTests.GetConnectableAddress(nodes[j]))
 		}
