@@ -88,6 +88,8 @@ type ApiResolver interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue() (*api.StakeValues, error)
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	GetDelegatorsList() ([]*api.Delegator, error)
 	Close() error
 	IsInterfaceNil() bool
 }

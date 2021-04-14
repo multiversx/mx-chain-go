@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -11,7 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -81,7 +83,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		workingDir:          apiWorkingDir,
 	}
 
-	scQueryService, vmFactory, vmContainer, err := createScQueryService(argsSCQuery)
+	scQueryService, _, _, err := createScQueryService(argsSCQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -116,29 +118,43 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	totaltakedHandlerArgs := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:            args.ProcessComponents.ShardCoordinator().SelfId(),
-		Accounts:           args.StateComponents.AccountsAdapter(),
-		BlockChain:         args.DataComponents.Blockchain(),
-		QueryService:       scQueryService,
-		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
 	}
 
-	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
+	argsProcessors := trieIterators.ArgTrieIteratorProcessor{
+		ShardID:            args.BootstrapComponents.ShardCoordinator().SelfId(),
+		Accounts:           accountsWrapper,
+		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+		BlockChain:         args.DataComponents.Blockchain(),
+		QueryService:       scQueryService,
+	}
+	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	apiArgs := external.ApiResolverArgs{
-		ScQueryService:     scQueryService,
-		StatusMetrics:      args.CoreComponents.StatusHandlerUtils().Metrics(),
-		TxCostHandler:      txCostHandler,
-		VmFactory:          vmFactory,
-		VmContainer:        vmContainer,
-		StakedValueHandler: totalStakedValueHandler,
+	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(argsProcessors)
+	if err != nil {
+		return nil, err
 	}
 
-	return external.NewNodeApiResolver(apiArgs)
+	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(argsProcessors)
+	if err != nil {
+		return nil, err
+	}
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          scQueryService,
+		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
+	}
+
+	return external.NewNodeApiResolver(argsApiResolver)
 }
 
 func createScQueryService(

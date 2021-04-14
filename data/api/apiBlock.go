@@ -47,3 +47,25 @@ type StakeValues struct {
 	TotalStaked *big.Int
 	TopUp       *big.Int
 }
+
+// DirectStakedValue holds the total staked value for an address
+type DirectStakedValue struct {
+	Address string `json:"address"`
+	Staked  string `json:"staked"`
+	TopUp   string `json:"topUp"`
+	Total   string `json:"total"`
+}
+
+// DelegatedValue holds the value and the delegation system SC address
+type DelegatedValue struct {
+	DelegationScAddress string `json:"delegationScAddress"`
+	Value               string `json:"value"`
+}
+
+// Delegator holds the delegator address and the slice of delegated values
+type Delegator struct {
+	DelegatorAddress string            `json:"delegatorAddress"`
+	DelegatedTo      []*DelegatedValue `json:"delegatedTo"`
+	Total            string            `json:"total"`
+	TotalAsBigInt    *big.Int          `json:"-"`
+}

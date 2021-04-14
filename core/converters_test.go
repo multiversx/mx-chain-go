@@ -306,5 +306,4 @@ func TestShardAssignment(t *testing.T) {
 	for sh, cnt := range counts {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
-
 }

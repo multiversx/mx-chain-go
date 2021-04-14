@@ -37,8 +37,9 @@ func CreateShardCoordinator(
 		if err != nil {
 			return nil, "", err
 		}
+		var pubKeyBytes []byte
 		if selfShardId == core.DisabledShardIDAsObserver {
-			pubKeyBytes, err := pubKey.ToByteArray()
+			pubKeyBytes, err = pubKey.ToByteArray()
 			if err != nil {
 				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
 			}
@@ -104,8 +105,9 @@ func CreateNodesCoordinator(
 	if err != nil {
 		return nil, err
 	}
+	var pubKeyBytes []byte
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		pubKeyBytes, err := pubKey.ToByteArray()
+		pubKeyBytes, err = pubKey.ToByteArray()
 		if err != nil {
 			return nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
 		}
@@ -145,7 +147,7 @@ func CreateNodesCoordinator(
 		}
 	}
 
-	pubKeyBytes, err := pubKey.ToByteArray()
+	pubKeyBytes, err = pubKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}

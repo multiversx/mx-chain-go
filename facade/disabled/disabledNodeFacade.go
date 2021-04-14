@@ -248,9 +248,19 @@ func (nf *disabledNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return uint32(0)
 }
 
-// GetKeyValuePairs -
+// GetKeyValuePairs nil map
 func (nf *disabledNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
 	return nil, nil
+}
+
+// GetDirectStakedList returns empty slice
+func (nf *disabledNodeFacade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return make([]*api.DirectStakedValue, 0), nil
+}
+
+// GetDelegatorsList returns empty slice
+func (nf *disabledNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
+	return make([]*api.Delegator, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

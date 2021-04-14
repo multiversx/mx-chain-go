@@ -192,6 +192,6 @@ type GenesisNodeInfoHandler interface {
 
 // ValidatorsDistributor distributes validators across shards
 type ValidatorsDistributor interface {
-	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte) error
+	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte, balanced bool) error
 	IsInterfaceNil() bool
 }

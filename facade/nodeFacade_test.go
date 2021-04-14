@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	chainData "github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -690,6 +691,60 @@ func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	err := nf.ValidateTransactionForSimulation(&transaction.Transaction{}, false)
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetTotalStakedValue(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetTotalStakedValue()
+
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetDelegatorsList(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetDelegatorsList()
+
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetDirectStakedList(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetDirectStakedList()
+
 	assert.Nil(t, err)
 	assert.True(t, called)
 }
