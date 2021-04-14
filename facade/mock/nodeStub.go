@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -39,9 +40,10 @@ type NodeStub struct {
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
-	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
-	GetAllESDTTokensCalled                         func(address string) ([]string, error)
+	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
+	GetAllIssuedESDTsCalled                        func() ([]string, error)
 }
 
 // GetUsername -
@@ -175,22 +177,30 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return make([]core.QueryP2PPeerInfo, 0), nil
 }
 
-// GetESDTBalance -
-func (ns *NodeStub) GetESDTBalance(address string, key string) (string, string, error) {
-	if ns.GetESDTBalanceCalled != nil {
-		return ns.GetESDTBalanceCalled(address, key)
+// GetESDTData -
+func (ns *NodeStub) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	if ns.GetESDTDataCalled != nil {
+		return ns.GetESDTDataCalled(address, tokenID, nonce)
 	}
 
-	return "", "", nil
+	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
 // GetAllESDTTokens -
-func (ns *NodeStub) GetAllESDTTokens(address string) ([]string, error) {
+func (ns *NodeStub) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if ns.GetAllESDTTokensCalled != nil {
 		return ns.GetAllESDTTokensCalled(address)
 	}
 
-	return []string{""}, nil
+	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetAllIssuedESDTs -
+func (ns *NodeStub) GetAllIssuedESDTs() ([]string, error) {
+	if ns.GetAllIssuedESDTsCalled != nil {
+		return ns.GetAllIssuedESDTsCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

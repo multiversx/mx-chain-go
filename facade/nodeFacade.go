@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -190,9 +192,9 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 	return nf.node.GetValueForKey(address, key)
 }
 
-// GetESDTBalance returns the ESDT balance and if it is frozen
-func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string, error) {
-	return nf.node.GetESDTBalance(address, key)
+// GetESDTData returns the ESDT data for the given address, tokenID and nonce
+func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	return nf.node.GetESDTData(address, key, nonce)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
@@ -201,8 +203,13 @@ func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
+func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	return nf.node.GetAllESDTTokens(address)
+}
+
+// GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
+func (nf *nodeFacade) GetAllIssuedESDTs() ([]string, error) {
+	return nf.node.GetAllIssuedESDTs()
 }
 
 // CreateTransaction creates a transaction from all needed fields
@@ -413,11 +420,22 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		outAcc.OutputTransfers = make([]vm.OutputTransferApi, len(acc.OutputTransfers))
 		for i, outTransfer := range acc.OutputTransfers {
 			outTransferApi := vm.OutputTransferApi{
-				Value:    outTransfer.Value,
-				GasLimit: outTransfer.GasLimit,
-				Data:     outTransfer.Data,
-				CallType: outTransfer.CallType,
+				Value:         outTransfer.Value,
+				GasLimit:      outTransfer.GasLimit,
+				Data:          outTransfer.Data,
+				CallType:      outTransfer.CallType,
+				SenderAddress: outputAddress,
 			}
+
+			if len(outTransfer.SenderAddress) == len(acc.Address) && !bytes.Equal(outTransfer.SenderAddress, acc.Address) {
+				senderAddr, errEncode := nf.node.EncodeAddressPubkey(outTransfer.SenderAddress)
+				if errEncode != nil {
+					log.Warn("cannot encode address", "error", errEncode)
+					senderAddr = outputAddress
+				}
+				outTransferApi.SenderAddress = senderAddr
+			}
+
 			outAcc.OutputTransfers[i] = outTransferApi
 		}
 

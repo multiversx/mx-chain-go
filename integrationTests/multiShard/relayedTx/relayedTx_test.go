@@ -26,9 +26,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -80,9 +79,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -171,9 +169,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -208,7 +205,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
 
 	/////////------ send tx to players
@@ -259,41 +256,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	checkPlayerBalances(t, nodes, players)
 }
 
-func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		scQuery := &process.SCQuery{
-			ScAddress:  vm.ESDTSCAddress,
-			FuncName:   "getAllESDTTokens",
-			CallerAddr: vm.ESDTSCAddress,
-			CallValue:  big.NewInt(0),
-			Arguments:  [][]byte{},
-		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
-		if err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok {
-			return nil
-		}
-		if len(vmOutput.ReturnData) == 0 {
-			return nil
-		}
-
-		return vmOutput.ReturnData[0]
-	}
-
-	return nil
-}
-
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

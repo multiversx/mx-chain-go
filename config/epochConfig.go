@@ -36,6 +36,9 @@ type EnableEpochs struct {
 	DelegationSmartContractEnableEpoch     uint32
 	CorrectLastUnjailedEpoch               uint32
 	BalanceWaitingListsEnableEpoch         uint32
+	ReturnDataToLastTransferEnableEpoch    uint32
+	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

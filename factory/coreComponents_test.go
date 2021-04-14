@@ -324,12 +324,25 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		ConfigPathsHolder: config.ConfigurationPathsHolder{
+			GasScheduleDirectoryName: "../cmd/node/config/gasSchedules",
+		},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),
 		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
 		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},
+		EpochConfig: config.EpochConfig{
+			GasSchedule: config.GasScheduleConfig{
+				GasScheduleByEpochs: []config.GasScheduleByEpochs{
+					{
+						StartEpoch: 0,
+						FileName:   "gasScheduleV1.toml",
+					},
+				},
+			},
+		},
 	}
 }
 
