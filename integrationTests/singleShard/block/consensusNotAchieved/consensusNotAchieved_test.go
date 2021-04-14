@@ -24,8 +24,6 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	maxShards := 1
 	consensusGroupSize := 2
 	nodesPerShard := 5
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
 
 	singleSigner := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
@@ -44,7 +42,6 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 		maxShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 		singleSigner,
 		keyGen,
 	)
@@ -55,7 +52,6 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()

@@ -25,6 +25,10 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *changeOwnerAddress) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ChangeOwnerAddress
 	c.mutExecution.Unlock()

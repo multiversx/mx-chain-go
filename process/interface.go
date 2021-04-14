@@ -1013,6 +1013,12 @@ type ESDTPauseHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ESDTRoleHandler provides IsAllowedToExecute function for an ESDT
+type ESDTRoleHandler interface {
+	CheckAllowedToExecute(account state.UserAccountHandler, tokenID []byte, action []byte) error
+	IsInterfaceNil() bool
+}
+
 // PayableHandler provides IsPayable function which returns if an account is payable or not
 type PayableHandler interface {
 	IsPayable(address []byte) (bool, error)

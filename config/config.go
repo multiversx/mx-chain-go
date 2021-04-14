@@ -235,6 +235,9 @@ type GeneralSettingsConfig struct {
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
 	BlockGasAndFeesReCheckEnableEpoch      uint32
+	ReturnDataToLastTransferEnableEpoch    uint32
+	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
