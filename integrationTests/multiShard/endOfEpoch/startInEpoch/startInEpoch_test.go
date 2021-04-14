@@ -169,7 +169,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
-	messenger := integrationTests.CreateMessengerWithNoDiscovery(0)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 

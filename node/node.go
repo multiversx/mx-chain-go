@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 const (
@@ -332,7 +333,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	}
 
 	if esdtToken.TokenMetaData != nil {
-		esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 	}
 
 	return esdtToken, nil
@@ -383,14 +384,14 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 			continue
 		}
 
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
 		if err != nil {
 			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
 			continue
 		}
 
 		if esdtToken.TokenMetaData != nil {
-			esdtToken.TokenMetaData.Creator = []byte(n.addressPubkeyConverter.Encode(esdtToken.TokenMetaData.Creator))
+			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
 			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
 		}
 
@@ -448,12 +449,12 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandle
 }
 
 func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
-	blockHeader := n.blkc.GetCurrentBlockHeader()
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
 		return nil, ErrNilBlockHeader
 	}
 
-	err := n.coreComponents.InternalMarshalizer().RecreateTrie(blockHeader.GetRootHash())
+	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
 	if err != nil {
 		return nil, err
 	}

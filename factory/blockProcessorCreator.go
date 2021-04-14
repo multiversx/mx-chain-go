@@ -136,6 +136,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
+	log.Debug("blockProcessorCreator: enable epoch for ESDT functions", "epoch", argsNewVMFactory.ArwenESDTFunctionsEnableEpoch)
 
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

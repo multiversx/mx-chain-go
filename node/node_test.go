@@ -383,12 +383,14 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
@@ -512,18 +514,22 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
-		node.WithAccountsAdapterAPI(accDB),
-		node.WithBlockChain(&mock.BlockChainMock{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{}
-			},
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	tokens, err := n.GetAllESDTTokens(hexAddress)
@@ -570,17 +576,22 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
-		node.WithAccountsAdapterAPI(accDB),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
-		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
-		}}),
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	value, err := n.GetAllIssuedESDTs()

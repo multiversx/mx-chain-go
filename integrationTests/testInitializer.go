@@ -1380,8 +1380,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 		log.Info(fmt.Sprintf("skTx: %s, pkTx: %s",
 			hex.EncodeToString(skTxBuff),
-			TestAddressPubkeyConverter.Encode(pkTxBuff),
-		)
+			TestAddressPubkeyConverter.Encode(pkTxBuff)))
 	}
 
 	log.Info("Delaying for node bootstrap and topic announcement...")
