@@ -2449,7 +2449,7 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 	assert.True(t, strings.Contains(eei.returnMessage, "token is not upgradable"))
 }
 
-func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testing.T) {
+func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testing.T) {
 	t.Parallel()
 
 	tokenName := []byte("esdtToken")
@@ -2464,12 +2464,14 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 
 	tokensMap := map[string][]byte{}
 	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
-		TokenName:    []byte("esdtToken"),
-		TokenType:    []byte(core.FungibleESDT),
-		OwnerAddress: []byte("owner"),
-		Upgradable:   true,
-		BurntValue:   big.NewInt(100),
-		MintedValue:  big.NewInt(1000),
+		TokenName:        []byte("esdtToken"),
+		TokenType:        []byte(core.FungibleESDT),
+		OwnerAddress:     []byte("owner"),
+		Upgradable:       true,
+		BurntValue:       big.NewInt(100),
+		MintedValue:      big.NewInt(1000),
+		NumWiped:         37,
+		NFTCreateStopped: true,
 	})
 	tokensMap[string(tokenName)] = marshalizedData
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
@@ -2490,6 +2492,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 		[]byte(canWipe), []byte("true"),
 		[]byte(upgradable), []byte("false"),
 		[]byte(canChangeOwner), []byte("true"),
+		[]byte(canTransferNFTCreateRole), []byte("true"),
 	})
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -2509,12 +2512,28 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	assert.Equal(t, 15, len(eei.output))
+	assert.Equal(t, 18, len(eei.output))
 	assert.Equal(t, []byte("esdtToken"), eei.output[0])
+	assert.Equal(t, []byte(core.FungibleESDT), eei.output[1])
 	assert.Equal(t, vmInput.CallerAddr, eei.output[2])
+	assert.Equal(t, "1000", string(eei.output[3]))
+	assert.Equal(t, "100", string(eei.output[4]))
+	assert.Equal(t, []byte("NumDecimals-0"), eei.output[5])
+	assert.Equal(t, []byte("IsPaused-false"), eei.output[6])
+	assert.Equal(t, []byte("CanUpgrade-false"), eei.output[7])
+	assert.Equal(t, []byte("CanMint-true"), eei.output[8])
+	assert.Equal(t, []byte("CanBurn-true"), eei.output[9])
+	assert.Equal(t, []byte("CanChangeOwner-true"), eei.output[10])
+	assert.Equal(t, []byte("CanPause-true"), eei.output[11])
+	assert.Equal(t, []byte("CanFreeze-true"), eei.output[12])
+	assert.Equal(t, []byte("CanWipe-true"), eei.output[13])
+	assert.Equal(t, []byte("CanAddSpecialRoles-false"), eei.output[14])
+	assert.Equal(t, []byte("CanTransferNFTCreateRole-true"), eei.output[15])
+	assert.Equal(t, []byte("NFTCreateStopped-true"), eei.output[16])
+	assert.Equal(t, []byte("NumWiped-37"), eei.output[17])
 }
 
-func TestEsdt_ExecuteConfigChangeGetContractCongig(t *testing.T) {
+func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()

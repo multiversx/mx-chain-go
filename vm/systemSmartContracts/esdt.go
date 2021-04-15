@@ -894,6 +894,9 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish([]byte("CanFreeze-" + getStringFromBool(esdtToken.CanFreeze)))
 	e.eei.Finish([]byte("CanWipe-" + getStringFromBool(esdtToken.CanWipe)))
 	e.eei.Finish([]byte("CanAddSpecialRoles-" + getStringFromBool(esdtToken.CanAddSpecialRoles)))
+	e.eei.Finish([]byte("CanTransferNFTCreateRole-" + getStringFromBool(esdtToken.CanTransferNFTCreateRole)))
+	e.eei.Finish([]byte("NFTCreateStopped-" + getStringFromBool(esdtToken.NFTCreateStopped)))
+	e.eei.Finish([]byte(fmt.Sprintf("NumWiped-%d", esdtToken.NumWiped)))
 
 	return vmcommon.Ok
 }
