@@ -3515,7 +3515,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTData{}
 			_ = args.Marshalizer.Unmarshal(token, value)
-			require.Len(t, token.SpecialRoles[0].Roles, 0)
+			require.Len(t, token.SpecialRoles, 0)
 		},
 	}
 	args.Eei = eei
