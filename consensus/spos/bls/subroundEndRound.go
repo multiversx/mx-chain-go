@@ -184,26 +184,26 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJob.checkSignaturesValidity", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.checkSignaturesValidity", "error", err.Error())
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJob.AggregateSigs", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 		return false
 	}
 
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJob.SetPubKeysBitmap", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
 		return false
 	}
 
 	err = sr.Header.SetSignature(sig)
 	if err != nil {
-		log.Debug("doEndRoundJob.SetSignature", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.SetSignature", "error", err.Error())
 		return false
 	}
 
@@ -216,7 +216,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	err = sr.Header.SetLeaderSignature(leaderSignature)
 	if err != nil {
-		log.Debug("doEndRoundJob.SetLeaderSignature", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.SetLeaderSignature", "error", err.Error())
 		return false
 	}
 
@@ -228,7 +228,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
-		log.Debug("doEndRoundJob.BroadcastHeader", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
@@ -242,7 +242,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		)
 	}
 	if err != nil {
-		log.Debug("doEndRoundJob.CommitBlock", "error", err)
+		log.Debug("doEndRoundJobByLeader.CommitBlock", "error", err)
 		return false
 	}
 
@@ -254,7 +254,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	err = sr.broadcastBlockDataLeader()
 	if err != nil {
-		log.Debug("doEndRoundJob.broadcastBlockDataLeader", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
 	}
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())

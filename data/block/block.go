@@ -354,7 +354,7 @@ func (h *Header) SetMetaBlockHashes(hashes [][]byte) error {
 // IntegrityAndValidity checks if data is valid
 func (b *Body) IntegrityAndValidity() error {
 	if b == nil {
-		return data.ErrNilBlockBody
+		return data.ErrNilPointerReceiver
 	}
 
 	for i := 0; i < len(b.MiniBlocks); i++ {

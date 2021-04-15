@@ -298,13 +298,19 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 	}
 
 	err = headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return headerCopy, err
+	return headerCopy, nil
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) (data.HeaderHandler, error) {
 	headerCopy := header.ShallowClone()
 	err := headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
-	return headerCopy, err
+	return headerCopy, nil
 }
