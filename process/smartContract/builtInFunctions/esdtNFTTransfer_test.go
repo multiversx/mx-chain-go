@@ -270,6 +270,15 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionInvalidArgumentsShouldErr(t *test
 	vmOutput, err = nftTransfer.ProcessBuiltinFunction(&mock.UserAccountStub{}, &mock.UserAccountStub{}, vmInput)
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, process.ErrInvalidArguments, err)
+
+	nftTransfer.shardCoordinator = &mock.ShardCoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+		return core.MetachainShardId
+	}}
+
+	vmInput.Arguments = [][]byte{[]byte("arg1"), []byte("arg2"), []byte("arg1"), []byte("arg2")}
+	vmOutput, err = nftTransfer.ProcessBuiltinFunction(&mock.UserAccountStub{}, &mock.UserAccountStub{}, vmInput)
+	assert.Nil(t, vmOutput)
+	assert.Equal(t, process.ErrInvalidRcvAddr, err)
 }
 
 func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShardWithScCall(t *testing.T) {

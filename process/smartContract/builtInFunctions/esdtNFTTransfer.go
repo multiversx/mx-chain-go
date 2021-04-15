@@ -111,6 +111,9 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 	if len(vmInput.Arguments) < 4 {
 		return nil, process.ErrInvalidArguments
 	}
+	if e.shardCoordinator.ComputeId(vmInput.RecipientAddr) == core.MetachainShardId {
+		return nil, process.ErrInvalidRcvAddr
+	}
 
 	if bytes.Equal(vmInput.CallerAddr, vmInput.RecipientAddr) {
 		return e.processNFTTransferOnSenderShard(acntSnd, vmInput)
