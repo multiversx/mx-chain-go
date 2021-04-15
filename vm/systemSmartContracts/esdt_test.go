@@ -2533,7 +2533,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedProperties(t *testi
 	assert.Equal(t, []byte("NumWiped-37"), eei.output[17])
 }
 
-func TestEsdt_GetSpecialRolesNotEmptyValueShouldErr(t *testing.T) {
+func TestEsdt_GetSpecialRolesValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
@@ -2623,6 +2623,35 @@ func TestEsdt_GetSpecialRolesInvalidTokenShouldErr(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
 }
 
+func TestEsdt_GetSpecialRolesNoSpecialRoles(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+
+	eei.output = make([][]byte, 0)
+	vmInput := getDefaultVmInputForFunc("getSpecialRoles", [][]byte{[]byte("esdtToken")})
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 0, len(eei.output))
+}
+
 func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2681,6 +2710,100 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(eei.output))
 	assert.Equal(t, []byte("erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk:ESDTRoleLocalMint,ESDTRoleLocalBurn"), eei.output[0])
 	assert.Equal(t, []byte("erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw:ESDTRoleNFTAddQuantity,ESDTRoleNFTCreate,ESDTRoleNFTBurn"), eei.output[1])
+}
+
+func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+
+	owner := "erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw"
+	ownerBytes, _ := bech32C.Decode(owner)
+
+	addr1 := "erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk"
+	addr1Bytes, _ := bech32C.Decode(addr1)
+
+	addr2 := "erd1rsq30t33aqeg8cuc3q4kfnx0jukzsx52yfua92r233zhhmndl3uszcs5qj"
+	addr2Bytes, _ := bech32C.Decode(addr2)
+
+	specialRoles := []*ESDTRoles{
+		{
+			Address: addr1Bytes,
+			Roles: [][]byte{
+				[]byte(core.ESDTRoleLocalMint),
+			},
+		},
+		{
+			Address: addr2Bytes,
+			Roles: [][]byte{
+				[]byte(core.ESDTRoleNFTAddQuantity),
+				[]byte(core.ESDTRoleNFTCreate),
+				[]byte(core.ESDTRoleNFTBurn),
+			},
+		},
+	}
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		OwnerAddress:       ownerBytes,
+		SpecialRoles:       specialRoles,
+		CanAddSpecialRoles: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	args.AddressPubKeyConverter = bech32C
+
+	e, _ := NewESDTSmartContract(args)
+
+	eei.output = make([][]byte, 0)
+	vmInput := getDefaultVmInputForFunc("getSpecialRoles", [][]byte{[]byte("esdtToken")})
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, []byte("erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk:ESDTRoleLocalMint"), eei.output[0])
+	assert.Equal(t, []byte("erd1rsq30t33aqeg8cuc3q4kfnx0jukzsx52yfua92r233zhhmndl3uszcs5qj:ESDTRoleNFTAddQuantity,ESDTRoleNFTCreate,ESDTRoleNFTBurn"), eei.output[1])
+
+	// unset the role for the address
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("unSetSpecialRole", [][]byte{})
+	vmInput.CallerAddr = ownerBytes
+	vmInput.Arguments = [][]byte{[]byte("esdtToken"), addr1Bytes, []byte(core.ESDTRoleLocalMint)}
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	// get roles again
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getSpecialRoles", [][]byte{[]byte("esdtToken")})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 1, len(eei.output))
+
+	// set the role for the address
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
+	vmInput.CallerAddr = ownerBytes
+	vmInput.Arguments = [][]byte{[]byte("esdtToken"), addr1Bytes, []byte(core.ESDTRoleLocalMint)}
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	// get roles again
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getSpecialRoles", [][]byte{[]byte("esdtToken")})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, []byte("erd1kzzv2uw97q5k9mt458qk3q9u3cwhwqykvyk598q2f6wwx7gvrd9s8kszxk:ESDTRoleLocalMint"), eei.output[1])
 }
 
 func TestEsdt_ExecuteConfigChangeGetContractConfig(t *testing.T) {

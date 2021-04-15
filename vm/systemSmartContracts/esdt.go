@@ -1208,6 +1208,18 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	if len(esdtRole.Roles) == 0 {
+		for i, roles := range token.SpecialRoles {
+			if bytes.Equal(roles.Address, address) {
+				copy(token.SpecialRoles[i:], token.SpecialRoles[i+1:])
+				token.SpecialRoles[len(token.SpecialRoles)-1] = nil
+				token.SpecialRoles = token.SpecialRoles[:len(token.SpecialRoles)-1]
+
+				break
+			}
+		}
+	}
+
 	err = e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
