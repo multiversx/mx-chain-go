@@ -2052,8 +2052,8 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	args.MinNumNodes = 1
-	args.StakingSCConfig.StakingV2Epoch = 0
-	args.StakingSCConfig.CorrectLastUnjailedEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.CorrectLastUnjailedEpoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
