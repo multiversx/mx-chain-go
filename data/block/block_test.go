@@ -256,7 +256,7 @@ func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
 	var body *block.Body = nil
-	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
+	assert.Equal(t, data.ErrNilPointerReceiver, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
