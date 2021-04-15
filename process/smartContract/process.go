@@ -1250,6 +1250,22 @@ func (sc *scProcessor) addBackTxValues(
 		scrIfError.Value = big.NewInt(0).Set(valueForSnd)
 	}
 
+	if sc.flagSenderInOutTransfer.IsSet() &&
+		determineCallType(originalTx) == vmcommon.AsynchronousCallBack &&
+		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr()) {
+		destAcc, err := sc.getAccountFromAddress(originalTx.GetRcvAddr())
+		if err != nil {
+			return err
+		}
+
+		err = destAcc.AddToBalance(valueForSnd)
+		if err != nil {
+			return err
+		}
+
+		return sc.accounts.SaveAccount(destAcc)
+	}
+
 	if !check.IfNil(acntSnd) {
 		err := acntSnd.AddToBalance(valueForSnd)
 		if err != nil {

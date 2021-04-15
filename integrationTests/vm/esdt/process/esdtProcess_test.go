@@ -1283,7 +1283,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
+	numOfShards := 3
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -1327,7 +1327,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/local-esdt-and-nft.wasm")
 
-	alice := nodes[0]
+	alice := nodes[1]
 	issuePrice := big.NewInt(1000)
 	txData := []byte("issueFungibleToken" + "@" + hex.EncodeToString([]byte("TOKEN")) +
 		"@" + hex.EncodeToString([]byte("TKR")) + "@" + hex.EncodeToString(big.NewInt(1).Bytes()))
@@ -1347,7 +1347,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	userAccount := esdtCommon.GetUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
 	balanceAfterTransfer := userAccount.GetBalance()
 
-	nrRoundsToPropagateMultiShard := 15
+	nrRoundsToPropagateMultiShard := 25
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 	userAccount = esdtCommon.GetUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
