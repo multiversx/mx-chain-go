@@ -9,6 +9,7 @@ import (
 type StateComponentsMock struct {
 	PeersAcc        state.AccountsAdapter
 	Accounts        state.AccountsAdapter
+	AccountsAPI     state.AccountsAdapter
 	Tries           state.TriesHolder
 	StorageManagers map[string]data.StorageManager
 }
@@ -36,6 +37,11 @@ func (scm *StateComponentsMock) PeerAccounts() state.AccountsAdapter {
 // AccountsAdapter -
 func (scm *StateComponentsMock) AccountsAdapter() state.AccountsAdapter {
 	return scm.Accounts
+}
+
+// AccountsAdapterAPI -
+func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
+	return scm.AccountsAPI
 }
 
 // TriesContainer -

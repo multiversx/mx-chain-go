@@ -1,8 +1,10 @@
 package hooks
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"path"
 	"sync"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -369,7 +372,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		}
 	}
 
-	if !check.IfNil(dstAccount) {
+	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
 			return nil, err
@@ -464,6 +467,43 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 // TODO remove this func completely
 func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 	return nil, nil
+}
+
+// GetESDTToken returns the unmarshalled esdt data for the given key
+func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
+	account, err := bh.GetUserAccount(address)
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	if err == state.ErrAccNotFound {
+		return esdtData, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	if nonce > 0 {
+		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
+	}
+
+	value, err := userAcc.DataTrieTracker().RetrieveValue(esdtTokenKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(value) == 0 {
+		return esdtData, nil
+	}
+
+	err = bh.marshalizer.Unmarshal(esdtData, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return esdtData, nil
 }
 
 // NumberOfShards returns the number of shards

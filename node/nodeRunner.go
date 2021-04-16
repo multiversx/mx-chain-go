@@ -143,6 +143,8 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
 	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
 	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
+	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEpoch)
+	log.Debug(readEpochFor("balance waiting lists"), "epoch", enableEpochs.BalanceWaitingListsEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -1087,6 +1089,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:           *nr.configs.EpochConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,

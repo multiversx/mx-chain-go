@@ -49,7 +49,6 @@ func CreateProcessorNodesWithNodesCoordinator(
 	rewardsAddrsAssignments map[uint32][]uint32,
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
-	seedAddress string,
 ) (map[uint32][]*TestProcessorNode, uint32) {
 
 	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
@@ -69,6 +68,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 
 	ncp, numShards := createNodesCryptoParams(rewardsAddrsAssignments)
 
+	completeNodesList := make([]Connectable, 0)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -93,18 +93,22 @@ func CreateProcessorNodesWithNodesCoordinator(
 				fmt.Println("error creating node coordinator")
 			}
 
-			nodesList[i] = newTestProcessorNodeWithCustomNodesCoordinator(
+			tpn := newTestProcessorNodeWithCustomNodesCoordinator(
 				numShards,
 				shardId,
-				seedAddress,
 				nodesCoordinator,
 				i,
 				ncp,
 				nodesSetup,
 			)
+
+			nodesList[i] = tpn
+			completeNodesList = append(completeNodesList, tpn)
 		}
 		nodesMap[shardId] = nodesList
 	}
+
+	ConnectNodes(completeNodesList)
 
 	return nodesMap, numShards
 }
@@ -183,7 +187,6 @@ func generateSkAndPkInShard(
 func newTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
-	initialNodeAddr string,
 	nodesCoordinator sharding.NodesCoordinator,
 	keyIndex int,
 	ncp map[uint32][]*nodeKeys,
@@ -192,7 +195,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,

@@ -66,6 +66,8 @@ type Cacher interface {
 	Keys() [][]byte
 	// Len returns the number of items in the cache.
 	Len() int
+	// SizeInBytesContained returns the size in bytes of all contained elements
+	SizeInBytesContained() uint64
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
@@ -199,6 +201,7 @@ type SizedLRUCacheHandler interface {
 	Remove(key interface{}) bool
 	Keys() []interface{}
 	Len() int
+	SizeInBytesContained() uint64
 	Purge()
 }
 

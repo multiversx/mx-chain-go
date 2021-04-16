@@ -155,7 +155,7 @@ func getProcessArgs(
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
-				OwnerAddress:    "aaaaaa",
+				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				ProposalCost:     "500",

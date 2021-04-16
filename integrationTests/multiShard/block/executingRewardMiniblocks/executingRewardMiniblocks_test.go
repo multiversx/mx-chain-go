@@ -31,11 +31,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nbShards := 2
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -43,7 +38,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	maxGasLimitPerBlock := uint64(100000)
@@ -59,7 +53,6 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -121,11 +114,6 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	nbShards := 1
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -133,7 +121,6 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	maxGasLimitPerBlock := uint64(100000)
@@ -149,7 +136,6 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -202,11 +188,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	nbShards := 2
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -214,7 +195,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	for _, nodes := range nodesMap {
@@ -222,7 +202,6 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()

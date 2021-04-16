@@ -29,7 +29,7 @@ import (
 )
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -103,7 +103,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 }
 
 func TestDelegationSystemReStakeNodes(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -163,7 +163,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 }
 
 func TestDelegationChangeConfig(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -214,7 +214,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -268,7 +268,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -323,7 +323,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -390,7 +390,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -452,7 +452,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 }
 
 func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(500000)
 	serviceFee := big.NewInt(10000) // 10%
@@ -549,7 +549,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 }
 
 func TestDelegationUnJail(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) // 10%
@@ -605,7 +605,7 @@ func TestDelegationUnJail(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(0)
 	serviceFee := big.NewInt(00)
@@ -660,7 +660,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimRewardsMultipleTimeUndelegateClaimRewardsMultipleTime(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) //10%
@@ -806,7 +806,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 }
 
 func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) //10%
@@ -945,7 +945,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 }
 
 func TestDelegationSystemCleanUpContract(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)

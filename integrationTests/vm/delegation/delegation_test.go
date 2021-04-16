@@ -29,16 +29,12 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
@@ -60,7 +56,6 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
