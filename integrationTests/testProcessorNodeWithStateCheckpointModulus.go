@@ -15,7 +15,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	stateCheckpointModulus uint,
 ) *TestProcessorNode {
 
@@ -62,7 +61,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,

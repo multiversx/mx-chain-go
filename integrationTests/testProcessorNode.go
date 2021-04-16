@@ -1,6 +1,8 @@
 package integrationTests
 
 import (
+	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -195,6 +197,14 @@ type CryptoParams struct {
 	TxKeys       map[uint32][]*TestKeyPair
 }
 
+// Connectable defines the operations for a struct to become connectable by other struct
+// In other words, all instances that implement this interface are able to connect with each other
+type Connectable interface {
+	ConnectTo(connectable Connectable) error
+	GetConnectableAddress() string
+	IsInterfaceNil() bool
+}
+
 // TestProcessorNode represents a container type of class used in integration tests
 // with all its fields exported
 type TestProcessorNode struct {
@@ -240,6 +250,7 @@ type TestProcessorNode struct {
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
 	SmartContractParser    genesis.InitialSmartContractParser
+	SystemSCFactory        vm.SystemSCContainerFactory
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
@@ -314,7 +325,6 @@ func newBaseTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
@@ -367,7 +377,7 @@ func newBaseTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
@@ -400,10 +410,8 @@ func NewTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
-
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNode()
 
 	return tpn
@@ -415,11 +423,10 @@ func NewTestProcessorNodeWithStorageTrieAndGasModel(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	trieStore storage.Storer,
 	gasMap map[string]map[string]uint64,
 ) *TestProcessorNode {
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNodeWithTrieDBAndGasModel(trieStore, gasMap)
 
 	return tpn
@@ -431,10 +438,9 @@ func NewTestProcessorNodeWithBLSSigVerifier(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.UseValidVmBlsSigVerifier = true
 	tpn.initTestNode()
 
@@ -446,14 +452,13 @@ func NewTestProcessorNodeSoftFork(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	builtinEnableEpoch uint32,
 	deployEnableEpoch uint32,
 	relayedTxEnableEpoch uint32,
 	penalizedTooMuchGasEnableEpoch uint32,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.BuiltinEnableEpoch = builtinEnableEpoch
 	tpn.DeployEnableEpoch = deployEnableEpoch
 	tpn.RelayedTxEnableEpoch = relayedTxEnableEpoch
@@ -468,13 +473,12 @@ func NewTestProcessorNodeWithFullGenesis(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 	accountParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	heartbeatPk string,
 ) *TestProcessorNode {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
 	tpn.initRounder()
@@ -534,10 +538,10 @@ func NewTestProcessorNodeWithFullGenesis(
 }
 
 // NewTestProcessorNodeWithCustomDataPool returns a new TestProcessorNode instance with the given data pool
-func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
+func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
@@ -575,6 +579,24 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	tpn.initTestNode()
 
 	return tpn
+}
+
+// ConnectTo will try to initiate a connection to the provided parameter
+func (tpn *TestProcessorNode) ConnectTo(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tpn.Messenger.ConnectToPeer(connectable.GetConnectableAddress())
+}
+
+// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tpn *TestProcessorNode) GetConnectableAddress() string {
+	if tpn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tpn.Messenger)
 }
 
 func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
@@ -728,10 +750,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -880,6 +903,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1246,10 +1270,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: mapDNSAddresses,
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  mapDNSAddresses,
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -1430,10 +1455,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -1516,7 +1542,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-
+	tpn.SystemSCFactory = vmFactory.SystemSmartContractContainerFactory()
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
@@ -1878,6 +1904,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			StakingDataProvider:     stakingDataProvider,
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
+			ESDTEnableEpoch:         0,
+			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
@@ -2499,4 +2527,34 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	}
 	err = tpn.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	log.LogIfError(err)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tpn *TestProcessorNode) IsInterfaceNil() bool {
+	return tpn == nil
+}
+
+// GetTokenIdentifier returns the token identifier from the metachain for the given ticker
+func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := n.AccntState.LoadAccount(vm.ESDTSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		rootHash, _ := userAcc.DataTrie().RootHash()
+		ctx := context.Background()
+		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+		for leaf := range chLeaves {
+			if !bytes.HasPrefix(leaf.Key(), ticker) {
+				continue
+			}
+
+			return leaf.Key()
+		}
+	}
+
+	return nil
 }

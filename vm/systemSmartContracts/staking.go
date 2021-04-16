@@ -203,6 +203,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.getTotalNumberOfRegisteredNodes(args)
 	case "resetLastUnJailedFromQueue":
 		return s.resetLastUnJailedFromQueue(args)
+	case "cleanAdditionalQueue":
+		return s.cleanAdditionalQueue(args)
 	}
 
 	return vmcommon.UserError
@@ -230,6 +232,11 @@ func (s *stakingSC) numSpareNodes() int64 {
 func (s *stakingSC) canStake() bool {
 	stakeConfig := s.getConfig()
 	return stakeConfig.StakedNodes < stakeConfig.MaxNumNodes
+}
+
+func (s *stakingSC) canStakeIfOneRemoved() bool {
+	stakeConfig := s.getConfig()
+	return stakeConfig.StakedNodes <= stakeConfig.MaxNumNodes
 }
 
 func (s *stakingSC) canUnStake() bool {
@@ -652,11 +659,15 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	_, err = s.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	addOneFromQueue := !s.flagCorrectLastUnjailed.IsSet() || s.canStakeIfOneRemoved()
+	if addOneFromQueue {
+		_, err = s.moveFirstFromWaitingToStaked()
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
+
 	if !s.canUnStake() {
 		s.eei.AddReturnMessage("unStake is not possible as too many left")
 		return vmcommon.UserError
@@ -685,6 +696,10 @@ func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, e
 		return false, s.removeFromWaitingList(blsKey)
 	}
 
+	return s.moveFirstFromWaitingToStaked()
+}
+
+func (s *stakingSC) moveFirstFromWaitingToStaked() (bool, error) {
 	waitingList, err := s.getWaitingListHead()
 	if err != nil {
 		return false, err
@@ -1528,6 +1543,56 @@ func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput)
 	return vmcommon.Ok
 }
 
+func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
+	waitingListData *waitingListReturnData,
+) ([]string, map[string][][]byte, error) {
+
+	listOfOwners := make([]string, 0)
+	mapOwnersUnStakedNodes := make(map[string][][]byte)
+	mapCheckedOwners := make(map[string]*validatorFundInfo)
+	for i := len(waitingListData.blsKeys) - 1; i >= 0; i-- {
+		stakedData := waitingListData.stakedDataList[i]
+		validatorInfo, err := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress, s.stakeValue)
+		if err != nil {
+			return nil, nil, err
+		}
+		if validatorInfo.numNodesToUnstake == 0 {
+			continue
+		}
+
+		validatorInfo.numNodesToUnstake--
+		blsKey := waitingListData.blsKeys[i]
+		err = s.removeFromWaitingList(blsKey)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		registrationData, err := s.getOrCreateRegisteredData(blsKey)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		registrationData.Staked = false
+		registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+		registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+		registrationData.Waiting = false
+
+		err = s.saveStakingData(blsKey, registrationData)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		_, alreadyAdded := mapOwnersUnStakedNodes[string(stakedData.OwnerAddress)]
+		if !alreadyAdded {
+			listOfOwners = append(listOfOwners, string(stakedData.OwnerAddress))
+		}
+
+		mapOwnersUnStakedNodes[string(stakedData.OwnerAddress)] = append(mapOwnersUnStakedNodes[string(stakedData.OwnerAddress)], blsKey)
+	}
+
+	return listOfOwners, mapOwnersUnStakedNodes, nil
+}
+
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagStakingV2.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
@@ -1553,20 +1618,25 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.Ok
 	}
 
+	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
+	if s.flagCorrectLastUnjailed.IsSet() {
+		nodePriceToUse.Set(s.stakeValue)
+	}
+
 	stakedNodes := uint64(0)
-	mapCheckedOwners := make(map[string]bool)
+	mapCheckedOwners := make(map[string]*validatorFundInfo)
 	for i, blsKey := range waitingListData.blsKeys {
 		stakedData := waitingListData.stakedDataList[i]
 		if stakedNodes >= numNodesToStake {
 			break
 		}
 
-		hasEnoughFunds, errCheck := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress)
+		validatorInfo, errCheck := s.checkValidatorFunds(mapCheckedOwners, stakedData.OwnerAddress, nodePriceToUse)
 		if errCheck != nil {
 			s.eei.AddReturnMessage(errCheck.Error())
 			return vmcommon.UserError
 		}
-		if !hasEnoughFunds {
+		if validatorInfo.numNodesToUnstake > 0 {
 			continue
 		}
 
@@ -1595,38 +1665,110 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagCorrectLastUnjailed.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
+		s.eei.AddReturnMessage("stake nodes from waiting list can be called by endOfEpochAccess address only")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("number of arguments must be 0")
+		return vmcommon.UserError
+	}
+
+	waitingListData, err := s.getFirstElementsFromWaitingList(math.MaxUint32)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(waitingListData.blsKeys) == 0 {
+		s.eei.AddReturnMessage("no nodes in queue")
+		return vmcommon.Ok
+	}
+
+	listOfOwners, mapOwnersAndBLSKeys, err := s.cleanAdditionalQueueNotEnoughFunds(waitingListData)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, owner := range listOfOwners {
+		s.eei.Finish([]byte(owner))
+		blsKeys := mapOwnersAndBLSKeys[owner]
+		for _, blsKey := range blsKeys {
+			s.eei.Finish(blsKey)
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+type validatorFundInfo struct {
+	numNodesToUnstake uint32
+}
+
 func (s *stakingSC) checkValidatorFunds(
-	mapCheckedOwners map[string]bool,
+	mapCheckedOwners map[string]*validatorFundInfo,
 	owner []byte,
-) (bool, error) {
-	hasFunds, okInMap := mapCheckedOwners[string(owner)]
+	nodePrice *big.Int,
+) (*validatorFundInfo, error) {
+	validatorInfo, okInMap := mapCheckedOwners[string(owner)]
 	if okInMap {
-		return hasFunds, nil
+		return validatorInfo, nil
 	}
 
 	marshaledData := s.eei.GetStorageFromAddress(s.stakeAccessAddr, owner)
 	if len(marshaledData) == 0 {
-		mapCheckedOwners[string(owner)] = false
-		return false, nil
+		validatorInfo = &validatorFundInfo{
+			numNodesToUnstake: math.MaxUint32,
+		}
+		mapCheckedOwners[string(owner)] = validatorInfo
+		return validatorInfo, nil
 	}
 
 	validatorData := &ValidatorDataV2{}
 	err := s.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	numRegisteredKeys := int64(len(validatorData.BlsPubKeys))
-	numQualified := big.NewInt(0).Div(validatorData.TotalStakeValue, s.minNodePrice).Int64()
+	numQualified := big.NewInt(0).Div(validatorData.TotalStakeValue, nodePrice).Int64()
 
-	if numQualified < numRegisteredKeys {
-		mapCheckedOwners[string(owner)] = false
-		return false, nil
+	if numQualified >= numRegisteredKeys {
+		validatorInfo = &validatorFundInfo{
+			numNodesToUnstake: 0,
+		}
+		mapCheckedOwners[string(owner)] = validatorInfo
+		return validatorInfo, nil
 	}
 
-	mapCheckedOwners[string(owner)] = true
+	numRegisteredNodesWithMinStake := int64(0)
+	for _, blsKey := range validatorData.BlsPubKeys {
+		stakedData, errGet := s.getOrCreateRegisteredData(blsKey)
+		if errGet != nil {
+			return nil, errGet
+		}
 
-	return true, nil
+		if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
+			numRegisteredNodesWithMinStake++
+		}
+	}
+
+	numToUnStake := uint32(0)
+	if numRegisteredNodesWithMinStake > numQualified {
+		numToUnStake = uint32(numRegisteredNodesWithMinStake - numQualified)
+	}
+
+	validatorInfo = &validatorFundInfo{
+		numNodesToUnstake: numToUnStake,
+	}
+	mapCheckedOwners[string(owner)] = validatorInfo
+
+	return validatorInfo, nil
 }
 
 func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingListReturnData, error) {
