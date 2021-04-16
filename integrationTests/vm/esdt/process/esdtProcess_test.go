@@ -1471,7 +1471,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numBurns := 300
 
 	numOfShards := 1
-	nodesPerShard := 2
+	nodesPerShard := 1
 	numMetachainNodes := 1
 
 	nodes := integrationTests.CreateNodes(
@@ -1500,6 +1500,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
+		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000)
 		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}
@@ -1554,10 +1555,30 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 25, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-int64(numBurns))
+
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		scQuery := &process.SCQuery{
+			ScAddress:  vm.ESDTSCAddress,
+			FuncName:   "getTokenProperties",
+			CallerAddr: vm.ESDTSCAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{[]byte(tokenIdentifier)},
+		}
+		vmOutput, err := n.SCQueryService.ExecuteQuery(scQuery)
+		require.Nil(t, err)
+		require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+
+		burntValue := big.NewInt(int64(numBurns)).String()
+		require.Equal(t, string(vmOutput.ReturnData[4]), burntValue)
+	}
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
