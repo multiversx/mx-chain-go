@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -270,6 +271,25 @@ func TestEsdtNFTTransfer_ProcessBuiltinFunctionInvalidArgumentsShouldErr(t *test
 	vmOutput, err = nftTransfer.ProcessBuiltinFunction(&mock.UserAccountStub{}, &mock.UserAccountStub{}, vmInput)
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, process.ErrInvalidArguments, err)
+
+	nftTransfer.shardCoordinator = &mock.ShardCoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+		return core.MetachainShardId
+	}}
+
+	tokenName := []byte("token")
+	senderAddress := bytes.Repeat([]byte{2}, 32)
+	vmInput = &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue:   big.NewInt(0),
+			CallerAddr:  senderAddress,
+			Arguments:   [][]byte{tokenName, big.NewInt(1).Bytes(), big.NewInt(1).Bytes(), vm.ESDTSCAddress},
+			GasProvided: 1,
+		},
+		RecipientAddr: senderAddress,
+	}
+	vmOutput, err = nftTransfer.ProcessBuiltinFunction(&mock.UserAccountStub{}, &mock.UserAccountStub{}, vmInput)
+	assert.Nil(t, vmOutput)
+	assert.Equal(t, process.ErrInvalidRcvAddr, err)
 }
 
 func TestEsdtNFTTransfer_ProcessBuiltinFunctionOnSameShardWithScCall(t *testing.T) {

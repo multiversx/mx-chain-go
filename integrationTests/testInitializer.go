@@ -1140,6 +1140,38 @@ func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
 	return headerVersioning
 }
 
+// CreateNodesWithGasSchedule creates multiple nodes in different shards
+func CreateNodesWithGasSchedule(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	gasSchedule map[string]map[string]uint64,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), shardId, shardId, CreateMemUnit(), gasSchedule)
+			nodes[idx] = n
+			connectableNodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), core.MetachainShardId, 0, CreateMemUnit(), gasSchedule)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
+	}
+
+	ConnectNodes(connectableNodes)
+
+	return nodes
+}
+
 // CreateNodes creates multiple nodes in different shards
 func CreateNodes(
 	numOfShards int,
