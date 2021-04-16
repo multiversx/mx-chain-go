@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -718,5 +719,77 @@ func TestAndCatchTrieError(t *testing.T) {
 		transferNonce++
 		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
 		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
+	}
+}
+
+func TestBenchmarkDigitalCash(t *testing.T) {
+
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+
+	scCode := arwen.GetSCCode("../testdata/digital-cash.wasm")
+
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		nil,
+		false,
+		vm.ArgEnableEpoch{},
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode),
+	)
+
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+	ownerNonce++
+
+	receiverAddresses := createTestAddresses(uint64(20000))
+
+	alice := []byte("12345678901234567890123456789111")
+	aliceNonce := uint64(0)
+	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).Mul(ownerBalance, ownerBalance))
+
+	for j := 0; j < 20; j++ {
+		start := time.Now()
+
+		for i := 0; i < 1000; i++ {
+			tx = &transaction.Transaction{
+				Nonce:    aliceNonce,
+				Value:    big.NewInt(1),
+				RcvAddr:  scAddress,
+				SndAddr:  alice,
+				GasPrice: 1,
+				GasLimit: 7000000,
+				Data:     []byte("fund@" + hex.EncodeToString(receiverAddresses[aliceNonce]) + "@1c20"),
+				ChainID:  integrationTests.ChainID,
+			}
+
+			returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+			require.Nil(t, err)
+			require.Equal(t, returnCode, vmcommon.Ok)
+			aliceNonce++
+		}
+
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process 1000 fund on digital cash %s \n", elapsedTime.String())
+
+		_, err = testContext.Accounts.Commit()
+		require.Nil(t, err)
 	}
 }
