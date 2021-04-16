@@ -1250,9 +1250,10 @@ func (sc *scProcessor) addBackTxValues(
 		scrIfError.Value = big.NewInt(0).Set(valueForSnd)
 	}
 
-	if sc.flagSenderInOutTransfer.IsSet() &&
+	isOriginalTxAsyncCallBack := sc.flagSenderInOutTransfer.IsSet() &&
 		determineCallType(originalTx) == vmcommon.AsynchronousCallBack &&
-		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr()) {
+		sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
+	if isOriginalTxAsyncCallBack {
 		destAcc, err := sc.getAccountFromAddress(originalTx.GetRcvAddr())
 		if err != nil {
 			return err
