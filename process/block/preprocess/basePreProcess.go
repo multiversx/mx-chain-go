@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -34,15 +35,16 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	shardCoordinator     sharding.Coordinator
-	gasHandler           process.GasHandler
-	economicsFee         process.FeeHandler
-	blockSizeComputation BlockSizeComputationHandler
-	balanceComputation   BalanceComputationHandler
-	accounts             state.AccountsAdapter
-	pubkeyConverter      core.PubkeyConverter
+	hasher                              hashing.Hasher
+	marshalizer                         marshal.Marshalizer
+	shardCoordinator                    sharding.Coordinator
+	gasHandler                          process.GasHandler
+	economicsFee                        process.FeeHandler
+	blockSizeComputation                BlockSizeComputationHandler
+	balanceComputation                  BalanceComputationHandler
+	accounts                            state.AccountsAdapter
+	pubkeyConverter                     core.PubkeyConverter
+	flagCrossShardGasLimitWithoutRefund atomic.Flag
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -369,10 +371,9 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 			return 0, 0, process.ErrInsufficientGasLimitInTx
 		}
 
-		txGasLimitInReceiverShard -= txGasRefunded
-
 		if senderShardId == receiverShardId {
 			txGasLimitInSenderShard -= txGasRefunded
+			txGasLimitInReceiverShard -= txGasRefunded
 		}
 	}
 
