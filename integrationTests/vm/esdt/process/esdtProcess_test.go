@@ -1363,7 +1363,7 @@ func TestIssueESDT_FromSCWithNotEnoughGasOnCallBack(t *testing.T) {
 	balanceAfterTransfer := userAccount.GetBalance()
 
 	nrRoundsToPropagateMultiShard := 25
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 	userAccount = esdtCommon.GetUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
 	require.Equal(t, userAccount.GetBalance(), balanceAfterTransfer)
@@ -1456,7 +1456,7 @@ func TestIssueESDT_FromSCWithNotEnoughGasSendMoneyToUserOnCallBack(t *testing.T)
 	balanceAfterTransfer := userAccount.GetBalance()
 
 	nrRoundsToPropagateMultiShard := 25
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 	userAccount = esdtCommon.GetUserAccountWithAddress(t, alice.OwnAccount.Address, nodes)
 	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(balanceAfterTransfer, issuePrice))
