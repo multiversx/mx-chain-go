@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -21,12 +22,13 @@ var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 var zero = big.NewInt(0)
 
 type esdtTransfer struct {
-	funcGasCost    uint64
-	marshalizer    marshal.Marshalizer
-	keyPrefix      []byte
-	pauseHandler   process.ESDTPauseHandler
-	payableHandler process.PayableHandler
-	mutExecution   sync.RWMutex
+	funcGasCost      uint64
+	marshalizer      marshal.Marshalizer
+	keyPrefix        []byte
+	pauseHandler     process.ESDTPauseHandler
+	payableHandler   process.PayableHandler
+	shardCoordinator sharding.Coordinator
+	mutExecution     sync.RWMutex
 }
 
 // NewESDTTransferFunc returns the esdt transfer built-in function component
@@ -34,6 +36,7 @@ func NewESDTTransferFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,
+	shardCoordinator sharding.Coordinator,
 ) (*esdtTransfer, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -41,13 +44,17 @@ func NewESDTTransferFunc(
 	if check.IfNil(pauseHandler) {
 		return nil, process.ErrNilPauseHandler
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	e := &esdtTransfer{
-		funcGasCost:    funcGasCost,
-		marshalizer:    marshalizer,
-		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
-		pauseHandler:   pauseHandler,
-		payableHandler: &disabledPayableHandler{},
+		funcGasCost:      funcGasCost,
+		marshalizer:      marshalizer,
+		keyPrefix:        []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
+		pauseHandler:     pauseHandler,
+		payableHandler:   &disabledPayableHandler{},
+		shardCoordinator: shardCoordinator,
 	}
 
 	return e, nil
@@ -75,6 +82,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	err := checkBasicESDTArguments(vmInput)
 	if err != nil {
 		return nil, err
+	}
+	if e.shardCoordinator.ComputeId(vmInput.RecipientAddr) == core.MetachainShardId {
+		return nil, process.ErrInvalidRcvAddr
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
