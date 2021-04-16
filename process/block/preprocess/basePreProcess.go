@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -35,16 +34,15 @@ type txsForBlock struct {
 }
 
 type basePreProcess struct {
-	hasher                              hashing.Hasher
-	marshalizer                         marshal.Marshalizer
-	shardCoordinator                    sharding.Coordinator
-	gasHandler                          process.GasHandler
-	economicsFee                        process.FeeHandler
-	blockSizeComputation                BlockSizeComputationHandler
-	balanceComputation                  BalanceComputationHandler
-	accounts                            state.AccountsAdapter
-	pubkeyConverter                     core.PubkeyConverter
-	flagCrossShardGasLimitWithoutRefund atomic.Flag
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	shardCoordinator     sharding.Coordinator
+	gasHandler           process.GasHandler
+	economicsFee         process.FeeHandler
+	blockSizeComputation BlockSizeComputationHandler
+	balanceComputation   BalanceComputationHandler
+	accounts             state.AccountsAdapter
+	pubkeyConverter      core.PubkeyConverter
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
