@@ -1468,7 +1468,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	}
 
 	numIssues := 22
-	numBurns := 127
+	numBurns := 300
 
 	numOfShards := 1
 	nodesPerShard := 2
@@ -1504,8 +1504,8 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}
 
-	initialVal := int64(10000000000)
-	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, big.NewInt(0).Mul(initialVal, initialVal))
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -1554,7 +1554,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 24, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 50, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-int64(numBurns))
