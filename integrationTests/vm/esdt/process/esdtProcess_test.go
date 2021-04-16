@@ -1354,6 +1354,104 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 	require.Equal(t, userAccount.GetBalance(), big.NewInt(0).Add(balanceAfterTransfer, issuePrice))
 }
 
+func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numIssues := 22
+	numBurns := 127
+
+	numOfShards := 1
+	nodesPerShard := 2
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	for _, n := range nodes {
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		if check.IfNil(n.SystemSCFactory) {
+			continue
+		}
+		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
+		gasScheduleHandler.GasScheduleChange(gasSchedule)
+	}
+
+	initialVal := int64(10000000000)
+	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+
+	initialSupply := int64(10000000000)
+	ticker := "TCK"
+	esdtCommon.IssueTestTokenWithCustomGas(nodes, initialSupply, ticker, 60000000)
+	tokenIssuer := nodes[0]
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 12
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+
+	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply)
+
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
+	for i := 0; i < numIssues; i++ {
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), 60000000)
+	}
+
+	txDataBuilderObj := txDataBuilder.NewBuilder()
+	txDataBuilderObj.Clear().Func("ESDTBurn").Str(tokenIdentifier).Int(1)
+
+	burnTxData := txDataBuilderObj.ToString()
+	for i := 0; i < numBurns; i++ {
+		integrationTests.CreateAndSendTransaction(
+			nodes[0],
+			nodes,
+			big.NewInt(0),
+			vm.ESDTSCAddress,
+			burnTxData,
+			60000000,
+		)
+	}
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 24, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdentifier, initialSupply-int64(numBurns))
+}
+
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
