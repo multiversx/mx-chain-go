@@ -759,13 +759,13 @@ func TestBenchmarkDigitalCash(t *testing.T) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
-	receiverAddresses := createTestAddresses(uint64(20000))
+	receiverAddresses := createTestAddresses(uint64(100000))
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
 	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
-	for j := 0; j < 20; j++ {
+	for j := 0; j < 100; j++ {
 		start := time.Now()
 
 		for i := 0; i < 1000; i++ {
