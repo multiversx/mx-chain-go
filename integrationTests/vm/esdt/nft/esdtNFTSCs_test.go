@@ -481,6 +481,40 @@ func TestESDTTransferNFTToSCCrossShard(t *testing.T) {
 	time.Sleep(time.Second)
 
 	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+
+	txData = core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress) + "@" + hex.EncodeToString([]byte("wrongFunction"))
+	integrationTests.CreateAndSendTransaction(
+		nodeFromOtherShard,
+		nodes,
+		big.NewInt(0),
+		nodeFromOtherShard.OwnAccount.Address,
+		txData,
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
+
+	txData = core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress)
+	integrationTests.CreateAndSendTransaction(
+		nodeFromOtherShard,
+		nodes,
+		big.NewInt(0),
+		nodeFromOtherShard.OwnAccount.Address,
+		txData,
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasNft(t, nodeFromOtherShard.OwnAccount.Address, destinationSCAddress, nodes, tokenIdentifier, 1, big.NewInt(1))
 }
 
 func deployAndIssueNFTSFTThroughSC(
