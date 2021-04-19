@@ -1341,6 +1341,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		integrationTests.AdditionalGasLimit,
 	)
 
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	_, err := nodes[0].AccntState.GetExistingAccount(mapperScAddress)
 	require.Nil(t, err)
@@ -1356,6 +1357,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		arwen.CreateDeployTxDataNonPayable(senderScCode),
 		integrationTests.AdditionalGasLimit,
 	)
+	time.Sleep(time.Second)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	_, err = nodes[0].AccntState.GetExistingAccount(senderScAddress)
@@ -1371,6 +1373,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		txData.ToString(),
 		integrationTests.AdditionalGasLimit,
 	)
+	time.Sleep(time.Second)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	_, err = nodes[0].AccntState.GetExistingAccount(senderScAddress)
@@ -1389,6 +1392,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 			hex.EncodeToString(senderScAddress),
 		integrationTests.AdditionalGasLimit,
 	)
+	time.Sleep(time.Second)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 	_, err = nodes[0].AccntState.GetExistingAccount(receiverScAddress)
@@ -1405,7 +1409,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	issueCost := big.NewInt(1000)
@@ -1420,7 +1424,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 	)
 	nrRoundsToPropagateMultiShard = 25
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	scQuery := nodes[0].SCQueryService
@@ -1447,7 +1451,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	valueToTransfer := int64(1000)
