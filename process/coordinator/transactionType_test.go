@@ -280,6 +280,32 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
 	assert.Equal(t, process.RelayedTx, txTypeCross)
 }
 
+func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
+	tx.Data = []byte(core.RelayedTransactionV2)
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
+			return len(tx.RcvAddr)
+		},
+	}
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.RelayedTxV2, txTypeIn)
+	assert.Equal(t, process.RelayedTxV2, txTypeCross)
+}
+
 func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
 	t.Parallel()
 

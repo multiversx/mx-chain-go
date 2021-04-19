@@ -93,8 +93,12 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, process.MoveBalance
 	}
 
-	if tth.isRelayedTransaction(funcName) {
+	if tth.isRelayedTransactionV1(funcName) {
 		return process.RelayedTx, process.RelayedTx
+	}
+
+	if tth.isRelayedTransactionV2(funcName) {
+		return process.RelayedTxV2, process.RelayedTxV2
 	}
 
 	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
@@ -154,8 +158,12 @@ func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
 	return ok
 }
 
-func (tth *txTypeHandler) isRelayedTransaction(functionName string) bool {
+func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {
 	return functionName == core.RelayedTransaction
+}
+
+func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
+	return functionName == core.RelayedTransactionV2
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {

@@ -122,7 +122,7 @@ func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int
 	return x
 }
 
-// IsInRangeExclusive returns true if the provided value is in the given range, including the provided min and max values
+// IsInRangeInclusive returns true if the provided value is in the given range, including the provided min and max values
 func IsInRangeInclusive(value, min, max *big.Int) bool {
 	return value.Cmp(min) >= 0 && value.Cmp(max) <= 0
 }

@@ -146,6 +146,12 @@ func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Tran
 	return tx, nil
 }
 
+func createRelayedV2(args [][]byte) (*transaction.Transaction, error) {
+	if len(args) != 3 || len(args) != 4 {
+		return nil, process.ErrInvalidArguments
+	}
+}
+
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
 func (inTx *InterceptedTransaction) CheckValidity() error {
 	err := inTx.integrity(inTx.tx)
@@ -165,7 +171,44 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		err = inTx.verifyIfRelayedTxV2(inTx.tx)
+		if err != nil {
+			return err
+		}
+
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
+	}
+
+	return nil
+}
+
+func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return nil
+	}
+	if core.RelayedTransactionV2 != funcName {
+		return nil
+	}
+
+	userTx, err := createRelayedV2(userTxArgs)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.verifySig(userTx)
+	if err != nil {
+		return err
+	}
+
+	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	if err != nil {
+		return nil
+	}
+
+	// recursive relayed transactions are not allowed
+	if core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName {
+		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
 	return nil
@@ -213,7 +256,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	}
 
 	// recursive relayed transactions are not allowed
-	if core.RelayedTransaction == funcName {
+	if core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 

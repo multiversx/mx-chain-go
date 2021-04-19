@@ -40,8 +40,10 @@ type txProcessor struct {
 	scrForwarder                   process.IntermediateTransactionHandler
 	signMarshalizer                marshal.Marshalizer
 	flagRelayedTx                  atomic.Flag
+	flagRelayedTxV2                atomic.Flag
 	flagMetaProtection             atomic.Flag
 	relayedTxEnableEpoch           uint32
+	relayedTxV2EnableEpoch         uint32
 	penalizedTooMuchGasEnableEpoch uint32
 	metaProtectionEnableEpoch      uint32
 }
@@ -63,6 +65,7 @@ type ArgsNewTxProcessor struct {
 	ArgsParser                     process.ArgumentsParser
 	ScrForwarder                   process.IntermediateTransactionHandler
 	RelayedTxEnableEpoch           uint32
+	RelayedTxV2EnableEpoch         uint32
 	PenalizedTooMuchGasEnableEpoch uint32
 	MetaProtectionEnableEpoch      uint32
 	EpochNotifier                  process.EpochNotifier
@@ -136,6 +139,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		scrForwarder:                   args.ScrForwarder,
 		signMarshalizer:                args.SignMarshalizer,
 		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
+		relayedTxV2EnableEpoch:         args.RelayedTxV2EnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
 	}
@@ -205,6 +209,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
 	case process.RelayedTx:
 		return txProc.processRelayedTx(tx, acntSnd, acntDst)
+	case process.RelayedTxV2:
+		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
@@ -497,6 +503,85 @@ func (txProc *txProcessor) processBuiltInFunctionCall(
 	acntSrc, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
+}
+
+func (txProc *txProcessor) processRelayedTxV2(
+	tx *transaction.Transaction,
+	relayerAcnt, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	if !txProc.flagRelayedTxV2.IsSet() {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
+	}
+
+	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2ZeroVal)
+	}
+
+	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		// TODO for review: Why is this not passed through executingFailedTransaction -> check it is actually better to do this
+		return vmcommon.Ok, err
+	}
+
+	if len(args) != 3 || len(args) != 4 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
+	}
+
+	userTxData := make([]byte, 0)
+	userTxSig := args[2]
+	if len(args) == 4 {
+		userTxData = args[2]
+		userTxSig = args[3]
+	}
+
+	userTx := &transaction.Transaction{}
+	// Fill properties received as arguments
+	userTx.RcvAddr = args[0]
+	userTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
+	userTx.Data = userTxData
+	userTx.Signature = userTxSig
+	userTx.Value = big.NewInt(0)
+
+	// Fill properties from main transaction
+	userTx.GasPrice = tx.GasPrice
+	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
+	userTx.GasLimit = remainingGasLimit
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return 0, err
+	}
+
+	if !check.IfNil(relayerAcnt) {
+		err = relayerAcnt.SubFromBalance(totalFee)
+		if err != nil {
+			return 0, err
+		}
+
+		relayerAcnt.IncreaseNonce(1)
+		err = txProc.accounts.SaveAccount(relayerAcnt)
+		if err != nil {
+			return 0, err
+		}
+
+		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
+	}
+
+	if check.IfNil(acntDst) {
+		return vmcommon.Ok, nil
+	}
+
+	err = acntDst.AddToBalance(remainingFee)
+	if err != nil {
+		return 0, err
+	}
+
+	err = txProc.accounts.SaveAccount(acntDst)
+	if err != nil {
+		return 0, err
+	}
+
+	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, txHash)
 }
 
 func (txProc *txProcessor) processRelayedTx(
@@ -860,6 +945,10 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
 	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
 	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
+
+	txProc.flagRelayedTxV2.Toggle(epoch >= txProc.relayedTxV2EnableEpoch)
+	log.Debug("txProcessor: relayed transactions v2", "enabled", txProc.flagRelayedTxV2.IsSet())
+
 
 	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
