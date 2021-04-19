@@ -496,6 +496,150 @@ func TestESDTSemiFungibleTokenTransferCrossShard(t *testing.T) {
 	)
 }
 
+func TestESDTSemiFungibleTokenTransferToSystemScAddressShouldReceiveBack(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTAddQuantity),
+		[]byte(core.ESDTRoleNFTBurn),
+	}
+
+	initialQuantity := int64(5)
+	tokenIdentifier, nftMetaData := prepareNFTWithRoles(
+		t,
+		nodes,
+		idxProposers,
+		nodes[0],
+		&round,
+		&nonce,
+		core.SemiFungibleESDT,
+		initialQuantity,
+		roles,
+	)
+
+	// increase quantity
+	nonceArg := hex.EncodeToString(big.NewInt(0).SetUint64(1).Bytes())
+	quantityToAdd := int64(4)
+	quantityToAddArg := hex.EncodeToString(big.NewInt(quantityToAdd).Bytes())
+	txData := []byte(core.BuiltInFunctionESDTNFTAddQuantity + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + nonceArg + "@" + quantityToAddArg)
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		nodes[0].OwnAccount.Address,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 5
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	nftMetaData.quantity += quantityToAdd
+	checkNftData(
+		t,
+		nodes[0].OwnAccount.Address,
+		nodes[0].OwnAccount.Address,
+		nodes,
+		tokenIdentifier,
+		nftMetaData,
+		1,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard = 5
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkNftData(
+		t,
+		nodes[0].OwnAccount.Address,
+		nodes[0].OwnAccount.Address,
+		nodes,
+		tokenIdentifier,
+		nftMetaData,
+		1,
+	)
+
+	// transfer
+	quantityToTransfer := int64(4)
+	quantityToTransferArg := hex.EncodeToString(big.NewInt(quantityToTransfer).Bytes())
+	txData = []byte(core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + nonceArg + "@" + quantityToTransferArg + "@" + hex.EncodeToString(vm.ESDTSCAddress))
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		nodes[0].OwnAccount.Address,
+		string(txData),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard = 11
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	nftMetaData.quantity = 0 // make sure that the ESDT SC address didn't receive the token
+	checkNftData(
+		t,
+		nodes[0].OwnAccount.Address,
+		vm.ESDTSCAddress,
+		nodes,
+		tokenIdentifier,
+		nftMetaData,
+		1,
+	)
+
+	nftMetaData.quantity = initialQuantity + quantityToAdd // should have the same quantity like before transferring
+	checkNftData(
+		t,
+		nodes[0].OwnAccount.Address,
+		nodes[0].OwnAccount.Address,
+		nodes,
+		tokenIdentifier,
+		nftMetaData,
+		1,
+	)
+}
+
 func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(numOfShards)
 
