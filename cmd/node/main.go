@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -57,7 +58,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -842,12 +844,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: generalConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return err
+	}
+
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: gasScheduleNotifier,
+	})
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    generalConfig.GeneralSettings.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -880,12 +902,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	argsNodesShuffler := &sharding.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNodesPerShard,
-		NodesMeta:            genesisNodesConfig.MetaChainMinNodes,
-		Hysteresis:           genesisNodesConfig.Hysteresis,
-		Adaptivity:           genesisNodesConfig.Adaptivity,
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		NodesShard:                     genesisNodesConfig.MinNodesPerShard,
+		NodesMeta:                      genesisNodesConfig.MetaChainMinNodes,
+		Hysteresis:                     genesisNodesConfig.Hysteresis,
+		Adaptivity:                     genesisNodesConfig.Adaptivity,
+		ShuffleBetweenShards:           true,
+		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -1217,17 +1240,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		isInImportMode,
 	)
-	if err != nil {
-		return err
-	}
-
-	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: generalConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-	}
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
 		return err
 	}
@@ -1867,7 +1879,12 @@ func createShardCoordinator(
 			return nil, "", err
 		}
 		if selfShardId == core.DisabledShardIDAsObserver {
-			selfShardId = uint32(0)
+			pubKeyBytes, err := pubKey.ToByteArray()
+			if err != nil {
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
+			}
+
+			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 		}
 	}
 	if err != nil {
@@ -1912,7 +1929,12 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		shardIDAsObserver = uint32(0)
+		pubKeyBytes, err := pubKey.ToByteArray()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
+		}
+
+		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
@@ -2176,6 +2198,7 @@ func createHardForkTrigger(
 		EpochNotifier:             epochNotifier,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2512,6 +2535,7 @@ func createApiResolver(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2533,19 +2557,43 @@ func createApiResolver(
 		return nil, err
 	}
 
-	args := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: accountsAPI,
+	}
+
+	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID:            shardCoordinator.SelfId(),
-		Accounts:           accountsAPI,
+		Accounts:           accountsWrapper,
 		PublicKeyConverter: pubkeyConv,
 		BlockChain:         blockChain,
 		QueryService:       scQueryService,
 	}
-	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler, totalStakedValueHandler)
+	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          scQueryService,
+		StatusMetricsHandler:    statusMetrics,
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
+	}
+
+	return external.NewNodeApiResolver(argsApiResolver)
 }
 
 //TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists
@@ -2644,6 +2692,7 @@ func createScQueryElement(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2702,6 +2751,7 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
@@ -2727,12 +2777,14 @@ func createBuiltinFuncs(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (process.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      marshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {

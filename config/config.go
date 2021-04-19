@@ -230,10 +230,14 @@ type GeneralSettingsConfig struct {
 	AheadOfTimeGasUsageEnableEpoch         uint32
 	GasPriceModifierEnableEpoch            uint32
 	RepairCallbackEnableEpoch              uint32
+	BalanceWaitingListsEnableEpoch         uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
 	BlockGasAndFeesReCheckEnableEpoch      uint32
+	ReturnDataToLastTransferEnableEpoch    uint32
+	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -467,4 +471,5 @@ type GasScheduleConfig struct {
 type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
 }

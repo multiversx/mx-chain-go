@@ -36,6 +36,10 @@ func NewSaveKeyValueStorageFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (k *saveKeyValueStorage) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	k.mutExecution.Lock()
 	k.funcGasCost = gasCost.BuiltInCost.SaveKeyValue
 	k.gasConfig = gasCost.BaseOperationCost

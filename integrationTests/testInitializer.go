@@ -205,19 +205,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 		},
 	}
 
-	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:   TestMarshalizer,
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfig,
-		SyncTimer:     &libp2p.LocalSyncTimer{},
-	}
-
-	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return libP2PMes
+	return CreateMessengerFromConfig(p2pConfig)
 }
 
 // CreateFixedNetworkOf8Peers assembles a network as following:
@@ -318,7 +306,7 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := memorydb.NewlruDB(100000)
+	persist, _ := memorydb.NewlruDB(10000000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
 	return unit
@@ -1152,31 +1140,104 @@ func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
 	return headerVersioning
 }
 
-// CreateNodes creates multiple nodes in different shards
-func CreateNodes(
+// CreateNodesWithGasSchedule creates multiple nodes in different shards
+func CreateNodesWithGasSchedule(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
-	serviceID string,
+	gasSchedule map[string]map[string]uint64,
 ) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
+			n := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), shardId, shardId, CreateMemUnit(), gasSchedule)
 			nodes[idx] = n
+			connectableNodes[idx] = n
 			idx++
 		}
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		metaNode := NewTestProcessorNodeWithStorageTrieAndGasModel(uint32(numOfShards), core.MetachainShardId, 0, CreateMemUnit(), gasSchedule)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
 	}
 
+	ConnectNodes(connectableNodes)
+
 	return nodes
+}
+
+// CreateNodes creates multiple nodes in different shards
+func CreateNodes(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId)
+			nodes[idx] = n
+			connectableNodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
+	}
+
+	ConnectNodes(connectableNodes)
+
+	return nodes
+}
+
+// ConnectNodes will try to connect all provided connectable instances in a full mesh fashion
+func ConnectNodes(nodes []Connectable) {
+	encounteredErrors := make([]error, 0)
+
+	for i := 0; i < len(nodes)-1; i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			src := nodes[i]
+			dst := nodes[j]
+			err := src.ConnectTo(dst)
+			if err != nil {
+				encounteredErrors = append(encounteredErrors,
+					fmt.Errorf("%w while %s was connecting to %s", err, src.GetConnectableAddress(), dst.GetConnectableAddress()))
+			}
+		}
+	}
+
+	printEncounteredErrors(encounteredErrors)
+}
+
+func printEncounteredErrors(encounteredErrors []error) {
+	if len(encounteredErrors) == 0 {
+		return
+	}
+
+	printArguments := make([]interface{}, 0, len(encounteredErrors)*2)
+	for i, err := range encounteredErrors {
+		if err == nil {
+			continue
+		}
+
+		printArguments = append(printArguments, fmt.Sprintf("err%d", i))
+		printArguments = append(printArguments, err.Error())
+	}
+
+	log.Warn("errors encountered while connecting hosts", printArguments...)
 }
 
 // CreateNodesWithBLSSigVerifier creates multiple nodes in different shards
@@ -1184,24 +1245,28 @@ func CreateNodesWithBLSSigVerifier(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
-	serviceID string,
 ) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), shardId, shardId, serviceID)
+			n := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), shardId, shardId)
 			nodes[idx] = n
+			connectableNodes[idx] = n
 			idx++
 		}
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		metaNode := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), core.MetachainShardId, 0)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
 	}
+
+	ConnectNodes(connectableNodes)
 
 	return nodes
 }
@@ -1211,23 +1276,23 @@ func CreateNodesWithFullGenesis(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
-	serviceID string,
 	genesisFile string,
 ) ([]*TestProcessorNode, *TestProcessorNode) {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
-	hardforkStarter := createGenesisNode(serviceID, genesisFile, uint32(numOfShards), 0, nil)
+	hardforkStarter := createGenesisNode(genesisFile, uint32(numOfShards), 0, nil)
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			nodes[idx] = createGenesisNode(
-				serviceID,
 				genesisFile,
 				uint32(numOfShards),
 				shardId,
 				hardforkStarter.NodeKeys.Pk,
 			)
+			connectableNodes[idx] = nodes[idx]
 			idx++
 		}
 	}
@@ -1235,19 +1300,21 @@ func CreateNodesWithFullGenesis(
 	for i := 0; i < numMetaChainNodes; i++ {
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = createGenesisNode(
-			serviceID,
 			genesisFile,
 			uint32(numOfShards),
 			core.MetachainShardId,
 			hardforkStarter.NodeKeys.Pk,
 		)
+		connectableNodes[idx] = nodes[idx]
 	}
+
+	connectableNodes = append(connectableNodes, hardforkStarter)
+	ConnectNodes(connectableNodes)
 
 	return nodes, hardforkStarter
 }
 
 func createGenesisNode(
-	serviceID string,
 	genesisFile string,
 	numOfShards uint32,
 	shardId uint32,
@@ -1276,7 +1343,6 @@ func createGenesisNode(
 		numOfShards,
 		shardId,
 		txSignShardID,
-		serviceID,
 		accountParser,
 		smartContractParser,
 		strPk,
@@ -1288,26 +1354,30 @@ func CreateNodesWithCustomStateCheckpointModulus(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
-	serviceID string,
 	stateCheckpointModulus uint,
 ) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+	connectableNodes := make([]Connectable, len(nodes))
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), shardId, shardId, serviceID, stateCheckpointModulus)
+			n := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), shardId, shardId, stateCheckpointModulus)
 
 			nodes[idx] = n
+			connectableNodes[idx] = n
 			idx++
 		}
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), core.MetachainShardId, 0, serviceID, stateCheckpointModulus)
+		metaNode := NewTestProcessorNodeWithStateCheckpointModulus(uint32(numOfShards), core.MetachainShardId, 0, stateCheckpointModulus)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
+		connectableNodes[idx] = metaNode
 	}
+
+	ConnectNodes(connectableNodes)
 
 	return nodes
 }
@@ -1327,7 +1397,6 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skTxBuff),
 			TestAddressPubkeyConverter.Encode(pkTxBuff),
 		)
-		_ = n.Messenger.Bootstrap()
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -2031,19 +2100,14 @@ func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *Cr
 }
 
 // CloseProcessorNodes closes the used TestProcessorNodes and advertiser
-func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
-	_ = advertiser.Close()
+func CloseProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
 		_ = n.Messenger.Close()
 	}
 }
 
-// StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
-func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
-
+// BootstrapDelay will delay the execution to allow the p2p bootstrap
+func BootstrapDelay() {
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(P2pBootstrapDelay)
 }
@@ -2052,24 +2116,21 @@ func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 func SetupSyncNodesOneShardAndMeta(
 	numNodesPerShard int,
 	numNodesMeta int,
-) ([]*TestProcessorNode, p2p.Messenger, []int) {
+) ([]*TestProcessorNode, []int) {
 
 	maxShards := uint32(1)
 	shardId := uint32(0)
 
-	advertiser := CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := GetConnectableAddress(advertiser)
-
 	var nodes []*TestProcessorNode
+	var connectableNodes []Connectable
 	for i := 0; i < numNodesPerShard; i++ {
 		shardNode := NewTestSyncNode(
 			maxShards,
 			shardId,
 			shardId,
-			advertiserAddr,
 		)
 		nodes = append(nodes, shardNode)
+		connectableNodes = append(connectableNodes, shardNode)
 	}
 	idxProposerShard0 := 0
 
@@ -2078,15 +2139,17 @@ func SetupSyncNodesOneShardAndMeta(
 			maxShards,
 			core.MetachainShardId,
 			shardId,
-			advertiserAddr,
 		)
 		nodes = append(nodes, metaNode)
+		connectableNodes = append(connectableNodes, metaNode)
 	}
 	idxProposerMeta := len(nodes) - 1
 
 	idxProposers := []int{idxProposerShard0, idxProposerMeta}
 
-	return nodes, advertiser, idxProposers
+	ConnectNodes(connectableNodes)
+
+	return nodes, idxProposers
 }
 
 // StartSyncingBlocks starts the syncing process of all the nodes
@@ -2204,7 +2267,7 @@ func proposeBlocks(
 }
 
 // WaitOperationToBeDone -
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce uint64, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
 		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	}

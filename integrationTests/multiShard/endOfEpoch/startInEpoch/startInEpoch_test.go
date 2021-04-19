@@ -50,14 +50,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -74,7 +70,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -173,11 +168,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
-	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
-	_ = messenger.Bootstrap()
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
+
+	for _, n := range nodes {
+		_ = n.ConnectTo(nodeToJoinLate)
+	}
 
 	rounder := &mock.RounderMock{IndexField: int64(round)}
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{

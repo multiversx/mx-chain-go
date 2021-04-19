@@ -185,6 +185,7 @@ func (context *TestContext) initFeeHandlers() {
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -193,10 +194,11 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses: DNSAddresses,
-		Marshalizer:     marshalizer,
-		Accounts:        context.Accounts,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:  DNSAddresses,
+		Marshalizer:      marshalizer,
+		Accounts:         context.Accounts,
+		ShardCoordinator: oneShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
@@ -516,6 +518,11 @@ func GetSCCode(fileName string) string {
 // CreateDeployTxData -
 func CreateDeployTxData(scCode string) string {
 	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
+}
+
+// CreateDeployTxDataNonPayable -
+func CreateDeployTxDataNonPayable(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, "0000"}, "@")
 }
 
 // ExecuteSC -
