@@ -8,9 +8,11 @@ import (
 	"time"
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
+	indexerTypes "github.com/ElrondNetwork/elastic-indexer-go/data"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -54,11 +56,7 @@ func CreateTestIndexer(
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := elasticIndexer.ArgDataIndexer{
-		Marshalizer: testMarshalizer,
-		Options: &elasticIndexer.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
+		Marshalizer:        testMarshalizer,
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		ShardCoordinator:   coordinator,
@@ -100,10 +98,6 @@ func (ti *testIndexer) createElasticProcessor(
 		Hasher:                   testHasher,
 		AddressPubkeyConverter:   pubkeyConv,
 		ValidatorPubkeyConverter: pubkeyConv,
-		Options: &elasticIndexer.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               &mock.AccountsStub{},
@@ -142,9 +136,15 @@ func (ti *testIndexer) SaveTransaction(
 		},
 	}
 
-	txsPool := map[string]data.TransactionHandler{
-		string(txHash): tx,
+	txsPool := &indexer.Pool{
+		Txs:      make(map[string]data.TransactionHandler),
+		Scrs:     make(map[string]data.TransactionHandler),
+		Rewards:  nil,
+		Invalid:  nil,
+		Receipts: nil,
 	}
+
+	txsPool.Txs[string(txHash)] = tx
 
 	for _, intTx := range intermediateTxs {
 		sndShardID = ti.shardCoordinator.ComputeId(intTx.GetSndAddr())
@@ -161,14 +161,19 @@ func (ti *testIndexer) SaveTransaction(
 
 		blk.MiniBlocks = append(blk.MiniBlocks, mb)
 
-		txsPool[string(intTxHash)] = intTx
+		txsPool.Scrs[string(intTxHash)] = intTx
 	}
 
 	header := &block.Header{
 		ShardID: ti.shardCoordinator.SelfId(),
 	}
 
-	ti.indexer.SaveBlock(blk, header, txsPool, nil, nil, nil)
+	args := &indexer.ArgsSaveBlockData{
+		Body:             blk,
+		Header:           header,
+		TransactionsPool: txsPool,
+	}
+	ti.indexer.SaveBlock(args)
 
 	select {
 	case <-ti.saveDoneChan:
@@ -196,7 +201,7 @@ func (ti *testIndexer) createDatabaseClient() elasticIndexer.DatabaseClientHandl
 }
 
 // GetIndexerPreparedTransaction -
-func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *elasticIndexer.Transaction {
+func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexerTypes.Transaction {
 	ti.mutex.RLock()
 	txData, ok := ti.indexerData["transactions"]
 	ti.mutex.RUnlock()
@@ -206,7 +211,7 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *elasticIndex
 	split := bytes.Split(txData.Bytes(), []byte("\n"))
 	require.True(t, len(split) > 2)
 
-	newTx := &elasticIndexer.Transaction{}
+	newTx := &indexerTypes.Transaction{}
 	err := json.Unmarshal(split[1], newTx)
 	require.Nil(t, err)
 

@@ -31,6 +31,7 @@ type vmContainerFactory struct {
 	deployEnableEpoch              uint32
 	aheadOfTimeGasUsageEnableEpoch uint32
 	arwenV3EnableEpoch             uint32
+	ArwenESDTFunctionsEnableEpoch  uint32
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -42,6 +43,7 @@ type ArgVMContainerFactory struct {
 	DeployEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch uint32
 	ArwenV3EnableEpoch             uint32
+	ArwenESDTFunctionsEnableEpoch  uint32
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -68,6 +70,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		deployEnableEpoch:              args.DeployEnableEpoch,
 		aheadOfTimeGasUsageEnableEpoch: args.AheadOfTimeGasUsageEnableEpoch,
 		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
+		ArwenESDTFunctionsEnableEpoch:  args.ArwenESDTFunctionsEnableEpoch,
 	}, nil
 }
 

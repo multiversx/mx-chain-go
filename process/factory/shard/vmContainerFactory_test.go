@@ -49,6 +49,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -67,6 +68,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -86,6 +88,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 	assert.NotNil(t, vmf)

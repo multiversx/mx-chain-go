@@ -1,6 +1,8 @@
 package coordinator
 
 import (
+	"bytes"
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -156,6 +158,69 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.SCDeployment, txTypeIn)
 	assert.Equal(t, process.SCDeployment, txTypeCross)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunctionCallNftTransfer(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.BuiltInFuncNames = map[string]struct{}{
+		core.BuiltInFunctionESDTNFTTransfer: {},
+	}
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	scAddress := bytes.Repeat([]byte{0}, core.NumInitCharactersForScAddress-core.VMTypeLen)
+	scAddressSuffix := bytes.Repeat([]byte{1}, 32-len(scAddress))
+	scAddress = append(scAddress, scAddressSuffix...)
+
+	addr := bytes.Repeat([]byte{1}, arg.PubkeyConverter.Len())
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = addr
+	tx.RcvAddr = scAddress
+	tx.Data = []byte(core.BuiltInFunctionESDTNFTTransfer +
+		"@" + hex.EncodeToString([]byte("token")) +
+		"@" + hex.EncodeToString([]byte("rcv")) +
+		"@" + hex.EncodeToString([]byte("attr")) +
+		"@" + hex.EncodeToString([]byte("attr")) +
+		"@" + hex.EncodeToString(big.NewInt(10).Bytes()))
+
+	tx.Value = big.NewInt(45)
+
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.BuiltInFunctionCall, txTypeIn)
+	assert.Equal(t, process.SCInvoking, txTypeCross)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunctionCallEsdtTransfer(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.BuiltInFuncNames = map[string]struct{}{
+		core.BuiltInFunctionESDTTransfer: {},
+	}
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	addr := bytes.Repeat([]byte{1}, arg.PubkeyConverter.Len())
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = addr
+	tx.RcvAddr = addr
+	tx.Data = []byte(core.BuiltInFunctionESDTTransfer +
+		"@" + hex.EncodeToString([]byte("token")) +
+		"@" + hex.EncodeToString([]byte("rcv")) +
+		"@" + hex.EncodeToString(big.NewInt(10).Bytes()))
+	tx.Value = big.NewInt(45)
+
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.BuiltInFunctionCall, txTypeIn)
+	assert.Equal(t, process.BuiltInFunctionCall, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeRecv0AddressWrongTransaction(t *testing.T) {

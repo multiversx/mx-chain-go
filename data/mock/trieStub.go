@@ -21,12 +21,14 @@ type TrieStub struct {
 	ResetOldHashesCalled        func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNodeCalled     func(hash []byte) ([]byte, error)
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	ClosePersisterCalled        func() error
 	GetProofCalled              func(key []byte) ([][]byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() data.StorageManager
+	GetNumNodesCalled           func() data.NumNodesDTO
 }
 
 // GetStorageManager -
@@ -156,6 +158,14 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 	return nil, 0, nil
 }
 
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(hash []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(hash)
+	}
+	return make([]byte, 0), nil
+}
+
 // GetDirtyHashes -
 func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
 	return nil, nil
@@ -172,4 +182,13 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	}
 
 	return nil, nil
+}
+
+// GetNumNodes -
+func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+	if ts.GetNumNodesCalled != nil {
+		return ts.GetNumNodesCalled()
+	}
+
+	return data.NumNodesDTO{}
 }

@@ -1500,8 +1500,7 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageTooOld(t *testing.T) {
 	mes, _ := libp2p.NewNetworkMessenger(args)
 
 	msg := &message.Message{
-		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) +
-			int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()) - 1,
+		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) - 1,
 	}
 	err := mes.ValidMessageByTimestamp(msg)
 

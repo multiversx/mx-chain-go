@@ -119,6 +119,5 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	assert.Nil(t, err)
 
 	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
-	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
-	assert.True(t, esdtToken.Value.Cmp(big.NewInt(0)) == 0)
+	assert.Equal(t, len(marshaledData), 0)
 }

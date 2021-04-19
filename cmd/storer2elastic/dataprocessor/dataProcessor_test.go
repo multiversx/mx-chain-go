@@ -1,15 +1,14 @@
-package dataprocessor_test
+package dataprocessor
 
 import (
 	"testing"
 
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
-	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
@@ -19,93 +18,93 @@ func TestNewDataProcessor(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		argsFunc func() dataprocessor.ArgsDataProcessor
+		argsFunc func() ArgsDataProcessor
 		exError  error
 	}{
 		{
 			name: "NilElasticIndexer",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.ElasticIndexer = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilElasticIndexer,
+			exError: ErrNilElasticIndexer,
 		},
 		{
 			name: "NilDataReplayer",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.DataReplayer = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilDataReplayer,
+			exError: ErrNilDataReplayer,
 		},
 		{
 			name: "NilMarshalizer",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.Marshalizer = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilMarshalizer,
+			exError: ErrNilMarshalizer,
 		},
 		{
 			name: "NilHasher",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.Hasher = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilHasher,
+			exError: ErrNilHasher,
 		},
 		{
 			name: "NilShardCoordinator",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.ShardCoordinator = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilShardCoordinator,
+			exError: ErrNilShardCoordinator,
 		},
 		{
 			name: "NilGenesisNodesSetupHandler",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.GenesisNodesSetup = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilGenesisNodesSetup,
+			exError: ErrNilGenesisNodesSetup,
 		},
 		{
 			name: "NilTPSBenchmarkUpdater",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.TPSBenchmarkUpdater = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilTPSBenchmarkUpdater,
+			exError: ErrNilTPSBenchmarkUpdater,
 		},
 		{
 			name: "NilTPSBenchmarkUpdater",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.TPSBenchmarkUpdater = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilTPSBenchmarkUpdater,
+			exError: ErrNilTPSBenchmarkUpdater,
 		},
 		{
 			name: "NilRatingsProcessor",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				args := getDataProcessorArgs()
 				args.RatingsProcessor = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilRatingProcessor,
+			exError: ErrNilRatingProcessor,
 		},
 		{
 			name: "All arguments ok",
-			argsFunc: func() dataprocessor.ArgsDataProcessor {
+			argsFunc: func() ArgsDataProcessor {
 				return getDataProcessorArgs()
 			},
 			exError: nil,
@@ -114,7 +113,7 @@ func TestNewDataProcessor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := dataprocessor.NewDataProcessor(tt.argsFunc())
+			_, err := NewDataProcessor(tt.argsFunc())
 			require.Equal(t, err, tt.exError)
 		})
 	}
@@ -130,7 +129,7 @@ func TestDataProcessor_Index(t *testing.T) {
 				MetaBlockData: &storer2ElasticData.HeaderData{
 					Header:           &block.MetaBlock{},
 					Body:             &block.Body{},
-					BodyTransactions: map[string]data.TransactionHandler{},
+					BodyTransactions: &indexer.Pool{},
 				},
 				ShardHeaders: map[uint32][]*storer2ElasticData.HeaderData{
 					0: {
@@ -141,15 +140,15 @@ func TestDataProcessor_Index(t *testing.T) {
 			return nil
 		},
 	}
-	dp, _ := dataprocessor.NewDataProcessor(args)
+	dp, _ := NewDataProcessor(args)
 	require.NotNil(t, dp)
 
 	err := dp.Index()
 	require.NoError(t, err)
 }
 
-func getDataProcessorArgs() dataprocessor.ArgsDataProcessor {
-	return dataprocessor.ArgsDataProcessor{
+func getDataProcessorArgs() ArgsDataProcessor {
+	return ArgsDataProcessor{
 		ElasticIndexer: &mock.ElasticIndexerStub{},
 		DataReplayer:   &mock.DataReplayerStub{},
 		GenesisNodesSetup: &mock.GenesisNodesSetupHandlerStub{
@@ -239,4 +238,38 @@ func getDataProcessorArgs() dataprocessor.ArgsDataProcessor {
 		},
 		StartingEpoch: 0,
 	}
+}
+
+func TestDataProcessor_IndexData(t *testing.T) {
+	count := 0
+
+	args := getDataProcessorArgs()
+	args.DataReplayer = &mock.DataReplayerStub{}
+	args.ElasticIndexer = &mock.ElasticIndexerStub{
+		SaveRoundsInfosCalled: func(roundsInfos []*indexer.RoundInfo) {
+			count += 1
+		},
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
+			count += 1
+		},
+	}
+	dp, _ := NewDataProcessor(args)
+	require.NotNil(t, dp)
+
+	dp.nodesCoordinators[0] = &mock.NodesCoordinatorStub{
+		GetConsensusValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
+			return nil, nil
+		},
+		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
+			return []uint64{0, 1}, nil
+		},
+	}
+
+	err := dp.indexData(&storer2ElasticData.HeaderData{
+		Header:           &block.Header{},
+		Body:             &block.Body{},
+		BodyTransactions: nil,
+	})
+	require.Nil(t, err)
+	require.Equal(t, 2, count)
 }

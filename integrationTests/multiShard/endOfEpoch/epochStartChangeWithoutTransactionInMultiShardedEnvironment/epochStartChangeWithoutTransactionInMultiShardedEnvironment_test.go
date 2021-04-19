@@ -17,14 +17,10 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -41,7 +37,6 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

@@ -3,6 +3,7 @@ package factory
 import (
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -11,7 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/stakeValuesProcessor"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	trieIteratorsFactory "github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -20,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -81,7 +84,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		workingDir:          apiWorkingDir,
 	}
 
-	scQueryService, vmFactory, vmContainer, err := createScQueryService(argsSCQuery)
+	scQueryService, _, _, err := createScQueryService(argsSCQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +93,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
+		args.BootstrapComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err
@@ -116,28 +120,43 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	totaltakedHandlerArgs := &stakeValuesProcessor.ArgsTotalStakedValueHandler{
-		ShardID:             args.ProcessComponents.ShardCoordinator().SelfId(),
-		InternalMarshalizer: args.CoreComponents.InternalMarshalizer(),
-		Accounts:            args.StateComponents.AccountsAdapter(),
-		NodePrice:           args.Configs.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
 	}
 
-	totalStakedValueHandler, err := stakeValuesProcessor.CreateTotalStakedValueHandler(totaltakedHandlerArgs)
+	argsProcessors := trieIterators.ArgTrieIteratorProcessor{
+		ShardID:            args.BootstrapComponents.ShardCoordinator().SelfId(),
+		Accounts:           accountsWrapper,
+		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
+		BlockChain:         args.DataComponents.Blockchain(),
+		QueryService:       scQueryService,
+	}
+	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	apiArgs := external.ApiResolverArgs{
-		ScQueryService:     scQueryService,
-		StatusMetrics:      args.CoreComponents.StatusHandlerUtils().Metrics(),
-		TxCostHandler:      txCostHandler,
-		VmFactory:          vmFactory,
-		VmContainer:        vmContainer,
-		StakedValueHandler: totalStakedValueHandler,
+	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(argsProcessors)
+	if err != nil {
+		return nil, err
 	}
 
-	return external.NewNodeApiResolver(apiArgs)
+	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(argsProcessors)
+	if err != nil {
+		return nil, err
+	}
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          scQueryService,
+		StatusMetricsHandler:    args.CoreComponents.StatusHandlerUtils().Metrics(),
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
+	}
+
+	return external.NewNodeApiResolver(argsApiResolver)
 }
 
 func createScQueryService(
@@ -196,6 +215,7 @@ func createScQueryElement(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
+		args.processComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -255,11 +275,13 @@ func createScQueryElement(
 			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
+			ArwenESDTFunctionsEnableEpoch:  args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
 		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
+		log.Debug("apiResolver: enable epoch for ESDT functions", "epoch", args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch)
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
@@ -291,12 +313,14 @@ func createBuiltinFuncs(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (process.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      marshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
