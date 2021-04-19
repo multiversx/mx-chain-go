@@ -20,9 +20,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 ) (block.MiniBlockSlice, map[string]struct{}, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
 
-	cpmbi := txs.initCreateAndProcessMiniBlocks()
+	mbInfo := txs.initCreateAndProcessMiniBlocks()
 
-	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", cpmbi.gasInfo.totalGasConsumedInSelfShard)
+	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
@@ -37,7 +37,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
 			isShardStuck,
 			sortedTxs[index],
-			cpmbi)
+			mbInfo)
 		if !shouldContinue {
 			continue
 		}
@@ -51,11 +51,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			tx,
 			isMiniBlockEmpty,
 			receiverShardID,
-			cpmbi)
+			mbInfo)
 
 		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
 			log.Debug("max txs accepted in one block is reached",
-				"num txs added", cpmbi.processingInfo.numTxsAdded,
+				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
 			break
 		}
@@ -66,7 +66,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			txHash,
 			senderShardID,
 			receiverShardID,
-			cpmbi)
+			mbInfo)
 		if err != nil {
 			continue
 		}
@@ -77,15 +77,15 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			miniBlock,
 			receiverShardID,
 			txMbInfo,
-			cpmbi)
+			mbInfo)
 	}
 
-	miniBlocks := txs.getMiniBlockSliceFromMapV2(cpmbi.mapMiniBlocks, cpmbi.mapSCTxs)
-	txs.displayProcessingResults(miniBlocks, len(sortedTxs), cpmbi)
+	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mbInfo.mapSCTxs)
+	txs.displayProcessingResults(miniBlocks, len(sortedTxs), mbInfo)
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
 
-	return miniBlocks, cpmbi.mapSCTxs, nil
+	return miniBlocks, mbInfo.mapSCTxs, nil
 }
 
 func (txs *transactions) initGasConsumed() map[uint32]map[txType]uint64 {
@@ -124,14 +124,14 @@ func (txs *transactions) processTransaction(
 	txHash []byte,
 	senderShardID uint32,
 	receiverShardID uint32,
-	cpmbi *createAndProcessMiniBlocksInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
 ) error {
 	snapshot := txs.accounts.JournalLen()
 
-	cpmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard = cpmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
-	oldGasConsumedByMiniBlocksInSenderShard := cpmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard
-	oldGasConsumedByMiniBlockInReceiverShard := cpmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard
-	oldTotalGasConsumedInSelfShard := cpmbi.gasInfo.totalGasConsumedInSelfShard
+	mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
+	oldGasConsumedByMiniBlocksInSenderShard := mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard
+	oldGasConsumedByMiniBlockInReceiverShard := mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
 	err := txs.computeGasConsumed(
@@ -139,15 +139,15 @@ func (txs *transactions) processTransaction(
 		receiverShardID,
 		tx,
 		txHash,
-		&cpmbi.gasInfo)
+		&mbInfo.gasInfo)
 	elapsedTime := time.Since(startTime)
-	cpmbi.processingInfo.totalTimeUsedForComputeGasConsumed += elapsedTime
+	mbInfo.processingInfo.totalTimeUsedForComputeGasConsumed += elapsedTime
 	if err != nil {
 		log.Trace("processTransaction.computeGasConsumed", "error", err)
 		return err
 	}
 
-	cpmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = cpmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	// execute transaction to change the trie root hash
 	startTime = time.Now()
@@ -158,7 +158,7 @@ func (txs *transactions) processTransaction(
 		receiverShardID,
 	)
 	elapsedTime = time.Since(startTime)
-	cpmbi.processingInfo.totalTimeUsedForProcess += elapsedTime
+	mbInfo.processingInfo.totalTimeUsedForProcess += elapsedTime
 
 	txs.mutAccountsInfo.Lock()
 	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
@@ -166,10 +166,10 @@ func (txs *transactions) processTransaction(
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		if errors.Is(err, process.ErrHigherNonceInTransaction) {
-			cpmbi.senderAddressToSkip = tx.GetSndAddr()
+			mbInfo.senderAddressToSkip = tx.GetSndAddr()
 		}
 
-		cpmbi.processingInfo.numBadTxs++
+		mbInfo.processingInfo.numBadTxs++
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
@@ -180,28 +180,28 @@ func (txs *transactions) processTransaction(
 		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 		txs.gasHandler.RemoveGasRefunded([][]byte{txHash})
 
-		cpmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-		cpmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		cpmbi.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
+		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 		return err
 	}
 
-	gasRefunded := txs.gasHandler.GasRefunded(txHash)
-	cpmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] -= gasRefunded
 	if senderShardID == receiverShardID {
-		cpmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasRefunded
-		cpmbi.gasInfo.totalGasConsumedInSelfShard -= gasRefunded
+		gasRefunded := txs.gasHandler.GasRefunded(txHash)
+		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard -= gasRefunded
+		mbInfo.gasInfo.totalGasConsumedInSelfShard -= gasRefunded
+		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] -= gasRefunded
 	}
 
 	if errors.Is(err, process.ErrFailedTransaction) {
-		if !cpmbi.firstInvalidTxFound {
-			cpmbi.firstInvalidTxFound = true
+		if !mbInfo.firstInvalidTxFound {
+			mbInfo.firstInvalidTxFound = true
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
 
 		txs.blockSizeComputation.AddNumTxs(1)
-		cpmbi.processingInfo.numTxsFailed++
+		mbInfo.processingInfo.numTxsFailed++
 	}
 
 	return err
@@ -282,7 +282,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 ) block.MiniBlockSlice {
 	log.Debug("createScheduledMiniBlocks has been started")
 
-	csmbi := txs.initCreateScheduledMiniBlocks()
+	mbInfo := txs.initCreateScheduledMiniBlocks()
 
 	for index := range sortedTxs {
 		if !haveTime() && !haveAdditionalTime() {
@@ -294,7 +294,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			isShardStuck,
 			sortedTxs[index],
 			mapSCTxs,
-			csmbi)
+			mbInfo)
 		if !shouldContinue {
 			continue
 		}
@@ -307,11 +307,11 @@ func (txs *transactions) createScheduledMiniBlocks(
 		scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
 			isMiniBlockEmpty,
 			receiverShardID,
-			csmbi)
+			mbInfo)
 
 		if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
 			log.Debug("max txs accepted in one block is reached",
-				"num scheduled txs added", csmbi.schedulingInfo.numScheduledTxsAdded,
+				"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
 				"total txs", len(sortedTxs))
 			break
 		}
@@ -322,7 +322,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			txHash,
 			senderShardID,
 			receiverShardID,
-			csmbi)
+			mbInfo)
 		if err != nil {
 			continue
 		}
@@ -334,12 +334,12 @@ func (txs *transactions) createScheduledMiniBlocks(
 			receiverShardID,
 			scheduledTxMbInfo,
 			mapSCTxs,
-			csmbi)
+			mbInfo)
 	}
 
-	miniBlocks := txs.getMiniBlockSliceFromMapV2(csmbi.mapMiniBlocks, mapSCTxs)
+	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks, mapSCTxs)
 
-	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), csmbi)
+	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), mbInfo)
 
 	log.Debug("createScheduledMiniBlocks has been finished")
 
@@ -352,12 +352,12 @@ func (txs *transactions) verifyTransaction(
 	txHash []byte,
 	senderShardID uint32,
 	receiverShardID uint32,
-	csmbi *createScheduledMiniBlocksInfo,
+	mbInfo *createScheduledMiniBlocksInfo,
 ) error {
-	csmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard = csmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
-	oldGasConsumedByMiniBlocksInSenderShard := csmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard
-	oldGasConsumedByMiniBlockInReceiverShard := csmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard
-	oldTotalGasConsumedInSelfShard := csmbi.gasInfo.totalGasConsumedInSelfShard
+	mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard = mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType]
+	oldGasConsumedByMiniBlocksInSenderShard := mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard
+	oldGasConsumedByMiniBlockInReceiverShard := mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	oldTotalGasConsumedInSelfShard := mbInfo.gasInfo.totalGasConsumedInSelfShard
 
 	startTime := time.Now()
 	err := txs.computeGasConsumed(
@@ -365,20 +365,20 @@ func (txs *transactions) verifyTransaction(
 		receiverShardID,
 		tx,
 		txHash,
-		&csmbi.gasInfo)
+		&mbInfo.gasInfo)
 	elapsedTime := time.Since(startTime)
-	csmbi.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed += elapsedTime
+	mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed += elapsedTime
 	if err != nil {
 		log.Trace("verifyTransaction.computeGasConsumed", "error", err)
 		return err
 	}
 
-	csmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = csmbi.gasInfo.gasConsumedByMiniBlockInReceiverShard
+	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = mbInfo.gasInfo.gasConsumedByMiniBlockInReceiverShard
 
 	startTime = time.Now()
 	err = txs.txProcessor.VerifyTransaction(tx)
 	elapsedTime = time.Since(startTime)
-	csmbi.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
+	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
 	txs.mutAccountsInfo.Lock()
 	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
@@ -391,14 +391,14 @@ func (txs *transactions) verifyTransaction(
 			txs.txPool.RemoveData(txHash, strCache)
 		}
 
-		csmbi.schedulingInfo.numScheduledBadTxs++
+		mbInfo.schedulingInfo.numScheduledBadTxs++
 		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		txs.gasHandler.RemoveGasConsumed([][]byte{txHash})
 
-		csmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-		csmbi.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
-		csmbi.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID][txType] = oldGasConsumedByMiniBlockInReceiverShard
+		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 		return err
 	}
@@ -414,7 +414,7 @@ func (txs *transactions) verifyTransaction(
 func (txs *transactions) displayProcessingResults(
 	miniBlocks block.MiniBlockSlice,
 	nbSortedTxs int,
-	cpmbi *createAndProcessMiniBlocksInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
 	if len(miniBlocks) > 0 {
 		log.Debug("mini blocks from me created", "num", len(miniBlocks))
@@ -422,37 +422,37 @@ func (txs *transactions) displayProcessingResults(
 
 	log.Debug("displayProcessingResults",
 		"self shard", txs.shardCoordinator.SelfId(),
-		"gas consumed in self shard for txs from me", cpmbi.gasInfo.gasConsumedByMiniBlocksInSenderShard,
-		"total gas consumed in self shard", cpmbi.gasInfo.totalGasConsumedInSelfShard)
+		"gas consumed in self shard for txs from me", mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard,
+		"total gas consumed in self shard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
 			"type", miniBlock.Type,
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
-			"gas consumed in receiver shard for non sc txs", cpmbi.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][nonScTx],
-			"gas consumed in receiver shard for sc txs", cpmbi.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][scTx],
+			"gas consumed in receiver shard for non sc txs", mbInfo.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][nonScTx],
+			"gas consumed in receiver shard for sc txs", mbInfo.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][scTx],
 			"txs added", len(miniBlock.TxHashes),
-			"non sc txs", cpmbi.mapTxsForShard[miniBlock.ReceiverShardID],
-			"sc txs", cpmbi.mapScsForShard[miniBlock.ReceiverShardID])
+			"non sc txs", mbInfo.mapTxsForShard[miniBlock.ReceiverShardID],
+			"sc txs", mbInfo.mapScsForShard[miniBlock.ReceiverShardID])
 	}
 
 	log.Debug("transactions info", "total txs", nbSortedTxs,
-		"num txs added", cpmbi.processingInfo.numTxsAdded,
-		"num bad txs", cpmbi.processingInfo.numBadTxs,
-		"num txs failed", cpmbi.processingInfo.numTxsFailed,
-		"num txs skipped", cpmbi.processingInfo.numTxsSkipped,
-		"num txs with initial balance consumed", cpmbi.processingInfo.numTxsWithInitialBalanceConsumed,
-		"num cross shard sc calls or special txs", cpmbi.processingInfo.numCrossShardScCallsOrSpecialTxs,
-		"used time for computeGasConsumed", cpmbi.processingInfo.totalTimeUsedForComputeGasConsumed,
-		"used time for processAndRemoveBadTransaction", cpmbi.processingInfo.totalTimeUsedForProcess,
+		"num txs added", mbInfo.processingInfo.numTxsAdded,
+		"num bad txs", mbInfo.processingInfo.numBadTxs,
+		"num txs failed", mbInfo.processingInfo.numTxsFailed,
+		"num txs skipped", mbInfo.processingInfo.numTxsSkipped,
+		"num txs with initial balance consumed", mbInfo.processingInfo.numTxsWithInitialBalanceConsumed,
+		"num cross shard sc calls or special txs", mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs,
+		"used time for computeGasConsumed", mbInfo.processingInfo.totalTimeUsedForComputeGasConsumed,
+		"used time for processAndRemoveBadTransaction", mbInfo.processingInfo.totalTimeUsedForProcess,
 	)
 }
 
 func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 	miniBlocks block.MiniBlockSlice,
 	nbSortedTxs int,
-	csmbi *createScheduledMiniBlocksInfo,
+	mbInfo *createScheduledMiniBlocksInfo,
 ) {
 	if len(miniBlocks) > 0 {
 		log.Debug("scheduled mini blocks from me created", "num", len(miniBlocks))
@@ -460,25 +460,25 @@ func (txs *transactions) displayProcessingResultsOfScheduledMiniBlocks(
 
 	log.Debug("displayProcessingResultsOfScheduledMiniBlocks",
 		"self shard", txs.shardCoordinator.SelfId(),
-		"total gas consumed in self shard", csmbi.gasInfo.totalGasConsumedInSelfShard)
+		"total gas consumed in self shard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("scheduled mini block info",
 			"type", "ScheduledBlock",
 			"sender shard", miniBlock.SenderShardID,
 			"receiver shard", miniBlock.ReceiverShardID,
-			"gas consumed in receiver shard", csmbi.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][scTx],
+			"gas consumed in receiver shard", mbInfo.mapGasConsumedByMiniBlockInReceiverShard[miniBlock.ReceiverShardID][scTx],
 			"txs added", len(miniBlock.TxHashes))
 	}
 
 	log.Debug("scheduled transactions info", "total txs", nbSortedTxs,
-		"num scheduled txs added", csmbi.schedulingInfo.numScheduledTxsAdded,
-		"num scheduled bad txs", csmbi.schedulingInfo.numScheduledBadTxs,
-		"num scheduled txs skipped", csmbi.schedulingInfo.numScheduledTxsSkipped,
-		"num scheduled txs with initial balance consumed", csmbi.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed,
-		"num scheduled cross shard sc calls", csmbi.schedulingInfo.numScheduledCrossShardScCalls,
-		"used time for scheduled computeGasConsumed", csmbi.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed,
-		"used time for scheduled VerifyTransaction", csmbi.schedulingInfo.totalTimeUsedForScheduledVerify,
+		"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
+		"num scheduled bad txs", mbInfo.schedulingInfo.numScheduledBadTxs,
+		"num scheduled txs skipped", mbInfo.schedulingInfo.numScheduledTxsSkipped,
+		"num scheduled txs with initial balance consumed", mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed,
+		"num scheduled cross shard sc calls", mbInfo.schedulingInfo.numScheduledCrossShardScCalls,
+		"used time for scheduled computeGasConsumed", mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasConsumed,
+		"used time for scheduled VerifyTransaction", mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify,
 	)
 }
 
@@ -513,7 +513,7 @@ func (txs *transactions) initCreateAndProcessMiniBlocks() *createAndProcessMiniB
 func (txs *transactions) shouldContinueProcessingTx(
 	isShardStuck func(uint32) bool,
 	wrappedTx *txcache.WrappedTransaction,
-	cpmbi *createAndProcessMiniBlocksInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
 ) (*transaction.Transaction, *block.MiniBlock, bool) {
 
 	txHash := wrappedTx.TxHash
@@ -534,14 +534,14 @@ func (txs *transactions) shouldContinueProcessingTx(
 		return nil, nil, false
 	}
 
-	if len(cpmbi.senderAddressToSkip) > 0 {
-		if bytes.Equal(cpmbi.senderAddressToSkip, tx.GetSndAddr()) {
-			cpmbi.processingInfo.numTxsSkipped++
+	if len(mbInfo.senderAddressToSkip) > 0 {
+		if bytes.Equal(mbInfo.senderAddressToSkip, tx.GetSndAddr()) {
+			mbInfo.processingInfo.numTxsSkipped++
 			return nil, nil, false
 		}
 	}
 
-	miniBlock, ok := cpmbi.mapMiniBlocks[receiverShardID]
+	miniBlock, ok := mbInfo.mapMiniBlocks[receiverShardID]
 	if !ok {
 		log.Debug("mini block is not created", "shard", receiverShardID)
 		return nil, nil, false
@@ -549,7 +549,7 @@ func (txs *transactions) shouldContinueProcessingTx(
 
 	addressHasEnoughBalance := txs.hasAddressEnoughInitialBalance(tx)
 	if !addressHasEnoughBalance {
-		cpmbi.processingInfo.numTxsWithInitialBalanceConsumed++
+		mbInfo.processingInfo.numTxsWithInitialBalanceConsumed++
 		return nil, nil, false
 	}
 
@@ -560,7 +560,7 @@ func (txs *transactions) getTxAndMbInfo(
 	tx *transaction.Transaction,
 	isMiniBlockEmpty bool,
 	receiverShardID uint32,
-	cpmbi *createAndProcessMiniBlocksInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
 ) *txAndMbInfo {
 	_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 	isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
@@ -570,7 +570,7 @@ func (txs *transactions) getTxAndMbInfo(
 	}
 
 	numNewMiniBlocks := 0
-	if isMiniBlockEmpty || cpmbi.firstCrossShardScCallOrSpecialTxFound {
+	if isMiniBlockEmpty || mbInfo.firstCrossShardScCallOrSpecialTxFound {
 		numNewMiniBlocks = 1
 	}
 	numNewTxs := 1
@@ -578,10 +578,10 @@ func (txs *transactions) getTxAndMbInfo(
 	isCrossShardScCallOrSpecialTx := receiverShardID != txs.shardCoordinator.SelfId() &&
 		(isReceiverSmartContractAddress || len(tx.RcvUserName) > 0)
 	if isCrossShardScCallOrSpecialTx {
-		if !cpmbi.firstCrossShardScCallOrSpecialTxFound {
+		if !mbInfo.firstCrossShardScCallOrSpecialTxFound {
 			numNewMiniBlocks++
 		}
-		if cpmbi.mapCrossShardScCallsOrSpecialTxs[receiverShardID] >= cpmbi.maxCrossShardScCallsOrSpecialTxsPerShard {
+		if mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID] >= mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
@@ -601,9 +601,9 @@ func (txs *transactions) applyExecutedTransaction(
 	miniBlock *block.MiniBlock,
 	receiverShardID uint32,
 	txMbInfo *txAndMbInfo,
-	cpmbi *createAndProcessMiniBlocksInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
-	cpmbi.senderAddressToSkip = []byte("")
+	mbInfo.senderAddressToSkip = []byte("")
 
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
 		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
@@ -617,36 +617,58 @@ func (txs *transactions) applyExecutedTransaction(
 	}
 
 	isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-	firstMiniBlockSplitForReceiverShardFound := (txMbInfo.isReceiverSmartContractAddress && cpmbi.mapScsForShard[receiverShardID] == 0 && cpmbi.mapTxsForShard[receiverShardID] > 0) ||
-		(!txMbInfo.isReceiverSmartContractAddress && cpmbi.mapTxsForShard[receiverShardID] == 0 && cpmbi.mapScsForShard[receiverShardID] > 0)
-	if isMiniBlockEmpty || firstMiniBlockSplitForReceiverShardFound {
+	isFirstSplitFound := txs.isFirstMiniBlockSplitForReceiverShardFound(receiverShardID, txMbInfo, mbInfo)
+	if isMiniBlockEmpty || isFirstSplitFound {
 		txs.blockSizeComputation.AddNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 	txs.blockSizeComputation.AddNumTxs(1)
 	if txMbInfo.isCrossShardScCallOrSpecialTx {
-		if !cpmbi.firstCrossShardScCallOrSpecialTxFound {
-			cpmbi.firstCrossShardScCallOrSpecialTxFound = true
+		if !mbInfo.firstCrossShardScCallOrSpecialTxFound {
+			mbInfo.firstCrossShardScCallOrSpecialTxFound = true
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
-		cpmbi.mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
-		if cpmbi.mapCrossShardScCallsOrSpecialTxs[receiverShardID] > cpmbi.maxCrossShardScCallsOrSpecialTxsPerShard {
-			cpmbi.maxCrossShardScCallsOrSpecialTxsPerShard = cpmbi.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
+		mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
+		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
+		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
+			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
 			//we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
 		}
-		cpmbi.processingInfo.numCrossShardScCallsOrSpecialTxs++
+		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
 	}
 
 	if txMbInfo.isReceiverSmartContractAddress {
-		cpmbi.mapSCTxs[string(txHash)] = struct{}{}
-		cpmbi.mapScsForShard[receiverShardID]++
+		mbInfo.mapSCTxs[string(txHash)] = struct{}{}
+		mbInfo.mapScsForShard[receiverShardID]++
 	} else {
-		cpmbi.mapTxsForShard[receiverShardID]++
+		mbInfo.mapTxsForShard[receiverShardID]++
 	}
 
-	cpmbi.processingInfo.numTxsAdded++
+	mbInfo.processingInfo.numTxsAdded++
+}
+
+func (txs *transactions) isFirstMiniBlockSplitForReceiverShardFound(
+	receiverShardID uint32,
+	txMbInfo *txAndMbInfo,
+	mbInfo *createAndProcessMiniBlocksInfo,
+) bool {
+	numTxsForShard := mbInfo.mapTxsForShard[receiverShardID]
+	numScsForShard := mbInfo.mapScsForShard[receiverShardID]
+
+	if numTxsForShard == 0 && numScsForShard == 0 {
+		return false
+	}
+	if numTxsForShard > 0 && numScsForShard > 0 {
+		return false
+	}
+
+	if txMbInfo.isReceiverSmartContractAddress {
+		return numScsForShard == 0
+	}
+
+	return numTxsForShard == 0
 }
 
 func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlocksInfo {
@@ -670,7 +692,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 	isShardStuck func(uint32) bool,
 	wrappedTx *txcache.WrappedTransaction,
 	mapSCTxs map[string]struct{},
-	csmbi *createScheduledMiniBlocksInfo,
+	mbInfo *createScheduledMiniBlocksInfo,
 ) (*transaction.Transaction, *block.MiniBlock, bool) {
 
 	txHash := wrappedTx.TxHash
@@ -696,14 +718,14 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 		return nil, nil, false
 	}
 
-	if len(csmbi.senderAddressToSkip) > 0 {
-		if bytes.Equal(csmbi.senderAddressToSkip, tx.GetSndAddr()) {
-			csmbi.schedulingInfo.numScheduledTxsSkipped++
+	if len(mbInfo.senderAddressToSkip) > 0 {
+		if bytes.Equal(mbInfo.senderAddressToSkip, tx.GetSndAddr()) {
+			mbInfo.schedulingInfo.numScheduledTxsSkipped++
 			return nil, nil, false
 		}
 	}
 
-	csmbi.senderAddressToSkip = tx.GetSndAddr()
+	mbInfo.senderAddressToSkip = tx.GetSndAddr()
 
 	_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
 	isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
@@ -711,7 +733,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 		return nil, nil, false
 	}
 
-	miniBlock, ok := csmbi.mapMiniBlocks[receiverShardID]
+	miniBlock, ok := mbInfo.mapMiniBlocks[receiverShardID]
 	if !ok {
 		log.Debug("scheduled mini block is not created", "shard", receiverShardID)
 		return nil, nil, false
@@ -719,7 +741,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 
 	addressHasEnoughBalance := txs.hasAddressEnoughInitialBalance(tx)
 	if !addressHasEnoughBalance {
-		csmbi.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
+		mbInfo.schedulingInfo.numScheduledTxsWithInitialBalanceConsumed++
 		return nil, nil, false
 	}
 
@@ -729,7 +751,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 func (txs *transactions) getScheduledTxAndMbInfo(
 	isMiniBlockEmpty bool,
 	receiverShardID uint32,
-	csmbi *createScheduledMiniBlocksInfo,
+	mbInfo *createScheduledMiniBlocksInfo,
 ) *scheduledTxAndMbInfo {
 	numNewMiniBlocks := 0
 	if isMiniBlockEmpty {
@@ -739,10 +761,10 @@ func (txs *transactions) getScheduledTxAndMbInfo(
 
 	isCrossShardScCallTx := receiverShardID != txs.shardCoordinator.SelfId()
 	if isCrossShardScCallTx {
-		if !csmbi.firstCrossShardScCallTxFound {
+		if !mbInfo.firstCrossShardScCallTxFound {
 			numNewMiniBlocks++
 		}
-		if csmbi.mapCrossShardScCallTxs[receiverShardID] >= csmbi.maxCrossShardScCallTxsPerShard {
+		if mbInfo.mapCrossShardScCallTxs[receiverShardID] >= mbInfo.maxCrossShardScCallTxsPerShard {
 			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
 		}
 	}
@@ -761,7 +783,7 @@ func (txs *transactions) applyVerifiedTransaction(
 	receiverShardID uint32,
 	scheduledTxMbInfo *scheduledTxAndMbInfo,
 	mapSCTxs map[string]struct{},
-	csmbi *createScheduledMiniBlocksInfo,
+	mbInfo *createScheduledMiniBlocksInfo,
 ) {
 	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
 		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
@@ -781,20 +803,21 @@ func (txs *transactions) applyVerifiedTransaction(
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 	txs.blockSizeComputation.AddNumTxs(1)
 	if scheduledTxMbInfo.isCrossShardScCallTx {
-		if !csmbi.firstCrossShardScCallTxFound {
-			csmbi.firstCrossShardScCallTxFound = true
+		if !mbInfo.firstCrossShardScCallTxFound {
+			mbInfo.firstCrossShardScCallTxFound = true
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
-		csmbi.mapCrossShardScCallTxs[receiverShardID]++
-		if csmbi.mapCrossShardScCallTxs[receiverShardID] > csmbi.maxCrossShardScCallTxsPerShard {
-			csmbi.maxCrossShardScCallTxsPerShard = csmbi.mapCrossShardScCallTxs[receiverShardID]
+		mbInfo.mapCrossShardScCallTxs[receiverShardID]++
+		crossShardScCallTxs := mbInfo.mapCrossShardScCallTxs[receiverShardID]
+		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
+			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
 			//we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
 		}
-		csmbi.schedulingInfo.numScheduledCrossShardScCalls++
+		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++
 	}
 
 	mapSCTxs[string(txHash)] = struct{}{}
-	csmbi.schedulingInfo.numScheduledTxsAdded++
+	mbInfo.schedulingInfo.numScheduledTxsAdded++
 	txs.scheduledTxsExecutionHandler.Add(txHash, tx)
 }
