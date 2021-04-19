@@ -16,3 +16,8 @@ func (slca *simpleLRUCacheAdapter) AddSized(key, value interface{}, _ int64) boo
 func (slca *simpleLRUCacheAdapter) AddSizedIfMissing(key, value interface{}, _ int64) (ok, evicted bool) {
 	return slca.ContainsOrAdd(key, value)
 }
+
+// SizeInBytesContained returns 0
+func (slca *simpleLRUCacheAdapter) SizeInBytesContained() uint64 {
+	return 0
+}

@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strings"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
@@ -18,6 +20,8 @@ import (
 )
 
 const maxMachineIDLen = 10
+const hostPlaceholder = "%host"
+const timestampPlaceholder = "%time"
 
 var (
 	nodeHelpTemplate = `NAME:
@@ -39,8 +43,8 @@ VERSION:
 	// outputFile defines a flag for the benchmarks output file. Data will be written in csv format.
 	outputFile = cli.StringFlag{
 		Name:  "output-file",
-		Usage: "The output file where benchmarks will be written in csv format.",
-		Value: "./output.csv",
+		Usage: "The output file format where benchmarks will be written in csv format.",
+		Value: "./output-" + hostPlaceholder + "-" + timestampPlaceholder + ".csv",
 	}
 
 	log = logger.GetOrCreate("main")
@@ -75,7 +79,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		return startAssessment(c, app.Version)
+		return startAssessment(c, app.Version, machineID)
 	}
 
 	err = app.Run(os.Args)
@@ -85,8 +89,11 @@ func main() {
 	}
 }
 
-func startAssessment(c *cli.Context, version string) error {
+func startAssessment(c *cli.Context, version string, machineID string) error {
 	outputFileName := c.GlobalString(outputFile.Name)
+	outputFileName = strings.Replace(outputFileName, hostPlaceholder, machineID, 1)
+	outputFileName = strings.Replace(outputFileName, timestampPlaceholder, fmt.Sprintf("%d", time.Now().Unix()), 1)
+
 	log.Info("Saving benchmarks result", "file", outputFileName)
 	log.Info("Starting host assessment process...")
 	sw := core.NewStopWatch()

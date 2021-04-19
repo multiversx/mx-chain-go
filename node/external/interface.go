@@ -36,3 +36,15 @@ type TotalStakedValueHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
 	IsInterfaceNil() bool
 }
+
+// DirectStakedListHandler defines the behavior of a component able to return the direct stake list
+type DirectStakedListHandler interface {
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	IsInterfaceNil() bool
+}
+
+// DelegatedListHandler defines the behavior of a component able to return the complete delegated list
+type DelegatedListHandler interface {
+	GetDelegatorsList() ([]*api.Delegator, error)
+	IsInterfaceNil() bool
+}

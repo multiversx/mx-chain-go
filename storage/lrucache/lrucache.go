@@ -174,6 +174,11 @@ func (c *lruCache) Len() int {
 	return c.cache.Len()
 }
 
+// SizeInBytesContained returns the size in bytes of all contained elements
+func (c *lruCache) SizeInBytesContained() uint64 {
+	return c.cache.SizeInBytesContained()
+}
+
 // MaxSize returns the maximum number of items which can be stored in cache.
 func (c *lruCache) MaxSize() int {
 	return c.maxsize

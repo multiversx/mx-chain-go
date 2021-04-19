@@ -50,8 +50,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	b := &baseAccountsSyncer{
 		hasher:                    args.Hasher,
 		marshalizer:               args.Marshalizer,
-		trieSyncers:               make(map[string]data.TrieSyncer),
-		dataTries:                 make(map[string]data.Trie),
+		dataTries:                 make(map[string]struct{}),
 		trieStorageManager:        args.TrieStorageManager,
 		requestHandler:            args.RequestHandler,
 		timeout:                   args.Timeout,
@@ -61,6 +60,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		name:                      fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 
 	u := &userAccountsSyncer{
@@ -82,12 +82,13 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	tss := statistics.NewTrieSyncStatistics()
 	go u.printStatistics(tss, ctx)
 
-	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, tss, ctx)
+	mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, tss, ctx)
 	if err != nil {
 		return err
 	}
 
-	mainTrie := u.dataTries[string(rootHash)]
+	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
+
 	rootHashes, err := u.findAllAccountRootHashes(mainTrie, ctx)
 	if err != nil {
 		return err
@@ -143,45 +144,40 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
 	u.throttler.StartProcessing()
+	defer u.throttler.EndProcessing()
 
 	u.syncerMutex.Lock()
-	if _, ok := u.dataTries[string(rootHash)]; ok {
+	_, ok := u.dataTries[string(rootHash)]
+	if ok {
 		u.syncerMutex.Unlock()
-		u.throttler.EndProcessing()
 		return nil
 	}
 
-	dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
-	if err != nil {
-		u.syncerMutex.Unlock()
-		return err
-	}
+	u.dataTries[string(rootHash)] = struct{}{}
+	u.syncerMutex.Unlock()
 
-	u.dataTries[string(rootHash)] = dataTrie
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 u.requestHandler,
 		InterceptedNodes:               u.cacher,
-		Trie:                           dataTrie,
+		DB:                             u.trieStorageManager.Database(),
+		Marshalizer:                    u.marshalizer,
+		Hasher:                         u.hasher,
 		ShardId:                        u.shardId,
 		Topic:                          factory.AccountTrieNodesTopic,
 		TrieSyncStatistics:             ssh,
 		TimeoutBetweenTrieNodesCommits: u.timeout,
 		MaxHardCapForMissingNodes:      u.maxHardCapForMissingNodes,
 	}
-	trieSyncer, err := trie.NewTrieSyncer(arg)
+	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
-		u.syncerMutex.Unlock()
+
 		return err
 	}
-	u.trieSyncers[string(rootHash)] = trieSyncer
-	u.syncerMutex.Unlock()
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
 		return err
 	}
-
-	u.throttler.EndProcessing()
 
 	return nil
 }

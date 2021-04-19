@@ -34,16 +34,12 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, "nodeName")
+	nodes, senders, pks := prepareNodes(monitor, 3, "nodeName")
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Close()
 		}
@@ -81,9 +77,6 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
 	length := 129
@@ -95,10 +88,9 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	bigNodeName := string(buff)
 
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, bigNodeName)
+	nodes, senders, pks := prepareNodes(monitor, 3, bigNodeName)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Close()
 		}
@@ -122,7 +114,6 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 }
 
 func prepareNodes(
-	advertiserAddr string,
 	monitor *process.Monitor,
 	interactingNodes int,
 	defaultNodeName string,
@@ -135,7 +126,7 @@ func prepareNodes(
 	pks := make([]crypto.PublicKey, 0)
 
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.CreateMessengerWithKadDht(advertiserAddr)
+		nodes[i] = integrationTests.CreateMessengerWithNoDiscovery()
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
@@ -146,8 +137,12 @@ func prepareNodes(
 		} else {
 			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
+	}
 
-		_ = nodes[i].Bootstrap(0)
+	for i := 0; i < len(nodes)-1; i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			_ = nodes[i].ConnectToPeer(integrationTests.GetConnectableAddress(nodes[j]))
+		}
 	}
 
 	return nodes, senders, pks

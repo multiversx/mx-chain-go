@@ -14,6 +14,12 @@ var ErrNilTransactionCostHandler = errors.New("nil transaction cost handler")
 // ErrNilTotalStakedValueHandler signals that a nil total staked value handler has been provided
 var ErrNilTotalStakedValueHandler = errors.New("nil total staked value handler")
 
+// ErrNilDirectStakeListHandler signals that a nil stake list handler has been provided
+var ErrNilDirectStakeListHandler = errors.New("nil direct stake list handler")
+
+// ErrNilDelegatedListHandler signals that a nil delegated list handler has been provided
+var ErrNilDelegatedListHandler = errors.New("nil delegated list handler")
+
 // ErrNilVmContainer signals that a nil vm container has been provided
 var ErrNilVmContainer = errors.New("nil vm container")
 

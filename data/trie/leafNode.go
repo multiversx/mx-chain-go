@@ -330,6 +330,13 @@ func (ln *leafNode) getChildren(_ data.DBWriteCacher) ([]node, error) {
 	return nil, nil
 }
 
+func (ln *leafNode) getNumNodes() data.NumNodesDTO {
+	return data.NumNodesDTO{
+		Leaves:   1,
+		MaxLevel: 1,
+	}
+}
+
 func (ln *leafNode) isValid() bool {
 	return len(ln.Value) > 0
 }
@@ -376,7 +383,7 @@ func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 }
 
 func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
-	if ln.isInterfaceNil() {
+	if check.IfNil(ln) {
 		return false, nil, nil
 	}
 
@@ -387,6 +394,18 @@ func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	return false, nil, nil
 }
 
-func (ln *leafNode) isInterfaceNil() bool {
+func (ln *leafNode) sizeInBytes() int {
+	if ln == nil {
+		return 0
+	}
+
+	// hasher + marshalizer  + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
+	nodeSize := len(ln.hash) + len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
+
+	return nodeSize
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil
 }

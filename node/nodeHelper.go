@@ -81,6 +81,7 @@ func CreateHardForkTrigger(
 		EnableSignTxWithHashEpoch: epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 	}
 	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
