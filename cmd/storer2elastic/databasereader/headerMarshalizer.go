@@ -2,6 +2,7 @@ package databasereader
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -20,7 +21,7 @@ func NewHeaderMarshalizer(marshalizer marshal.Marshalizer) (*headerMarshalizer, 
 }
 
 // UnmarshalShardHeader will unmarshal a shard header from the received bytes
-func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (*block.Header, error) {
+func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (data.ShardHeaderHandler, error) {
 	var shardHeader block.Header
 	err := hm.marshalizer.Unmarshal(&shardHeader, headerBytes)
 	if err != nil {
@@ -31,7 +32,7 @@ func (hm *headerMarshalizer) UnmarshalShardHeader(headerBytes []byte) (*block.He
 }
 
 // UnmarshalMetaBlock will unmarshal a meta block the received bytes
-func (hm *headerMarshalizer) UnmarshalMetaBlock(headerBytes []byte) (*block.MetaBlock, error) {
+func (hm *headerMarshalizer) UnmarshalMetaBlock(headerBytes []byte) (data.MetaHeaderHandler, error) {
 	var metaBlock block.MetaBlock
 	err := hm.marshalizer.Unmarshal(&metaBlock, headerBytes)
 	if err != nil {

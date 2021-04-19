@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -107,7 +107,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
-func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*block.MetaBlock, error) {
+func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (data.MetaHeaderHandler, error) {
 	err := e.initTopicForEpochStartMetaBlockInterceptor()
 	if err != nil {
 		return nil, err

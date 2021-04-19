@@ -2173,8 +2173,17 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 
-	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
-	blockHeader.SetPubKeysBitmap([]byte{1})
+	err := blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
+	if err != nil {
+		log.Warn("blockHeader.SetShardID", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetPubKeysBitmap([]byte{1})
+	if err != nil {
+		log.Warn("blockHeader.SetPubKeysBitmap", "error", err.Error())
+		return nil, nil, nil
+	}
 
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	currHdrHash := tpn.BlockChain.GetCurrentBlockHeaderHash()
@@ -2183,17 +2192,55 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		currHdrHash = tpn.BlockChain.GetGenesisHeaderHash()
 	}
 
-	blockHeader.SetPrevHash(currHdrHash)
-	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	err = blockHeader.SetPrevHash(currHdrHash)
+	if err != nil {
+		log.Warn("blockHeader.SetPrevHash", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	if err != nil {
+		log.Warn("blockHeader.SetPrevRandSeed", "error", err.Error())
+		return nil, nil, nil
+	}
+
 	sig, _ := TestMultiSig.AggregateSigs(nil)
-	blockHeader.SetSignature(sig)
-	blockHeader.SetRandSeed(sig)
-	blockHeader.SetLeaderSignature([]byte("leader sign"))
-	blockHeader.SetChainID(tpn.ChainID)
-	blockHeader.SetSoftwareVersion(SoftwareVersion)
+	err = blockHeader.SetSignature(sig)
+	if err != nil {
+		log.Warn("blockHeader.SetSignature", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetRandSeed(sig)
+	if err != nil {
+		log.Warn("blockHeader.SetRandSeed", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetLeaderSignature([]byte("leader sign"))
+	if err != nil {
+		log.Warn("blockHeader.SetLeaderSignature", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetChainID(tpn.ChainID)
+	if err != nil {
+		log.Warn("blockHeader.SetChainID", "error", err.Error())
+		return nil, nil, nil
+	}
+
+	err = blockHeader.SetSoftwareVersion(SoftwareVersion)
+	if err != nil {
+		log.Warn("blockHeader.SetSoftwareVersion", "error", err.Error())
+		return nil, nil, nil
+	}
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
-	blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
+	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
+	if err != nil {
+		log.Warn("blockHeader.SetTimeStamp", "error", err.Error())
+		return nil, nil, nil
+	}
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
@@ -2265,7 +2312,7 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
-func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, error) {
+func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (data.HeaderHandler, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.Headers() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
@@ -2287,15 +2334,15 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 }
 
 // GetBlockBody returns the body for provided header parameter
-func (tpn *TestProcessorNode) GetBlockBody(header *dataBlock.Header) (*dataBlock.Body, error) {
+func (tpn *TestProcessorNode) GetBlockBody(header data.HeaderHandler) (*dataBlock.Body, error) {
 	invalidCachers := tpn.DataPool == nil || tpn.DataPool.MiniBlocks() == nil
 	if invalidCachers {
 		return nil, errors.New("invalid data pool")
 	}
 
 	body := &dataBlock.Body{}
-	for _, miniBlockHeader := range header.MiniBlockHeaders {
-		miniBlockHash := miniBlockHeader.Hash
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		miniBlockHash := miniBlockHeader.GetHash()
 
 		mbObject, ok := tpn.DataPool.MiniBlocks().Get(miniBlockHash)
 		if !ok {

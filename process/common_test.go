@@ -1206,7 +1206,7 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *t
 	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
 }
 
-func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr *block.Header) (
+func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr data.HeaderHandler) (
 	dataRetriever.StorageService,
 	typeConverters.Uint64ByteSliceConverter,
 ) {

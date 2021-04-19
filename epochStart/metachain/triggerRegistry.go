@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
@@ -15,7 +16,7 @@ type TriggerRegistry struct {
 	CurrEpochStartRound         uint64
 	PrevEpochStartRound         uint64
 	EpochStartMetaHash          []byte
-	EpochStartMeta              *block.MetaBlock
+	EpochStartMeta              data.HeaderHandler
 }
 
 // LoadState loads into trigger the saved state
@@ -23,13 +24,15 @@ func (t *trigger) LoadState(key []byte) error {
 	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
-	data, err := t.triggerStorage.Get(trigInternalKey)
+	d, err := t.triggerStorage.Get(trigInternalKey)
 	if err != nil {
 		return err
 	}
 
-	state := &TriggerRegistry{}
-	err = json.Unmarshal(data, state)
+	state := &TriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+	err = json.Unmarshal(d, state)
 	if err != nil {
 		return err
 	}

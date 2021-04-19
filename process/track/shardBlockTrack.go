@@ -97,7 +97,7 @@ func (sbt *shardBlockTrack) getTrackedShardHeaderWithNonceAndHash(
 	shardID uint32,
 	nonce uint64,
 	hash []byte,
-) (*block.Header, error) {
+) (data.ShardHeaderHandler, error) {
 
 	headers, headersHashes := sbt.GetTrackedHeadersWithNonce(shardID, nonce)
 	for i := 0; i < len(headers); i++ {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -434,7 +435,8 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	}
 
 	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
-	header.SetPubKeysBitmap(bitmap)
+	err := header.SetPubKeysBitmap(bitmap)
+	assert.Nil(t, err)
 
 	firstNodeOnMeta.CommitBlock(body, header)
 
@@ -543,25 +545,25 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
 }
 
-func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {
-	for _, miniblockHdr := range hdr.MiniBlockHeaders {
-		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.Hash)
+func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.HeaderHandler) {
+	for _, miniblockHdr := range hdr.GetMiniBlockHeaderHandlers() {
+		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.GetHash())
 		if err != nil {
-			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash) + "not found")
+			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.GetHash()) + "not found")
 			continue
 		}
 
 		miniblock := &block.MiniBlock{}
 		err = integrationTests.TestMarshalizer.Unmarshal(miniblock, miniblockBytes)
 		if err != nil {
-			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash))
+			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.GetHash()))
 			continue
 		}
 
 		for _, txHash := range miniblock.TxHashes {
 			txBytes := []byte("not found")
 
-			mbType := miniblockHdr.Type
+			mbType := block.Type(miniblockHdr.GetTypeInt32())
 			switch mbType {
 			case block.TxBlock:
 				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash)

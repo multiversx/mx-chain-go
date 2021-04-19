@@ -64,7 +64,7 @@ type PruningStorer struct {
 	dbPath                string
 	persisterFactory      DbFactoryHandler
 	mutEpochPrepareHdr    sync.RWMutex
-	epochPrepareHdr       *block.MetaBlock
+	epochPrepareHdr       data.HeaderHandler
 	identifier            string
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
@@ -731,7 +731,12 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 		epochPrepareHdr := ps.epochPrepareHdr
 		ps.mutEpochPrepareHdr.RUnlock()
 		if epochPrepareHdr != nil {
-			metaBlock = epochPrepareHdr
+			var ok bool
+			metaBlock, ok = epochPrepareHdr.(*block.MetaBlock)
+			if !ok {
+				log.Warn("PruningStorer.extendSavedEpochsIfNeeded", "error", "invalid type assertion")
+				return false
+			}
 		} else {
 			return false
 		}

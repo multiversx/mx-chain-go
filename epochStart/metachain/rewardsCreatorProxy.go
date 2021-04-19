@@ -68,11 +68,11 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
-	err := rcp.changeRewardCreatorIfNeeded(metaBlock.Epoch)
+	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +81,11 @@ func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	computedEconomics *block.Economics,
 ) error {
-	err := rcp.changeRewardCreatorIfNeeded(metaBlock.Epoch)
+	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
 	if err != nil {
 		return err
 	}
@@ -113,17 +113,17 @@ func (rcp *rewardsCreatorProxy) GetRewardsTxs(body *block.Body) map[string]data.
 }
 
 // SaveTxBlockToStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
 }
 
 // DeleteTxsFromStorage proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
 }
 
 // RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
+func (rcp *rewardsCreatorProxy) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	rcp.rc.RemoveBlockDataFromPools(metaBlock, body)
 }
 

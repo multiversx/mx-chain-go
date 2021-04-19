@@ -205,8 +205,8 @@ func getMbTypeAndHash(splitString []string) (Type, []byte, error) {
 }
 
 // CreateVersionKey creates a version key from the given metaBlock
-func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
-	return "meta" + atSep + string(meta.ChainID) + atSep + hex.EncodeToString(hash)
+func CreateVersionKey(meta data.HeaderHandler, hash []byte) string {
+	return "meta" + atSep + string(meta.GetChainID()) + atSep + hex.EncodeToString(hash)
 }
 
 // CreateAccountKey creates a key for an account according to its type, shard ID and address

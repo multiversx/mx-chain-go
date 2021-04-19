@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -15,6 +16,8 @@ import (
 	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/singleShard/block"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("consensusNotAchieved")
 
 func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotBeAccepted(t *testing.T) {
 	if testing.Short() {
@@ -132,20 +135,51 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 
 	blockHeader := node.BlockProcessor.CreateNewHeader(round, nonce)
 
-	blockHeader.SetShardID(0)
-	blockHeader.SetPubKeysBitmap(bitmap)
+	err := blockHeader.SetShardID(0)
+	if err != nil {
+		log.Error("blockHeader.SetShardID", "error", err.Error())
+	}
+
+	err = blockHeader.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err.Error())
+	}
+
 	currHdr := node.BlockChain.GetCurrentBlockHeader()
 	if check.IfNil(currHdr) {
 		currHdr = node.BlockChain.GetGenesisHeader()
 	}
 
 	buff, _ := json.Marshal(currHdr)
-	blockHeader.SetPrevHash(integrationTests.TestHasher.Compute(string(buff)))
-	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
-	blockHeader.SetSignature([]byte("aggregate signature"))
-	blockHeader.SetRandSeed([]byte("aggregate signature"))
-	blockHeader.SetLeaderSignature([]byte("leader sign"))
-	blockHeader.SetChainID(node.ChainID)
+	err = blockHeader.SetPrevHash(integrationTests.TestHasher.Compute(string(buff)))
+	if err != nil {
+		log.Error("blockHeader.SetPrevHash", "error", err.Error())
+	}
+
+	err = blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
+	if err != nil {
+		log.Error("blockHeader.SetPrevRandSeed", "error", err.Error())
+	}
+
+	err = blockHeader.SetSignature([]byte("aggregate signature"))
+	if err != nil {
+		log.Error("blockHeader.SetSignature", "error", err.Error())
+	}
+
+	err = blockHeader.SetRandSeed([]byte("aggregate signature"))
+	if err != nil {
+		log.Error("blockHeader.SetRandSeed", "error", err.Error())
+	}
+
+	err = blockHeader.SetLeaderSignature([]byte("leader sign"))
+	if err != nil {
+		log.Error("blockHeader.SetLeaderSignature", "error", err.Error())
+	}
+
+	err = blockHeader.SetChainID(node.ChainID)
+	if err != nil {
+		log.Error("blockHeader.SetChainID", "error", err.Error())
+	}
 
 	blockHeader, blockBody, err := node.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {

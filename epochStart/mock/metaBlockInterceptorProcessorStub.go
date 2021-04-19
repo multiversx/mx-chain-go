@@ -4,13 +4,14 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // MetaBlockInterceptorProcessorStub -
 type MetaBlockInterceptorProcessorStub struct {
-	GetEpochStartMetaBlockCalled func() (*block.MetaBlock, error)
+	GetEpochStartMetaBlockCalled func() (data.MetaHeaderHandler, error)
 }
 
 // Validate -
@@ -37,7 +38,7 @@ func (m *MetaBlockInterceptorProcessorStub) IsInterfaceNil() bool {
 }
 
 // GetEpochStartMetaBlock -
-func (m *MetaBlockInterceptorProcessorStub) GetEpochStartMetaBlock(_ context.Context) (*block.MetaBlock, error) {
+func (m *MetaBlockInterceptorProcessorStub) GetEpochStartMetaBlock(_ context.Context) (data.MetaHeaderHandler, error) {
 	if m.GetEpochStartMetaBlockCalled != nil {
 		return m.GetEpochStartMetaBlockCalled()
 	}

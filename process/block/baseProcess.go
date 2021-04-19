@@ -221,7 +221,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	missingNonces := make([]uint64, 0)
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
-		if currHdr == nil {
+		if check.IfNil(currHdr) {
 			continue
 		}
 
@@ -280,6 +280,16 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
+	var valStatRootHash, epochStartMetaHash []byte
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
+	if ok {
+		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
+	} else {
+		shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
+		if ok {
+			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
+		}
+	}
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
@@ -332,7 +342,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
-			logger.DisplayByteSlice(headerHandler.GetValidatorStatsRootHash())}),
+			logger.DisplayByteSlice(valStatRootHash)}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
@@ -340,7 +350,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
-			logger.DisplayByteSlice(headerHandler.GetEpochStartMetaHash())}),
+			logger.DisplayByteSlice(epochStartMetaHash)}),
 	}
 }
 
@@ -509,13 +519,13 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock
 }
 
-func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlers(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
 
 	totalTxCount := 0
-	miniBlockHeaders := make([]block.MiniBlockHeader, len(body.MiniBlocks))
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		txCount := len(body.MiniBlocks[i].TxHashes)
@@ -526,7 +536,7 @@ func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.
 			return 0, nil, err
 		}
 
-		miniBlockHeaders[i] = block.MiniBlockHeader{
+		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
 			Hash:            miniBlockHash,
 			SenderShardID:   body.MiniBlocks[i].SenderShardID,
 			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
@@ -535,14 +545,14 @@ func (bp *baseProcessor) createMiniBlockHeaders(body *block.Body) (int, []block.
 		}
 	}
 
-	return totalTxCount, miniBlockHeaders, nil
+	return totalTxCount, miniBlockHeaderHandlers, nil
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.MiniBlockHeader, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]*block.MiniBlockHeader, len(miniBlockHeaders))
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
-		mbHashesFromHdr[string(miniBlockHeaders[i].Hash)] = &miniBlockHeaders[i]
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
 	}
 
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
@@ -565,15 +575,15 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.TxCount != uint32(len(miniBlock.TxHashes)) {
+		if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.ReceiverShardID != miniBlock.ReceiverShardID {
+		if mbHdr.GetReceiverShardID() != miniBlock.ReceiverShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 
-		if mbHdr.SenderShardID != miniBlock.SenderShardID {
+		if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 			return process.ErrHeaderBodyMismatch
 		}
 	}
@@ -1150,7 +1160,15 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 	case state.UserAccountsState:
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
-		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
+		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
+		if !ok{
+			return []byte{}, []byte{}
+		}
+		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+ 		if !ok{
+ 			return []byte{}, []byte{}
+	    }
+		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
 	}

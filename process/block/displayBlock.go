@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"math"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -53,7 +54,7 @@ func (txc *transactionCounter) subtractRestoredTxs(txsNr int) {
 
 // displayLogInfo writes to the output information about the block and transactions
 func (txc *transactionCounter) displayLogInfo(
-	header *block.Header,
+	header data.HeaderHandler,
 	body *block.Body,
 	headerHash []byte,
 	numShards uint32,
@@ -62,6 +63,7 @@ func (txc *transactionCounter) displayLogInfo(
 	appStatusHandler core.AppStatusHandler,
 	blockTracker process.BlockTracker,
 ) {
+
 	dispHeader, dispLines := txc.createDisplayableShardHeaderAndBlockBody(header, body)
 
 	txc.mutex.RLock()
@@ -89,7 +91,7 @@ func (txc *transactionCounter) displayLogInfo(
 }
 
 func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
-	header *block.Header,
+	header data.HeaderHandler,
 	body *block.Body,
 ) ([]string, []*display.LineData) {
 
@@ -103,7 +105,7 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 		display.NewLineData(false, []string{
 			"",
 			"Shard",
-			fmt.Sprintf("%d", header.ShardID)}),
+			fmt.Sprintf("%d", header.GetShardID())}),
 	}
 
 	lines := displayHeader(header)
@@ -112,8 +114,14 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
-	if header.BlockBodyType == block.TxBlock {
-		shardLines = txc.displayMetaHashesIncluded(shardLines, header)
+	var varBlockBodyType int32 = math.MaxInt32
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if ok{
+		varBlockBodyType = shardHeader.GetBlockBodyTypeInt32()
+	}
+
+	if varBlockBodyType == int32(block.TxBlock) {
+		shardLines = txc.displayMetaHashesIncluded(shardLines, shardHeader)
 		shardLines = txc.displayTxBlockBody(shardLines, body)
 
 		return tableHeader, shardLines
@@ -127,20 +135,20 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 func (txc *transactionCounter) displayMetaHashesIncluded(
 	lines []*display.LineData,
-	header *block.Header,
+	header data.ShardHeaderHandler,
 ) []*display.LineData {
 
-	if header.MetaBlockHashes == nil || len(header.MetaBlockHashes) == 0 {
+	if header.GetMetaBlockHashes() == nil || len(header.GetMetaBlockHashes()) == 0 {
 		return lines
 	}
 
 	part := "MetaBlockHashes"
-	for i := 0; i < len(header.MetaBlockHashes); i++ {
-		if i == 0 || i >= len(header.MetaBlockHashes)-1 {
+	for i := 0; i < len(header.GetMetaBlockHashes()); i++ {
+		if i == 0 || i >= len(header.GetMetaBlockHashes())-1 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part,
 				fmt.Sprintf("MetaBlockHash_%d", i+1),
-				logger.DisplayByteSlice(header.MetaBlockHashes[i])}))
+				logger.DisplayByteSlice(header.GetMetaBlockHashes()[i])}))
 
 			part = ""
 		} else if i == 1 {

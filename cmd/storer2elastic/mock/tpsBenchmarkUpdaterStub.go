@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // TPSBenchmarkUpdaterStub -
 type TPSBenchmarkUpdaterStub struct {
-	IndexTPSForMetaBlockCalled func(metaBlock *block.MetaBlock)
+	IndexTPSForMetaBlockCalled func(metaBlock data.HeaderHandler)
 }
 
 // IndexTPSForMetaBlock -
-func (t *TPSBenchmarkUpdaterStub) IndexTPSForMetaBlock(metaBlock *block.MetaBlock) {
+func (t *TPSBenchmarkUpdaterStub) IndexTPSForMetaBlock(metaBlock data.HeaderHandler) {
 	if t.IndexTPSForMetaBlockCalled != nil {
 		t.IndexTPSForMetaBlockCalled(metaBlock)
 	}
