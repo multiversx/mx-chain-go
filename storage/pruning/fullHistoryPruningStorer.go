@@ -81,12 +81,24 @@ func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	data, err := fhps.searchInEpoch(key, epoch)
-
 	if err == nil && data != nil {
 		return data, nil
 	}
 
-	return fhps.searchInEpoch(key, epoch+1)
+	data, err = fhps.searchInEpoch(key, epoch+1)
+	if err == nil && data != nil {
+		return data, nil
+	}
+
+	data, err = fhps.searchInEpoch(key, epoch-1)
+	if err == nil && data != nil {
+		//TODO(iulian) remove this print
+		log.Warn("should have not found here",
+			"key", key, "requested epoch", epoch, "db path", fhps.args.DbPath)
+		return data, nil
+	}
+
+	return nil, err
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
