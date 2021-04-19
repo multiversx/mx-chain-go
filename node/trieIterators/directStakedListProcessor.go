@@ -69,18 +69,18 @@ func (dslp *directStakedListProcessor) getAllStakedAccounts(validatorAccount sta
 			continue
 		}
 
-		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := dslp.getValidatorInfoFromSC(leafKey)
+		info, errGet := dslp.getValidatorInfoFromSC(leafKey)
 		if errGet != nil {
 			continue
 		}
 
-		staked := big.NewInt(0).Set(totalStakedCurrentAccount)
-		staked.Sub(staked, totalTopUpCurrentAccount)
+		staked := big.NewInt(0).Set(info.totalStakedValue)
+		staked.Sub(staked, info.topUpValue)
 		val := &api.DirectStakedValue{
 			Address: dslp.publicKeyConverter.Encode(leafKey),
 			Staked:  staked.String(),
-			TopUp:   totalTopUpCurrentAccount.String(),
-			Total:   totalStakedCurrentAccount.String(),
+			TopUp:   info.topUpValue.String(),
+			Total:   info.totalStakedValue.String(),
 		}
 
 		stakedAccounts = append(stakedAccounts, val)

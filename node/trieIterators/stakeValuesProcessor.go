@@ -113,15 +113,15 @@ func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.I
 			continue
 		}
 
-		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leafKey)
+		info, errGet := svp.getValidatorInfoFromSC(leafKey)
 		if errGet != nil {
 			continue
 		}
-		staked := big.NewInt(0).Set(totalStakedCurrentAccount)
-		staked.Sub(staked, totalTopUpCurrentAccount)
+		staked := big.NewInt(0).Set(info.totalStakedValue)
+		staked.Sub(staked, info.topUpValue)
 
 		totalStaked = totalStaked.Add(totalStaked, staked)
-		totalTopUp = totalTopUp.Add(totalTopUp, totalTopUpCurrentAccount)
+		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
 	}
 
 	return totalStaked, totalTopUp, nil
