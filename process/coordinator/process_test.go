@@ -445,6 +445,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		createMockPubkeyConverter(),
 		initStore(),
 		initDataPool([]byte("test_hash1")),
+		&mock.FeeHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1955,6 +1956,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
+		&mock.FeeHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2009,6 +2011,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return MaxGasLimitPerBlock
+			},
+		},
 	)
 	container, _ := interFactory.Create()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -63,6 +64,7 @@ type ArgsExporter struct {
 	EnableSignTxWithHashEpoch uint32
 	MaxHardCapForMissingNodes int
 	NumConcurrentTrieSyncers  int
+	TrieSyncerVersion         int
 }
 
 type exportHandlerFactory struct {
@@ -98,6 +100,7 @@ type exportHandlerFactory struct {
 	enableSignTxWithHashEpoch uint32
 	maxHardCapForMissingNodes int
 	numConcurrentTrieSyncers  int
+	trieSyncerVersion         int
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -207,6 +210,10 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if args.NumConcurrentTrieSyncers < 1 {
 		return nil, update.ErrInvalidNumConcurrentTrieSyncers
 	}
+	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
@@ -239,6 +246,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
 	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
@@ -353,6 +361,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
+		TrieSyncerVersion:         e.trieSyncerVersion,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

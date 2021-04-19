@@ -14,6 +14,8 @@ type ApiResolverStub struct {
 	StatusMetricsHandler              func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	GetTotalStakedValueHandler        func() (*api.StakeValues, error)
+	GetDirectStakedListHandler        func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler          func() ([]*api.Delegator, error)
 }
 
 // ExecuteSCQuery -
@@ -34,6 +36,24 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 // GetTotalStakedValue -
 func (ars *ApiResolverStub) GetTotalStakedValue() (*api.StakeValues, error) {
 	return ars.GetTotalStakedValueHandler()
+}
+
+// GetDirectStakedList -
+func (ars *ApiResolverStub) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	if ars.GetDirectStakedListHandler != nil {
+		return ars.GetDirectStakedListHandler()
+	}
+
+	return nil, nil
+}
+
+// GetDelegatorsList -
+func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
+	if ars.GetDelegatorsListHandler != nil {
+		return ars.GetDelegatorsListHandler()
+	}
+
+	return nil, nil
 }
 
 // Close -
