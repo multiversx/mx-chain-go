@@ -9,7 +9,7 @@ func (ps *PruningStorer) ChangeEpoch(hdr data.HeaderHandler) error {
 	return ps.changeEpoch(hdr)
 }
 
-func (ps *PruningStorer) PrepareChangeEpoch(metaBlock *block.MetaBlock) error {
+func (ps *PruningStorer) PrepareChangeEpoch(metaBlock data.HeaderHandler) error {
 	return ps.saveHeaderForEpochStartPrepare(metaBlock)
 }
 

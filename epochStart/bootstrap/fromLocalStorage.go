@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -71,7 +72,7 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 		return 0, false, err
 	}
 
-	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
+	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
 	if e.baseData.numberOfShards == 0 {
 		e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
 	}
@@ -125,7 +126,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	prevEpochStartMetaHash := e.epochStartMeta.EpochStart.Economics.PrevEpochStartHash
+	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
@@ -232,14 +233,14 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
-	data, err := storer.SearchFirst(ncInternalkey)
+	d, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
 		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
 	}
 
 	config := &sharding.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(data, config)
+	err = json.Unmarshal(d, config)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -247,7 +248,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	return &bootstrapData, config, nil
 }
 
-func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (*block.MetaBlock, error) {
+func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
 	data, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {

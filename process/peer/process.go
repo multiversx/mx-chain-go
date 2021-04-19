@@ -318,7 +318,7 @@ func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, 
 
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
-func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -842,7 +842,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 
 // RevertPeerState takes the current and previous headers and undos the peer state
 //  for all of the consensus members
-func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error {
+func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
@@ -898,8 +898,8 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		shardInfoErr = vs.checkForMissedBlocks(
 			h.Round,
-			prevShardData.Round,
-			prevShardData.RandSeed,
+			prevShardData.GetRound(),
+			prevShardData.GetRandSeed(),
 			h.ShardID,
 			epoch,
 		)
@@ -911,7 +911,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	return nil
 }
 
-func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (*block.Header, error) {
+func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
 	blkHandler := cacheMap[string(hash)]
 	if check.IfNil(blkHandler) {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",

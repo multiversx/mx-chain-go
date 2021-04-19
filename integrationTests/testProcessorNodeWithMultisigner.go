@@ -657,14 +657,18 @@ func ProposeBlockWithConsensusSignature(
 
 	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
-		fmt.Println("Error getting the validators public keys: ", err)
+		log.Error("nodesCoordinator.GetConsensusValidatorsPublicKeys", "error", err)
 	}
 
 	// select nodes from map based on their pub keys
 	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
 	// first node is block proposer
 	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
-	header.SetPrevRandSeed(randomness)
+	err = header.SetPrevRandSeed(randomness)
+	if err != nil {
+		log.Error("header.SetPrevRandSeed", "error", err)
+	}
+
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return body, header, txHashes, consensusNodes
@@ -704,10 +708,22 @@ func DoConsensusSigningOnBlock(
 	}
 
 	bitmap[len(consensusNodes)/8] >>= uint8(8 - (len(consensusNodes) % 8))
-	blockHeader.SetPubKeysBitmap(bitmap)
+	err := blockHeader.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
 	// clear signature, as we need to compute it below
-	blockHeader.SetSignature(nil)
-	blockHeader.SetPubKeysBitmap(nil)
+	err = blockHeader.SetSignature(nil)
+	if err != nil {
+		log.Error("blockHeader.SetSignature", "error", err)
+	}
+
+	err = blockHeader.SetPubKeysBitmap(nil)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
 	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
 	var msig crypto.MultiSigner
@@ -721,9 +737,20 @@ func DoConsensusSigningOnBlock(
 	}
 
 	sig, _ := msigProposer.AggregateSigs(bitmap)
-	blockHeader.SetSignature(sig)
-	blockHeader.SetPubKeysBitmap(bitmap)
-	blockHeader.SetLeaderSignature([]byte("leader sign"))
+	err = blockHeader.SetSignature(sig)
+	if err != nil {
+		log.Error("blockHeader.SetSignature", "error", err)
+	}
+
+	err = blockHeader.SetPubKeysBitmap(bitmap)
+	if err != nil {
+		log.Error("blockHeader.SetPubKeysBitmap", "error", err)
+	}
+
+	err = blockHeader.SetLeaderSignature([]byte("leader sign"))
+	if err != nil {
+		log.Error("blockHeader.SetLeaderSignature", "error", err)
+	}
 
 	return blockHeader
 }

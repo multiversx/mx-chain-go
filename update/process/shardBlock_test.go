@@ -103,14 +103,14 @@ func TestCreateBody(t *testing.T) {
 		},
 	}
 
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler{
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
@@ -211,14 +211,14 @@ func TestCreateBlock(t *testing.T) {
 		},
 	}
 	metaHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, metaBlock)
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
@@ -303,14 +303,14 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedMiniBlocksMap(t
 			},
 		},
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 	}
@@ -341,14 +341,14 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrMiniBlockNotFoundInImportedM
 			},
 		},
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
@@ -384,14 +384,14 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrTransactionNotFoundInImporte
 			},
 		},
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
@@ -432,14 +432,14 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedTransactionsMap
 			},
 		},
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
@@ -487,14 +487,14 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldWork(t *testing.T) {
 			},
 		},
 	}
-	unFinishedMetaBlocks := map[string]*block.MetaBlock{
-		"metaBlock_hash": {Round: 1},
+	unFinishedMetaBlocks := map[string]data.MetaHeaderHandler{
+		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
-		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {
 			return unFinishedMetaBlocks
 		},
 		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {

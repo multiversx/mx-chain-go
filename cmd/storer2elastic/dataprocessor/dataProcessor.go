@@ -308,8 +308,8 @@ func (dp *dataProcessor) getShardIDs() []uint32 {
 	return shardIDs
 }
 
-func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, body *block.Body) {
-	if metaBlock.Epoch == 0 {
+func (dp *dataProcessor) processValidatorsForEpoch(metaBlock data.HeaderHandler, body *block.Body) {
+	if metaBlock.GetEpoch() == 0 {
 		return
 	}
 
@@ -325,8 +325,8 @@ func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, b
 			continue
 		}
 
-		for _, hash := range metaBlock.MiniBlockHeaders {
-			if bytes.Equal(hash.Hash, mbHash) {
+		for _, hash := range metaBlock.GetMiniBlockHeaderHandlers() {
+			if bytes.Equal(hash.GetHash(), mbHash) {
 				peerMiniBlocks = append(peerMiniBlocks, mb)
 				break
 			}
@@ -345,13 +345,13 @@ func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, b
 		dp.nodesCoordinators[shardID].EpochStartPrepare(metaBlock, peerBlock)
 	}
 
-	validatorsPubKeys, err := dp.nodesCoordinators[core.MetachainShardId].GetAllEligibleValidatorsPublicKeys(metaBlock.Epoch)
+	validatorsPubKeys, err := dp.nodesCoordinators[core.MetachainShardId].GetAllEligibleValidatorsPublicKeys(metaBlock.GetEpoch())
 	if err != nil || len(validatorsPubKeys) == 0 {
-		log.Warn("cannot get all eligible validatorsPubKeys", "epoch", metaBlock.Epoch)
+		log.Warn("cannot get all eligible validatorsPubKeys", "epoch", metaBlock.GetEpoch())
 		return
 	}
 
-	dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, metaBlock.Epoch)
+	dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, metaBlock.GetEpoch())
 }
 
 func (dp *dataProcessor) uniqueMiniBlocksSlice(mbs []*block.MiniBlock) []*block.MiniBlock {

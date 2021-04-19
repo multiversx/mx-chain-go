@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -88,7 +89,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (*block.MetaBlock, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -114,7 +115,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 	ess, _ := NewEpochStartMetaSyncer(args)
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
-		GetEpochStartMetaBlockCalled: func() (*block.MetaBlock, error) {
+		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
 			return expectedMb, nil
 		},
 	}

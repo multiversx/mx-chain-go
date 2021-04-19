@@ -189,7 +189,7 @@ func (brc *baseRewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.T
 }
 
 // SaveTxBlockToStorage saves created data to storage
-func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *block.Body) {
+func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
 		return
 	}
@@ -224,7 +224,7 @@ func (brc *baseRewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *bl
 }
 
 // DeleteTxsFromStorage deletes data from storage
-func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
@@ -239,15 +239,15 @@ func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, 
 		}
 	}
 
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.Type == block.RewardsBlock {
-			_ = brc.miniBlockStorage.Remove(mbHeader.Hash)
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if mbHeader.GetTypeInt32() == int32(block.RewardsBlock) {
+			_ = brc.miniBlockStorage.Remove(mbHeader.GetHash())
 		}
 	}
 }
 
 // RemoveBlockDataFromPools removes block info from pools
-func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
+func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
 		return
 	}
@@ -264,19 +264,19 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlo
 		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 	}
 
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.Type != block.RewardsBlock {
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if mbHeader.GetTypeInt32() != int32(block.RewardsBlock) {
 			continue
 		}
 
-		miniBlocksPool.Remove(mbHeader.Hash)
+		miniBlocksPool.Remove(mbHeader.GetHash())
 
 		log.Trace("RemoveBlockDataFromPools",
-			"hash", mbHeader.Hash,
-			"type", mbHeader.Type,
-			"sender", mbHeader.SenderShardID,
-			"receiver", mbHeader.ReceiverShardID,
-			"num txs", mbHeader.TxCount)
+			"hash", mbHeader.GetHash(),
+			"type", mbHeader.GetTypeInt32(),
+			"sender", mbHeader.GetSenderShardID(),
+			"receiver", mbHeader.GetReceiverShardID(),
+			"num txs", mbHeader.GetTxCount())
 	}
 }
 
@@ -343,7 +343,7 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 }
 
 func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 
@@ -352,7 +352,7 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
 		RcvAddr: brc.protocolSustainabilityAddress,
-		Epoch:   metaBlock.Epoch,
+		Epoch:   metaBlock.GetEpoch(),
 	}
 
 	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
@@ -361,13 +361,13 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 
 func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 	rwdInfo *rewardInfoData,
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 ) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.rewardsFromProtocol),
 		RcvAddr: []byte(rwdInfo.address),
-		Epoch:   metaBlock.Epoch,
+		Epoch:   metaBlock.GetEpoch(),
 	}
 
 	rwdTxHash, err := core.CalculateHash(brc.marshalizer, brc.hasher, rwdTx)
@@ -446,15 +446,15 @@ func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode
 	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
-func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock *block.MetaBlock, createdMiniBlocks block.MiniBlockSlice) error {
+func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {
 	numReceivedRewardsMBs := 0
-	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
-		if miniBlockHdr.Type != block.RewardsBlock {
+	for _, miniBlockHdr := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if miniBlockHdr.GetTypeInt32() != int32(block.RewardsBlock) {
 			continue
 		}
 
 		numReceivedRewardsMBs++
-		createdMiniBlock := getMiniBlockWithReceiverShardID(miniBlockHdr.ReceiverShardID, createdMiniBlocks)
+		createdMiniBlock := getMiniBlockWithReceiverShardID(miniBlockHdr.GetReceiverShardID(), createdMiniBlocks)
 		if createdMiniBlock == nil {
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
 		}
@@ -464,7 +464,7 @@ func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBl
 			return errComputeHash
 		}
 
-		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
+		if !bytes.Equal(createdMBHash, miniBlockHdr.GetHash()) {
 			generatedTxHashes := make([]string, 0, len(createdMiniBlock.TxHashes))
 			for _, hash := range createdMiniBlock.TxHashes {
 				generatedTxHashes = append(generatedTxHashes, hex.EncodeToString(hash))
@@ -473,7 +473,7 @@ func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBl
 			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks, generated reward tx hashes:\n" +
 				strings.Join(generatedTxHashes, "\n"))
 			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks",
-				"received mb hash", miniBlockHdr.Hash,
+				"received mb hash", miniBlockHdr.GetHash(),
 				"computed mb hash", createdMBHash,
 			)
 

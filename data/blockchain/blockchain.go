@@ -43,7 +43,7 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 		return data.ErrInvalidHeaderType
 	}
 	bc.mut.Lock()
-	bc.genesisHeader = gb.Clone()
+	bc.genesisHeader = gb.ShallowClone()
 	bc.mut.Unlock()
 
 	return nil
@@ -68,7 +68,7 @@ func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	bc.appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, h.Round)
 
 	bc.mut.Lock()
-	bc.currentBlockHeader = h.Clone()
+	bc.currentBlockHeader = h.ShallowClone()
 	bc.mut.Unlock()
 
 	return nil

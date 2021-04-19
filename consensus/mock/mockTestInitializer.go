@@ -21,7 +21,7 @@ func InitBlockProcessorMock() *BlockProcessorMock {
 	blockProcessorMock := &BlockProcessorMock{}
 	blockProcessorMock.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		emptyBlock := &block.Body{}
-		header.SetRootHash([]byte{})
+		_ = header.SetRootHash([]byte{})
 		return header, emptyBlock, nil
 	}
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {

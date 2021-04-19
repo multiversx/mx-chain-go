@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // RatingsProcessorStub -
 type RatingsProcessorStub struct {
-	IndexRatingsForEpochStartMetaBlockCalled func(metaBlock *block.MetaBlock) error
+	IndexRatingsForEpochStartMetaBlockCalled func(metaBlock data.MetaHeaderHandler) error
 }
 
 // IndexRatingsForEpochStartMetaBlock -
-func (r *RatingsProcessorStub) IndexRatingsForEpochStartMetaBlock(metaBlock *block.MetaBlock) error {
+func (r *RatingsProcessorStub) IndexRatingsForEpochStartMetaBlock(metaBlock data.MetaHeaderHandler) error {
 	if r.IndexRatingsForEpochStartMetaBlockCalled != nil {
 		return r.IndexRatingsForEpochStartMetaBlockCalled(metaBlock)
 	}

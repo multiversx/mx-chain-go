@@ -2727,6 +2727,6 @@ func TestShardBlockTrack_GetTrackedShardHeaderWithNonceAndHashShouldWork(t *test
 
 	header, err = sbt.GetTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, header.Nonce)
-	assert.Equal(t, shardID, header.ShardID)
+	assert.Equal(t, nonce, header.GetNonce())
+	assert.Equal(t, shardID, header.GetShardID())
 }
