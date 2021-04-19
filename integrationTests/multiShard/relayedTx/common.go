@@ -10,24 +10,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, p2p.Messenger) {
+func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -52,7 +47,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount, advertiser
+	return nodes, idxProposers, players, relayerAccount
 }
 
 // CreateAndSendRelayedAndUserTx will create and send a relayed user transaction

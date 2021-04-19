@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -96,7 +97,7 @@ func (nf *disabledNodeFacade) GetESDTBalance(_ string, _ string) (string, string
 }
 
 // GetAllESDTTokens returns nil and error
-func (nf *disabledNodeFacade) GetAllESDTTokens(_ string) ([]string, error) {
+func (nf *disabledNodeFacade) GetAllESDTTokens(_ string) (map[string]*esdt.ESDigitalToken, error) {
 	return nil, errNodeStarting
 }
 
@@ -248,9 +249,29 @@ func (nf *disabledNodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return uint32(0)
 }
 
-// GetKeyValuePairs -
+// GetKeyValuePairs nil map
 func (nf *disabledNodeFacade) GetKeyValuePairs(_ string) (map[string]string, error) {
 	return nil, nil
+}
+
+// GetDirectStakedList returns empty slice
+func (nf *disabledNodeFacade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return make([]*api.DirectStakedValue, 0), nil
+}
+
+// GetDelegatorsList returns empty slice
+func (nf *disabledNodeFacade) GetDelegatorsList() ([]*api.Delegator, error) {
+	return make([]*api.Delegator, 0), nil
+}
+
+// GetESDTData returns nil and error
+func (nf *disabledNodeFacade) GetESDTData(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+	return nil, errNodeStarting
+}
+
+// GetAllIssuedESDTs returns nil and error
+func (nf *disabledNodeFacade) GetAllIssuedESDTs() ([]string, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
