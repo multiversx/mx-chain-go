@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -194,7 +195,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 }
 
 // SaveValidatorInfoBlocksToStorage saves created data to storage
-func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ *block.MetaBlock, body *block.Body) {
+func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ data.HeaderHandler, body *block.Body) {
 	if check.IfNil(body) {
 		return
 	}
@@ -215,14 +216,14 @@ func (vic *validatorInfoCreator) SaveValidatorInfoBlocksToStorage(_ *block.MetaB
 }
 
 // DeleteValidatorInfoBlocksFromStorage deletes data from storage
-func (vic *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock) {
+func (vic *validatorInfoCreator) DeleteValidatorInfoBlocksFromStorage(metaBlock data.HeaderHandler) {
 	if check.IfNil(metaBlock) {
 		return
 	}
 
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.Type == block.PeerBlock {
-			_ = vic.miniBlockStorage.Remove(mbHeader.Hash)
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
+			_ = vic.miniBlockStorage.Remove(mbHeader.GetHash())
 		}
 	}
 }
@@ -233,25 +234,25 @@ func (vic *validatorInfoCreator) IsInterfaceNil() bool {
 }
 
 // RemoveBlockDataFromPools removes block info from pools
-func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, _ *block.Body) {
+func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderHandler, _ *block.Body) {
 	if check.IfNil(metaBlock) {
 		return
 	}
 
 	miniBlocksPool := vic.dataPool.MiniBlocks()
 
-	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		if mbHeader.Type != block.PeerBlock {
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
-		miniBlocksPool.Remove(mbHeader.Hash)
+		miniBlocksPool.Remove(mbHeader.GetHash())
 
 		log.Trace("RemoveBlockDataFromPools",
-			"hash", mbHeader.Hash,
-			"type", mbHeader.Type,
-			"sender", mbHeader.SenderShardID,
-			"receiver", mbHeader.ReceiverShardID,
-			"num txs", mbHeader.TxCount)
+			"hash", mbHeader.GetHash(),
+			"type", mbHeader.GetTypeInt32(),
+			"sender", mbHeader.GetSenderShardID(),
+			"receiver", mbHeader.GetReceiverShardID(),
+			"num txs", mbHeader.GetTxCount())
 	}
 }

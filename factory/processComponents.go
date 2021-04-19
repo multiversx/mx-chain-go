@@ -360,12 +360,21 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
-	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
+	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
 	if !ok {
 		return nil, errors.New("genesis meta block does not exist")
 	}
 
-	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, errors.New("genesis meta block invalid")
+	}
+
+	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return nil, err
+	}
+
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -596,7 +605,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	return validatorStatisticsProcessor, nil
 }
 
-func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process.RequestHandler) (epochStart.TriggerHandler, error) {
+func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Hasher:      pcf.coreData.Hasher(),

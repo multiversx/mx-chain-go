@@ -174,30 +174,30 @@ func displayStatusMessage(message string, ctx context.Context) {
 	}
 }
 
-func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
+func (ss *syncState) printMetablockInfo(metaBlock data.MetaHeaderHandler) {
 	log.Info("epoch start meta block",
-		"nonce", metaBlock.Nonce,
-		"round", metaBlock.Round,
-		"root hash", metaBlock.RootHash,
-		"epoch", metaBlock.Epoch,
+		"nonce", metaBlock.GetNonce(),
+		"round", metaBlock.GetRound(),
+		"root hash", metaBlock.GetRootHash(),
+		"epoch", metaBlock.GetEpoch(),
 	)
-	for _, shardInfo := range metaBlock.ShardInfo {
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
 		log.Info("epoch start meta block -> shard info",
-			"header hash", shardInfo.HeaderHash,
-			"shard ID", shardInfo.ShardID,
-			"nonce", shardInfo.Nonce,
-			"round", shardInfo.Round,
+			"header hash", shardInfo.GetHeaderHash(),
+			"shard ID", shardInfo.GetShardID(),
+			"nonce", shardInfo.GetNonce(),
+			"round", shardInfo.GetRound(),
 		)
 	}
 }
 
 // GetEpochStartMetaBlock returns the synced metablock
-func (ss *syncState) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
+func (ss *syncState) GetEpochStartMetaBlock() (data.MetaHeaderHandler, error) {
 	return ss.headers.GetEpochStartMetaBlock()
 }
 
 // GetUnFinishedMetaBlocks returns the synced unFinished metablocks
-func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]data.MetaHeaderHandler, error) {
 	return ss.headers.GetUnFinishedMetaBlocks()
 }
 

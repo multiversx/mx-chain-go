@@ -734,7 +734,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
 	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
-	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+	genesisHeader := &block.MetaBlock{Nonce: 0}
+	_ = blkc.SetGenesisHeader(genesisHeader)
 
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.Storage = store
@@ -844,6 +845,12 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = mdp
 	dataComponents.Storage = store
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
+
 	coreComponents.Hash = hasher
 	arguments := createMockMetaArguments(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -854,6 +861,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -996,7 +1004,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
 	}
@@ -1023,7 +1031,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.HeaderHandler) error {
+		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
 		},
@@ -2626,10 +2634,17 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	assert.Nil(t, err)
 
 	headerHandler := mp.CreateNewHeader(round, nonce)
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	err = headerHandler.SetRound(uint64(1))
+	assert.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	assert.Nil(t, err)
 
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
@@ -2775,10 +2790,21 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 
-	headerHandler.SetRound(uint64(1))
-	headerHandler.SetNonce(1)
-	headerHandler.SetPrevHash(hash)
-	headerHandler.SetAccumulatedFees(big.NewInt(0))
+	err = headerHandler.SetRound(uint64(1))
+	assert.Nil(t, err)
+
+	err = headerHandler.SetNonce(1)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetPrevHash(hash)
+	assert.Nil(t, err)
+
+	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
+	assert.Nil(t, err)
+
+	metaHeaderHandler, _ := headerHandler.(data.MetaHeaderHandler)
+	err = metaHeaderHandler.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	assert.Nil(t, err)
 
 	toggleCalled = false
 	calledSaveNodesCoordinator = false

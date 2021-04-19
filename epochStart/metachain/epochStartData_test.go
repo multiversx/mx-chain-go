@@ -32,7 +32,7 @@ func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.
 	return genesisBlocks
 }
 
-func createGenesisBlock(shardId uint32) *block.Header {
+func createGenesisBlock(shardId uint32) data.HeaderHandler {
 	rootHash := []byte("roothash")
 	return &block.Header{
 		Nonce:         0,

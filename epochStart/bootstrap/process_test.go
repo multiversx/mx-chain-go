@@ -621,7 +621,7 @@ func TestRequestAndProcessing(t *testing.T) {
 	assert.Equal(t, storage.ErrInvalidNumberOfEpochsToSave, err)
 }
 
-func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
+func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
@@ -655,6 +655,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 	}
 	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
+	epochStartProvider.prevEpochStartMeta = &block.MetaBlock{}
 	err = epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)
 }

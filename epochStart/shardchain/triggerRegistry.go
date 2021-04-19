@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
@@ -17,7 +18,7 @@ type TriggerRegistry struct {
 	EpochStartRound             uint64
 	EpochFinalityAttestingRound uint64
 	EpochMetaBlockHash          []byte
-	EpochStartShardHeader       *block.Header
+	EpochStartShardHeader       data.HeaderHandler
 }
 
 // LoadState loads into trigger the saved state
@@ -30,7 +31,9 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state := &TriggerRegistry{}
+	state := &TriggerRegistry{
+		EpochStartShardHeader: &block.Header{},
+	}
 	err = json.Unmarshal(data, state)
 	if err != nil {
 		return err
@@ -67,7 +70,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochStartShardHeader = t.epochStartShardHeader
 
 	//TODO: change to protoMarshalizer
-	data, err := json.Marshal(registry)
+	marshalledRegistry, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
@@ -75,5 +78,5 @@ func (t *trigger) saveState(key []byte) error {
 	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
-	return t.triggerStorage.Put(trigInternalKey, data)
+	return t.triggerStorage.Put(trigInternalKey, marshalledRegistry)
 }

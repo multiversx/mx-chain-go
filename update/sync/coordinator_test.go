@@ -211,13 +211,13 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},
 		Tries: &mock.EpochStartTriesSyncHandlerMock{},
 		MiniBlocks: &mock.EpochStartPendingMiniBlocksSyncHandlerMock{
-			SyncPendingMiniBlocksFromMetaCalled: func(meta *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
+			SyncPendingMiniBlocksFromMetaCalled: func(meta data.MetaHeaderHandler, unFinished map[string]data.MetaHeaderHandler, ctx context.Context) error {
 				return localErr
 			},
 		},
@@ -240,7 +240,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},
@@ -269,7 +269,7 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 			SyncUnFinishedMetaHeadersCalled: func(epoch uint32) error {
 				return nil
 			},
-			GetEpochStartMetaBlockCalled: func() (metaBlock *block.MetaBlock, err error) {
+			GetEpochStartMetaBlockCalled: func() (metaBlock data.MetaHeaderHandler, err error) {
 				return &block.MetaBlock{}, nil
 			},
 		},

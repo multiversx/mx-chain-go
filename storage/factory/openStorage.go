@@ -108,7 +108,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 func (o *openStorageUnits) getMostUpToDateDirectory(
 	pathWithoutShard string,
 	shardIdsStr []string,
-	persisterFactory *PersisterFactory,
+	persisterFactory storage.PersisterFactory,
 ) (string, error) {
 	var mostRecentShard string
 	highestRoundInStoredShards := int64(0)

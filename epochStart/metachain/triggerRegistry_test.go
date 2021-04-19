@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func cloneTrigger(t *trigger) *trigger {
@@ -59,10 +59,10 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	epochStartTrigger1.currEpochStartRound = 800
 	epochStartTrigger1.prevEpochStartRound = 650
 	err := epochStartTrigger1.saveState(key)
-	assert.Nil(t, err)
-	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
+	require.Nil(t, err)
+	require.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
 
 	err = epochStartTrigger2.LoadState(key)
-	assert.Nil(t, err)
-	assert.Equal(t, epochStartTrigger1, epochStartTrigger2)
+	require.Nil(t, err)
+	require.Equal(t, epochStartTrigger1, epochStartTrigger2)
 }

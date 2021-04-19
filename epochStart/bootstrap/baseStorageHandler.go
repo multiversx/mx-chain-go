@@ -43,10 +43,10 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 }
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
-	metaBlock *block.MetaBlock,
+	metaBlock data.HeaderHandler,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
 ) ([]byte, error) {
-	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.PrevRandSeed...)
+	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 
 	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
 	registryBytes, err := json.Marshal(nodesConfig)
@@ -62,7 +62,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 
 	log.Debug("saving nodes coordinator config", "key", key)
 
-	return metaBlock.PrevRandSeed, nil
+	return metaBlock.GetPrevRandSeed(), nil
 }
 
 func (bsh *baseStorageHandler) commitTries(components *ComponentsNeededForBootstrap) error {
@@ -83,7 +83,7 @@ func (bsh *baseStorageHandler) commitTries(components *ComponentsNeededForBootst
 	return nil
 }
 
-func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock *block.MetaBlock) ([]byte, error) {
+func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler) ([]byte, error) {
 	headerBytes, err := bsh.marshalizer.Marshal(metaBlock)
 	if err != nil {
 		return nil, err
@@ -131,13 +131,13 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 	return headerHash, nil
 }
 
-func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock *block.MetaBlock) error {
+func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderHandler) error {
 	lastHeaderBytes, err := bsh.marshalizer.Marshal(metaBlock)
 	if err != nil {
 		return err
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
 	metaHdrStorage := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	err = metaHdrStorage.Put([]byte(epochStartIdentifier), lastHeaderBytes)
 	if err != nil {

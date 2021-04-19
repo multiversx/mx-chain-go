@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -30,10 +31,10 @@ type epochStartMetaBlockProcessor struct {
 	marshalizer                       marshal.Marshalizer
 	hasher                            hashing.Hasher
 	mutReceivedMetaBlocks             sync.RWMutex
-	mapReceivedMetaBlocks             map[string]*block.MetaBlock
+	mapReceivedMetaBlocks             map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers            map[string][]core.PeerID
 	chanConsensusReached              chan bool
-	metaBlock                         *block.MetaBlock
+	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
 	minNumOfPeersToConsiderBlockValid int
@@ -79,7 +80,7 @@ func NewEpochStartMetaBlockProcessor(
 		minNumConnectedPeers:              minNumConnectedPeersConfig,
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
-		mapReceivedMetaBlocks:             make(map[string]*block.MetaBlock),
+		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 	}
@@ -164,7 +165,7 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error) {
+func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
 	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -205,7 +206,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBlock, error) {
+func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.MetaHeaderHandler, error) {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 

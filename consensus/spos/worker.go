@@ -432,6 +432,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			ErrInvalidHeader)
 	}
 
+	var valStatsRootHash []byte
+	metaHeader, ok := header.(data.MetaHeaderHandler)
+	if ok {
+		valStatsRootHash = metaHeader.GetValidatorStatsRootHash()
+	}
+
 	log.Debug("received proposed block",
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
@@ -440,7 +446,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nonce", header.GetNonce(),
 		"prev hash", header.GetPrevHash(),
 		"nbTxs", header.GetTxCount(),
-		"val stats root hash", header.GetValidatorStatsRootHash())
+		"val stats root hash", valStatsRootHash)
 
 	err := wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
