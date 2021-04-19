@@ -106,15 +106,15 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 
 	expectedDirectStake1 := api.DirectStakedValue{
 		Address: arg.PublicKeyConverter.Encode(validators[0]),
-		Staked:  "10",
+		Staked:  "9",
 		TopUp:   "1",
-		Total:   "11",
+		Total:   "10",
 	}
 	expectedDirectStake2 := api.DirectStakedValue{
 		Address: arg.PublicKeyConverter.Encode(validators[1]),
-		Staked:  "20",
+		Staked:  "18",
 		TopUp:   "2",
-		Total:   "22",
+		Total:   "20",
 	}
 
 	assert.Equal(t, []*api.DirectStakedValue{&expectedDirectStake1, &expectedDirectStake2}, directStakedList)

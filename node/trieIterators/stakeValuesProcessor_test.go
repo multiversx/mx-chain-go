@@ -367,7 +367,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 
 	stakeValues, err := totalStakedProc.GetTotalStakedValue()
 	require.Equal(t, &api.StakeValues{
-		TotalStaked: big.NewInt(600),
+		TotalStaked: big.NewInt(490),
 		TopUp:       big.NewInt(110),
 	}, stakeValues)
 	require.Nil(t, err)

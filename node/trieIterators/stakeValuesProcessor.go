@@ -117,8 +117,10 @@ func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.I
 		if errGet != nil {
 			continue
 		}
+		staked := big.NewInt(0).Set(totalStakedCurrentAccount)
+		staked.Sub(staked, totalTopUpCurrentAccount)
 
-		totalStaked = totalStaked.Add(totalStaked, totalStakedCurrentAccount)
+		totalStaked = totalStaked.Add(totalStaked, staked)
 		totalTopUp = totalTopUp.Add(totalTopUp, totalTopUpCurrentAccount)
 	}
 
