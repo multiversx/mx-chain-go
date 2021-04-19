@@ -177,17 +177,24 @@ func IssueNFT(nodes []*integrationTests.TestProcessorNode, esdtType string, tick
 
 // IssueTestToken -
 func IssueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string) {
+	issueTestToken(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
+}
+
+// IssueTestTokenWithCustomGas -
+func IssueTestTokenWithCustomGas(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
+	issueTestToken(nodes, initialSupply, ticker, gas)
+}
+
+func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 
 	tokenIssuer := nodes[0]
-
 	txData := txDataBuilder.NewBuilder()
-
 	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), core.MinMetaTxExtraGasCost)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
 }
 
 // CheckNumCallBacks -
