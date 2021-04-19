@@ -39,8 +39,11 @@ github.com/ElrondNetwork/elastic-indexer-go v1.0.1/go.mod h1:SJfYiNZj5X8olfqcNwq
 github.com/ElrondNetwork/elastic-indexer-go v1.0.2-0.20210303131440-c178c4f2858d/go.mod h1:DRvSw5jYpCe9phUWtRtRmeAu0NdKHX9QOIK12E0JVOk=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.2-0.20210305124948-8191d92dc7fe/go.mod h1:zh6WGlxH/UhQpWsvsSv8Nl0nKm/Q/VG26DLTbKGbF0A=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.2-0.20210308132434-93aea699e448/go.mod h1:xYFnPexpAxxLjDiZRxLqZveHsc5bnyngJitBgI2JrfM=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.2/go.mod h1:Jj5loOE5jRz1E5jn1yeH+M/0kQmsWFDONRaXG3WADLw=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.3 h1:N0OPEAQD2vhalRupdLVR0SDxJyhd8YBYcn82ksCRE+o=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.3/go.mod h1:Jj5loOE5jRz1E5jn1yeH+M/0kQmsWFDONRaXG3WADLw=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.4-0.20210419080731-68bac6c102bf h1:Z2Y7NpMe4kHsGD6fJzL/pzSfzXSh1VYzF0NO9rm7Q7M=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.4-0.20210419080731-68bac6c102bf/go.mod h1:48SHgu7HM/ZTnEZS3oPrJe99EajUIKTjoyWAxjnf0Co=
 github.com/ElrondNetwork/elrond-go v1.1.0/go.mod h1:R5HRN9NnnJ0gRd4QogmbUbQNTEczLsFCtfIgd3+3cYY=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113091116-de0c9a4e63c6/go.mod h1:dUNMqGg/jqTgHbnNxAmW7WkApWXlCQ8brVPbwIEFghI=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113120119-5f3406f2d6b5/go.mod h1:JsrmzX05L/GHE/nOeQuJCKHasJnZN2WMFr+Y6jjvHGg=
@@ -59,6 +62,7 @@ github.com/ElrondNetwork/elrond-go v1.1.35-0.20210309180253-d6a695494538/go.mod 
 github.com/ElrondNetwork/elrond-go v1.1.35-0.20210311082958-d0d0b72ef7d2/go.mod h1:vg16ZI2g/e2Bdxx3AUmrJMafOfLcp/3BtCfZiIyweDE=
 github.com/ElrondNetwork/elrond-go v1.1.36-0.20210310083119-a588eedd2c01/go.mod h1:nEfjdLW36m+zTjLU+fbRozNcHysCQ+wZyuPv580+KOk=
 github.com/ElrondNetwork/elrond-go v1.1.38-0.20210318131223-0b9e57aaf8ad/go.mod h1:9Jf3sXjV36ZRGKc5bGCFqe1uQqdJPTJystXOMNDdk/Q=
+github.com/ElrondNetwork/elrond-go v1.1.38-0.20210322081509-33c2aae0b88c/go.mod h1:RvEjSxVk7bND24YNTkZFPBe0bJ+q+H77RpQbc211TI0=
 github.com/ElrondNetwork/elrond-go v1.1.38-0.20210322140841-6a27c533e8a5/go.mod h1:Ek7oOU2ghuhrAuLkHJwg9u03fdk3F/7G6VnAsnE7fko=
 github.com/ElrondNetwork/elrond-go v1.1.42/go.mod h1:mxhdRRV7PY+IHzznJ3MnX5/2YSMNxl2znD6f6Y8nuCM=
 github.com/ElrondNetwork/elrond-go-logger v1.0.2/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
