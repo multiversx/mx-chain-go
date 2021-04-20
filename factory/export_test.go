@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // GetSkPk -
@@ -73,4 +74,14 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
 	)
+}
+
+// SetShardCoordinator -
+func SetShardCoordinator(shardCoordinator sharding.Coordinator, holder BootstrapComponentsHolder) {
+	mbf := holder.(*managedBootstrapComponents)
+
+	mbf.mutBootstrapComponents.Lock()
+	defer mbf.mutBootstrapComponents.Unlock()
+
+	mbf.bootstrapComponents.shardCoordinator = shardCoordinator
 }

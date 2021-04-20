@@ -242,6 +242,8 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	UserStatePruningQueueSize   uint
+	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -484,4 +486,5 @@ type ConfigurationPathsHolder struct {
 type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
 }

@@ -78,7 +78,6 @@ func RunDelegationStressTest(
 		1,
 		0,
 		0,
-		"",
 		trieStorage,
 		gasSchedule,
 	)

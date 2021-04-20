@@ -29,11 +29,6 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	consensusGroupSize := 3
 	singleSigner := &mclsinglesig.BlsSingleSigner{}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -41,7 +36,6 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	for _, nodes := range nodesMap {
@@ -49,7 +43,6 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -101,11 +94,6 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	nbShards := 1
 	consensusGroupSize := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -113,7 +101,6 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	for _, nodes := range nodesMap {
@@ -121,7 +108,6 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -178,11 +164,6 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	nbShards := 1
 	consensusGroupSize := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	singleSigner := &mclsinglesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
@@ -192,7 +173,6 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 		singleSigner,
 		keyGen,
 	)
@@ -202,7 +182,6 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -257,11 +236,6 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	nbShards := 1
 	consensusGroupSize := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	singleSigner := &mclsinglesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	// create map of shard - testNodeProcessors for metachain and shard chain
@@ -271,7 +245,6 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 		singleSigner,
 		keyGen,
 	)
@@ -281,7 +254,6 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()

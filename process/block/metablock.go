@@ -12,8 +12,10 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -39,6 +41,8 @@ type metaProcessor struct {
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
 	rewardsV2EnableEpoch         uint32
+	userStatePruningQueue        core.Queue
+	peerStatePruningQueue        core.Queue
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -86,26 +90,26 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		hasher:                       arguments.CoreComponents.Hasher(),
 		marshalizer:                  arguments.CoreComponents.InternalMarshalizer(),
 		store:                        arguments.DataComponents.StorageService(),
-		shardCoordinator:             arguments.ShardCoordinator,
+		shardCoordinator:             arguments.BootstrapComponents.ShardCoordinator(),
 		feeHandler:                   arguments.FeeHandler,
 		nodesCoordinator:             arguments.NodesCoordinator,
 		uint64Converter:              arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:               arguments.RequestHandler,
-		appStatusHandler:             arguments.AppStatusHandler,
+		appStatusHandler:             arguments.CoreComponents.StatusHandler(),
 		blockChainHook:               arguments.BlockChainHook,
 		txCoordinator:                arguments.TxCoordinator,
 		epochStartTrigger:            arguments.EpochStartTrigger,
 		headerValidator:              arguments.HeaderValidator,
-		roundHandler:                 arguments.RoundHandler,
+		roundHandler:                 arguments.CoreComponents.RoundHandler(),
 		bootStorer:                   arguments.BootStorer,
 		blockTracker:                 arguments.BlockTracker,
 		dataPool:                     arguments.DataComponents.Datapool(),
 		blockChain:                   arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:       arguments.StateCheckpointModulus,
-		indexer:                      arguments.Indexer,
-		tpsBenchmark:                 arguments.TpsBenchmark,
+		stateCheckpointModulus:       arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		indexer:                      arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:                 arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                 genesisHdr.GetNonce(),
-		headerIntegrityVerifier:      arguments.HeaderIntegrityVerifier,
+		headerIntegrityVerifier:      arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                  arguments.HistoryRepository,
 		epochNotifier:                arguments.EpochNotifier,
 		vmContainerFactory:           arguments.VMContainersFactory,
@@ -143,6 +147,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+	mp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
+	mp.peerStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.PeerStatePruningQueueSize)
 
 	return &mp, nil
 }
@@ -559,14 +565,10 @@ func (mp *metaProcessor) indexBlock(
 
 	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
-	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-
-	for hash, tx := range scPool {
-		txPool[hash] = tx
-	}
-	for hash, tx := range rewardsTxs {
-		txPool[hash] = tx
+	pool := &indexer.Pool{
+		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
+		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
+		Rewards: rewardsTxs,
 	}
 
 	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
@@ -607,7 +609,15 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
+	args := &indexer.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   body,
+		Header:                 metaBlock,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeadersHashes,
+		TransactionsPool:       pool,
+	}
+	mp.indexer.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
@@ -1368,6 +1378,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 		lastMetaBlock.GetRootHash(),
 		prevHeader.GetRootHash(),
 		mp.accountsDB[state.UserAccountsState],
+		mp.userStatePruningQueue,
 	)
 
 	mp.updateStateStorage(
@@ -1375,6 +1386,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler) {
 		lastMetaBlock.GetValidatorStatsRootHash(),
 		prevHeader.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
+		mp.peerStatePruningQueue,
 	)
 }
 

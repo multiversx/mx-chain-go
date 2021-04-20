@@ -368,6 +368,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents) {
 		return process.ErrNilCoreComponentsHolder
 	}
+	if check.IfNil(arguments.BootstrapComponents) {
+		return process.ErrNilBootstrapComponentsHolder
+	}
+	if check.IfNil(arguments.StatusComponents) {
+		return process.ErrNilStatusComponentsHolder
+	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
@@ -380,7 +386,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.DataComponents.StorageService()) {
 		return process.ErrNilStorage
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
+	if check.IfNil(arguments.BootstrapComponents.ShardCoordinator()) {
 		return process.ErrNilShardCoordinator
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
@@ -395,7 +401,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.RoundHandler) {
+	if check.IfNil(arguments.CoreComponents.RoundHandler()) {
 		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
@@ -422,22 +428,22 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.Indexer) {
+	if check.IfNil(arguments.StatusComponents.ElasticIndexer()) {
 		return process.ErrNilIndexer
 	}
-	if check.IfNil(arguments.TpsBenchmark) {
+	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
 		return process.ErrNilTpsBenchmark
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arguments.HeaderIntegrityVerifier) {
+	if check.IfNil(arguments.BootstrapComponents.HeaderIntegrityVerifier()) {
 		return process.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.AppStatusHandler) {
+	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
@@ -1094,6 +1100,7 @@ func (bp *baseProcessor) updateStateStorage(
 	rootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
+	statePruningQueue core.Queue,
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1112,8 +1119,13 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(prevRootHash, data.NewRoot)
-	accounts.PruneTrie(prevRootHash, data.OldRoot)
+	rootHashToBePruned := statePruningQueue.Add(prevRootHash)
+	if len(rootHashToBePruned) == 0 {
+		return
+	}
+
+	accounts.CancelPrune(rootHashToBePruned, data.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, data.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process

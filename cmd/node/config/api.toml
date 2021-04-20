@@ -45,8 +45,11 @@
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 
-        # /address/:address/esdt/:tokenName will return data of an esdt token for a given account
-        { Name = "/:address/esdt/:tokenIdentifier", Open = true }
+        # /address/:address/esdt/:tokenIdentifier will return the balance for a given account and esdt tokenID
+        { Name = "/:address/esdt/:tokenIdentifier", Open = true },
+
+        # /address/:address/nft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
+        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true }
 	]
 
 [APIPackages.hardfork]
@@ -65,7 +68,18 @@
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/esdts will return all the issued esdts on the protocol
+        { Name = "/esdts", Open = true },
+
+        # /network/direct-staked-info will return a list containing direct staked list of addresses
+        # and their staked values
+        {Name = "/direct-staked-info", Open = false},
+
+        # /network/delegated-info will return a list containing delegated list of addresses
+        # and their staked values on the system delegation smart contracts
+        {Name = "/delegated-info", Open = false}
 	]
 
 [APIPackages.log]

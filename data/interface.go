@@ -284,6 +284,15 @@ type EventHandler interface {
 	IsInterfaceNil() bool
 }
 
+// NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
+// trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
+type NumNodesDTO struct {
+	Leaves     int
+	Extensions int
+	Branches   int
+	MaxLevel   int
+}
+
 //Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
@@ -298,6 +307,8 @@ type Trie interface {
 	GetDirtyHashes() (ModifiedHashes, error)
 	SetNewHashes(ModifiedHashes)
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNode([]byte) ([]byte, error)
+	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, error)
@@ -327,7 +338,6 @@ type DBRemoveCacher interface {
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() Trie
 	IsInterfaceNil() bool
 }
 

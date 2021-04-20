@@ -99,3 +99,6 @@ var ErrInvalidTimeout = errors.New("invalid timeout value")
 
 // ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
 var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrInvalidTrieSyncerVersion signals that an invalid trie syncer version was provided
+var ErrInvalidTrieSyncerVersion = errors.New("invalid trie syncer version")

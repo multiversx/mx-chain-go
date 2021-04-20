@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	indexer "github.com/ElrondNetwork/elastic-indexer-go"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -25,7 +25,6 @@ func NewTestSyncNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -67,7 +66,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
@@ -171,33 +170,40 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
+	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
+
+	statusComponents := GetDefaultStatusComponents()
+
+	triesConfig := config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus: stateCheckpointModulus,
+		},
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		AccountsDB:        accountsDb,
-		ForkDetector:      nil,
-		ShardCoordinator:  tpn.ShardCoordinator,
-		NodesCoordinator:  tpn.NodesCoordinator,
-		FeeHandler:        tpn.FeeAccumulator,
-		RequestHandler:    tpn.RequestHandler,
-		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		HeaderValidator:   tpn.HeaderValidator,
-		RoundHandler:      &mock.RoundHandlerMock{},
+		CoreComponents:      coreComponents,
+		DataComponents:      dataComponents,
+		BootstrapComponents: bootstrapComponents,
+		StatusComponents:    statusComponents,
+		Config:              triesConfig,
+		AccountsDB:          accountsDb,
+		ForkDetector:        nil,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		FeeHandler:          tpn.FeeAccumulator,
+		RequestHandler:      tpn.RequestHandler,
+		BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		HeaderValidator:     tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
 			},
 		},
-		BlockTracker:                 tpn.BlockTracker,
-		StateCheckpointModulus:       stateCheckpointModulus,
-		BlockSizeThrottler:           TestBlockSizeThrottler,
-		Indexer:                      indexer.NewNilIndexer(),
-		TpsBenchmark:                 &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:            tpn.HistoryRepository,
-		EpochNotifier:                tpn.EpochNotifier,
-		HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:             &mock.AppStatusHandlerStub{},
+		BlockTracker:       tpn.BlockTracker,
+		BlockSizeThrottler: TestBlockSizeThrottler,
+		HistoryRepository:  tpn.HistoryRepository,
+		EpochNotifier:      tpn.EpochNotifier,
 		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 	}
 
@@ -258,7 +264,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             indexer.NewNilIndexer(),
+		Indexer:             &mock.NilIndexer{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -297,7 +303,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             indexer.NewNilIndexer(),
+		Indexer:             &mock.NilIndexer{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
