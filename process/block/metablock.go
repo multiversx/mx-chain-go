@@ -696,7 +696,11 @@ func (mp *metaProcessor) CreateBlock(
 	}
 
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
-	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	err := metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
@@ -707,7 +711,7 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrAccountStateDirty
 	}
 
-	err := mp.processIfFirstBlockAfterEpochStart()
+	err = mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2015,19 +2019,50 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
-	metaHdr.SetShardInfoHandlers(shardInfo)
-	metaHdr.SetRootHash(mp.getRootHash())
-	metaHdr.SetTxCount(getTxCount(shardInfo))
-	metaHdr.SetAccumulatedFees(mp.feeHandler.GetAccumulatedFees())
-	metaHdr.SetDeveloperFees(mp.feeHandler.GetDeveloperFees())
+	err = metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetShardInfoHandlers(shardInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetRootHash(mp.getRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetTxCount(getTxCount(shardInfo))
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetAccumulatedFees(mp.feeHandler.GetAccumulatedFees())
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetDeveloperFees(mp.feeHandler.GetDeveloperFees())
+	if err != nil {
+		return nil, err
+	}
 
 	accumulatedFees, devFees, err := mp.computeAccumulatedFeesInEpoch(metaHdr)
 	if err != nil {
 		return nil, err
 	}
-	metaHdr.SetAccumulatedFeesInEpoch(accumulatedFees)
-	metaHdr.SetDevFeesInEpoch(devFees)
+
+	err = metaHdr.SetAccumulatedFeesInEpoch(accumulatedFees)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHdr.SetDevFeesInEpoch(devFees)
+	if err != nil {
+		return nil, err
+	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -2041,16 +2076,27 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	if err != nil {
 		return nil, err
 	}
-	metaHdr.SetReceiptsHash(receiptsHash)
+
+	err = metaHdr.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return nil, err
+	}
 
 	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body)
 	if err != nil {
 		return nil, err
 	}
 
-	metaHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	err = metaHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
 	txCount := metaHdr.GetTxCount() + uint32(totalTxCount)
-	metaHdr.SetTxCount(txCount)
+	err = metaHdr.SetTxCount(txCount)
+	if err != nil {
+		return nil, err
+	}
 
 	sw.Start("UpdatePeerState")
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
@@ -2059,12 +2105,17 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	if err != nil {
 		return nil, err
 	}
-	metaHdr.SetValidatorStatsRootHash(valStatRootHash)
+
+	err = metaHdr.SetValidatorStatsRootHash(valStatRootHash)
+	if err != nil {
+		return nil, err
+	}
 
 	marshalizedBody, err := mp.marshalizer.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
+
 	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
 
 	return body, nil

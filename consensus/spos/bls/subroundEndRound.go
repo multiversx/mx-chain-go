@@ -419,9 +419,23 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 	var receivedHeaderHash []byte
 	for index := range receivedHeaders {
 		receivedHeader := receivedHeaders[index].ShallowClone()
-		receivedHeader.SetLeaderSignature(nil)
-		receivedHeader.SetPubKeysBitmap(nil)
-		receivedHeader.SetSignature(nil)
+		err = receivedHeader.SetLeaderSignature(nil)
+		if err != nil {
+			log.Debug("isConsensusHeaderReceived - SetLeaderSignature", "error", err.Error())
+			return false, nil
+		}
+
+		err = receivedHeader.SetPubKeysBitmap(nil)
+		if err != nil {
+			log.Debug("isConsensusHeaderReceived - SetPubKeysBitmap", "error", err.Error())
+			return false, nil
+		}
+
+		err = receivedHeader.SetSignature(nil)
+		if err != nil {
+			log.Debug("isConsensusHeaderReceived - SetSignature", "error", err.Error())
+			return false, nil
+		}
 
 		receivedHeaderHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
 		if err != nil {
@@ -439,7 +453,10 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 	headerClone := sr.Header.ShallowClone()
-	headerClone.SetLeaderSignature(nil)
+	err := headerClone.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
 
 	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
 	if err != nil {
