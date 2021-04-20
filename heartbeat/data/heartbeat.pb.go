@@ -26,6 +26,7 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Heartbeat represents the heartbeat message that is sent between peers
+// TODO(heartbeat): remove this message after phasing out the old implementation
 type Heartbeat struct {
 	Payload         []byte `protobuf:"bytes,1,opt,name=Payload,proto3" json:"Payload,omitempty"`
 	Pubkey          []byte `protobuf:"bytes,2,opt,name=Pubkey,proto3" json:"Pubkey,omitempty"`
@@ -134,6 +135,7 @@ func (m *Heartbeat) GetNonce() uint64 {
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
+// TODO(heartbeat): remove this message after phasing out the old implementation
 type HeartbeatDTO struct {
 	MaxDurationPeerUnresponsive int64  `protobuf:"varint,1,opt,name=MaxDurationPeerUnresponsive,proto3" json:"MaxDurationPeerUnresponsive,omitempty"`
 	MaxInactiveTime             int64  `protobuf:"varint,2,opt,name=MaxInactiveTime,proto3" json:"MaxInactiveTime,omitempty"`
@@ -305,6 +307,7 @@ func (m *HeartbeatDTO) GetNumInstances() uint64 {
 	return 0
 }
 
+// TODO(heartbeat): remove this message after phasing out the old implementation
 type DbTimeStamp struct {
 	Timestamp int64 `protobuf:"varint,1,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
 }
@@ -348,51 +351,218 @@ func (m *DbTimeStamp) GetTimestamp() int64 {
 	return 0
 }
 
+// Heartbeat represents the heartbeat message that is sent between peers from the same shard containing
+// current node status
+type HeartbeatV2 struct {
+	Payload         []byte `protobuf:"bytes,1,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	ShardID         uint32 `protobuf:"varint,2,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	VersionNumber   string `protobuf:"bytes,3,opt,name=VersionNumber,proto3" json:"VersionNumber,omitempty"`
+	NodeDisplayName string `protobuf:"bytes,4,opt,name=NodeDisplayName,proto3" json:"NodeDisplayName,omitempty"`
+	Identity        string `protobuf:"bytes,5,opt,name=Identity,proto3" json:"Identity,omitempty"`
+	Nonce           uint64 `protobuf:"varint,6,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+}
+
+func (m *HeartbeatV2) Reset()      { *m = HeartbeatV2{} }
+func (*HeartbeatV2) ProtoMessage() {}
+func (*HeartbeatV2) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3c667767fb9826a9, []int{3}
+}
+func (m *HeartbeatV2) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HeartbeatV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_HeartbeatV2.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *HeartbeatV2) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeartbeatV2.Merge(m, src)
+}
+func (m *HeartbeatV2) XXX_Size() int {
+	return m.Size()
+}
+func (m *HeartbeatV2) XXX_DiscardUnknown() {
+	xxx_messageInfo_HeartbeatV2.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HeartbeatV2 proto.InternalMessageInfo
+
+func (m *HeartbeatV2) GetPayload() []byte {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *HeartbeatV2) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *HeartbeatV2) GetVersionNumber() string {
+	if m != nil {
+		return m.VersionNumber
+	}
+	return ""
+}
+
+func (m *HeartbeatV2) GetNodeDisplayName() string {
+	if m != nil {
+		return m.NodeDisplayName
+	}
+	return ""
+}
+
+func (m *HeartbeatV2) GetIdentity() string {
+	if m != nil {
+		return m.Identity
+	}
+	return ""
+}
+
+func (m *HeartbeatV2) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
+}
+
+// PeerInfo represents the peer information message used to pass peer information such as public key, peer id,
+// signature and payload. This message is used to link the peerID with the associated public key
+type PeerInfo struct {
+	Payload   []byte `protobuf:"bytes,1,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Pubkey    []byte `protobuf:"bytes,2,opt,name=Pubkey,proto3" json:"Pubkey,omitempty"`
+	Signature []byte `protobuf:"bytes,3,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	ShardID   uint32 `protobuf:"varint,4,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
+	Pid       []byte `protobuf:"bytes,5,opt,name=Pid,proto3" json:"Pid,omitempty"`
+}
+
+func (m *PeerInfo) Reset()      { *m = PeerInfo{} }
+func (*PeerInfo) ProtoMessage() {}
+func (*PeerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3c667767fb9826a9, []int{4}
+}
+func (m *PeerInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PeerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PeerInfo.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PeerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeerInfo.Merge(m, src)
+}
+func (m *PeerInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *PeerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PeerInfo proto.InternalMessageInfo
+
+func (m *PeerInfo) GetPayload() []byte {
+	if m != nil {
+		return m.Payload
+	}
+	return nil
+}
+
+func (m *PeerInfo) GetPubkey() []byte {
+	if m != nil {
+		return m.Pubkey
+	}
+	return nil
+}
+
+func (m *PeerInfo) GetSignature() []byte {
+	if m != nil {
+		return m.Signature
+	}
+	return nil
+}
+
+func (m *PeerInfo) GetShardID() uint32 {
+	if m != nil {
+		return m.ShardID
+	}
+	return 0
+}
+
+func (m *PeerInfo) GetPid() []byte {
+	if m != nil {
+		return m.Pid
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Heartbeat)(nil), "proto.Heartbeat")
 	proto.RegisterType((*HeartbeatDTO)(nil), "proto.HeartbeatDTO")
 	proto.RegisterType((*DbTimeStamp)(nil), "proto.DbTimeStamp")
+	proto.RegisterType((*HeartbeatV2)(nil), "proto.HeartbeatV2")
+	proto.RegisterType((*PeerInfo)(nil), "proto.PeerInfo")
 }
 
 func init() { proto.RegisterFile("heartbeat.proto", fileDescriptor_3c667767fb9826a9) }
 
 var fileDescriptor_3c667767fb9826a9 = []byte{
-	// 553 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x94, 0xbd, 0x6e, 0x13, 0x4f,
-	0x14, 0xc5, 0x3d, 0x59, 0x3b, 0xb1, 0xc7, 0xce, 0x3f, 0xf9, 0x8f, 0x10, 0x1a, 0x01, 0x1a, 0xad,
-	0x2c, 0x0a, 0x4b, 0x48, 0x69, 0xe8, 0xa8, 0xf8, 0x58, 0x09, 0x2c, 0x11, 0x63, 0x6d, 0x9c, 0x14,
-	0x74, 0x63, 0xef, 0x15, 0x19, 0xe1, 0x9d, 0x59, 0xed, 0xcc, 0x86, 0xb8, 0xa3, 0x42, 0xa2, 0xe3,
-	0x31, 0x78, 0x14, 0xca, 0x94, 0x29, 0xc9, 0xa6, 0xa1, 0xcc, 0x23, 0xa0, 0xb9, 0x8e, 0xbd, 0xb6,
-	0xf9, 0x10, 0xd5, 0xf8, 0x9c, 0x7b, 0xb4, 0xde, 0x39, 0xbf, 0xab, 0xa5, 0x7b, 0xa7, 0x20, 0x73,
-	0x37, 0x06, 0xe9, 0x0e, 0xb2, 0xdc, 0x38, 0xc3, 0x1a, 0x78, 0x74, 0x3f, 0x6f, 0xd1, 0xd6, 0xab,
-	0xc5, 0x88, 0x71, 0xba, 0x33, 0x94, 0xb3, 0xa9, 0x91, 0x09, 0x27, 0x21, 0xe9, 0x75, 0xe2, 0x85,
-	0x64, 0x77, 0xe9, 0xf6, 0xb0, 0x18, 0xbf, 0x87, 0x19, 0xdf, 0xc2, 0xc1, 0xad, 0x62, 0x0f, 0x68,
-	0xeb, 0x48, 0xbd, 0xd3, 0xd2, 0x15, 0x39, 0xf0, 0x00, 0x47, 0x95, 0xe1, 0x9f, 0x77, 0x74, 0x2a,
-	0xf3, 0xa4, 0x1f, 0xf1, 0x7a, 0x48, 0x7a, 0xbb, 0xf1, 0x42, 0xb2, 0x87, 0x74, 0xf7, 0x04, 0x72,
-	0xab, 0x8c, 0x1e, 0x14, 0xe9, 0x18, 0x72, 0xde, 0x08, 0x49, 0xaf, 0x15, 0xaf, 0x9b, 0xac, 0x47,
-	0xf7, 0x06, 0x26, 0x81, 0x48, 0xd9, 0x6c, 0x2a, 0x67, 0x03, 0x99, 0x02, 0xdf, 0xc6, 0xdc, 0xa6,
-	0xcd, 0xee, 0xd1, 0x66, 0x3f, 0x01, 0xed, 0x94, 0x9b, 0xf1, 0x1d, 0x8c, 0x2c, 0x35, 0xdb, 0xa7,
-	0xc1, 0x50, 0x25, 0xbc, 0x89, 0x6f, 0xe7, 0x7f, 0xb2, 0x3b, 0xb4, 0x31, 0x30, 0x7a, 0x02, 0xbc,
-	0x15, 0x92, 0x5e, 0x3d, 0x9e, 0x8b, 0xee, 0xa7, 0x06, 0xed, 0x2c, 0xbb, 0x88, 0x46, 0x6f, 0xd8,
-	0x53, 0x7a, 0xff, 0x50, 0x9e, 0x47, 0x45, 0x2e, 0x9d, 0x32, 0x7a, 0x08, 0x90, 0x1f, 0xeb, 0x1c,
-	0x6c, 0x66, 0xb4, 0x55, 0x67, 0x80, 0x15, 0x05, 0xf1, 0xdf, 0x22, 0xfe, 0x02, 0x87, 0xf2, 0xbc,
-	0xaf, 0xe5, 0xc4, 0xa9, 0x33, 0x18, 0xa9, 0x14, 0xb0, 0xbf, 0x20, 0xde, 0xb4, 0x59, 0x48, 0xdb,
-	0x23, 0xe3, 0xe4, 0xf4, 0x38, 0xc3, 0x54, 0x80, 0xa9, 0x55, 0xcb, 0x57, 0x86, 0x32, 0x32, 0x1f,
-	0x34, 0x66, 0xea, 0x98, 0x59, 0x37, 0x3d, 0x10, 0x7f, 0x1e, 0x39, 0x99, 0x66, 0x58, 0x6a, 0x10,
-	0x57, 0x06, 0xd6, 0x64, 0x9f, 0xe1, 0xbf, 0x62, 0x93, 0xcd, 0x78, 0xa9, 0xfd, 0xbb, 0xc6, 0x30,
-	0x01, 0x75, 0x06, 0xc9, 0x02, 0xda, 0x0e, 0x42, 0xdb, 0xb4, 0x7d, 0xf2, 0x85, 0x49, 0xb3, 0xc2,
-	0x55, 0xc9, 0xe6, 0x3c, 0xb9, 0x61, 0xff, 0x8a, 0xb9, 0xf5, 0x8f, 0x98, 0xe9, 0x1f, 0x31, 0xfb,
-	0x8e, 0x47, 0xb3, 0x0c, 0x78, 0x7b, 0x8e, 0x79, 0xa1, 0xd7, 0x56, 0xa0, 0xb3, 0xb1, 0x02, 0x21,
-	0x6d, 0xf7, 0xed, 0x89, 0x9c, 0xaa, 0x44, 0x3a, 0x93, 0xf3, 0x5d, 0xbc, 0xfa, 0xaa, 0xc5, 0x0e,
-	0x28, 0x7b, 0x2d, 0xad, 0x3b, 0xce, 0x9c, 0x4a, 0xc1, 0xb7, 0xe9, 0x4f, 0xfe, 0x1f, 0x16, 0xf8,
-	0x9b, 0x89, 0x7f, 0xe2, 0x4b, 0xd0, 0x60, 0x95, 0x45, 0x16, 0x7b, 0x73, 0x5e, 0x2b, 0x56, 0xb5,
-	0x64, 0xfb, 0x2b, 0x4b, 0xc6, 0xba, 0xb4, 0x33, 0x28, 0xd2, 0xbe, 0xb6, 0x4e, 0xea, 0x09, 0x58,
-	0xfe, 0x3f, 0x0e, 0xd7, 0xbc, 0xee, 0x23, 0xda, 0x8e, 0xc6, 0x15, 0xb4, 0x5b, 0xa4, 0x16, 0x91,
-	0x92, 0x0a, 0x29, 0x1a, 0xcf, 0x9f, 0x5c, 0x5c, 0x89, 0xda, 0xe5, 0x95, 0xa8, 0xdd, 0x5c, 0x09,
-	0xf2, 0xb1, 0x14, 0xe4, 0x6b, 0x29, 0xc8, 0xb7, 0x52, 0x90, 0x8b, 0x52, 0x90, 0xef, 0xa5, 0x20,
-	0x3f, 0x4a, 0x51, 0xbb, 0x29, 0x05, 0xf9, 0x72, 0x2d, 0x6a, 0x17, 0xd7, 0xa2, 0x76, 0x79, 0x2d,
-	0x6a, 0x6f, 0xeb, 0x89, 0x74, 0x72, 0xbc, 0x8d, 0x1f, 0x81, 0xc7, 0x3f, 0x03, 0x00, 0x00, 0xff,
-	0xff, 0xce, 0xb6, 0x0b, 0x17, 0x1e, 0x04, 0x00, 0x00,
+	// 605 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x94, 0x3d, 0x6f, 0x13, 0x4f,
+	0x10, 0xc6, 0xbd, 0x39, 0xdb, 0xb1, 0xd7, 0xce, 0x3f, 0xf9, 0xaf, 0x10, 0x5a, 0x01, 0x5a, 0x59,
+	0x16, 0x85, 0x25, 0xa4, 0x14, 0xd0, 0x51, 0xf1, 0x62, 0x09, 0x2c, 0x11, 0x63, 0x5d, 0x9c, 0x14,
+	0x74, 0x6b, 0xdf, 0x40, 0x56, 0xf8, 0x76, 0x4f, 0xb7, 0xeb, 0x10, 0x77, 0x54, 0x48, 0x74, 0x7c,
+	0x0c, 0xbe, 0x07, 0x0d, 0x65, 0xca, 0x94, 0xe4, 0xd2, 0x50, 0xe6, 0x23, 0xa0, 0x1d, 0xbf, 0x1f,
+	0x90, 0xa4, 0xa2, 0x5a, 0xcf, 0x33, 0x8f, 0xce, 0x77, 0xcf, 0x6f, 0x66, 0xe9, 0xf6, 0x11, 0xc8,
+	0xd4, 0x0d, 0x40, 0xba, 0xdd, 0x24, 0x35, 0xce, 0xb0, 0x12, 0x1e, 0xcd, 0xcf, 0x1b, 0xb4, 0xfa,
+	0x72, 0xde, 0x62, 0x9c, 0x6e, 0xf6, 0xe4, 0x64, 0x64, 0x64, 0xc4, 0x49, 0x83, 0xb4, 0xea, 0xe1,
+	0xbc, 0x64, 0xb7, 0x69, 0xb9, 0x37, 0x1e, 0xbc, 0x87, 0x09, 0xdf, 0xc0, 0xc6, 0xac, 0x62, 0xf7,
+	0x68, 0x75, 0x5f, 0xbd, 0xd3, 0xd2, 0x8d, 0x53, 0xe0, 0x01, 0xb6, 0x96, 0x82, 0x7f, 0xde, 0xfe,
+	0x91, 0x4c, 0xa3, 0x4e, 0x9b, 0x17, 0x1b, 0xa4, 0xb5, 0x15, 0xce, 0x4b, 0x76, 0x9f, 0x6e, 0x1d,
+	0x42, 0x6a, 0x95, 0xd1, 0xdd, 0x71, 0x3c, 0x80, 0x94, 0x97, 0x1a, 0xa4, 0x55, 0x0d, 0xd7, 0x45,
+	0xd6, 0xa2, 0xdb, 0x5d, 0x13, 0x41, 0x5b, 0xd9, 0x64, 0x24, 0x27, 0x5d, 0x19, 0x03, 0x2f, 0xa3,
+	0x2f, 0x2f, 0xb3, 0x3b, 0xb4, 0xd2, 0x89, 0x40, 0x3b, 0xe5, 0x26, 0x7c, 0x13, 0x2d, 0x8b, 0x9a,
+	0xed, 0xd0, 0xa0, 0xa7, 0x22, 0x5e, 0xc1, 0xb7, 0xf3, 0x3f, 0xd9, 0x2d, 0x5a, 0xea, 0x1a, 0x3d,
+	0x04, 0x5e, 0x6d, 0x90, 0x56, 0x31, 0x9c, 0x16, 0xcd, 0x4f, 0x25, 0x5a, 0x5f, 0x64, 0xd1, 0xee,
+	0xbf, 0x66, 0x4f, 0xe8, 0xdd, 0x3d, 0x79, 0xd2, 0x1e, 0xa7, 0xd2, 0x29, 0xa3, 0x7b, 0x00, 0xe9,
+	0x81, 0x4e, 0xc1, 0x26, 0x46, 0x5b, 0x75, 0x0c, 0x18, 0x51, 0x10, 0x5e, 0x65, 0xf1, 0x1f, 0xb0,
+	0x27, 0x4f, 0x3a, 0x5a, 0x0e, 0x9d, 0x3a, 0x86, 0xbe, 0x8a, 0x01, 0xf3, 0x0b, 0xc2, 0xbc, 0xcc,
+	0x1a, 0xb4, 0xd6, 0x37, 0x4e, 0x8e, 0x0e, 0x12, 0x74, 0x05, 0xe8, 0x5a, 0x95, 0x7c, 0x64, 0x58,
+	0xb6, 0xcd, 0x07, 0x8d, 0x9e, 0x22, 0x7a, 0xd6, 0x45, 0x0f, 0xc4, 0x9f, 0xfb, 0x4e, 0xc6, 0x09,
+	0x86, 0x1a, 0x84, 0x4b, 0x01, 0x63, 0xb2, 0x4f, 0xf1, 0x5f, 0x31, 0xc9, 0x4a, 0xb8, 0xa8, 0xfd,
+	0xbb, 0x86, 0x30, 0x04, 0x75, 0x0c, 0xd1, 0x1c, 0xda, 0x26, 0x42, 0xcb, 0xcb, 0xde, 0xf9, 0xdc,
+	0xc4, 0xc9, 0xd8, 0x2d, 0x9d, 0x95, 0xa9, 0x33, 0x27, 0xff, 0x8e, 0xb9, 0x7a, 0x43, 0xcc, 0xf4,
+	0xaf, 0x98, 0x7d, 0xc6, 0xfd, 0x49, 0x02, 0xbc, 0x36, 0xc5, 0x3c, 0xaf, 0xd7, 0x46, 0xa0, 0x9e,
+	0x1b, 0x81, 0x06, 0xad, 0x75, 0xec, 0xa1, 0x1c, 0xa9, 0x48, 0x3a, 0x93, 0xf2, 0x2d, 0xfc, 0xf4,
+	0x55, 0x89, 0xed, 0x52, 0xf6, 0x4a, 0x5a, 0x77, 0x90, 0x38, 0x15, 0x83, 0x4f, 0xd3, 0x9f, 0xfc,
+	0x3f, 0x0c, 0xf0, 0x0f, 0x1d, 0xff, 0xc4, 0x17, 0xa0, 0xc1, 0x2a, 0x8b, 0x2c, 0xb6, 0xa7, 0xbc,
+	0x56, 0xa4, 0xe5, 0x90, 0xed, 0xac, 0x0c, 0x19, 0x6b, 0xd2, 0x7a, 0x77, 0x1c, 0x77, 0xb4, 0x75,
+	0x52, 0x0f, 0xc1, 0xf2, 0xff, 0xb1, 0xb9, 0xa6, 0x35, 0x1f, 0xd0, 0x5a, 0x7b, 0xb0, 0x84, 0x36,
+	0x43, 0x6a, 0x11, 0x29, 0x59, 0x22, 0x45, 0xa1, 0xf9, 0x8d, 0xd0, 0xda, 0x62, 0x6a, 0x0f, 0x1f,
+	0x5e, 0xb1, 0xc3, 0x2b, 0xdb, 0xb8, 0x71, 0xcd, 0x36, 0x06, 0x37, 0xc4, 0x54, 0xbc, 0x7e, 0x1b,
+	0x4b, 0x39, 0x14, 0x8b, 0x58, 0xca, 0x6b, 0xbb, 0x47, 0xa6, 0x64, 0x3b, 0xfa, 0xad, 0xf9, 0x87,
+	0xd7, 0xd0, 0xec, 0x6a, 0x28, 0x2d, 0xae, 0x86, 0x67, 0x8f, 0x4f, 0xcf, 0x45, 0xe1, 0xec, 0x5c,
+	0x14, 0x2e, 0xcf, 0x05, 0xf9, 0x98, 0x09, 0xf2, 0x35, 0x13, 0xe4, 0x7b, 0x26, 0xc8, 0x69, 0x26,
+	0xc8, 0x8f, 0x4c, 0x90, 0x9f, 0x99, 0x28, 0x5c, 0x66, 0x82, 0x7c, 0xb9, 0x10, 0x85, 0xd3, 0x0b,
+	0x51, 0x38, 0xbb, 0x10, 0x85, 0x37, 0xc5, 0x48, 0x3a, 0x39, 0x28, 0xe3, 0x9d, 0xfa, 0xe8, 0x57,
+	0x00, 0x00, 0x00, 0xff, 0xff, 0xe7, 0xa9, 0x7b, 0x70, 0x6d, 0x05, 0x00, 0x00,
 }
 
 func (this *Heartbeat) Equal(that interface{}) bool {
@@ -539,6 +709,81 @@ func (this *DbTimeStamp) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *HeartbeatV2) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*HeartbeatV2)
+	if !ok {
+		that2, ok := that.(HeartbeatV2)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Payload, that1.Payload) {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if this.VersionNumber != that1.VersionNumber {
+		return false
+	}
+	if this.NodeDisplayName != that1.NodeDisplayName {
+		return false
+	}
+	if this.Identity != that1.Identity {
+		return false
+	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
+	return true
+}
+func (this *PeerInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PeerInfo)
+	if !ok {
+		that2, ok := that.(PeerInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Payload, that1.Payload) {
+		return false
+	}
+	if !bytes.Equal(this.Pubkey, that1.Pubkey) {
+		return false
+	}
+	if !bytes.Equal(this.Signature, that1.Signature) {
+		return false
+	}
+	if this.ShardID != that1.ShardID {
+		return false
+	}
+	if !bytes.Equal(this.Pid, that1.Pid) {
+		return false
+	}
+	return true
+}
 func (this *Heartbeat) GoString() string {
 	if this == nil {
 		return "nil"
@@ -590,6 +835,35 @@ func (this *DbTimeStamp) GoString() string {
 	s := make([]string, 0, 5)
 	s = append(s, "&data.DbTimeStamp{")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *HeartbeatV2) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&data.HeartbeatV2{")
+	s = append(s, "Payload: "+fmt.Sprintf("%#v", this.Payload)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "VersionNumber: "+fmt.Sprintf("%#v", this.VersionNumber)+",\n")
+	s = append(s, "NodeDisplayName: "+fmt.Sprintf("%#v", this.NodeDisplayName)+",\n")
+	s = append(s, "Identity: "+fmt.Sprintf("%#v", this.Identity)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *PeerInfo) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&data.PeerInfo{")
+	s = append(s, "Payload: "+fmt.Sprintf("%#v", this.Payload)+",\n")
+	s = append(s, "Pubkey: "+fmt.Sprintf("%#v", this.Pubkey)+",\n")
+	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
+	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
+	s = append(s, "Pid: "+fmt.Sprintf("%#v", this.Pid)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -841,6 +1115,123 @@ func (m *DbTimeStamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *HeartbeatV2) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HeartbeatV2) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *HeartbeatV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Nonce != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.Identity) > 0 {
+		i -= len(m.Identity)
+		copy(dAtA[i:], m.Identity)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Identity)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.NodeDisplayName) > 0 {
+		i -= len(m.NodeDisplayName)
+		copy(dAtA[i:], m.NodeDisplayName)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.NodeDisplayName)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.VersionNumber) > 0 {
+		i -= len(m.VersionNumber)
+		copy(dAtA[i:], m.VersionNumber)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.VersionNumber)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ShardID != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.ShardID))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Payload) > 0 {
+		i -= len(m.Payload)
+		copy(dAtA[i:], m.Payload)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Payload)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PeerInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PeerInfo) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PeerInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Pid) > 0 {
+		i -= len(m.Pid)
+		copy(dAtA[i:], m.Pid)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Pid)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.ShardID != 0 {
+		i = encodeVarintHeartbeat(dAtA, i, uint64(m.ShardID))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Signature) > 0 {
+		i -= len(m.Signature)
+		copy(dAtA[i:], m.Signature)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Signature)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Pubkey) > 0 {
+		i -= len(m.Pubkey)
+		copy(dAtA[i:], m.Pubkey)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Pubkey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Payload) > 0 {
+		i -= len(m.Payload)
+		copy(dAtA[i:], m.Payload)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Payload)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintHeartbeat(dAtA []byte, offset int, v uint64) int {
 	offset -= sovHeartbeat(v)
 	base := offset
@@ -971,6 +1362,65 @@ func (m *DbTimeStamp) Size() (n int) {
 	return n
 }
 
+func (m *HeartbeatV2) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Payload)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	if m.ShardID != 0 {
+		n += 1 + sovHeartbeat(uint64(m.ShardID))
+	}
+	l = len(m.VersionNumber)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	l = len(m.NodeDisplayName)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	l = len(m.Identity)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	if m.Nonce != 0 {
+		n += 1 + sovHeartbeat(uint64(m.Nonce))
+	}
+	return n
+}
+
+func (m *PeerInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Payload)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	l = len(m.Pubkey)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	l = len(m.Signature)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	if m.ShardID != 0 {
+		n += 1 + sovHeartbeat(uint64(m.ShardID))
+	}
+	l = len(m.Pid)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	return n
+}
+
 func sovHeartbeat(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
@@ -1027,6 +1477,35 @@ func (this *DbTimeStamp) String() string {
 	}
 	s := strings.Join([]string{`&DbTimeStamp{`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *HeartbeatV2) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&HeartbeatV2{`,
+		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
+		`VersionNumber:` + fmt.Sprintf("%v", this.VersionNumber) + `,`,
+		`NodeDisplayName:` + fmt.Sprintf("%v", this.NodeDisplayName) + `,`,
+		`Identity:` + fmt.Sprintf("%v", this.Identity) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PeerInfo) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PeerInfo{`,
+		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
+		`Pubkey:` + fmt.Sprintf("%v", this.Pubkey) + `,`,
+		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
+		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
+		`Pid:` + fmt.Sprintf("%v", this.Pid) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1840,6 +2319,435 @@ func (m *DbTimeStamp) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipHeartbeat(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HeartbeatV2) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowHeartbeat
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HeartbeatV2: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HeartbeatV2: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Payload = append(m.Payload[:0], dAtA[iNdEx:postIndex]...)
+			if m.Payload == nil {
+				m.Payload = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
+			}
+			m.ShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VersionNumber", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VersionNumber = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NodeDisplayName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NodeDisplayName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Identity", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Identity = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipHeartbeat(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PeerInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowHeartbeat
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PeerInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PeerInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Payload = append(m.Payload[:0], dAtA[iNdEx:postIndex]...)
+			if m.Payload == nil {
+				m.Payload = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pubkey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Pubkey = append(m.Pubkey[:0], dAtA[iNdEx:postIndex]...)
+			if m.Pubkey == nil {
+				m.Pubkey = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signature = append(m.Signature[:0], dAtA[iNdEx:postIndex]...)
+			if m.Signature == nil {
+				m.Signature = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
+			}
+			m.ShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pid", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Pid = append(m.Pid[:0], dAtA[iNdEx:postIndex]...)
+			if m.Pid == nil {
+				m.Pid = []byte{}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHeartbeat(dAtA[iNdEx:])
