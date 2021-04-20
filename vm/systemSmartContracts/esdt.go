@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -173,6 +174,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.transferOwnership(args)
 	case "getTokenProperties":
 		return e.getTokenProperties(args)
+	case "getSpecialRoles":
+		return e.getSpecialRoles(args)
 	case "setSpecialRole":
 		return e.setSpecialRole(args)
 	case "unSetSpecialRole":
@@ -897,6 +900,44 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish([]byte("CanFreeze-" + getStringFromBool(esdtToken.CanFreeze)))
 	e.eei.Finish([]byte("CanWipe-" + getStringFromBool(esdtToken.CanWipe)))
 	e.eei.Finish([]byte("CanAddSpecialRoles-" + getStringFromBool(esdtToken.CanAddSpecialRoles)))
+	e.eei.Finish([]byte("CanTransferNFTCreateRole-" + getStringFromBool(esdtToken.CanTransferNFTCreateRole)))
+	e.eei.Finish([]byte("NFTCreateStopped-" + getStringFromBool(esdtToken.NFTCreateStopped)))
+	e.eei.Finish([]byte(fmt.Sprintf("NumWiped-%d", esdtToken.NumWiped)))
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	esdtToken, err := e.getExistingToken(args.Arguments[0])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	specialRoles := esdtToken.SpecialRoles
+	for _, specialRole := range specialRoles {
+		rolesAsString := make([]string, 0)
+		for _, role := range specialRole.Roles {
+			rolesAsString = append(rolesAsString, string(role))
+		}
+		roles := strings.Join(rolesAsString, ",")
+		message := fmt.Sprintf("%s:%s", e.addressPubKeyConverter.Encode(specialRole.Address), roles)
+		e.eei.Finish([]byte(message))
+	}
 
 	return vmcommon.Ok
 }
@@ -1168,6 +1209,18 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
+	}
+
+	if len(esdtRole.Roles) == 0 {
+		for i, roles := range token.SpecialRoles {
+			if bytes.Equal(roles.Address, address) {
+				copy(token.SpecialRoles[i:], token.SpecialRoles[i+1:])
+				token.SpecialRoles[len(token.SpecialRoles)-1] = nil
+				token.SpecialRoles = token.SpecialRoles[:len(token.SpecialRoles)-1]
+
+				break
+			}
+		}
 	}
 
 	err = e.saveToken(args.Arguments[0], token)

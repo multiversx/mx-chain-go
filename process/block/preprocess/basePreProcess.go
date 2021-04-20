@@ -369,10 +369,9 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 			return 0, 0, process.ErrInsufficientGasLimitInTx
 		}
 
-		txGasLimitInReceiverShard -= txGasRefunded
-
 		if senderShardId == receiverShardId {
 			txGasLimitInSenderShard -= txGasRefunded
+			txGasLimitInReceiverShard -= txGasRefunded
 		}
 	}
 

@@ -135,7 +135,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc)
+	newFunc, err = NewESDTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, b.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
