@@ -368,8 +368,7 @@ func TestNewMetaProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 func TestNewMetaProcessor_NilScheduledTxsExecutionHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents, dataComponents := createMockComponentHolders()
-	arguments := createMockMetaArguments(coreComponents, dataComponents)
+	arguments := createMockMetaArguments(createMockComponentHolders())
 	arguments.ScheduledTxsExecutionHandler = nil
 
 	be, err := blproc.NewMetaProcessor(arguments)

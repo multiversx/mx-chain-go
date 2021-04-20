@@ -52,7 +52,7 @@ type ArgBaseProcessor struct {
 	DataComponents               dataComponentsHolder
 	BootstrapComponents          bootstrapComponentsHolder
 	StatusComponents             statusComponentsHolder
-	Config                       config.ConfigAccountsDB
+	Config                       config.Config
 	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                 process.ForkDetector
 	NodesCoordinator             sharding.NodesCoordinator
