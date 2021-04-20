@@ -1,6 +1,8 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
@@ -19,6 +21,8 @@ type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	RoundHandler() consensus.RoundHandler
+	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 
@@ -29,14 +33,28 @@ type dataComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+type bootstrapComponentsHolder interface {
+	ShardCoordinator() sharding.Coordinator
+	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	IsInterfaceNil() bool
+}
+
+type statusComponentsHolder interface {
+	ElasticIndexer() process.Indexer
+	TpsBenchmark() statistics.TPSBenchmark
+	IsInterfaceNil() bool
+}
+
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
 	CoreComponents               coreComponentsHolder
 	DataComponents               dataComponentsHolder
+	BootstrapComponents          bootstrapComponentsHolder
+	StatusComponents             statusComponentsHolder
+	Config                       config.Config
 	AccountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                 process.ForkDetector
-	ShardCoordinator             sharding.Coordinator
 	NodesCoordinator             sharding.NodesCoordinator
 	FeeHandler                   process.TransactionFeeHandler
 	RequestHandler               process.RequestHandler
@@ -44,18 +62,12 @@ type ArgBaseProcessor struct {
 	TxCoordinator                process.TransactionCoordinator
 	EpochStartTrigger            process.EpochStartTriggerHandler
 	HeaderValidator              process.HeaderConstructionValidator
-	RoundHandler                 consensus.RoundHandler
 	BootStorer                   process.BootStorer
 	BlockTracker                 process.BlockTracker
-	StateCheckpointModulus       uint
 	BlockSizeThrottler           process.BlockSizeThrottler
-	Indexer                      process.Indexer
-	TpsBenchmark                 statistics.TPSBenchmark
 	Version                      string
 	HistoryRepository            dblookupext.HistoryRepository
 	EpochNotifier                process.EpochNotifier
-	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
-	AppStatusHandler             core.AppStatusHandler
 	VMContainersFactory          process.VirtualMachinesContainerFactory
 	VmContainer                  process.VirtualMachinesContainer
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler

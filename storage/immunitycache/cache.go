@@ -199,6 +199,11 @@ func (ic *ImmunityCache) Len() int {
 	return ic.Count()
 }
 
+// SizeInBytesContained returns 0
+func (ic *ImmunityCache) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // Count returns the number of elements within the map
 func (ic *ImmunityCache) Count() int {
 	count := 0

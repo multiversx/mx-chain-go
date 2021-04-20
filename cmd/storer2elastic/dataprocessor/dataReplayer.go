@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -398,8 +399,15 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	header data.HeaderHandler,
 	persisters *persistersHolder,
 	mbHashes [][]byte,
-) (*block.Body, map[string]data.TransactionHandler, error) {
-	txPool := make(map[string]data.TransactionHandler)
+) (*block.Body, *indexer.Pool, error) {
+	txsPool := &indexer.Pool{
+		Txs:      map[string]data.TransactionHandler{},
+		Scrs:     map[string]data.TransactionHandler{},
+		Invalid:  map[string]data.TransactionHandler{},
+		Rewards:  map[string]data.TransactionHandler{},
+		Receipts: map[string]data.TransactionHandler{},
+	}
+
 	mbUnit := persisters.miniBlocksPersister
 
 	blockBody := &block.Body{}
@@ -414,7 +422,7 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 			return nil, nil, err
 		}
 
-		err = dr.processTransactionsForMiniBlock(persisters, recoveredMiniBlock.TxHashes, txPool, recoveredMiniBlock.Type)
+		err = dr.processTransactionsForMiniBlock(persisters, recoveredMiniBlock.TxHashes, txsPool, recoveredMiniBlock.Type)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -429,14 +437,14 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	if receiptsMiniBlocks != nil {
 		blockBody.MiniBlocks = append(blockBody.MiniBlocks, receiptsMiniBlocks...)
 		for _, miniBlock := range receiptsMiniBlocks {
-			err = dr.processTransactionsForMiniBlock(persisters, miniBlock.TxHashes, txPool, miniBlock.Type)
+			err = dr.processTransactionsForMiniBlock(persisters, miniBlock.TxHashes, txsPool, miniBlock.Type)
 			if err != nil {
 				return nil, nil, err
 			}
 		}
 	}
 
-	return blockBody, txPool, nil
+	return blockBody, txsPool, nil
 }
 
 func (dr *dataReplayer) getReceiptsIfNeeded(holder *persistersHolder, hdr data.HeaderHandler) ([]*block.MiniBlock, error) {
@@ -492,7 +500,7 @@ func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash
 func (dr *dataReplayer) processTransactionsForMiniBlock(
 	persisters *persistersHolder,
 	txHashes [][]byte,
-	txPool map[string]data.TransactionHandler,
+	pool *indexer.Pool,
 	mbType block.Type,
 ) error {
 	for _, txHash := range txHashes {
@@ -519,10 +527,26 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 			return fmt.Errorf("transaction recovered from storage with hash %s is nil", hex.EncodeToString(txHash))
 		}
 
-		txPool[string(txHash)] = tx
+		putTxInPool(pool, mbType, tx, txHash)
+
 	}
 
 	return nil
+}
+
+func putTxInPool(pool *indexer.Pool, mbType block.Type, tx data.TransactionHandler, txHash []byte) {
+	switch mbType {
+	case block.TxBlock:
+		pool.Txs[string(txHash)] = tx
+	case block.InvalidBlock:
+		pool.Invalid[string(txHash)] = tx
+	case block.RewardsBlock:
+		pool.Rewards[string(txHash)] = tx
+	case block.ReceiptBlock:
+		pool.Receipts[string(txHash)] = tx
+	case block.SmartContractResultBlock:
+		pool.Scrs[string(txHash)] = tx
+	}
 }
 
 func (dr *dataReplayer) getRegularTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {

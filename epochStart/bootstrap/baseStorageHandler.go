@@ -65,24 +65,6 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	return metaBlock.GetPrevRandSeed(), nil
 }
 
-func (bsh *baseStorageHandler) commitTries(components *ComponentsNeededForBootstrap) error {
-	for _, trie := range components.UserAccountTries {
-		err := trie.Commit()
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, trie := range components.PeerAccountTries {
-		err := trie.Commit()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler) ([]byte, error) {
 	headerBytes, err := bsh.marshalizer.Marshal(metaBlock)
 	if err != nil {

@@ -117,6 +117,18 @@ func (msc *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
 	return msc.stateComponents.accountsAdapter
 }
 
+// AccountsAdapterAPI returns the accounts adapter for the user accounts to be used in REST API
+func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.accountsAdapterAPI
+}
+
 // TriesContainer returns the tries container
 func (msc *managedStateComponents) TriesContainer() state.TriesHolder {
 	msc.mutStateComponents.RLock()

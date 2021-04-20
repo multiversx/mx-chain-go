@@ -1217,7 +1217,8 @@ func TestEconomics_checkEconomicsInvariantsV1ReturnsOK(t *testing.T) {
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.Nil(t, err)
 }
 
@@ -1240,7 +1241,8 @@ func TestEconomics_checkEconomicsInvariantsInflationOutOfRange(t *testing.T) {
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidInflationRate.Error())
@@ -1252,7 +1254,8 @@ func TestEconomics_checkEconomicsInvariantsInflationOutOfRange(t *testing.T) {
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidInflationRate.Error())
 }
@@ -1280,7 +1283,8 @@ func TestEconomics_checkEconomicsInvariantsAccumulatedFeesOutOfRange(t *testing.
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedFees.Error())
@@ -1294,7 +1298,8 @@ func TestEconomics_checkEconomicsInvariantsAccumulatedFeesOutOfRange(t *testing.
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedFees.Error())
 }
@@ -1322,7 +1327,8 @@ func TestEconomics_checkEconomicsInvariantsRewardsForProtocolSustainabilityOutOf
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards.Error())
@@ -1336,7 +1342,8 @@ func TestEconomics_checkEconomicsInvariantsRewardsForProtocolSustainabilityOutOf
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards.Error())
 }
@@ -1364,7 +1371,8 @@ func TestEconomics_checkEconomicsInvariantsMintedOutOfRange(t *testing.T) {
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidAmountMintedTokens.Error())
@@ -1378,7 +1386,8 @@ func TestEconomics_checkEconomicsInvariantsMintedOutOfRange(t *testing.T) {
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidAmountMintedTokens.Error())
 }
@@ -1406,7 +1415,8 @@ func TestEconomics_checkEconomicsInvariantsTotalToDistributeOutOfRange(t *testin
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidTotalToDistribute.Error())
@@ -1420,7 +1430,8 @@ func TestEconomics_checkEconomicsInvariantsTotalToDistributeOutOfRange(t *testin
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidTotalToDistribute.Error())
 }
@@ -1448,7 +1459,8 @@ func TestEconomics_checkEconomicsInvariantsSumRewardsOutOfRange(t *testing.T) {
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		maxBlocksInEpoch)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidRewardsPerBlock.Error())
@@ -1462,7 +1474,8 @@ func TestEconomics_checkEconomicsInvariantsSumRewardsOutOfRange(t *testing.T) {
 		300,
 		260,
 		metaBlock,
-		1)
+		1,
+		300)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidRewardsPerBlock.Error())
 }
@@ -1488,7 +1501,35 @@ func TestEconomics_checkEconomicsInvariantsV2ReturnsOK(t *testing.T) {
 		maxBlocksInEpoch,
 		260,
 		metaBlock,
-		1)
+		1,
+		maxBlocksInEpoch)
+	require.Nil(t, err)
+}
+
+func TestEconomics_checkEconomicsInvariantsV2ExtraBlocksNotarized(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	extraBlocksNotarized := uint64(100)
+	actualInflationPerEpochWithCarry := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch+extraBlocksNotarized)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, actualInflationPerEpochWithCarry)
+
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		inflationRate,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1,
+		maxBlocksInEpoch+extraBlocksNotarized)
 	require.Nil(t, err)
 }
 

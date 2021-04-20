@@ -20,32 +20,32 @@ func (rtx *RewardTx) SetValue(value *big.Int) {
 }
 
 // GetNonce returns 0 as reward transactions do not have a nonce
-func (_ *RewardTx) GetNonce() uint64 {
+func (rtx *RewardTx) GetNonce() uint64 {
 	return 0
 }
 
 // GetData returns the data of the reward transaction
-func (_ *RewardTx) GetData() []byte {
+func (rtx *RewardTx) GetData() []byte {
 	return []byte("")
 }
 
 // GetSndAddr returns the sender address from the reward transaction
-func (_ *RewardTx) GetSndAddr() []byte {
+func (rtx *RewardTx) GetSndAddr() []byte {
 	return nil
 }
 
 // GetGasLimit returns the gas limit of the smart reward transaction
-func (_ *RewardTx) GetGasLimit() uint64 {
+func (rtx *RewardTx) GetGasLimit() uint64 {
 	return 0
 }
 
 // GetGasPrice returns the gas price of the smart reward transaction
-func (_ *RewardTx) GetGasPrice() uint64 {
+func (rtx *RewardTx) GetGasPrice() uint64 {
 	return 0
 }
 
 // SetData sets the data of the reward transaction
-func (_ *RewardTx) SetData(data []byte) {
+func (rtx *RewardTx) SetData(_ []byte) {
 }
 
 // SetRcvAddr sets the receiver address of the reward transaction
@@ -54,11 +54,11 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 }
 
 // SetSndAddr sets the sender address of the reward transaction
-func (_ *RewardTx) SetSndAddr(addr []byte) {
+func (rtx *RewardTx) SetSndAddr(_ []byte) {
 }
 
 // GetRcvUserName returns the receiver user name from the reward transaction
-func (_ *RewardTx) GetRcvUserName() []byte {
+func (rtx *RewardTx) GetRcvUserName() []byte {
 	return nil
 }
 

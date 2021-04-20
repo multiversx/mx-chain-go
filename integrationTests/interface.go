@@ -3,10 +3,10 @@ package integrationTests
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	dataApi "github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -58,8 +58,8 @@ type Facade interface {
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (state.UserAccountHandler, error)
 	GetCode(account state.UserAccountHandler) []byte
-	GetESDTBalance(address string, key string) (string, string, error)
-	GetAllESDTTokens(address string) ([]string, error)
+	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)
 	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
@@ -85,6 +85,5 @@ type Facade interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
-	CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error)
 	IsInterfaceNil() bool
 }

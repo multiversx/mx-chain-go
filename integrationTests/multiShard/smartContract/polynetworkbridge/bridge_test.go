@@ -26,14 +26,10 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	ownerNode := nodes[0]
@@ -48,7 +44,6 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

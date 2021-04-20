@@ -34,6 +34,11 @@ type EnableEpochs struct {
 	GovernanceEnableEpoch                  uint32
 	DelegationManagerEnableEpoch           uint32
 	DelegationSmartContractEnableEpoch     uint32
+	CorrectLastUnjailedEpoch               uint32
+	BalanceWaitingListsEnableEpoch         uint32
+	ReturnDataToLastTransferEnableEpoch    uint32
+	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
 	ScheduledMiniBlocksEnableEpoch         uint32
 }
 

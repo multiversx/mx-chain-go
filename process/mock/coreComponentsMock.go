@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -20,12 +21,13 @@ type CoreComponentsMock struct {
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
 	PathHdl                     storage.PathManagerHandler
-	StatusHandlerCalled         func() core.AppStatusHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	EpochNotifierField          process.EpochNotifier
+	RoundField                  consensus.RoundHandler
+	StatusField                 core.AppStatusHandler
 }
 
 // InternalMarshalizer -
@@ -95,14 +97,6 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheckField
 }
 
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	if ccm.StatusHandlerCalled != nil {
-		return ccm.StatusHandlerCalled()
-	}
-	return nil
-}
-
 // GenesisNodesSetup -
 func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	if ccm.GenesisNodesSetupCalled != nil {
@@ -114,6 +108,16 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 // EpochNotifier -
 func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochNotifierField
+}
+
+// RoundHandler -
+func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
+	return ccm.RoundField
+}
+
+// StatusHandler -
+func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
+	return ccm.StatusField
 }
 
 // IsInterfaceNil -
