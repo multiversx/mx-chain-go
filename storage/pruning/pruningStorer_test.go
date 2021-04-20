@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,9 +45,21 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 
 func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
+
+	lockPersisterMap := sync.Mutex{}
+	persistersMap := make(map[string]storage.Persister)
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return memorydb.New(), nil
+			lockPersisterMap.Lock()
+			defer lockPersisterMap.Unlock()
+
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = memorydb.New()
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
 		},
 	}
 	return &pruning.StorerArgs{
@@ -496,11 +509,11 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 
 	defer func() {
 		dr := factory.NewDirectoryReader()
-		directories, err := dr.ListDirectoriesAsString(".")
-		assert.NoError(t, err)
+		directories, errList := dr.ListDirectoriesAsString(".")
+		assert.NoError(t, errList)
 		for _, dir := range directories {
 			if strings.HasPrefix(dir, "TestOnly-") {
-				err = os.RemoveAll(dir)
+				errList = os.RemoveAll(dir)
 				assert.NoError(t, err)
 			}
 		}

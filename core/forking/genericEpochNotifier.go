@@ -13,6 +13,7 @@ var log = logger.GetOrCreate("core/forking")
 
 type genericEpochNotifier struct {
 	mutData          sync.RWMutex
+	wasInitialized   bool
 	currentEpoch     uint32
 	currentTimestamp uint64
 	mutHandler       sync.RWMutex
@@ -22,7 +23,8 @@ type genericEpochNotifier struct {
 // NewGenericEpochNotifier creates a new instance of a genericEpochNotifier component
 func NewGenericEpochNotifier() *genericEpochNotifier {
 	return &genericEpochNotifier{
-		handlers: make([]core.EpochSubscriberHandler, 0),
+		wasInitialized: false,
+		handlers:       make([]core.EpochSubscriberHandler, 0),
 	}
 }
 
@@ -36,12 +38,13 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 	gen.mutData.Lock()
 	epoch := header.GetEpoch()
 	timestamp := header.GetTimeStamp()
-	if gen.currentEpoch == epoch {
+	shouldSkipHeader := gen.wasInitialized && gen.currentEpoch == epoch
+	if shouldSkipHeader {
 		gen.mutData.Unlock()
 
 		return
 	}
-
+	gen.wasInitialized = true
 	gen.currentEpoch = epoch
 	gen.currentTimestamp = timestamp
 	gen.mutData.Unlock()

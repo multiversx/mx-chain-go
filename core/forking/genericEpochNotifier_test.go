@@ -87,7 +87,7 @@ func TestGenericEpochNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 		},
 	})
 
-	gep.CheckEpoch(&mock.HeaderHandlerStub{
+	gep.CheckEpoch(&mock.HeaderHandlerStub{ //this header will trigger the inner state update
 		EpochField:     0,
 		TimestampField: 11,
 	})
@@ -96,8 +96,8 @@ func TestGenericEpochNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 		TimestampField: 12,
 	})
 
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
-	assert.Equal(t, uint64(0), gep.CurrentTimestamp())
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalls))
+	assert.Equal(t, uint64(11), gep.CurrentTimestamp())
 }
 
 func TestGenericEpochNotifier_CheckEpochShouldCall(t *testing.T) {

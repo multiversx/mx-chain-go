@@ -1235,7 +1235,10 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
 	args.ESDTEnableEpoch = 1
 	args.SwitchJailWaitingEnableEpoch = 1000000
-	args.EpochNotifier.CheckEpoch(1)
+	hdr := &block.MetaBlock{
+		Epoch: 1,
+	}
+	args.EpochNotifier.CheckEpoch(hdr)
 	s, _ := NewSystemSCProcessor(args)
 
 	initialContractConfig, err := s.extractConfigFromESDTContract()
