@@ -18,7 +18,8 @@ import (
 func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
-	transferFunc, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{})
+	shardC := &mock.ShardCoordinatorStub{}
+	transferFunc, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{}, shardC)
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 	_, err := transferFunc.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
@@ -47,13 +48,21 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	accSnd := state.NewEmptyUserAccount()
 	_, err = transferFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrNotEnoughGas)
+
+	input.GasProvided = transferFunc.funcGasCost
+	input.RecipientAddr = vm.ESDTSCAddress
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return core.MetachainShardId
+	}
+	_, err = transferFunc.ProcessBuiltinFunction(accSnd, nil, input)
+	assert.Equal(t, err, process.ErrInvalidRcvAddr)
 }
 
 func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -91,7 +100,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -121,7 +130,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -151,7 +160,7 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	accountStub := &mock.AccountsStub{}
 	esdtPauseFunc, _ := NewESDTPauseFunc(accountStub, true)
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, esdtPauseFunc)
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, esdtPauseFunc, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -216,7 +225,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionOnAsyncCallBack(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
