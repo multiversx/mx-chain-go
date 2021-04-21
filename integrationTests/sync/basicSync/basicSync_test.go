@@ -21,41 +21,38 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	shardId := uint32(0)
 	numNodesPerShard := 6
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
+	connectableNodes := make([]integrationTests.Connectable, 0)
 	for i := 0; i < numNodesPerShard; i++ {
 		nodes[i] = integrationTests.NewTestSyncNode(
 			maxShards,
 			shardId,
 			shardId,
-			advertiserAddr,
 		)
+		connectableNodes = append(connectableNodes, nodes[i])
 	}
 
 	metachainNode := integrationTests.NewTestSyncNode(
 		maxShards,
 		core.MetachainShardId,
 		shardId,
-		advertiserAddr,
 	)
 	idxProposerMeta := numNodesPerShard
 	nodes[idxProposerMeta] = metachainNode
+	connectableNodes = append(connectableNodes, metachainNode)
 
 	idxProposerShard0 := 0
 	idxProposers := []int{idxProposerShard0, idxProposerMeta}
 
+	integrationTests.ConnectNodes(connectableNodes)
+
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
 		_ = n.StartSync()
 	}
 
@@ -93,32 +90,29 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	shardId := uint32(0)
 	numNodesPerShard := 6
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
-
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard)
+	connectableNodes := make([]integrationTests.Connectable, 0)
 	for i := 0; i < numNodesPerShard; i++ {
 		nodes[i] = integrationTests.NewTestSyncNode(
 			maxShards,
 			shardId,
 			shardId,
-			advertiserAddr,
 		)
+		connectableNodes = append(connectableNodes, nodes[i])
 	}
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposerShard0 := 0
 	idxProposers := []int{idxProposerShard0}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
 		_ = n.StartSync()
 	}
 

@@ -16,6 +16,7 @@ const (
 	getConfigPath        = "/config"
 	getStatusPath        = "/status"
 	economicsPath        = "/economics"
+	getESDTsPath         = "/esdts"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
 )
@@ -26,6 +27,7 @@ type FacadeHandler interface {
 	GetDirectStakedList() ([]*api.DirectStakedValue, error)
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
+	GetAllIssuedESDTs() ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -34,6 +36,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
 	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
 	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
 }
@@ -125,13 +128,43 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalStakedValue] = stakeValues.TotalStaked.String()
+	metrics[core.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
 	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"metrics": metrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetAllIssuedESDTs returns all the issued esdts from the metachain
+func GetAllIssuedESDTs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	tokens, err := facade.GetAllIssuedESDTs()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

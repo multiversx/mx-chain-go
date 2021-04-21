@@ -260,6 +260,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Marshalizer,
 		Accounts:             arg.Accounts,
+		ShardCoordinator:     arg.ShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -291,6 +292,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		DeployEnableEpoch:              arg.GeneralConfig.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
+		ArwenESDTFunctionsEnableEpoch:  arg.GeneralConfig.ArwenESDTFunctionsEnableEpoch,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -361,30 +363,32 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    vmContainer,
-		ArgsParser:                     smartContract.NewArgumentParser(),
-		Hasher:                         arg.Hasher,
-		Marshalizer:                    arg.Marshalizer,
-		AccountsDB:                     arg.Accounts,
-		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:                     arg.PubkeyConv,
-		ShardCoordinator:               arg.ShardCoordinator,
-		ScrForwarder:                   scForwarder,
-		TxFeeHandler:                   genesisFeeHandler,
-		EconomicsFee:                   genesisFeeHandler,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     gasHandler,
-		GasSchedule:                    arg.GasSchedule,
-		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:                arg.TxLogsProcessor,
-		BadTxForwarder:                 badTxInterim,
-		EpochNotifier:                  epochNotifier,
-		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
-		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
-		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch:           arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		VmContainer:                         vmContainer,
+		ArgsParser:                          smartContract.NewArgumentParser(),
+		Hasher:                              arg.Hasher,
+		Marshalizer:                         arg.Marshalizer,
+		AccountsDB:                          arg.Accounts,
+		BlockChainHook:                      vmFactoryImpl.BlockChainHookImpl(),
+		PubkeyConv:                          arg.PubkeyConv,
+		ShardCoordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                        scForwarder,
+		TxFeeHandler:                        genesisFeeHandler,
+		EconomicsFee:                        genesisFeeHandler,
+		TxTypeHandler:                       txTypeHandler,
+		GasHandler:                          gasHandler,
+		GasSchedule:                         arg.GasSchedule,
+		BuiltInFunctions:                    vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                     arg.TxLogsProcessor,
+		BadTxForwarder:                      badTxInterim,
+		EpochNotifier:                       epochNotifier,
+		BuiltinEnableEpoch:                  generalConfig.BuiltInFunctionsEnableEpoch,
+		DeployEnableEpoch:                   generalConfig.SCDeployEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:      generalConfig.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:           generalConfig.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
+		IsGenesisProcessing:                 true,
+		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

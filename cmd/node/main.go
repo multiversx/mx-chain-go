@@ -844,12 +844,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: generalConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return err
+	}
+
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: gasScheduleNotifier,
+	})
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    generalConfig.GeneralSettings.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -882,12 +902,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	argsNodesShuffler := &sharding.NodesShufflerArgs{
-		NodesShard:           genesisNodesConfig.MinNodesPerShard,
-		NodesMeta:            genesisNodesConfig.MetaChainMinNodes,
-		Hysteresis:           genesisNodesConfig.Hysteresis,
-		Adaptivity:           genesisNodesConfig.Adaptivity,
-		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		NodesShard:                     genesisNodesConfig.MinNodesPerShard,
+		NodesMeta:                      genesisNodesConfig.MetaChainMinNodes,
+		Hysteresis:                     genesisNodesConfig.Hysteresis,
+		Adaptivity:                     genesisNodesConfig.Adaptivity,
+		ShuffleBetweenShards:           true,
+		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -1219,17 +1240,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		isInImportMode,
 	)
-	if err != nil {
-		return err
-	}
-
-	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: generalConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-	}
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
 		return err
 	}
@@ -1869,7 +1879,12 @@ func createShardCoordinator(
 			return nil, "", err
 		}
 		if selfShardId == core.DisabledShardIDAsObserver {
-			selfShardId = uint32(0)
+			pubKeyBytes, err := pubKey.ToByteArray()
+			if err != nil {
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
+			}
+
+			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 		}
 	}
 	if err != nil {
@@ -1914,7 +1929,12 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		shardIDAsObserver = uint32(0)
+		pubKeyBytes, err := pubKey.ToByteArray()
+		if err != nil {
+			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
+		}
+
+		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
@@ -2515,6 +2535,7 @@ func createApiResolver(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2671,6 +2692,7 @@ func createScQueryElement(
 		gasScheduleNotifier,
 		marshalizer,
 		accnts,
+		shardCoordinator,
 	)
 	if err != nil {
 		return nil, err
@@ -2729,6 +2751,7 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
@@ -2754,12 +2777,14 @@ func createBuiltinFuncs(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (process.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      marshalizer,
+		Accounts:         accnts,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {

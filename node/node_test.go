@@ -232,10 +232,12 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					suffix := append(k1, acc.AddressBytes()...)
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
 					ch <- trieLeaf
 
-					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					suffix = append(k2, acc.AddressBytes()...)
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					ch <- trieLeaf2
 					close(ch)
 				}()
@@ -300,7 +302,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(v1), value)
 }
 
-func TestNode_GetESDTBalance(t *testing.T) {
+func TestNode_GetESDTData(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -321,9 +323,36 @@ func TestNode_GetESDTBalance(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), value)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
+}
+
+func TestNode_GetESDTDataForNFT(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	nonce := int64(100)
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken + string(big.NewInt(100).Bytes()))
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
@@ -335,13 +364,16 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
 	acc.DataTrieTracker().SetDataTrie(
 		&mock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, marshalledData)
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
@@ -371,10 +403,139 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		}),
 	)
 
-	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
+	value, err := n.GetAllESDTTokens(hexAddress)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
-	assert.Equal(t, esdtToken, value[0])
+	assert.Equal(t, esdtData, value[esdtToken])
+}
+
+func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	esdtToken := "TKKR-7q8w9e"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
+	nftToken := "TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKey = append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKey, acc.AddressBytes()...)
+
+	nftData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder, 2)
+
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					ch <- trieLeaf
+					wg.Done()
+					close(ch)
+				}()
+
+				wg.Wait()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithBlockChain(&mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}),
+	)
+
+	tokens, err := n.GetAllESDTTokens(hexAddress)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(tokens))
+	assert.Equal(t, esdtData, tokens[esdtToken])
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func TestNode_GetAllIssuedESDTs(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := []byte("TCK-RANDOM")
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	suffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, suffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
+		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		}}),
+	)
+
+	value, err := n.GetAllIssuedESDTs()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, string(esdtToken), value[0])
 }
 
 //------- GenerateTransaction
@@ -2341,6 +2502,140 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestStartConsensus_MetaBootstrapper(t *testing.T) {
+	t.Parallel()
+
+	chainHandler := &mock.ChainHandlerStub{
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("hdrHash")
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+	rf := &mock.ResolversFinderStub{
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+			return &mock.MiniBlocksResolverStub{}, nil
+		},
+		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+			return &mock.HeaderResolverStub{}, nil
+		},
+	}
+
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+
+	shardC := mock.NewMultiShardsCoordinatorMock(2)
+	shardC.ComputeIdCalled = func(_ []byte) uint32 {
+		return core.MetachainShardId
+	}
+	shardC.CurrentShard = core.MetachainShardId
+
+	n, _ := node.NewNode(
+		node.WithDataPool(&testscommon.PoolsHolderStub{
+			MiniBlocksCalled: func() storage.Cacher {
+				return &testscommon.CacherStub{
+					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
+
+					},
+				}
+			},
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
+
+					},
+				}
+			},
+		}),
+		node.WithBlockChain(chainHandler),
+		node.WithRounder(&mock.RounderMock{}),
+		node.WithGenesisTime(time.Now().Local()),
+		node.WithSyncer(&mock.SyncTimerStub{}),
+		node.WithShardCoordinator(shardC),
+		node.WithAccountsAdapter(accountDb),
+		node.WithResolversFinder(rf),
+		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithHasher(&mock.HasherMock{}),
+		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
+		node.WithForkDetector(&mock.ForkDetectorMock{
+			CheckForkCalled: func() *process.ForkInfo {
+				return &process.ForkInfo{}
+			},
+			ProbableHighestNonceCalled: func() uint64 {
+				return 0
+			},
+		}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
+		node.WithMessenger(&mock.MessengerStub{
+			IsConnectedToTheNetworkCalled: func() bool {
+				return false
+			},
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return true
+			},
+			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+				return nil
+			},
+		}),
+		node.WithBootStorer(&mock.BoostrapStorerMock{
+			GetHighestRoundCalled: func() int64 {
+				return 0
+			},
+			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
+				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
+			},
+		}),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
+		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
+		node.WithPubKey(&mock.PublicKeyMock{
+			ToByteArrayHandler: func() (i []byte, err error) {
+				return []byte("keyBytes"), nil
+			},
+		}),
+		node.WithConsensusType("bls"),
+		node.WithPrivKey(&mock.PrivateKeyStub{}),
+		node.WithSingleSigner(&mock.SingleSignerMock{}),
+		node.WithKeyGen(&mock.KeyGenMock{}),
+		node.WithChainID([]byte("id")),
+		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
+		node.WithMultiSigner(&mock.MultisignMock{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{}),
+		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
+		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
+		node.WithRequestHandler(&mock.RequestHandlerStub{}),
+		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
+		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
+		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
+		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
+		node.WithIndexer(elasticIndexer.NewNilIndexer()),
+		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
+	)
+
+	err := n.StartConsensus()
+	assert.Nil(t, err)
+}
+
 //------- GetAccount
 
 func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
@@ -3087,7 +3382,7 @@ func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
 
 	res, err := n.GetKeyValuePairs("addr")
 	require.Nil(t, res)
-	require.Equal(t, node.ErrAccountNotFound, err)
+	require.Equal(t, node.ErrNilBlockHeader, err)
 }
 
 func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {

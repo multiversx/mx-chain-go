@@ -40,7 +40,6 @@ func createTestProcessorNodeAndTrieStorage(
 	numOfShards uint32,
 	shardID uint32,
 	txSignPrivKeyShardId uint32,
-	nodeAddr string,
 ) (*integrationTests.TestProcessorNode, storage.Storer) {
 
 	cacheConfig := storageUnit.CacheConfig{
@@ -69,7 +68,7 @@ func createTestProcessorNodeAndTrieStorage(
 	trieStorage, err := storageUnit.NewStorageUnit(trieCache, triePersister)
 	require.Nil(t, err)
 
-	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, nodeAddr, trieStorage, createTestGasMap())
+	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(numOfShards, shardID, txSignPrivKeyShardId, trieStorage, createTestGasMap())
 	_ = node.Messenger.CreateTopic(core.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, trieStorage
@@ -83,14 +82,12 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	var nrOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
-	requesterNodeAddr := "0"
-	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -101,8 +98,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
-	assert.Nil(t, err)
+	err := nRequester.ConnectTo(nResolver)
+	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 
@@ -213,14 +210,12 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	var nrOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
-	requesterNodeAddr := "0"
-	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = trieStorageRequester.DestroyUnit()
@@ -231,8 +226,8 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
-	assert.Nil(t, err)
+	err := nRequester.ConnectTo(nResolver)
+	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 

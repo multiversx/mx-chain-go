@@ -25,21 +25,16 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	mintValue := big.NewInt(1000000000000000000)
 	integrationTests.MintAllNodes(nodes, mintValue)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

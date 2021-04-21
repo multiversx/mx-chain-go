@@ -11,7 +11,8 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	AddToBalanceCalled func(value *big.Int) error
+	AddToBalanceCalled    func(value *big.Int) error
+	DataTrieTrackerCalled func() state.DataTrieTracker
 }
 
 // HasNewCode -
@@ -136,6 +137,9 @@ func (u *UserAccountStub) DataTrie() data.Trie {
 
 // DataTrieTracker -
 func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
+	if u.DataTrieTrackerCalled != nil {
+		return u.DataTrieTrackerCalled()
+	}
 	return nil
 }
 

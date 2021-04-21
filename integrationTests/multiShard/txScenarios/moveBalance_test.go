@@ -17,9 +17,8 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	}
 
 	initialBalance := big.NewInt(1000000000000)
-	nodes, idxProposers, players, advertiser := createGeneralSetupForTxTest(initialBalance)
+	nodes, idxProposers, players := createGeneralSetupForTxTest(initialBalance)
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

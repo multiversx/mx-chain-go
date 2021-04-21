@@ -95,10 +95,10 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(183070)
+	expectedAccumulatedFees = big.NewInt(190300)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(18306)
+	developerFees := big.NewInt(19029)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
@@ -215,10 +215,10 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(183070)
+	expectedAccumulatedFees = big.NewInt(190300)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(18306)
+	developerFees := big.NewInt(19029)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
@@ -238,7 +238,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	utils.CheckESDTBalance(t, testContextSecondContract, secondSCAddress, token, big.NewInt(0))
 
-	accumulatedFee := big.NewInt(3740770)
+	accumulatedFee := big.NewInt(3720360)
 	require.Equal(t, accumulatedFee, testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
 
 	developerFees = big.NewInt(0)
@@ -249,5 +249,5 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(1258280), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(1278690), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }

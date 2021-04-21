@@ -338,7 +338,7 @@ func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) *patriciaMerkl
 func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patriciaMerkleTrie, error) {
 	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db == nil {
-		return nil, ErrHashNotFound
+		return nil, fmt.Errorf("%w for %s", ErrHashNotFound, hex.EncodeToString(rootHash))
 	}
 	defer db.DecreaseNumReferences()
 
@@ -507,7 +507,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 	db := getDbThatContainsHash(tr.trieStorage, rootHash)
 	if db == nil {
-		return nil, 0, ErrHashNotFound
+		return nil, 0, fmt.Errorf("%w for %s", ErrHashNotFound, hex.EncodeToString(rootHash))
 	}
 	defer db.DecreaseNumReferences()
 
