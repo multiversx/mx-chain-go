@@ -108,7 +108,7 @@ func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([
 
 	isActiveEpoch := epoch > oldestEpochInCurrentSetting-fhps.numOfActivePersisters
 	if isActiveEpoch {
-		return fhps.PruningStorer.Get(key)
+		return fhps.PruningStorer.SearchFirst(key)
 	}
 
 	data, err := fhps.getFromOldEpoch(key, epoch)
@@ -130,6 +130,7 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		return res, nil
 	}
 
+	//TODO(iulian) move this log to Trace
 	log.Debug("GetFromEpoch persister",
 		"id", fhps.identifier,
 		"epoch", epoch,
