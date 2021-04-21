@@ -1535,10 +1535,11 @@ func newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: mapDNSAddresses,
-		Marshalizer:     core.InternalMarshalizer,
-		Accounts:        stateComponents.AccountsAdapter,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  mapDNSAddresses,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -1572,6 +1573,7 @@ func newShardBlockProcessor(
 		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             config.GeneralSettings.RepairCallbackEnableEpoch,
+		ArwenESDTFunctionsEnableEpoch:  config.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -1648,29 +1650,31 @@ func newShardBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    vmContainer,
-		ArgsParser:                     argsParser,
-		Hasher:                         core.Hasher,
-		Marshalizer:                    core.InternalMarshalizer,
-		AccountsDB:                     stateComponents.AccountsAdapter,
-		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                     stateComponents.AddressPubkeyConverter,
-		ShardCoordinator:               shardCoordinator,
-		ScrForwarder:                   scForwarder,
-		TxFeeHandler:                   txFeeHandler,
-		EconomicsFee:                   economics,
-		GasHandler:                     gasHandler,
-		GasSchedule:                    gasSchedule,
-		BuiltInFunctions:               vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:                txLogsProcessor,
-		TxTypeHandler:                  txTypeHandler,
-		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             config.GeneralSettings.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:      config.GeneralSettings.RepairCallbackEnableEpoch,
-		BadTxForwarder:                 badTxInterim,
-		EpochNotifier:                  epochNotifier,
-		StakingV2EnableEpoch:           stakingV2EnableEpoch,
+		VmContainer:                         vmContainer,
+		ArgsParser:                          argsParser,
+		Hasher:                              core.Hasher,
+		Marshalizer:                         core.InternalMarshalizer,
+		AccountsDB:                          stateComponents.AccountsAdapter,
+		BlockChainHook:                      vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                          stateComponents.AddressPubkeyConverter,
+		ShardCoordinator:                    shardCoordinator,
+		ScrForwarder:                        scForwarder,
+		TxFeeHandler:                        txFeeHandler,
+		EconomicsFee:                        economics,
+		GasHandler:                          gasHandler,
+		GasSchedule:                         gasSchedule,
+		BuiltInFunctions:                    vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                     txLogsProcessor,
+		TxTypeHandler:                       txTypeHandler,
+		DeployEnableEpoch:                   config.GeneralSettings.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                  config.GeneralSettings.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:      config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:           config.GeneralSettings.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: config.GeneralSettings.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      config.GeneralSettings.SenderInOutTransferEnableEpoch,
+		BadTxForwarder:                      badTxInterim,
+		EpochNotifier:                       epochNotifier,
+		StakingV2EnableEpoch:                stakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1865,10 +1869,11 @@ func newMetaBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}), // no dns for meta
-		Marshalizer:     core.InternalMarshalizer,
-		Accounts:        stateComponents.AccountsAdapter,
+		GasSchedule:      gasSchedule,
+		MapDNSAddresses:  make(map[string]struct{}), // no dns for meta
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		ShardCoordinator: shardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
@@ -1973,29 +1978,31 @@ func newMetaBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    vmContainer,
-		ArgsParser:                     argsParser,
-		Hasher:                         core.Hasher,
-		Marshalizer:                    core.InternalMarshalizer,
-		AccountsDB:                     stateComponents.AccountsAdapter,
-		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
-		PubkeyConv:                     stateComponents.AddressPubkeyConverter,
-		ShardCoordinator:               shardCoordinator,
-		ScrForwarder:                   scForwarder,
-		TxFeeHandler:                   txFeeHandler,
-		EconomicsFee:                   economicsData,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     gasHandler,
-		GasSchedule:                    gasSchedule,
-		BuiltInFunctions:               vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:                txLogsProcessor,
-		DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:      generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
-		BadTxForwarder:                 badTxForwarder,
-		EpochNotifier:                  epochNotifier,
-		StakingV2EnableEpoch:           systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		VmContainer:                         vmContainer,
+		ArgsParser:                          argsParser,
+		Hasher:                              core.Hasher,
+		Marshalizer:                         core.InternalMarshalizer,
+		AccountsDB:                          stateComponents.AccountsAdapter,
+		BlockChainHook:                      vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                          stateComponents.AddressPubkeyConverter,
+		ShardCoordinator:                    shardCoordinator,
+		ScrForwarder:                        scForwarder,
+		TxFeeHandler:                        txFeeHandler,
+		EconomicsFee:                        economicsData,
+		TxTypeHandler:                       txTypeHandler,
+		GasHandler:                          gasHandler,
+		GasSchedule:                         gasSchedule,
+		BuiltInFunctions:                    vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                     txLogsProcessor,
+		DeployEnableEpoch:                   generalConfig.GeneralSettings.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                  generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:      generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:           generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: generalConfig.GeneralSettings.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      generalConfig.GeneralSettings.SenderInOutTransferEnableEpoch,
+		BadTxForwarder:                      badTxForwarder,
+		EpochNotifier:                       epochNotifier,
+		StakingV2EnableEpoch:                systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -2235,6 +2242,11 @@ func newMetaBlockProcessor(
 		EpochNotifier:           epochNotifier,
 	}
 
+	esdtOwnerAddress, err := stateComponents.AddressPubkeyConverter.Decode(systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress in structs.go", err)
+	}
+
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                               systemVM,
 		UserAccountsDB:                         stateComponents.AccountsAdapter,
@@ -2255,6 +2267,9 @@ func newMetaBlockProcessor(
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
 		ShardCoordinator:                       shardCoordinator,
+		CorrectLastUnJailEnableEpoch:           systemSCConfig.StakingSystemSCConfig.CorrectLastUnjailedEpoch,
+		ESDTOwnerAddressBytes:                  esdtOwnerAddress,
+		ESDTEnableEpoch:                        systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

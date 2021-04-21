@@ -24,11 +24,11 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	numNodesPerShard := 3
 	numNodesMeta := 3
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
 	idxProposerMeta := idxProposers[1]
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
-	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
+	integrationTests.BootstrapDelay()
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -77,18 +77,21 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 
 	maxShards := uint32(1)
 	shardId := uint32(0)
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	syncMetaNode := integrationTests.NewTestSyncNode(
 		maxShards,
 		core.MetachainShardId,
 		shardId,
-		advertiserAddr,
 	)
 	nodes = append(nodes, syncMetaNode)
 	syncMetaNode.Rounder.IndexField = int64(round)
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
-	integrationTests.StartP2PBootstrapOnProcessorNodes(syncNodesSlice)
+	for _, n := range nodes {
+		for _, sn := range syncNodesSlice {
+			_ = sn.ConnectTo(n)
+		}
+	}
+	integrationTests.BootstrapDelay()
 
 	require.True(t, len(syncMetaNode.Messenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
 		" Check that the peer discovery mechanism works properly.")

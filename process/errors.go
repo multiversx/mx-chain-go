@@ -899,6 +899,9 @@ var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
 // ErrNilPauseHandler signals that nil pause handler has been provided
 var ErrNilPauseHandler = errors.New("nil pause handler")
 
+// ErrNilRolesHandler signals that nil roles handler has been provided
+var ErrNilRolesHandler = errors.New("nil roles handler")
+
 // ErrESDTTokenIsPaused signals that esdt token is paused
 var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 
@@ -952,3 +955,30 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
+
+// ErrActionNotAllowed signals that action is not allowed
+var ErrActionNotAllowed = errors.New("action is not allowed")
+
+// ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
+var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
+
+// ErrNFTTokenDoesNotExist signals that NFT token does not exist
+var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exist")
+
+// ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
+var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
+
+// ErrInvalidNFTQuantity signals that invalid NFT quantity was provided
+var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
+
+// ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
+var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
+
+// ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
+var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")
+
+// ErrNilBuiltInFunctionsCostHandler signals that a nil built in functions cost handler has been provided
+var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
+
+// ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
+var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")

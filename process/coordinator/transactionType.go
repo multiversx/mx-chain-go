@@ -123,17 +123,21 @@ func isAsynchronousCallBack(tx data.TransactionHandler) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	if !core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		return false
-	}
 	if len(args) <= 2 {
 		return false
 	}
-	if function != core.BuiltInFunctionESDTTransfer {
-		return false
+	if function == core.BuiltInFunctionESDTTransfer {
+		return core.IsSmartContractAddress(tx.GetRcvAddr())
+	}
+	if function == core.BuiltInFunctionESDTNFTTransfer && len(args) > 4 {
+		rcvAddr := tx.GetRcvAddr()
+		if bytes.Equal(tx.GetRcvAddr(), tx.GetSndAddr()) {
+			rcvAddr = args[3]
+		}
+		return core.IsSmartContractAddress(rcvAddr)
 	}
 
-	return true
+	return false
 }
 
 func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) (string, [][]byte) {

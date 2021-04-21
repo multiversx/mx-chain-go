@@ -338,7 +338,7 @@ func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) *patriciaMerkl
 func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patriciaMerkleTrie, error) {
 	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db == nil {
-		return nil, ErrHashNotFound
+		return nil, fmt.Errorf("%w for %s", ErrHashNotFound, hex.EncodeToString(rootHash))
 	}
 	defer db.DecreaseNumReferences()
 
@@ -481,6 +481,22 @@ func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) dat
 	}
 }
 
+// GetSerializedNode returns the serialized node (if existing) provided the node's hash
+func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	log.Trace("GetSerializedNode", "hash", hash)
+
+	db := getDbThatContainsHash(tr.trieStorage, hash)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	return db.Get(hash)
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
@@ -491,7 +507,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 	db := getDbThatContainsHash(tr.trieStorage, rootHash)
 	if db == nil {
-		return nil, 0, ErrHashNotFound
+		return nil, 0, fmt.Errorf("%w for %s", ErrHashNotFound, hex.EncodeToString(rootHash))
 	}
 	defer db.DecreaseNumReferences()
 
@@ -689,6 +705,19 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 	}
 
 	return false, nil
+}
+
+// GetNumNodes will return the trie nodes statistics DTO
+func (tr *patriciaMerkleTrie) GetNumNodes() data.NumNodesDTO {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	n := tr.root
+	if check.IfNil(n) {
+		return data.NumNodesDTO{}
+	}
+
+	return n.getNumNodes()
 }
 
 // GetStorageManager returns the storage manager for the trie

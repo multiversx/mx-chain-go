@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -31,11 +32,14 @@ type NodeHandler interface {
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string) (map[string]string, error)
 
-	// GetESDTBalance returns the esdt balance and properties from a given account
-	GetESDTBalance(address string, key string) (string, string, error)
+	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
+	GetAllIssuedESDTs() ([]string, error)
+
+	// GetESDTData returns the esdt data from a given account, given key and given nonce
+	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string) ([]string, error)
+	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
 	// CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -91,6 +95,8 @@ type ApiResolver interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTotalStakedValue() (*api.StakeValues, error)
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	GetDelegatorsList() ([]*api.Delegator, error)
 	IsInterfaceNil() bool
 }
 

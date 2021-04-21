@@ -48,15 +48,11 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	genesisFile := "testdata/smartcontracts.json"
 	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
 
@@ -75,7 +71,6 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -129,15 +124,11 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	genesisFile := "testdata/smartcontracts.json"
 	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
 
@@ -155,7 +146,6 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -253,15 +243,11 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	genesisFile := "testdata/smartcontracts.json"
 	consensusNodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
 	allNodes := append(consensusNodes, hardforkTriggerNode)
@@ -282,7 +268,6 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	integrationTests.DisplayAndStartNodes(allNodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range allNodes {
 			_ = n.Messenger.Close()
 		}
@@ -373,7 +358,7 @@ func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, e
 			"id", node.ShardCoordinator.SelfId(),
 			"base directory", exportBaseDirectory)
 		err := node.ExportHandler.ExportAll(epoch)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		log.Warn("***********************************************************************************")
 	}
 	return exportStorageConfigs
@@ -619,6 +604,7 @@ func createHardForkExporter(
 			EpochNotifier:             &mock.EpochNotifierStub{},
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
+			TrieSyncerVersion:         2,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

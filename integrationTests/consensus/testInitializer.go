@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"time"
 
 	indexer "github.com/ElrondNetwork/elastic-indexer-go"
@@ -106,16 +105,6 @@ func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string
 	}
 
 	return keysMap
-}
-
-func getConnectableAddress(mes p2p.Messenger) string {
-	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
-			continue
-		}
-		return addr
-	}
-	return ""
 }
 
 func displayAndStartNodes(nodes []*testNode) {
@@ -239,7 +228,6 @@ func createConsensusOnlyNode(
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	selfId uint32,
-	initialAddr string,
 	consensusSize uint32,
 	roundTime uint64,
 	privKey crypto.PrivateKey,
@@ -256,7 +244,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -437,7 +425,6 @@ func createNodes(
 	nodesPerShard int,
 	consensusSize int,
 	roundTime uint64,
-	serviceID string,
 	consensusType string,
 ) map[uint32][]*testNode {
 
@@ -447,6 +434,7 @@ func createNodes(
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
 	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
+	connectableNodes := make([]integrationTests.Connectable, 0)
 
 	nodeShuffler := &mock.NodeShufflerMock{}
 
@@ -488,7 +476,6 @@ func createNodes(
 			nodesCoordinator,
 			testNodeObject.shardId,
 			uint32(i),
-			serviceID,
 			uint32(consensusSize),
 			roundTime,
 			kp.sk,
@@ -505,8 +492,11 @@ func createNodes(
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
 		nodesList[i] = testNodeObject
+		connectableNodes = append(connectableNodes, &messengerWrapper{mes})
 	}
 	nodes[0] = nodesList
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	return nodes
 }

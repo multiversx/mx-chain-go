@@ -20,9 +20,6 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetaNodes := 10
@@ -31,13 +28,11 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		numOfShards,
 		nodesPerShard,
 		numMetaNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -77,9 +72,6 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetaNodes := 2
@@ -89,13 +81,11 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		numOfShards,
 		nodesPerShard,
 		numMetaNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 	fmt.Println(integrationTests.MakeDisplayTable(nodes))
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

@@ -18,6 +18,10 @@ const (
 	// AsynchronousCallBack means that an AsynchronousCall was performed
 	// previously, and now the control returns to the caller SmartContract's callBack method
 	AsynchronousCallBack
+
+	// ESDTTransferAndExecute means that there is a smart contract execution after the ESDT transfer
+	// this is needed in order to skip the check whether a contract is payable or not
+	ESDTTransferAndExecute
 )
 
 // VMInput contains the common fields between the 2 types of SC call.
@@ -82,6 +86,12 @@ type VMInput struct {
 
 	// ESDTTokenName is the name of the token which was transferred by the transaction to the SC
 	ESDTTokenName []byte
+
+	// ESDTTokenType is the type of the transferred token
+	ESDTTokenType uint32
+
+	// ESDTTokenNonce is the nonce for the given NFT token
+	ESDTTokenNonce uint64
 }
 
 // ContractCreateInput VM input when creating a new contract.
