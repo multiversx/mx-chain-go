@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -422,6 +423,61 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
 }
 
+func TestGetEnableEpochs_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+}
+
+func TestGetEnableEpochs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetrics := statusHandler.NewStatusMetrics()
+	key := core.MetricScDeployEnableEpoch
+	value := uint64(4)
+	statusMetrics.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetrics
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(value, 10))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetEnableEpochs_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := GeneralResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -473,6 +529,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/economics", Open: true},
 					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
+					{Name: "/enable-epochs", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 				},

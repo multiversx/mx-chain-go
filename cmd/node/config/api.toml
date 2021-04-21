@@ -70,6 +70,9 @@
         # consensus group size and so on)
         { Name = "/config", Open = true },
 
+        # /network/enable-epochs will return metrics related to activation epochs
+        { Name = "/enable-epochs", Open = true },
+
         # /network/esdts will return all the issued esdts on the protocol
         { Name = "/esdts", Open = true },
 
