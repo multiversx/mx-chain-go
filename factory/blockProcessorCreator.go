@@ -187,10 +187,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          pcf.coreData.EpochNotifier(),
+		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -275,6 +277,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
 		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
 		EpochNotifier:                  pcf.epochNotifier,
+		RelayedTxV2EnableEpoch:         enableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -496,10 +499,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          pcf.coreData.EpochNotifier(),
+		RelayedTxV2EnableEpoch: pcf.epochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

@@ -22,6 +22,7 @@ func createMockArguments() ArgNewTxTypeHandler {
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 }
 
