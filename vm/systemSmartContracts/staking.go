@@ -63,6 +63,7 @@ type ArgsNewStakingSmartContract struct {
 	GasCost              vm.GasCost
 	Marshalizer          marshal.Marshalizer
 	EpochNotifier        vm.EpochNotifier
+	EpochConfig          config.EpochConfig
 }
 
 type waitingListReturnData struct {
@@ -122,12 +123,15 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
-		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
-		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
 		walletAddressLen:         len(args.StakingAccessAddr),
 		minNodePrice:             minStakeValue,
-		correctLastUnjailedEpoch: args.StakingSCConfig.CorrectLastUnjailedEpoch,
+		correctLastUnjailedEpoch: args.EpochConfig.EnableEpochs.CorrectLastUnjailedEpoch,
 	}
+	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)

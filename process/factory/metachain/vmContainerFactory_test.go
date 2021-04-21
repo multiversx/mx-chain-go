@@ -70,8 +70,6 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       10,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -82,6 +80,12 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		ValidatorAccountsDB: &mock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:   10,
+				StakeEnableEpoch: 0,
+			},
+		},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
@@ -153,8 +157,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       10,
-				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -164,12 +166,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
-				EnabledEpoch:        0,
 				MinStakeAmount:      "100",
 				ConfigChangeAddress: "aabb00",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				EnabledEpoch:  0,
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
@@ -177,6 +177,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ValidatorAccountsDB: &mock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:                     10,
+				StakeEnableEpoch:                   1,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
+		},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

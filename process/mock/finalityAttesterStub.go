@@ -7,15 +7,15 @@ import (
 
 // ValidityAttesterStub -
 type ValidityAttesterStub struct {
-	CheckBlockAgainstRounderCalled   func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstFinalCalled     func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled func(interceptedData process.InterceptedData) bool
+	CheckBlockAgainstRoundHandlerCalled func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinalCalled        func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstWhitelistCalled    func(interceptedData process.InterceptedData) bool
 }
 
-// CheckBlockAgainstRounder -
-func (vas *ValidityAttesterStub) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
-	if vas.CheckBlockAgainstRounderCalled != nil {
-		return vas.CheckBlockAgainstRounderCalled(headerHandler)
+// CheckBlockAgainstRoundHandler -
+func (vas *ValidityAttesterStub) CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error {
+	if vas.CheckBlockAgainstRoundHandlerCalled != nil {
+		return vas.CheckBlockAgainstRoundHandlerCalled(headerHandler)
 	}
 
 	return nil

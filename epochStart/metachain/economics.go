@@ -71,7 +71,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		return nil, epochStart.ErrNilRewardsHandler
 	}
 	if check.IfNil(args.RoundTime) {
-		return nil, process.ErrNilRounder
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(args.EconomicsDataNotified) {
 		return nil, epochStart.ErrNilEconomicsDataProvider
@@ -93,6 +93,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 	}
+	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
 	return e, nil
 }

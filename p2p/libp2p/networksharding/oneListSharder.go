@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var _ p2p.CommonSharder = (*oneListSharder)(nil)
+var _ p2p.Sharder = (*oneListSharder)(nil)
 
 const minAllowedConnectedPeersOneSharder = 3
 
@@ -65,6 +66,15 @@ func (ols *oneListSharder) Has(pid peer.ID, list []peer.ID) bool {
 // SetPeerShardResolver sets the peer shard resolver for this sharder. Doesn't do anything in this implementation
 func (ols *oneListSharder) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
 	return nil
+}
+
+// SetSeeders does nothing as all peers are treated equally in this implementation
+func (ols *oneListSharder) SetSeeders(_ []string) {
+}
+
+// IsSeeder returns false
+func (ols *oneListSharder) IsSeeder(_ core.PeerID) bool {
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

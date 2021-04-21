@@ -22,8 +22,9 @@ func TestNewInterceptedUnsignedTxDataFactory_NilArgumentShouldErr(t *testing.T) 
 func TestNewInterceptedUnsignedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.ProtoMarshalizer = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.IntMarsh = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -33,8 +34,9 @@ func TestNewInterceptedUnsignedTxDataFactory_NilMarshalizerShouldErr(t *testing.
 func TestNewInterceptedUnsignedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.TxSignMarshalizer = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.TxMarsh = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -44,8 +46,9 @@ func TestNewInterceptedUnsignedTxDataFactory_NilSignMarshalizerShouldErr(t *test
 func TestNewInterceptedUnsignedTxDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.Hasher = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.Hash = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -55,7 +58,8 @@ func TestNewInterceptedUnsignedTxDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedUnsignedTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
@@ -66,8 +70,9 @@ func TestNewInterceptedUnsignedTxDataFactory_NilShardCoordinatorShouldErr(t *tes
 func TestNewInterceptedUnsignedTxDataFactory_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.AddressPubkeyConv = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.AddrPubKeyConv = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -77,7 +82,8 @@ func TestNewInterceptedUnsignedTxDataFactory_NilAddrConverterShouldErr(t *testin
 func TestInterceptedUnsignedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.NotNil(t, imh)

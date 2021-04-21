@@ -69,8 +69,8 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) error {
+// CreateServer will create the api and appropriate routes, handlers and validators
+func CreateServer(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) (*http.Server, error) {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -91,12 +91,13 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 
 	err := RegisterDefaultValidators()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	RegisterRoutes(ws, routesConfig, elrondFacade)
 
-	return ws.Run(elrondFacade.RestApiInterface())
+	server := &http.Server{Addr: elrondFacade.RestApiInterface(), Handler: ws}
+	return server, nil
 }
 
 // RegisterRoutes will register all routes available on the web server

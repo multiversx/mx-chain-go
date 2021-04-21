@@ -41,6 +41,8 @@ func (ut UnitType) String() string {
 		return "StatusMetricsUnit"
 	case ReceiptsUnit:
 		return "ReceiptsUnit"
+	case TrieEpochRootHashUnit:
+		return "TrieEpochRootHashUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
@@ -85,6 +87,8 @@ const (
 	ReceiptsUnit UnitType = 15
 	// ResultsHashesByTxHashUnit is the results hashes by transaction storage unit identifier
 	ResultsHashesByTxHashUnit UnitType = 16
+	// TrieEpochRootHashUnit is the trie epoch <-> root hash storage unit identifier
+	TrieEpochRootHashUnit UnitType = 17
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -109,6 +113,7 @@ type Resolver interface {
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -155,6 +160,7 @@ type ResolversContainer interface {
 	Len() int
 	ResolverKeys() string
 	Iterate(handler func(key string, resolver Resolver) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 

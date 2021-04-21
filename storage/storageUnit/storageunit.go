@@ -486,11 +486,11 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	switch h {
 	case Keccak:
-		return keccak.Keccak{}, nil
+		return keccak.NewKeccak(), nil
 	case Blake2b:
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	case Fnv:
-		return fnv.Fnv{}, nil
+		return fnv.NewFnv(), nil
 	default:
 		return nil, storage.ErrNotSupportedHashType
 	}

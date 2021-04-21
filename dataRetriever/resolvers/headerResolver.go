@@ -290,6 +290,11 @@ func (hdrRes *HeaderResolver) SetResolverDebugHandler(handler dataRetriever.Reso
 	return hdrRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
+// Close returns nil
+func (hdrRes *HeaderResolver) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hdrRes *HeaderResolver) IsInterfaceNil() bool {
 	return hdrRes == nil

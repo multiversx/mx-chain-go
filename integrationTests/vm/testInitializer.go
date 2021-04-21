@@ -56,7 +56,7 @@ var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62,
 // TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
 
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
-var testHasher = sha256.Sha256{}
+var testHasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -270,6 +270,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -362,6 +363,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -407,6 +409,7 @@ func CreateVMAndBlockchainHook(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -421,6 +424,7 @@ func CreateVMAndBlockchainHook(
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -494,6 +498,7 @@ func CreateVMAndBlockchainHookMeta(
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig:         createEpochConfig(),
 	})
 	if err != nil {
 		log.LogIfError(err)
@@ -510,12 +515,25 @@ func CreateVMAndBlockchainHookMeta(
 	return vmContainer, blockChainHook
 }
 
+func createEpochConfig() *config.EpochConfig {
+	return &config.EpochConfig{
+		EnableEpochs: config.EnableEpochs{
+			StakingV2Epoch:                     0,
+			StakeEnableEpoch:                   0,
+			DoubleKeyProtectionEnableEpoch:     0,
+			ESDTEnableEpoch:                    0,
+			GovernanceEnableEpoch:              0,
+			DelegationManagerEnableEpoch:       0,
+			DelegationSmartContractEnableEpoch: 0,
+		},
+	}
+}
+
 func createSystemSCConfig() *config.SystemSmartContractsConfig {
 	return &config.SystemSmartContractsConfig{
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 			BaseIssuingCost: "5000000000000000000",
 			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
-			EnabledEpoch:    0,
 		},
 		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 			ProposalCost:     "5000000000000000000",
@@ -523,7 +541,6 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			MinQuorum:        400,
 			MinPassThreshold: 300,
 			MinVetoThreshold: 50,
-			EnabledEpoch:     0,
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",
@@ -537,19 +554,14 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			MaximumPercentageToBleed:             0.5,
 			BleedPercentagePerRound:              0.00001,
 			MaxNumberOfNodesForStake:             36,
-			StakingV2Epoch:                       0,
-			StakeEnableEpoch:                     0,
-			DoubleKeyProtectionEnableEpoch:       0,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",
-			EnabledEpoch:        0,
 			MinStakeAmount:      "10000000000000000000",
 			ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-			EnabledEpoch:  0,
 			MinServiceFee: 1,
 			MaxServiceFee: 20,
 		},
@@ -1041,4 +1053,20 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 		EconomicsData:    economicsData,
 		Marshalizer:      testMarshalizer,
 	}, nil
+}
+
+func defaultStorageConfig() *config.StorageConfig {
+	return &config.StorageConfig{
+		Cache: config.CacheConfig{
+			Name:     "SmartContractsStorage",
+			Type:     "LRU",
+			Capacity: 100,
+		},
+		DB: config.DBConfig{
+			FilePath:          "SmartContractsStorage",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      100,
+		},
+	}
 }

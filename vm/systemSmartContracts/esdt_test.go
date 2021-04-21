@@ -836,7 +836,7 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.ESDTSCConfig.EnabledEpoch = 1
+	args.EpochConfig.EnableEpochs.ESDTEnableEpoch = 1
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)

@@ -200,6 +200,11 @@ func (s *Sender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.Pub
 	return s.redundancy.ObserverPrivateKey(), s.observerPublicKey
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Sender) IsInterfaceNil() bool {
+	return s == nil
+}
+
 func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 	result := s.computePeerList(hb.Pubkey)
 

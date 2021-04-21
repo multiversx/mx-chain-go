@@ -238,8 +238,8 @@ func TestNodeFacade_SetAndGetTpsBenchmark(t *testing.T) {
 
 	tpsBench, _ := statistics.NewTPSBenchmark(2, 5)
 	nf.SetTpsBenchmark(tpsBench)
-	assert.Equal(t, tpsBench, nf.TpsBenchmark())
-
+	assert.Equal(t, tpsBench.NrOfShards(), nf.TpsBenchmark().NrOfShards())
+	assert.Equal(t, tpsBench.RoundTime(), nf.TpsBenchmark().RoundTime())
 }
 
 func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *testing.T) {

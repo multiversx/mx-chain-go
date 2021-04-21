@@ -6,13 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
@@ -51,11 +48,6 @@ var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
-type resetHandler interface {
-	Reset()
-	IsInterfaceNil() bool
-}
-
 // ArgNodeFacade represents the argument for the nodeFacade
 type ArgNodeFacade struct {
 	Node                   NodeHandler
@@ -74,7 +66,7 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           *statistics.TpsBenchmark
+	tpsBenchmark           statistics.TPSBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -160,23 +152,13 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 }
 
 // SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
+func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) {
 	nf.tpsBenchmark = tpsBenchmark
 }
 
 // TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
+func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 	return nf.tpsBenchmark
-}
-
-// StartNode starts the underlying node
-func (nf *nodeFacade) StartNode() error {
-	return nf.node.StartConsensus()
-}
-
-// StartBackgroundServices starts all background services needed for the correct functionality of the node
-func (nf *nodeFacade) StartBackgroundServices() {
-	go nf.startRest()
 }
 
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
@@ -193,68 +175,6 @@ func (nf *nodeFacade) RestApiInterface() string {
 	}
 
 	return nf.config.RestApiInterface
-}
-
-func (nf *nodeFacade) startRest() {
-	log.Trace("starting REST api server")
-
-	switch nf.RestApiInterface() {
-	case DefaultRestPortOff:
-		log.Debug("web server is off")
-	default:
-		log.Debug("creating web server limiters")
-		limiters, err := nf.CreateMiddlewareLimiters()
-		if err != nil {
-			log.Error("error creating web server limiters",
-				"error", err.Error(),
-			)
-			log.Error("web server is off")
-			return
-		}
-
-		log.Debug("starting web server",
-			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
-			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,
-			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
-		)
-
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
-		if err != nil {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
-		}
-	}
-}
-
-// CreateMiddlewareLimiters will create the middleware limiters used in web server
-func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
-	}
-	go nf.sourceLimiterReset(sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
-}
-
-func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
-	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
-	for {
-		select {
-		case <-time.After(betweenResetDuration):
-			log.Trace("calling reset on WS source limiter")
-			reset.Reset()
-		case <-nf.ctx.Done():
-			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
-			return
-		}
-	}
 }
 
 // GetBalance gets the current balance for a specified address
@@ -452,8 +372,9 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Bloc
 }
 
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
+	log.LogIfError(nf.apiResolver.Close())
+
 	nf.cancelFunc()
 
 	return nil

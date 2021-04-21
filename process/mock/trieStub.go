@@ -66,6 +66,11 @@ func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (c
 	return ch, nil
 }
 
+// IsPruningEnabled -
+func (ts *TrieStub) IsPruningEnabled() bool {
+	return false
+}
+
 // ClosePersister -
 func (ts *TrieStub) ClosePersister() error {
 	return nil

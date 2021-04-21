@@ -192,6 +192,12 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 	}
 
+	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for built in functions", "epoch", sc.builtinEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
 

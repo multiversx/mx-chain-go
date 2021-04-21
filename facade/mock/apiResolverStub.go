@@ -56,6 +56,11 @@ func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
 	return nil, nil
 }
 
+// Close -
+func (ars *ApiResolverStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ars *ApiResolverStub) IsInterfaceNil() bool {
 	return ars == nil

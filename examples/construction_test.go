@@ -20,7 +20,7 @@ var signingMarshalizer = &marshal.JsonMarshalizer{}
 var signer = &singlesig.Ed25519Signer{}
 var signingCryptoSuite = ed25519.NewEd25519()
 var contentMarshalizer = &marshal.GogoProtoMarshalizer{}
-var contentHasher = &blake2b.Blake2b{}
+var contentHasher = blake2b.NewBlake2b()
 
 const alicePrivateKeyHex = "413f42575f7f26fad3317a778771212fdb80245850981e48b58a4f25e344e8f9"
 
@@ -137,6 +137,29 @@ func TestConstructTransaction_WithDataWithLargeValue(t *testing.T) {
 
 	txHash := contentHasher.Compute(string(data))
 	require.Equal(t, "e4a6048d92409cfe50f12e81218cb92f39966c618979a693b8d16320a06061c1", hex.EncodeToString(txHash))
+}
+
+func TestConstructTransaction_WithNonceZero(t *testing.T) {
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
+		SndAddr:  getPubkeyOfAddress(t, "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"),
+		GasPrice: 1000000000,
+		GasLimit: 80000,
+		Data:     []byte("hello"),
+		ChainID:  []byte("local-testnet"),
+		Version:  1,
+	}
+
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
+	require.Equal(t, "dfa3e9f2fdec60dcb353bac3b3435b4a2ff251e7e98eaf8620f46c731fc70c8ba5615fd4e208b05e75fe0f7dc44b7a99567e29f94fcd91efac7e67b182cd2a04", hex.EncodeToString(tx.Signature))
+
+	data, _ := contentMarshalizer.Marshal(tx)
+	require.Equal(t, "120200001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc034080f1044a0568656c6c6f520d6c6f63616c2d746573746e657458016240dfa3e9f2fdec60dcb353bac3b3435b4a2ff251e7e98eaf8620f46c731fc70c8ba5615fd4e208b05e75fe0f7dc44b7a99567e29f94fcd91efac7e67b182cd2a04", hex.EncodeToString(data))
+
+	txHash := contentHasher.Compute(string(data))
+	require.Equal(t, "6ffa1a75f98aaf336bfb87ef13b9b5a477a017158285d34ee2a503668767e69e", hex.EncodeToString(txHash))
 }
 
 func stringToBigInt(input string) *big.Int {

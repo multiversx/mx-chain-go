@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,7 +63,7 @@ func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
 	tr := emptyTrie()
 
 	var values [][]byte
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	for i := 0; i < nr; i++ {
 		values = append(values, hsh.Compute(fmt.Sprint(i)))
@@ -495,40 +494,6 @@ func TestPatriciaMerkleTrie_String(t *testing.T) {
 	assert.Equal(t, "*** EMPTY TRIE ***\n", str)
 }
 
-func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
-	t.Parallel()
-
-	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.LvlDBSerial,
-		Path:              tempDir,
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
-	db, _ := storageUnit.NewDB(arg)
-	marshalizer := &mock.ProtobufMarshalizerMock{}
-	hasher := &mock.KeccakMock{}
-
-	trieStorageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hasher,
-		config.DBConfig{},
-		&mock.EvictionWaitingList{},
-		config.TrieStorageManagerConfig{},
-	)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
-
-	err := tr.ClosePersister()
-	assert.Nil(t, err)
-
-	key, err := trieStorageManager.Database().Get([]byte("key"))
-	assert.Nil(t, key)
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
-}
-
 func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing.T) {
 	t.Parallel()
 
@@ -852,7 +817,7 @@ func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 1000000
 	nrValuesNotInTrie := 9000000
@@ -874,7 +839,7 @@ func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 1000000
 	nrValuesNotInTrie := 9000000
@@ -897,7 +862,7 @@ func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTree_Delete(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 3000000
 	values := make([][]byte, nrValuesInTrie)
@@ -915,7 +880,7 @@ func BenchmarkPatriciaMerkleTree_Delete(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
@@ -935,7 +900,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 3000000
 	values := make([][]byte, nrValuesInTrie)
@@ -953,7 +918,7 @@ func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 1000000
 	values := make([][]byte, nrValuesInTrie)
@@ -974,7 +939,7 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 	nrValuesInTrie := 1000000
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		hsh := keccak.Keccak{}
+		hsh := keccak.NewKeccak()
 		tr := emptyTrie()
 		for j := 0; j < nrValuesInTrie; j++ {
 			hash := hsh.Compute(strconv.Itoa(j))
@@ -988,7 +953,7 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)
@@ -1016,7 +981,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 
 func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b *testing.B) {
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
+	hsh := keccak.NewKeccak()
 
 	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)

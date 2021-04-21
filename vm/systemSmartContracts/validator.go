@@ -72,6 +72,7 @@ type ArgsValidatorSmartContract struct {
 	MinDeposit               string
 	DelegationMgrSCAddress   []byte
 	DelegationMgrEnableEpoch uint32
+	EpochConfig              config.EpochConfig
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -142,20 +143,23 @@ func NewValidatorSmartContract(
 		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
 		sigVerifier:              args.SigVerifier,
 		baseConfig:               baseConfig,
-		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
+		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
+		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
 		stakingSCAddress:         args.StakingSCAddress,
 		validatorSCAddress:       args.ValidatorSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
 		minUnstakeTokensValue:    minUnstakeTokensValue,
 		walletAddressLen:         len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:     args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		enableDoubleKeyEpoch:     args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
 		endOfEpochAddress:        args.EndOfEpochAddress,
 		minDeposit:               minDeposit,
 		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
 		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
 	}
+	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 

@@ -92,6 +92,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilPubkeyConverter signals that nil address converter was provided
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -107,8 +113,8 @@ var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil
 // ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
@@ -170,15 +176,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
-var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
-
-// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
-var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
-
-// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
-var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
-
 // ErrInvalidWorkingDir signals that an invalid working directory has been provided
 var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
@@ -235,6 +232,9 @@ var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilMetablockProcessor signals that a nil metablock processor was provided
+var ErrNilMetablockProcessor = errors.New("nil metablock processor")
 
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")

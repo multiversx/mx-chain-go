@@ -45,7 +45,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
 }
 
-func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
+func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockAgrs()
@@ -97,6 +97,16 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(nar))
+}
+
+func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockAgrs()
+	nar, _ := external.NewNodeApiResolver(args)
+
+	err := nar.Close()
+	assert.Nil(t, err)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
