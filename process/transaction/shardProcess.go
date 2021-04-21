@@ -519,20 +519,14 @@ func (txProc *txProcessor) processRelayedTxV2(
 
 	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
-		// TODO for review: Why is this not passed through executingFailedTransaction -> check it is actually better to do this
-		return vmcommon.Ok, err
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
-
-	if len(args) != 3 || len(args) != 4 {
+	if len(args) != 4 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
-	userTxData := make([]byte, 0)
-	userTxSig := args[2]
-	if len(args) == 4 {
-		userTxData = args[2]
-		userTxSig = args[3]
-	}
+	userTxData := args[2]
+	userTxSig := args[3]
 
 	userTx := &transaction.Transaction{}
 	// Fill properties received as arguments
@@ -948,7 +942,6 @@ func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
 
 	txProc.flagRelayedTxV2.Toggle(epoch >= txProc.relayedTxV2EnableEpoch)
 	log.Debug("txProcessor: relayed transactions v2", "enabled", txProc.flagRelayedTxV2.IsSet())
-
 
 	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())

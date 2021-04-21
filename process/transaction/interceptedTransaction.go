@@ -146,10 +146,25 @@ func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Tran
 	return tx, nil
 }
 
-func createRelayedV2(args [][]byte) (*transaction.Transaction, error) {
-	if len(args) != 3 || len(args) != 4 {
+func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transaction.Transaction, error) {
+	if len(args) != 4 {
 		return nil, process.ErrInvalidArguments
 	}
+	tx := &transaction.Transaction{
+		Nonce:     big.NewInt(0).SetBytes(args[1]).Uint64(),
+		Value:     big.NewInt(0),
+		RcvAddr:   args[0],
+		SndAddr:   relayedTx.RcvAddr,
+		GasPrice:  relayedTx.GasPrice,
+		GasLimit:  0, // the user had to sign a transaction with 0 gasLimit - as all gasLimit is coming from the relayer
+		Data:      args[2],
+		ChainID:   relayedTx.ChainID,
+		Version:   relayedTx.Version,
+		Signature: args[3],
+		Options:   relayedTx.Options,
+	}
+
+	return tx, nil
 }
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
@@ -191,7 +206,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 		return nil
 	}
 
-	userTx, err := createRelayedV2(userTxArgs)
+	userTx, err := createRelayedV2(tx, userTxArgs)
 	if err != nil {
 		return err
 	}

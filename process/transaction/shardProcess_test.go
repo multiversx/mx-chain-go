@@ -1606,7 +1606,6 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	assert.Equal(t, uint64(45), acntSrc.Balance.Uint64())
 }
 
-
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1840,8 +1839,8 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
-	assert.Equal(t, parseError, err)
-	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, process.ErrFailedTransaction, err)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
 func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *testing.T) {
@@ -1872,8 +1871,9 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 		"@" +
 		hex.EncodeToString(userDataMarshalled) +
 		"@" +
-		"01a2"+
-		"extra_param")
+		"01a2" +
+		"@" +
+		"1010")
 
 	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
 	acntSrc.Balance = big.NewInt(100)
