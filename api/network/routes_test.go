@@ -171,8 +171,8 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	facade := mock.Facade{
 		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
 			return &api.StakeValues{
-				TotalStaked: big.NewInt(100),
-				TopUp:       big.NewInt(20),
+				BaseStaked: big.NewInt(100),
+				TopUp:      big.NewInt(20),
 			}, nil
 		},
 	}
@@ -268,16 +268,16 @@ func TestDirectStakedInfo_NilContextShouldErr(t *testing.T) {
 
 func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 	stakedData1 := api.DirectStakedValue{
-		Address: "addr1",
-		Staked:  "1111",
-		TopUp:   "2222",
-		Total:   "3333",
+		Address:    "addr1",
+		BaseStaked: "1111",
+		TopUp:      "2222",
+		Total:      "3333",
 	}
 	stakedData2 := api.DirectStakedValue{
-		Address: "addr2",
-		Staked:  "4444",
-		TopUp:   "5555",
-		Total:   "9999",
+		Address:    "addr2",
+		BaseStaked: "4444",
+		TopUp:      "5555",
+		Total:      "9999",
 	}
 
 	facade := mock.Facade{
@@ -301,7 +301,7 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 
 func directStakedFoundInResponse(response string, stakedData api.DirectStakedValue) bool {
 	return strings.Contains(response, stakedData.Address) && strings.Contains(response, stakedData.Total) &&
-		strings.Contains(response, stakedData.Staked) && strings.Contains(response, stakedData.TopUp)
+		strings.Contains(response, stakedData.BaseStaked) && strings.Contains(response, stakedData.TopUp)
 }
 
 func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
