@@ -148,7 +148,7 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalStakedValue] = stakeValues.TotalStaked.String()
+	metrics[core.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
 	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
