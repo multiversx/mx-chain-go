@@ -512,7 +512,6 @@ func (txProc *txProcessor) processRelayedTxV2(
 	if !txProc.flagRelayedTxV2.IsSet() {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
 	}
-
 	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2ZeroVal)
 	}
