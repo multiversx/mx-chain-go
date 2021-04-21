@@ -1331,6 +1331,68 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
 }
 
+func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("relayedTxV2"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	err := txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTxV2@00@11")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTxV2@00@11@22@33")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	userTx := &dataTransaction.Transaction{
+		SndAddr:   recvAddress,
+		RcvAddr:   senderAddress,
+		Data:      []byte("hello"),
+		GasLimit:  3,
+		GasPrice:  4,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	userTx.Signature = []byte("notOk")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, errSignerMockVerifySigFails, err)
+
+	userTx.Signature = sigOk
+	userTx.SndAddr = []byte("otherAddress")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString([]byte(core.RelayedTransaction)) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+
+	userTx.Signature = sigOk
+	userTx.SndAddr = []byte("otherAddress")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+}
+
 //------- IsInterfaceNil
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
