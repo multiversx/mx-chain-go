@@ -29,6 +29,10 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // for move balance transactions that provide more gas than needed
 const RefundGasMessage = "refundedGas"
 
+type relayedFees struct {
+	totalFee, remainingFee, relayerFee *big.Int
+}
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
@@ -523,9 +527,9 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 	relayerAcnt, acntDst state.UserAccountHandler,
 	tx *transaction.Transaction,
 	userTx *transaction.Transaction,
-	totalFee, relayerFee, remainingFee *big.Int,
 ) (vmcommon.ReturnCode, error) {
-	txHash, err := txProc.processTxAtRelayer(relayerAcnt, totalFee, relayerFee, tx)
+	computedFees := txProc.computeRelayedTxFees(tx)
+	txHash, err := txProc.processTxAtRelayer(relayerAcnt, computedFees.totalFee, computedFees.relayerFee, tx)
 	if err != nil {
 		return 0, err
 	}
@@ -534,7 +538,7 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 		return vmcommon.Ok, nil
 	}
 
-	err = txProc.addFeeAndValueToDest(acntDst, tx, remainingFee)
+	err = txProc.addFeeAndValueToDest(acntDst, tx, computedFees.remainingFee)
 	if err != nil {
 		return 0, err
 	}
@@ -610,13 +614,10 @@ func (txProc *txProcessor) processRelayedTxV2(
 	}
 
 	userTx := makeUserTxFromRelayedTxV2Args(args)
-
-	// Fill properties from main transaction
 	userTx.GasPrice = tx.GasPrice
-	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
-	userTx.GasLimit = remainingGasLimit
+	userTx.GasLimit = tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
 
-	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx, totalFee, remainingFee, relayerFee)
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
 }
 
 func (txProc *txProcessor) processRelayedTx(
@@ -651,21 +652,26 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedGasPriceMissmatch)
 	}
 
-	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
+	remainingGasLimit := tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
 	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
 
-	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx, totalFee, remainingFee, relayerFee)
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
 }
 
-func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int, *big.Int, uint64) {
-	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) relayedFees {
 	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
 	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
 
-	return totalFee, remainingFee, relayerFee, tx.GasLimit - relayerGasLimit
+	computedFees := relayedFees{
+		totalFee:     totalFee,
+		remainingFee: remainingFee,
+		relayerFee:   relayerFee,
+	}
+
+	return computedFees
 }
 
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
