@@ -164,13 +164,13 @@ func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 	lastOutput := eei.output[len(eei.output)-1]
-	assert.Equal(t, len(lastOutput), len(ticker)+1+encodedRandomSequenceLength)
+	assert.Equal(t, len(lastOutput), len(ticker)+1+6)
 
 	vmInput.Function = "issueSemiFungible"
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 	lastOutput = eei.output[len(eei.output)-1]
-	assert.Equal(t, len(lastOutput), len(ticker)+1+encodedRandomSequenceLength)
+	assert.Equal(t, len(lastOutput), len(ticker)+1+6)
 }
 
 func TestEsdt_ExecuteIssue(t *testing.T) {

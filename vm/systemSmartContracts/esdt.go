@@ -22,7 +22,6 @@ import (
 const numOfRetriesForIdentifier = 50
 const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
-const encodedRandomSequenceLength = tickerRandomSequenceLength * 2
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
 const minLengthForInitTokenName = 10
@@ -417,11 +416,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 
 	one := big.NewInt(1)
 	for i := 0; i < numOfRetriesForIdentifier; i++ {
-		encoded := []byte(hex.EncodeToString(newRandomAsBigInt.Bytes()))
-		lenEncoded := len(encoded)
-		if lenEncoded < encodedRandomSequenceLength {
-			encoded = append(make([]byte, encodedRandomSequenceLength-lenEncoded), encoded...)
-		}
+		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
 		newIdentifier := append(tickerPrefix, encoded...)
 		data := e.eei.GetStorage(newIdentifier)
 		if len(data) == 0 {
