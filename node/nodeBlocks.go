@@ -55,5 +55,5 @@ func (n *Node) createAPIBlockProcessor() (blockAPI.APIBlockHandler, error) {
 		return blockAPI.NewShardApiBlockProcessor(blockApiArgs), nil
 	}
 
-	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs),nil
+	return blockAPI.NewMetaApiBlockProcessor(blockApiArgs), nil
 }
