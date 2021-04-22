@@ -125,6 +125,54 @@ func TestNewESDTSmartContract_InvalidBaseIssuingCostShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrInvalidBaseIssuingCost, err)
 }
 
+func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issueNonFungible",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	ticker := []byte("TICKER")
+	vmInput.Arguments = [][]byte{[]byte("name"), ticker}
+
+	randomWithPreprendedZeros := make([]byte, 32)
+	randomWithPreprendedZeros[2] = 1
+	e.hasher = &mock.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return randomWithPreprendedZeros
+		},
+	}
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.Equal(t, len(lastOutput), len(ticker)+1+encodedRandomSequenceLength)
+
+	vmInput.Function = "issueSemiFungible"
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	lastOutput = eei.output[len(eei.output)-1]
+	assert.Equal(t, len(lastOutput), len(ticker)+1+encodedRandomSequenceLength)
+}
+
 func TestEsdt_ExecuteIssue(t *testing.T) {
 	t.Parallel()
 
