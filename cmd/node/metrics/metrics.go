@@ -30,6 +30,7 @@ func InitMetrics(
 	economicsConfig *config.EconomicsConfig,
 	roundsPerEpoch int64,
 	minTransactionVersion uint32,
+	epochConfig *config.EpochConfig,
 ) error {
 	if check.IfNil(statusHandlerUtils) {
 		return fmt.Errorf("nil StatusHandlerUtils when initializing metrics")
@@ -42,6 +43,9 @@ func InitMetrics(
 	}
 	if economicsConfig == nil {
 		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+	if epochConfig == nil {
+		return fmt.Errorf("nil epoch config when initializing metrics")
 	}
 
 	shardId := uint64(shardCoordinator.SelfId())
@@ -110,6 +114,28 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(core.MetricDevRewards, initZeroString)
 	appStatusHandler.SetStringValue(core.MetricTotalFees, initZeroString)
 	appStatusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, initUint)
+
+	enableEpochs := epochConfig.EnableEpochs
+	appStatusHandler.SetUInt64Value(core.MetricScDeployEnableEpoch, uint64(enableEpochs.SCDeployEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricBuiltInFunctionsEnableEpoch, uint64(enableEpochs.BuiltInFunctionsEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricRelayedTransactionsEnableEpoch, uint64(enableEpochs.RelayedTransactionsEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricPenalizedTooMuchGasEnableEpoch, uint64(enableEpochs.PenalizedTooMuchGasEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricSwitchJailWaitingEnableEpoch, uint64(enableEpochs.SwitchJailWaitingEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricSwitchHysteresisForMinNodesEnableEpoch, uint64(enableEpochs.SwitchHysteresisForMinNodesEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricBelowSignedThresholdEnableEpoch, uint64(enableEpochs.BelowSignedThresholdEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricTransactionSignedWithTxHashEnableEpoch, uint64(enableEpochs.TransactionSignedWithTxHashEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricMetaProtectionEnableEpoch, uint64(enableEpochs.MetaProtectionEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricAheadOfTimeGasUsageEnableEpoch, uint64(enableEpochs.AheadOfTimeGasUsageEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricGasPriceModifierEnableEpoch, uint64(enableEpochs.GasPriceModifierEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricRepairCallbackEnableEpoch, uint64(enableEpochs.RepairCallbackEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricBlockGasAndFreeRecheckEnableEpoch, uint64(enableEpochs.BlockGasAndFeesReCheckEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricStakingV2EnableEpoch, uint64(enableEpochs.StakingV2Epoch))
+	appStatusHandler.SetUInt64Value(core.MetricStakeEnableEpoch, uint64(enableEpochs.StakeEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricDoubleKeyProtectionEnableEpoch, uint64(enableEpochs.DoubleKeyProtectionEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricEsdtEnableEpoch, uint64(enableEpochs.ESDTEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricGovernanceEnableEpoch, uint64(enableEpochs.GovernanceEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricDelegationManagerEnableEpoch, uint64(enableEpochs.DelegationManagerEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricDelegationSmartContractEnableEpoch, uint64(enableEpochs.DelegationSmartContractEnableEpoch))
 
 	var consensusGroupSize uint32
 	switch {

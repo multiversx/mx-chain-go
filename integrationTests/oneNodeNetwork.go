@@ -24,7 +24,6 @@ func NewOneNodeNetwork() *oneNodeNetwork {
 		1,
 		1,
 		0,
-		"address",
 	)
 
 	n.Node = nodes[0]

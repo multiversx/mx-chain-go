@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -41,8 +40,6 @@ type TestNetwork struct {
 	Wallets            []*TestWalletAccount
 	DeploymentAddress  Address
 	Proposers          []int
-	Advertiser         p2p.Messenger
-	AdvertiserAddress  string
 	Round              uint64
 	Nonce              uint64
 	T                  *testing.T
@@ -86,7 +83,6 @@ func (net *TestNetwork) Start() {
 	net.Round = 0
 	net.Nonce = 0
 
-	net.createAdvertiser()
 	net.createNodes()
 	net.indexProposers()
 	net.startNodes()
@@ -125,7 +121,6 @@ func (net *TestNetwork) Steps(steps int) {
 
 // Close shuts down the test network.
 func (net *TestNetwork) Close() {
-	net.closeAdvertiser()
 	net.closeNodes()
 }
 
@@ -336,18 +331,11 @@ func (net *TestNetwork) RequireWalletNoncesInSyncWithState() {
 // 		args...)
 // }
 
-func (net *TestNetwork) createAdvertiser() {
-	net.Advertiser = CreateMessengerWithKadDht(net.AdvertiserAddress)
-	err := net.Advertiser.Bootstrap(0)
-	net.handleOrBypassError(err)
-}
-
 func (net *TestNetwork) createNodes() {
 	net.Nodes = CreateNodes(
 		net.NumShards,
 		net.NodesPerShard,
-		net.NodesInMetashard,
-		GetConnectableAddress(net.Advertiser))
+		net.NodesInMetashard)
 }
 
 func (net *TestNetwork) indexProposers() {
@@ -380,11 +368,6 @@ func (net *TestNetwork) initDefaults() {
 	defaultNodeShardID := net.DefaultNode.ShardCoordinator.SelfId()
 	net.MinGasLimit = MinTxGasLimit
 	net.MaxGasLimit = net.DefaultNode.EconomicsData.MaxGasLimitPerBlock(defaultNodeShardID) - 1
-}
-
-func (net *TestNetwork) closeAdvertiser() {
-	err := net.Advertiser.Close()
-	net.handleOrBypassError(err)
 }
 
 func (net *TestNetwork) closeNodes() {

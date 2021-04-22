@@ -25,19 +25,19 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	connectableNodes := make([]integrationTests.Connectable, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
 		nodes[i] = integrationTests.NewTestProcessorNode(
 			maxShards,
 			0,
 			0,
-			advertiserAddr,
 		)
+		connectableNodes[i] = nodes[i]
 	}
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposer := 0
 	numPlayers := 10
@@ -47,15 +47,10 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap(0)
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

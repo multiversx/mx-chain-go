@@ -17,6 +17,7 @@ import (
 	chainData "github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -675,6 +676,100 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	res, err := nf.GetKeyValuePairs("addr")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedPairs, res)
+}
+
+func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
+	t.Parallel()
+
+	expectedTokens := map[string]*esdt.ESDigitalToken{
+		"token0": {Value: big.NewInt(10)},
+		"token1": {TokenMetaData: &esdt.MetaData{Name: []byte("name1")}},
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
+			return expectedTokens, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetAllESDTTokens("addr")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTokens, res)
+}
+
+func TestNodeFacade_GetESDTData(t *testing.T) {
+	t.Parallel()
+
+	expectedData := &esdt.ESDigitalToken{
+		TokenMetaData: &esdt.MetaData{Name: []byte("name1")},
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return expectedData, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetESDTData("addr", "tkn", 0)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedData, res)
+}
+
+func TestNodeFacade_GetValueForKey(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := "value"
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
+			return expectedValue, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetValueForKey("addr", "key")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := []string{"value"}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return expectedValue, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetAllIssuedESDTs()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local")
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return nil, localErr
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	_, err := nf.GetAllIssuedESDTs()
+	assert.Equal(t, err, localErr)
 }
 
 func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {

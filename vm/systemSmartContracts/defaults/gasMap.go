@@ -33,6 +33,13 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["SaveKeyValue"] = value
 	gasMap["ESDTTransfer"] = value
 	gasMap["ESDTBurn"] = value
+	gasMap["ESDTLocalMint"] = value
+	gasMap["ESDTLocalBurn"] = value
+	gasMap["ESDTNFTCreate"] = value
+	gasMap["ESDTNFTAddQuantity"] = value
+	gasMap["ESDTNFTBurn"] = value
+	gasMap["ESDTNFTTransfer"] = value
+	gasMap["ESDTNFTChangeCreateOwner"] = value
 
 	return gasMap
 }

@@ -492,6 +492,7 @@ func (nr *nodeRunner) createMetrics(
 		nr.configs.EconomicsConfig,
 		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		managedCoreComponents.MinTransactionVersion(),
+		nr.configs.EpochConfig,
 	)
 
 	if err != nil {
@@ -1090,6 +1091,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
 		EpochConfig:           *nr.configs.EpochConfig,
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,

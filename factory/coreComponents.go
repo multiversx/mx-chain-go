@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -37,6 +38,7 @@ import (
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config                config.Config
+	ConfigPathsHolder     config.ConfigurationPathsHolder
 	EpochConfig           config.EpochConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
@@ -50,6 +52,7 @@ type CoreComponentsFactoryArgs struct {
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
 	config                config.Config
+	configPathsHolder     config.ConfigurationPathsHolder
 	epochConfig           config.EpochConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
@@ -95,6 +98,7 @@ type coreComponents struct {
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:                args.Config,
+		configPathsHolder:     args.ConfigPathsHolder,
 		epochConfig:           args.EpochConfig,
 		ratingsConfig:         args.RatingsConfig,
 		importDbConfig:        args.ImportDbConfig,
@@ -212,12 +216,32 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: ccf.epochConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: gasScheduleNotifier,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      &ccf.economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: ccf.epochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
 		GasPriceModifierEnableEpoch:    ccf.epochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {

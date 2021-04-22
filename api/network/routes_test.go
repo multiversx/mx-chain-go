@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -26,6 +27,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+type esdtTokensResponseData struct {
+	Tokens []string `json:"tokens"`
+}
+
+type esdtTokensResponse struct {
+	Data  esdtTokensResponseData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string
+}
 
 func TestNetworkConfigMetrics_NilContextShouldError(t *testing.T) {
 	t.Parallel()
@@ -160,8 +171,8 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	facade := mock.Facade{
 		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
 			return &api.StakeValues{
-				TotalStaked: big.NewInt(100),
-				TopUp:       big.NewInt(20),
+				BaseStaked: big.NewInt(100),
+				TopUp:      big.NewInt(20),
 			}, nil
 		},
 	}
@@ -206,6 +217,42 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 }
 
+func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
+	tokens := []string{"tokenA", "tokenB"}
+	facade := mock.Facade{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return tokens, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/esdts", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := esdtTokensResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	assert.Equal(t, tokens, response.Data.Tokens)
+}
+
+func TestGetAllIssuedESDTs_Error(t *testing.T) {
+	localErr := fmt.Errorf("%s", "local error")
+	facade := mock.Facade{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return nil, localErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/esdts", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+}
+
 func TestDirectStakedInfo_NilContextShouldErr(t *testing.T) {
 	ws := startNodeServer(nil)
 	req, _ := http.NewRequest("GET", "/network/direct-staked-info", nil)
@@ -221,16 +268,16 @@ func TestDirectStakedInfo_NilContextShouldErr(t *testing.T) {
 
 func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 	stakedData1 := api.DirectStakedValue{
-		Address: "addr1",
-		Staked:  "1111",
-		TopUp:   "2222",
-		Total:   "3333",
+		Address:    "addr1",
+		BaseStaked: "1111",
+		TopUp:      "2222",
+		Total:      "3333",
 	}
 	stakedData2 := api.DirectStakedValue{
-		Address: "addr2",
-		Staked:  "4444",
-		TopUp:   "5555",
-		Total:   "9999",
+		Address:    "addr2",
+		BaseStaked: "4444",
+		TopUp:      "5555",
+		Total:      "9999",
 	}
 
 	facade := mock.Facade{
@@ -254,7 +301,7 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 
 func directStakedFoundInResponse(response string, stakedData api.DirectStakedValue) bool {
 	return strings.Contains(response, stakedData.Address) && strings.Contains(response, stakedData.Total) &&
-		strings.Contains(response, stakedData.Staked) && strings.Contains(response, stakedData.TopUp)
+		strings.Contains(response, stakedData.BaseStaked) && strings.Contains(response, stakedData.TopUp)
 }
 
 func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
@@ -376,6 +423,61 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	assert.True(t, strings.Contains(respStr, expectedError.Error()))
 }
 
+func TestGetEnableEpochs_NilContextShouldErr(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+}
+
+func TestGetEnableEpochs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetrics := statusHandler.NewStatusMetrics()
+	key := core.MetricScDeployEnableEpoch
+	value := uint64(4)
+	statusMetrics.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetrics
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(value, 10))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetEnableEpochs_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/network/enable-epochs", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := GeneralResponse{}
+	loadResponse(resp.Body, &statusRsp)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -425,7 +527,9 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/config", Open: true},
 					{Name: "/status", Open: true},
 					{Name: "/economics", Open: true},
+					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
+					{Name: "/enable-epochs", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 				},

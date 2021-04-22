@@ -121,13 +121,13 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(5000))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(0))
 
 	expectedSenderBalance := big.NewInt(94996270)
