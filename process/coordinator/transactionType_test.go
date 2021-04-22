@@ -74,6 +74,17 @@ func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {
 	assert.Equal(t, process.ErrNilBuiltInFunction, err)
 }
 
+func TestNewTxTypeHandler_NilEpochNotifier(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.EpochNotifier = nil
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewTxTypeHandler_ValsOk(t *testing.T) {
 	t.Parallel()
 
@@ -370,6 +381,11 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
 	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.RelayedTxV2, txTypeIn)
 	assert.Equal(t, process.RelayedTxV2, txTypeCross)
+
+	tth.flagRelayedTxV2.Unset()
+	txTypeIn, txTypeCross = tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.MoveBalance, txTypeIn)
+	assert.Equal(t, process.MoveBalance, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {

@@ -182,6 +182,56 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBuffer, err)
 }
 
+func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		nil,
+		[]byte("chainID"),
+		false,
+		mock.HasherMock{},
+		versioning.NewTxVersionChecker(1),
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilArgumentParser, err)
+}
+
+func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		false,
+		mock.HasherMock{},
+		nil,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilTransactionVersionChecker, err)
+}
+
 func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1361,6 +1411,11 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
+
+	tx.Data = []byte("relayedTxV2@notHex")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
 
 	userTx := &dataTransaction.Transaction{
 		SndAddr:   recvAddress,

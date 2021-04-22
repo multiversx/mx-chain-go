@@ -616,6 +616,7 @@ func (txProc *txProcessor) processRelayedTxV2(
 	userTx := makeUserTxFromRelayedTxV2Args(args)
 	userTx.GasPrice = tx.GasPrice
 	userTx.GasLimit = tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
+	userTx.SndAddr = tx.RcvAddr
 
 	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
 }

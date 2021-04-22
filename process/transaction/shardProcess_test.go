@@ -1927,6 +1927,84 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
+func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
+	t.Parallel()
+
+	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(0)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	userTxDest := []byte("sDST")
+	userNonce := "00"
+	userDataString := "execute@param1"
+
+	marshalizer := &mock.MarshalizerMock{}
+	userDataMarshalled, _ := marshalizer.Marshal(userDataString)
+	tx.Data = []byte(core.RelayedTransactionV2 +
+		"@" +
+		hex.EncodeToString(userTxDest) +
+		"@" +
+		userNonce +
+		"@" +
+		hex.EncodeToString(userDataMarshalled) +
+		"@" +
+		"01a2")
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(10)
+
+	acntFinal, _ := state.NewUserAccount(userTxDest)
+	acntFinal.Balance = big.NewInt(10)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTxDest) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	scProcessorMock := &mock.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+
+	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubKeyConverter,
+		ShardCoordinator: shardC,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = txTypeHandler
+	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	returnCode, err := execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
