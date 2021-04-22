@@ -154,8 +154,20 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.
 		&mock.TxProcessorMock{},
 	)
 
-	err := scheduledTxsExec.ExecuteAll(nil)
+	err := scheduledTxsExec.ExecuteAll(nil, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
+}
+
+func TestScheduledTxsExecution_ExecuteAllShouldErrNilTransactionCoordinator(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, _ := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+	)
+
+	haveTimeFunction := func() time.Duration { return time.Duration(-1) }
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction, nil)
+	assert.Equal(t, process.ErrNilTransactionCoordinator, err)
 }
 
 func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
@@ -168,7 +180,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 	haveTimeFunction := func() time.Duration { return time.Duration(-1) }
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
-	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction, &mock.TransactionCoordinatorMock{})
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -187,7 +199,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
-	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction, &mock.TransactionCoordinatorMock{})
 	assert.Equal(t, localError, err)
 }
 
@@ -205,7 +217,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 
-	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction, &mock.TransactionCoordinatorMock{})
 	assert.Nil(t, err)
 }
 
@@ -227,7 +239,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 	scheduledTxsExec.Add([]byte("txHash2"), &transaction.Transaction{Nonce: 1})
 	scheduledTxsExec.Add([]byte("txHash3"), &transaction.Transaction{Nonce: 2})
 
-	err := scheduledTxsExec.ExecuteAll(haveTimeFunction)
+	err := scheduledTxsExec.ExecuteAll(haveTimeFunction, &mock.TransactionCoordinatorMock{})
 	assert.Nil(t, err)
 	assert.Equal(t, 3, numTxsExecuted)
 }
@@ -258,3 +270,5 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 	err := scheduledTxsExec.execute(&transaction.Transaction{Nonce: 0})
 	assert.Equal(t, response, err)
 }
+
+//TODO: Add unit tests for computeScheduledSCRs method

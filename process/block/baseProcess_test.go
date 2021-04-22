@@ -210,6 +210,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 

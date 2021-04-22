@@ -996,7 +996,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return header
 }
 
-func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
+func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
 	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
@@ -1032,6 +1032,19 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 			}
 		}
 	}
+
+	//TODO: Save them
+	//scheduledSCRs, errNotCritical := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
+	//if errNotCritical != nil {
+	//	log.Warn("saveBody.GetMarshalizedSCRs", "error", errNotCritical.Error())
+	//} else {
+	//	if len(marshalizedSCRs) > 0 {
+	//		errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedSCRs)
+	//		if errNotCritical != nil {
+	//			log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
+	//		}
+	//	}
+	//}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= core.PutInStorerMaxTime {
@@ -1173,13 +1186,13 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
 		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
-		if !ok{
+		if !ok {
 			return []byte{}, []byte{}
 		}
 		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
- 		if !ok{
- 			return []byte{}, []byte{}
-	    }
+		if !ok {
+			return []byte{}, []byte{}
+		}
 		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
@@ -1368,7 +1381,7 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	startTime := time.Now()
-	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
+	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime, bp.txCoordinator)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
 		"time [s]", elapsedTime,

@@ -1151,7 +1151,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
-	mp.saveBody(body, header)
+	mp.saveBody(body, header, headerHash)
 
 	err = mp.commitAll()
 	if err != nil {

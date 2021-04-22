@@ -143,6 +143,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
 	return store
 }
 

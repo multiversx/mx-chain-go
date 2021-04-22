@@ -304,6 +304,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

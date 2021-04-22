@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ScheduledTxsExecutionHandler implements ScheduledTxsExecutionHandler interface but does nothing as it is a disabled component
@@ -25,7 +26,7 @@ func (steh *ScheduledTxsExecutionHandler) Execute(_ []byte) error {
 }
 
 // ExecuteAll does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) error {
+func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration, _ process.TransactionCoordinator) error {
 	return nil
 }
 

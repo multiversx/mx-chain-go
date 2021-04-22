@@ -112,6 +112,7 @@ type Config struct {
 	MetaHdrNonceHashStorage         StorageConfig
 	StatusMetricsStorage            StorageConfig
 	ReceiptsStorage                 StorageConfig
+	ScheduledSCRsStorage            StorageConfig
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig

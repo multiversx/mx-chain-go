@@ -92,6 +92,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 

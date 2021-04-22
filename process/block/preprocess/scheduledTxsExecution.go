@@ -8,15 +8,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type scheduledTxsExecution struct {
-	txProcessor     process.TransactionProcessor
-	mapScheduledTxs map[string]data.TransactionHandler
-	scheduledTxs    []data.TransactionHandler
-	mutScheduledTxs sync.RWMutex
+	txProcessor      process.TransactionProcessor
+	mapScheduledTxs  map[string]data.TransactionHandler
+	mapScheduledSCRs map[string]data.TransactionHandler
+	scheduledTxs     []data.TransactionHandler
+	mutScheduledTxs  sync.RWMutex
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -29,9 +31,10 @@ func NewScheduledTxsExecution(
 	}
 
 	ste := &scheduledTxsExecution{
-		txProcessor:     txProcessor,
-		mapScheduledTxs: make(map[string]data.TransactionHandler),
-		scheduledTxs:    make([]data.TransactionHandler, 0),
+		txProcessor:      txProcessor,
+		mapScheduledTxs:  make(map[string]data.TransactionHandler),
+		mapScheduledSCRs: make(map[string]data.TransactionHandler),
+		scheduledTxs:     make([]data.TransactionHandler, 0),
 	}
 
 	return ste, nil
@@ -82,13 +85,21 @@ func (ste *scheduledTxsExecution) Execute(txHash []byte) error {
 }
 
 // ExecuteAll method executes all the scheduled transactions
-func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) error {
+func (ste *scheduledTxsExecution) ExecuteAll(
+	haveTime func() time.Duration,
+	txCoordinator process.TransactionCoordinator,
+) error {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
+	if check.IfNil(txCoordinator) {
+		return process.ErrNilTransactionCoordinator
+	}
+
+	allTxsBeforeScheduledExecution := txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 
 	for _, txHandler := range ste.scheduledTxs {
 		if haveTime() < 0 {
@@ -101,6 +112,9 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 		}
 	}
 
+	allTxsAfterScheduledExecution := txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	ste.computeScheduledSCRs(allTxsBeforeScheduledExecution, allTxsAfterScheduledExecution)
+
 	return nil
 }
 
@@ -112,6 +126,21 @@ func (ste *scheduledTxsExecution) execute(txHandler data.TransactionHandler) err
 
 	_, err := ste.txProcessor.ProcessTransaction(tx)
 	return err
+}
+
+func (ste *scheduledTxsExecution) computeScheduledSCRs(
+	allTxsBeforeScheduledExecution map[string]data.TransactionHandler,
+	allTxsAfterScheduledExecution map[string]data.TransactionHandler,
+) {
+	ste.mapScheduledSCRs = make(map[string]data.TransactionHandler)
+	for hash, txHandler := range allTxsAfterScheduledExecution {
+		_, txExists := allTxsBeforeScheduledExecution[hash]
+		if txExists {
+			continue
+		}
+
+		ste.mapScheduledSCRs[hash] = txHandler
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

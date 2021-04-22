@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ScheduledTxsExecutionStub -
@@ -11,7 +12,7 @@ type ScheduledTxsExecutionStub struct {
 	InitCalled       func()
 	AddCalled        func([]byte, data.TransactionHandler) bool
 	ExecuteCalled    func([]byte) error
-	ExecuteAllCalled func(func() time.Duration) error
+	ExecuteAllCalled func(func() time.Duration, process.TransactionCoordinator) error
 }
 
 // Init -
@@ -38,9 +39,9 @@ func (stes *ScheduledTxsExecutionStub) Execute(txHash []byte) error {
 }
 
 // ExecuteAll -
-func (stes *ScheduledTxsExecutionStub) ExecuteAll(haveTime func() time.Duration) error {
+func (stes *ScheduledTxsExecutionStub) ExecuteAll(haveTime func() time.Duration, txCoordinator process.TransactionCoordinator) error {
 	if stes.ExecuteAllCalled != nil {
-		return stes.ExecuteAllCalled(haveTime)
+		return stes.ExecuteAllCalled(haveTime, txCoordinator)
 	}
 	return nil
 }
