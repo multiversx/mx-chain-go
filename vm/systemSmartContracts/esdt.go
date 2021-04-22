@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -409,7 +408,7 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := sha256.Sha256{}.Compute(string(newRandomBase))
+	newRandom := e.hasher.Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
 
 	tickerPrefix := append(ticker, []byte(tickerSeparator)...)
@@ -417,8 +416,8 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 
 	one := big.NewInt(1)
 	for i := 0; i < numOfRetriesForIdentifier; i++ {
-		encoded := hex.EncodeToString(newRandomAsBigInt.Bytes())
-		newIdentifier := append(tickerPrefix, []byte(encoded)...)
+		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
+		newIdentifier := append(tickerPrefix, encoded...)
 		data := e.eei.GetStorage(newIdentifier)
 		if len(data) == 0 {
 			return newIdentifier, nil
