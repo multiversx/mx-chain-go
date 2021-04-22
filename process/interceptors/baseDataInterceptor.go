@@ -84,7 +84,7 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		return
 	}
 
-	log.Debug("intercepted data is processed",
+	log.Trace("intercepted data is processed",
 		"hash", data.Hash(),
 		"type", data.Type(),
 		"pid", p2p.MessageOriginatorPid(msg),
