@@ -32,6 +32,7 @@ type baseAPIBockProcessor struct {
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              dblookupext.HistoryRepository
+	// TODO: use an interface instead of this function
 	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	txStatusComputer         transaction.StatusComputerHandler
 }

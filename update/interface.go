@@ -96,6 +96,7 @@ type ImportHandler interface {
 	GetUnFinishedMetaBlocks() map[string]*block.MetaBlock
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -240,8 +241,6 @@ type GenesisNodesSetupHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
-	GetChainId() string
-	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	MinNumberOfShardNodes() uint32

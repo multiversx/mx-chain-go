@@ -9,11 +9,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewEpochStartMetaSyncer_NilsShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := getEpochStartSyncerArgs()
+	args.CoreComponentsHolder = nil
+	ess, err := NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilCoreComponentsHolder, err)
+
+	args = getEpochStartSyncerArgs()
+	args.CryptoComponentsHolder = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilCryptoComponentsHolder, err)
+
+	args = getEpochStartSyncerArgs()
+	args.HeaderIntegrityVerifier = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilHeaderIntegrityVerifier, err)
+
+	args = getEpochStartSyncerArgs()
+	args.MetaBlockProcessor = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilMetablockProcessor, err)
+}
 
 func TestNewEpochStartMetaSyncer_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -97,25 +127,34 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 
 func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 	return ArgsNewEpochStartMetaSyncer{
-		RequestHandler:    &mock.RequestHandlerStub{},
-		Messenger:         &mock.MessengerStub{},
-		Marshalizer:       &mock.MarshalizerMock{},
-		TxSignMarshalizer: &mock.MarshalizerMock{},
-		ShardCoordinator:  mock.NewMultiShardsCoordinatorMock(2),
-		KeyGen:            &mock.KeyGenMock{},
-		BlockKeyGen:       &mock.KeyGenMock{},
-		Hasher:            &mock.HasherMock{},
-		Signer:            &mock.SignerStub{},
-		BlockSigner:       &mock.SignerStub{},
-		ChainID:           []byte("chain-ID"),
-		EconomicsData:     &economicsmocks.EconomicsHandlerStub{},
-		WhitelistHandler:  &mock.WhiteListHandlerStub{},
-		AddressPubkeyConv: mock.NewPubkeyConverterMock(32),
-		NonceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		CoreComponentsHolder: &mock.CoreComponentsMock{
+			IntMarsh:            &mock.MarshalizerMock{},
+			Marsh:               &mock.MarshalizerMock{},
+			Hash:                &mock.HasherMock{},
+			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			PathHdl:             &mock.PathManagerStub{},
+			ChainIdCalled: func() string {
+				return "chain-ID"
+			},
+		},
+		CryptoComponentsHolder: &mock.CryptoComponentsMock{
+			PubKey:   &mock.PublicKeyStub{},
+			BlockSig: &mock.SignerStub{},
+			TxSig:    &mock.SignerStub{},
+			BlKeyGen: &mock.KeyGenMock{},
+			TxKeyGen: &mock.KeyGenMock{},
+		},
+		RequestHandler:   &mock.RequestHandlerStub{},
+		Messenger:        &mock.MessengerStub{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
+		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
+		WhitelistHandler: &mock.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		MetaBlockProcessor:      &mock.EpochStartMetaBlockProcessorStub{},
 	}
 }

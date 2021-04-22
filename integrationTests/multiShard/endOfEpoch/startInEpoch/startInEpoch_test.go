@@ -50,14 +50,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -74,7 +70,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -173,45 +168,51 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
-	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
-	_ = messenger.Bootstrap()
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 
-	rounder := &mock.RounderMock{IndexField: int64(round)}
+	for _, n := range nodes {
+		_ = n.ConnectTo(nodeToJoinLate)
+	}
+
+	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.BlockSig = &mock.SignerMock{}
+	cryptoComponents.TxSig = &mock.SignerMock{}
+	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.HasherField = integrationTests.TestHasher
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.PathHandlerField = &mock.PathManagerStub{}
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:                integrationTests.TestMarshalizer,
-		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-		Hasher:                     integrationTests.TestHasher,
+		CryptoComponentsHolder:     cryptoComponents,
+		CoreComponentsHolder:       coreComponents,
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
-		SingleSigner:               &mock.SignerMock{},
-		BlockSingleSigner:          &mock.SignerMock{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &mock.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    rounder,
-		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
+		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
-		TxSignHasher:               integrationTests.TestHasher,
-		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -228,7 +229,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		shardC,
 		&mock.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
-		0)
+		0,
+		false,
+	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)

@@ -14,10 +14,6 @@ import (
 	"testing"
 	"time"
 
-	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -35,12 +31,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,23 +90,28 @@ func TestNewNode(t *testing.T) {
 }
 
 func TestNewNode_NilOptionShouldError(t *testing.T) {
-	_, err := node.NewNode(node.WithAccountsAdapter(nil))
+	_, err := node.NewNode(node.WithCoreComponents(nil))
 	assert.NotNil(t, err)
 }
 
 func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	n, _ := node.NewNode()
-	err := n.ApplyOptions(node.WithAccountsAdapter(nil))
+	err := n.ApplyOptions(node.WithCoreComponents(nil))
 	assert.NotNil(t, err)
 }
 
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = nil
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.AddrPubKeyConv = nil
+	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -120,12 +119,14 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 }
 
 func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = nil
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -140,12 +141,17 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 			return nil, expectedErr
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	_, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Equal(t, expectedErr, err)
@@ -169,12 +175,16 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 			return nil, nil
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
@@ -184,12 +194,17 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(100))
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
@@ -207,12 +222,18 @@ func TestGetUsername(t *testing.T) {
 
 		return acc, nil
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	username, err := n.GetUsername(createDummyHexAddress(64))
 	assert.Nil(t, err)
@@ -232,10 +253,12 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(k1, v1)
+					suffix := append(k1, acc.AddressBytes()...)
+					trieLeaf := keyValStorage.NewKeyValStorage(k1, append(v1, suffix...))
 					ch <- trieLeaf
 
-					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, v2)
+					suffix = append(k2, acc.AddressBytes()...)
+					trieLeaf2 := keyValStorage.NewKeyValStorage(k2, append(v2, suffix...))
 					ch <- trieLeaf2
 					close(ch)
 				}()
@@ -247,13 +270,29 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+		return nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
 	pairs, err := n.GetKeyValuePairs(createDummyHexAddress(64))
@@ -279,12 +318,17 @@ func TestNode_GetValueForKey(t *testing.T) {
 		return acc, nil
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	value, err := n.GetValueForKey(createDummyHexAddress(64), hex.EncodeToString(k1))
@@ -292,7 +336,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString(v1), value)
 }
 
-func TestNode_GetESDTBalance(t *testing.T) {
+func TestNode_GetESDTData(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := "newToken"
 	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
@@ -305,17 +349,53 @@ func TestNode_GetESDTBalance(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
-	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, 0)
 	assert.Nil(t, err)
-	assert.Equal(t, esdtData.Value.String(), value)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
+}
+
+func TestNode_GetESDTDataForNFT(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	nonce := int64(100)
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken + string(big.NewInt(100).Bytes()))
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	esdtTokenData, err := n.GetESDTData(createDummyHexAddress(64), esdtToken, uint64(nonce))
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData.Value.String(), esdtTokenData.Value.String())
 }
 
 func TestNode_GetAllESDTTokens(t *testing.T) {
@@ -327,13 +407,16 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
 	acc.DataTrieTracker().SetDataTrie(
 		&mock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, marshalledData)
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
@@ -342,74 +425,252 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			},
 		})
 
-	accDB := &mock.AccountsStub{}
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
-	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
+	value, err := n.GetAllESDTTokens(hexAddress)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
-	assert.Equal(t, esdtToken, value[0])
+	assert.Equal(t, esdtData, value[esdtToken])
+}
+
+func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+
+	esdtToken := "TKKR-7q8w9e"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+
+	hexAddress := createDummyHexAddress(64)
+	suffix := append(esdtKey, acc.AddressBytes()...)
+
+	nftToken := "TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKey = append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKey, acc.AddressBytes()...)
+
+	nftData := &esdt.ESDigitalToken{Value: big.NewInt(10), TokenMetaData: &esdt.MetaData{Nonce: nftNonce.Uint64()}}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder, 2)
+
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					ch <- trieLeaf
+					wg.Done()
+					close(ch)
+				}()
+
+				wg.Wait()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+	stateComponents.AccountsAPI = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	tokens, err := n.GetAllESDTTokens(hexAddress)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(tokens))
+	assert.Equal(t, esdtData, tokens[esdtToken])
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func TestNode_GetAllIssuedESDTs(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := []byte("TCK-RANDOM")
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	suffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, suffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	value, err := n.GetAllIssuedESDTs()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, string(esdtToken), value[0])
 }
 
 //------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	privateKey := getPrivateKey()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = nil
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
+	stateComponents.Accounts = nil
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", &mock.PrivateKeyStub{}, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", nil, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
-
 	accAdapter := getAccAdapter(big.NewInt(0))
 	privateKey := getPrivateKey()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
+
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
@@ -421,14 +682,21 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 			return nil, nil
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = &mock.SinglesignMock{}
+
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(&mock.SinglesignMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
@@ -444,14 +712,21 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
@@ -463,14 +738,21 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
@@ -486,13 +768,21 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.VmMarsh = marshalizer
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
-		node.WithVmMarshalizer(marshalizer),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
@@ -504,14 +794,21 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	privateKey := &mock.PrivateKeyStub{}
 	singleSigner := &mock.SinglesignFailMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
@@ -524,14 +821,21 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	privateKey := &mock.PrivateKeyStub{}
 	singleSigner := &mock.SinglesignMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
@@ -555,14 +859,21 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
@@ -576,15 +887,23 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	privateKey := getPrivateKey()
 	singleSigner := &mock.SinglesignMock{}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = singleSigner
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
+
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 }
@@ -592,14 +911,17 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	chainID := []byte("chain id")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithChainID(chainID),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	nonce := uint64(0)
@@ -611,7 +933,9 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), 1, 0)
+	coreComponents.AddrPubKeyConv = nil
+	chainID := coreComponents.ChainID()
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -621,19 +945,23 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-			},
-		),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	nonce := uint64(0)
@@ -645,7 +973,23 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	stateComponents.Accounts = nil
+
+	tx, txHash, err := n.CreateTransaction(
+		nonce,
+		value.String(),
+		receiver,
+		nil,
+		sender,
+		nil,
+		gasPrice,
+		gasLimit,
+		txData,
+		signature,
+		coreComponents.ChainID(),
+		1,
+		0,
+	)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -655,19 +999,22 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-			},
-		),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	nonce := uint64(0)
@@ -691,32 +1038,33 @@ func TestCreateTransaction_ChainIDFieldChecks(t *testing.T) {
 
 	chainID := "chain id"
 	expectedHash := []byte("expected hash")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -748,30 +1096,32 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedHash := []byte("expected hash")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	nonce := uint64(0)
@@ -793,47 +1143,61 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	crtShardID := uint32(1)
 	chainID := []byte("chain ID")
 	version := uint32(1)
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+	coreComponents.ChainIdCalled = func() string {
+		return string(chainID)
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.EconomicsHandler = &economicsmocks.EconomicsHandlerMock{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID + 1
+		},
+		SelfShardId: crtShardID,
+	}
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = shardCoordinator
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+
+	cryptoComponents := getDefaultCryptoComponents()
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID + 1
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -864,33 +1228,40 @@ func TestCreateTransaction_SignatureLengthChecks(t *testing.T) {
 	maxValueLength := 7
 	signatureLength := 10
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxValueLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxValueLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(signatureLength),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
 	)
 
 	nonce := uint64(0)
@@ -923,34 +1294,40 @@ func TestCreateTransaction_SenderLengthChecks(t *testing.T) {
 	maxLength := 7
 	chainID := "chain id"
 	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return encodedAddressLen
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -981,34 +1358,40 @@ func TestCreateTransaction_ReceiverLengthChecks(t *testing.T) {
 	maxLength := 7
 	chainID := "chain id"
 	encodedAddressLen := 5
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return encodedAddressLen
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return encodedAddressLen
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -1038,30 +1421,39 @@ func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1088,30 +1480,39 @@ func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1138,33 +1539,41 @@ func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
-
 	nonce := uint64(0)
 	value := "1" + strings.Repeat("0", maxLength+1)
 	receiver := "rcv"
@@ -1186,30 +1595,39 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 
 	maxLength := 7
 	chainID := "chain id"
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.EconomicsHandler = &mock.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			str := strings.Repeat("1", maxLength)
+			bi := big.NewInt(0)
+			bi.SetString(str, 10)
+			return bi
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithTxFeeHandler(
-			&mock.FeeHandlerStub{
-				GenesisTotalSupplyCalled: func() *big.Int {
-					str := strings.Repeat("1", maxLength)
-					bi := big.NewInt(0)
-					bi.SetString(str, 10)
-					return bi
-				},
-			}),
-		node.WithChainID([]byte(chainID)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1232,58 +1650,51 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedHash := []byte("expected hash")
-	crtShardID := uint32(1)
-	chainID := []byte("chain ID")
 	version := uint32(1)
+	expectedHash := []byte("expected hash")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	networkComponents := getDefaultNetworkComponents()
+	cryptoComponents := getDefaultCryptoComponents()
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = processComponents.ShardCoordinator()
+	bootstrapComponents.HdrIntegrityVerifier = processComponents.HeaderIntegrVerif
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1296,7 +1707,10 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
+	tx, txHash, err := n.CreateTransaction(
+		nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData,
+		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(), 0,
+	)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -1313,57 +1727,76 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 
 	expectedHash := []byte("expected hash")
 	crtShardID := uint32(1)
-	chainID := []byte("chain ID")
+	chainID := "chain ID"
 	version := uint32(1)
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+	coreComponents.TxSignHasherField = &mock.HasherMock{}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+
+	feeHandler := &mock.EconomicsHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+	coreComponents.EconomicsHandler = feeHandler
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID
+		},
+		SelfShardId: crtShardID,
+	}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = &mock.SingleSignerMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1377,7 +1810,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
-	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
+	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version, options)
 	require.Nil(t, err)
 	err = n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
@@ -1388,65 +1821,83 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 
 	expectedHash := []byte("expected hash")
 	crtShardID := uint32(1)
-	chainID := []byte("chain ID")
+	chainID := "chain ID"
 	version := uint32(1)
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.TxSignHasherField = mock.HasherMock{}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+		LenCalled: func() int {
+			return 3
+		},
+	}
+
+	feeHandler := &mock.EconomicsHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+	coreComponents.EconomicsHandler = feeHandler
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID
+		},
+		SelfShardId: crtShardID,
+	}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return false
+		},
+	}
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = &mock.SingleSignerMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-				EncodeCalled: func(pkBytes []byte) string {
-					return string(pkBytes)
-				},
-				LenCalled: func() int {
-					return 3
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{
-			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
-				return false
-			},
-		}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
-				return nil, nil
-			},
-		}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 		node.WithAddressSignatureSize(10),
 	)
 
@@ -1460,7 +1911,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, version+1, options)
 
 	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
@@ -1472,14 +1923,21 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 	mes := &mock.MessengerStub{}
 	marshalizer := &mock.MarshalizerFake{}
 	hasher := &mock.HasherFake{}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.VmMarsh = marshalizer
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	coreComponents.Hash = hasher
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = mock.NewOneShardCoordinatorMock()
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = mes
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
-		node.WithVmMarshalizer(marshalizer),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMessenger(mes),
-		node.WithHasher(hasher),
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
 	)
 	txs := make([]*transaction.Transaction, 0)
 
@@ -1491,18 +1949,29 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
 	dataPool := testscommon.NewPoolsHolderStub()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
 
 	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
+	processComponents.ShardCoord = nil
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil shard coordinator")
@@ -1511,17 +1980,30 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	dataComponents := getDefaultDataComponents()
+
 	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
+	dataComponents.DataPool = nil
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil data pool")
@@ -1537,16 +2019,27 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+
 	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
 	)
 
 	err := n.CreateShardedStores()
@@ -1565,16 +2058,27 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return nil
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+
 	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
 	)
 
 	err := n.CreateShardedStores()
@@ -1596,83 +2100,31 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		return &mock.HeadersCacherStub{}
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+
 	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
 	)
 
 	err := n.CreateShardedStores()
 	assert.Nil(t, err)
-}
-
-func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
-	t.Parallel()
-
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode()
-
-	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, node.ErrNilShardCoordinator, err)
-}
-
-func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
-	t.Parallel()
-
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode(
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return true
-			},
-			HasTopicCalled: func(name string) bool {
-				return true
-			},
-		}),
-	)
-
-	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, node.ErrValidatorAlreadySet, err)
-}
-
-func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
-	t.Parallel()
-
-	localError := errors.New("error")
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode(
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return localError
-			},
-		}),
-	)
-
-	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, localError, err)
-}
-
-func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(node.WithShardCoordinator(&mock.ShardCoordinatorMock{}))
-
-	err := n.CreateConsensusTopic(nil)
-	require.Equal(t, node.ErrNilMessenger, err)
 }
 
 func TestNode_ValidatorStatisticsApi(t *testing.T) {
@@ -1733,10 +2185,13 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	},
 	}
 
+	processComponents := getDefaultProcessComponents()
+	processComponents.ValidatorProvider = validatorProvider
+	processComponents.ValidatorStatistics = vsp
+
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithValidatorStatistics(vsp),
-		node.WithValidatorsProvider(validatorProvider),
+		node.WithProcessComponents(processComponents),
 	)
 
 	expectedData := &state.ValidatorApiResponse{}
@@ -1745,594 +2200,21 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithBlockChain(&mock.ChainHandlerStub{
-			GetGenesisHeaderHashCalled: func() []byte {
-				return nil
-			},
-			GetGenesisHeaderCalled: func() data.HeaderHandler {
-				return nil
-			},
-		}),
-	)
-
-	err := n.StartConsensus()
-
-	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
-
-}
-
-func TestStartConsensus_NilSyncTimer(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithIndexer(&mock.IndexerMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, chronology.ErrNilSyncTimer, err)
-}
-
-func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(store),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return &process.ForkInfo{}
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, state.ErrNilAccountsAdapter, err)
-}
-
-func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-	}
-
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
-		},
-	}
-
-	tr := &mock.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return &mock.StorerMock{}
-				},
-			}
-		},
-	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(store),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, process.ErrNilPoolsHolder, err)
-}
-
-func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = core.MetachainShardId
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(shardingCoordinator),
-		node.WithDataStore(store),
-		node.WithResolversFinder(&mock.ResolversFinderStub{
-			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return &mock.MiniBlocksResolverStub{}, nil
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, process.ErrNilPoolsHolder, err)
-}
-
-func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = 2
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(shardingCoordinator),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithDataPool(testscommon.NewPoolsHolderStub()),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(&mock.IndexerMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, sharding.ErrShardIdOutOfRange, err)
-}
-
-func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	tr := &mock.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return &mock.StorerMock{}
-				},
-			}
-		},
-	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	localErr := errors.New("err")
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("nil"), localErr
-			},
-		}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(elasticIndexer.NewNilIndexer()),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, localErr, err)
-}
-
-func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	tr := &mock.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return &mock.StorerMock{}
-				},
-			}
-		},
-	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("keyBytes"), nil
-			},
-		}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithIndexer(elasticIndexer.NewNilIndexer()),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
-}
-
-func TestStartConsensus_ShardBootstrapper(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	tr := &mock.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return &mock.StorerMock{}
-				},
-			}
-		},
-	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return &process.ForkInfo{}
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-		}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return true
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("keyBytes"), nil
-			},
-		}),
-		node.WithConsensusType("bls"),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithSingleSigner(&mock.SingleSignerMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithChainID([]byte("id")),
-		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
-		node.WithMultiSigner(&mock.MultisignMock{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
-		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
-		node.WithIndexer(elasticIndexer.NewNilIndexer()),
-		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Nil(t, err)
-}
-
 //------- GetAccount
 
 func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
+	stateComponents.Accounts = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
@@ -2347,11 +2229,16 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 			return nil, state.ErrAccNotFound
 		},
 	}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+	coreComponents := getDefaultCoreComponents()
 
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
+	coreComponents.AddrPubKeyConv = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
@@ -2368,14 +2255,18 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	}
 
 	errExpected := errors.New("expected error")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return nil, errExpected
+		},
+	}
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return nil, errExpected
-				},
-			}),
+		node.WithStateComponents(stateComponents),
+		node.WithCoreComponents(coreComponents),
 	)
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
@@ -2393,9 +2284,13 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
@@ -2417,9 +2312,13 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
@@ -2444,9 +2343,13 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
@@ -2467,8 +2370,11 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
+
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusHandlerStub))
+		node.WithCoreComponents(coreComponents))
 	asf := n.GetAppStatusHandler()
 
 	asf.Increment(metricKey)
@@ -2492,8 +2398,11 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
+
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusHandlerStub))
+		node.WithCoreComponents(coreComponents))
 	asf := n.GetAppStatusHandler()
 
 	asf.Decrement(metricKey)
@@ -2517,8 +2426,11 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
+
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusHandlerStub))
+		node.WithCoreComponents(coreComponents))
 	asf := n.GetAppStatusHandler()
 
 	asf.SetInt64Value(metricKey, int64(1))
@@ -2542,8 +2454,11 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 		},
 	}
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
+
 	n, _ := node.NewNode(
-		node.WithAppStatusHandler(&appStatusHandlerStub))
+		node.WithCoreComponents(coreComponents))
 	asf := n.GetAppStatusHandler()
 
 	asf.SetUInt64Value(metricKey, uint64(1))
@@ -2559,8 +2474,11 @@ func TestNode_EncodeDecodeAddressPubkey(t *testing.T) {
 	t.Parallel()
 
 	buff := []byte("abcdefg")
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(32)
 	n, _ := node.NewNode(
-		node.WithAddressPubkeyConverter(mock.NewPubkeyConverterMock(32)),
+		node.WithCoreComponents(coreComponents),
 	)
 	encoded, err := n.EncodeAddressPubkey(buff)
 	assert.Nil(t, err)
@@ -2571,11 +2489,16 @@ func TestNode_EncodeDecodeAddressPubkey(t *testing.T) {
 	assert.Equal(t, buff, recoveredBytes)
 }
 
-func TestNode_EncodeDecodeAddressPubkeyWithNilCoberterShouldErr(t *testing.T) {
+func TestNode_EncodeDecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	buff := []byte("abcdefg")
-	n, _ := node.NewNode()
+
+	coreComponents := getDefaultCoreComponents()
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents))
+
+	coreComponents.AddrPubKeyConv = nil
 	encoded, err := n.EncodeAddressPubkey(buff)
 
 	assert.Empty(t, encoded)
@@ -2585,8 +2508,13 @@ func TestNode_EncodeDecodeAddressPubkeyWithNilCoberterShouldErr(t *testing.T) {
 func TestNode_DecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode()
+	coreComponents := getDefaultCoreComponents()
 
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+	)
+
+	coreComponents.AddrPubKeyConv = nil
 	recoveredBytes, err := n.DecodeAddressPubkey("")
 
 	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
@@ -2694,7 +2622,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			return nil, nil
 		},
 	}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &mock.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
@@ -2705,25 +2633,41 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 			return nil
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.VmMarsh = marshalizer
+	coreComponents.TxMarsh = marshalizer
+	coreComponents.Hash = &mock.HasherMock{}
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	coreComponents.EconomicsHandler = feeHandler
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accAdapter
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = signer
+	cryptoComponents.TxKeyGen = keyGen
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = mes
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(marshalizer, testSizeCheckDelta),
-		node.WithVmMarshalizer(marshalizer),
-		node.WithTxSignMarshalizer(marshalizer),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithKeyGenForAccounts(keyGen),
-		node.WithTxSingleSigner(signer),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithMessenger(mes),
-		node.WithDataPool(dataPool),
-		node.WithTxFeeHandler(feeHandler),
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithNetworkComponents(networkComponents),
 		node.WithTxAccumulator(mock.NewAccumulatorMock()),
 	)
 
 	numTxs, err := n.SendBulkTransactions(txsToSend)
 	assert.Equal(t, len(txsToSend), int(numTxs))
 	assert.Nil(t, err)
+
+	// we need to wait a little bit as the node.printTxSentCounter should iterate and avoid different code coverage computation
+	time.Sleep(time.Second + time.Millisecond*500)
 
 	select {
 	case <-chDone:
@@ -2861,12 +2805,15 @@ func TestNode_GetQueryHandlerShouldWork(t *testing.T) {
 func TestNode_GetPeerInfoUnknownPeerShouldErr(t *testing.T) {
 	t.Parallel()
 
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = &mock.MessengerStub{
+		PeersCalled: func() []core.PeerID {
+			return make([]core.PeerID, 0)
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithMessenger(&mock.MessengerStub{
-			PeersCalled: func() []core.PeerID {
-				return make([]core.PeerID, 0)
-			},
-		}),
+		node.WithNetworkComponents(networkComponents),
 	)
 
 	pid := "pid"
@@ -2881,16 +2828,22 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	pid1 := "pid1"
 	pid2 := "pid2"
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = &mock.MessengerStub{
+		PeersCalled: func() []core.PeerID {
+			//return them unsorted
+			return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}
+		},
+		PeerAddressesCalled: func(pid core.PeerID) []string {
+			return []string{"addr" + string(pid)}
+		},
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.ValPubKeyConv = mock.NewPubkeyConverterMock(32)
+
 	n, _ := node.NewNode(
-		node.WithMessenger(&mock.MessengerStub{
-			PeersCalled: func() []core.PeerID {
-				//return them unsorted
-				return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}
-			},
-			PeerAddressesCalled: func(pid core.PeerID) []string {
-				return []string{"addr" + string(pid)}
-			},
-		}),
+		node.WithNetworkComponents(networkComponents),
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				return core.P2PPeerInfo{
@@ -2900,7 +2853,7 @@ func TestNode_ShouldWork(t *testing.T) {
 				}
 			},
 		}),
-		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
+		node.WithCoreComponents(coreComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
 			IsDeniedCalled: func(pid core.PeerID) bool {
 				return pid == core.PeerID(pid1)
@@ -2936,25 +2889,36 @@ func TestNode_ShouldWork(t *testing.T) {
 func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T) {
 	t.Parallel()
 
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = mock.NewPubkeyConverterMock(3)
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = bootstrapComponents.ShCoordinator
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithAddressPubkeyConverter(mock.NewPubkeyConverterMock(3)),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 10),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithTxSignMarshalizer(&mock.MarshalizerFake{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
-				return nil, nil
-			},
-		}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{}),
-		node.WithChainID([]byte("a")),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(0)),
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithCryptoComponents(cryptoComponents),
 	)
 
 	tx := &transaction.Transaction{
@@ -2966,55 +2930,102 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 		GasLimit:  12,
 		Data:      []byte(""),
 		Signature: []byte("sig1"),
-		ChainID:   []byte("a"),
+		ChainID:   []byte(coreComponents.ChainID()),
 	}
 
 	err := n.ValidateTransactionForSimulation(tx, false)
 	require.NoError(t, err)
 }
 
-// TODO remove or move this when integrating with soft-restart branch
-func TestNode_StartHeartbeat(t *testing.T) {
+func TestGetKeyValuePairs_CannotDecodeAddress(t *testing.T) {
 	t.Parallel()
 
-	hbConfig := config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 2,
-		MaxTimeToWaitBetweenBroadcastsInSec: 3,
-		DurationToConsiderUnresponsiveInSec: 10,
-		HeartbeatRefreshIntervalInSec:       1,
-		HideInactiveValidatorIntervalInSec:  20,
+	expectedErr := errors.New("local err")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, expectedErr
+		},
 	}
 
-	prefsConfig := config.PreferencesConfig{
-		DestinationShardAsObserver: "0",
-		NodeDisplayName:            "node name",
-		Identity:                   "identity",
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
 	}
 
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 100),
-		node.WithMessenger(&mock.MessengerStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithAppStatusHandler(&mock.AppStatusHandlerStub{}),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{}),
-		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithValidatorPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithGenesisTime(time.Now()),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithBlockChain(&mock.BlockChainMock{}),
-		node.WithNodeRedundancyHandler(&mock.NodeRedundancyHandlerStub{}),
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
 	)
 
-	err := n.StartHeartbeat(hbConfig, "1.0", prefsConfig)
-	assert.Nil(t, err)
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.True(t, strings.Contains(fmt.Sprintf("%v", err), expectedErr.Error()))
+}
 
-	time.Sleep(time.Second)
+func TestGetKeyValuePairs_NilCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, node.ErrNilBlockHeader, err)
+}
+
+func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("local err")
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return nil, nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return expectedErr
+		},
+	}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithCoreComponents(coreComponents),
+	)
+
+	res, err := n.GetKeyValuePairs("addr")
+	require.Nil(t, res)
+	require.Equal(t, expectedErr, err)
 }

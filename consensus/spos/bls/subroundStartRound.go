@@ -6,11 +6,11 @@ import (
 	"time"
 
 	elasticIndexer "github.com/ElrondNetwork/elastic-indexer-go"
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -76,8 +76,8 @@ func (sr *subroundStartRound) SetIndexer(indexer spos.ConsensusDataIndexer) {
 // doStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
-	sr.RoundIndex = sr.Rounder().Index()
-	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
+	sr.RoundIndex = sr.RoundHandler().Index()
+	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.resetConsensusMessages()
@@ -109,10 +109,10 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "")
 
-	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
+	err := sr.generateNextConsensusGroup(sr.RoundHandler().Index())
 	if err != nil {
 		log.Debug("initCurrentRound.generateNextConsensusGroup",
-			"round index", sr.Rounder().Index(),
+			"round index", sr.RoundHandler().Index(),
 			"error", err.Error())
 
 		sr.RoundCanceled = true
@@ -124,7 +124,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.NodeRedundancyHandler().AdjustInactivityIfNeeded(
 			sr.SelfPubKey(),
 			sr.ConsensusGroup(),
-			sr.Rounder().Index(),
+			sr.RoundHandler().Index(),
 		)
 		if sr.NodeRedundancyHandler().IsMainMachineActive() {
 			return false
@@ -177,10 +177,10 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	startTime := sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
-	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
+			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
 		sr.RoundCanceled = true
@@ -230,9 +230,9 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	round := sr.Rounder().Index()
+	round := sr.RoundHandler().Index()
 
-	roundInfo := workItems.RoundInfo{
+	roundInfo := &indexer.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -240,7 +240,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.indexer.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+	sr.indexer.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

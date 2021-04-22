@@ -2,7 +2,9 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -38,6 +40,8 @@ type trieStorageManager struct {
 	pruningBuffer      atomicBuffer
 	pruningBlockingOps uint32
 	maxSnapshots       uint32
+	keepSnapshots      bool
+	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -75,6 +79,8 @@ func NewTrieStorageManager(
 		log.Debug("get snapshot", "error", err.Error())
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	tsm := &trieStorageManager{
 		db:                    db,
 		snapshots:             snapshots,
@@ -85,18 +91,22 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		pruningBlockingOps:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
+		keepSnapshots:         generalConfig.KeepSnapshots,
+		cancelFunc:            cancelFunc,
 	}
 
-	go tsm.storageProcessLoop(marshalizer, hasher)
+	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
 	return tsm, nil
 }
 
 //nolint
-func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
 		case snapshot := <-tsm.snapshotReq:
 			tsm.takeSnapshot(snapshot, msh, hsh)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -451,10 +461,32 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	}
 
 	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
-		tsm.removeSnapshot()
+		if tsm.keepSnapshots  {
+			tsm.disconnectSnapshot()
+		} else {
+			tsm.removeSnapshot()
+		}
 	}
 
 	return db
+}
+
+func (tsm *trieStorageManager) disconnectSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+	snapshot := tsm.snapshots[0]
+	tsm.snapshots = tsm.snapshots[1:]
+
+	if snapshot.IsInUse() {
+		snapshot.MarkForDisconnection()
+		log.Debug("can't disconnect, snapshot is still in use")
+		return
+	}
+	err := disconnectSnapshot(snapshot)
+	if err != nil {
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
+	}
 }
 
 func (tsm *trieStorageManager) removeSnapshot() {
@@ -479,10 +511,14 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removeSnapshot(snapshot, removePath)
 }
 
+func disconnectSnapshot(db data.DBWriteCacher) error {
+	return db.Close()
+}
+
 func removeSnapshot(db data.DBWriteCacher, path string) {
-	err := db.Close()
+	err := disconnectSnapshot(db)
 	if err != nil {
-		log.Error("trie storage manager: removeSnapshot", "error", err.Error())
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 		return
 	}
 
@@ -554,6 +590,31 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 // GetSnapshotDbBatchDelay returns the batch write delay in seconds
 func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 	return tsm.snapshotDbCfg.BatchDelaySeconds
+}
+
+// Close - closes all underlying components
+func (tsm *trieStorageManager) Close() error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.cancelFunc()
+
+	err1 := tsm.db.Close()
+	err2 := tsm.dbEvictionWaitingList.Close()
+
+	for _, sdb := range tsm.snapshots {
+		log.LogIfError(sdb.Close())
+	}
+
+	if err1 != nil || err2 != nil {
+		errorStr := ""
+		if err2 != nil {
+			errorStr = err2.Error()
+		}
+		return fmt.Errorf("trieStorageManager close failed: %w , %s", err1, errorStr)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

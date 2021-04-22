@@ -10,6 +10,21 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilBootstrapComponentsHolder signals that a nil bootstrap components holder was provided
+var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
+
+// ErrNilStatusComponentsHolder signals that a nil status components holder was provided
+var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilDataComponentsHolder signals that a nil data components holder was provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
@@ -137,8 +152,8 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
@@ -424,6 +439,9 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrInvalidChainID signals that an invalid chain ID was provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
 
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
@@ -797,9 +815,6 @@ var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is hig
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
-
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
@@ -893,6 +908,9 @@ var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
 // ErrNilPauseHandler signals that nil pause handler has been provided
 var ErrNilPauseHandler = errors.New("nil pause handler")
 
+// ErrNilRolesHandler signals that nil roles handler has been provided
+var ErrNilRolesHandler = errors.New("nil roles handler")
+
 // ErrESDTTokenIsPaused signals that esdt token is paused
 var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 
@@ -946,3 +964,30 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
+
+// ErrActionNotAllowed signals that action is not allowed
+var ErrActionNotAllowed = errors.New("action is not allowed")
+
+// ErrOnlyFungibleTokensHaveBalanceTransfer signals that only fungible tokens have balance transfer
+var ErrOnlyFungibleTokensHaveBalanceTransfer = errors.New("only fungible tokens have balance transfer")
+
+// ErrNFTTokenDoesNotExist signals that NFT token does not exist
+var ErrNFTTokenDoesNotExist = errors.New("NFT token does not exist")
+
+// ErrNFTDoesNotHaveMetadata signals that NFT does not have metadata
+var ErrNFTDoesNotHaveMetadata = errors.New("NFT does not have metadata")
+
+// ErrInvalidNFTQuantity signals that invalid NFT quantity was provided
+var ErrInvalidNFTQuantity = errors.New("invalid NFT quantity")
+
+// ErrWrongNFTOnDestination signals the NFT is mismatched on destination - should never happen
+var ErrWrongNFTOnDestination = errors.New("wrong NFT on destination")
+
+// ErrNewNFTDataOnSenderAddress signals that a new NFT data was found on the sender address
+var ErrNewNFTDataOnSenderAddress = errors.New("new NFT data on sender")
+
+// ErrNilBuiltInFunctionsCostHandler signals that a nil built in functions cost handler has been provided
+var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
+
+// ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
+var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")

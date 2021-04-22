@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"time"
 
-	indexer "github.com/ElrondNetwork/elastic-indexer-go"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -26,9 +24,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -108,16 +106,6 @@ func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string
 	return keysMap
 }
 
-func getConnectableAddress(mes p2p.Messenger) string {
-	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
-			continue
-		}
-		return addr
-	}
-	return ""
-}
-
 func displayAndStartNodes(nodes []*testNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.sk.ToByteArray()
@@ -128,12 +116,11 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			testPubkeyConverter.Encode(pkBuff),
 		)
-		_ = n.mesenger.Bootstrap()
 	}
 }
 
 func createTestBlockChain() data.ChainHandler {
-	blockChain := blockchain.NewBlockChain()
+	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 
 	return blockChain
@@ -161,7 +148,7 @@ func createTestStore() dataRetriever.StorageService {
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	store := createMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
@@ -184,7 +171,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -229,9 +216,10 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return &blake2b.Blake2b{HashSize: 32}
+		hasher, _ := blake2b.NewBlake2bWithSize(32)
+		return hasher
 	}
-	return &blake2b.Blake2b{}
+	return blake2b.NewBlake2b()
 }
 
 func createConsensusOnlyNode(
@@ -239,14 +227,13 @@ func createConsensusOnlyNode(
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	selfId uint32,
-	initialAddr string,
 	consensusSize uint32,
 	roundTime uint64,
 	privKey crypto.PrivateKey,
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	epochStartRegistrationHandler mainFactory.EpochStartNotifier,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -256,7 +243,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -305,7 +292,7 @@ func createConsensusOnlyNode(
 	hdrMarshalized, _ := testMarshalizer.Marshal(header)
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(hdrMarshalized)))
 
-	startTime := int64(0)
+	startTime := time.Now().Unix()
 
 	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
@@ -313,7 +300,7 @@ func createConsensusOnlyNode(
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
-	rounder, _ := round.NewRound(
+	roundHandler, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
@@ -327,22 +314,23 @@ func createConsensusOnlyNode(
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,
 		},
-		Epoch:       0,
-		Storage:     createTestStore(),
-		Marshalizer: testMarshalizer,
-		Hasher:      testHasher,
+		Epoch:            0,
+		Storage:          createTestStore(),
+		Marshalizer:      testMarshalizer,
+		Hasher:           testHasher,
+		AppStatusHandler: &testscommon.AppStatusHandlerStub{},
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
-		rounder,
+		roundHandler,
 		timecache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		0,
 	)
 
-	hdrResolver := &mock.HeaderResolverMock{}
-	mbResolver := &mock.MiniBlocksResolverMock{}
+	hdrResolver := &mock.HeaderResolverStub{}
+	mbResolver := &mock.MiniBlocksResolverStub{}
 	resolverFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
@@ -369,60 +357,90 @@ func createConsensusOnlyNode(
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
-
 	accntAdapter := createAccountsDB(testMarshalizer)
+	networkShardingCollector := mock.NewNetworkShardingCollectorMock()
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.SyncTimerField = syncer
+	coreComponents.RoundHandlerField = roundHandler
+	coreComponents.InternalMarshalizerField = testMarshalizer
+	coreComponents.VmMarshalizerField = &marshal.JsonMarshalizer{}
+	coreComponents.TxMarshalizerField = &marshal.JsonMarshalizer{}
+	coreComponents.HasherField = testHasher
+	coreComponents.AddressPubKeyConverterField = testPubkeyConverter
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+	coreComponents.Uint64ByteSliceConverterField = &mock.Uint64ByteSliceConverterMock{}
+	coreComponents.WatchdogField = &mock.WatchdogMock{}
+	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
+	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
+		GetShardConsensusGroupSizeCalled: func() uint32 {
+			return consensusSize
+		},
+		GetMetaConsensusGroupSizeCalled: func() uint32 {
+			return consensusSize
+		},
+	}
+
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PrivKey = privKey
+	cryptoComponents.PubKey = privKey.GeneratePublic()
+	cryptoComponents.BlockSig = singleBlsSigner
+	cryptoComponents.TxSig = singlesigner
+	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.BlKeyGen = testKeyGen
+	cryptoComponents.PeerSignHandler = peerSigHandler
+
+	processComponents := integrationTests.GetDefaultProcessComponents()
+	processComponents.ForkDetect = forkDetector
+	processComponents.ShardCoord = shardCoordinator
+	processComponents.NodesCoord = nodesCoordinator
+	processComponents.BlockProcess = blockProcessor
+	processComponents.BlockTrack = &mock.BlockTrackerStub{}
+	processComponents.IntContainer = &mock.InterceptorsContainerStub{}
+	processComponents.ResFinder = resolverFinder
+	processComponents.EpochTrigger = epochStartTrigger
+	processComponents.EpochNotifier = epochStartRegistrationHandler
+	processComponents.BlackListHdl = &mock.TimeCacheStub{}
+	processComponents.BootSore = &mock.BoostrapStorerMock{}
+	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
+	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
+	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+	processComponents.PeerMapper = networkShardingCollector
+	processComponents.RoundHandlerField = roundHandler
+
+	dataComponents := integrationTests.GetDefaultDataComponents()
+	dataComponents.BlockChain = blockChain
+	dataComponents.DataPool = testscommon.CreatePoolsHolder(1, 0)
+	dataComponents.Store = createTestStore()
+
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accntAdapter
+
+	networkComponents := integrationTests.GetDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+
 	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithNetworkComponents(networkComponents),
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
 		node.WithConsensusGroupSize(int(consensusSize)),
-		node.WithSyncer(syncer),
-		node.WithGenesisTime(time.Unix(startTime, 0)),
-		node.WithRounder(rounder),
-		node.WithSingleSigner(singleBlsSigner),
-		node.WithPrivKey(privKey),
-		node.WithForkDetector(forkDetector),
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(testMarshalizer, 0),
-		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
-		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
-		node.WithHasher(testHasher),
-		node.WithAddressPubkeyConverter(testPubkeyConverter),
-		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGen(testKeyGen),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithNodesCoordinator(nodesCoordinator),
-		node.WithBlockChain(blockChain),
-		node.WithMultiSigner(testMultiSig),
-		node.WithTxSingleSigner(singlesigner),
-		node.WithPubKey(privKey.GeneratePublic()),
-		node.WithBlockProcessor(blockProcessor),
-		node.WithDataPool(testscommon.CreatePoolsHolder(1, 0)),
-		node.WithDataStore(createTestStore()),
-		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
+		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithEpochStartTrigger(epochStartTrigger),
-		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
-		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
+		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
-		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithChainID(integrationTests.ChainID),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
-		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
-		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithPeerSignatureHandler(peerSigHandler),
-		node.WithIndexer(indexer.NewNilIndexer()),
 		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
@@ -437,7 +455,6 @@ func createNodes(
 	nodesPerShard int,
 	consensusSize int,
 	roundTime uint64,
-	serviceID string,
 	consensusType string,
 ) map[uint32][]*testNode {
 
@@ -447,6 +464,7 @@ func createNodes(
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
 	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
+	connectableNodes := make([]integrationTests.Connectable, 0)
 
 	nodeShuffler := &mock.NodeShufflerMock{}
 
@@ -488,7 +506,6 @@ func createNodes(
 			nodesCoordinator,
 			testNodeObject.shardId,
 			uint32(i),
-			serviceID,
 			uint32(consensusSize),
 			roundTime,
 			kp.sk,
@@ -504,9 +521,13 @@ func createNodes(
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
+
 		nodesList[i] = testNodeObject
+		connectableNodes = append(connectableNodes, &messengerWrapper{mes})
 	}
 	nodes[0] = nodesList
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	return nodes
 }

@@ -575,6 +575,11 @@ func (si *stateImport) GetValidatorAccountsDB() state.AccountsAdapter {
 	return accountsAdapter
 }
 
+// Close tries to close state import objects
+func (si *stateImport) Close() error {
+	return si.hardforkStorer.Close()
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (si *stateImport) IsInterfaceNil() bool {
 	return si == nil

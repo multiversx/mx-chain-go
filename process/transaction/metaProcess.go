@@ -80,6 +80,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		txTypeHandler:   args.TxTypeHandler,
 		esdtEnableEpoch: args.ESDTEnableEpoch,
 	}
+	log.Debug("metaProcess: enable epoch for esdt", "epoch", txProc.esdtEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 

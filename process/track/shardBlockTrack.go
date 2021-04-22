@@ -45,7 +45,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		SelfNotarizedFromCrossHeadersNotifier: bbt.selfNotarizedFromCrossHeadersNotifier,
 		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
-		Rounder:                               arguments.Rounder,
+		RoundHandler:                          arguments.RoundHandler,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

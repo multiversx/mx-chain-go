@@ -8,6 +8,7 @@ func (vd *IntraShardValidatorDistributor) DistributeValidators(
 	destination map[uint32][]Validator,
 	source map[uint32][]Validator,
 	_ []byte,
+	_ bool,
 ) error {
 	return moveNodesToMap(destination, source)
 }
@@ -25,13 +26,14 @@ func (vd *CrossShardValidatorDistributor) DistributeValidators(
 	destination map[uint32][]Validator,
 	source map[uint32][]Validator,
 	rand []byte,
+	balanced bool,
 ) error {
 	allValidators := make([]Validator, 0)
 	for _, list := range source {
 		allValidators = append(allValidators, list...)
 	}
 
-	return distributeValidators(destination, allValidators, rand)
+	return distributeValidators(destination, allValidators, rand, balanced)
 }
 
 // IsInterfaceNil - verifies if the interface is nil

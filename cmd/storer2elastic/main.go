@@ -189,9 +189,9 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	dbPathWithChainID := filepath.Join(configuration.General.DBPath, genesisNodesConfig.ChainID)
+	dbPathWithChainID := filepath.Join(configuration.General.DBPath, configuration.General.ChainID)
 	if !core.DoesFileExist(dbPathWithChainID) {
-		return fmt.Errorf("no db directory found for the chain ID. Path: %s, chain id: %s", dbPathWithChainID, genesisNodesConfig.ChainID)
+		return fmt.Errorf("no db directory found for the chain ID. Path: %s, chain id: %s", dbPathWithChainID, configuration.General.ChainID)
 	}
 
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisNodesConfig.NumberOfShards(), 0)

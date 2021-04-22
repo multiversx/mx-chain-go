@@ -1,5 +1,5 @@
 CURRENT_DIRECTORY := $(shell pwd)
-TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock)
+TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled)
 
 build:
 	go build ./...
@@ -16,6 +16,9 @@ clean: clean-test
 
 test: clean-test
 	go test ./...
+
+test-v: clean-test
+	go test -v ./...
 
 test-serial: clean-test
 	go test -p 1 ./...

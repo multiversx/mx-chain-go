@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -23,6 +24,7 @@ type SCQueryService struct {
 	blockChainHook process.BlockChainHookHandler
 	blockChain     data.ChainHandler
 	numQueries     int
+	gasForQuery    uint64
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -50,6 +52,7 @@ func NewSCQueryService(
 		economicsFee:   economicsFee,
 		blockChain:     blockChain,
 		blockChainHook: blockChainHook,
+		gasForQuery:    math.MaxUint64,
 	}, nil
 }
 
@@ -114,7 +117,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.CallerAddr,
 		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
-		GasProvided: math.MaxUint64,
+		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -142,9 +145,11 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	}
 
 	query := &process.SCQuery{
-		ScAddress: tx.RcvAddr,
-		FuncName:  function,
-		Arguments: arguments,
+		ScAddress:  tx.RcvAddr,
+		CallerAddr: tx.SndAddr,
+		FuncName:   function,
+		Arguments:  arguments,
+		CallValue:  tx.Value,
 	}
 
 	service.mutRunSc.Lock()
@@ -155,9 +160,16 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	gasConsumed := service.economicsFee.MaxGasLimitPerBlock(0) - vmOutput.GasRemaining
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return 0, errors.New(vmOutput.ReturnMessage)
+	}
 
-	return gasConsumed, nil
+	moveBalanceGasLimit := service.economicsFee.ComputeGasLimit(tx)
+	gasConsumedExecution := service.gasForQuery - vmOutput.GasRemaining
+
+	gasLimit := moveBalanceGasLimit + gasConsumedExecution
+
+	return gasLimit, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

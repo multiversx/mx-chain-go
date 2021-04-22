@@ -13,11 +13,12 @@ import (
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
-	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	"github.com/ElrondNetwork/elrond-go/node/trieIterators/factory"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -36,10 +37,9 @@ func NewTestProcessorNodeWithTestWebServer(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNodeWithTestWebServer {
 
-	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId)
 	tpn.initTestNode()
 
 	argFacade := createFacadeArg(tpn)
@@ -126,10 +126,11 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     TestMarshalizer,
-		Accounts:        tpn.AccntState,
+		GasSchedule:      gasScheduleNotifier,
+		MapDNSAddresses:  make(map[string]struct{}),
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	log.LogIfError(err)
@@ -149,16 +150,37 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, tpn.SCQueryService, gasScheduleNotifier)
 	log.LogIfError(err)
 
-	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                     tpn.ShardCoordinator.SelfId(),
-		RoundDurationInMilliseconds: tpn.NodesSetup.GetRoundDuration(),
-		InternalMarshalizer:         TestMarshalizer,
-		Accounts:                    tpn.AccntState,
+	accountsWrapper := &trieIterators.AccountsWrapper{
+		Mutex:           &sync.Mutex{},
+		AccountsAdapter: tpn.AccntState,
 	}
-	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+
+	args := trieIterators.ArgTrieIteratorProcessor{
+		ShardID:            tpn.ShardCoordinator.SelfId(),
+		Accounts:           accountsWrapper,
+		QueryService:       tpn.SCQueryService,
+		BlockChain:         tpn.BlockChain,
+		PublicKeyConverter: TestAddressPubkeyConverter,
+	}
+	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
 
-	apiResolver, err := external.NewNodeApiResolver(tpn.SCQueryService, &mock.StatusMetricsStub{}, txCostHandler, totalStakedValueHandler)
+	directStakedListHandler, err := factory.CreateDirectStakedListHandler(args)
+	log.LogIfError(err)
+
+	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
+	log.LogIfError(err)
+
+	argsApiResolver := external.ArgNodeApiResolver{
+		SCQueryService:          tpn.SCQueryService,
+		StatusMetricsHandler:    &mock.StatusMetricsStub{},
+		TxCostHandler:           txCostHandler,
+		TotalStakedValueHandler: totalStakedValueHandler,
+		DirectStakedListHandler: directStakedListHandler,
+		DelegatedListHandler:    delegatedListHandler,
+	}
+
+	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)
 	log.LogIfError(err)
 
 	argSimulator := txsimulator.ArgsTxSimulator{

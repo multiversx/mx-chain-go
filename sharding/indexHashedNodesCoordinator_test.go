@@ -26,7 +26,7 @@ import (
 
 func createDummyNodesList(nbNodes uint32, suffix string) []Validator {
 	list := make([]Validator, 0)
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	for j := uint32(0); j < nbNodes; j++ {
 		pk := hasher.Compute(fmt.Sprintf("pk%s_%d", suffix, j))

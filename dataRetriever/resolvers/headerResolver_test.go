@@ -712,3 +712,12 @@ func TestHeaderResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }
+
+func TestHeaderResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeaderResolver()
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	assert.Nil(t, hdrRes.Close())
+}

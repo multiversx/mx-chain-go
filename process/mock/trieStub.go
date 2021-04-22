@@ -23,6 +23,8 @@ type TrieStub struct {
 	GetProofCalled              func(key []byte) ([][]byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() data.StorageManager
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled           func() data.NumNodesDTO
 }
 
 // GetStorageManager -
@@ -62,6 +64,11 @@ func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (c
 	close(ch)
 
 	return ch, nil
+}
+
+// IsPruningEnabled -
+func (ts *TrieStub) IsPruningEnabled() bool {
+	return false
 }
 
 // ClosePersister -
@@ -173,4 +180,22 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	}
 
 	return nil, nil
+}
+
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
+	}
+
+	return nil, nil
+}
+
+// GetNumNodes -
+func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+	if ts.GetNumNodesCalled != nil {
+		return ts.GetNumNodesCalled()
+	}
+
+	return data.NumNodesDTO{}
 }

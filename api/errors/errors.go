@@ -34,11 +34,17 @@ var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 
+// ErrGetESDTNFTData signals an error in getting esdt nft data for given address, tokenID and nonce
+var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
+
 // ErrEmptyAddress signals an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
 // ErrEmptyKey signals an empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
+
+// ErrNonceInvalid signals that nonce is invalid
+var ErrNonceInvalid = errors.New("nonce is invalid")
 
 // ErrValidation signals an error in validation
 var ErrValidation = errors.New("validation error")
@@ -72,3 +78,9 @@ var ErrGetPidInfo = errors.New("error getting peer id info")
 
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")
+
+// ErrNilHttpServer signals that a nil http server has been provided
+var ErrNilHttpServer = errors.New("nil http server")
+
+// ErrCannotCreateGinWebServer signals that the gin web server cannot be created
+var ErrCannotCreateGinWebServer = errors.New("cannot create gin web server")

@@ -3,18 +3,18 @@ package mock
 import (
 	"context"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/core"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(address []byte) (state.AccountHandler, error)
-	LoadAccountCalled        func(address []byte) (state.AccountHandler, error)
+	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(address []byte) error
+	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -26,16 +26,8 @@ type AccountsStub struct {
 	SetStateCheckpointCalled func(rootHash []byte, ctx context.Context)
 	IsPruningEnabledCalled   func() bool
 	GetAllLeavesCalled       func(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
-}
-
-// GetNumCheckpoints -
-func (as *AccountsStub) GetNumCheckpoints() uint32 {
-	panic("implement me")
-}
-
-// RecreateAllTries -
-func (as *AccountsStub) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
-	panic("implement me")
+	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
+	GetNumCheckpointsCalled  func() uint32
 }
 
 // LoadAccount -
@@ -167,6 +159,23 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	}
 
 	return false
+}
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
+	if as.RecreateAllTriesCalled != nil {
+		return as.RecreateAllTriesCalled(rootHash)
+	}
+	return nil, nil
+}
+
+// GetNumCheckpoints -
+func (as *AccountsStub) GetNumCheckpoints() uint32 {
+	if as.GetNumCheckpointsCalled != nil {
+		return as.GetNumCheckpointsCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

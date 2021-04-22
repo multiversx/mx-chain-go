@@ -25,9 +25,6 @@ func TestScDeploy(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	builtinEnableEpoch := uint32(0)
 	deployEnableEpoch := uint32(1)
 	relayedTxEnableEpoch := uint32(0)
@@ -38,7 +35,6 @@ func TestScDeploy(t *testing.T) {
 		1,
 		0,
 		0,
-		advertiserAddr,
 		builtinEnableEpoch,
 		deployEnableEpoch,
 		relayedTxEnableEpoch,
@@ -50,7 +46,6 @@ func TestScDeploy(t *testing.T) {
 		1,
 		core.MetachainShardId,
 		0,
-		advertiserAddr,
 		builtinEnableEpoch,
 		deployEnableEpoch,
 		relayedTxEnableEpoch,
@@ -62,19 +57,20 @@ func TestScDeploy(t *testing.T) {
 		shardNode,
 		metaNode,
 	}
+	connectableNodes := make([]integrationTests.Connectable, 0)
+	for _, n := range nodes {
+		connectableNodes = append(connectableNodes, n)
+	}
+	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposers := []int{0, 1}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	log.Info("delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

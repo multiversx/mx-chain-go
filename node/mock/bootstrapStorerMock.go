@@ -2,34 +2,34 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 
-// BoostrapStorerMock -
-type BoostrapStorerMock struct {
+// BootstrapStorerMock -
+type BootstrapStorerMock struct {
 	PutCalled             func(round int64, bootData bootstrapStorage.BootstrapData) error
 	GetCalled             func(round int64) (bootstrapStorage.BootstrapData, error)
 	GetHighestRoundCalled func() int64
 }
 
 // Put -
-func (bsm *BoostrapStorerMock) Put(round int64, bootData bootstrapStorage.BootstrapData) error {
+func (bsm *BootstrapStorerMock) Put(round int64, bootData bootstrapStorage.BootstrapData) error {
 	return bsm.PutCalled(round, bootData)
 }
 
 // Get -
-func (bsm *BoostrapStorerMock) Get(round int64) (bootstrapStorage.BootstrapData, error) {
+func (bsm *BootstrapStorerMock) Get(round int64) (bootstrapStorage.BootstrapData, error) {
 	return bsm.GetCalled(round)
 }
 
 // GetHighestRound -
-func (bsm *BoostrapStorerMock) GetHighestRound() int64 {
+func (bsm *BootstrapStorerMock) GetHighestRound() int64 {
 	return bsm.GetHighestRoundCalled()
 }
 
 // SaveLastRound -
-func (bsm *BoostrapStorerMock) SaveLastRound(round int64) error {
+func (bsm *BootstrapStorerMock) SaveLastRound(_ int64) error {
 	return nil
 }
 
 // IsInterfaceNil -
-func (bsm *BoostrapStorerMock) IsInterfaceNil() bool {
+func (bsm *BootstrapStorerMock) IsInterfaceNil() bool {
 	return bsm == nil
 }

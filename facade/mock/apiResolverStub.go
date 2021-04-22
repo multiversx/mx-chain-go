@@ -1,9 +1,8 @@
 package mock
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,8 +12,10 @@ import (
 type ApiResolverStub struct {
 	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler              func() external.StatusMetricsHandler
-	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
-	GetTotalStakedValueHandler        func() (*big.Int, error)
+	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	GetTotalStakedValueHandler        func() (*api.StakeValues, error)
+	GetDirectStakedListHandler        func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler          func() ([]*api.Delegator, error)
 }
 
 // ExecuteSCQuery -
@@ -28,13 +29,36 @@ func (ars *ApiResolverStub) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // ComputeTransactionGasLimit -
-func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return ars.ComputeTransactionGasLimitHandler(tx)
 }
 
 // GetTotalStakedValue -
-func (ars *ApiResolverStub) GetTotalStakedValue() (*big.Int, error) {
+func (ars *ApiResolverStub) GetTotalStakedValue() (*api.StakeValues, error) {
 	return ars.GetTotalStakedValueHandler()
+}
+
+// GetDirectStakedList -
+func (ars *ApiResolverStub) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	if ars.GetDirectStakedListHandler != nil {
+		return ars.GetDirectStakedListHandler()
+	}
+
+	return nil, nil
+}
+
+// GetDelegatorsList -
+func (ars *ApiResolverStub) GetDelegatorsList() ([]*api.Delegator, error) {
+	if ars.GetDelegatorsListHandler != nil {
+		return ars.GetDelegatorsListHandler()
+	}
+
+	return nil, nil
+}
+
+// Close -
+func (ars *ApiResolverStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

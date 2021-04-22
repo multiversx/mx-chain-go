@@ -1,11 +1,11 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elastic-indexer-go/workItems"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -35,8 +35,8 @@ type ConsensusCoreHandler interface {
 	Marshalizer() marshal.Marshalizer
 	// MultiSigner gets the MultiSigner stored in the ConsensusCore
 	MultiSigner() crypto.MultiSigner
-	// Rounder gets the Rounder stored in the ConsensusCore
-	Rounder() consensus.Rounder
+	// RoundHandler gets the RoundHandler stored in the ConsensusCore
+	RoundHandler() consensus.RoundHandler
 	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 	ShardCoordinator() sharding.Coordinator
 	// SyncTimer gets the SyncTimer stored in the ConsensusCore
@@ -125,9 +125,7 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	// SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
-	SetAppStatusHandler(ash core.AppStatusHandler) error
-	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	//  ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -139,20 +137,16 @@ type PoolAdder interface {
 	IsInterfaceNil() bool
 }
 
-// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
-type RandSeedVerifier interface {
+// HeaderSigVerifier encapsulates methods that check if header signature is correct
+type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
-	IsInterfaceNil() bool
-}
-
-// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
-type HeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
-	SaveRoundsInfo(roundsInfos []workItems.RoundInfo)
+	SaveRoundsInfo(roundsInfos []*indexer.RoundInfo)
 	IsInterfaceNil() bool
 }

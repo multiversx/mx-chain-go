@@ -207,6 +207,14 @@ func (c *capacityLRU) Len() int {
 	return c.evictList.Len()
 }
 
+// SizeInBytesContained returns the size in bytes of all contained elements
+func (c *capacityLRU) SizeInBytesContained() uint64 {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	return uint64(c.currentCapacityInBytes)
+}
+
 // removeOldest removes the oldest item from the cache.
 func (c *capacityLRU) removeOldest() {
 	ent := c.evictList.Back()

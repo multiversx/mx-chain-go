@@ -30,19 +30,14 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -95,27 +90,25 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
-	node1Shard0Requester := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0, advertiserAddr)
-	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	node1Shard0Requester := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+	node2Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+	node3Shard1 := integrationTests.NewTestProcessorNode(maxShards, 1, 0)
+	node4Meta := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0Requester, node2Shard0, node3Shard1, node4Meta}
+	connectableNodes := make([]integrationTests.Connectable, 0, len(nodes))
+	for _, n := range nodes {
+		connectableNodes = append(connectableNodes, n)
+	}
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -181,28 +174,27 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
-	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
-	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
-	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0, advertiserAddr)
+	node1Shard0 := integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+	node2MetaRequester := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
+	node3MetaResolver := integrationTests.NewTestProcessorNode(maxShards, core.MetachainShardId, 0)
 
 	nodes := []*integrationTests.TestProcessorNode{node1Shard0, node2MetaRequester, node3MetaResolver}
+	connectableNodes := make([]integrationTests.Connectable, 0, len(nodes))
+	for _, n := range nodes {
+		connectableNodes = append(connectableNodes, n)
+	}
+
+	integrationTests.ConnectNodes(connectableNodes)
+
 	//update to a "safe" round number
 	integrationTests.UpdateRound(nodes, 3)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

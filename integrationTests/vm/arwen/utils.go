@@ -53,7 +53,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.Sha256{}
+var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -185,6 +185,7 @@ func (context *TestContext) initFeeHandlers() {
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -193,10 +194,11 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses: DNSAddresses,
-		Marshalizer:     marshalizer,
-		Accounts:        context.Accounts,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:  DNSAddresses,
+		Marshalizer:      marshalizer,
+		Accounts:         context.Accounts,
+		ShardCoordinator: oneShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
@@ -218,6 +220,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Name:     "SmartContractsStorage",
+				Type:     "LRU",
+				Capacity: 100,
+			},
+			DB: config.DBConfig{
+				FilePath:          "SmartContractsStorage",
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+			},
+		},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -233,6 +248,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -516,6 +532,11 @@ func GetSCCode(fileName string) string {
 // CreateDeployTxData -
 func CreateDeployTxData(scCode string) string {
 	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
+}
+
+// CreateDeployTxDataNonPayable -
+func CreateDeployTxDataNonPayable(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, "0000"}, "@")
 }
 
 // ExecuteSC -

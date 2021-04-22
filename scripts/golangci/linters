@@ -1,0 +1,15 @@
+deadcode
+gocyclo
+golint
+varcheck
+structcheck
+maligned
+errcheck
+dupl
+ineffassign
+interfacer
+unconvert
+goconst
+gosec
+megacheck
+govet

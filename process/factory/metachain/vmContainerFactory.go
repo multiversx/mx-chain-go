@@ -37,6 +37,8 @@ type vmContainerFactory struct {
 	systemSCConfig         *config.SystemSmartContractsConfig
 	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
+	scFactory              vm.SystemSCContainerFactory
+	epochConfig            *config.EpochConfig
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -52,6 +54,7 @@ type ArgsNewVMContainerFactory struct {
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      sharding.ChanceComputer
 	EpochNotifier       process.EpochNotifier
+	EpochConfig         *config.EpochConfig
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -107,6 +110,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		chanceComputer:         args.ChanceComputer,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
+		epochConfig:            args.EpochConfig,
 	}, nil
 }
 
@@ -125,6 +129,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	}
 
 	return container, nil
+}
+
+// Close closes the vm container factory
+func (vmf *vmContainerFactory) Close() error {
+	return vmf.blockChainHookImpl.Close()
 }
 
 // CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process
@@ -171,6 +180,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Economics:              vmf.economics,
 		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+		EpochConfig:            vmf.epochConfig,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
@@ -213,6 +223,8 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
+	vmf.scFactory = scFactory
+
 	return vmf.finalizeSystemVMCreation(systemEI)
 }
 
@@ -239,6 +251,11 @@ func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandle
 // SystemSmartContractContainer return the created system smart contracts
 func (vmf *vmContainerFactory) SystemSmartContractContainer() vm.SystemSCContainer {
 	return vmf.systemContracts
+}
+
+// SystemSmartContractContainerFactory returns the system smart contract container factory
+func (vmf *vmContainerFactory) SystemSmartContractContainerFactory() vm.SystemSCContainerFactory {
+	return vmf.scFactory
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

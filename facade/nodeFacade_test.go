@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -236,8 +238,8 @@ func TestNodeFacade_SetAndGetTpsBenchmark(t *testing.T) {
 
 	tpsBench, _ := statistics.NewTPSBenchmark(2, 5)
 	nf.SetTpsBenchmark(tpsBench)
-	assert.Equal(t, tpsBench, nf.TpsBenchmark())
-
+	assert.Equal(t, tpsBench.NrOfShards(), nf.TpsBenchmark().NrOfShards())
+	assert.Equal(t, tpsBench.RoundTime(), nf.TpsBenchmark().RoundTime())
 }
 
 func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *testing.T) {
@@ -673,6 +675,100 @@ func TestNodeFacade_GetKeyValuePairs(t *testing.T) {
 	assert.Equal(t, expectedPairs, res)
 }
 
+func TestNodeFacade_GetAllESDTTokens(t *testing.T) {
+	t.Parallel()
+
+	expectedTokens := map[string]*esdt.ESDigitalToken{
+		"token0": {Value: big.NewInt(10)},
+		"token1": {TokenMetaData: &esdt.MetaData{Name: []byte("name1")}},
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
+			return expectedTokens, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetAllESDTTokens("addr")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTokens, res)
+}
+
+func TestNodeFacade_GetESDTData(t *testing.T) {
+	t.Parallel()
+
+	expectedData := &esdt.ESDigitalToken{
+		TokenMetaData: &esdt.MetaData{Name: []byte("name1")},
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return expectedData, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetESDTData("addr", "tkn", 0)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedData, res)
+}
+
+func TestNodeFacade_GetValueForKey(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := "value"
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
+			return expectedValue, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetValueForKey("addr", "key")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := []string{"value"}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return expectedValue, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	res, err := nf.GetAllIssuedESDTs()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local")
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetAllIssuedESDTsCalled: func() ([]string, error) {
+			return nil, localErr
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	_, err := nf.GetAllIssuedESDTs()
+	assert.Equal(t, err, localErr)
+}
+
 func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
 	t.Parallel()
 
@@ -687,6 +783,60 @@ func TestNodeFacade_ValidateTransactionForSimulation(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	err := nf.ValidateTransactionForSimulation(&transaction.Transaction{}, false)
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetTotalStakedValue(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetTotalStakedValue()
+
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetDelegatorsList(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetDelegatorsListHandler: func() ([]*api.Delegator, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetDelegatorsList()
+
+	assert.Nil(t, err)
+	assert.True(t, called)
+}
+
+func TestNodeFacade_GetDirectStakedList(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetDirectStakedListHandler: func() ([]*api.DirectStakedValue, error) {
+			called = true
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+	_, err := nf.GetDirectStakedList()
+
 	assert.Nil(t, err)
 	assert.True(t, called)
 }

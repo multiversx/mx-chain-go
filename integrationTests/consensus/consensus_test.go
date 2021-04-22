@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,12 +35,9 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) ([]*testNode, p2p.Messenger, *sync.Map) {
+) ([]*testNode, *sync.Map) {
 
 	fmt.Println("Step 1. Setup nodes...")
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
 
@@ -47,7 +45,6 @@ func initNodesAndTest(
 		int(numNodes),
 		int(consensusSize),
 		roundTime,
-		getConnectableAddress(advertiser),
 		consensusType,
 	)
 
@@ -82,7 +79,7 @@ func initNodesAndTest(
 		}
 	}
 
-	return nodes[0], advertiser, concMap
+	return nodes[0], concMap
 }
 
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
@@ -99,7 +96,43 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
-		err := n.node.StartConsensus()
+
+		statusComponents := integrationTests.GetDefaultStatusComponents()
+
+		consensusArgs := factory.ConsensusComponentsFactoryArgs{
+			Config: config.Config{
+				Consensus: config.ConsensusConfig{
+					Type: blsConsensusType,
+				},
+				ValidatorPubkeyConverter: config.PubkeyConfig{
+					Length:          96,
+					Type:            "bls",
+					SignatureLength: 48,
+				},
+			},
+			BootstrapRoundIndex: 0,
+			HardforkTrigger:     n.node.GetHardforkTrigger(),
+			CoreComponents:      n.node.GetCoreComponents(),
+			NetworkComponents:   n.node.GetNetworkComponents(),
+			CryptoComponents:    n.node.GetCryptoComponents(),
+			DataComponents:      n.node.GetDataComponents(),
+			ProcessComponents:   n.node.GetProcessComponents(),
+			StateComponents:     n.node.GetStateComponents(),
+			StatusComponents:    statusComponents,
+			IsInImportMode:      n.node.IsInImportMode(),
+		}
+
+		consensusFactory, err := factory.NewConsensusComponentsFactory(consensusArgs)
+		if err != nil {
+			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+		}
+
+		managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusFactory)
+		if err != nil {
+			return err
+		}
+
+		err = managedConsensusComponents.Create()
 		if err != nil {
 			return err
 		}
@@ -151,11 +184,10 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.mesenger.Close()
 		}
@@ -199,11 +231,10 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.mesenger.Close()
 		}
