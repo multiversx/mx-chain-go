@@ -301,11 +301,20 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	}
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	durations, err := DeployAndExecuteERC20WithBigInt(3000, 10000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 
-	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	durations, err = DeployAndExecuteERC20WithBigInt(3000, 10000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+
+	gasSchedule, _ = core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	durations, err = DeployAndExecuteERC20WithBigInt(3000, 10000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+
+	durations, err = DeployAndExecuteERC20WithBigInt(3000, 10000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 }

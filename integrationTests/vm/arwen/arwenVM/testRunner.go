@@ -176,7 +176,7 @@ func DeployAndExecuteERC20WithBigInt(
 	bob := []byte("12345678901234567890123456789222")
 	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
-	initAlice := big.NewInt(100000)
+	initAlice := big.NewInt(100000000000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
