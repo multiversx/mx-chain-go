@@ -461,7 +461,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 
 		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
-		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
+		generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
 		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
@@ -471,7 +471,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
+			"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
 			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
 			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
