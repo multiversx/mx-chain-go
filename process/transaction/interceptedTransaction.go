@@ -197,6 +197,10 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
+func isRelayedTx(funcName string) bool {
+	return core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName
+}
+
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
 	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
 	if err != nil {
@@ -222,7 +226,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 	}
 
 	// recursive relayed transactions are not allowed
-	if core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName {
+	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
@@ -271,7 +275,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	}
 
 	// recursive relayed transactions are not allowed
-	if core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName {
+	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 

@@ -147,7 +147,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	log.Debug("shardProcess: enable epoch for relayed transactions", "epoch", txProc.relayedTxEnableEpoch)
 	log.Debug("shardProcess: enable epoch for penalized too much gas", "epoch", txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("shardProcess: enable epoch for meta protection", "epoch", txProc.metaProtectionEnableEpoch)
-
+	log.Debug("shardTxProcessor: enable epoch for relayed transactions v2", "epoch", args.RelayedTxV2EnableEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil
@@ -509,6 +509,87 @@ func (txProc *txProcessor) processBuiltInFunctionCall(
 	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
 }
 
+func makeUserTxFromRelayedTxV2Args(args [][]byte) *transaction.Transaction {
+	userTx := &transaction.Transaction{}
+	userTx.RcvAddr = args[0]
+	userTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
+	userTx.Data = args[2]
+	userTx.Signature = args[3]
+	userTx.Value = big.NewInt(0)
+	return userTx
+}
+
+func (txProc *txProcessor) finishExecutionOfRelayedTx(
+	relayerAcnt, acntDst state.UserAccountHandler,
+	tx *transaction.Transaction,
+	userTx *transaction.Transaction,
+	totalFee, relayerFee, remainingFee *big.Int,
+) (vmcommon.ReturnCode, error) {
+	txHash, err := txProc.processTxAtRelayer(relayerAcnt, totalFee, relayerFee, tx)
+	if err != nil {
+		return 0, err
+	}
+
+	if check.IfNil(acntDst) {
+		return vmcommon.Ok, nil
+	}
+
+	err = txProc.addFeeAndValueToDest(acntDst, tx, remainingFee)
+	if err != nil {
+		return 0, err
+	}
+
+	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, txHash)
+}
+
+func (txProc *txProcessor) processTxAtRelayer(
+	relayerAcnt state.UserAccountHandler,
+	totalFee *big.Int,
+	relayerFee *big.Int,
+	tx *transaction.Transaction,
+) ([]byte, error) {
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if !check.IfNil(relayerAcnt) {
+		err = relayerAcnt.SubFromBalance(tx.GetValue())
+		if err != nil {
+			return nil, err
+		}
+
+		err = relayerAcnt.SubFromBalance(totalFee)
+		if err != nil {
+			return nil, err
+		}
+
+		relayerAcnt.IncreaseNonce(1)
+		err = txProc.accounts.SaveAccount(relayerAcnt)
+		if err != nil {
+			return nil, err
+		}
+
+		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
+	}
+
+	return txHash, nil
+}
+
+func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler, tx *transaction.Transaction, remainingFee *big.Int) error {
+	err := acntDst.AddToBalance(tx.GetValue())
+	if err != nil {
+		return err
+	}
+
+	err = acntDst.AddToBalance(remainingFee)
+	if err != nil {
+		return err
+	}
+
+	return txProc.accounts.SaveAccount(acntDst)
+}
+
 func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
 	relayerAcnt, acntDst state.UserAccountHandler,
@@ -528,57 +609,14 @@ func (txProc *txProcessor) processRelayedTxV2(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
-	userTxData := args[2]
-	userTxSig := args[3]
-
-	userTx := &transaction.Transaction{}
-	// Fill properties received as arguments
-	userTx.RcvAddr = args[0]
-	userTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
-	userTx.Data = userTxData
-	userTx.Signature = userTxSig
-	userTx.Value = big.NewInt(0)
+	userTx := makeUserTxFromRelayedTxV2Args(args)
 
 	// Fill properties from main transaction
 	userTx.GasPrice = tx.GasPrice
 	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
 	userTx.GasLimit = remainingGasLimit
 
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return 0, err
-	}
-
-	if !check.IfNil(relayerAcnt) {
-		err = relayerAcnt.SubFromBalance(totalFee)
-		if err != nil {
-			return 0, err
-		}
-
-		relayerAcnt.IncreaseNonce(1)
-		err = txProc.accounts.SaveAccount(relayerAcnt)
-		if err != nil {
-			return 0, err
-		}
-
-		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
-	}
-
-	if check.IfNil(acntDst) {
-		return vmcommon.Ok, nil
-	}
-
-	err = acntDst.AddToBalance(remainingFee)
-	if err != nil {
-		return 0, err
-	}
-
-	err = txProc.accounts.SaveAccount(acntDst)
-	if err != nil {
-		return 0, err
-	}
-
-	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, txHash)
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx, totalFee, remainingFee, relayerFee)
 }
 
 func (txProc *txProcessor) processRelayedTx(
@@ -590,11 +628,9 @@ func (txProc *txProcessor) processRelayedTx(
 	if err != nil {
 		return 0, err
 	}
-
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
-
 	if !txProc.flagRelayedTx.IsSet() {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
@@ -620,51 +656,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
 
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return 0, err
-	}
-
-	if !check.IfNil(relayerAcnt) {
-		err = relayerAcnt.SubFromBalance(tx.GetValue())
-		if err != nil {
-			return 0, err
-		}
-
-		err = relayerAcnt.SubFromBalance(totalFee)
-		if err != nil {
-			return 0, err
-		}
-
-		relayerAcnt.IncreaseNonce(1)
-		err = txProc.accounts.SaveAccount(relayerAcnt)
-		if err != nil {
-			return 0, err
-		}
-
-		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
-	}
-
-	if check.IfNil(acntDst) {
-		return vmcommon.Ok, nil
-	}
-
-	err = acntDst.AddToBalance(tx.GetValue())
-	if err != nil {
-		return 0, err
-	}
-
-	err = acntDst.AddToBalance(remainingFee)
-	if err != nil {
-		return 0, err
-	}
-
-	err = txProc.accounts.SaveAccount(acntDst)
-	if err != nil {
-		return 0, err
-	}
-
-	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, txHash)
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx, totalFee, remainingFee, relayerFee)
 }
 
 func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int, *big.Int, uint64) {

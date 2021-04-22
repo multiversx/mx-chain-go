@@ -63,6 +63,7 @@ func NewTxTypeHandler(
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(tc)
+	log.Debug("txTypeHandler: enable epoch for relayed transactions v2", "epoch", args.RelayedTxV2EnableEpoch)
 
 	return tc, nil
 }
