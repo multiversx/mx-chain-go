@@ -166,9 +166,28 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	assert.Equal(t, testVal, res2)
 }
 
-func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
+func TestFullHistoryPruningStorer_IsEpochActive(t *testing.T) {
 	t.Parallel()
 
+	args := getDefaultArgs()
+	fhArgs := &pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 2,
+	}
+	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
+	testEpoch := uint32(7)
+	_ = fhps.ChangeEpochSimple(testEpoch - 2)
+	_ = fhps.ChangeEpochSimple(testEpoch - 1)
+	_ = fhps.ChangeEpochSimple(testEpoch)
+
+	assert.True(t, fhps.IsEpochActive(testEpoch))
+	assert.True(t, fhps.IsEpochActive(testEpoch-1))
+	assert.False(t, fhps.IsEpochActive(testEpoch-2))
+	assert.False(t, fhps.IsEpochActive(testEpoch-3))
+}
+
+func TestNewFullHistoryShardedPruningStorer_ShouldWork(t *testing.T) {
+	t.Parallel()
 	args := getDefaultArgs()
 	fhArgs := &pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,

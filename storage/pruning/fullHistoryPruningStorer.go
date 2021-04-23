@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // FullHistoryPruningStorer represents a storer for full history nodes
@@ -103,31 +102,8 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
-	oldestEpoch := uint32(0)
-	fhps.lock.RLock()
-	for _, activePersisters := range fhps.activePersisters {
-		if oldestEpoch < activePersisters.epoch {
-			oldestEpoch = activePersisters.epoch
-		}
-	}
-	oldestEpochInCurrentSetting := fhps.activePersisters[len(fhps.activePersisters)-1].epoch
-	if oldestEpochInCurrentSetting != oldestEpoch {
-		//TODO(iulian) remove prints
-		log.Error("MISCALCULATION of oldest epoch", "oldestEpochInCurrentSetting", oldestEpochInCurrentSetting,
-			"oldestEpoch", oldestEpoch, "active persisters", spew.Sdump(fhps.activePersisters))
-		oldestEpochInCurrentSetting = oldestEpoch
-	}
-	fhps.lock.RUnlock()
-
-	isActiveEpoch := epoch > oldestEpochInCurrentSetting-fhps.numOfActivePersisters
-	if isActiveEpoch {
-		buff, err := fhps.PruningStorer.SearchFirst(key)
-
-		//TODO remove prints
-		log.Debug("FullHistoryPruningStorer.searchInEpoch isActiveEpoch",
-			"key", key, "buff", buff, "err", err, "epoch", epoch,
-			"oldestEpochInCurrentSetting", oldestEpochInCurrentSetting, "oldestEpoch", oldestEpoch)
-		return buff, err
+	if fhps.isEpochActive(epoch) {
+		return fhps.PruningStorer.SearchFirst(key)
 	}
 
 	data, err := fhps.getFromOldEpoch(key, epoch)
@@ -136,6 +112,15 @@ func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([
 	}
 
 	return data, nil
+}
+
+func (fhps *FullHistoryPruningStorer) isEpochActive(epoch uint32) bool {
+	fhps.lock.RLock()
+	oldestEpochInCurrentSetting := fhps.activePersisters[len(fhps.activePersisters)-1].epoch
+	newestEpochInCurrentSetting := fhps.activePersisters[0].epoch
+	fhps.lock.RUnlock()
+
+	return epoch >= oldestEpochInCurrentSetting && epoch <= newestEpochInCurrentSetting
 }
 
 func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
