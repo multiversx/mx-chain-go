@@ -151,7 +151,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	log.Debug("shardProcess: enable epoch for relayed transactions", "epoch", txProc.relayedTxEnableEpoch)
 	log.Debug("shardProcess: enable epoch for penalized too much gas", "epoch", txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("shardProcess: enable epoch for meta protection", "epoch", txProc.metaProtectionEnableEpoch)
-	log.Debug("shardTxProcessor: enable epoch for relayed transactions v2", "epoch", args.RelayedTxV2EnableEpoch)
+	log.Debug("shardTxProcessor: enable epoch for relayed transactions v2", "epoch", txProc.relayedTxV2EnableEpoch)
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
 
 	return txProc, nil

@@ -881,7 +881,7 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
 
-// ErrRelayedTxV2Disabled signals that the v2 version of relayed tx are disabled
+// ErrRelayedTxV2Disabled signals that the v2 version of relayed tx is disabled
 var ErrRelayedTxV2Disabled = errors.New("relayed tx v2 is disabled")
 
 // ErrRelayedTxV2ZeroVal signals that the v2 version of relayed tx should be created with 0 as value
