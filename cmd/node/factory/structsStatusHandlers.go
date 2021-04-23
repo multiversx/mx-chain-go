@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/metrics"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -22,25 +23,26 @@ import (
 )
 
 const defaultTermuiRefreshTimeInMilliseconds = 500
+
 var log = logger.GetOrCreate("main")
 
 // StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
 type StatusHandlersFactoryArgs struct {
-	UseTermUI                    bool
+	UseTermUI bool
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
-	UseTermUI                bool
-	AppStatusHandler         core.AppStatusHandler
-	StatusMetrics            external.StatusMetricsHandler
-	PersistentHandler        *persister.PersistentStatusHandler
-	chanStartViews           chan struct{}
-	chanLogRewrite           chan struct{}
+	UseTermUI         bool
+	AppStatusHandler  core.AppStatusHandler
+	StatusMetrics     external.StatusMetricsHandler
+	PersistentHandler *persister.PersistentStatusHandler
+	chanStartViews    chan struct{}
+	chanLogRewrite    chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
-	useTermUI                    bool
+	useTermUI bool
 }
 
 // NewStatusHandlersFactory will return the status handler factory
@@ -61,6 +63,7 @@ func NewStatusHandlersFactory(
 func (shuf *statusHandlerUtilsFactory) Create(
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	chanNodeStop chan endProcess.ArgEndProcess,
 ) (StatusHandlersUtils, error) {
 	var appStatusHandlers []core.AppStatusHandler
 	var views []factoryViews.Viewer
@@ -76,11 +79,14 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, fmt.Errorf("%s: nil uint64 byte slice converter", baseErrMessage)
 	}
+	if chanNodeStop == nil {
+		return nil, fmt.Errorf("%s: nil node stop channel", baseErrMessage)
+	}
 
 	presenterStatusHandler := createStatusHandlerPresenter()
 
 	if shuf.useTermUI {
-		views, err = createViews(presenterStatusHandler, chanStartViews)
+		views, err = createViews(presenterStatusHandler, chanStartViews, chanNodeStop)
 		if err != nil {
 			return nil, err
 		}
@@ -258,8 +264,8 @@ func createStatusHandlerPresenter() view.Presenter {
 }
 
 // CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func createViews(presenter view.Presenter, chanStart chan struct{}) ([]factoryViews.Viewer, error) {
-	viewsFactory, err := factoryViews.NewViewsFactory(presenter, defaultTermuiRefreshTimeInMilliseconds)
+func createViews(presenter view.Presenter, chanStart chan struct{}, chanNodeStop chan endProcess.ArgEndProcess) ([]factoryViews.Viewer, error) {
+	viewsFactory, err := factoryViews.NewViewsFactory(presenter, chanNodeStop, defaultTermuiRefreshTimeInMilliseconds)
 	if err != nil {
 		return nil, err
 	}
