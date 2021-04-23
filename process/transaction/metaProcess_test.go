@@ -354,6 +354,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

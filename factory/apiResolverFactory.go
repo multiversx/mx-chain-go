@@ -100,10 +100,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  args.CoreComponents.AddressPubKeyConverter(),
-		ShardCoordinator: args.ProcessComponents.ShardCoordinator(),
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        args.CoreComponents.AddressPubKeyConverter(),
+		ShardCoordinator:       args.ProcessComponents.ShardCoordinator(),
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          args.CoreComponents.EpochNotifier(),
+		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

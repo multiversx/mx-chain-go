@@ -624,6 +624,9 @@ const MaxRoyalty = uint32(10000)
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 
+// RelayedTransactionV2 is the key for the optimized elrond meta/gassless/relayed transaction standard
+const RelayedTransactionV2 = "relayedTxV2"
+
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
 
