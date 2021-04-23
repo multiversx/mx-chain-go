@@ -107,10 +107,10 @@ func createMockMetaArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:                &mock.EpochNotifierStub{},
 			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -1707,7 +1707,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	// put headers in pool
 	pool.Headers().AddHeader(currHash, currHdr)
 	pool.Headers().AddHeader(prevHash, prevHdr)
-	mp.CreateBlockStarted()
+	_ = mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 
@@ -1828,7 +1828,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
-	mp.CreateBlockStarted()
+	_ = mp.CreateBlockStarted()
 	mp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	mp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 

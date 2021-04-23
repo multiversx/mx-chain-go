@@ -32,6 +32,7 @@ type TransactionCoordinatorMock struct {
 	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
 	CreateMarshalizedReceiptsCalled             func() ([]byte, error)
 	VerifyCreatedMiniBlocksCalled               func(hdr data.HeaderHandler, body *block.Body) error
+	AddIntermediateTransactionsCalled           func(blockType block.Type, scrs []data.TransactionHandler) error
 }
 
 // CreatePostProcessMiniBlocks -
@@ -203,6 +204,15 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHa
 	}
 
 	return tcm.VerifyCreatedMiniBlocksCalled(hdr, body)
+}
+
+// AddIntermediateTransactions -
+func (tcm *TransactionCoordinatorMock) AddIntermediateTransactions(blockType block.Type, scrs []data.TransactionHandler) error {
+	if tcm.AddIntermediateTransactionsCalled == nil {
+		return nil
+	}
+
+	return tcm.AddIntermediateTransactionsCalled(blockType, scrs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

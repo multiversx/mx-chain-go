@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -453,11 +454,18 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	return nil
 }
 
-func (bp *baseProcessor) createBlockStarted() {
+func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted()
+
+	err := bp.txCoordinator.AddIntermediateTransactions(block.SmartContractResultBlock, bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
@@ -1033,18 +1041,18 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	//TODO: Save them
-	//scheduledSCRs, errNotCritical := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	//if errNotCritical != nil {
-	//	log.Warn("saveBody.GetMarshalizedSCRs", "error", errNotCritical.Error())
-	//} else {
-	//	if len(marshalizedSCRs) > 0 {
-	//		errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedSCRs)
-	//		if errNotCritical != nil {
-	//			log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
-	//		}
-	//	}
-	//}
+	scheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
+	marshalizedSCRs, errNotCritical := bp.getMarshalizedSCRs(scheduledSCRs)
+	if errNotCritical != nil {
+		log.Warn("saveBody.getMarshalizedSCRs", "error", errNotCritical.Error())
+	} else {
+		if len(marshalizedSCRs) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedSCRs)
+			if errNotCritical != nil {
+				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
+			}
+		}
+	}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= core.PutInStorerMaxTime {
@@ -1391,4 +1399,22 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 	}
 
 	return err
+}
+
+func (bp *baseProcessor) getMarshalizedSCRs(scrs []data.TransactionHandler) ([]byte, error) {
+	scrsBatch := &batch.Batch{}
+	for _, scr := range scrs {
+		marshalizedScr, err := bp.marshalizer.Marshal(scr)
+		if err != nil {
+			return nil, err
+		}
+
+		scrsBatch.Data = append(scrsBatch.Data, marshalizedScr)
+	}
+
+	if len(scrsBatch.Data) == 0 {
+		return nil, nil
+	}
+
+	return bp.marshalizer.Marshal(scrsBatch)
 }

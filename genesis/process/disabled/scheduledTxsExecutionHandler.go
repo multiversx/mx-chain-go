@@ -30,6 +30,15 @@ func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration, _ p
 	return nil
 }
 
+// GetScheduledSCRs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() []data.TransactionHandler {
+	return nil
+}
+
+// SetScheduledSCRs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ []data.TransactionHandler) {
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (steh *ScheduledTxsExecutionHandler) IsInterfaceNil() bool {
 	return steh == nil

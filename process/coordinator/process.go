@@ -1346,6 +1346,16 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	return nil
 }
 
+// AddIntermediateTransactions adds the given intermediate transactions
+func (tc *transactionCoordinator) AddIntermediateTransactions(blockType block.Type, scrs []data.TransactionHandler) error {
+	interimProc := tc.getInterimProcessor(blockType)
+	if check.IfNil(interimProc) {
+		return process.ErrNilIntermediateProcessor
+	}
+
+	return interimProc.AddIntermediateTransactions(scrs)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	return tc == nil

@@ -3292,7 +3292,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	datapool.Headers().AddHeader(currHash, currHdr)
 	datapool.Headers().AddHeader(prevHash, prevHdr)
 
-	sp.CreateBlockStarted()
+	_ = sp.CreateBlockStarted()
 	sp.SetHdrForCurrentBlock(currHash, currHdr, true)
 	sp.SetHdrForCurrentBlock(prevHash, prevHdr, true)
 

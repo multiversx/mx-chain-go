@@ -1,8 +1,10 @@
 package preprocess
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -13,12 +15,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+type scrInfo struct {
+	txHash    []byte
+	txHandler data.TransactionHandler
+}
+
 type scheduledTxsExecution struct {
-	txProcessor      process.TransactionProcessor
-	mapScheduledTxs  map[string]data.TransactionHandler
-	mapScheduledSCRs map[string]data.TransactionHandler
-	scheduledTxs     []data.TransactionHandler
-	mutScheduledTxs  sync.RWMutex
+	txProcessor     process.TransactionProcessor
+	mapScheduledTxs map[string]data.TransactionHandler
+	scheduledSCRs   []data.TransactionHandler
+	scheduledTxs    []data.TransactionHandler
+	mutScheduledTxs sync.RWMutex
 }
 
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
@@ -31,10 +38,10 @@ func NewScheduledTxsExecution(
 	}
 
 	ste := &scheduledTxsExecution{
-		txProcessor:      txProcessor,
-		mapScheduledTxs:  make(map[string]data.TransactionHandler),
-		mapScheduledSCRs: make(map[string]data.TransactionHandler),
-		scheduledTxs:     make([]data.TransactionHandler, 0),
+		txProcessor:     txProcessor,
+		mapScheduledTxs: make(map[string]data.TransactionHandler),
+		scheduledSCRs:   make([]data.TransactionHandler, 0),
+		scheduledTxs:    make([]data.TransactionHandler, 0),
 	}
 
 	return ste, nil
@@ -43,8 +50,6 @@ func NewScheduledTxsExecution(
 // Init method removes all the scheduled transactions
 func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Lock()
-	//TODO: Remove this log
-	log.Debug("scheduledTxsExecution.Init", "num scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
 	ste.scheduledTxs = make([]data.TransactionHandler, 0)
 	ste.mutScheduledTxs.Unlock()
@@ -132,14 +137,50 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	allTxsBeforeScheduledExecution map[string]data.TransactionHandler,
 	allTxsAfterScheduledExecution map[string]data.TransactionHandler,
 ) {
-	ste.mapScheduledSCRs = make(map[string]data.TransactionHandler)
-	for hash, txHandler := range allTxsAfterScheduledExecution {
-		_, txExists := allTxsBeforeScheduledExecution[hash]
+	scrsInfo := make([]*scrInfo, 0)
+	for txHash, txHandler := range allTxsAfterScheduledExecution {
+		_, txExists := allTxsBeforeScheduledExecution[txHash]
 		if txExists {
 			continue
 		}
 
-		ste.mapScheduledSCRs[hash] = txHandler
+		scrsInfo = append(scrsInfo, &scrInfo{
+			txHash:    []byte(txHash),
+			txHandler: txHandler,
+		})
+	}
+
+	sort.Slice(scrsInfo, func(a, b int) bool {
+		return bytes.Compare(scrsInfo[a].txHash, scrsInfo[b].txHash) < 0
+	})
+
+	ste.scheduledSCRs = make([]data.TransactionHandler, len(scrsInfo))
+	for scrIndex, scrInfo := range scrsInfo {
+		ste.scheduledSCRs[scrIndex] = scrInfo.txHandler
+	}
+}
+
+// GetScheduledSCRs returns all the scheduled SCRs
+func (ste *scheduledTxsExecution) GetScheduledSCRs() []data.TransactionHandler {
+	ste.mutScheduledTxs.RLock()
+	defer ste.mutScheduledTxs.RUnlock()
+
+	scheduledSCRs := make([]data.TransactionHandler, len(ste.scheduledSCRs))
+	for scrIndex, txHandler := range ste.scheduledSCRs {
+		scheduledSCRs[scrIndex] = txHandler
+	}
+
+	return scheduledSCRs
+}
+
+// SetScheduledSCRs sets the given scheduled SCRs
+func (ste *scheduledTxsExecution) SetScheduledSCRs(scheduledSCRs []data.TransactionHandler) {
+	ste.mutScheduledTxs.Lock()
+	defer ste.mutScheduledTxs.Unlock()
+
+	ste.scheduledSCRs = make([]data.TransactionHandler, len(scheduledSCRs))
+	for scrIndex, txHandler := range scheduledSCRs {
+		ste.scheduledSCRs[scrIndex] = txHandler
 	}
 }
 
