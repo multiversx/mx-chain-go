@@ -195,6 +195,15 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
+	return d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.Arguments)
+}
+
+func (d *delegationManager) deployNewContract(
+	args *vmcommon.ContractCallInput,
+	checkMinDeposit bool,
+	initFunction string,
+	arguments [][]byte,
+) vmcommon.ReturnCode {
 	delegationManagement, err := d.getDelegationManagementData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -202,7 +211,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 	}
 
 	minValue := big.NewInt(0).Set(delegationManagement.MinDeposit)
-	if args.CallValue.Cmp(minValue) < 0 {
+	if args.CallValue.Cmp(minValue) < 0 && checkMinDeposit {
 		d.eei.AddReturnMessage("not enough call value")
 		return vmcommon.UserError
 	}
@@ -216,7 +225,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 	depositValue := big.NewInt(0).Set(args.CallValue)
 	newAddress := createNewAddress(delegationManagement.LastAddress)
 
-	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, core.SCDeployInitFunctionName, depositValue, args.Arguments)
+	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, initFunction, depositValue, arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -229,7 +238,10 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 	delegationManagement.LastAddress = newAddress
 	delegationList.Addresses = append(delegationList.Addresses, newAddress)
 
-	d.eei.SetStorage(args.CallerAddr, newAddress)
+	currentStorage := d.eei.GetStorage(args.CallerAddr)
+	currentStorage = append(currentStorage, newAddress...)
+
+	d.eei.SetStorage(args.CallerAddr, currentStorage)
 	err = d.saveDelegationManagementData(delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -252,8 +264,23 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 2 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
 
-	return vmcommon.Ok
+	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
+
+	return d.deployNewContract(args, false, "initFromValidatorData", arguments)
 }
 
 func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -261,6 +288,17 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	// TODO implement this
 
 	return vmcommon.Ok
 }
