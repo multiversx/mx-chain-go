@@ -159,15 +159,16 @@ func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]
 
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
-		MinNumNodes:          uint64(scf.nodesConfigProvider.MinNumberOfNodes()),
-		StakingSCConfig:      scf.systemSCConfig.StakingSystemSCConfig,
-		Eei:                  scf.systemEI,
-		StakingAccessAddr:    vm.ValidatorSCAddress,
-		JailAccessAddr:       vm.JailingAddress,
-		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
-		GasCost:              scf.gasCost,
-		Marshalizer:          scf.marshalizer,
-		EpochNotifier:        scf.epochNotifier,
+		MinNumNodes:                      uint64(scf.nodesConfigProvider.MinNumberOfNodes()),
+		StakingSCConfig:                  scf.systemSCConfig.StakingSystemSCConfig,
+		Eei:                              scf.systemEI,
+		StakingAccessAddr:                vm.ValidatorSCAddress,
+		JailAccessAddr:                   vm.JailingAddress,
+		EndOfEpochAccessAddr:             vm.EndOfEpochAddress,
+		GasCost:                          scf.gasCost,
+		Marshalizer:                      scf.marshalizer,
+		EpochNotifier:                    scf.epochNotifier,
+		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegatorEnableEpoch,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -175,19 +176,20 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsValidatorSmartContract{
-		Eei:                      scf.systemEI,
-		SigVerifier:              scf.sigVerifier,
-		StakingSCConfig:          scf.systemSCConfig.StakingSystemSCConfig,
-		StakingSCAddress:         vm.StakingSCAddress,
-		EndOfEpochAddress:        vm.EndOfEpochAddress,
-		ValidatorSCAddress:       vm.ValidatorSCAddress,
-		GasCost:                  scf.gasCost,
-		Marshalizer:              scf.marshalizer,
-		GenesisTotalSupply:       scf.economics.GenesisTotalSupply(),
-		EpochNotifier:            scf.epochNotifier,
-		MinDeposit:               scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
-		DelegationMgrEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
-		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
+		Eei:                              scf.systemEI,
+		SigVerifier:                      scf.sigVerifier,
+		StakingSCConfig:                  scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:                 vm.StakingSCAddress,
+		EndOfEpochAddress:                vm.EndOfEpochAddress,
+		ValidatorSCAddress:               vm.ValidatorSCAddress,
+		GasCost:                          scf.gasCost,
+		Marshalizer:                      scf.marshalizer,
+		GenesisTotalSupply:               scf.economics.GenesisTotalSupply(),
+		EpochNotifier:                    scf.epochNotifier,
+		MinDeposit:                       scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
+		DelegationMgrEnableEpoch:         scf.systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
+		DelegationMgrSCAddress:           vm.DelegationManagerSCAddress,
+		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegatorEnableEpoch,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err

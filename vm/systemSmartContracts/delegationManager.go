@@ -22,21 +22,20 @@ const delegationContractsList = "delegationContracts"
 var nextAddressAdd = big.NewInt(1 << 24)
 
 type delegationManager struct {
-	eei                      vm.SystemEI
-	delegationMgrSCAddress   []byte
-	stakingSCAddr            []byte
-	validatorSCAddr          []byte
-	configChangeAddr         []byte
-	gasCost                  vm.GasCost
-	marshalizer              marshal.Marshalizer
-	delegationMgrEnabled     atomic.Flag
-	enableDelegationMgrEpoch uint32
-	minCreationDeposit       *big.Int
-	minDelegationAmount      *big.Int
-	minFee                   uint64
-	maxFee                   uint64
-	mutExecution             sync.RWMutex
-
+	eei                              vm.SystemEI
+	delegationMgrSCAddress           []byte
+	stakingSCAddr                    []byte
+	validatorSCAddr                  []byte
+	configChangeAddr                 []byte
+	gasCost                          vm.GasCost
+	marshalizer                      marshal.Marshalizer
+	delegationMgrEnabled             atomic.Flag
+	enableDelegationMgrEpoch         uint32
+	minCreationDeposit               *big.Int
+	minDelegationAmount              *big.Int
+	minFee                           uint64
+	maxFee                           uint64
+	mutExecution                     sync.RWMutex
 	flagValidatorToDelegation        atomic.Flag
 	validatorToDelegationEnableEpoch uint32
 }
