@@ -70,6 +70,10 @@ func (ws *webServer) UpdateFacade(facade shared.ApiFacadeHandler) error {
 	ws.facade = facade
 	ws.Unlock()
 
+	if ws.cancelFunc != nil {
+		ws.cancelFunc() // make sure all goroutines are closed before starting a new http server
+	}
+
 	closableWebServer, err := ws.CreateHttpServer()
 	if err != nil {
 		return err
