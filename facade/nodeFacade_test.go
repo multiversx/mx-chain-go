@@ -986,7 +986,7 @@ func TestNodeFacade_VerifyProofInvalidRootHashShouldErr(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestNodeFacade_GVerifyProofGetTrieErrShouldErr(t *testing.T) {
+func TestNodeFacade_VerifyProofGetTrieErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	getTrieErr := fmt.Errorf("get trie err")
