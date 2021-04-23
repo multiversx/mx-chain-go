@@ -295,6 +295,14 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
+		if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+			log.Debug("new reward address", "blsKey", blsPubKey, "rwdAddr", stakingData.RewardAddress)
+			err = account.SetRewardAddress(stakingData.RewardAddress)
+			if err != nil {
+				return err
+			}
+		}
+
 		return stp.peerState.SaveAccount(account)
 	}
 
