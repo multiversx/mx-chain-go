@@ -1,6 +1,8 @@
 package shard
 
 import (
+	"runtime/debug"
+
 	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
@@ -93,7 +95,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 // Close closes the vm container factory
-func (vmf *vmContainerFactory) Close() error{
+func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
 }
 
@@ -106,7 +108,7 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config, string(debug.Stack()))
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
 	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
@@ -138,7 +140,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config, string(debug.Stack()))
 
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
