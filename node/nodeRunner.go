@@ -226,6 +226,15 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			return err
 		}
 
+		go func() {
+			time.Sleep(5 * time.Minute)
+			arg := endProcess.ArgEndProcess{
+				Reason:      core.ShuffledOut,
+				Description: "test description",
+			}
+			managedCoreComponents.ChanStopNodeProcess() <- arg
+		}()
+
 		log.Debug("creating nodes coordinator")
 		nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
 			nodesShufflerOut,
