@@ -34,40 +34,43 @@ const (
 )
 
 type delegation struct {
-	eei                    vm.SystemEI
-	sigVerifier            vm.MessageSignVerifier
-	delegationMgrSCAddress []byte
-	stakingSCAddr          []byte
-	validatorSCAddr        []byte
-	endOfEpochAddr         []byte
-	gasCost                vm.GasCost
-	marshalizer            marshal.Marshalizer
-	delegationEnabled      atomic.Flag
-	enableDelegationEpoch  uint32
-	minServiceFee          uint64
-	maxServiceFee          uint64
-	unBondPeriodInEpochs   uint32
-	nodePrice              *big.Int
-	unJailPrice            *big.Int
-	minStakeValue          *big.Int
-	mutExecution           sync.RWMutex
-	stakingV2EnableEpoch   uint32
-	stakingV2Enabled       atomic.Flag
+	eei                              vm.SystemEI
+	sigVerifier                      vm.MessageSignVerifier
+	delegationMgrSCAddress           []byte
+	stakingSCAddr                    []byte
+	validatorSCAddr                  []byte
+	endOfEpochAddr                   []byte
+	gasCost                          vm.GasCost
+	marshalizer                      marshal.Marshalizer
+	delegationEnabled                atomic.Flag
+	enableDelegationEpoch            uint32
+	minServiceFee                    uint64
+	maxServiceFee                    uint64
+	unBondPeriodInEpochs             uint32
+	nodePrice                        *big.Int
+	unJailPrice                      *big.Int
+	minStakeValue                    *big.Int
+	mutExecution                     sync.RWMutex
+	stakingV2EnableEpoch             uint32
+	stakingV2Enabled                 atomic.Flag
+	flagValidatorToDelegation        atomic.Flag
+	validatorToDelegationEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
-	DelegationSCConfig     config.DelegationSystemSCConfig
-	StakingSCConfig        config.StakingSystemSCConfig
-	Eei                    vm.SystemEI
-	SigVerifier            vm.MessageSignVerifier
-	DelegationMgrSCAddress []byte
-	StakingSCAddress       []byte
-	ValidatorSCAddress     []byte
-	EndOfEpochAddress      []byte
-	GasCost                vm.GasCost
-	Marshalizer            marshal.Marshalizer
-	EpochNotifier          vm.EpochNotifier
+	DelegationSCConfig               config.DelegationSystemSCConfig
+	StakingSCConfig                  config.StakingSystemSCConfig
+	Eei                              vm.SystemEI
+	SigVerifier                      vm.MessageSignVerifier
+	DelegationMgrSCAddress           []byte
+	StakingSCAddress                 []byte
+	ValidatorSCAddress               []byte
+	EndOfEpochAddress                []byte
+	GasCost                          vm.GasCost
+	Marshalizer                      marshal.Marshalizer
+	EpochNotifier                    vm.EpochNotifier
+	ValidatorToDelegationEnableEpoch uint32
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -101,21 +104,22 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	d := &delegation{
-		eei:                    args.Eei,
-		stakingSCAddr:          args.StakingSCAddress,
-		validatorSCAddr:        args.ValidatorSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		gasCost:                args.GasCost,
-		marshalizer:            args.Marshalizer,
-		delegationEnabled:      atomic.Flag{},
-		enableDelegationEpoch:  args.DelegationSCConfig.EnabledEpoch,
-		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:            args.SigVerifier,
-		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:         args.EndOfEpochAddress,
-		stakingV2EnableEpoch:   args.StakingSCConfig.StakingV2Epoch,
-		stakingV2Enabled:       atomic.Flag{},
+		eei:                              args.Eei,
+		stakingSCAddr:                    args.StakingSCAddress,
+		validatorSCAddr:                  args.ValidatorSCAddress,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		delegationEnabled:                atomic.Flag{},
+		enableDelegationEpoch:            args.DelegationSCConfig.EnabledEpoch,
+		minServiceFee:                    args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:                    args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:                      args.SigVerifier,
+		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
+		endOfEpochAddr:                   args.EndOfEpochAddress,
+		stakingV2EnableEpoch:             args.StakingSCConfig.StakingV2Epoch,
+		stakingV2Enabled:                 atomic.Flag{},
+		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
 	}
 
 	var okValue bool
@@ -160,6 +164,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return d.init(args)
+	case "initFromValidatorData":
+		return d.initFromValidatorData(args)
+	case "mergeValidatorDataToDelegation":
+		return d.mergeValidatorDataToDelegation(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -302,6 +310,22 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+}
+
+func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage("validator to delegation move is not enabled")
+		return vmcommon.Ok
+	}
+	return vmcommon.Ok
+}
+
+func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage("validator to delegation move is not enabled")
+		return vmcommon.Ok
+	}
+	return vmcommon.Ok
 }
 
 func (d *delegation) delegateUser(
@@ -2461,6 +2485,9 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 
 	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
 	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
+
+	d.flagValidatorToDelegation.Toggle(epoch > +d.validatorToDelegationEnableEpoch)
+	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

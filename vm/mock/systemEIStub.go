@@ -114,13 +114,7 @@ func (s *SystemEIStub) ExecuteOnDestContext(
 }
 
 // DeploySystemSC -
-func (s *SystemEIStub) DeploySystemSC(
-	baseContract []byte,
-	newAddress []byte,
-	ownerAddress []byte,
-	value *big.Int,
-	input [][]byte,
-) (vmcommon.ReturnCode, error) {
+func (s *SystemEIStub) DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error) {
 	if s.DeploySystemSCCalled != nil {
 		return s.DeploySystemSCCalled(baseContract, newAddress, ownerAddress, value, input)
 	}
