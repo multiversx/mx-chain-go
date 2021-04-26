@@ -28,46 +28,52 @@ const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
 
+const initFromValidatorData = "initFromValidatorData"
+
 const (
-	active   = uint32(0)
-	unStaked = uint32(1)
+	active    = uint32(0)
+	unStaked  = uint32(1)
+	notStaked = uint32(2)
 )
 
 type delegation struct {
-	eei                    vm.SystemEI
-	sigVerifier            vm.MessageSignVerifier
-	delegationMgrSCAddress []byte
-	stakingSCAddr          []byte
-	validatorSCAddr        []byte
-	endOfEpochAddr         []byte
-	gasCost                vm.GasCost
-	marshalizer            marshal.Marshalizer
-	delegationEnabled      atomic.Flag
-	enableDelegationEpoch  uint32
-	minServiceFee          uint64
-	maxServiceFee          uint64
-	unBondPeriodInEpochs   uint32
-	nodePrice              *big.Int
-	unJailPrice            *big.Int
-	minStakeValue          *big.Int
-	mutExecution           sync.RWMutex
-	stakingV2EnableEpoch   uint32
-	stakingV2Enabled       atomic.Flag
+	eei                              vm.SystemEI
+	sigVerifier                      vm.MessageSignVerifier
+	delegationMgrSCAddress           []byte
+	stakingSCAddr                    []byte
+	validatorSCAddr                  []byte
+	endOfEpochAddr                   []byte
+	gasCost                          vm.GasCost
+	marshalizer                      marshal.Marshalizer
+	delegationEnabled                atomic.Flag
+	enableDelegationEpoch            uint32
+	minServiceFee                    uint64
+	maxServiceFee                    uint64
+	unBondPeriodInEpochs             uint32
+	nodePrice                        *big.Int
+	unJailPrice                      *big.Int
+	minStakeValue                    *big.Int
+	mutExecution                     sync.RWMutex
+	stakingV2EnableEpoch             uint32
+	stakingV2Enabled                 atomic.Flag
+	flagValidatorToDelegation        atomic.Flag
+	validatorToDelegationEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
-	DelegationSCConfig     config.DelegationSystemSCConfig
-	StakingSCConfig        config.StakingSystemSCConfig
-	Eei                    vm.SystemEI
-	SigVerifier            vm.MessageSignVerifier
-	DelegationMgrSCAddress []byte
-	StakingSCAddress       []byte
-	ValidatorSCAddress     []byte
-	EndOfEpochAddress      []byte
-	GasCost                vm.GasCost
-	Marshalizer            marshal.Marshalizer
-	EpochNotifier          vm.EpochNotifier
+	DelegationSCConfig               config.DelegationSystemSCConfig
+	StakingSCConfig                  config.StakingSystemSCConfig
+	Eei                              vm.SystemEI
+	SigVerifier                      vm.MessageSignVerifier
+	DelegationMgrSCAddress           []byte
+	StakingSCAddress                 []byte
+	ValidatorSCAddress               []byte
+	EndOfEpochAddress                []byte
+	GasCost                          vm.GasCost
+	Marshalizer                      marshal.Marshalizer
+	EpochNotifier                    vm.EpochNotifier
+	ValidatorToDelegationEnableEpoch uint32
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -101,21 +107,22 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	d := &delegation{
-		eei:                    args.Eei,
-		stakingSCAddr:          args.StakingSCAddress,
-		validatorSCAddr:        args.ValidatorSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		gasCost:                args.GasCost,
-		marshalizer:            args.Marshalizer,
-		delegationEnabled:      atomic.Flag{},
-		enableDelegationEpoch:  args.DelegationSCConfig.EnabledEpoch,
-		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:            args.SigVerifier,
-		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:         args.EndOfEpochAddress,
-		stakingV2EnableEpoch:   args.StakingSCConfig.StakingV2Epoch,
-		stakingV2Enabled:       atomic.Flag{},
+		eei:                              args.Eei,
+		stakingSCAddr:                    args.StakingSCAddress,
+		validatorSCAddr:                  args.ValidatorSCAddress,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		delegationEnabled:                atomic.Flag{},
+		enableDelegationEpoch:            args.DelegationSCConfig.EnabledEpoch,
+		minServiceFee:                    args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:                    args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:                      args.SigVerifier,
+		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
+		endOfEpochAddr:                   args.EndOfEpochAddress,
+		stakingV2EnableEpoch:             args.StakingSCConfig.StakingV2Epoch,
+		stakingV2Enabled:                 atomic.Flag{},
+		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
 	}
 
 	var okValue bool
@@ -160,6 +167,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return d.init(args)
+	case initFromValidatorData:
+		return d.initFromValidatorData(args)
+	case "mergeValidatorDataToDelegation":
+		return d.mergeValidatorDataToDelegation(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -265,6 +276,29 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	initialOwnerFunds := big.NewInt(0).Set(args.CallValue)
 	ownerAddress = args.CallerAddr
+	returnCode := d.initDelegationStructures(initialOwnerFunds, args.CallerAddr, serviceFee, maxDelegationCap)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dStatus := createNewDelegationContractStatus()
+	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+}
+
+func createNewDelegationContractStatus() *DelegationContractStatus {
+	return &DelegationContractStatus{
+		StakedKeys:    make([]*NodesData, 0),
+		NotStakedKeys: make([]*NodesData, 0),
+		UnStakedKeys:  make([]*NodesData, 0),
+	}
+}
+
+func (d *delegation) initDelegationStructures(
+	initialOwnerFunds *big.Int,
+	ownerAddress []byte,
+	serviceFee uint64,
+	maxDelegationCap *big.Int,
+) vmcommon.ReturnCode {
 	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
 	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(serviceFee).Bytes())
@@ -284,12 +318,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	dStatus := &DelegationContractStatus{
-		StakedKeys:    make([]*NodesData, 0),
-		NotStakedKeys: make([]*NodesData, 0),
-		UnStakedKeys:  make([]*NodesData, 0),
-	}
-
 	globalFund := &GlobalFundData{
 		TotalActive:   big.NewInt(0),
 		TotalUnStaked: big.NewInt(0),
@@ -301,7 +329,169 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+	return vmcommon.Ok
+}
+
+func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, d.delegationMgrSCAddress) {
+		d.eei.AddReturnMessage("only delegation manager sc can call this function")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("call value must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 3 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(d.delegationMgrSCAddress) {
+		d.eei.AddReturnMessage("invalid arguments, first must be an address")
+		return vmcommon.UserError
+	}
+	return vmcommon.Ok
+}
+
+func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForValidatorToDelegation(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.Ok
+	}
+
+	serviceFee := big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()
+	if serviceFee < d.minServiceFee || serviceFee > d.maxServiceFee {
+		d.eei.AddReturnMessage("service fee out of bounds")
+		return vmcommon.UserError
+	}
+	maxDelegationCap := big.NewInt(0).SetBytes(args.Arguments[2])
+	if maxDelegationCap.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("invalid max delegation cap")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := args.Arguments[0]
+	argumentsForChange := [][]byte{ownerAddress, args.RecipientAddr}
+	vmOutput, err := d.executeOnValidatorSC(d.delegationMgrSCAddress, "changeOwnerOfValidatorData", argumentsForChange, zero)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	validatorData, err := d.getValidatorData(args.RecipientAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(validatorData.RewardAddress, args.RecipientAddr) {
+		d.eei.AddReturnMessage("invalid reward address on validator data")
+		return vmcommon.UserError
+	}
+
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if validatorData.TotalStakeValue.Cmp(delegationManagement.MinDeposit) < 0 {
+		d.eei.AddReturnMessage("not enough stake to make delegation contract")
+		return vmcommon.UserError
+	}
+	if len(validatorData.UnstakedInfo) > 0 {
+		d.eei.AddReturnMessage("clean unStaked info before changing validator to delegation contract")
+		return vmcommon.UserError
+	}
+
+	returnCode = d.initDelegationStructures(delegationManagement.MinDeposit, ownerAddress, serviceFee, maxDelegationCap)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dStatus, err := d.updateDelegationStatusFromValidatorData(validatorData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	returnCode = d.delegateUser(validatorData.TotalStakeValue, ownerAddress, args.RecipientAddr, dStatus)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) updateDelegationStatusFromValidatorData(validatorData *ValidatorDataV2) (*DelegationContractStatus, error) {
+	dStatus := createNewDelegationContractStatus()
+	for _, blsKey := range validatorData.BlsPubKeys {
+		status, err := d.getBLSKeyStatus(blsKey)
+		if err != nil {
+			return nil, err
+		}
+
+		nodesData := &NodesData{
+			BLSKey:    blsKey,
+			SignedMsg: blsKey,
+		}
+		switch status {
+		case active:
+			dStatus.StakedKeys = append(dStatus.StakedKeys, nodesData)
+		case unStaked:
+			dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
+		}
+	}
+
+	return dStatus, nil
+}
+
+func (d *delegation) getBLSKeyStatus(key []byte) (uint32, error) {
+	data := d.eei.GetStorageFromAddress(d.stakingSCAddr, key)
+	stakedData := &StakedDataV2_0{}
+
+	if len(data) == 0 {
+		return notStaked, vm.ErrEmptyStorage
+	}
+
+	err := d.marshalizer.Unmarshal(stakedData, data)
+	if err != nil {
+		return notStaked, err
+	}
+
+	if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
+		return active, nil
+	}
+
+	return unStaked, nil
+}
+
+func (d *delegation) getValidatorData(address []byte) (*ValidatorDataV2, error) {
+	marshaledData := d.eei.GetStorageFromAddress(d.validatorSCAddr, address)
+	if len(marshaledData) == 0 {
+		return nil, vm.ErrEmptyStorage
+	}
+
+	validatorData := &ValidatorDataV2{}
+	err := d.marshalizer.Unmarshal(validatorData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return validatorData, nil
+}
+
+func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	return vmcommon.Ok
 }
 
 func (d *delegation) delegateUser(
@@ -2461,6 +2651,9 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 
 	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
 	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
+
+	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
+	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
