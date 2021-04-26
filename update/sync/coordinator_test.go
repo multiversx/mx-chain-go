@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -109,6 +110,10 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 							return errors.New("err")
 						}
 						return nil
+					},
+					GetTrieExporterCalled: func() update.TrieExporter {
+						trieExporter, _ := trieExport.NewInactiveTrieExporter(&mock.MarshalizerMock{})
+						return trieExporter
 					},
 				}, nil
 			},
