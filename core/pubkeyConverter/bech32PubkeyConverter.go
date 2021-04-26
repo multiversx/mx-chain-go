@@ -79,7 +79,7 @@ func (bpc *bech32PubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 // Encode converts the provided bytes in a bech32 form
 func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 	if len(pkBytes) != bpc.len {
-		log.Warn("bech32PubkeyConverter.Encode PkBytesLength",
+		log.Debug("bech32PubkeyConverter.Encode PkBytesLength",
 			"hex buff", hex.EncodeToString(pkBytes),
 			"error", state.ErrWrongSize,
 			"stack trace", string(debug.Stack()),

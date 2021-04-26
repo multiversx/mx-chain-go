@@ -3613,6 +3613,39 @@ func TestScProcessor_ProcessIfErrorRevertAccountFails(t *testing.T) {
 	require.Equal(t, expectedError, err)
 }
 
+func TestScProcessor_ProcessIfErrorAsyncCallBack(t *testing.T) {
+	t.Parallel()
+	arguments := createMockSmartContractProcessorArguments()
+	scr := &smartContractResult.SmartContractResult{
+		CallType: vmcommon.AsynchronousCallBack,
+		Value:    big.NewInt(10),
+		SndAddr:  make([]byte, 32),
+	}
+
+	dstAccount := &mock.UserAccountStub{
+		AddToBalanceCalled: func(value *big.Int) error {
+			assert.Equal(t, value, scr.Value)
+			return nil
+		},
+	}
+	arguments.AccountsDB = &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return dstAccount, nil
+		},
+		SaveAccountCalled: func(account state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	err := sc.ProcessIfError(nil, []byte("txHash"), scr, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+}
+
 func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldBeCalled(t *testing.T) {
 	t.Parallel()
 

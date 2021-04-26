@@ -947,10 +947,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		senderAddressToSkip = []byte("")
 
 		gasRefunded := txs.gasHandler.GasRefunded(txHash)
-		mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
 		if senderShardID == receiverShardID {
 			gasConsumedByMiniBlocksInSenderShard -= gasRefunded
 			totalGasConsumedInSelfShard -= gasRefunded
+			mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] -= gasRefunded
 		}
 
 		if errors.Is(err, process.ErrFailedTransaction) {

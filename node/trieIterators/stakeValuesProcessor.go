@@ -74,18 +74,18 @@ func checkArguments(arg ArgTrieIteratorProcessor) error {
 
 // GetTotalStakedValue will calculate total staked value if needed and return calculated value
 func (svp *stakedValuesProcessor) GetTotalStakedValue() (*api.StakeValues, error) {
-	totalStaked, topUp, err := svp.computeStakedValueAndTopUp()
+	baseStaked, topUp, err := svp.computeBaseStakedAndTopUp()
 	if err != nil {
 		return nil, err
 	}
 
 	return &api.StakeValues{
-		TotalStaked: totalStaked,
-		TopUp:       topUp,
+		BaseStaked: baseStaked,
+		TopUp:      topUp,
 	}, nil
 }
 
-func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.Int, error) {
+func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.Int, error) {
 	svp.accounts.Lock()
 	defer svp.accounts.Unlock()
 
@@ -106,23 +106,25 @@ func (svp *stakedValuesProcessor) computeStakedValueAndTopUp() (*big.Int, *big.I
 		return nil, nil, err
 	}
 
-	totalStaked, totalTopUp := big.NewInt(0), big.NewInt(0)
+	totalBaseStaked, totalTopUp := big.NewInt(0), big.NewInt(0)
 	for leaf := range chLeaves {
 		leafKey := leaf.Key()
 		if len(leafKey) != svp.publicKeyConverter.Len() {
 			continue
 		}
 
-		totalStakedCurrentAccount, totalTopUpCurrentAccount, errGet := svp.getValidatorInfoFromSC(leafKey)
+		info, errGet := svp.getValidatorInfoFromSC(leafKey)
 		if errGet != nil {
 			continue
 		}
+		baseStaked := big.NewInt(0).Set(info.totalStakedValue)
+		baseStaked.Sub(baseStaked, info.topUpValue)
 
-		totalStaked = totalStaked.Add(totalStaked, totalStakedCurrentAccount)
-		totalTopUp = totalTopUp.Add(totalTopUp, totalTopUpCurrentAccount)
+		totalBaseStaked = totalBaseStaked.Add(totalBaseStaked, baseStaked)
+		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
 	}
 
-	return totalStaked, totalTopUp, nil
+	return totalBaseStaked, totalTopUp, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
