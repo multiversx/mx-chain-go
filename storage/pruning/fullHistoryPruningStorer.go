@@ -85,20 +85,7 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 		return data, nil
 	}
 
-	data, err = fhps.searchInEpoch(key, epoch+1)
-	if err == nil && data != nil {
-		return data, nil
-	}
-
-	data, err = fhps.searchInEpoch(key, epoch-1)
-	if err == nil && data != nil {
-		//TODO(iulian) remove this print
-		log.Warn("should have not found here",
-			"key", key, "requested epoch", epoch, "db path", fhps.args.DbPath)
-		return data, nil
-	}
-
-	return nil, err
+	return fhps.searchInEpoch(key, epoch+1)
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
@@ -134,8 +121,7 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		return res, nil
 	}
 
-	//TODO(iulian) move this log to Trace
-	log.Debug("GetFromEpoch persister",
+	log.Trace("FullHistoryPruningStorer.getFromOldEpoch",
 		"id", fhps.identifier,
 		"epoch", epoch,
 		"key", key,
