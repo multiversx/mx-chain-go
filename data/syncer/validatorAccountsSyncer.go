@@ -63,11 +63,9 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, _ uint32) error 
 	go v.printStatistics(tss, ctx)
 
 	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
-
-	err = v.trieExporter.ExportValidatorTrie(mainTrie, ctx)
 	if err != nil {
 		return err
 	}
 
-	return err
+	return v.trieExporter.ExportValidatorTrie(mainTrie, ctx)
 }
