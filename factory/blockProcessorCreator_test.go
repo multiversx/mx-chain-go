@@ -37,6 +37,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
 		&txsimulator.ArgsTxSimulator{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 
 	require.NoError(t, err)
@@ -137,6 +138,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
 		&txsimulator.ArgsTxSimulator{},
+		&mock.ScheduledTxsExecutionStub{},
 	)
 
 	require.NoError(t, err)

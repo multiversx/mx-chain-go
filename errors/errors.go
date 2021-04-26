@@ -481,3 +481,6 @@ var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier
 
 // ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilScheduledTxsExecutionHandler signals that a nil scheduled transactions execution handler was provided
+var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions execution handler")

@@ -3527,3 +3527,5 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 	assert.Equal(t, big.NewInt(600), accumulatedFees)
 	assert.Equal(t, big.NewInt(60), developerFees)
 }
+
+//TODO: Add unit tests for AddIntermediateTransactions and GetAllIntermediateTxs methods

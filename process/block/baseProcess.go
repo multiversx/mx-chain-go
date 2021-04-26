@@ -32,6 +32,12 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
+// ScheduledSCRs holds information about scheduled SCRs per block type
+type ScheduledSCRs struct {
+	BlockType  block.Type
+	TxHandlers []data.TransactionHandler
+}
+
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
@@ -282,12 +288,12 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var valStatRootHash, epochStartMetaHash []byte
-	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
-	if ok {
+	metaHeader, isMetaHeader := headerHandler.(data.MetaHeaderHandler)
+	if isMetaHeader {
 		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
 	} else {
-		shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
-		if ok {
+		shardHeader, isShardHeader := headerHandler.(data.ShardHeaderHandler)
+		if isShardHeader {
 			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
 		}
 	}
@@ -460,7 +466,7 @@ func (bp *baseProcessor) createBlockStarted() error {
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted()
 
-	err := bp.txCoordinator.AddIntermediateTransactions(block.SmartContractResultBlock, bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
 	if err != nil {
 		return err
 	}
@@ -1041,13 +1047,13 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		}
 	}
 
-	scheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
-	marshalizedSCRs, errNotCritical := bp.getMarshalizedSCRs(scheduledSCRs)
+	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
+	marshalizedScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledSCRs(mapScheduledSCRs)
 	if errNotCritical != nil {
-		log.Warn("saveBody.getMarshalizedSCRs", "error", errNotCritical.Error())
+		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
 	} else {
-		if len(marshalizedSCRs) > 0 {
-			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedSCRs)
+		if len(marshalizedScheduledSCRs) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedScheduledSCRs)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
 			}
@@ -1401,15 +1407,28 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 	return err
 }
 
-func (bp *baseProcessor) getMarshalizedSCRs(scrs []data.TransactionHandler) ([]byte, error) {
+func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler) ([]byte, error) {
 	scrsBatch := &batch.Batch{}
-	for _, scr := range scrs {
-		marshalizedScr, err := bp.marshalizer.Marshal(scr)
+	for blockType, scrs := range mapSCRs {
+		if len(scrs) == 0 {
+			continue
+		}
+
+		scheduledSCRs := &ScheduledSCRs{
+			BlockType:  blockType,
+			TxHandlers: make([]data.TransactionHandler, len(scrs)),
+		}
+
+		for scrIndex, scr := range scrs {
+			scheduledSCRs.TxHandlers[scrIndex] = scr
+		}
+
+		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
 		if err != nil {
 			return nil, err
 		}
 
-		scrsBatch.Data = append(scrsBatch.Data, marshalizedScr)
+		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
 	}
 
 	if len(scrsBatch.Data) == 0 {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -31,12 +32,16 @@ func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration, _ p
 }
 
 // GetScheduledSCRs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() []data.TransactionHandler {
+func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
 	return nil
 }
 
 // SetScheduledSCRs does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ []data.TransactionHandler) {
+func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]data.TransactionHandler) {
+}
+
+// SetTransactionProcessor does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

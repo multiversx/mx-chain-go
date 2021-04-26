@@ -388,19 +388,20 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 
 func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          ccf.processComponents.BootStorer(),
-		ForkDetector:        ccf.processComponents.ForkDetector(),
-		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
-		Store:               ccf.dataComponents.StorageService(),
-		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
-		BootstrapRoundIndex: ccf.bootstrapRoundIndex,
-		ShardCoordinator:    ccf.processComponents.ShardCoordinator(),
-		NodesCoordinator:    ccf.processComponents.NodesCoordinator(),
-		EpochStartTrigger:   ccf.processComponents.EpochStartTrigger(),
-		BlockTracker:        ccf.processComponents.BlockTracker(),
-		ChainID:             ccf.coreComponents.ChainID(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		Store:                        ccf.dataComponents.StorageService(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		BootstrapRoundIndex:          ccf.bootstrapRoundIndex,
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		NodesCoordinator:             ccf.processComponents.NodesCoordinator(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
+		BlockTracker:                 ccf.processComponents.BlockTracker(),
+		ChainID:                      ccf.coreComponents.ChainID(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -450,19 +451,20 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 
 func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          ccf.processComponents.BootStorer(),
-		ForkDetector:        ccf.processComponents.ForkDetector(),
-		BlockProcessor:      ccf.processComponents.BlockProcessor(),
-		ChainHandler:        ccf.dataComponents.Blockchain(),
-		Marshalizer:         ccf.coreComponents.InternalMarshalizer(),
-		Store:               ccf.dataComponents.StorageService(),
-		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
-		BootstrapRoundIndex: ccf.bootstrapRoundIndex,
-		ShardCoordinator:    ccf.processComponents.ShardCoordinator(),
-		NodesCoordinator:    ccf.processComponents.NodesCoordinator(),
-		EpochStartTrigger:   ccf.processComponents.EpochStartTrigger(),
-		BlockTracker:        ccf.processComponents.BlockTracker(),
-		ChainID:             ccf.coreComponents.ChainID(),
+		BootStorer:                   ccf.processComponents.BootStorer(),
+		ForkDetector:                 ccf.processComponents.ForkDetector(),
+		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		ChainHandler:                 ccf.dataComponents.Blockchain(),
+		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
+		Store:                        ccf.dataComponents.StorageService(),
+		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
+		BootstrapRoundIndex:          ccf.bootstrapRoundIndex,
+		ShardCoordinator:             ccf.processComponents.ShardCoordinator(),
+		NodesCoordinator:             ccf.processComponents.NodesCoordinator(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
+		BlockTracker:                 ccf.processComponents.BlockTracker(),
+		ChainID:                      ccf.coreComponents.ChainID(),
+		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

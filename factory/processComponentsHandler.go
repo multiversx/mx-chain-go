@@ -145,6 +145,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.nodeRedundancyHandler) {
 		return errors.ErrNilNodeRedundancyHandler
 	}
+	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
+		return errors.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return nil
 }
@@ -486,7 +489,7 @@ func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.Request
 }
 
 // NodeRedundancyHandler returns the node redundancy handler
-func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler{
+func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -495,6 +498,18 @@ func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedunda
 	}
 
 	return m.processComponents.nodeRedundancyHandler
+}
+
+// ScheduledTxsExecutionHandler returns the scheduled transactions execution handler
+func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.scheduledTxsExecutionHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil
