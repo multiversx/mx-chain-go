@@ -351,6 +351,15 @@ func (h *Header) SetMetaBlockHashes(hashes [][]byte) error {
 	return nil
 }
 
+// SetScheduledRootHash not supported by V1 header
+func (h *Header) SetScheduledRootHash(rootHash []byte) error {
+	if h == nil {
+		return data.ErrNilPointerReceiver
+	}
+
+	return data.ErrNotAV2Header
+}
+
 // IntegrityAndValidity checks if data is valid
 func (b *Body) IntegrityAndValidity() error {
 	if b == nil {

@@ -69,3 +69,6 @@ var ErrNilPointerDereference = errors.New("nil pointer dereference")
 
 // ErrInvalidTypeAssertion signals an invalid type assertion
 var ErrInvalidTypeAssertion = errors.New("invalid type assertion")
+
+// ErrNotAV2Header signals an error when a v2 header is expected, but a different one is used
+var ErrNotAV2Header = errors.New("header is not a v2 header")
