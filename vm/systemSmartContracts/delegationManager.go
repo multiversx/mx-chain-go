@@ -288,6 +288,11 @@ func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.Contr
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
+	if core.IsSmartContractAddress(args.CallerAddr) {
+		d.eei.AddReturnMessage("cannot change from validator to delegation contract for a smart contract")
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
