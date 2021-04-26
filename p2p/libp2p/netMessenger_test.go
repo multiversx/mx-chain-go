@@ -11,9 +11,11 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -1093,7 +1095,7 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes.SetPeerDiscoverer(pdm)
 
-	_ = mes.Bootstrap(0)
+	_ = mes.Bootstrap()
 
 	assert.True(t, wasCalled)
 
@@ -1552,4 +1554,57 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 	assert.Equal(t, 2, cpi.NumValidatorsOnShard[crossShardID])
 	assert.Equal(t, selfShardID, cpi.SelfShardID)
 	assert.Equal(t, 1, len(cpi.UnknownPeers))
+}
+
+func TestNetworkMessenger_Bootstrap(t *testing.T) {
+	t.Skip("long test used to debug the kad dht discoverer")
+
+	t.Parallel()
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		Marshalizer:   &marshal.GogoProtoMarshalizer{},
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port:                       "0",
+				Seed:                       "",
+				MaximumExpectedPeerCount:   1,
+				ThresholdMinConnectedPeers: 1,
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled:                          true,
+				Type:                             "optimized",
+				RefreshIntervalInSec:             10,
+				ProtocolID:                       "erd/kad/1.0.0",
+				InitialPeerList:                  []string{"/ip4/35.214.140.83/tcp/10000/p2p/16Uiu2HAm6hPymvkZyFgbvWaVBKhEoPjmXhkV32r9JaFvQ7Rk8ynU"},
+				BucketSize:                       10,
+				RoutingTableRefreshIntervalInSec: 5,
+			},
+			Sharding: config.ShardingConfig{
+				TargetPeerCount:         0,
+				MaxIntraShardValidators: 0,
+				MaxCrossShardValidators: 0,
+				MaxIntraShardObservers:  0,
+				MaxCrossShardObservers:  0,
+				MaxSeeders:              0,
+				Type:                    "NilListSharder",
+			},
+		},
+		SyncTimer: &mock.SyncTimerStub{},
+	}
+
+	netMes, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
+
+	go func() {
+		time.Sleep(time.Second * 1)
+		fmt.Println("aaaaa")
+		_ = netMes.Close()
+	}()
+
+	_ = netMes.Bootstrap()
+
+	time.Sleep(time.Second * 12)
 }

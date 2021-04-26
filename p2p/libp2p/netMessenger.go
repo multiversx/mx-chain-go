@@ -597,11 +597,10 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+func (netMes *networkMessenger) Bootstrap() error {
 	err := netMes.peerDiscoverer.Bootstrap()
 	if err == nil {
-		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
-		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+		log.Info("started the network discovery process...")
 	}
 	return err
 }
