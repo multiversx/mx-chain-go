@@ -514,7 +514,7 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for _, dir := range directories {
 			if strings.HasPrefix(dir, "TestOnly-") {
 				errList = os.RemoveAll(dir)
-				assert.NoError(t, err)
+				assert.NoError(t, errList)
 			}
 		}
 	}()

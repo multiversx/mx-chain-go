@@ -159,6 +159,7 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	assert.Nil(t, err)
 
 	res1, err := fhps.GetFromEpoch(testKey, testEpoch)
+	assert.Nil(t, err)
 	assert.Equal(t, testVal, res1)
 
 	res2, err := fhps.GetFromEpoch(testKey, testEpoch-1)

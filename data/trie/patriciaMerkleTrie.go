@@ -60,7 +60,7 @@ func NewTrie(
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
-	if maxTrieLevelInMemory <= 0 {
+	if maxTrieLevelInMemory == 0 {
 		return nil, ErrInvalidLevelValue
 	}
 	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
