@@ -254,6 +254,7 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen   uint32
 	SnapshotsBufferLen uint32
 	MaxSnapshots       uint32
+	KeepSnapshots      bool
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

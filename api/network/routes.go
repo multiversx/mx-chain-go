@@ -16,6 +16,7 @@ const (
 	getConfigPath        = "/config"
 	getStatusPath        = "/status"
 	economicsPath        = "/economics"
+	enableEpochsPath     = "/enable-epochs"
 	getESDTsPath         = "/esdts"
 	directStakedInfoPath = "/direct-staked-info"
 	delegatedInfoPath    = "/delegated-info"
@@ -36,6 +37,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, enableEpochsPath, GetEnableEpochs)
 	router.RegisterHandler(http.MethodGet, getESDTsPath, GetAllIssuedESDTs)
 	router.RegisterHandler(http.MethodGet, directStakedInfoPath, DirectStakedInfo)
 	router.RegisterHandler(http.MethodGet, delegatedInfoPath, DelegatedInfo)
@@ -89,6 +91,24 @@ func GetNetworkConfig(c *gin.Context) {
 	)
 }
 
+// GetEnableEpochs returns metrics related to the activation epochs of the network
+func GetEnableEpochs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	enableEpochsMetrics := facade.StatusMetrics().EnableEpochsMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
 // GetNetworkStatus returns metrics related to the network status (shard specific)
 func GetNetworkStatus(c *gin.Context) {
 	facade, ok := getFacade(c)
@@ -128,7 +148,7 @@ func EconomicsMetrics(c *gin.Context) {
 	}
 
 	metrics := facade.StatusMetrics().EconomicsMetrics()
-	metrics[core.MetricTotalStakedValue] = stakeValues.TotalStaked.String()
+	metrics[core.MetricTotalBaseStakedValue] = stakeValues.BaseStaked.String()
 	metrics[core.MetricTopUpValue] = stakeValues.TopUp.String()
 
 	c.JSON(
