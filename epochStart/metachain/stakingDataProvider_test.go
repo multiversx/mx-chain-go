@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -422,7 +423,7 @@ func createStakingDataProviderWithMockArgs(
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
-	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1000000,
 	})
 	s, _ := NewSystemSCProcessor(args)
@@ -462,7 +463,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
 	args.StakingV2EnableEpoch = 0
-	args.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})
 	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")

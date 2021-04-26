@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,11 +88,11 @@ func TestGenericEpochNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 		},
 	})
 
-	gep.CheckEpoch(&mock.HeaderHandlerStub{ //this header will trigger the inner state update
+	gep.CheckEpoch(&testscommon.HeaderHandlerStub{ //this header will trigger the inner state update
 		EpochField:     0,
 		TimestampField: 11,
 	})
-	gep.CheckEpoch(&mock.HeaderHandlerStub{
+	gep.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField:     0,
 		TimestampField: 12,
 	})
@@ -115,7 +116,7 @@ func TestGenericEpochNotifier_CheckEpochShouldCall(t *testing.T) {
 		},
 	})
 
-	gep.CheckEpoch(&mock.HeaderHandlerStub{
+	gep.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField:     newEpoch,
 		TimestampField: newTimestamp,
 	})
@@ -143,7 +144,7 @@ func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 	gep.RegisterNotifyHandler(handler)
 
 	start := time.Now()
-	gep.CheckEpoch(&mock.HeaderHandlerStub{
+	gep.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: newEpoch,
 	})
 	end := time.Now()

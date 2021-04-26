@@ -917,7 +917,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return spos.ErrInvalidChainID
 					},
@@ -961,7 +961,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},
@@ -1014,7 +1014,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},
