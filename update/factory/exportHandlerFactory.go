@@ -7,8 +7,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -34,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
 	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )

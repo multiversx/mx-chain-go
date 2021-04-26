@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//TODO add unit tests
+
 func TestTrieExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	t.Parallel()
 
