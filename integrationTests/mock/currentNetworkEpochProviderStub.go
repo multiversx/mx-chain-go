@@ -1,16 +1,10 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
-
 // CurrentNetworkEpochProviderStub -
 type CurrentNetworkEpochProviderStub struct {
 	SetNetworkEpochAtBootstrapCalled func(epoch uint32)
 	EpochIsActiveInNetworkCalled     func(epoch uint32) bool
-	CurrentEpochCalled               func() uint32
-	EpochChangedCalled               func(header data.HeaderHandler)
-	EpochStartActionCalled           func(header data.HeaderHandler)
-	EpochStartPrepareCalled          func(header data.HeaderHandler, body data.BodyHandler)
-	NotifyOrderCalled                func() uint32
+	EpochConfirmedCalled             func(epoch uint32, timestamp uint64)
 }
 
 // EpochIsActiveInNetwork -
@@ -22,27 +16,11 @@ func (cneps *CurrentNetworkEpochProviderStub) EpochIsActiveInNetwork(epoch uint3
 	return true
 }
 
-// EpochStartAction -
-func (cneps *CurrentNetworkEpochProviderStub) EpochStartAction(header data.HeaderHandler) {
-	if cneps.EpochStartActionCalled != nil {
-		cneps.EpochStartActionCalled(header)
+// EpochConfirmed -
+func (cneps *CurrentNetworkEpochProviderStub) EpochConfirmed(epoch uint32, timestamp uint64) {
+	if cneps.EpochConfirmedCalled != nil {
+		cneps.EpochConfirmedCalled(epoch, timestamp)
 	}
-}
-
-// EpochStartPrepare does nothing
-func (cneps *CurrentNetworkEpochProviderStub) EpochStartPrepare(header data.HeaderHandler, body data.BodyHandler) {
-	if cneps.EpochStartPrepareCalled != nil {
-		cneps.EpochStartPrepareCalled(header, body)
-	}
-}
-
-// NotifyOrder will return the core.CurrentNetworkEpochProvider value
-func (cneps *CurrentNetworkEpochProviderStub) NotifyOrder() uint32 {
-	if cneps.NotifyOrderCalled != nil {
-		return cneps.NotifyOrderCalled()
-	}
-
-	return 0
 }
 
 // IsInterfaceNil -

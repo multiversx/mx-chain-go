@@ -1,10 +1,5 @@
 package disabled
 
-import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-)
-
 // currentNetworkEpochProviderHandler -
 type currentNetworkEpochProviderHandler struct {
 }
@@ -14,17 +9,8 @@ func NewCurrentNetworkEpochProviderHandler() *currentNetworkEpochProviderHandler
 	return &currentNetworkEpochProviderHandler{}
 }
 
-// EpochStartAction does nothing
-func (cneph *currentNetworkEpochProviderHandler) EpochStartAction(_ data.HeaderHandler) {
-}
-
-// EpochStartPrepare does nothing
-func (cneph *currentNetworkEpochProviderHandler) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
-}
-
-// NotifyOrder return core.CurrentNetworkEpochProvider value
-func (cneph *currentNetworkEpochProviderHandler) NotifyOrder() uint32 {
-	return core.CurrentNetworkEpochProvider
+// EpochConfirmed does nothing
+func (ep *currentNetworkEpochProviderHandler) EpochConfirmed(_ uint32, _ uint64) {
 }
 
 // EpochIsActiveInNetwork returns true

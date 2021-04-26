@@ -1013,7 +1013,7 @@ type NodesCoordinator interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

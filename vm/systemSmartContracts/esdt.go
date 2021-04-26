@@ -419,8 +419,8 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	for i := 0; i < numOfRetriesForIdentifier; i++ {
 		encoded := hex.EncodeToString(newRandomAsBigInt.Bytes())
 		newIdentifier := append(tickerPrefix, []byte(encoded)...)
-		data := e.eei.GetStorage(newIdentifier)
-		if len(data) == 0 {
+		buff := e.eei.GetStorage(newIdentifier)
+		if len(buff) == 0 {
 			return newIdentifier, nil
 		}
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
@@ -1441,7 +1441,7 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (e *esdt) EpochConfirmed(epoch uint32) {
+func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }

@@ -251,7 +251,7 @@ func (gc *gasComputation) computeGasConsumedByTxV1(
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (gc *gasComputation) EpochConfirmed(epoch uint32) {
+func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
 	gc.flagGasComputeV2.Toggle(epoch >= gc.gasComputeV2EnableEpoch)
 	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }

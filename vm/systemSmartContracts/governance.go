@@ -912,7 +912,7 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (g *governanceContract) EpochConfirmed(epoch uint32) {
+func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
 	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }

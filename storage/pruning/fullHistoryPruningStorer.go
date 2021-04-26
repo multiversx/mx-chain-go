@@ -81,7 +81,6 @@ func (fhps *FullHistoryPruningStorer) onEvicted(key interface{}, value interface
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	data, err := fhps.searchInEpoch(key, epoch)
-
 	if err == nil && data != nil {
 		return data, nil
 	}
@@ -90,13 +89,8 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 }
 
 func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
-	fhps.lock.RLock()
-	oldestEpochInCurrentSetting := fhps.activePersisters[len(fhps.activePersisters)-1].epoch
-	fhps.lock.RUnlock()
-
-	isActiveEpoch := epoch > oldestEpochInCurrentSetting-fhps.numOfActivePersisters
-	if isActiveEpoch {
-		return fhps.PruningStorer.Get(key)
+	if fhps.isEpochActive(epoch) {
+		return fhps.PruningStorer.SearchFirst(key)
 	}
 
 	data, err := fhps.getFromOldEpoch(key, epoch)
@@ -105,6 +99,15 @@ func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([
 	}
 
 	return data, nil
+}
+
+func (fhps *FullHistoryPruningStorer) isEpochActive(epoch uint32) bool {
+	fhps.lock.RLock()
+	oldestEpochInCurrentSetting := fhps.activePersisters[len(fhps.activePersisters)-1].epoch
+	newestEpochInCurrentSetting := fhps.activePersisters[0].epoch
+	fhps.lock.RUnlock()
+
+	return epoch >= oldestEpochInCurrentSetting && epoch <= newestEpochInCurrentSetting
 }
 
 func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
@@ -118,7 +121,7 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		return res, nil
 	}
 
-	log.Debug("GetFromEpoch persister",
+	log.Trace("FullHistoryPruningStorer.getFromOldEpoch",
 		"id", fhps.identifier,
 		"epoch", epoch,
 		"key", key,

@@ -861,7 +861,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
+func (txProc *txProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
 	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
 
