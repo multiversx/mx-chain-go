@@ -19,14 +19,6 @@ func (es *EpochStartTriesSyncHandlerMock) SyncTriesFrom(meta *block.MetaBlock) e
 	return nil
 }
 
-// GetTries -
-func (es *EpochStartTriesSyncHandlerMock) GetTries() (map[string]data.Trie, error) {
-	if es.GetTriesCalled != nil {
-		return es.GetTriesCalled()
-	}
-	return nil, nil
-}
-
 // IsInterfaceNil -
 func (es *EpochStartTriesSyncHandlerMock) IsInterfaceNil() bool {
 	return es == nil

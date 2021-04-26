@@ -200,11 +200,6 @@ func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, err
 	return ss.headers.GetUnFinishedMetaBlocks()
 }
 
-// GetAllTries returns the synced tries
-func (ss *syncState) GetAllTries() (map[string]data.Trie, error) {
-	return ss.tries.GetTries()
-}
-
 // GetAllTransactions returns the synced transactions
 func (ss *syncState) GetAllTransactions() (map[string]data.TransactionHandler, error) {
 	return ss.transactions.GetTransactions()

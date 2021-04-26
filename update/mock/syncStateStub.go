@@ -10,7 +10,6 @@ type SyncStateStub struct {
 	GetEpochStartMetaBlockCalled  func() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocksCalled func() (map[string]*block.MetaBlock, error)
 	SyncAllStateCalled            func(epoch uint32) error
-	GetAllTriesCalled             func() (map[string]data.Trie, error)
 	GetAllTransactionsCalled      func() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocksCalled        func() (map[string]*block.MiniBlock, error)
 }
@@ -37,14 +36,6 @@ func (sss *SyncStateStub) SyncAllState(epoch uint32) error {
 		return sss.SyncAllStateCalled(epoch)
 	}
 	return nil
-}
-
-// GetAllTries -
-func (sss *SyncStateStub) GetAllTries() (map[string]data.Trie, error) {
-	if sss.GetAllTriesCalled != nil {
-		return sss.GetAllTriesCalled()
-	}
-	return nil, nil
 }
 
 // GetAllTransactions -

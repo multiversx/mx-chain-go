@@ -7,6 +7,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/update/genesis/trieExport"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -382,6 +384,38 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return true
 	})
 
+	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating keys storer", err)
+	}
+	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating keys-values storer", err)
+	}
+
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: e.marshalizer,
+	}
+	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	trieExporter, err := trieExport.NewTrieExport(
+		e.exportFolder,
+		e.shardCoordinator,
+		e.marshalizer,
+		hs,
+		e.validatorPubKeyConverter,
+		e.addressPubKeyConverter,
+		e.genesisNodesSetupHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
 		TrieCacher:                e.dataPool.TrieNodes(),
 		RequestHandler:            e.requestHandler,
@@ -394,6 +428,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 		TrieSyncerVersion:         e.trieSyncerVersion,
+		TrieExporter:              trieExporter,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -457,25 +492,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Transactions: epochStartTransactionsSyncer,
 	}
 	stateSyncer, err := sync.NewSyncState(argsSyncState)
-	if err != nil {
-		return nil, err
-	}
-
-	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating keys storer", err)
-	}
-	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating keys-values storer", err)
-	}
-
-	arg := storing.ArgHardforkStorer{
-		KeysStore:   keysStorer,
-		KeyValue:    keysVals,
-		Marshalizer: e.marshalizer,
-	}
-	hs, err := storing.NewHardforkStorer(arg)
 	if err != nil {
 		return nil, err
 	}
