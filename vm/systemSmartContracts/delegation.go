@@ -28,6 +28,8 @@ const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
 
+const initFromValidatorData = "initFromValidatorData"
+
 const (
 	active    = uint32(0)
 	unStaked  = uint32(1)
@@ -165,7 +167,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	switch args.Function {
 	case core.SCDeployInitFunctionName:
 		return d.init(args)
-	case "initFromValidatorData":
+	case initFromValidatorData:
 		return d.initFromValidatorData(args)
 	case "mergeValidatorDataToDelegation":
 		return d.mergeValidatorDataToDelegation(args)
@@ -279,13 +281,16 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return returnCode
 	}
 
-	dStatus := &DelegationContractStatus{
+	dStatus := createNewDelegationContractStatus()
+	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+}
+
+func createNewDelegationContractStatus() *DelegationContractStatus {
+	return &DelegationContractStatus{
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
 		UnStakedKeys:  make([]*NodesData, 0),
 	}
-
-	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
 }
 
 func (d *delegation) initDelegationStructures(
@@ -352,7 +357,7 @@ func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.Contr
 }
 
 func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForValidatorToDelegation(args)
 	if returnCode != vmcommon.Ok {
 		return vmcommon.Ok
 	}
@@ -409,17 +414,26 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return returnCode
 	}
 
-	dStatus := &DelegationContractStatus{
-		StakedKeys:    make([]*NodesData, 0),
-		NotStakedKeys: make([]*NodesData, 0),
-		UnStakedKeys:  make([]*NodesData, 0),
+	dStatus, err := d.updateDelegationStatusFromValidatorData(validatorData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
+	returnCode = d.delegateUser(validatorData.TotalStakeValue, ownerAddress, args.RecipientAddr, dStatus)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) updateDelegationStatusFromValidatorData(validatorData *ValidatorDataV2) (*DelegationContractStatus, error) {
+	dStatus := createNewDelegationContractStatus()
 	for _, blsKey := range validatorData.BlsPubKeys {
-		status, errGet := d.getBLSKeyStatus(blsKey)
-		if errGet != nil {
-			d.eei.AddReturnMessage(errGet.Error())
-			return vmcommon.UserError
+		status, err := d.getBLSKeyStatus(blsKey)
+		if err != nil {
+			return nil, err
 		}
 
 		nodesData := &NodesData{
@@ -434,12 +448,7 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		}
 	}
 
-	returnCode = d.delegateUser(validatorData.TotalStakeValue, ownerAddress, args.RecipientAddr, dStatus)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	return vmcommon.Ok
+	return dStatus, nil
 }
 
 func (d *delegation) getBLSKeyStatus(key []byte) (uint32, error) {
@@ -2643,7 +2652,7 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
 	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
 
-	d.flagValidatorToDelegation.Toggle(epoch > +d.validatorToDelegationEnableEpoch)
+	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
 	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 }
 

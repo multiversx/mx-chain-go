@@ -102,7 +102,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		minDelegationAmount:              minDelegationAmount,
 		minFee:                           args.DelegationSCConfig.MinServiceFee,
 		maxFee:                           args.DelegationSCConfig.MaxServiceFee,
-		validatorToDelegationEnableEpoch: args.DelegationMgrSCConfig.ValidatorToDelegatorEnableEpoch,
+		validatorToDelegationEnableEpoch: args.DelegationMgrSCConfig.ValidatorToDelegationEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
@@ -271,7 +271,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 2 {
 		d.eei.AddReturnMessage("invalid number of arguments")
@@ -280,7 +280,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
 
-	return d.deployNewContract(args, false, "initFromValidatorData", arguments)
+	return d.deployNewContract(args, false, initFromValidatorData, arguments)
 }
 
 func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -295,7 +295,7 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	// TODO implement this

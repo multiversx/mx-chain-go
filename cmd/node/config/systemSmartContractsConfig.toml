@@ -37,6 +37,6 @@
 
 [DelegationSystemSCConfig]
     EnabledEpoch   = 1 #enable epoch should not be 0
-    ValidatorToDelegatorEnableEpoch = 3
+    ValidatorToDelegationEnableEpoch = 3
     MinServiceFee  = 0
     MaxServiceFee  = 10000

@@ -1850,22 +1850,24 @@ func (v *validatorSC) checkInputArgsForValidatorToDelegation(args *vmcommon.Cont
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 2 {
-		v.eei.AddReturnMessage("invalid number of arguments, needed 2")
+		v.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) || len(args.Arguments[1]) != len(args.CallerAddr) {
-		v.eei.AddReturnMessage("invalid argument, wanted an address")
+	oldAddress := args.Arguments[0]
+	newAddress := args.Arguments[1]
+	if len(oldAddress) != len(args.CallerAddr) || len(newAddress) != len(args.CallerAddr) {
+		v.eei.AddReturnMessage("invalid argument, wanted an address for the first and second argument")
 		return vmcommon.UserError
 	}
-	if !core.IsSmartContractAddress(args.Arguments[1]) {
+	if !core.IsSmartContractAddress(newAddress) {
 		v.eei.AddReturnMessage("destination address must be a delegation smart contract")
 		return vmcommon.UserError
 	}
-	if bytes.Equal(args.Arguments[0], args.Arguments[1]) {
+	if bytes.Equal(oldAddress, newAddress) {
 		v.eei.AddReturnMessage("sender and destination addresses are equal")
 		return vmcommon.UserError
 	}
-	if core.IsSmartContractAddress(args.Arguments[0]) {
+	if core.IsSmartContractAddress(oldAddress) {
 		v.eei.AddReturnMessage("sender address must not be a smart contract")
 		return vmcommon.UserError
 	}
@@ -1897,7 +1899,7 @@ func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 	if len(validatorData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("validator data do not exists")
+		v.eei.AddReturnMessage("validator data does not exists")
 		return vmcommon.UserError
 	}
 	if len(v.eei.GetStorage(newAddress)) != 0 {
@@ -1906,7 +1908,7 @@ func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInpu
 	}
 
 	validatorData.RewardAddress = newAddress
-	returnCode = v.changeRewardAndOwnerAddressOnStaking(validatorData)
+	returnCode = v.changeOwnerAndRewardAddressOnStaking(validatorData)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1921,7 +1923,7 @@ func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInpu
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) changeRewardAndOwnerAddressOnStaking(registrationData *ValidatorDataV2) vmcommon.ReturnCode {
+func (v *validatorSC) changeOwnerAndRewardAddressOnStaking(registrationData *ValidatorDataV2) vmcommon.ReturnCode {
 	txData := "changeOwnerAndRewardAddress@" + hex.EncodeToString(registrationData.RewardAddress)
 	for _, blsKey := range registrationData.BlsPubKeys {
 		txData += "@" + hex.EncodeToString(blsKey)

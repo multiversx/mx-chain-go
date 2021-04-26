@@ -1721,7 +1721,7 @@ func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("CallValue must be 0")
+		s.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
@@ -1744,7 +1744,7 @@ func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput
 		}
 
 		if len(registrationData.RewardAddress) == 0 {
-			s.eei.AddReturnMessage("cannot unStake a key that is not registered")
+			s.eei.AddReturnMessage("cannot change owner and reward address a key is not registered")
 			return vmcommon.UserError
 		}
 

@@ -168,7 +168,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		GasCost:                          scf.gasCost,
 		Marshalizer:                      scf.marshalizer,
 		EpochNotifier:                    scf.epochNotifier,
-		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegatorEnableEpoch,
+		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -189,7 +189,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		MinDeposit:                       scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
 		DelegationMgrEnableEpoch:         scf.systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		DelegationMgrSCAddress:           vm.DelegationManagerSCAddress,
-		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegatorEnableEpoch,
+		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err
