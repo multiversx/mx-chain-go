@@ -29,6 +29,7 @@ const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
+const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
 
 const (
 	active    = uint32(0)
@@ -169,7 +170,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.init(args)
 	case initFromValidatorData:
 		return d.initFromValidatorData(args)
-	case "mergeValidatorDataToDelegation":
+	case mergeValidatorDataToDelegation:
 		return d.mergeValidatorDataToDelegation(args)
 	case "addNodes":
 		return d.addNodes(args)
