@@ -66,12 +66,6 @@ func (pd *persisterData) getPersister() storage.Persister {
 	return pd.persister
 }
 
-func (pd *persisterData) setPersister(persister storage.Persister) {
-	pd.Lock()
-	pd.persister = persister
-	pd.Unlock()
-}
-
 func (pd *persisterData) setPersisterAndIsClosed(persister storage.Persister, isClosed bool) {
 	pd.Lock()
 	pd.persister = persister
