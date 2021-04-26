@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,7 +222,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -278,7 +278,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -403,7 +403,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -619,7 +619,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	totalNumNodes := 1
 	numDelegators := 2
 	delegationVal := int64(5000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -677,7 +677,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	totalNumNodes := 5
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
@@ -824,7 +824,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 	totalNumNodes := 2
 	numDelegators := 2
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(&mock.HeaderHandlerStub{
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 100000001,
 	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})

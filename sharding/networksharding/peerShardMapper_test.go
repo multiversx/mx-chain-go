@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -521,10 +520,8 @@ func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
 	psm := createPeerShardMapper()
 	psm.EpochStartPrepare(nil, nil)
 	psm.EpochStartPrepare(
-		&mock.HeaderHandlerStub{
-			GetEpochCaled: func() uint32 {
-				return 0
-			},
+		&testscommon.HeaderHandlerStub{
+			EpochField: 0,
 		},
 		nil,
 	)
@@ -551,10 +548,8 @@ func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
 
 	epoch := uint32(676)
 	psm.EpochStartAction(
-		&mock.HeaderHandlerStub{
-			GetEpochCaled: func() uint32 {
-				return epoch
-			},
+		&testscommon.HeaderHandlerStub{
+			EpochField: epoch,
 		},
 	)
 
