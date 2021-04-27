@@ -140,6 +140,7 @@ type AccountsAdapter interface {
 	IsPruningEnabled() bool
 	GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte, ctx context.Context) (map[string]data.Trie, error)
+	GetTrie(rootHash []byte) (data.Trie, error)
 	IsInterfaceNil() bool
 }
 
