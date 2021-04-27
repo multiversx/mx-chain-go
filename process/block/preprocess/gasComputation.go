@@ -214,7 +214,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
-	if txTypeSndShard == process.RelayedTx {
+	if gc.isRelayedTx(txTypeSndShard) {
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
@@ -248,6 +248,10 @@ func (gc *gasComputation) computeGasConsumedByTxV1(
 	}
 
 	return moveBalanceConsumption, moveBalanceConsumption, nil
+}
+
+func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
+	return txType == process.RelayedTx || txType == process.RelayedTxV2
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

@@ -39,6 +39,7 @@ type EnableEpochs struct {
 	ReturnDataToLastTransferEnableEpoch    uint32
 	ArwenESDTFunctionsEnableEpoch          uint32
 	SenderInOutTransferEnableEpoch         uint32
+	RelayedTransactionsV2EnableEpoch       uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
