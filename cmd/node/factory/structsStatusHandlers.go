@@ -29,7 +29,6 @@ type statusHandlersInfo struct {
 }
 
 type statusHandlerUtilsFactory struct {
-	useTermUI bool
 }
 
 // NewStatusHandlersFactory will return the status handler factory
