@@ -50,6 +50,7 @@ func NewScheduledTxsExecution(
 // Init method removes all the scheduled transactions
 func (ste *scheduledTxsExecution) Init() {
 	ste.mutScheduledTxs.Lock()
+	log.Debug("scheduledTxsExecution.Init", "num of last scheduled txs", len(ste.scheduledTxs))
 	ste.mapScheduledTxs = make(map[string]data.TransactionHandler)
 	ste.scheduledTxs = make([]data.TransactionHandler, 0)
 	ste.mutScheduledTxs.Unlock()
@@ -104,6 +105,8 @@ func (ste *scheduledTxsExecution) ExecuteAll(
 		return process.ErrNilTransactionCoordinator
 	}
 
+	log.Debug("scheduledTxsExecution.ExecuteAll", "num of scheduled txs to be executed", len(ste.scheduledTxs))
+
 	mapAllIntermediateTxsBeforeScheduledExecution := txCoordinator.GetAllIntermediateTxs()
 
 	for _, txHandler := range ste.scheduledTxs {
@@ -137,25 +140,14 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 ) {
+	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
-
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
-		scrsInfo := make([]*scrInfo, 0)
-		for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
-			scrs, blockTypeExists := mapAllIntermediateTxsBeforeScheduledExecution[blockType]
-			if blockTypeExists {
-				_, txExists := scrs[txHash]
-				if txExists {
-					continue
-				}
-			}
-
-			scrsInfo = append(scrsInfo, &scrInfo{
-				txHash:    []byte(txHash),
-				txHandler: txHandler,
-			})
-		}
-
+		scrsInfo := getSCRsInfo(
+			mapAllIntermediateTxsBeforeScheduledExecution,
+			allIntermediateTxsAfterScheduledExecution,
+			blockType,
+		)
 		if len(scrsInfo) == 0 {
 			continue
 		}
@@ -168,7 +160,35 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 		for scrIndex, scrInfo := range scrsInfo {
 			ste.mapScheduledSCRs[blockType][scrIndex] = scrInfo.txHandler
 		}
+
+		numScheduledSCRs += len(scrsInfo)
 	}
+
+	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
+}
+
+func getSCRsInfo(
+	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
+	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
+	blockType block.Type,
+) []*scrInfo {
+	scrsInfo := make([]*scrInfo, 0)
+	for txHash, txHandler := range allIntermediateTxsAfterScheduledExecution {
+		scrs, blockTypeExists := mapAllIntermediateTxsBeforeScheduledExecution[blockType]
+		if blockTypeExists {
+			_, txExists := scrs[txHash]
+			if txExists {
+				continue
+			}
+		}
+
+		scrsInfo = append(scrsInfo, &scrInfo{
+			txHash:    []byte(txHash),
+			txHandler: txHandler,
+		})
+	}
+
+	return scrsInfo
 }
 
 // GetScheduledSCRs returns all the scheduled SCRs
@@ -176,13 +196,22 @@ func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.Trans
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
 
+	numScheduledSCRs := 0
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
 	for blockType, scheduledSCRs := range ste.mapScheduledSCRs {
+		if len(scheduledSCRs) == 0 {
+			continue
+		}
+
 		mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			mapScheduledSCRs[blockType][scrIndex] = txHandler
 		}
+
+		numScheduledSCRs += len(scheduledSCRs)
 	}
+
+	log.Debug("scheduledTxsExecution.GetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
 
 	return mapScheduledSCRs
 }
@@ -192,13 +221,22 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapScheduledSCRs map[block.Ty
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
+	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, scheduledSCRs := range mapScheduledSCRs {
+		if len(scheduledSCRs) == 0 {
+			continue
+		}
+
 		ste.mapScheduledSCRs[blockType] = make([]data.TransactionHandler, len(scheduledSCRs))
 		for scrIndex, txHandler := range scheduledSCRs {
 			ste.mapScheduledSCRs[blockType][scrIndex] = txHandler
 		}
+
+		numScheduledSCRs += len(scheduledSCRs)
 	}
+
+	log.Debug("scheduledTxsExecution.SetScheduledSCRs", "num of scheduled scrs", numScheduledSCRs)
 }
 
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component

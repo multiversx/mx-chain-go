@@ -111,6 +111,8 @@ type baseBootstrap struct {
 	poolsHolder        dataRetriever.PoolsHolder
 	mutRequestHeaders  sync.Mutex
 	cancelFunc         func()
+
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -438,6 +440,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Indexer) {
 		return process.ErrNilIndexer
 	}
+	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return nil
 }
@@ -692,6 +697,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			log.Debug("save last round in storage",
 				"error", err.Error(),
 				"round", prevHeader.GetRound(),
+			)
+		}
+
+		err = process.SetScheduledSCRs(prevHeaderHash, boot.store, boot.marshalizer, boot.scheduledTxsExecutionHandler)
+		if err != nil {
+			log.Debug("set scheduled scrs",
+				"error", err.Error(),
+				"header hash", prevHeaderHash,
 			)
 		}
 

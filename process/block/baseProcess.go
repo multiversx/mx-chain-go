@@ -32,12 +32,6 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
-// ScheduledSCRs holds information about scheduled SCRs per block type
-type ScheduledSCRs struct {
-	BlockType  block.Type
-	TxHandlers []data.TransactionHandler
-}
-
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
@@ -1414,7 +1408,7 @@ func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]da
 			continue
 		}
 
-		scheduledSCRs := &ScheduledSCRs{
+		scheduledSCRs := &process.ScheduledSCRs{
 			BlockType:  blockType,
 			TxHandlers: make([]data.TransactionHandler, len(scrs)),
 		}

@@ -7,13 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
-	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -179,12 +176,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	st.highestNonce = headerInfo.LastHeader.Nonce
-
-	err = st.setScheduledSCRs(headerInfo.LastHeader.Hash)
+	err = process.SetScheduledSCRs(headerInfo.LastHeader.Hash, st.store, st.marshalizer, st.scheduledTxsExecutionHandler)
 	if err != nil {
 		log.Debug("cannot set scheduled scrs", "error", err.Error())
 	}
+
+	st.highestNonce = headerInfo.LastHeader.Nonce
 
 	return nil
 }
@@ -468,46 +465,6 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	if check.IfNil(args.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
-
-	return nil
-}
-
-func (st *storageBootstrapper) setScheduledSCRs(headerHash []byte) error {
-	scheduledSCRsStorer := st.store.GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if check.IfNil(scheduledSCRsStorer) {
-		return process.ErrNilStorage
-	}
-
-	marshalizedSCRsBatch, err := scheduledSCRsStorer.Get(headerHash)
-	if err != nil {
-		return err
-	}
-
-	b := &batch.Batch{}
-	err = st.marshalizer.Unmarshal(b, marshalizedSCRsBatch)
-	if err != nil {
-		return err
-	}
-
-	mapScheduledSCRs := make(map[dataBlock.Type][]data.TransactionHandler)
-	for _, marshalizedScheduledSCRs := range b.Data {
-		scheduledSCRs := &block.ScheduledSCRs{}
-		err = st.marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
-		if err != nil {
-			return err
-		}
-
-		if len(scheduledSCRs.TxHandlers) == 0 {
-			continue
-		}
-
-		mapScheduledSCRs[scheduledSCRs.BlockType] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
-		for scrIndex, scr := range scheduledSCRs.TxHandlers {
-			mapScheduledSCRs[scheduledSCRs.BlockType][scrIndex] = scr
-		}
-	}
-
-	st.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 
 	return nil
 }

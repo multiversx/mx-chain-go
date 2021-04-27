@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -21,6 +22,12 @@ import (
 )
 
 var log = logger.GetOrCreate("process")
+
+// ScheduledSCRs holds information about scheduled SCRs per block type
+type ScheduledSCRs struct {
+	BlockType  block.Type
+	TxHandlers []data.TransactionHandler
+}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -691,4 +698,60 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	})
 
 	return storageUpdates
+}
+
+// SetScheduledSCRs sets the scheduled scrs from the given header into the scheduled transactions execution component
+func SetScheduledSCRs(
+	headerHash []byte,
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
+) error {
+	if check.IfNil(storageService) {
+		return ErrNilStorage
+	}
+	if check.IfNil(marshalizer) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(scheduledTxsExecutionHandler) {
+		return ErrNilScheduledTxsExecutionHandler
+	}
+
+	scheduledSCRsStorer := storageService.GetStorer(dataRetriever.ScheduledSCRsUnit)
+	if check.IfNil(scheduledSCRsStorer) {
+		return ErrNilStorage
+	}
+
+	marshalizedSCRsBatch, err := scheduledSCRsStorer.Get(headerHash)
+	if err != nil {
+		return err
+	}
+
+	b := &batch.Batch{}
+	err = marshalizer.Unmarshal(b, marshalizedSCRsBatch)
+	if err != nil {
+		return err
+	}
+
+	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
+	for _, marshalizedScheduledSCRs := range b.Data {
+		scheduledSCRs := &ScheduledSCRs{}
+		err = marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
+		if err != nil {
+			return err
+		}
+
+		if len(scheduledSCRs.TxHandlers) == 0 {
+			continue
+		}
+
+		mapScheduledSCRs[scheduledSCRs.BlockType] = make([]data.TransactionHandler, len(scheduledSCRs.TxHandlers))
+		for scrIndex, scr := range scheduledSCRs.TxHandlers {
+			mapScheduledSCRs[scheduledSCRs.BlockType][scrIndex] = scr
+		}
+	}
+
+	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+
+	return nil
 }
