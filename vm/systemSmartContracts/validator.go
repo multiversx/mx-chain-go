@@ -1875,10 +1875,76 @@ func (v *validatorSC) checkInputArgsForValidatorToDelegation(args *vmcommon.Cont
 	return vmcommon.Ok
 }
 
+func (v *validatorSC) getAndValidateRegistrationData(address []byte) (*ValidatorDataV2, vmcommon.ReturnCode) {
+	oldValidatorData, err := v.getOrCreateRegistrationData(address)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if !bytes.Equal(oldValidatorData.RewardAddress, address) {
+		v.eei.AddReturnMessage("reward address missmatch")
+		return nil, vmcommon.UserError
+	}
+	if len(oldValidatorData.UnstakedInfo) > 0 {
+		v.eei.AddReturnMessage("clean unstaked info before merge")
+		return nil, vmcommon.UserError
+	}
+	if oldValidatorData.TotalSlashed.Cmp(zero) > 0 {
+		v.eei.AddReturnMessage("cannot merge with validator who was slashed")
+		return nil, vmcommon.UserError
+	}
+	if oldValidatorData.TotalUnstaked.Cmp(zero) > 0 {
+		v.eei.AddReturnMessage("cannot merge with validator who has unStaked tokens")
+		return nil, vmcommon.UserError
+	}
+	return oldValidatorData, vmcommon.Ok
+}
+
 func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := v.checkInputArgsForValidatorToDelegation(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+
+	oldAddress := args.Arguments[0]
+	delegationAddr := args.Arguments[1]
+	oldValidatorData, returnCode := v.getAndValidateRegistrationData(oldAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	oldValidatorData.RewardAddress = delegationAddr
+	returnCode = v.changeOwnerAndRewardAddressOnStaking(oldValidatorData)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(v.eei.GetStorage(delegationAddr)) == 0 {
+		v.eei.AddReturnMessage("cannot merge with an empty state")
+		return vmcommon.UserError
+	}
+
+	finalValidatorData, err := v.getOrCreateRegistrationData(delegationAddr)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(finalValidatorData.RewardAddress, delegationAddr) {
+		v.eei.AddReturnMessage("rewards address missmatch")
+		return vmcommon.UserError
+	}
+
+	finalValidatorData.NumRegistered += oldValidatorData.NumRegistered
+	finalValidatorData.BlsPubKeys = append(finalValidatorData.BlsPubKeys, oldValidatorData.BlsPubKeys...)
+	finalValidatorData.TotalStakeValue.Add(finalValidatorData.TotalStakeValue, oldValidatorData.TotalStakeValue)
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	finalValidatorData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(int64(finalValidatorData.NumRegistered)))
+
+	v.eei.SetStorage(oldAddress, nil)
+	err = v.saveRegistrationData(delegationAddr, finalValidatorData)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
@@ -1893,14 +1959,9 @@ func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInpu
 	oldAddress := args.Arguments[0]
 	newAddress := args.Arguments[1]
 
-	validatorData, err := v.getOrCreateRegistrationData(oldAddress)
-	if err != nil {
-		v.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	if len(validatorData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("validator data does not exists")
-		return vmcommon.UserError
+	validatorData, returnCode := v.getAndValidateRegistrationData(oldAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 	if len(v.eei.GetStorage(newAddress)) != 0 {
 		v.eei.AddReturnMessage("there is already a validator data under the new address")
@@ -1914,7 +1975,7 @@ func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInpu
 	}
 
 	v.eei.SetStorage(oldAddress, nil)
-	err = v.saveRegistrationData(newAddress, validatorData)
+	err := v.saveRegistrationData(newAddress, validatorData)
 	if err != nil {
 		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
