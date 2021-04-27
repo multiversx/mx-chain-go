@@ -53,8 +53,10 @@ type validatorSC struct {
 	mutExecution             sync.RWMutex
 	endOfEpochAddress        []byte
 	enableDelegationMgrEpoch uint32
+	enableUnbondTokensV2     uint32
 	delegationMgrSCAddress   []byte
 	flagDelegationMgr        atomic.Flag
+	flagUnbondTokensV2       atomic.Flag
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -155,6 +157,7 @@ func NewValidatorSmartContract(
 		minDeposit:               minDeposit,
 		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
 		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
+		enableUnbondTokensV2:     args.StakingSCConfig.UnbondTokensV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -1696,6 +1699,18 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	registrationData *ValidatorDataV2,
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
+	isV1Active := !v.flagUnbondTokensV2.IsSet()
+	if isV1Active {
+		return v.unBondTokensFromRegistrationDataV1(registrationData, valueToUnBond)
+	}
+
+	return v.unBondTokensFromRegistrationDataV2(registrationData, valueToUnBond)
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV1(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
 	var unstakedValue *UnstakedValue
 	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	totalUnBond := big.NewInt(0)
@@ -1726,6 +1741,58 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	}
 
 	registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
+	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
+	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
+		v.eei.AddReturnMessage("too much requested to unBond")
+		return nil, vmcommon.UserError
+	}
+
+	return totalUnBond, vmcommon.Ok
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV2(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
+	totalUnBond := big.NewInt(0)
+	remainingValueToUnbond := big.NewInt(0).Set(valueToUnBond)
+
+	unDelegateAllPossible := valueToUnBond.Cmp(zero) == 0
+	newUnstakedInfo := make([]*UnstakedValue, 0, len(registrationData.UnstakedInfo))
+	stopUnboding := false
+	for _, unstakedValue := range registrationData.UnstakedInfo {
+		canUnbond := currentEpoch-unstakedValue.UnstakedEpoch >= v.unBondPeriodInEpochs
+		if !canUnbond || stopUnboding {
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+			continue
+		}
+
+		if unDelegateAllPossible {
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		positionDoesNotHaveEnoughValues := remainingValueToUnbond.Cmp(unstakedValue.UnstakedValue) > 0
+		if positionDoesNotHaveEnoughValues {
+			//consume all value from unstakeValue item and do not keep it
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			remainingValueToUnbond.Sub(remainingValueToUnbond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		totalUnBond.Add(totalUnBond, remainingValueToUnbond)
+		unstakedValue.UnstakedValue.Sub(unstakedValue.UnstakedValue, remainingValueToUnbond)
+		remainingValueToUnbond.Set(zero)
+		if unstakedValue.UnstakedValue.Cmp(zero) > 0 {
+			//position still containing value, will be kept
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+		}
+
+		stopUnboding = true
+	}
+
+	registrationData.UnstakedInfo = newUnstakedInfo
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("too much requested to unBond")
@@ -1848,6 +1915,9 @@ func (v *validatorSC) EpochConfirmed(epoch uint32) {
 
 	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
 	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
+
+	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2)
+	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
