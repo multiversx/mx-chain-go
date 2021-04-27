@@ -32,31 +32,31 @@ const (
 )
 
 type validatorSC struct {
-	eei                      vm.SystemEI
-	unBondPeriod             uint64
-	unBondPeriodInEpochs     uint32
-	sigVerifier              vm.MessageSignVerifier
-	baseConfig               ValidatorConfig
-	stakingV2Epoch           uint32
-	stakingSCAddress         []byte
-	validatorSCAddress       []byte
-	walletAddressLen         int
-	enableStakingEpoch       uint32
-	enableDoubleKeyEpoch     uint32
-	gasCost                  vm.GasCost
-	marshalizer              marshal.Marshalizer
-	flagEnableStaking        atomic.Flag
-	flagEnableTopUp          atomic.Flag
-	flagDoubleKey            atomic.Flag
-	minUnstakeTokensValue    *big.Int
-	minDeposit               *big.Int
-	mutExecution             sync.RWMutex
-	endOfEpochAddress        []byte
-	enableDelegationMgrEpoch uint32
-	enableUnbondTokensV2     uint32
-	delegationMgrSCAddress   []byte
-	flagDelegationMgr        atomic.Flag
-	flagUnbondTokensV2       atomic.Flag
+	eei                       vm.SystemEI
+	unBondPeriod              uint64
+	unBondPeriodInEpochs      uint32
+	sigVerifier               vm.MessageSignVerifier
+	baseConfig                ValidatorConfig
+	stakingV2Epoch            uint32
+	stakingSCAddress          []byte
+	validatorSCAddress        []byte
+	walletAddressLen          int
+	enableStakingEpoch        uint32
+	enableDoubleKeyEpoch      uint32
+	gasCost                   vm.GasCost
+	marshalizer               marshal.Marshalizer
+	flagEnableStaking         atomic.Flag
+	flagEnableTopUp           atomic.Flag
+	flagDoubleKey             atomic.Flag
+	minUnstakeTokensValue     *big.Int
+	minDeposit                *big.Int
+	mutExecution              sync.RWMutex
+	endOfEpochAddress         []byte
+	enableDelegationMgrEpoch  uint32
+	enableUnbondTokensV2Epoch uint32
+	delegationMgrSCAddress    []byte
+	flagDelegationMgr         atomic.Flag
+	flagUnbondTokensV2        atomic.Flag
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -139,25 +139,25 @@ func NewValidatorSmartContract(
 	}
 
 	reg := &validatorSC{
-		eei:                      args.Eei,
-		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
-		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
-		sigVerifier:              args.SigVerifier,
-		baseConfig:               baseConfig,
-		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:         args.StakingSCAddress,
-		validatorSCAddress:       args.ValidatorSCAddress,
-		gasCost:                  args.GasCost,
-		marshalizer:              args.Marshalizer,
-		minUnstakeTokensValue:    minUnstakeTokensValue,
-		walletAddressLen:         len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:     args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
-		endOfEpochAddress:        args.EndOfEpochAddress,
-		minDeposit:               minDeposit,
-		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
-		enableUnbondTokensV2:     args.StakingSCConfig.UnbondTokensV2EnableEpoch,
+		eei:                       args.Eei,
+		unBondPeriod:              args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:      args.StakingSCConfig.UnBondPeriodInEpochs,
+		sigVerifier:               args.SigVerifier,
+		baseConfig:                baseConfig,
+		stakingV2Epoch:            args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:        args.StakingSCConfig.StakeEnableEpoch,
+		stakingSCAddress:          args.StakingSCAddress,
+		validatorSCAddress:        args.ValidatorSCAddress,
+		gasCost:                   args.GasCost,
+		marshalizer:               args.Marshalizer,
+		minUnstakeTokensValue:     minUnstakeTokensValue,
+		walletAddressLen:          len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:      args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:         args.EndOfEpochAddress,
+		minDeposit:                minDeposit,
+		enableDelegationMgrEpoch:  args.DelegationMgrEnableEpoch,
+		delegationMgrSCAddress:    args.DelegationMgrSCAddress,
+		enableUnbondTokensV2Epoch: args.StakingSCConfig.UnbondTokensV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -1916,7 +1916,7 @@ func (v *validatorSC) EpochConfirmed(epoch uint32) {
 	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
 	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
 
-	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2)
+	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2Epoch)
 	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 }
 

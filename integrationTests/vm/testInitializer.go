@@ -71,7 +71,7 @@ type ArgEnableEpoch struct {
 	DeployEnableEpoch              uint32
 	MetaProtectionEnableEpoch      uint32
 	RelayedTxEnableEpoch           uint32
-	UnbondTokensV2                 uint32
+	UnbondTokensV2EnableEpoch      uint32
 }
 
 // VMTestContext -
@@ -543,7 +543,7 @@ func createSystemSCConfig(arg ArgEnableEpoch) *config.SystemSmartContractsConfig
 			StakeEnableEpoch:                     0,
 			DoubleKeyProtectionEnableEpoch:       0,
 			ActivateBLSPubKeyMessageVerification: false,
-			UnbondTokensV2EnableEpoch:            arg.UnbondTokensV2,
+			UnbondTokensV2EnableEpoch:            arg.UnbondTokensV2EnableEpoch,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",

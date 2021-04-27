@@ -131,12 +131,12 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
 	argUnbondTokensV1 := vm.ArgEnableEpoch{
-		UnbondTokensV2: 20000,
+		UnbondTokensV2EnableEpoch: 20000,
 	}
 	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
 
 	argUnbondTokensV2 := vm.ArgEnableEpoch{
-		UnbondTokensV2: 0,
+		UnbondTokensV2EnableEpoch: 0,
 	}
 	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
 }
