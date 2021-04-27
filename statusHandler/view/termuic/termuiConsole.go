@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
@@ -29,17 +28,13 @@ type TermuiConsole struct {
 	consoleRender             TermuiRender
 	grid                      *termuiRenders.DrawableContainer
 	mutRefresh                *sync.RWMutex
-	chanNodeStop              chan endProcess.ArgEndProcess
 	refreshTimeInMilliseconds int
 }
 
 // NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole(presenter view.Presenter, chanNodeStop chan endProcess.ArgEndProcess, refreshTimeInMilliseconds int) (*TermuiConsole, error) {
+func NewTermuiConsole(presenter view.Presenter, refreshTimeInMilliseconds int) (*TermuiConsole, error) {
 	if check.IfNil(presenter) {
 		return nil, statusHandler.ErrNilPresenterInterface
-	}
-	if chanNodeStop == nil {
-		return nil, statusHandler.ErrNilNodeStopChannel
 	}
 	if refreshTimeInMilliseconds < 1 {
 		return nil, statusHandler.ErrInvalidRefreshTimeInMilliseconds
@@ -48,7 +43,6 @@ func NewTermuiConsole(presenter view.Presenter, chanNodeStop chan endProcess.Arg
 	tc := TermuiConsole{
 		presenter:                 presenter,
 		mutRefresh:                &sync.RWMutex{},
-		chanNodeStop:              chanNodeStop,
 		refreshTimeInMilliseconds: refreshTimeInMilliseconds,
 	}
 
@@ -107,10 +101,6 @@ func (tc *TermuiConsole) eventLoop() {
 			return
 		case e := <-uiEvents:
 			tc.processUiEvents(e, tc.refreshTimeInMilliseconds)
-		case sig := <-tc.chanNodeStop:
-			log.Debug("closing termui console", "reason", sig.Reason, "description", sig.Description)
-			ui.Clear()
-			return
 		}
 	}
 }

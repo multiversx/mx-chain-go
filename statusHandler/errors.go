@@ -11,9 +11,6 @@ var ErrNilHandlerInSlice = errors.New("nil AppStatusHandler")
 // ErrNilPresenterInterface will be returned when a nil PresenterInterface is passed as parameter
 var ErrNilPresenterInterface = errors.New("nil presenter interface")
 
-// ErrNilNodeStopChannel signals that a nil node stop channel has been provided
-var ErrNilNodeStopChannel = errors.New("nil node stop channel")
-
 // ErrNilGrid will be returned when a nil grid is returned
 var ErrNilGrid = errors.New("nil grid")
 

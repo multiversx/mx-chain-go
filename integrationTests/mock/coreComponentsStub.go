@@ -44,7 +44,6 @@ type CoreComponentsStub struct {
 	EpochNotifierField                 process.EpochNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
-	ChanStopStatusHandlers             chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 }
@@ -215,15 +214,6 @@ func (ccs *CoreComponentsStub) EncodedAddressLen() uint32 {
 // ChanStopNodeProcess -
 func (ccs *CoreComponentsStub) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccs.ChanStopNodeProcessField
-}
-
-// ChanStopStatusHandler -
-func (ccs *CoreComponentsStub) ChanStopStatusHandler() chan endProcess.ArgEndProcess {
-	if ccs.ChanStopStatusHandlers == nil {
-		return make(chan endProcess.ArgEndProcess)
-	}
-
-	return ccs.ChanStopStatusHandlers
 }
 
 // IsInterfaceNil -

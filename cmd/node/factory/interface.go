@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -61,9 +60,5 @@ type StatusHandlersUtils interface {
 
 // StatusHandlerUtilsFactory is the factory for statusHandler utils
 type StatusHandlerUtilsFactory interface {
-	Create(
-		marshalizer marshal.Marshalizer,
-		converter typeConverters.Uint64ByteSliceConverter,
-		chanNodeStop chan endProcess.ArgEndProcess,
-	) (StatusHandlersUtils, error)
+	Create(marshalizer marshal.Marshalizer, converter typeConverters.Uint64ByteSliceConverter) (StatusHandlersUtils, error)
 }

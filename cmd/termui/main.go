@@ -113,7 +113,7 @@ func startTermuiViewer(ctx *cli.Context) error {
 		return err
 	}
 
-	termuiConsole, err := termuic.NewTermuiConsole(presenterStatusHandler, nil, fetchIntervalFlagValue)
+	termuiConsole, err := termuic.NewTermuiConsole(presenterStatusHandler, fetchIntervalFlagValue)
 	if err != nil {
 		return err
 	}

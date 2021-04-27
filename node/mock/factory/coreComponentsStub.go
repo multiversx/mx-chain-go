@@ -43,7 +43,6 @@ type CoreComponentsMock struct {
 	EpochChangeNotifier         process.EpochNotifier
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
 	ChanStopProcess             chan endProcess.ArgEndProcess
-	ChanStopStatusHandlers      chan endProcess.ArgEndProcess
 	Shuffler                    sharding.NodesShuffler
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	StartTime                   time.Time
@@ -215,15 +214,6 @@ func (ccm *CoreComponentsMock) EncodedAddressLen() uint32 {
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
-}
-
-// ChanStopStatusHandler -
-func (ccm *CoreComponentsMock) ChanStopStatusHandler() chan endProcess.ArgEndProcess {
-	if ccm.ChanStopStatusHandlers == nil {
-		return make(chan endProcess.ArgEndProcess)
-	}
-
-	return ccm.ChanStopStatusHandlers
 }
 
 // IsInterfaceNil -

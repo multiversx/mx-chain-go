@@ -370,7 +370,15 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, httpServerWrapper, currentNode, goRoutinesNumberStart)
+		err = waitForSignal(
+			sigs,
+			managedCoreComponents.ChanStopNodeProcess(),
+			healthService,
+			ef,
+			httpServerWrapper,
+			currentNode,
+			goRoutinesNumberStart,
+		)
 		if err != nil {
 			break
 		}
@@ -1078,12 +1086,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
-
-	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-		UseTermUI: !nr.configs.FlagsConfig.UseLogView,
-	}
-
-	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
+	statusHandlersFactory, err := factory.NewStatusHandlersFactory()
 	if err != nil {
 		return nil, err
 	}

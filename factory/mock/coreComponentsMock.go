@@ -49,7 +49,6 @@ type CoreComponentsMock struct {
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	ChanStopProcess             chan endProcess.ArgEndProcess
-	ChanStopStatusHandlers      chan endProcess.ArgEndProcess
 	StartTime                   time.Time
 }
 
@@ -215,15 +214,6 @@ func (ccm *CoreComponentsMock) EpochStartNotifierWithConfirm() factory.EpochStar
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
-}
-
-// ChanStopStatusHandler -
-func (ccm *CoreComponentsMock) ChanStopStatusHandler() chan endProcess.ArgEndProcess {
-	if ccm.ChanStopStatusHandlers == nil {
-		return make(chan endProcess.ArgEndProcess)
-	}
-
-	return ccm.ChanStopStatusHandlers
 }
 
 // IsInterfaceNil -

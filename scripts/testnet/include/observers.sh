@@ -93,10 +93,5 @@ assembleCommand_startObserverNode() {
     nodeCommand="nice -n $NODE_NICENESS $nodeCommand"
   fi
 
-  if [ $NODETERMUI -eq 0 ]
-  then
-    nodeCommand="$nodeCommand -use-log-view"
-  fi
-
   echo $nodeCommand
 }
