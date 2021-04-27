@@ -501,6 +501,18 @@ func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndPr
 	return mcc.coreComponents.chanStopNodeProcess
 }
 
+// ChanStopNodeProcess returns the channel for stop node
+func (mcc *managedCoreComponents) ChanStopStatusHandler() chan endProcess.ArgEndProcess {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chanStopStatusHandler
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

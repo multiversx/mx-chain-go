@@ -103,6 +103,7 @@ type CoreComponentsHolder interface {
 	EpochNotifier() process.EpochNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
+	ChanStopStatusHandler() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32

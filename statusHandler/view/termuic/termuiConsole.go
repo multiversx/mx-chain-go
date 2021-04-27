@@ -61,7 +61,10 @@ func (tc *TermuiConsole) Start(chanStart chan struct{}) error {
 		return statusHandler.ErrNilTermUIStartChannel
 	}
 	go func() {
-		defer ui.Close()
+		defer func() {
+			log.Debug("closing termui ui")
+			ui.Close()
+		}()
 		<-chanStart
 		_ = ui.Init()
 		tc.eventLoop()

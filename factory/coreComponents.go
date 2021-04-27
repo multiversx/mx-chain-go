@@ -91,6 +91,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
+	chanStopStatusHandler         chan endProcess.ArgEndProcess
 	encodedAddressLen             uint32
 }
 
@@ -267,7 +268,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter, ccf.chanStopNodeProcess)
+	chanStopStatusHandler := make(chan endProcess.ArgEndProcess)
+	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter, chanStopStatusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -321,6 +323,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
+		chanStopStatusHandler:         chanStopStatusHandler,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 	}, nil
 }
