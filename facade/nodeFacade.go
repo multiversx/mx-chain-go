@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	chainData "github.com/ElrondNetwork/elrond-go/data"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -59,6 +60,7 @@ type ArgNodeFacade struct {
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
 	PeerState              state.AccountsAdapter
+	Blockchain             chainData.ChainHandler
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -75,6 +77,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	blockchain             chainData.ChainHandler
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -108,6 +111,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.PeerState) {
 		return nil, ErrNilPeerState
 	}
+	if check.IfNil(arg.Blockchain) {
+		return nil, ErrNilBlockchain
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -122,6 +128,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
+		blockchain:             arg.Blockchain,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -383,6 +390,72 @@ func (nf *nodeFacade) Close() error {
 // GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
 func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
+}
+
+// GetProof returns the Merkle proof for the given address and root hash
+func (nf *nodeFacade) GetProof(rootHash string, address string) ([][]byte, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return trie.GetProof(addressBytes)
+}
+
+// GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil, nil, ErrNilBlockHeader
+	}
+
+	rootHash := currentBlockHeader.GetRootHash()
+	trie, err := nf.accountsState.GetTrie(rootHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	proof, err := trie.GetProof(addressBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return proof, rootHash, nil
+}
+
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return false, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return false, err
+	}
+
+	return trie.VerifyProof(addressBytes, proof)
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
