@@ -4380,15 +4380,14 @@ func TestStakingValidatorSC_checkInputArgsForValidatorToDelegationErrors(t *test
 	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address for the first and second argument")
 
 	eei.returnMessage = ""
-	randomAddress := vm.ESDTSCAddress
-	randomAddress[0] = 1
+	randomAddress := bytes.Repeat([]byte{1}, len(arguments.CallerAddr))
 	arguments.Arguments = [][]byte{randomAddress, randomAddress}
 	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "destination address must be a delegation smart contract")
 
 	eei.returnMessage = ""
-	randomAddress[0] = 0
+	randomAddress = bytes.Repeat([]byte{0}, len(arguments.CallerAddr))
 	arguments.Arguments = [][]byte{randomAddress, randomAddress}
 	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4489,8 +4488,7 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 
 	arguments.CallValue.SetUint64(0)
 	arguments.CallerAddr = sc.delegationMgrSCAddress
-	randomAddress := vm.ESDTSCAddress
-	randomAddress[0] = 1
+	randomAddress := bytes.Repeat([]byte{1}, len(arguments.CallerAddr))
 	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
 
 	eei.returnMessage = ""
@@ -4572,8 +4570,7 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 
 	arguments.CallValue.SetUint64(0)
 	arguments.CallerAddr = sc.delegationMgrSCAddress
-	randomAddress := vm.ESDTSCAddress
-	randomAddress[0] = 1
+	randomAddress := bytes.Repeat([]byte{1}, len(arguments.CallerAddr))
 	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
 
 	eei.returnMessage = ""

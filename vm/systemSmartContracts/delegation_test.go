@@ -4465,8 +4465,7 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
 	vmInput.CallValue.SetUint64(0)
-	oldAddress := vm.ESDTSCAddress
-	oldAddress[0] = 1
+	oldAddress := bytes.Repeat([]byte{1}, len(vmInput.CallerAddr))
 	vmInput.Arguments = [][]byte{oldAddress}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4599,8 +4598,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
 	vmInput.CallValue.SetUint64(0)
-	oldAddress := vm.ESDTSCAddress
-	oldAddress[0] = 1
+	oldAddress := bytes.Repeat([]byte{1}, len(vmInput.CallerAddr))
 	vmInput.Arguments = [][]byte{oldAddress, oldAddress}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
