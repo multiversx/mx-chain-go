@@ -1191,18 +1191,24 @@ func (tpn *TestProcessorNode) initResolvers() {
 	_ = tpn.Messenger.CreateTopic(core.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           tpn.ShardCoordinator,
-		Messenger:                  tpn.Messenger,
-		Store:                      tpn.Storage,
-		Marshalizer:                TestMarshalizer,
-		DataPools:                  tpn.DataPool,
-		Uint64ByteSliceConverter:   TestUint64Converter,
-		DataPacker:                 dataPacker,
-		TriesContainer:             tpn.TrieContainer,
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            tpn.ShardCoordinator,
+		Messenger:                   tpn.Messenger,
+		Store:                       tpn.Storage,
+		Marshalizer:                 TestMarshalizer,
+		DataPools:                   tpn.DataPool,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		DataPacker:                  dataPacker,
+		TriesContainer:              tpn.TrieContainer,
+		SizeCheckDelta:              100,
+		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 	}
 
 	var err error
@@ -1350,6 +1356,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
@@ -1575,6 +1582,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)

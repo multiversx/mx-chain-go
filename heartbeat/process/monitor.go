@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -266,7 +266,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
-
 		reason := "blacklisted due to invalid heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
@@ -331,6 +330,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		peerType,
 		hb.Nonce,
 		numInstances,
+		hb.PeerSubType,
+		core.PeerID(hb.Pid).Pretty(),
 	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
@@ -472,6 +473,8 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			PeerType:        v.peerType,
 			Nonce:           v.nonce,
 			NumInstances:    v.numInstances,
+			PeerSubType:     v.peerSubType,
+			PidString:       v.pidString,
 		}
 		v.updateMutex.RUnlock()
 		status = append(status, tmp)
@@ -524,6 +527,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		PeerType:        v.peerType,
 		Nonce:           v.nonce,
 		NumInstances:    v.numInstances,
+		PeerSubType:     v.peerSubType,
+		PidString:       v.pidString,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -548,6 +553,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		peerType:                    hbDTO.PeerType,
 		nonce:                       hbDTO.Nonce,
 		numInstances:                hbDTO.NumInstances,
+		peerSubType:                 hbDTO.PeerSubType,
+		pidString:                   hbDTO.PidString,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)

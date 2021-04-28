@@ -35,7 +35,7 @@ func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnReg
 
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			if matchStrToErrOnRegister == "" {
 				return nil
 			}
@@ -470,7 +470,7 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 	}
@@ -506,7 +506,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 	}

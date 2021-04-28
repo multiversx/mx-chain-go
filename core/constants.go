@@ -270,6 +270,9 @@ const MetricNumValidators = "erd_num_validators"
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
 const MetricPeerType = "erd_peer_type"
 
+// MetricPeerSubType is the metric which tells the peer's subtype (regular observer or full history observer)
+const MetricPeerSubType = "erd_peer_subtype"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
@@ -506,6 +509,9 @@ const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
 // MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
 const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
 
+// MetricP2PFullHistoryObservers is the metric that outputs the full-history connected observers
+const MetricP2PFullHistoryObservers = "erd_p2p_full_history_observers"
+
 // MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
 const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
@@ -623,6 +629,9 @@ const MaxRoyalty = uint32(10000)
 
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
+
+// RelayedTransactionV2 is the key for the optimized elrond meta/gassless/relayed transaction standard
+const RelayedTransactionV2 = "relayedTxV2"
 
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
@@ -754,3 +763,20 @@ const MinLenArgumentsESDTNFTTransfer = 4
 
 // MaxLenForESDTIssueMint defines the maximum length in bytes for the issued/minted balance
 const MaxLenForESDTIssueMint = 100
+
+// DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
+//(that makes the node run properly)
+const DefaultResolversIdentifier = "default resolver"
+
+// DefaultInterceptorsIdentifier represents the identifier that is used in conjunction with regular interceptors
+//(that makes the node run properly)
+const DefaultInterceptorsIdentifier = "default interceptor"
+
+// HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
+const HardforkInterceptorsIdentifier = "hardfork interceptor"
+
+// HardforkResolversIdentifier represents the resolver that is used in the hardfork process
+const HardforkResolversIdentifier = "hardfork resolver"
+
+// EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
+const EpochStartInterceptorsIdentifier = "epoch start interceptor"

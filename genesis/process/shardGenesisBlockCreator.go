@@ -54,6 +54,7 @@ func createGenesisConfig() config.EnableEpochs {
 		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
 		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
+		RelayedTransactionsV2EnableEpoch:       unreachableEpoch,
 	}
 }
 
@@ -353,19 +354,25 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	temporaryBlock := &dataBlock.Header{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryBlock)
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:       arg.ShardCoordinator,
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          epochNotifier,
+		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
 
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, enableEpochs.SCDeployEnableEpoch)
 	if err != nil {
@@ -433,6 +440,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		RelayedTxEnableEpoch:           enableEpochs.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
 		MetaProtectionEnableEpoch:      enableEpochs.MetaProtectionEnableEpoch,
+		RelayedTxV2EnableEpoch:         enableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

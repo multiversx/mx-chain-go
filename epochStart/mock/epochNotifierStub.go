@@ -3,13 +3,14 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
 	NewEpochCalled              func(epoch uint32)
-	CheckEpochCalled            func(epoch uint32)
+	CheckEpochCalled            func(header data.HeaderHandler)
 	CurrentEpochCalled          func() uint32
 	RegisterNotifyHandlerCalled func(handler core.EpochSubscriberHandler)
 	RegisterHandlerCalled       func(handler epochStart.ActionHandler)
@@ -30,9 +31,9 @@ func (ens *EpochNotifierStub) NewEpoch(epoch uint32) {
 }
 
 // CheckEpoch -
-func (ens *EpochNotifierStub) CheckEpoch(epoch uint32) {
+func (ens *EpochNotifierStub) CheckEpoch(header data.HeaderHandler) {
 	if ens.CheckEpochCalled != nil {
-		ens.CheckEpochCalled(epoch)
+		ens.CheckEpochCalled(header)
 	}
 }
 
@@ -42,7 +43,7 @@ func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochSubscriber
 		ens.RegisterNotifyHandlerCalled(handler)
 	} else {
 		if !check.IfNil(handler) {
-			handler.EpochConfirmed(0)
+			handler.EpochConfirmed(0, 0)
 		}
 	}
 }

@@ -562,8 +562,8 @@ func (v *validatorSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument 
 			continue
 		}
 
-		data := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
-		if len(data) > 0 {
+		buff := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
+		if len(buff) > 0 {
 			return nil, vm.ErrKeyAlreadyRegistered
 		}
 	}
@@ -1840,7 +1840,7 @@ func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (v *validatorSC) EpochConfirmed(epoch uint32) {
+func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
 	v.flagEnableStaking.Toggle(epoch >= v.enableStakingEpoch)
 	log.Debug("validatorSC: stake/unstake/unbond", "enabled", v.flagEnableStaking.IsSet())
 

@@ -313,3 +313,6 @@ var ErrResetLastUnJailedFromQueue = errors.New("reset last unjailed from queue f
 
 // ErrEmptyESDTOwnerAddress signals that an empty ESDT owner address was provided
 var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")

@@ -531,11 +531,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		}
 	}
 
-	if ccf.networkComponents.NetworkMessenger().HasTopicValidator(cc.consensusTopic) {
-		return errors.ErrValidatorAlreadySet
-	}
-
-	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, cc.worker)
+	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, core.DefaultInterceptorsIdentifier, cc.worker)
 }
 
 func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {

@@ -145,7 +145,7 @@ func (itdf *interceptedTxDataFactory) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (itdf *interceptedTxDataFactory) EpochConfirmed(epoch uint32) {
+func (itdf *interceptedTxDataFactory) EpochConfirmed(epoch uint32, _ uint64) {
 	itdf.flagEnableSignedTxWithHash.Toggle(epoch >= itdf.enableSignedTxWithHashEpoch)
 	log.Debug("interceptors: transaction signed with hash", "enabled", itdf.flagEnableSignedTxWithHash.IsSet())
 }

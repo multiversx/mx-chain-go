@@ -77,6 +77,9 @@
     # CorrectLastUnjailedEpoch represents the epoch when the fix regaring the last unjailed node should apply
     CorrectLastUnjailedEpoch = 2
 
+    # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
+    RelayedTransactionsV2EnableEpoch = 3
+
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

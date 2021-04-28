@@ -881,6 +881,12 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
 
+// ErrRelayedTxV2Disabled signals that the v2 version of relayed tx is disabled
+var ErrRelayedTxV2Disabled = errors.New("relayed tx v2 is disabled")
+
+// ErrRelayedTxV2ZeroVal signals that the v2 version of relayed tx should be created with 0 as value
+var ErrRelayedTxV2ZeroVal = errors.New("relayed tx v2 value should be 0")
+
 // ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
 var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 
@@ -991,3 +997,12 @@ var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost 
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
+
+// ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
+var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
+
+// ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
+var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
