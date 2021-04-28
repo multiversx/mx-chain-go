@@ -354,6 +354,32 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	assert.False(t, r)
 }
 
+func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundEndRoundWithContainer(container)
+	sr.SetSelfPubKey("A")
+
+	remainingTime := time.Millisecond
+	roundHandlerMock := &mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return remainingTime
+		},
+	}
+
+	container.SetRounder(roundHandlerMock)
+	sr.Header = &block.Header{}
+
+	r := sr.DoEndRoundJob()
+	assert.True(t, r)
+
+	remainingTime = -time.Millisecond
+
+	r = sr.DoEndRoundJob()
+	assert.False(t, r)
+}
+
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 
