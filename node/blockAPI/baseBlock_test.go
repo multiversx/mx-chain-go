@@ -22,21 +22,23 @@ func createMockArgumentsWithTx(
 	txBytes []byte,
 	marshalizer *mock.MarshalizerFake,
 ) baseAPIBockProcessor {
+	storerMock := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+					return map[string][]byte{txHash: txBytes}, nil
+				},
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					return miniblockBytes, nil
+				},
+			}
+		},
+	}
+	statusComputer, _ := transaction.NewStatusComputer(srcShardID, mock.NewNonceHashConverterMock(), storerMock)
 	return baseAPIBockProcessor{
 		selfShardID: srcShardID,
 		marshalizer: marshalizer,
-		store: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
-						return map[string][]byte{txHash: txBytes}, nil
-					},
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-						return miniblockBytes, nil
-					},
-				}
-			},
-		},
+		store:       storerMock,
 		historyRepo: &testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -57,6 +59,7 @@ func createMockArgumentsWithTx(
 				Data:             []byte{},
 			}, nil
 		},
+		txStatusComputer: statusComputer,
 	}
 }
 

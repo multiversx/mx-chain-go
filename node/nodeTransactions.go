@@ -78,26 +78,21 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
+	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
 
-	if ok := (&transaction.StatusComputer{
-		SelfShard:                n.processComponents.ShardCoordinator().SelfId(),
-		Store:                    n.dataComponents.StorageService(),
-		Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
-		MiniblockType:            block.Type(miniblockMetadata.Type),
-		HeaderHash:               miniblockMetadata.HeaderHash,
-		HeaderNonce:              miniblockMetadata.HeaderNonce,
-	}).SetStatusIfIsRewardReverted(tx); ok {
+	if ok, _ := statusComputer.SetStatusIfIsRewardReverted(
+		tx,
+		block.Type(miniblockMetadata.Type),
+		miniblockMetadata.HeaderNonce,
+		miniblockMetadata.HeaderHash); ok {
 		return tx, nil
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:        block.Type(miniblockMetadata.Type),
-		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
-		DestinationShard:     tx.DestinationShard,
-		Receiver:             tx.Tx.GetRcvAddr(),
-		TransactionData:      tx.Data,
-		SelfShard:            n.processComponents.ShardCoordinator().SelfId(),
-	}).ComputeStatusWhenInStorageKnowingMiniblock()
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageKnowingMiniblock(
+		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
 		n.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
@@ -136,14 +131,13 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 		return nil, err
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		// TODO: take care of this when integrating the adaptivity
-		SourceShard:      n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()),
-		Receiver:         tx.Tx.GetRcvAddr(),
-		TransactionData:  tx.Data,
-		SelfShard:        n.processComponents.ShardCoordinator().SelfId(),
-	}).ComputeStatusWhenInStorageNotKnowingMiniblock()
+	// TODO: take care of this when integrating the adaptivity
+	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
+	tx.Status, _ = statusComputer.ComputeStatusWhenInStorageNotKnowingMiniblock(
+		n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()), tx)
 
 	return tx, nil
 }
