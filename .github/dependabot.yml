@@ -1,0 +1,65 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  target-branch: development
+  ignore:
+  - dependency-name: github.com/ElrondNetwork/arwen-wasm-vm
+    versions:
+    - 1.1.2
+    - 1.2.0
+    - 1.2.2
+    - 1.2.3
+    - 1.2.4
+    - 1.2.5
+    - 1.2.7
+    - 1.2.8
+  - dependency-name: github.com/golang/protobuf
+    versions:
+    - 1.4.3
+    - 1.5.1
+  - dependency-name: github.com/ElrondNetwork/elastic-indexer-go
+    versions:
+    - 1.0.3
+  - dependency-name: github.com/google/gops
+    versions:
+    - 0.3.14
+    - 0.3.15
+    - 0.3.16
+    - 0.3.17
+  - dependency-name: github.com/libp2p/go-libp2p-secio
+    versions:
+    - 0.2.3
+  - dependency-name: github.com/libp2p/go-libp2p-core
+    versions:
+    - 0.8.0
+    - 0.8.2
+    - 0.8.4
+  - dependency-name: github.com/elastic/go-elasticsearch/v7
+    versions:
+    - 7.10.0
+    - 7.11.0
+  - dependency-name: github.com/multiformats/go-multiaddr
+    versions:
+    - 0.3.1
+  - dependency-name: github.com/pelletier/go-toml
+    versions:
+    - 1.8.1
+  - dependency-name: github.com/libp2p/go-libp2p-kad-dht
+    versions:
+    - 0.11.1
+  - dependency-name: github.com/libp2p/go-libp2p
+    versions:
+    - 0.13.0
+  - dependency-name: github.com/stretchr/testify
+    versions:
+    - 1.7.0
+  - dependency-name: github.com/libp2p/go-libp2p-pubsub
+    versions:
+    - 0.4.1
+  - dependency-name: github.com/libp2p/go-libp2p-kbucket
+    versions:
+    - 0.4.7
