@@ -143,7 +143,7 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	numScheduledSCRs := 0
 	ste.mapScheduledSCRs = make(map[block.Type][]data.TransactionHandler)
 	for blockType, allIntermediateTxsAfterScheduledExecution := range mapAllIntermediateTxsAfterScheduledExecution {
-		scrsInfo := getSCRsInfo(
+		scrsInfo := getAllIntermediateTxsAfterScheduledExecution(
 			mapAllIntermediateTxsBeforeScheduledExecution,
 			allIntermediateTxsAfterScheduledExecution,
 			blockType,
@@ -167,7 +167,7 @@ func (ste *scheduledTxsExecution) computeScheduledSCRs(
 	log.Debug("scheduledTxsExecution.computeScheduledSCRs", "num of scheduled scrs created", numScheduledSCRs)
 }
 
-func getSCRsInfo(
+func getAllIntermediateTxsAfterScheduledExecution(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	allIntermediateTxsAfterScheduledExecution map[string]data.TransactionHandler,
 	blockType block.Type,
@@ -191,7 +191,7 @@ func getSCRsInfo(
 	return scrsInfo
 }
 
-// GetScheduledSCRs returns all the scheduled SCRs
+// GetScheduledSCRs gets all the scheduled SCRs
 func (ste *scheduledTxsExecution) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()

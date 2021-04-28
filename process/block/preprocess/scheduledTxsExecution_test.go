@@ -271,4 +271,4 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 	assert.Equal(t, response, err)
 }
 
-//TODO: Add unit tests for computeScheduledSCRs, getSCRsInfo, GetScheduledSCRs and SetScheduledSCRs methods
+//TODO: Add unit tests for computeScheduledSCRs, getAllIntermediateTxsAfterScheduledExecution, GetScheduledSCRs and SetScheduledSCRs methods
