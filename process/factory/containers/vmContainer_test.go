@@ -228,3 +228,83 @@ func TestVirtualMachinesContainer_LenShouldWork(t *testing.T) {
 	assert.Equal(t, 1, len(keys))
 	assert.Equal(t, []byte("0001"), keys[0])
 }
+
+func TestVirtualMachinesContainer_Close(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewVirtualMachinesContainer()
+
+	closeCalledItem1 := false
+	item1 := struct {
+		*mock.CloserStub
+		vmcommon.VMExecutionHandler
+	}{
+		CloserStub: &mock.CloserStub{
+			CloseCalled: func() error {
+				closeCalledItem1 = true
+
+				return nil
+			},
+		},
+	}
+
+	closeCalledItem2 := false
+	expectedErr := errors.New("expected Error")
+	item2 := struct {
+		*mock.CloserStub
+		vmcommon.VMExecutionHandler
+	}{
+		CloserStub: &mock.CloserStub{
+			CloseCalled: func() error {
+				closeCalledItem2 = true
+
+				return expectedErr
+			},
+		},
+	}
+
+	cleanCalledItem3 := false
+	item3 := struct {
+		*mock.CleanerStub
+		vmcommon.VMExecutionHandler
+	}{
+		CleanerStub: &mock.CleanerStub{
+			CleanCalled: func() {
+				cleanCalledItem3 = true
+			},
+		},
+	}
+	closeCalledItem4 := false
+	cleanCalledItem4 := false
+	item4 := struct {
+		*mock.CloserStub
+		*mock.CleanerStub
+		vmcommon.VMExecutionHandler
+	}{
+		CleanerStub: &mock.CleanerStub{
+			CleanCalled: func() {
+				cleanCalledItem4 = true
+			},
+		},
+		CloserStub: &mock.CloserStub{
+			CloseCalled: func() error {
+				closeCalledItem4 = true
+
+				return nil
+			},
+		},
+	}
+
+	_ = c.Add([]byte("key1"), item1)
+	_ = c.Add([]byte("key2"), item2)
+	_ = c.Add([]byte("key3"), item3)
+	_ = c.Add([]byte("key4"), item4)
+
+	err := c.Close()
+	assert.Equal(t, containers.ErrCloseVMContainer, err)
+	assert.True(t, closeCalledItem1)
+	assert.True(t, closeCalledItem2)
+	assert.True(t, cleanCalledItem3)
+	assert.True(t, closeCalledItem4)
+	assert.False(t, cleanCalledItem4) //not calling Close and Clean on the same object
+}

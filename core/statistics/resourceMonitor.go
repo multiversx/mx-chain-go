@@ -28,10 +28,10 @@ type ResourceMonitor struct {
 
 // NewResourceMonitor creates a new ResourceMonitor instance
 func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHandler, shardId string) (*ResourceMonitor, error) {
-	if config == nil{
+	if config == nil {
 		return nil, ErrNilConfig
 	}
-	if check.IfNil(pathManager){
+	if check.IfNil(pathManager) {
 		return nil, ErrNilPathHandler
 	}
 
@@ -45,9 +45,6 @@ func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHa
 
 // GenerateStatistics creates a new statistic string
 func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-
 	fileDescriptors := int32(0)
 	numOpenFiles := 0
 	numConns := 0
@@ -83,18 +80,11 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
 	peerTrieSnapshotsDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
 
-	return []interface{}{
-		"timestamp", time.Now().Unix(),
+	stats := []interface{}{
 		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
-		"num go", runtime.NumGoroutine(),
-		"alloc", core.ConvertBytes(memStats.Alloc),
-		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
-		"heap idle", core.ConvertBytes(memStats.HeapIdle),
-		"heap inuse", core.ConvertBytes(memStats.HeapInuse),
-		"heap sys", core.ConvertBytes(memStats.HeapSys),
-		"heap num objs", memStats.HeapObjects,
-		"sys mem", core.ConvertBytes(memStats.Sys),
-		"num GC", memStats.NumGC,
+	}
+	stats = append(stats, GetRuntimeStatistics()...)
+	stats = append(stats, []interface{}{
 		"FDs", fileDescriptors,
 		"num opened files", numOpenFiles,
 		"num conns", numConns,
@@ -104,6 +94,29 @@ func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
 		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
 		"peerTrieSnapshotsDbMem", getDirMemSize(peerTrieSnapshotsDbFilePath),
+	},
+	)
+
+	return stats
+}
+
+// GetRuntimeStatistics will return the statistics regarding the current time, memory consumption and the number of running go routines
+// These return statistics can be easily output in a log line
+func GetRuntimeStatistics() []interface{} {
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	return []interface{}{
+		"timestamp", time.Now().Unix(),
+		"num go", runtime.NumGoroutine(),
+		"alloc", core.ConvertBytes(memStats.Alloc),
+		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
+		"heap idle", core.ConvertBytes(memStats.HeapIdle),
+		"heap inuse", core.ConvertBytes(memStats.HeapInuse),
+		"heap sys", core.ConvertBytes(memStats.HeapSys),
+		"heap num objs", memStats.HeapObjects,
+		"sys mem", core.ConvertBytes(memStats.Sys),
+		"num GC", memStats.NumGC,
 	}
 }
 

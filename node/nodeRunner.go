@@ -28,6 +28,7 @@ import (
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
@@ -1176,6 +1177,10 @@ func closeAllComponents(
 
 	log.Debug("closing node")
 	log.LogIfError(node.Close())
+
+	log.Debug("node statistics before running GC", statistics.GetRuntimeStatistics()...)
+	runtime.GC()
+	log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 
 	chanCloseComponents <- struct{}{}
 }

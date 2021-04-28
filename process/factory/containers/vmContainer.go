@@ -14,6 +14,19 @@ var _ process.VirtualMachinesContainer = (*virtualMachinesContainer)(nil)
 
 var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
 
+type closer interface {
+	Close() error
+}
+
+type cleaner interface {
+	Clean()
+}
+
+type closeResult struct {
+	errorFound bool
+	resolved   bool
+}
+
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
 	objects *container.MutexMap
@@ -115,22 +128,61 @@ func (vmc *virtualMachinesContainer) Close() error {
 	var withError bool
 
 	for _, item := range vmc.objects.Values() {
-		asCloser, ok := item.(interface{ Close() error })
-		if !ok {
+		logVMContainer.Debug("closing vm container item", "item", fmt.Sprintf("%T", item))
+
+		result := vmc.tryClose(item)
+		withError = withError || result.errorFound
+		if result.resolved {
 			continue
 		}
 
-		err := asCloser.Close()
-		if err != nil {
-			logVMContainer.Error("Cannot close item in container", "err", err)
-			withError = true
-		}
+		result = vmc.tryClean(item)
+		withError = withError || result.errorFound
 	}
 
 	if withError {
 		return ErrCloseVMContainer
 	}
+
 	return nil
+}
+
+func (vmc *virtualMachinesContainer) tryClose(item interface{}) closeResult {
+	asCloser, ok := item.(closer)
+	if !ok {
+		return closeResult{
+			resolved: false,
+		}
+	}
+
+	err := asCloser.Close()
+	if err != nil {
+		logVMContainer.Error("cannot close vm container item", "item", fmt.Sprintf("%T", item), "err", err)
+	} else {
+		logVMContainer.Debug("vm container item closed", "item", fmt.Sprintf("%T", item))
+	}
+
+	return closeResult{
+		resolved:   true,
+		errorFound: err != nil,
+	}
+}
+
+func (vmc *virtualMachinesContainer) tryClean(item interface{}) closeResult {
+	asCleaner, ok := item.(cleaner)
+	if !ok {
+		return closeResult{
+			resolved: false,
+		}
+	}
+
+	asCleaner.Clean()
+	logVMContainer.Debug("vm container item cleaned", "item", fmt.Sprintf("%T", item))
+
+	return closeResult{
+		resolved:   true,
+		errorFound: false,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
