@@ -19,6 +19,9 @@ var ErrInvalidValue = errors.New("invalid value provided")
 // ErrNilInputData signals that a nil data has been provided
 var ErrNilInputData = errors.New("nil input data")
 
+// ErrNilUrl signals that the provided url is empty
+var ErrNilUrl = errors.New("url is empty")
+
 // ErrPemFileIsInvalid signals that a pem file is invalid
 var ErrPemFileIsInvalid = errors.New("pem file is invalid")
 
@@ -82,9 +85,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrSuffixNotPresentOrInIncorrectPosition signals that the suffix is not present in the data field or its position is incorrect
 var ErrSuffixNotPresentOrInIncorrectPosition = errors.New("suffix is not present or the position is incorrect")
-
-// ErrNilFeeConfig signals that a nil fee config is provided
-var ErrNilFeeConfig = errors.New("nil fee config")
 
 // ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")

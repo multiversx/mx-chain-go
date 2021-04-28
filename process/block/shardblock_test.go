@@ -1903,10 +1903,10 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	arguments.OutportHandler = &testscommon.OutportStub{
-		SaveBlockCalled: func(args types.ArgsSaveBlocks) {
+	statusComponents.Outport = &testscommon.OutportStub{
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			saveBlockCalledMutex.Lock()
-			saveBlockCalled = args.TxsFromPool
+			txsPool = args.TransactionsPool
 			saveBlockCalledMutex.Unlock()
 		},
 		HasDriversCalled: func() bool {

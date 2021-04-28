@@ -387,7 +387,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:       pcf.epochNotifier,
 		VMContainersFactory: vmFactory,
 		VmContainer:         vmContainer,
-		OutportHandler:      pcf.outportHandler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -782,7 +781,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:       pcf.epochNotifier,
 		VMContainersFactory: vmFactory,
 		VmContainer:         vmContainer,
-		OutportHandler:      pcf.outportHandler,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

@@ -41,7 +41,7 @@ type bootstrapComponentsHolder interface {
 }
 
 type statusComponentsHolder interface {
-	ElasticIndexer() process.Indexer
+	OutportHandler() outport.OutportHandler
 	TpsBenchmark() statistics.TPSBenchmark
 	IsInterfaceNil() bool
 }
@@ -72,8 +72,6 @@ type ArgBaseProcessor struct {
 	EpochNotifier       process.EpochNotifier
 	VMContainersFactory process.VirtualMachinesContainerFactory
 	VmContainer         process.VirtualMachinesContainer
-
-	OutportHandler          outport.OutportHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

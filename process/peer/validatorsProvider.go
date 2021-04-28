@@ -151,7 +151,7 @@ func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartAction
 			}()
 		},
 		func(_ data.HeaderHandler) {},
-		core.OutportOrder,
+		core.IndexerOrder,
 	)
 
 	return subscribeHandler

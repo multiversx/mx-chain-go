@@ -189,7 +189,6 @@ func getProcessArgs(
 		},
 		Version:     "v1.0.0",
 		HistoryRepo: &testscommon.HistoryRepositoryStub{},
-		OutportHandler:          &testscommon.OutportStub{},
 	}
 }
 

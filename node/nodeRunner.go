@@ -255,7 +255,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedStateComponents,
 			nodesCoordinator,
-			configurationPaths.ElasticSearchTemplatesPath,
 			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
@@ -735,22 +734,20 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedStateComponents mainFactory.StateComponentsHandler,
 	nodesCoordinator sharding.NodesCoordinator,
-	elasticTemplatePath string,
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		ExternalConfig:       *nr.configs.ExternalConfig,
-		EconomicsConfig:      *nr.configs.EconomicsConfig,
-		ShardCoordinator:     managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:     nodesCoordinator,
-		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:       managedCoreComponents,
-		DataComponents:       managedDataComponents,
-		NetworkComponents:    managedNetworkComponents,
-		StateComponents:      managedStateComponents,
-		ElasticTemplatesPath: elasticTemplatePath,
-		IsInImportMode:       isInImportMode,
+		Config:             *nr.configs.GeneralConfig,
+		ExternalConfig:     *nr.configs.ExternalConfig,
+		EconomicsConfig:    *nr.configs.EconomicsConfig,
+		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:   nodesCoordinator,
+		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:     managedCoreComponents,
+		DataComponents:     managedDataComponents,
+		NetworkComponents:  managedNetworkComponents,
+		StateComponents:    managedStateComponents,
+		IsInImportMode:     isInImportMode,
 	}
 
 	statusComponentsFactory, err := mainFactory.NewStatusComponentsFactory(statArgs)
@@ -904,7 +901,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		WorkingDir:             configs.FlagsConfig.WorkingDir,
 		HistoryRepo:            historyRepository,
-		OutportHandler:         managedStatusComponents.OutportHandler(),
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {

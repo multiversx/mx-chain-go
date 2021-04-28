@@ -11,7 +11,7 @@ const numMillisecondsInASecond = 1000
 
 type tpsBenchmarkUpdater struct {
 	tpsBenchmark   statistics.TPSBenchmark
-	elasticIndexer StorageDataIndexer
+	storageIndexer StorageDataIndexer
 }
 
 // NewTPSBenchmarkUpdater returns a new instance of tpsBenchmarkUpdater
@@ -36,14 +36,14 @@ func NewTPSBenchmarkUpdater(
 
 	return &tpsBenchmarkUpdater{
 		tpsBenchmark:   tpsBenchmark,
-		elasticIndexer: tpsIndexer,
+		storageIndexer: tpsIndexer,
 	}, nil
 }
 
 // IndexTPSForMetaBlock will call the indexer's tps for a metablock
 func (tbp *tpsBenchmarkUpdater) IndexTPSForMetaBlock(metaBlock *block.MetaBlock) {
 	tbp.tpsBenchmark.Update(metaBlock)
-	tbp.outportHandler.UpdateTPS(tbp.tpsBenchmark)
+	tbp.storageIndexer.UpdateTPS(tbp.tpsBenchmark)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

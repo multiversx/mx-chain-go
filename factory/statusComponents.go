@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
-	driversFactory "github.com/ElrondNetwork/elrond-go/outport/drivers/factory"
 	outportDriverFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -33,34 +32,32 @@ type statusComponents struct {
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
 type StatusComponentsFactoryArgs struct {
-	Config               config.Config
-	ExternalConfig       config.ExternalConfig
-	EconomicsConfig      config.EconomicsConfig
-	ShardCoordinator     sharding.Coordinator
-	NodesCoordinator     sharding.NodesCoordinator
-	EpochStartNotifier   EpochStartNotifier
-	CoreComponents       CoreComponentsHolder
-	DataComponents       DataComponentsHolder
-	NetworkComponents    NetworkComponentsHolder
-	StateComponents      StateComponentsHolder
-	IsInImportMode       bool
-	ElasticTemplatesPath string
+	Config             config.Config
+	ExternalConfig     config.ExternalConfig
+	EconomicsConfig    config.EconomicsConfig
+	ShardCoordinator   sharding.Coordinator
+	NodesCoordinator   sharding.NodesCoordinator
+	EpochStartNotifier EpochStartNotifier
+	CoreComponents     CoreComponentsHolder
+	DataComponents     DataComponentsHolder
+	NetworkComponents  NetworkComponentsHolder
+	StateComponents    StateComponentsHolder
+	IsInImportMode     bool
 }
 
 type statusComponentsFactory struct {
-	config               config.Config
-	externalConfig       config.ExternalConfig
-	economicsConfig      config.EconomicsConfig
-	shardCoordinator     sharding.Coordinator
-	nodesCoordinator     sharding.NodesCoordinator
-	epochStartNotifier   EpochStartNotifier
-	forkDetector         process.ForkDetector
-	coreComponents       CoreComponentsHolder
-	dataComponents       DataComponentsHolder
-	networkComponents    NetworkComponentsHolder
-	stateComponents      StateComponentsHolder
-	isInImportMode       bool
-	elasticTemplatesPath string
+	config             config.Config
+	externalConfig     config.ExternalConfig
+	economicsConfig    config.EconomicsConfig
+	shardCoordinator   sharding.Coordinator
+	nodesCoordinator   sharding.NodesCoordinator
+	epochStartNotifier EpochStartNotifier
+	forkDetector       process.ForkDetector
+	coreComponents     CoreComponentsHolder
+	dataComponents     DataComponentsHolder
+	networkComponents  NetworkComponentsHolder
+	stateComponents    StateComponentsHolder
+	isInImportMode     bool
 }
 
 // NewStatusComponentsFactory will return a status components factory
@@ -91,18 +88,17 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	}
 
 	return &statusComponentsFactory{
-		config:               args.Config,
-		externalConfig:       args.ExternalConfig,
-		economicsConfig:      args.EconomicsConfig,
-		shardCoordinator:     args.ShardCoordinator,
-		nodesCoordinator:     args.NodesCoordinator,
-		epochStartNotifier:   args.EpochStartNotifier,
-		coreComponents:       args.CoreComponents,
-		dataComponents:       args.DataComponents,
-		networkComponents:    args.NetworkComponents,
-		stateComponents:      args.StateComponents,
-		isInImportMode:       args.IsInImportMode,
-		elasticTemplatesPath: args.ElasticTemplatesPath,
+		config:             args.Config,
+		externalConfig:     args.ExternalConfig,
+		economicsConfig:    args.EconomicsConfig,
+		shardCoordinator:   args.ShardCoordinator,
+		nodesCoordinator:   args.NodesCoordinator,
+		epochStartNotifier: args.EpochStartNotifier,
+		coreComponents:     args.CoreComponents,
+		dataComponents:     args.DataComponents,
+		networkComponents:  args.NetworkComponents,
+		stateComponents:    args.StateComponents,
+		isInImportMode:     args.IsInImportMode,
 	}, nil
 }
 
@@ -218,9 +214,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 	}
 
 	args := &outportDriverFactory.ArgsOutportFactory{
-		ArgsElasticDriver:  indexerFactoryArgs,
-		EpochStartNotifier: scf.epochStartNotifier,
-		NodesCoordinator:   scf.nodesCoordinator,
+		ArgsElasticDriver: indexerFactoryArgs,
 	}
 
 	return outportDriverFactory.CreateOutport(args)

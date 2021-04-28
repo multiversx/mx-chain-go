@@ -70,7 +70,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStateComponents,
 		nodesCoordinator,
-		"",
 		false,
 	)
 	require.Nil(t, err)

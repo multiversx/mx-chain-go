@@ -204,7 +204,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
-		OutportHandler:     mock.NewNilOutport(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

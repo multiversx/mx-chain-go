@@ -3,9 +3,9 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
 type nilOutport struct{}
@@ -16,15 +16,15 @@ func NewNilOutport() *nilOutport {
 }
 
 // SaveBlock -
-func (n *nilOutport) SaveBlock(_ types.ArgsSaveBlocks) {
+func (n *nilOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
 }
 
-// RevertBlock -
-func (n *nilOutport) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+// RevertIndexedBlock -
+func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SaveRoundsInfo -
-func (n *nilOutport) SaveRoundsInfo(_ []types.RoundInfo) {
+func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 }
 
 // UpdateTPS -
@@ -36,11 +36,11 @@ func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // SaveValidatorsRating -
-func (n *nilOutport) SaveValidatorsRating(_ string, _ []types.ValidatorRatingInfo) {
+func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
 }
 
 // SaveAccounts -
-func (n *nilOutport) SaveAccounts(_ []state.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // Close -

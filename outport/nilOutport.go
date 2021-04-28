@@ -3,8 +3,8 @@ package outport
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
 type nilOutport struct{}
@@ -15,15 +15,15 @@ func NewNilOutport() OutportHandler {
 }
 
 // SaveBlock does nothing
-func (n *nilOutport) SaveBlock(_ types.ArgsSaveBlocks) {
+func (n *nilOutport) SaveBlock(_ *indexer.ArgsSaveBlockData) {
 }
 
-// RevertBlock does nothing
-func (n *nilOutport) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+// RevertIndexedBlock does nothing
+func (n *nilOutport) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SaveRoundsInfo does nothing
-func (n *nilOutport) SaveRoundsInfo(_ []types.RoundInfo) {
+func (n *nilOutport) SaveRoundsInfo(_ []*indexer.RoundInfo) {
 }
 
 // UpdateTPS does nothing
@@ -35,11 +35,11 @@ func (n *nilOutport) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // SaveValidatorsRating does nothing
-func (n *nilOutport) SaveValidatorsRating(_ string, _ []types.ValidatorRatingInfo) {
+func (n *nilOutport) SaveValidatorsRating(_ string, _ []*indexer.ValidatorRatingInfo) {
 }
 
 // SaveAccounts does nothing
-func (n *nilOutport) SaveAccounts(_ []state.UserAccountHandler) {
+func (n *nilOutport) SaveAccounts(_ uint64, _ []state.UserAccountHandler) {
 }
 
 // Close does nothing

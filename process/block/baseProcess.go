@@ -418,7 +418,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.OutportHandler) {
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
 		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {

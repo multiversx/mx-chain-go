@@ -19,7 +19,7 @@ func TestNewTPSBenchmarkUpdater(t *testing.T) {
 		{
 			name: "NilGenesisConfig",
 			argsFunc: func() (genesisNodesConfig sharding.GenesisNodesSetupHandler, tpsIndexer StorageDataIndexer) {
-				return nil, &mock.ElasticIndexerStub{}
+				return nil, &mock.StorageDataIndexerStub{}
 			},
 			exError: ErrNilGenesisNodesSetup,
 		},
@@ -28,12 +28,12 @@ func TestNewTPSBenchmarkUpdater(t *testing.T) {
 			argsFunc: func() (genesisNodesConfig sharding.GenesisNodesSetupHandler, tpsIndexer StorageDataIndexer) {
 				return &mock.GenesisNodesSetupHandlerStub{}, nil
 			},
-			exError: ErrNilElasticIndexer,
+			exError: ErrNilOutportHandler,
 		},
 		{
 			name: "All arguments ok",
 			argsFunc: func() (genesisNodesConfig sharding.GenesisNodesSetupHandler, tpsIndexer StorageDataIndexer) {
-				return &mock.GenesisNodesSetupHandlerStub{}, &mock.ElasticIndexerStub{}
+				return &mock.GenesisNodesSetupHandlerStub{}, &mock.StorageDataIndexerStub{}
 			},
 			exError: nil,
 		},

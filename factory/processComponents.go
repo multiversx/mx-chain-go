@@ -34,7 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
-	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -127,7 +126,6 @@ type ProcessComponentsFactoryArgs struct {
 	Network             NetworkComponentsHolder
 	BootstrapComponents BootstrapComponentsHolder
 	StatusComponents    StatusComponentsHolder
-	OutportHandler            outport.OutportHandler
 }
 
 type processComponentsFactory struct {
@@ -152,7 +150,6 @@ type processComponentsFactory struct {
 	epochNotifier          process.EpochNotifier
 	importHandler          update.ImportHandler
 
-	outportHandler      outport.OutportHandler
 	data                DataComponentsHolder
 	coreData            CoreComponentsHolder
 	crypto              CryptoComponentsHolder
@@ -195,7 +192,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		workingDir:             args.WorkingDir,
 		historyRepo:            args.HistoryRepo,
 		epochNotifier:          args.CoreData.EpochNotifier(),
-		outportHandler:         args.OutportHandler,
 	}, nil
 }
 
@@ -689,7 +685,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 }
 
 func (pcf *processComponentsFactory) indexGenesisAccounts() error {
-	if !pcf.outportHandler.HasDrivers() {
+	if !pcf.statusComponents.OutportHandler().HasDrivers() {
 		return nil
 	}
 
@@ -715,7 +711,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.outportHandler.SaveAccounts(genesisAccounts)
+	pcf.statusComponents.OutportHandler().SaveAccounts(uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()), genesisAccounts)
 	return nil
 }
 
@@ -802,7 +798,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
-	if pcf.outportHandler.HasDrivers() {
+	if pcf.statusComponents.OutportHandler().HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 		arg := &indexer.ArgsSaveBlockData{
@@ -810,7 +806,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			Body:       &dataBlock.Body{},
 			Header:     genesisBlockHeader,
 		}
-		pcf.outportHandler.SaveBlock(arg)
+		pcf.statusComponents.OutportHandler().SaveBlock(arg)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

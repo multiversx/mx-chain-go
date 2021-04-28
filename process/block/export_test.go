@@ -98,7 +98,7 @@ func NewShardProcessorEmptyWith3shards(
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
+		Outport:      &testscommon.OutportStub{},
 		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
 	}
 
@@ -127,7 +127,6 @@ func NewShardProcessorEmptyWith3shards(
 			Version:            "softwareVersion",
 			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
-			OutportHandler:     &testscommon.OutportStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

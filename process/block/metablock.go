@@ -106,7 +106,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		dataPool:                arguments.DataComponents.Datapool(),
 		blockChain:              arguments.DataComponents.Blockchain(),
 		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		outportHandler:          arguments.OutportHandler,
+		outportHandler:          arguments.StatusComponents.OutportHandler(),
 		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:            genesisHdr.GetNonce(),
 		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),

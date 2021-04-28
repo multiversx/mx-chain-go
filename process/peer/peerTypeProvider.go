@@ -96,7 +96,7 @@ func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionH
 			ptp.updateCache(hdr.GetEpoch())
 		},
 		func(_ data.HeaderHandler) {},
-		core.OutportOrder,
+		core.IndexerOrder,
 	)
 
 	return subscribeHandler

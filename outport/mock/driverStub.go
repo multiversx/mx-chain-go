@@ -3,38 +3,38 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
 // DriverStub -
 type DriverStub struct {
-	SaveBlockCalled             func(args types.ArgsSaveBlocks)
+	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
 	RevertBlockCalled           func(header data.HeaderHandler, body data.BodyHandler)
-	SaveRoundsInfoCalled        func(roundsInfos []types.RoundInfo)
+	SaveRoundsInfoCalled        func(roundsInfos []*indexer.RoundInfo)
 	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []types.ValidatorRatingInfo)
-	SaveAccountsCalled          func(acc []state.UserAccountHandler)
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []*indexer.ValidatorRatingInfo)
+	SaveAccountsCalled          func(timestamp uint64, acc []state.UserAccountHandler)
 	CloseCalled                 func() error
 }
 
 // SaveBlock -
-func (d *DriverStub) SaveBlock(args types.ArgsSaveBlocks) {
+func (d *DriverStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	if d.SaveBlockCalled != nil {
 		d.SaveBlockCalled(args)
 	}
 }
 
-// RevertBlock -
-func (d *DriverStub) RevertBlock(header data.HeaderHandler, body data.BodyHandler) {
+// RevertIndexedBlock -
+func (d *DriverStub) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
 	if d.RevertBlockCalled != nil {
 		d.RevertBlockCalled(header, body)
 	}
 }
 
 // SaveRoundsInfo -
-func (d *DriverStub) SaveRoundsInfo(roundsInfos []types.RoundInfo) {
+func (d *DriverStub) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 	if d.SaveRoundsInfoCalled != nil {
 		d.SaveRoundsInfoCalled(roundsInfos)
 	}
@@ -55,16 +55,16 @@ func (d *DriverStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte
 }
 
 // SaveValidatorsRating -
-func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []types.ValidatorRatingInfo) {
+func (d *DriverStub) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 	if d.SaveValidatorsRatingCalled != nil {
 		d.SaveValidatorsRatingCalled(indexID, infoRating)
 	}
 }
 
 // SaveAccounts -
-func (d *DriverStub) SaveAccounts(acc []state.UserAccountHandler) {
+func (d *DriverStub) SaveAccounts(timestamp uint64, acc []state.UserAccountHandler) {
 	if d.SaveAccountsCalled != nil {
-		d.SaveAccountsCalled(acc)
+		d.SaveAccountsCalled(timestamp, acc)
 	}
 }
 

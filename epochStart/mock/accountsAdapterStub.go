@@ -2,7 +2,6 @@ package mock
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -28,6 +27,25 @@ type AccountsStub struct {
 	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
+	GetCodeCalled            func([]byte) []byte
+	GetTrieCalled            func([]byte) (data.Trie, error)
+}
+
+// GetTrie -
+func (as *AccountsStub) GetTrie(codeHash []byte) (data.Trie, error) {
+	if as.GetTrieCalled != nil {
+		return as.GetTrieCalled(codeHash)
+	}
+
+	return nil, nil
+}
+
+// GetCode -
+func (as *AccountsStub) GetCode(codeHash []byte) []byte {
+	if as.GetCodeCalled != nil {
+		return as.GetCodeCalled(codeHash)
+	}
+	return nil
 }
 
 // RecreateAllTries -
@@ -61,8 +79,6 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan c
 	}
 	return nil, nil
 }
-
-var errNotImplemented = errors.New("not implemented")
 
 // Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {

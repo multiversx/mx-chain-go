@@ -1832,7 +1832,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler: TestBlockSizeThrottler,
 		HistoryRepository:  tpn.HistoryRepository,
 		EpochNotifier:      tpn.EpochNotifier,
-		OutportHandler:          mock.NewNilOutport(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

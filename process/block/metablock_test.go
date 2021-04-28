@@ -52,7 +52,7 @@ func createMockComponentHolders() (
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
-		Indexer:      &mock.IndexerMock{},
+		Outport:      &testscommon.OutportStub{},
 		TPSBenchmark: &testscommon.TpsBenchmarkMock{},
 	}
 
@@ -111,7 +111,6 @@ func createMockMetaArguments(
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
-			OutportHandler:          &testscommon.OutportStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

@@ -29,7 +29,7 @@ func TestNewDataProcessor(t *testing.T) {
 				args.OutportHandler = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilOutportHandler,
+			exError: ErrNilOutportHandler,
 		},
 		{
 			name: "NilDataReplayer",
@@ -246,7 +246,7 @@ func TestDataProcessor_IndexData(t *testing.T) {
 
 	args := getDataProcessorArgs()
 	args.DataReplayer = &mock.DataReplayerStub{}
-	args.ElasticIndexer = &mock.ElasticIndexerStub{
+	args.OutportHandler = &mock.StorageDataIndexerStub{
 		SaveRoundsInfosCalled: func(roundsInfos []*indexer.RoundInfo) {
 			count += 1
 		},

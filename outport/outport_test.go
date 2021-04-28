@@ -6,9 +6,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,12 +27,12 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	called1 := false
 	called2 := false
 	driver1 := &mock.DriverStub{
-		SaveAccountsCalled: func(acc []state.UserAccountHandler) {
+		SaveAccountsCalled: func(_ uint64, acc []state.UserAccountHandler) {
 			called1 = true
 		},
 	}
 	driver2 := &mock.DriverStub{
-		SaveAccountsCalled: func(acc []state.UserAccountHandler) {
+		SaveAccountsCalled: func(_ uint64, acc []state.UserAccountHandler) {
 			called2 = true
 		},
 	}
@@ -40,7 +40,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 	_ = outportHandler.SubscribeDriver(driver1)
 	_ = outportHandler.SubscribeDriver(driver2)
 
-	outportHandler.SaveAccounts([]state.UserAccountHandler{})
+	outportHandler.SaveAccounts(0, []state.UserAccountHandler{})
 	require.True(t, called1)
 	require.True(t, called2)
 }
@@ -50,14 +50,14 @@ func TestOutport_SaveBlock(t *testing.T) {
 
 	called := false
 	driver1 := &mock.DriverStub{
-		SaveBlockCalled: func(args types.ArgsSaveBlocks) {
+		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
 			called = true
 		},
 	}
 	outportHandler := NewOutport()
 	_ = outportHandler.SubscribeDriver(driver1)
 
-	outportHandler.SaveBlock(types.ArgsSaveBlocks{})
+	outportHandler.SaveBlock(&indexer.ArgsSaveBlockData{})
 	require.True(t, called)
 }
 
@@ -66,7 +66,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 
 	called1 := false
 	driver1 := &mock.DriverStub{
-		SaveRoundsInfoCalled: func(roundsInfos []types.RoundInfo) {
+		SaveRoundsInfoCalled: func(roundsInfos []*indexer.RoundInfo) {
 			called1 = true
 		},
 	}
@@ -114,7 +114,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 
 	called := false
 	driver := &mock.DriverStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 			called = true
 		},
 	}
@@ -137,7 +137,7 @@ func TestOutport_RevertBlock(t *testing.T) {
 	outportHandler := NewOutport()
 	_ = outportHandler.SubscribeDriver(driver)
 
-	outportHandler.RevertBlock(nil, nil)
+	outportHandler.RevertIndexedBlock(nil, nil)
 	require.True(t, called)
 }
 

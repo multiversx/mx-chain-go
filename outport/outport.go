@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
 type outport struct {
@@ -27,7 +27,7 @@ func NewOutport() *outport {
 }
 
 // SaveBlock will save block for every driver
-func (o *outport) SaveBlock(args types.ArgsSaveBlocks) {
+func (o *outport) SaveBlock(args *indexer.ArgsSaveBlockData) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -36,18 +36,18 @@ func (o *outport) SaveBlock(args types.ArgsSaveBlocks) {
 	}
 }
 
-// RevertBlock will revert block for every driver
-func (o *outport) RevertBlock(header data.HeaderHandler, body data.BodyHandler) {
+// RevertIndexedBlock will revert block for every driver
+func (o *outport) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.RevertBlock(header, body)
+		driver.RevertIndexedBlock(header, body)
 	}
 }
 
 // SaveRoundsInfo will save rounds information for every driver
-func (o *outport) SaveRoundsInfo(roundsInfos []types.RoundInfo) {
+func (o *outport) SaveRoundsInfo(roundsInfos []*indexer.RoundInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -77,7 +77,7 @@ func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, e
 }
 
 // SaveValidatorsRating will save validators rating for every driver
-func (o *outport) SaveValidatorsRating(indexID string, infoRating []types.ValidatorRatingInfo) {
+func (o *outport) SaveValidatorsRating(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
@@ -87,12 +87,12 @@ func (o *outport) SaveValidatorsRating(indexID string, infoRating []types.Valida
 }
 
 // SaveAccounts will save accounts  for every driver
-func (o *outport) SaveAccounts(acc []state.UserAccountHandler) {
+func (o *outport) SaveAccounts(blockTimestamp uint64, acc []state.UserAccountHandler) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		driver.SaveAccounts(acc)
+		driver.SaveAccounts(blockTimestamp, acc)
 	}
 }
 
