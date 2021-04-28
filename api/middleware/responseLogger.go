@@ -15,6 +15,7 @@ import (
 const prefixDurationTooLong = "[too long]"
 const prefixBadRequest = "[bad request]"
 const prefixInternalError = "[internal error]"
+const responseMaxLength = 100
 
 type responseLoggerMiddleware struct {
 	thresholdDurationForLoggingRequest time.Duration
@@ -93,6 +94,10 @@ func (rlm *responseLoggerMiddleware) computeLogTitle(status int) string {
 }
 
 func (rlm *responseLoggerMiddleware) printRequest(title string, path string, duration time.Duration, status int, request string, response string) {
+	if len(response) > responseMaxLength {
+		response = response[:responseMaxLength] + "..."
+	}
+
 	log.Debug(title,
 		"path", path,
 		"duration", duration,
