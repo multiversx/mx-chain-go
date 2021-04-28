@@ -76,6 +76,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -86,16 +87,16 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:      &mock.ChainStorerMock{},
-		NodesCoordinator:    &mock.NodesCoordinatorMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		PubkeyConv:          createMockPubkeyConverter(),
-		PeerAdapter:         getAccountsMock(),
-		Rater:               createMockRater(),
-		RewardsHandler:      economicsData,
-		MaxComputableRounds: 1000,
-		NodesSetup:          &mock.NodesSetupStub{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		StorageService:       &mock.ChainStorerMock{},
+		NodesCoordinator:     &mock.NodesCoordinatorMock{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		PubkeyConv:           createMockPubkeyConverter(),
+		PeerAdapter:          getAccountsMock(),
+		Rater:                createMockRater(),
+		RewardsHandler:       economicsData,
+		MaxComputableRounds:  1000,
+		NodesSetup:           &mock.NodesSetupStub{},
+		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 5,
 	}
 	return arguments
@@ -2158,7 +2159,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	updateArgumentsWithNeeded(arguments)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics.EpochConfirmed(10)
+	validatorStatistics.EpochConfirmed(10, 0)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

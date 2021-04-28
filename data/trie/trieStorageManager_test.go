@@ -694,3 +694,104 @@ func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
 }
+
+func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
+	t.Parallel()
+	nrOfSnapshots := 5
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = true
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		key := strconv.Itoa(i) + "doe"
+		value := strconv.Itoa(i) + "reindeer"
+		_ = tr.Update([]byte(key), []byte(value))
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+		trieStorage.TakeSnapshot(rootHash)
+		time.Sleep(snapshotDelay)
+	}
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+
+		assert.NotNil(t, folderInfo)
+		assert.Nil(t, err)
+	}
+
+	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)
+	assert.Nil(t, err)
+}
+
+func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
+	t.Parallel()
+	nrOfSnapshots := 5
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = false
+
+	for i := 0; i < nrOfSnapshots; i++ {
+		key := strconv.Itoa(i) + "doe"
+		value := strconv.Itoa(i) + "reindeer"
+		_ = tr.Update([]byte(key), []byte(value))
+		_ = tr.Commit()
+		rootHash, _ := tr.RootHash()
+		trieStorage.TakeSnapshot(rootHash)
+		time.Sleep(snapshotDelay)
+	}
+
+	for i := 0; i < nrOfSnapshots-int(trieStorage.maxSnapshots); i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+		assert.Nil(t, folderInfo)
+		assert.NotNil(t, err)
+	}
+	for i := nrOfSnapshots - int(trieStorage.maxSnapshots); i < nrOfSnapshots; i++ {
+		snapshotPath := path.Join(trieStorage.snapshotDbCfg.FilePath, strconv.Itoa(i))
+		folderInfo, err := os.Stat(snapshotPath)
+		assert.NotNil(t, folderInfo)
+		assert.Nil(t, err)
+
+	}
+
+	err := os.RemoveAll(trieStorage.snapshotDbCfg.FilePath)
+	assert.Nil(t, err)
+}
+
+func TestShouldNotDisconnectSnapshotDbIfItIsStillInUse(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	trieStorage.keepSnapshots = true
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	_ = tr.Commit()
+	rootHash1, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash1)
+	time.Sleep(snapshotDelay)
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Commit()
+	rootHash2, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash2)
+	time.Sleep(snapshotDelay)
+
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash1)
+
+	_ = tr.Update([]byte("dog"), []byte("pup"))
+
+	_ = tr.Commit()
+	rootHash3, _ := tr.RootHash()
+	trieStorage.TakeSnapshot(rootHash3)
+	time.Sleep(snapshotDelay)
+
+	val, err := db.Get(rootHash1)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	db.DecreaseNumReferences()
+
+	val, err = db.Get(rootHash1)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+}

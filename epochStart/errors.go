@@ -310,3 +310,9 @@ var ErrInvalidRewardsPerBlock = errors.New("invalid rewards per block")
 
 // ErrResetLastUnJailedFromQueue signals that reset unjailed from queue failed
 var ErrResetLastUnJailedFromQueue = errors.New("reset last unjailed from queue failed")
+
+// ErrEmptyESDTOwnerAddress signals that an empty ESDT owner address was provided
+var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")

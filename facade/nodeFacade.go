@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -19,7 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	chainData "github.com/ElrondNetwork/elrond-go/data"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -57,6 +60,7 @@ type ArgNodeFacade struct {
 	ApiRoutesConfig        config.ApiRoutesConfig
 	AccountsState          state.AccountsAdapter
 	PeerState              state.AccountsAdapter
+	Blockchain             chainData.ChainHandler
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -73,6 +77,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	blockchain             chainData.ChainHandler
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -106,6 +111,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.PeerState) {
 		return nil, ErrNilPeerState
 	}
+	if check.IfNil(arg.Blockchain) {
+		return nil, ErrNilBlockchain
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -120,6 +128,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		endpointsThrottlers:    throttlersMap,
 		accountsState:          arg.AccountsState,
 		peerState:              arg.PeerState,
+		blockchain:             arg.Blockchain,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -190,9 +199,9 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 	return nf.node.GetValueForKey(address, key)
 }
 
-// GetESDTBalance returns the ESDT balance and if it is frozen
-func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string, error) {
-	return nf.node.GetESDTBalance(address, key)
+// GetESDTData returns the ESDT data for the given address, tokenID and nonce
+func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	return nf.node.GetESDTData(address, key, nonce)
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the provided address
@@ -201,8 +210,13 @@ func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error
 }
 
 // GetAllESDTTokens returns all the esdt tokens for a given address
-func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
+func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	return nf.node.GetAllESDTTokens(address)
+}
+
+// GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
+func (nf *nodeFacade) GetAllIssuedESDTs() ([]string, error) {
+	return nf.node.GetAllIssuedESDTs()
 }
 
 // CreateTransaction creates a transaction from all needed fields
@@ -291,6 +305,16 @@ func (nf *nodeFacade) GetTotalStakedValue() (*apiData.StakeValues, error) {
 	return nf.apiResolver.GetTotalStakedValue()
 }
 
+// GetDirectStakedList will output the list for the direct staked addresses
+func (nf *nodeFacade) GetDirectStakedList() ([]*apiData.DirectStakedValue, error) {
+	return nf.apiResolver.GetDirectStakedList()
+}
+
+// GetDelegatorsList will output the list for the delegators addresses
+func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
+	return nf.apiResolver.GetDelegatorsList()
+}
+
 // ExecuteSCQuery retrieves data from existing SC trie
 func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
 	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
@@ -368,6 +392,72 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
 }
 
+// GetProof returns the Merkle proof for the given address and root hash
+func (nf *nodeFacade) GetProof(rootHash string, address string) ([][]byte, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return trie.GetProof(addressBytes)
+}
+
+// GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
+func (nf *nodeFacade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	currentBlockHeader := nf.blockchain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil, nil, ErrNilBlockHeader
+	}
+
+	rootHash := currentBlockHeader.GetRootHash()
+	trie, err := nf.accountsState.GetTrie(rootHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	proof, err := trie.GetProof(addressBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return proof, rootHash, nil
+}
+
+// VerifyProof verifies the given Merkle proof
+func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	rootHashBytes, err := hex.DecodeString(rootHash)
+	if err != nil {
+		return false, err
+	}
+
+	trie, err := nf.accountsState.GetTrie(rootHashBytes)
+	if err != nil {
+		return false, err
+	}
+
+	addressBytes, err := nf.DecodeAddressPubkey(address)
+	if err != nil {
+		return false, err
+	}
+
+	return trie.VerifyProof(addressBytes, proof)
+}
+
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
 func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()
@@ -403,11 +493,22 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		outAcc.OutputTransfers = make([]vm.OutputTransferApi, len(acc.OutputTransfers))
 		for i, outTransfer := range acc.OutputTransfers {
 			outTransferApi := vm.OutputTransferApi{
-				Value:    outTransfer.Value,
-				GasLimit: outTransfer.GasLimit,
-				Data:     outTransfer.Data,
-				CallType: outTransfer.CallType,
+				Value:         outTransfer.Value,
+				GasLimit:      outTransfer.GasLimit,
+				Data:          outTransfer.Data,
+				CallType:      outTransfer.CallType,
+				SenderAddress: outputAddress,
 			}
+
+			if len(outTransfer.SenderAddress) == len(acc.Address) && !bytes.Equal(outTransfer.SenderAddress, acc.Address) {
+				senderAddr, errEncode := nf.node.EncodeAddressPubkey(outTransfer.SenderAddress)
+				if errEncode != nil {
+					log.Warn("cannot encode address", "error", errEncode)
+					senderAddr = outputAddress
+				}
+				outTransferApi.SenderAddress = senderAddr
+			}
+
 			outAcc.OutputTransfers[i] = outTransferApi
 		}
 

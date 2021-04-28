@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -46,11 +47,44 @@ type Facade struct {
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
-	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
-	GetAllESDTTokensCalled                  func(address string) ([]string, error)
+	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
+	GetAllIssuedESDTsCalled                 func() ([]string, error)
+	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
+	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetProofCalled                          func(string, string) ([][]byte, error)
+	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+}
+
+// GetProof -
+func (f *Facade) GetProof(rootHash string, address string) ([][]byte, error) {
+	if f.GetProofCalled != nil {
+		return f.GetProofCalled(rootHash, address)
+	}
+
+	return nil, nil
+}
+
+// GetProofCurrentRootHash -
+func (f *Facade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	if f.GetProofCurrentRootHashCalled != nil {
+		return f.GetProofCurrentRootHashCalled(address)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (f *Facade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if f.VerifyProofCalled != nil {
+		return f.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -
@@ -122,22 +156,30 @@ func (f *Facade) GetKeyValuePairs(address string) (map[string]string, error) {
 	return nil, nil
 }
 
-// GetESDTBalance -
-func (f *Facade) GetESDTBalance(address string, key string) (string, string, error) {
-	if f.GetESDTBalanceCalled != nil {
-		return f.GetESDTBalanceCalled(address, key)
+// GetESDTData -
+func (f *Facade) GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error) {
+	if f.GetESDTDataCalled != nil {
+		return f.GetESDTDataCalled(address, key, nonce)
 	}
 
-	return "", "", nil
+	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, nil
 }
 
 // GetAllESDTTokens -
-func (f *Facade) GetAllESDTTokens(address string) ([]string, error) {
+func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	if f.GetAllESDTTokensCalled != nil {
 		return f.GetAllESDTTokensCalled(address)
 	}
 
-	return []string{""}, nil
+	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetAllIssuedESDTs -
+func (f *Facade) GetAllIssuedESDTs() ([]string, error) {
+	if f.GetAllIssuedESDTsCalled != nil {
+		return f.GetAllIssuedESDTsCalled()
+	}
+	return make([]string, 0), nil
 }
 
 // GetAccount is the mock implementation of a handler's GetAccount method
@@ -188,7 +230,7 @@ func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, e
 	return f.SendBulkTransactionsHandler(txs)
 }
 
-//ValidateTransaction --
+// ValidateTransaction -
 func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
 }
@@ -218,7 +260,17 @@ func (f *Facade) GetTotalStakedValue() (*api.StakeValues, error) {
 	return f.GetTotalStakedValueHandler()
 }
 
-// ComputeTransactionGasLimit --
+// GetDirectStakedList -
+func (f *Facade) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
+	return f.GetDirectStakedListHandler()
+}
+
+// GetDelegatorsList -
+func (f *Facade) GetDelegatorsList() ([]*api.Delegator, error) {
+	return f.GetDelegatorsListHandler()
+}
+
+// ComputeTransactionGasLimit -
 func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
 }

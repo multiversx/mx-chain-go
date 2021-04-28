@@ -350,9 +350,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
-
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
 	assert.Equal(t, arguments.ArgsParser, sc.argsParser)
 	assert.Equal(t, arguments.Hasher, sc.hasher)
@@ -364,9 +361,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxFeeHandler, sc.txFeeHandler)
 	assert.Equal(t, arguments.EconomicsFee, sc.economicsFee)
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
-	assert.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	assert.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	assert.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
 	assert.Equal(t, arguments.BuiltInFunctions, sc.builtInFunctions)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
@@ -383,104 +377,16 @@ func TestGasScheduleChangeNoApiCostShouldNotChange(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
-
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	gasSchedule[core.BuiltInCost] = nil
 
 	sc.GasScheduleChange(gasSchedule)
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+	require.Equal(t, sc.builtInGasCosts[core.BuiltInFunctionESDTNFTTransfer], uint64(0))
 
-	gasSchedule[core.ElrondAPICost] = nil
 	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
-
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
-}
-
-func TestGasScheduleChangeNoApiCostNoAsyncCallStepFieldShouldNotChange(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
-
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
-	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
-}
-
-func TestGasScheduleChangeNoApiCostNoAsyncCallbackGasLockFieldShouldNotChange(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
-
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
-	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
-}
-
-func TestGasScheduleChangeNoBuiltInCostShouldNotChange(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
-
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
-	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
-
-	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
-
-	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
-
-	sc.GasScheduleChange(gasSchedule)
-
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+	require.Equal(t, sc.builtInGasCosts[core.BuiltInFunctionESDTTransfer], uint64(2000))
 }
 
 func TestGasScheduleChangeShouldWork(t *testing.T) {
@@ -490,19 +396,12 @@ func TestGasScheduleChangeShouldWork(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 10
-	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 30
 	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 20
 
 	sc.GasScheduleChange(gasSchedule)
 
-	apiCosts := gasSchedule[core.ElrondAPICost]
-	builtInFuncCost := gasSchedule[core.BuiltInCost]
-	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
-	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
-	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+	require.Equal(t, sc.builtInGasCosts[core.BuiltInFunctionESDTTransfer], uint64(20))
 }
 
 // ===================== TestDeploySmartContract =====================
@@ -3345,11 +3244,11 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 
 	sc.penalizedTooMuchGasEnableEpoch = 1
 
-	sc.EpochConfirmed(0)
+	sc.EpochConfirmed(0, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
 
-	sc.EpochConfirmed(1)
+	sc.EpochConfirmed(1, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
@@ -3381,8 +3280,6 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, "@04@6d7367", string(scr.Data))
 
-	sc.asyncCallbackGasLock = 10
-	sc.asyncCallStepCost = 10
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
@@ -3395,8 +3292,6 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	assert.Equal(t, "@04@6d7367", string(scr.Data))
 	assert.Equal(t, uint64(20), scr.GasLimit)
 
-	sc.asyncCallbackGasLock = 100
-	sc.asyncCallStepCost = 100
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
@@ -3550,7 +3445,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.NotNil(t, sc)
 
 	// activate staking V2
-	sc.EpochConfirmed(10)
+	sc.EpochConfirmed(10, 0)
 
 	tx := &transaction.Transaction{
 		RcvAddr:  scAccountAddress,
@@ -3639,7 +3534,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.NotNil(t, sc)
 
 			// activate staking V2
-			sc.EpochConfirmed(10)
+			sc.EpochConfirmed(10, 0)
 
 			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
@@ -3718,6 +3613,39 @@ func TestScProcessor_ProcessIfErrorRevertAccountFails(t *testing.T) {
 	require.Equal(t, expectedError, err)
 }
 
+func TestScProcessor_ProcessIfErrorAsyncCallBack(t *testing.T) {
+	t.Parallel()
+	arguments := createMockSmartContractProcessorArguments()
+	scr := &smartContractResult.SmartContractResult{
+		CallType: vmcommon.AsynchronousCallBack,
+		Value:    big.NewInt(10),
+		SndAddr:  make([]byte, 32),
+	}
+
+	dstAccount := &mock.UserAccountStub{
+		AddToBalanceCalled: func(value *big.Int) error {
+			assert.Equal(t, value, scr.Value)
+			return nil
+		},
+	}
+	arguments.AccountsDB = &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return dstAccount, nil
+		},
+		SaveAccountCalled: func(account state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	err := sc.ProcessIfError(nil, []byte("txHash"), scr, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+}
+
 func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
@@ -3784,7 +3712,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.EpochConfirmed(100)
+	sc.EpochConfirmed(100, 0)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),
@@ -3828,6 +3756,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		GasPriceModifierEnableEpoch:    0,
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 }
 

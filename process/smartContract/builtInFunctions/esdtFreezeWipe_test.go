@@ -85,14 +85,17 @@ func TestESDTFreezeWipe_ProcessBuiltInFunction(t *testing.T) {
 	input.Arguments = [][]byte{key}
 	input.CallerAddr = vm.ESDTSCAddress
 	input.RecipientAddr = []byte("dst")
-
+	esdtKey := append(freeze.keyPrefix, key...)
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshaledData, _ := freeze.marshalizer.Marshal(esdtToken)
 	acnt, _ := state.NewUserAccount(input.RecipientAddr)
+	_ = acnt.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+
 	_, err = freeze.ProcessBuiltinFunction(nil, acnt, input)
 	assert.Nil(t, err)
 
-	esdtToken := &esdt.ESDigitalToken{}
-	esdtKey := append(freeze.keyPrefix, key...)
-	marshaledData, _ := acnt.DataTrieTracker().RetrieveValue(esdtKey)
+	esdtToken = &esdt.ESDigitalToken{}
+	marshaledData, _ = acnt.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 
 	esdtUserData := ESDTUserMetadataFromBytes(esdtToken.Properties)

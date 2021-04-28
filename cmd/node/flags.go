@@ -304,6 +304,11 @@ var (
 		Usage: "This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)",
 		Value: 0,
 	}
+	// fullArchive defines a flag that, if set, will make the node act like a full history node
+	fullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -351,6 +356,7 @@ func getFlags() []cli.Flag {
 		importDbSaveEpochRootHash,
 		importDbStartInEpoch,
 		redundancyLevel,
+		fullArchive,
 	}
 }
 
@@ -398,6 +404,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	if ctx.IsSet(redundancyLevel.Name) {
 		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
+	if ctx.IsSet(fullArchive.Name) {
+		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	importDBConfigs := &config.ImportDbConfig{
@@ -440,46 +449,76 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	importDbFlags := configs.ImportDbConfig
+	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
+	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
+
+	if importDbFlags.IsImportDBMode {
+		return processConfigImportDBMode(log, configs)
+	}
+
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	if configs.GeneralConfig.StoragePruning.FullArchive {
+		return processConfigFullArchiveMode(log, configs)
+	}
+
+	return nil
+}
+
+func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
+	importDbFlags := configs.ImportDbConfig
 	generalConfigs := configs.GeneralConfig
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
 
-	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
-	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
-	if importDbFlags.IsImportDBMode {
-		importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
-		var err error
+	importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+	var err error
 
-		importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
-		if err != nil {
-			return err
-		}
-
-		if importDbFlags.ImportDBStartInEpoch == 0 {
-			generalConfigs.GeneralSettings.StartInEpochEnabled = false
-		}
-
-		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
-		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
-		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
-		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
-		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
-
-		alterStorageConfigsForDBImport(generalConfigs)
-
-		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
-			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
-			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
-			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
-			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
-			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
-			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
-			"kad dht discoverer", "off",
-		)
+	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	if err != nil {
+		return err
 	}
+
+	if importDbFlags.ImportDBStartInEpoch == 0 {
+		generalConfigs.GeneralSettings.StartInEpochEnabled = false
+	}
+
+	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+	generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+	generalConfigs.TrieStorageManagerConfig.KeepSnapshots = true
+	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
+	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+
+	alterStorageConfigsForDBImport(generalConfigs)
+
+	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
+		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+		"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+		"TrieStorageManagerConfig.KeepSnapshots", generalConfigs.TrieStorageManagerConfig.KeepSnapshots,
+		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
+		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
+		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
+		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
+		"kad dht discoverer", "off",
+	)
+	return nil
+}
+
+func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) error {
+	generalConfigs := configs.GeneralConfig
+
+	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.Enabled = true
+	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+
+	log.Warn("the node is in full archive mode! Will auto-set some config values",
+		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+		"StoragePruning.CleanOldEpochsData", generalConfigs.StoragePruning.CleanOldEpochsData,
+		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
+		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
+	)
 
 	return nil
 }

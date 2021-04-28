@@ -185,6 +185,7 @@ func (context *TestContext) initFeeHandlers() {
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -193,10 +194,11 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
-		MapDNSAddresses: DNSAddresses,
-		Marshalizer:     marshalizer,
-		Accounts:        context.Accounts,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		MapDNSAddresses:  DNSAddresses,
+		Marshalizer:      marshalizer,
+		Accounts:         context.Accounts,
+		ShardCoordinator: oneShardCoordinator,
 	}
 	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
@@ -246,6 +248,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -263,6 +266,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: context.BlockchainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -529,6 +533,11 @@ func GetSCCode(fileName string) string {
 // CreateDeployTxData -
 func CreateDeployTxData(scCode string) string {
 	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
+}
+
+// CreateDeployTxDataNonPayable -
+func CreateDeployTxDataNonPayable(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, "0000"}, "@")
 }
 
 // ExecuteSC -

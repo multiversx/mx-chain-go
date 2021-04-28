@@ -236,11 +236,6 @@ func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
 	return u.Get(key)
 }
 
-// HasInEpoch will call the Has method as this storer doesn't handle epochs
-func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
-	return u.Has(key)
-}
-
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (u *Unit) Remove(key []byte) error {
 	u.lock.Lock()

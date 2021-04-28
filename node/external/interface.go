@@ -21,6 +21,7 @@ type StatusMetricsHandler interface {
 	StatusMetricsWithoutP2PPrometheusString() string
 	EconomicsMetrics() map[string]interface{}
 	ConfigMetrics() map[string]interface{}
+	EnableEpochsMetrics() map[string]interface{}
 	NetworkMetrics() map[string]interface{}
 	IsInterfaceNil() bool
 }
@@ -34,5 +35,17 @@ type TransactionCostHandler interface {
 // TotalStakedValueHandler defines the behavior of a component able to return total staked value
 type TotalStakedValueHandler interface {
 	GetTotalStakedValue() (*api.StakeValues, error)
+	IsInterfaceNil() bool
+}
+
+// DirectStakedListHandler defines the behavior of a component able to return the direct stake list
+type DirectStakedListHandler interface {
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	IsInterfaceNil() bool
+}
+
+// DelegatedListHandler defines the behavior of a component able to return the complete delegated list
+type DelegatedListHandler interface {
+	GetDelegatorsList() ([]*api.Delegator, error)
 	IsInterfaceNil() bool
 }

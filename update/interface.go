@@ -58,7 +58,6 @@ type HistoryStorer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	HasInEpoch(key []byte, epoch uint32) error
 
 	IsInterfaceNil() bool
 }

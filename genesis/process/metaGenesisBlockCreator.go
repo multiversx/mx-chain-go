@@ -253,7 +253,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
@@ -313,10 +317,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:       arg.ShardCoordinator,
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          epochNotifier,
+		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -330,30 +336,32 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	argsParser := smartContract.NewArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:                    vmContainer,
-		ArgsParser:                     argsParser,
-		Hasher:                         arg.Core.Hasher(),
-		Marshalizer:                    arg.Core.InternalMarshalizer(),
-		AccountsDB:                     arg.Accounts,
-		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:               arg.ShardCoordinator,
-		ScrForwarder:                   scForwarder,
-		TxFeeHandler:                   genesisFeeHandler,
-		EconomicsFee:                   genesisFeeHandler,
-		TxTypeHandler:                  txTypeHandler,
-		GasHandler:                     gasHandler,
-		GasSchedule:                    arg.GasSchedule,
-		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:                arg.TxLogsProcessor,
-		BadTxForwarder:                 badTxForwarder,
-		EpochNotifier:                  epochNotifier,
-		DeployEnableEpoch:              enableEpochs.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             enableEpochs.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: enableEpochs.PenalizedTooMuchGasEnableEpoch,
-		RepairCallbackEnableEpoch:      enableEpochs.RepairCallbackEnableEpoch,
-		IsGenesisProcessing:            true,
-		StakingV2EnableEpoch:           arg.EpochConfig.EnableEpochs.StakingV2Epoch,
+		VmContainer:                         vmContainer,
+		ArgsParser:                          argsParser,
+		Hasher:                              arg.Core.Hasher(),
+		Marshalizer:                         arg.Core.InternalMarshalizer(),
+		AccountsDB:                          arg.Accounts,
+		BlockChainHook:                      virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:                          arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                        scForwarder,
+		TxFeeHandler:                        genesisFeeHandler,
+		EconomicsFee:                        genesisFeeHandler,
+		TxTypeHandler:                       txTypeHandler,
+		GasHandler:                          gasHandler,
+		GasSchedule:                         arg.GasSchedule,
+		BuiltInFunctions:                    virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                     arg.TxLogsProcessor,
+		BadTxForwarder:                      badTxForwarder,
+		EpochNotifier:                       epochNotifier,
+		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch:      enableEpochs.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
+		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
+		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
+		IsGenesisProcessing:                 true,
+		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

@@ -3,14 +3,8 @@ package smartContract
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
-
-func findVMByTransaction(container process.VirtualMachinesContainer, tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	scAddress := tx.GetRcvAddr()
-	return findVMByScAddress(container, scAddress)
-}
 
 func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, error) {
 	vmType, err := parseVMTypeFromContractAddress(scAddress)

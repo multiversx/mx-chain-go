@@ -55,6 +55,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
+  cp $NODEDIR/config/enableEpochs.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
   cp $NODEDIR/config/genesisSmartContracts.json ./node/config
   mkdir ./node/config/genesisContracts -p
@@ -83,7 +84,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateJSONValue nodesSetup_edit.json "chainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
 	fi
 
   cp nodesSetup_edit.json nodesSetup.json

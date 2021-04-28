@@ -23,13 +23,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -103,7 +104,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 }
 
 func TestDelegationSystemReStakeNodes(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -163,7 +164,7 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 }
 
 func TestDelegationChangeConfig(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -214,14 +215,16 @@ func TestDelegationChangeConfig(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
@@ -268,14 +271,16 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
@@ -323,7 +328,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -390,7 +395,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)
@@ -398,7 +403,9 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
@@ -452,7 +459,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 }
 
 func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(500000)
 	serviceFee := big.NewInt(10000) // 10%
@@ -549,7 +556,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 }
 
 func TestDelegationUnJail(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) // 10%
@@ -605,14 +612,16 @@ func TestDelegationUnJail(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(0)
 	serviceFee := big.NewInt(00)
 	totalNumNodes := 1
 	numDelegators := 2
 	delegationVal := int64(5000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	validatorAcc := getAsUserAccount(tpn, vm.ValidatorSCAddress)
@@ -660,7 +669,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimRewardsMultipleTimeUndelegateClaimRewardsMultipleTime(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) //10%
@@ -668,7 +677,9 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	totalNumNodes := 5
 	numDelegators := 4
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
@@ -806,14 +817,16 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 }
 
 func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(10000) //10%
 	totalNumNodes := 2
 	numDelegators := 2
 	delegationVal := int64(1000)
-	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 100000001,
+	})
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
@@ -945,7 +958,7 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 }
 
 func TestDelegationSystemCleanUpContract(t *testing.T) {
-	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0)
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
 	serviceFee := big.NewInt(1000)

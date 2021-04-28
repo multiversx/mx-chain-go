@@ -2458,7 +2458,7 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (d *delegation) EpochConfirmed(epoch uint32) {
+func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
 	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
 

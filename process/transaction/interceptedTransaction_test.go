@@ -182,6 +182,56 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBuffer, err)
 }
 
+func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		nil,
+		[]byte("chainID"),
+		false,
+		mock.HasherMock{},
+		versioning.NewTxVersionChecker(1),
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilArgumentParser, err)
+}
+
+func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		false,
+		mock.HasherMock{},
+		nil,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilTransactionVersionChecker, err)
+}
+
 func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1329,6 +1379,73 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+}
+
+func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("relayedTxV2"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	err := txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTxV2@00@11")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTxV2@00@11@22@33")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	tx.Data = []byte("relayedTxV2@notHex")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+
+	userTx := &dataTransaction.Transaction{
+		SndAddr:   recvAddress,
+		RcvAddr:   senderAddress,
+		Data:      []byte("hello"),
+		GasLimit:  3,
+		GasPrice:  4,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	userTx.Signature = []byte("notOk")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, errSignerMockVerifySigFails, err)
+
+	userTx.Signature = sigOk
+	userTx.SndAddr = []byte("otherAddress")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString([]byte(core.RelayedTransaction)) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+
+	userTx.Signature = sigOk
+	userTx.SndAddr = []byte("otherAddress")
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
 }
 
 //------- IsInterfaceNil
