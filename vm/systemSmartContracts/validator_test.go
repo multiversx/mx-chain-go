@@ -4455,8 +4455,6 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 }
 
 func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
-	t.Parallel()
-
 	blockChainHook := &mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
 			return 100000

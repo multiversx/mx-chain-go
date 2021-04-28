@@ -4246,3 +4246,459 @@ func TestDelegation_GetDelegationManagementShouldWork(t *testing.T) {
 	assert.Equal(t, minDeposit, delegationManagement.MinDeposit)
 	assert.Equal(t, minDelegationAmount, delegationManagement.MinDelegationAmount)
 }
+
+func TestDelegation_ExecuteinitFromValidatorData(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
+	vmInput.CallValue = big.NewInt(1000)
+	vmInput.RecipientAddr = createNewAddress(vm.FirstDelegationSCAddress)
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.checkArgumentsForValidatorToDelegation(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+	eei.returnMessage = ""
+	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "only delegation manager sc can call this function")
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = d.delegationMgrSCAddress
+	vmInput.CallValue.SetUint64(10)
+	vmInput.Arguments = [][]byte{}
+	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "call value must be 0")
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.Arguments = [][]byte{}
+	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{[]byte("key")}
+	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid arguments, first must be an address")
+}
+
+func TestDelegation_getAndVerifyValidatorData(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+
+	addr := []byte("address")
+	_, returnCode := d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+	assert.Equal(t, returnCode, vmcommon.UserError)
+
+	eei.SetStorageForAddress(d.validatorSCAddr, addr, addr)
+	_, returnCode = d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress:   []byte("randomAddress"),
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		UnstakedInfo:    []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ := d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, addr, marshaledData)
+
+	eei.returnMessage = ""
+	_, returnCode = d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "invalid reward address on validator data")
+
+	validatorData.RewardAddress = addr
+	marshaledData, _ = d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, addr, marshaledData)
+
+	eei.returnMessage = ""
+	_, returnCode = d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+
+	managementData := &DelegationManagement{
+		NumOfContracts:      0,
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinServiceFee:       0,
+		MaxServiceFee:       100,
+		MinDeposit:          big.NewInt(100),
+		MinDelegationAmount: big.NewInt(100),
+	}
+	marshaledData, _ = d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	eei.returnMessage = ""
+	_, returnCode = d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "not enough stake to make delegation contract")
+
+	validatorData.TotalStakeValue.SetUint64(10000)
+	marshaledData, _ = d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, addr, marshaledData)
+
+	eei.returnMessage = ""
+	_, returnCode = d.getAndVerifyValidatorData(addr)
+	assert.Equal(t, returnCode, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "clean unStaked info before changing validator to delegation contract")
+}
+
+func TestDelegation_initFromValidatorData(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = d.delegationMgrSCAddress
+	vmInput.CallValue.SetUint64(0)
+	oldAddress := vm.ESDTSCAddress
+	oldAddress[0] = 1
+	vmInput.Arguments = [][]byte{oldAddress}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee + 1).Bytes(), big.NewInt(0).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "service fee out of bounds")
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.UserError
+		}}, vm.ErrEmptyStorage
+	}
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(0).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "storage is nil for given key@storage is nil for given key")
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.UserError
+		}}, nil
+	}
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(0).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(0).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress:   vmInput.RecipientAddr,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(1000000),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ := d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, vmInput.RecipientAddr, marshaledData)
+
+	managementData := &DelegationManagement{
+		NumOfContracts:      0,
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinServiceFee:       0,
+		MaxServiceFee:       100,
+		MinDeposit:          big.NewInt(100),
+		MinDelegationAmount: big.NewInt(100),
+	}
+	marshaledData, _ = d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(0).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	for i, blsKey := range validatorData.BlsPubKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: true,
+		}
+		if i == 0 {
+			stakedData.Staked = false
+		}
+		marshaledData, _ = d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(1).Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "total delegation cap reached")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), validatorData.TotalStakeValue.Bytes()}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(mergeValidatorDataToDelegation, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, mergeValidatorDataToDelegation+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = d.delegationMgrSCAddress
+	vmInput.CallValue.SetUint64(0)
+	oldAddress := vm.ESDTSCAddress
+	oldAddress[0] = 1
+	vmInput.Arguments = [][]byte{oldAddress, oldAddress}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{oldAddress}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress:   oldAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(1000000),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ := d.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(d.validatorSCAddr, oldAddress, marshaledData)
+
+	managementData := &DelegationManagement{
+		NumOfContracts:      0,
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinServiceFee:       0,
+		MaxServiceFee:       100,
+		MinDeposit:          big.NewInt(100),
+		MinDelegationAmount: big.NewInt(100),
+	}
+	marshaledData, _ = d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.UserError
+		}}, vm.ErrEmptyStorage
+	}
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "storage is nil for given key@storage is nil for given key")
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.UserError
+		}}, nil
+	}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+
+	systemSCContainerStub.GetCalled = func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	_ = d.saveDelegationStatus(createNewDelegationContractStatus())
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrEmptyStorage.Error())
+
+	for i, blsKey := range validatorData.BlsPubKeys {
+		stakedData := &StakedDataV2_0{
+			Staked: true,
+		}
+		if i == 0 {
+			stakedData.Staked = false
+		}
+		marshaledData, _ = d.marshalizer.Marshal(stakedData)
+		eei.SetStorageForAddress(d.stakingSCAddr, blsKey, marshaledData)
+	}
+
+	createNewContractInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(1000000).Bytes(), big.NewInt(0).Bytes()})
+	createNewContractInput.CallValue = big.NewInt(1000000)
+	createNewContractInput.CallerAddr = d.delegationMgrSCAddress
+	returnCode = d.Execute(createNewContractInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "total delegation cap reached")
+
+	dConfig, _ := d.getDelegationContractConfig()
+	dConfig.MaxDelegationCap.SetUint64(0)
+	_ = d.saveDelegationContractConfig(dConfig)
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
