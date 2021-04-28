@@ -4563,8 +4563,6 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 }
 
 func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
-	t.Parallel()
-
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{
