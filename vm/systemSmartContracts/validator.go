@@ -1882,14 +1882,14 @@ func (v *validatorSC) getAndValidateRegistrationData(address []byte) (*Validator
 		return nil, vmcommon.UserError
 	}
 	if !bytes.Equal(oldValidatorData.RewardAddress, address) {
-		v.eei.AddReturnMessage("reward address missmatch")
+		v.eei.AddReturnMessage("reward address mismatch")
 		return nil, vmcommon.UserError
 	}
 	if len(oldValidatorData.UnstakedInfo) > 0 {
 		v.eei.AddReturnMessage("clean unstaked info before merge")
 		return nil, vmcommon.UserError
 	}
-	if oldValidatorData.TotalSlashed.Cmp(zero) > 0 {
+	if oldValidatorData.TotalSlashed != nil && oldValidatorData.TotalSlashed.Cmp(zero) > 0 {
 		v.eei.AddReturnMessage("cannot merge with validator who was slashed")
 		return nil, vmcommon.UserError
 	}
@@ -1913,11 +1913,6 @@ func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcom
 		return returnCode
 	}
 
-	oldValidatorData.RewardAddress = delegationAddr
-	returnCode = v.changeOwnerAndRewardAddressOnStaking(oldValidatorData)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
 	if len(v.eei.GetStorage(delegationAddr)) == 0 {
 		v.eei.AddReturnMessage("cannot merge with an empty state")
 		return vmcommon.UserError
@@ -1931,6 +1926,12 @@ func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcom
 	if !bytes.Equal(finalValidatorData.RewardAddress, delegationAddr) {
 		v.eei.AddReturnMessage("rewards address mismatch")
 		return vmcommon.UserError
+	}
+
+	oldValidatorData.RewardAddress = delegationAddr
+	returnCode = v.changeOwnerAndRewardAddressOnStaking(oldValidatorData)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
 	finalValidatorData.NumRegistered += oldValidatorData.NumRegistered

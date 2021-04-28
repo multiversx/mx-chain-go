@@ -4337,6 +4337,293 @@ func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManager(t *testing.T)
 	assert.Equal(t, storedDelegationManagementData.MinDelegationAmount, currentMinUnstakeTokens)
 }
 
+func TestStakingValidatorSC_checkInputArgsForValidatorToDelegationErrors(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+
+	arguments := CreateVmContractCallInput()
+	sc.flagValidatorToDelegation.Unset()
+	returnCode := sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	sc.flagValidatorToDelegation.Set()
+	eei.returnMessage = ""
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid caller address")
+
+	eei.returnMessage = ""
+	arguments.CallerAddr = sc.delegationMgrSCAddress
+	arguments.CallValue.SetUint64(10)
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "callValue must be 0")
+
+	eei.returnMessage = ""
+	arguments.CallValue.SetUint64(0)
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	arguments.Arguments = [][]byte{[]byte("arg1"), []byte("arg2")}
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address for the first and second argument")
+
+	eei.returnMessage = ""
+	randomAddress := vm.ESDTSCAddress
+	randomAddress[0] = 1
+	arguments.Arguments = [][]byte{randomAddress, randomAddress}
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "destination address must be a delegation smart contract")
+
+	eei.returnMessage = ""
+	randomAddress[0] = 0
+	arguments.Arguments = [][]byte{randomAddress, randomAddress}
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "sender and destination addresses are equal")
+
+	eei.returnMessage = ""
+	arguments.Arguments = [][]byte{vm.StakingSCAddress, randomAddress}
+	returnCode = sc.checkInputArgsForValidatorToDelegation(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "sender address must not be a smart contract")
+}
+
+func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	addr := []byte("address")
+
+	eei.returnMessage = ""
+	_, returnCode := sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	eei.SetStorage(addr, []byte("randomValue"))
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid character 'r' looking for beginning of value")
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress: addr,
+		UnstakedInfo:  []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
+		TotalUnstaked: big.NewInt(10),
+		TotalSlashed:  big.NewInt(10),
+	}
+	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(addr, marshaledData)
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "clean unstaked info before merge")
+
+	validatorData.UnstakedInfo = nil
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(addr, marshaledData)
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "cannot merge with validator who was slashed")
+
+	validatorData.TotalSlashed.SetUint64(0)
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(addr, marshaledData)
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "cannot merge with validator who has unStaked tokens")
+}
+
+func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 100000
+		},
+	}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.Eei = eei
+	argsStaking.StakingSCConfig.StakingV2Epoch = 0
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSc, nil
+	}})
+
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = vm.ESDTSCAddress
+	arguments.Function = "changeOwnerOfValidatorData"
+	arguments.Arguments = [][]byte{}
+	arguments.CallValue = big.NewInt(10000000)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "invalid caller address")
+
+	arguments.CallValue.SetUint64(0)
+	arguments.CallerAddr = sc.delegationMgrSCAddress
+	randomAddress := vm.ESDTSCAddress
+	randomAddress[0] = 1
+	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
+
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+
+	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "there is already a validator data under the new address")
+
+	eei.SetStorage(vm.FirstDelegationSCAddress, nil)
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "cannot change owner and reward address for a key which is not registered")
+
+	eei.SetStorage(randomAddress, nil)
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("firsstKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("secondKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("thirddKey"), big.NewInt(1).Bytes())
+
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, len(eei.GetStorage(randomAddress)), 0)
+
+	stakedData, _ := sc.getStakedData([]byte("secondKey"))
+	assert.Equal(t, stakedData.OwnerAddress, vm.FirstDelegationSCAddress)
+	assert.Equal(t, stakedData.RewardAddress, vm.FirstDelegationSCAddress)
+}
+
+func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 100000
+		},
+	}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.Eei = eei
+	argsStaking.StakingSCConfig.StakingV2Epoch = 0
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSc, nil
+	}})
+
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = vm.ESDTSCAddress
+	arguments.Function = "mergeValidatorData"
+	arguments.Arguments = [][]byte{}
+	arguments.CallValue = big.NewInt(10000000)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "invalid caller address")
+
+	arguments.CallValue.SetUint64(0)
+	arguments.CallerAddr = sc.delegationMgrSCAddress
+	randomAddress := vm.ESDTSCAddress
+	randomAddress[0] = 1
+	arguments.Arguments = [][]byte{randomAddress, vm.FirstDelegationSCAddress}
+
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+
+	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "invalid character 's' looking for beginning of value")
+
+	eei.SetStorage(vm.FirstDelegationSCAddress, nil)
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "cannot merge with an empty state")
+
+	eei.SetStorage(randomAddress, nil)
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("firsstKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("secondKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, randomAddress, randomAddress, []byte("thirddKey"), big.NewInt(1).Bytes())
+
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fourthKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("fifthhKey"), big.NewInt(1).Bytes())
+	stake(t, sc, stakingSc.stakeValue, vm.FirstDelegationSCAddress, vm.FirstDelegationSCAddress, []byte("sixthhKey"), big.NewInt(1).Bytes())
+
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.Equal(t, len(eei.GetStorage(randomAddress)), 0)
+
+	stakedData, _ := sc.getStakedData([]byte("secondKey"))
+	assert.Equal(t, stakedData.OwnerAddress, vm.FirstDelegationSCAddress)
+	assert.Equal(t, stakedData.RewardAddress, vm.FirstDelegationSCAddress)
+}
+
 func TestValidatorSC_getMinUnStakeTokensValueFromDelegationManagerMarshalizerFail(t *testing.T) {
 	t.Parallel()
 
