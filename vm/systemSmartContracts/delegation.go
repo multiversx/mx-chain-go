@@ -356,7 +356,7 @@ func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.Contr
 func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkArgumentsForValidatorToDelegation(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.Ok
+		return returnCode
 	}
 	if len(args.Arguments) != 3 {
 		d.eei.AddReturnMessage("invalid number of arguments")
@@ -506,7 +506,7 @@ func (d *delegation) getAndVerifyValidatorData(address []byte) (*ValidatorDataV2
 func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkArgumentsForValidatorToDelegation(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.Ok
+		return returnCode
 	}
 	if len(args.Arguments) != 1 {
 		d.eei.AddReturnMessage("invalid number of arguments")

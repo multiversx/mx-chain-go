@@ -309,6 +309,7 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 	scAddress := args.Arguments[0]
 	if len(scAddress) != lenAddress {
 		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
 	}
 
 	buff := d.eei.GetStorage(args.CallerAddr)
