@@ -1929,7 +1929,7 @@ func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcom
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(finalValidatorData.RewardAddress, delegationAddr) {
-		v.eei.AddReturnMessage("rewards address missmatch")
+		v.eei.AddReturnMessage("rewards address mismatch")
 		return vmcommon.UserError
 	}
 
