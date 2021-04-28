@@ -24,6 +24,11 @@ func (psh *PresenterStatusHandler) GetPeerType() string {
 	return psh.getFromCacheAsString(core.MetricPeerType)
 }
 
+// GetPeerSubType will return subtype of peer (regular, full history)
+func (psh *PresenterStatusHandler) GetPeerSubType() string {
+	return psh.getFromCacheAsString(core.MetricPeerSubType)
+}
+
 // GetPublicKeyBlockSign will return node public key for sign blocks
 func (psh *PresenterStatusHandler) GetPublicKeyBlockSign() string {
 	return psh.getFromCacheAsString(core.MetricPublicKeyBlockSign)

@@ -8,13 +8,18 @@ import (
 // MessengerStub -
 type MessengerStub struct {
 	ConnectedPeersCalled           func() []core.PeerID
-	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled func(topic string, identifier string, handler p2p.MessageProcessor) error
 	UnjoinAllTopicsCalled          func() error
 	IDCalled                       func() core.PeerID
 }
 
 // ConnectedPeersOnTopic -
 func (m *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
+	return []core.PeerID{"peer0"}
+}
+
+// ConnectedFullHistoryPeersOnTopic -
+func (m *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
 	return []core.PeerID{"peer0"}
 }
 
@@ -39,16 +44,16 @@ func (m *MessengerStub) CreateTopic(_ string, _ bool) error {
 }
 
 // RegisterMessageProcessor -
-func (m *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+func (m *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if m.RegisterMessageProcessorCalled != nil {
-		return m.RegisterMessageProcessorCalled(topic, handler)
+		return m.RegisterMessageProcessorCalled(topic, identifier, handler)
 	}
 
 	return nil
 }
 
 // UnregisterMessageProcessor -
-func (m *MessengerStub) UnregisterMessageProcessor(_ string) error {
+func (m *MessengerStub) UnregisterMessageProcessor(_ string, _ string) error {
 	return nil
 }
 

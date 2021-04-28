@@ -175,6 +175,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
+	Resolvers             ResolverConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -184,10 +185,12 @@ type LogsConfig struct {
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled             bool
-	CleanOldEpochsData  bool
-	NumEpochsToKeep     uint64
-	NumActivePersisters uint64
+	Enabled                        bool
+	CleanOldEpochsData             bool
+	NumEpochsToKeep                uint64
+	NumActivePersisters            uint64
+	FullArchive                    bool
+	FullArchiveNumActivePersisters uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -488,4 +491,11 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+}
+
+// ResolverConfig represents the config options to be used when setting up the resolver instances
+type ResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumIntraShardPeers  uint32
+	NumFullHistoryPeers uint32
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -101,7 +102,7 @@ type NodesConfigProvider interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

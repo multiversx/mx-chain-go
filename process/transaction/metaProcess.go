@@ -166,7 +166,7 @@ func (txProc *metaTxProcessor) processSCInvoking(
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32) {
+func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
 	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
 }

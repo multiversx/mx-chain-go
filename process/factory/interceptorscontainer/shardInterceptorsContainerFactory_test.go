@@ -28,7 +28,7 @@ func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRe
 
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			if matchStrToErrOnRegister == "" {
 				return nil
 			}
@@ -525,7 +525,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 	}
@@ -559,7 +559,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 	}

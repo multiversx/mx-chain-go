@@ -69,14 +69,6 @@ func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string]
 	return ss.GetBulkFromEpochCalled(keys, epoch)
 }
 
-// HasInEpoch -
-func (ss *StorerStub) HasInEpoch(key []byte, epoch uint32) error {
-	if ss.HasInEpochCalled != nil {
-		return ss.HasInEpochCalled(key, epoch)
-	}
-	return nil
-}
-
 // ClearCache -
 func (ss *StorerStub) ClearCache() {
 	ss.ClearCacheCalled()

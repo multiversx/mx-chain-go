@@ -960,18 +960,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.messenger,
-		Store:                      storageService,
-		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                  e.dataPool,
-		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs: 10,
-		DataPacker:                 dataPacker,
-		TriesContainer:             e.trieContainer,
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -128,7 +129,7 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*bl
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
+	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
@@ -142,7 +143,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}
