@@ -13,10 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,16 +28,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/node/disabled"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-// SendTransactionsPipe is the pipe used for sending new transactions
-const SendTransactionsPipe = "send transactions pipe"
+const (
+	// SendTransactionsPipe is the pipe used for sending new transactions
+	SendTransactionsPipe = "send transactions pipe"
+
+	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
+	esdtTickerNumChars = 6
+)
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
@@ -59,20 +68,20 @@ type Node struct {
 
 	networkShardingCollector NetworkShardingCollector
 
-	consensusTopic string
-	consensusType  string
+	consensusType string
 
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	sizeCheckDelta uint32
-	txSentCounter  uint32
-	txAcumulator   core.Accumulator
+	txSentCounter uint32
+	txAcumulator  core.Accumulator
 
-	signatureSize int
-	publicKeySize int
+	addressSignatureSize    int
+	addressSignatureHexSize int
+	validatorSignatureSize  int
+	publicKeySize           int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
@@ -89,8 +98,10 @@ type Node struct {
 	stateComponents     mainFactory.StateComponentsHolder
 	statusComponents    mainFactory.StatusComponentsHolder
 
-	closableComponents []mainFactory.Closer
+	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
+	isInImportMode            bool
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -188,6 +199,86 @@ func (n *Node) GetUsername(address string) (string, error) {
 	return string(username), nil
 }
 
+// GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
+func (n *Node) GetAllIssuedESDTs() ([]string, error) {
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		key := string(leaf.Key())
+		if strings.Contains(key, "-") {
+			tokens = append(tokens, key)
+		}
+	}
+
+	return tokens, nil
+}
+
+// GetKeyValuePairs returns all the key-value pairs under the address
+func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
+	account, err := n.getAccountHandlerAPIAccounts(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return map[string]string{}, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mapToReturn := make(map[string]string)
+	for leaf := range chLeaves {
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+	}
+
+	return mapToReturn, nil
+}
+
 // GetValueForKey will return the value for a key from a given account
 func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	keyBytes, err := hex.DecodeString(key)
@@ -213,35 +304,8 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	return hex.EncodeToString(valueBytes), nil
 }
 
-// GetESDTBalance returns the esdt balance and properties from a given account
-func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
-	account, err := n.getAccountHandler(address)
-	if err != nil {
-		return "", "", err
-	}
-
-	userAccount, ok := n.castAccountToUserAccount(account)
-	if !ok {
-		return "", "", ErrAccountNotFound
-	}
-
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil {
-		return "0", "", nil
-	}
-
-	esdtToken := &esdt.ESDigitalToken{}
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, valueBytes)
-	if err != nil {
-		return "", "", err
-	}
-
-	return esdtToken.Value.String(), hex.EncodeToString(esdtToken.Properties), nil
-}
-
-// GetAllESDTTokens returns the value of a key from a given account
-func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
+// GetESDTData returns the esdt balance and properties from a given account
+func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandler(address)
 	if err != nil {
 		return nil, err
@@ -252,16 +316,50 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		return nil, ErrAccountNotFound
 	}
 
-	if check.IfNil(userAccount.DataTrie()) {
-		return []string{}, nil
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenID
+	if nonce > 0 {
+		tokenKey += string(big.NewInt(0).SetUint64(nonce).Bytes())
 	}
 
-	foundTokens := make([]string, 0)
+	dataBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	if err != nil || len(dataBytes) == 0 {
+		return esdtToken, nil
+	}
+
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, dataBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if esdtToken.TokenMetaData != nil {
+		esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+	}
+
+	return esdtToken, nil
+}
+
+// GetAllESDTTokens returns the value of a key from a given account
+func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
+	account, err := n.getAccountHandlerAPIAccounts(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	allESDTs := make(map[string]*esdt.ESDigitalToken)
+	if check.IfNil(userAccount.DataTrie()) {
+		return allESDTs, nil
+	}
 
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	rootHash, err := userAccount.DataTrie().Root()
+	rootHash, err := userAccount.DataTrie().RootHash()
 	if err != nil {
 		return nil, err
 	}
@@ -277,10 +375,49 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 		}
 
 		tokenName := string(leaf.Key()[lenESDTPrefix:])
-		foundTokens = append(foundTokens, tokenName)
+		esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+		if err != nil {
+			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			continue
+		}
+
+		if esdtToken.TokenMetaData != nil {
+			esdtToken.TokenMetaData.Creator = []byte(n.coreComponents.AddressPubKeyConverter().Encode(esdtToken.TokenMetaData.Creator))
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
+		}
+
+		allESDTs[tokenName] = esdtToken
 	}
 
-	return foundTokens, nil
+	return allESDTs, nil
+}
+
+func adjustNftTokenIdentifier(token string, nonce uint64) string {
+	splitToken := strings.Split(token, "-")
+	if len(splitToken) < 2 {
+		return token
+	}
+
+	if len(splitToken[1]) < esdtTickerNumChars {
+		return token
+	}
+
+	nonceBytes := big.NewInt(0).SetUint64(nonce).Bytes()
+	formattedTokenIdentifier := fmt.Sprintf("%s-%s-%s",
+		splitToken[0],
+		splitToken[1][:esdtTickerNumChars],
+		hex.EncodeToString(nonceBytes))
+
+	return formattedTokenIdentifier
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
@@ -293,6 +430,36 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
+}
+
+func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
+		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
+		check.IfNil(n.dataComponents.Blockchain())
+	if componentsNotInitialized {
+		return nil, errors.New("initialize AccountsAdapterAPI, PubkeyConverter and Blockchain first")
+	}
+
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+	}
+
+	return n.getAccountHandlerForPubKey(addr)
+}
+
+func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return nil, ErrNilBlockHeader
+	}
+
+	err := n.stateComponents.AccountsAdapterAPI().RecreateTrie(blockHeader.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
@@ -366,28 +533,30 @@ func (n *Node) printTxSentCounter(ctx context.Context) {
 	totalTxCounter := uint64(0)
 	counterSeconds := 0
 
-	select {
-	case <-time.After(time.Second):
-		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
-		if txSent > maxTxCounter {
-			maxTxCounter = txSent
-		}
-		totalTxCounter += uint64(txSent)
-
-		counterSeconds++
-		if counterSeconds > numSecondsBetweenPrints {
-			counterSeconds = 0
-
-			if maxTxCounter > 0 {
-				log.Info("sent transactions on network",
-					"max/sec", maxTxCounter,
-					"total", totalTxCounter,
-				)
+	for {
+		select {
+		case <-time.After(time.Second):
+			txSent := atomic.SwapUint32(&n.txSentCounter, 0)
+			if txSent > maxTxCounter {
+				maxTxCounter = txSent
 			}
-			maxTxCounter = 0
+			totalTxCounter += uint64(txSent)
+
+			counterSeconds++
+			if counterSeconds > numSecondsBetweenPrints {
+				counterSeconds = 0
+
+				if maxTxCounter > 0 {
+					log.Info("sent transactions on network",
+						"max/sec", maxTxCounter,
+						"total", totalTxCounter,
+					)
+				}
+				maxTxCounter = 0
+			}
+		case <-ctx.Done():
+			return
 		}
-	case <-ctx.Done():
-		return
 	}
 }
 
@@ -430,7 +599,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), true)
 	if err != nil {
 		return err
 	}
@@ -439,8 +608,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
-func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
-	txValidator, intTx, err := n.commonTransactionValidation(tx)
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error {
+	disabledWhiteListHandler := disabled.NewDisabledWhiteListDataVerifier()
+	txValidator, intTx, err := n.commonTransactionValidation(tx, disabledWhiteListHandler, disabledWhiteListHandler, checkSignature)
 	if err != nil {
 		return err
 	}
@@ -454,11 +624,16 @@ func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) err
 	return err
 }
 
-func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
+func (n *Node) commonTransactionValidation(
+	tx *transaction.Transaction,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	checkSignature bool,
+) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
-		n.processComponents.WhiteListHandler(),
+		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -476,6 +651,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 	currentEpoch := n.coreComponents.EpochNotifier().CurrentEpoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
+	txSingleSigner := n.cryptoComponents.TxSingleSigner()
+	if !checkSignature {
+		txSingleSigner = &disabledSig.DisabledSingleSig{}
+	}
+
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
@@ -483,11 +663,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.coreComponents.TxMarshalizer(),
 		n.coreComponents.Hasher(),
 		n.cryptoComponents.TxSignKeyGen(),
-		n.cryptoComponents.TxSingleSigner(),
+		txSingleSigner,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
 		n.coreComponents.EconomicsData(),
-		n.processComponents.WhiteListerVerifiedTxs(),
+		whiteListerVerifiedTxs,
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
 		enableSignWithTxHash,
@@ -559,7 +739,9 @@ func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
 	receiver string,
+	receiverUsername []byte,
 	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	dataField []byte,
@@ -571,8 +753,8 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" {
-		return nil, nil, ErrInvalidChainID
+	if chainID == "" || len(chainID) > len(n.coreComponents.ChainID()) {
+		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	addrPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	if check.IfNil(addrPubKeyConverter) {
@@ -580,6 +762,24 @@ func (n *Node) CreateTransaction(
 	}
 	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, nil, ErrNilAccountsAdapter
+	}
+	if len(signatureHex) > n.addressSignatureHexSize {
+		return nil, nil, ErrInvalidSignatureLength
+	}
+	if uint32(len(receiver)) > n.coreComponents.EncodedAddressLen() {
+		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
+	}
+	if uint32(len(sender)) > n.coreComponents.EncodedAddressLen() {
+		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if len(senderUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidSenderUsernameLength
+	}
+	if len(receiverUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidReceiverUsernameLength
+	}
+	if len(dataField) > core.MegabyteSize {
+		return nil, nil, ErrDataFieldTooBig
 	}
 
 	receiverAddress, err := addrPubKeyConverter.Decode(receiver)
@@ -597,23 +797,29 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
+	if len(value) > len(n.coreComponents.EconomicsData().GenesisTotalSupply().String())+1 {
+		return nil, nil, ErrTransactionValueLengthTooBig
+	}
+
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
 		return nil, nil, ErrInvalidValue
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:     nonce,
-		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress,
-		SndAddr:   senderAddress,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      dataField,
-		Signature: signatureBytes,
-		ChainID:   []byte(chainID),
-		Version:   version,
-		Options:   options,
+		Nonce:       nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: receiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: senderUsername,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        dataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(chainID),
+		Version:     version,
+		Options:     options,
 	}
 
 	var txHash []byte
@@ -655,6 +861,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	return account, nil
 }
 
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.stateComponents.AccountsAdapter().GetCode(account.GetCodeHash())
+}
+
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 	if check.IfNil(n.heartbeatComponents) {
@@ -671,20 +882,6 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
-}
-
-func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
-	latestHash, err := n.processComponents.ValidatorsStatistics().RootHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	validators, err := n.processComponents.ValidatorsStatistics().GetValidatorInfoForRootHash(latestHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return validators, nil, nil
 }
 
 // DirectTrigger will start the hardfork trigger
@@ -841,6 +1038,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
+	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
@@ -875,6 +1073,11 @@ func (n *Node) Close() error {
 	time.Sleep(time.Second * 5)
 
 	return closeError
+}
+
+// IsInImportMode returns true if the node is in import mode
+func (n *Node) IsInImportMode() bool {
+	return n.isInImportMode
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

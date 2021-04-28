@@ -17,40 +17,11 @@
    # MinTransactionVersion represents the minimum transaction version accepted
    MinTransactionVersion = 1
 
-   # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-   SCDeployEnableEpoch = 2
-
-   # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-   BuiltInFunctionsEnableEpoch = 2
-
-   # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-   RelayedTransactionsEnableEpoch = 2
-
-   # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-   PenalizedTooMuchGasEnableEpoch = 2
-
-   # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-   SwitchJailWaitingEnableEpoch = 2
-
-   # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-   BelowSignedThresholdEnableEpoch = 2
-
-   # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
-   # also (minimum) hysteresis nodes for the minimum number of nodes
-   SwitchHysteresisForMinNodesEnableEpoch = 2
-
-    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
-    # signed with the hash of transaction
-    TransactionSignedWithTxHashEnableEpoch = 2
-
-   # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-   MetaProtectionEnableEpoch = 2
-
-   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnableEpoch = 2
-
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
+
+   # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
+   GenesisMaxNumberOfShards  = 3
 
 [Versions]
    DefaultVersion = "default"
@@ -61,12 +32,6 @@
         Name = "VersionsCache"
         Capacity = 100
         Type = "LRU"
-
-[GasSchedule]
-    GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 2, FileName = "gasScheduleV2.toml" },
-    ]
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -83,6 +48,15 @@
    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
    # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
+
+   # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.
+   # It is highly recommended to enable this flag on an observer (not on a validator node)
+   FullArchive = false
+
+   # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
+   # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
+   # it is a good idea to increase the maximum number of opened files allowed by the operating system
+   FullArchiveNumActivePersisters = 10
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -252,6 +226,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[TrieEpochRootHashStorage]
+    [TrieEpochRootHashStorage.Cache]
+        Name = "TrieEpochRootHashCache"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
+    [TrieEpochRootHashStorage.DB]
+        FilePath = "TrieEpochRootHashStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 500
+        MaxOpenFiles = 10
+
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
         Name = "ShardHdrNonceHashStorage"
@@ -311,6 +298,7 @@
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
+    KeepSnapshots = false
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -358,9 +346,9 @@
 
 [TrieNodesDataPool]
     Name = "TrieNodesDataPool"
-    Capacity = 900000
+    Capacity = 300000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 104857600 #100MB
 
 [SmartContractDataPool]
     Name = "SmartContractDataPool"
@@ -513,7 +501,7 @@
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"
-    SignatureLength = 0
+    SignatureLength = 64
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -605,6 +593,8 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
+    UserStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
+    PeerStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -613,14 +603,16 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         OutOfProcessEnabled = false
-        WarmInstanceEnabled = false
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
-        OutOfProcessEnabled = false
-        WarmInstanceEnabled = true
+        NumConcurrentVMs = 1
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 10000
 
 [Hardfork]
     EnableTrigger = true
@@ -761,3 +753,14 @@
 
 [Logs]
     LogFileLifeSpanInSec = 86400
+
+[TrieSync]
+    NumConcurrentTrieSyncers  = 200
+    MaxHardCapForMissingNodes = 5000
+    #available versions: 1 and 2. 1 is the initial version, 2 is updated, more efficient version
+    TrieSyncerVersion         = 2
+
+[Resolvers]
+    NumCrossShardPeers  = 2
+    NumIntraShardPeers  = 1
+    NumFullHistoryPeers = 3

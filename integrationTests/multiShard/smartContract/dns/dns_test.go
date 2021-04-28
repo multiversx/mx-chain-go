@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,9 +26,8 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -56,9 +54,8 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -74,15 +71,16 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 10
+	nrRoundsToPropagateMultiShard := 15
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	_ = sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
+	newUserNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
+	checkUserNamesAreDeleted(t, nodes, newUserNames, sortedDNSAddresses)
 }
 
 func TestDNSandRelayedTxNormal(t *testing.T) {
@@ -90,9 +88,8 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	nodes, players, idxProposers := prepareNodesAndPlayers()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -124,20 +121,16 @@ func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrat
 	return relayer
 }
 
-func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
+func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int) {
 	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "smartcontracts.json"
 	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
 
@@ -165,7 +158,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	return nodes, players, idxProposers, advertiser
+	return nodes, players, idxProposers
 }
 
 func getDNSContractsData(node *integrationTests.TestProcessorNode) (*big.Int, []string) {
@@ -284,16 +277,41 @@ func checkUserNamesAreSetCorrectly(
 			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
 		}
 	}
+}
 
+func checkUserNamesAreDeleted(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	userNames []string,
+	sortedDNSAddresses []string,
+) {
+	for _, userName := range userNames {
+		dnsAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
+
+		dnsSHId := nodes[0].ShardCoordinator.ComputeId([]byte(dnsAddress))
+		for _, node := range nodes {
+			if node.ShardCoordinator.SelfId() != dnsSHId {
+				continue
+			}
+
+			acnt, _ := node.AccntState.GetExistingAccount([]byte(dnsAddress))
+			dnsAcc, _ := acnt.(state.UserAccountHandler)
+
+			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
+			value, err := dnsAcc.DataTrie().Get([]byte(keyFromTrie))
+			assert.Nil(t, err)
+			assert.Nil(t, value)
+		}
+	}
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
-	hashedAddr := keccak.Keccak{}.Compute(userName)
+	hashedAddr := keccak.NewKeccak().Compute(userName)
 	return sortedDNSAddresses[hashedAddr[31]]
 }
 
 func generateNewUserName() string {
-	return RandStringBytes(10)
+	return RandStringBytes(10) + ".elrond"
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz"

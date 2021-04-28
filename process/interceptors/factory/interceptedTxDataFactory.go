@@ -35,7 +35,6 @@ type interceptedTxDataFactory struct {
 	txSignHasher                hashing.Hasher
 	txVersionChecker            process.TxVersionCheckerHandler
 	flagEnableSignedTxWithHash  atomic.Flag
-	epochNotifier               process.EpochNotifier
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -95,7 +94,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	interceptedTxDataFactory := &interceptedTxDataFactory{
+	itdf := &interceptedTxDataFactory{
 		protoMarshalizer:            argument.CoreComponents.InternalMarshalizer(),
 		signMarshalizer:             argument.CoreComponents.TxMarshalizer(),
 		hasher:                      argument.CoreComponents.Hasher(),
@@ -114,9 +113,9 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		txVersionChecker:            argument.CoreComponents.TxVersionChecker(),
 	}
 
-	argument.CoreComponents.EpochNotifier().RegisterNotifyHandler(interceptedTxDataFactory)
+	argument.CoreComponents.EpochNotifier().RegisterNotifyHandler(itdf)
 
-	return interceptedTxDataFactory, nil
+	return itdf, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
@@ -146,7 +145,7 @@ func (itdf *interceptedTxDataFactory) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (itdf *interceptedTxDataFactory) EpochConfirmed(epoch uint32) {
+func (itdf *interceptedTxDataFactory) EpochConfirmed(epoch uint32, _ uint64) {
 	itdf.flagEnableSignedTxWithHash.Toggle(epoch >= itdf.enableSignedTxWithHashEpoch)
 	log.Debug("interceptors: transaction signed with hash", "enabled", itdf.flagEnableSignedTxWithHash.IsSet())
 }

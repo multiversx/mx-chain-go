@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -12,18 +11,18 @@ const numMillisecondsInASecond = 1000
 
 type tpsBenchmarkUpdater struct {
 	tpsBenchmark   statistics.TPSBenchmark
-	outportHandler outport.OutportHandler
+	elasticIndexer StorageDataIndexer
 }
 
 // NewTPSBenchmarkUpdater returns a new instance of tpsBenchmarkUpdater
 func NewTPSBenchmarkUpdater(
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
-	outportHandler outport.OutportHandler,
+	tpsIndexer StorageDataIndexer,
 ) (*tpsBenchmarkUpdater, error) {
 	if check.IfNil(genesisNodesConfig) {
 		return nil, ErrNilGenesisNodesSetup
 	}
-	if check.IfNil(outportHandler) {
+	if check.IfNil(tpsIndexer) {
 		return nil, ErrNilOutportHandler
 	}
 
@@ -37,7 +36,7 @@ func NewTPSBenchmarkUpdater(
 
 	return &tpsBenchmarkUpdater{
 		tpsBenchmark:   tpsBenchmark,
-		outportHandler: outportHandler,
+		elasticIndexer: tpsIndexer,
 	}, nil
 }
 

@@ -3,7 +3,6 @@ package factory_test
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -13,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
@@ -66,11 +64,26 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
-	epochStartConfig := getEpochStartConfig()
-
 	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
 		GasSchedule: gasSchedule,
 	}
+
+	nodesCoordinator := &mock.NodesCoordinatorMock{}
+	statusComponents := getStatusComponents(
+		coreComponents,
+		networkComponents,
+		dataComponents,
+		stateComponents,
+		shardCoordinator,
+		nodesCoordinator,
+	)
+
+	bootstrapComponentsFactoryArgs := getBootStrapArgs()
+
+	bootstrapComponentsFactory, _ := factory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	bootstrapComponents, _ := factory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	_ = bootstrapComponents.Create()
+	factory.SetShardCoordinator(shardCoordinator, bootstrapComponents)
 
 	return factory.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -124,39 +137,25 @@ func getProcessArgs(
 				return initialAccounts
 			},
 		},
-		SmartContractParser: &mock.SmartContractParserStub{},
-		EconomicsData:       CreateEconomicsData(),
-		GasSchedule:         gasScheduleNotifier,
-		Rounder: &mock.RounderMock{
-			RoundTimeDuration: time.Second,
-		},
-		ShardCoordinator:          shardCoordinator,
-		NodesCoordinator:          &mock.NodesCoordinatorMock{},
-		Data:                      dataComponents,
-		CoreData:                  coreComponents,
-		Crypto:                    cryptoComponents,
-		State:                     stateComponents,
-		Network:                   networkComponents,
-		RequestedItemsHandler:     &testscommon.RequestedItemsHandlerStub{},
-		WhiteListHandler:          &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:    &testscommon.WhiteListHandlerStub{},
-		EpochStartNotifier:        &mock.EpochStartNotifierStub{},
-		EpochStart:                &epochStartConfig,
-		Rater:                     &testscommon.RaterMock{},
-		RatingsData:               &testscommon.RatingsInfoMock{},
-		SizeCheckDelta:            0,
-		StateCheckpointModulus:    0,
-		MaxComputableRounds:       1000,
-		NumConcurrentResolverJobs: 2,
-		MinSizeInBytes:            0,
-		MaxSizeInBytes:            200,
-		MaxRating:                 100,
-		ImportStartHandler:        &testscommon.ImportStartHandlerStub{},
-		ValidatorPubkeyConverter:  &testscommon.PubkeyConverterMock{},
+		SmartContractParser:    &mock.SmartContractParserStub{},
+		GasSchedule:            gasScheduleNotifier,
+		NodesCoordinator:       nodesCoordinator,
+		Data:                   dataComponents,
+		CoreData:               coreComponents,
+		Crypto:                 cryptoComponents,
+		State:                  stateComponents,
+		Network:                networkComponents,
+		StatusComponents:       statusComponents,
+		BootstrapComponents:    bootstrapComponents,
+		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
+		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
+		MaxRating:              100,
+		ImportStartHandler:     &testscommon.ImportStartHandlerStub{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
-				OwnerAddress:    "aaaaaa",
+				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				ProposalCost:     "500",
@@ -171,35 +170,27 @@ func getProcessArgs(
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
 				UnBondPeriod:                         0,
-				AuctionEnableEpoch:                   0,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
 				MaxNumberOfNodesForStake:             10,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
-		Version:                 "v1.0.0",
+		Version:     "v1.0.0",
+		HistoryRepo: &testscommon.HistoryRepositoryStub{},
 		OutportHandler:          &testscommon.OutportStub{},
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
-}
-
-// CreateEconomicsData creates a mock EconomicsData object
-func CreateEconomicsData() *economics.EconomicsData {
-	economicsConfig := createDummyEconomicsConfig()
-	args := economics.ArgsNewEconomicsData{
-		Economics:                      &economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
-	}
-	economicsData, _ := economics.NewEconomicsData(args)
-	return economicsData
 }
 
 // FillGasMapMetaChainSystemSCsCosts -
@@ -220,6 +211,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
+	gasMap["DelegationMgrOps"] = value
+	gasMap["GetAllNodeStates"] = value
 
 	return gasMap
 }

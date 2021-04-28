@@ -317,8 +317,8 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 // ErrNilResolversFinder signals that a nil resolver finder was provided
 var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
-// ErrNilRounder signals that a nil rounder was provided
-var ErrNilRounder = errors.New("nil rounder")
+// ErrNilRoundHandler signals that a nil roundHandler was provided
+var ErrNilRoundHandler = errors.New("nil roundHandler")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")
@@ -467,8 +467,17 @@ var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory creat
 // ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
+// ErrNewStorageEpochStartBootstrap signals that a new storageEpochStartBootstrap creation has failed
+var ErrNewStorageEpochStartBootstrap = errors.New("storageEpochStartBootstrap creation has failed")
+
 // ErrBootstrap signals the bootstrapping process has failed
 var ErrBootstrap = errors.New("bootstrap process has failed")
 
 // ErrNilDataPoolsHolder signals that a nil data pools holder was provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
+
+// ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
+var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
+
+// ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

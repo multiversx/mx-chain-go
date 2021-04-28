@@ -228,7 +228,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 	require.Nil(t, err)
 
 	err = ss.SyncAllState(0)
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }
 
 func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
@@ -257,7 +257,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 	require.Nil(t, err)
 
 	err = ss.SyncAllState(0)
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }
 
 func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
@@ -286,5 +286,5 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 	require.Nil(t, err)
 
 	err = ss.SyncAllState(0)
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }

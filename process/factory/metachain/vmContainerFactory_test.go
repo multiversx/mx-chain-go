@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,15 +44,15 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := makeGasSchedule()
-	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		&economics.EconomicsData{},
-		&mock.MessageSignVerifierMock{},
-		gasSchedule,
-		&mock.NodesConfigProviderStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&config.SystemSmartContractsConfig{
+	argsNewVmContainerFactory := ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		Economics:           &economicsmocks.EconomicsHandlerStub{},
+		MessageSignVerifier: &mock.MessageSignVerifierMock{},
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
@@ -69,20 +70,24 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   0,
-				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             1,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
-	)
+		ValidatorAccountsDB: &mock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:   10,
+				StakeEnableEpoch: 0,
+			},
+		},
+	}
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -108,6 +113,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				LeaderPercentage:                 0.1,
 				ProtocolSustainabilityPercentage: 0.1,
 				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				TopUpFactor:                      0.25,
+				TopUpGradientPoint:               "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000000",
@@ -115,23 +122,24 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinGasPrice:             "10",
 				MinGasLimit:             "10",
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
-	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		economicsData,
-		&mock.MessageSignVerifierMock{},
-		makeGasSchedule(),
-		&mock.NodesConfigProviderStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&config.SystemSmartContractsConfig{
+	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		Economics:           economicsData,
+		MessageSignVerifier: &mock.MessageSignVerifierMock{},
+		GasSchedule:         makeGasSchedule(),
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
@@ -149,20 +157,36 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   1,
-				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "aabb00",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
-	)
+		ValidatorAccountsDB: &mock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2Epoch:                     10,
+				StakeEnableEpoch:                   1,
+				DelegationManagerEnableEpoch:       0,
+				DelegationSmartContractEnableEpoch: 0,
+			},
+		},
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
 
@@ -205,7 +229,7 @@ func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	gasMap["PersistPerByte"] = value
 	gasMap["CompilePerByte"] = value
 	gasMap["AoTPreparePerByte"] = value
-
+	gasMap["GetCode"] = value
 	return gasMap
 }
 
@@ -226,6 +250,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
+	gasMap["DelegationMgrOps"] = value
+	gasMap["GetAllNodeStates"] = value
 
 	return gasMap
 }

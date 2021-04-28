@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -31,10 +32,10 @@ func CalculateHash(
 	hasher hashing.Hasher,
 	object interface{},
 ) ([]byte, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -198,4 +199,22 @@ func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uin
 	}
 
 	return uint32(val), err
+}
+
+// AssignShardForPubKeyWhenNotSpecified will return the same shard ID when it is called with the same parameters
+// This function fetched the last byte of the public key and based on a modulo operation it will return a shard ID
+func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint32 {
+	if len(pubKey) == 0 {
+		return 0 // should never happen
+	}
+
+	lastByte := pubKey[len(pubKey)-1]
+	numShardsIncludingMeta := numShards + 1
+
+	randomShardID := uint32(lastByte) % numShardsIncludingMeta
+	if randomShardID == numShards {
+		randomShardID = MetachainShardId
+	}
+
+	return randomShardID
 }

@@ -2,7 +2,6 @@ package sync
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -66,7 +65,7 @@ func TestNewSyncState(t *testing.T) {
 		},
 	}
 
-	err = triesSyncHandler.SyncTriesFrom(metaBlock, time.Second)
+	err = triesSyncHandler.SyncTriesFrom(metaBlock)
 	require.Nil(t, err)
 
 	tries, err := triesSyncHandler.GetTries()

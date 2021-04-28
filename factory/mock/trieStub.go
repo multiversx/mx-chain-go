@@ -14,7 +14,6 @@ type TrieStub struct {
 	GetCalled                   func(key []byte) ([]byte, error)
 	UpdateCalled                func(key, value []byte) error
 	DeleteCalled                func(key []byte) error
-	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
 	RecreateCalled              func(root []byte) (data.Trie, error)
 	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
@@ -25,6 +24,12 @@ type TrieStub struct {
 	GetAllHashesCalled          func() ([][]byte, error)
 	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetProofCalled              func(key []byte) ([][]byte, error)
+	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled     func() data.StorageManager
+	RootHashCalled              func() ([]byte, error)
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled           func() data.NumNodesDTO
 }
 
 // EnterSnapshotMode -
@@ -90,15 +95,6 @@ func (ts *TrieStub) Delete(key []byte) error {
 	}
 
 	return nil
-}
-
-// Root -
-func (ts *TrieStub) Root() ([]byte, error) {
-	if ts.RootCalled != nil {
-		return ts.RootCalled()
-	}
-
-	return nil, nil
 }
 
 // Commit -
@@ -212,4 +208,55 @@ func (ts *TrieStub) ExitPruningBufferingMode() {
 // GetSnapshotDbBatchDelay -
 func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
 	return 0
+}
+
+// GetProofCalled -
+func (ts *TrieStub) GetProof(key []byte) ([][]byte, error) {
+	if ts.GetProofCalled != nil {
+		return ts.GetProofCalled(key)
+	}
+	return nil, nil
+}
+
+// VerifyProofCalled
+func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+	if ts.VerifyProofCalled != nil {
+		return ts.VerifyProofCalled(key, proof)
+	}
+
+	return false, nil
+}
+
+// GetStorageManager -
+func (ts *TrieStub) GetStorageManager() data.StorageManager {
+	if ts.GetStorageManagerCalled != nil {
+		return ts.GetStorageManagerCalled()
+	}
+	return nil
+}
+
+// RootHash -
+func (ts *TrieStub) RootHash() ([]byte, error) {
+	if ts.RootHashCalled != nil {
+		return ts.RootHashCalled()
+	}
+	return nil, nil
+}
+
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
+	}
+
+	return nil, nil
+}
+
+// GetNumNodes -
+func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+	if ts.GetNumNodesCalled != nil {
+		return ts.GetNumNodesCalled()
+	}
+
+	return data.NumNodesDTO{}
 }

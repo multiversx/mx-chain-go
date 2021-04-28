@@ -41,13 +41,17 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const timeToWait = time.Minute
-const trieSyncWaitTime = 10 * time.Minute
+// DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
+const DefaultTimeToWaitForRequestedData = time.Minute
+const timeoutGettingTrieNode = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
-const numConcurrentTrieSyncers = 50
+
+// thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
+// the same meta block in order to consider it correct
+const thresholdForConsideringMetaBlockCorrect = 67
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -65,8 +69,6 @@ type ComponentsNeededForBootstrap struct {
 	NodesConfig         *sharding.NodesCoordinatorRegistry
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
-	UserAccountTries    map[string]data.Trie
-	PeerAccountTries    map[string]data.Trie
 	PendingMiniBlocks   map[string]*block.MiniBlock
 }
 
@@ -78,7 +80,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              process.EconomicsHandler
+	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
@@ -87,12 +89,14 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
-	rounder                    epochStart.Rounder
-	addressPubkeyConverter     core.PubkeyConverter
+	roundHandler               epochStart.RoundHandler
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	enableSignTxWithHashEpoch  uint32
 	epochNotifier              process.EpochNotifier
+	numConcurrentTrieSyncers   int
+	maxHardCapForMissingNodes  int
+	trieSyncerVersion          int
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -113,8 +117,6 @@ type epochStartBootstrap struct {
 	prevEpochStartMeta *block.MetaBlock
 	syncedHeaders      map[string]data.HeaderHandler
 	nodesConfig        *sharding.NodesCoordinatorRegistry
-	userAccountTries   map[string]data.Trie
-	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	startRound         int64
 	nodeType           core.NodeType
@@ -138,14 +140,15 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              process.EconomicsHandler
+	EpochConfig                config.EpochConfig
+	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
 	NodeShuffler               sharding.NodesShuffler
-	Rounder                    epochStart.Rounder
+	RoundHandler               epochStart.RoundHandler
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -169,7 +172,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
 		nodeShuffler:               args.NodeShuffler,
-		rounder:                    args.Rounder,
+		roundHandler:               args.RoundHandler,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		shuffledOut:                false,
@@ -177,9 +180,14 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		enableSignTxWithHashEpoch:  args.EpochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
+		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
 	}
+
+	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
@@ -217,7 +225,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	currentRound := e.rounder.Index() - e.startRound
+	currentRound := e.roundHandler.Index() - e.startRound
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
@@ -284,54 +292,10 @@ func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[strin
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
-		log.Warn("fast bootstrap is disabled")
-
-		e.initializeFromLocalStorage()
-		if !e.baseData.storageExists {
-			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
-			if err != nil {
-				return Parameters{}, err
-			}
-
-			return Parameters{
-				Epoch:       e.startEpoch,
-				SelfShardId: e.genesisShardCoordinator.SelfId(),
-				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
-			}, nil
-		}
-
-		newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		err = e.createTriesComponentsForShardId(newShardId)
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		epochToStart := e.baseData.lastEpoch
-		if shuffledOut {
-			epochToStart = e.startEpoch
-		}
-
-		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
-		return Parameters{
-			Epoch:       epochToStart,
-			SelfShardId: newShardId,
-			NumOfShards: e.baseData.numberOfShards,
-			NodesConfig: e.nodesConfig,
-		}, nil
+		return e.bootstrapFromLocalStorage()
 	}
 
-	defer func() {
-		log.Debug("unregistering all message processor and un-joining all topics")
-		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger)
-
-		errMessenger = e.messenger.UnjoinAllTopics()
-		log.LogIfError(errMessenger)
-	}()
+	defer e.cleanupOnBootstrapFinish()
 
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
@@ -350,25 +314,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	isStartInEpochZero := e.isStartInEpochZero()
-	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-
-	if isStartInEpochZero || isCurrentEpochSaved {
-		if e.baseData.lastEpoch <= e.startEpoch {
-			return e.prepareEpochZero()
-		}
-
-		parameters, errPrepare := e.prepareEpochFromStorage()
-		if errPrepare == nil {
-			return parameters, nil
-		}
-
-		if e.shuffledOut {
-			// sync was already tried - not need to continue from here
-			return Parameters{}, errPrepare
-		}
-
-		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+	params, shouldContinue, err := e.startFromSavedEpoch()
+	if !shouldContinue {
+		return params, err
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -376,7 +324,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
+	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(DefaultTimeToWaitForRequestedData)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -388,12 +336,88 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	params, err := e.requestAndProcessing()
+	params, err = e.requestAndProcessing()
 	if err != nil {
 		return Parameters{}, err
 	}
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
+	log.Warn("fast bootstrap is disabled")
+
+	e.initializeFromLocalStorage()
+	if !e.baseData.storageExists {
+		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
+		return Parameters{
+			Epoch:       e.startEpoch,
+			SelfShardId: e.genesisShardCoordinator.SelfId(),
+			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+		}, nil
+	}
+
+	newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.createTriesComponentsForShardId(newShardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	epochToStart := e.baseData.lastEpoch
+	if shuffledOut {
+		epochToStart = e.startEpoch
+	}
+
+	newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
+	return Parameters{
+		Epoch:       epochToStart,
+		SelfShardId: newShardId,
+		NumOfShards: e.baseData.numberOfShards,
+		NodesConfig: e.nodesConfig,
+	}, nil
+}
+
+func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
+	log.Debug("unregistering all message processor and un-joining all topics")
+	errMessenger := e.messenger.UnregisterAllMessageProcessors()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.messenger.UnjoinAllTopics()
+	log.LogIfError(errMessenger)
+}
+
+func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
+	isStartInEpochZero := e.isStartInEpochZero()
+	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
+
+	if isStartInEpochZero || isCurrentEpochSaved {
+		if e.baseData.lastEpoch <= e.startEpoch {
+			params, err := e.prepareEpochZero()
+			return params, false, err
+		}
+
+		parameters, errPrepare := e.prepareEpochFromStorage()
+		if errPrepare == nil {
+			return parameters, false, nil
+		}
+
+		if e.shuffledOut {
+			// sync was already tried - not need to continue from here
+			return Parameters{}, false, errPrepare
+		}
+
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+	}
+
+	return Parameters{}, true, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -402,7 +426,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 		return false
 	}
 
-	computedRound := e.rounder.Index()
+	computedRound := e.roundHandler.Index()
 	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
 	if computedRound-e.baseData.lastRound < roundGracePeriod {
 		return true
@@ -425,6 +449,20 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	epochStartConfig := e.generalConfig.EpochStartConfig
+	metablockProcessor, err := NewEpochStartMetaBlockProcessor(
+		e.messenger,
+		e.requestHandler,
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		thresholdForConsideringMetaBlockCorrect,
+		epochStartConfig.MinNumConnectedPeersToStart,
+		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+	)
+	if err != nil {
+		return err
+	}
+
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
@@ -433,8 +471,9 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		ShardCoordinator:        e.shardCoordinator,
 		EconomicsData:           e.economicsData,
 		WhitelistHandler:        e.whiteListHandler,
-		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
+		StartInEpochConfig:      epochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		MetaBlockProcessor:      metablockProcessor,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -506,7 +545,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -584,6 +623,9 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		}
 	}
 
+	log.Debug("removing cached received trie nodes")
+	e.dataPool.TrieNodes().Clear()
+
 	parameters := Parameters{
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.baseData.shardId,
@@ -643,7 +685,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
+	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
@@ -656,8 +698,6 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -697,7 +737,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, ctx)
 	cancel()
 	if err != nil {
@@ -720,7 +760,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), timeToWait)
+	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -756,8 +796,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		NodesConfig:         e.nodesConfig,
 		Headers:             e.syncedHeaders,
 		ShardCoordinator:    e.shardCoordinator,
-		UserAccountTries:    e.userAccountTries,
-		PeerAccountTries:    e.peerAccountTries,
 		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
@@ -783,7 +821,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
-	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(e.numConcurrentTrieSyncers))
 	if err != nil {
 		return err
 	}
@@ -794,13 +832,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.coreComponentsHolder.Hasher(),
-			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   trieStorageManager,
-			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			Hasher:                    e.coreComponentsHolder.Hasher(),
+			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:        trieStorageManager,
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 		ShardId:   e.shardCoordinator.SelfId(),
 		Throttler: thr,
@@ -815,7 +855,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.userAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 
@@ -888,13 +927,15 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.coreComponentsHolder.Hasher(),
-			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   peerTrieStorageManager,
-			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
-			Cacher:               e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			Hasher:                    e.coreComponentsHolder.Hasher(),
+			Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+			TrieStorageManager:        peerTrieStorageManager,
+			RequestHandler:            e.requestHandler,
+			Timeout:                   timeoutGettingTrieNode,
+			Cacher:                    e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory:      e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+			MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+			TrieSyncerVersion:         e.trieSyncerVersion,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
@@ -907,7 +948,6 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 		return err
 	}
 
-	e.peerAccountTries = accountsDBSyncer.GetSyncedTries()
 	return nil
 }
 
@@ -920,18 +960,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.messenger,
-		Store:                      storageService,
-		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                  e.dataPool,
-		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs: 10,
-		DataPacker:                 dataPacker,
-		TriesContainer:             e.trieContainer,
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

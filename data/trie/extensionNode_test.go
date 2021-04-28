@@ -15,7 +15,7 @@ import (
 )
 
 func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
-	child, collapsedChild := getBnAndCollapsedBn(getTestMarshAndHasher())
+	child, collapsedChild := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	en, _ := newExtensionNode([]byte("d"), child, child.marsh, child.hasher)
 
 	childHash, _ := encodeNodeAndGetHash(collapsedChild)
@@ -28,7 +28,7 @@ func getEnAndCollapsedEn() (*extensionNode, *extensionNode) {
 func TestExtensionNode_newExtensionNode(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	expectedEn := &extensionNode{
 		CollapsedEn: CollapsedEn{
 			Key:          []byte("dog"),
@@ -241,10 +241,10 @@ func TestExtensionNode_commit(t *testing.T) {
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
-	node, _ := decodeNode(encNode, en.marsh, en.hasher)
+	n, _ := decodeNode(encNode, en.marsh, en.hasher)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(node)
+	h2, _ := encodeNodeAndGetHash(n)
 	assert.Equal(t, h1, h2)
 }
 
@@ -279,11 +279,11 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
-	node, _ := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
+	n, _ := decodeNode(encNode, collapsedEn.marsh, collapsedEn.hasher)
 	collapsedEn.hash = nil
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
-	h2, _ := encodeNodeAndGetHash(node)
+	h2, _ := encodeNodeAndGetHash(n)
 	assert.Equal(t, h1, h2)
 }
 
@@ -458,8 +458,8 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	node, newKey, err := en.getNext(key, nil)
-	assert.Equal(t, nextNode, node)
+	n, newKey, err := en.getNext(key, nil)
+	assert.Equal(t, nextNode, n)
 	assert.Equal(t, key[1:], newKey)
 	assert.Nil(t, err)
 }
@@ -472,8 +472,8 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	lnKey := []byte("dog")
 	key := append(bnKey, lnKey...)
 
-	node, key, err := en.getNext(key, nil)
-	assert.Nil(t, node)
+	n, key, err := en.getNext(key, nil)
+	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
@@ -483,9 +483,9 @@ func TestExtensionNode_insert(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
-	node, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
+	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
-	dirty, newNode, _, err := en.insert(node, nil)
+	dirty, newNode, _, err := en.insert(n, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -499,12 +499,12 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	key := []byte{100, 15, 5, 6}
-	node, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
+	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
 	_ = en.setHash()
 	_ = en.commit(false, 0, 5, db, db)
 
-	dirty, newNode, _, err := collapsedEn.insert(node, db)
+	dirty, newNode, _, err := collapsedEn.insert(n, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -519,7 +519,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	enKey := []byte{100}
 	key := append(enKey, []byte{11, 12}...)
-	node, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
+	n, _ := newLeafNode(key, []byte("dogs"), en.marsh, en.hasher)
 
 	_ = en.commit(false, 0, 5, db, db)
 	enHash := en.getHash()
@@ -527,7 +527,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
-	dirty, _, oldHashes, err := en.insert(node, db)
+	dirty, _, oldHashes, err := en.insert(n, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -537,16 +537,16 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	t.Parallel()
 
 	db := mock.NewMemDbMock()
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	enKey := []byte{1}
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
-	node, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
+	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
 	_ = en.commit(false, 0, 5, db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
-	dirty, _, oldHashes, err := en.insert(node, db)
+	dirty, _, oldHashes, err := en.insert(n, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -557,9 +557,9 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 
 	en, _ := getEnAndCollapsedEn()
 	nodeKey := []byte{100, 11, 12}
-	node, _ := newLeafNode(nodeKey, []byte("dogs"), en.marsh, en.hasher)
+	n, _ := newLeafNode(nodeKey, []byte("dogs"), en.marsh, en.hasher)
 
-	dirty, _, oldHashes, err := en.insert(node, nil)
+	dirty, _, oldHashes, err := en.insert(n, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -568,13 +568,13 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	t.Parallel()
 
-	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	enKey := []byte{1}
 	en, _ := newExtensionNode(enKey, bn, bn.marsh, bn.hasher)
 	nodeKey := []byte{11, 12}
-	node, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
+	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, _, oldHashes, err := en.insert(node, nil)
+	dirty, _, oldHashes, err := en.insert(n, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -708,15 +708,15 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 func TestExtensionNode_reduceNode(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshalizerAndHasher()
 	en, _ := newExtensionNode([]byte{100, 111, 103}, nil, marsh, hasher)
 
 	expected := &extensionNode{CollapsedEn: CollapsedEn{Key: []byte{2, 100, 111, 103}}, baseNode: &baseNode{dirty: true}}
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
 
-	node, newChildPos, err := en.reduceNode(2)
-	assert.Equal(t, expected, node)
+	n, newChildPos, err := en.reduceNode(2)
+	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildPos)
 }
@@ -726,7 +726,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	collapsedTrie, _ := tr.Recreate(rootHash)
 
 	err := collapsedTrie.Delete([]byte("doe"))
@@ -846,7 +846,7 @@ func TestExtensionNode_setDirty(t *testing.T) {
 func TestExtensionNode_loadChildren(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshalizerAndHasher()
 	tr, _, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
@@ -854,8 +854,8 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
-		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(node.hash, node, len(node.EncodedNode()))
+		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		nodesCacher.Put(n.hash, n, len(n.EncodedNode()))
 	}
 
 	en := getCollapsedEn(t, tr.root)
@@ -957,7 +957,7 @@ func TestExtensionNode_newExtensionNodeNilHasherShouldErr(t *testing.T) {
 func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshAndHasher()
+	marsh, hasher := getTestMarshalizerAndHasher()
 	key := []byte("key")
 	child := &branchNode{}
 	en, err := newExtensionNode(key, child, marsh, hasher)
@@ -974,7 +974,7 @@ func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
 func TestExtensionNode_getMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	marsh, _ := getTestMarshAndHasher()
+	marsh, _ := getTestMarshalizerAndHasher()
 	en := &extensionNode{
 		baseNode: &baseNode{
 			marsh: marsh,
@@ -1050,4 +1050,71 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
+}
+
+func TestExtensionNode_getNextHashAndKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Equal(t, collapsedEn.EncodedChild, nextHash)
+	assert.Equal(t, []byte{}, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey(nil)
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
+	t.Parallel()
+
+	var collapsedEn *extensionNode
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	numNodes := en.getNumNodes()
+
+	assert.Equal(t, data.NumNodesDTO{}, numNodes)
+}
+
+func TestExtensionNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	assert.Equal(t, 0, en.sizeInBytes())
+
+	collapsed := []byte("collapsed")
+	key := []byte("key")
+	hash := []byte("hash")
+	en = &extensionNode{
+		CollapsedEn: CollapsedEn{
+			Key:          key,
+			EncodedChild: collapsed,
+		},
+		child: nil,
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }

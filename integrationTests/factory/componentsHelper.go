@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path"
 	"runtime/pprof"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -37,13 +38,19 @@ func CleanupWorkingDir() {
 
 // CreateDefaultConfig -
 func CreateDefaultConfig() *config.Configs {
-	generalConfig, _ := core.LoadMainConfig(ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(EconomicsPath)
-	prefsConfig, _ := core.LoadPreferencesConfig(PrefsPath)
-	p2pConfig, _ := core.LoadP2PConfig(P2pPath)
-	externalConfig, _ := core.LoadExternalConfig(ExternalPath)
-	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(SystemSCConfigPath)
+	configPathsHolder := createConfigurationsPathsHolder()
+
+	generalConfig, _ := core.LoadMainConfig(configPathsHolder.MainConfig)
+	ratingsConfig, _ := core.LoadRatingsConfig(configPathsHolder.Ratings)
+	economicsConfig, _ := core.LoadEconomicsConfig(configPathsHolder.Economics)
+	prefsConfig, _ := core.LoadPreferencesConfig(configPathsHolder.Preferences)
+	p2pConfig, _ := core.LoadP2PConfig(configPathsHolder.P2p)
+	externalConfig, _ := core.LoadExternalConfig(configPathsHolder.External)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
+	epochConfig, _ := core.LoadEpochConfig(configPathsHolder.Epoch)
+
+	p2pConfig.KadDhtPeerDiscovery.Enabled = false
+	prefsConfig.Preferences.DestinationShardAsObserver = "0"
 
 	configs := &config.Configs{}
 	configs.GeneralConfig = generalConfig
@@ -53,25 +60,37 @@ func CreateDefaultConfig() *config.Configs {
 	configs.PreferencesConfig = prefsConfig
 	configs.P2pConfig = p2pConfig
 	configs.ExternalConfig = externalConfig
+	configs.EpochConfig = epochConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir:                        "workingDir",
-		UseLogView:                        true,
-		ValidatorKeyPemFileName:           ValidatorKeyPemPath,
-		GasScheduleConfigurationDirectory: GasSchedule,
-		Version:                           Version,
-		GenesisFileName:                   GenesisPath,
-		SmartContractsFileName:            GenesisSmartContracts,
-		NodesFileName:                     NodesSetupPath,
+		WorkingDir: "workingDir",
+		UseLogView: true,
+		Version:    Version,
 	}
-
-	configs.ConfigurationGasScheduleDirectoryName = GasSchedule
-	configs.ConfigurationSystemSCFilename = SystemSCConfigPath
-	configs.ConfigurationExternalFileName = ExternalPath
-	configs.ConfigurationFileName = ConfigPath
-	configs.ConfigurationEconomicsFileName = EconomicsPath
-	configs.ConfigurationRatingsFileName = RatingsPath
-	configs.ConfigurationPreferencesFileName = PrefsPath
-	configs.P2pConfigurationFileName = P2pPath
+	configs.ConfigurationPathsHolder = configPathsHolder
+	configs.ImportDbConfig = &config.ImportDbConfig{}
 
 	return configs
+}
+
+func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
+	var concatPath = func(filename string) string {
+		return path.Join(BaseNodeConfigPath, filename)
+	}
+
+	return &config.ConfigurationPathsHolder{
+		MainConfig:               concatPath(ConfigPath),
+		Ratings:                  concatPath(RatingsPath),
+		Economics:                concatPath(EconomicsPath),
+		Preferences:              concatPath(PrefsPath),
+		External:                 concatPath(ExternalPath),
+		P2p:                      concatPath(P2pPath),
+		Epoch:                    concatPath(EpochPath),
+		SystemSC:                 concatPath(SystemSCConfigPath),
+		GasScheduleDirectoryName: concatPath(GasSchedule),
+		Nodes:                    NodesSetupPath,
+		Genesis:                  GenesisPath,
+		SmartContracts:           GenesisSmartContracts,
+		ValidatorKey:             ValidatorKeyPemPath,
+		ApiRoutes:                "",
+	}
 }

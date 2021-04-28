@@ -60,14 +60,10 @@ func TestSignatureOnStaking(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodesWithBLSSigVerifier(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -79,7 +75,6 @@ func TestSignatureOnStaking(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -106,7 +101,7 @@ func TestSignatureOnStaking(t *testing.T) {
 	integrationTests.PlayerSendsTransaction(
 		nodes,
 		stakingWalletAccount,
-		vm.AuctionSCAddress,
+		vm.ValidatorSCAddress,
 		nodePrice,
 		txData,
 		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
@@ -116,7 +111,7 @@ func TestSignatureOnStaking(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 

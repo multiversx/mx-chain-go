@@ -50,14 +50,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -74,7 +70,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -106,7 +101,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -173,13 +168,16 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
-	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
-	_ = messenger.Bootstrap(0)
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 
-	rounder := &mock.RounderMock{IndexField: int64(round)}
+	for _, n := range nodes {
+		_ = n.ConnectTo(nodeToJoinLate)
+	}
+
+	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
@@ -204,14 +202,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
-		EconomicsData:              integrationTests.CreateEconomicsData(),
+		EconomicsData:              nodeToJoinLate.EconomicsData,
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    rounder,
+		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
@@ -231,7 +229,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		shardC,
 		&mock.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
-		0)
+		0,
+		false,
+	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)

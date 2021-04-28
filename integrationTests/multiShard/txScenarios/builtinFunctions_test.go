@@ -19,9 +19,8 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	}
 
 	initialBalance := big.NewInt(1000000000000)
-	nodes, idxProposers, players, advertiser := createGeneralSetupForTxTest(initialBalance)
+	nodes, idxProposers, players := createGeneralSetupForTxTest(initialBalance)
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -61,7 +60,7 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	sender := players[2]
 	txData = []byte("invalidFunction")
 	gasLimit := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
-	_ = createAndSendTransaction(nodes[0], sender, scAddressBytes, big.NewInt(0), txData, integrationTests.MinTxGasPrice, gasLimit)
+	tx2 := createAndSendTransaction(nodes[0], sender, scAddressBytes, big.NewInt(0), txData, integrationTests.MinTxGasPrice, gasLimit)
 	time.Sleep(time.Millisecond)
 
 	// invalid function cross-shard should consume gas
@@ -84,13 +83,13 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	// check balance after a call of invalid function intra-shard
 	senderAccount := getUserAccount(nodes, players[2].Address)
 	assert.Equal(t, players[2].Nonce, senderAccount.GetNonce())
-	txFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimit), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	txFee := nodes[0].EconomicsData.ComputeTxFee(tx2)
 	assert.Equal(t, big.NewInt(0).Sub(initialBalance, txFee), senderAccount.GetBalance())
 
 	// check balance after a call of invalid function cross-shard
 	senderAccount = getUserAccount(nodes, players[1].Address)
 	assert.Equal(t, players[1].Nonce, senderAccount.GetNonce())
-	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimit), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	txFee = nodes[0].EconomicsData.ComputeTxFee(tx2)
 	assert.Equal(t, big.NewInt(0).Sub(initialBalance, txFee), senderAccount.GetBalance())
 
 	// check owner address should not change

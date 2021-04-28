@@ -937,7 +937,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 
 	assert.Nil(t, err)
 }
@@ -969,7 +969,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		SenderShardID:   0,
 	}
 
-	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)

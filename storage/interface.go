@@ -66,6 +66,8 @@ type Cacher interface {
 	Keys() [][]byte
 	// Len returns the number of items in the cache.
 	Len() int
+	// SizeInBytesContained returns the size in bytes of all contained elements
+	SizeInBytesContained() uint64
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
@@ -102,7 +104,6 @@ type Storer interface {
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
-	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
 	RangeKeys(handler func(key []byte, val []byte) bool)
@@ -199,6 +200,7 @@ type SizedLRUCacheHandler interface {
 	Remove(key interface{}) bool
 	Keys() []interface{}
 	Len() int
+	SizeInBytesContained() uint64
 	Purge()
 }
 

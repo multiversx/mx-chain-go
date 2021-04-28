@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -20,8 +19,6 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)

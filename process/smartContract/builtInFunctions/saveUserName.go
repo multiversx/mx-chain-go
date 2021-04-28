@@ -45,6 +45,10 @@ func NewSaveUserNameFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (s *saveUserName) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	s.mutExecution.Lock()
 	s.gasCost = gasCost.BuiltInCost.SaveUserName
 	s.mutExecution.Unlock()
@@ -76,17 +80,17 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	}
 
 	if check.IfNil(acntDst) {
-		log.Trace("setUserName called dst not in shard")
 		// cross-shard call, in sender shard only the gas is taken out
 		vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		setUserNameTxData := core.BuiltInFunctionSetUserName + "@" + hex.EncodeToString(vmInput.Arguments[0])
 		outTransfer := vmcommon.OutputTransfer{
-			Value:     big.NewInt(0),
-			GasLimit:  vmInput.GasProvided,
-			GasLocked: vmInput.GasLocked,
-			Data:      []byte(setUserNameTxData),
-			CallType:  vmcommon.AsynchronousCall,
+			Value:         big.NewInt(0),
+			GasLimit:      vmInput.GasProvided,
+			GasLocked:     vmInput.GasLocked,
+			Data:          []byte(setUserNameTxData),
+			CallType:      vmcommon.AsynchronousCall,
+			SenderAddress: vmInput.CallerAddr,
 		}
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:         vmInput.RecipientAddr,
@@ -95,7 +99,6 @@ func (s *saveUserName) ProcessBuiltinFunction(
 		return vmOutput, nil
 	}
 
-	log.Trace("setUserName called in shard")
 	currentUserName := acntDst.GetUserName()
 	if !s.enableChange && len(currentUserName) > 0 {
 		return nil, process.ErrUserNameChangeIsDisabled

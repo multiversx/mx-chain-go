@@ -38,14 +38,10 @@ func TestSCCallingIntraShard(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 0
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -57,7 +53,6 @@ func TestSCCallingIntraShard(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -139,14 +134,10 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numShards+1)
@@ -158,7 +149,6 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -225,6 +215,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	newOwnerAddress := []byte("12345678123456781234567812345678")
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
 	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	time.Sleep(sleepDuration)
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -253,14 +244,10 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodesPerShard := 5
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numShards+1)
@@ -272,7 +259,6 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -387,14 +373,10 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -406,7 +388,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -495,9 +476,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	testBuiltinFunc := &integrationTests.TestBuiltinFunction{}
 	testBuiltinFunc.Function = func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 		if !check.IfNil(acntSnd) {
@@ -510,7 +488,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 		vmOutput := &vmcommon.VMOutput{}
 		vmOutput.ReturnCode = vmcommon.Ok
-		vmOutput.GasRemaining = vmInput.GasProvided / 2
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
 			Value:     big.NewInt(0),
@@ -523,6 +500,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 			Address:         vmInput.RecipientAddr,
 			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
+		vmOutput.GasRemaining = vmInput.GasProvided - outTransfer.GasLimit - vmInput.GasLocked
 
 		fmt.Println("OutputAccount recipient", hex.EncodeToString(vmInput.RecipientAddr))
 
@@ -535,7 +513,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -547,7 +524,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -597,7 +573,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
@@ -619,16 +595,12 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
@@ -648,7 +620,6 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -725,16 +696,12 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
@@ -754,7 +721,6 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -787,7 +753,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		delegateSCOwner,
 		0,
 		big.NewInt(0),
-		"@"+hex.EncodeToString(systemVm.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
+		"@"+hex.EncodeToString(systemVm.ValidatorSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
@@ -830,7 +796,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
-	// activate the delegation, this involves an async call to auction
+	// activate the delegation, this involves an async call to validatorSC
 	stakeAllAvailableTxData := "stakeAllAvailable"
 	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, integrationTests.AdditionalGasLimit)
 
@@ -915,14 +881,10 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	nodesPerShard := 3
 	numMetachainNodes := 0
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -934,7 +896,6 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "systemSmartContracts";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message ValidatorDataV1 {
+    uint64   RegisterNonce    = 1  [(gogoproto.jsontag) = "RegisterNonce"];
+    uint32   Epoch            = 2  [(gogoproto.jsontag) = "Epoch"];
+    bytes    RewardAddress    = 3  [(gogoproto.jsontag) = "RewardAddress"];
+    bytes    TotalStakeValue  = 4  [(gogoproto.jsontag) = "TotalStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    LockedStake      = 5  [(gogoproto.jsontag) = "LockedStake", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    MaxStakePerNode  = 6  [(gogoproto.jsontag) = "MaxStakePerNode", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    repeated bytes BlsPubKeys = 7  [(gogoproto.jsontag) = "BlsPubKeys"];
+    uint32   NumRegistered    = 8  [(gogoproto.jsontag) = "NumRegistered"];
+}
+
+message UnstakedValue{
+    uint32   UnstakedEpoch = 1 [(gogoproto.jsontag) = "UnstakedEpoch"];
+    bytes    UnstakedValue = 2 [(gogoproto.jsontag) = "UnstakedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message ValidatorDataV2 {
+    uint64   RegisterNonce              = 1  [(gogoproto.jsontag) = "RegisterNonce"];
+    uint32   Epoch                      = 2  [(gogoproto.jsontag) = "Epoch"];
+    bytes    RewardAddress              = 3  [(gogoproto.jsontag) = "RewardAddress"];
+    bytes    TotalStakeValue            = 4  [(gogoproto.jsontag) = "TotalStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    LockedStake                = 5  [(gogoproto.jsontag) = "LockedStake", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    MaxStakePerNode            = 6  [(gogoproto.jsontag) = "MaxStakePerNode", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    repeated bytes BlsPubKeys           = 7  [(gogoproto.jsontag) = "BlsPubKeys"];
+    uint32   NumRegistered              = 8  [(gogoproto.jsontag) = "NumRegistered"];
+    repeated UnstakedValue UnstakedInfo = 9  [(gogoproto.jsontag) = "UnstakedInfo"];
+    bytes    TotalUnstaked              = 10 [(gogoproto.jsontag) = "TotalUnstaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    TotalSlashed               = 11  [(gogoproto.jsontag) = "TotalSlashed", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message ValidatorConfig {
+    bytes  MinStakeValue = 1 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  TotalSupply   = 2 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  MinStep       = 3 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  NodePrice     = 4 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  UnJailPrice   = 5 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}

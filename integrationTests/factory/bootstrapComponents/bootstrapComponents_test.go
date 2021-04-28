@@ -11,10 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test CryptoComponents --------------------
+// ------------ Test BootstrapComponents --------------------
 func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	defer factory.CleanupWorkingDir()
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 4)
 
 	nrBefore := runtime.NumGoroutine()
 	factory.PrintStack()

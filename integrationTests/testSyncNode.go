@@ -3,6 +3,8 @@ package integrationTests
 import (
 	"fmt"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -23,7 +25,6 @@ func NewTestSyncNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
-	initialNodeAddr string,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -65,7 +66,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	messenger := CreateMessengerWithNoDiscovery()
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
@@ -106,17 +107,17 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.initStorage()
-	tpn.initAccountDBs()
+	tpn.initAccountDBs(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
-	tpn.initInnerProcessors()
+	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -169,37 +170,45 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
+	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
+
+	statusComponents := GetDefaultStatusComponents()
+
+	triesConfig := config.Config{
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus: stateCheckpointModulus,
+		},
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		AccountsDB:        accountsDb,
-		ForkDetector:      nil,
-		ShardCoordinator:  tpn.ShardCoordinator,
-		NodesCoordinator:  tpn.NodesCoordinator,
-		FeeHandler:        tpn.FeeAccumulator,
-		RequestHandler:    tpn.RequestHandler,
-		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		HeaderValidator:   tpn.HeaderValidator,
-		Rounder:           &mock.RounderMock{},
+		CoreComponents:      coreComponents,
+		DataComponents:      dataComponents,
+		BootstrapComponents: bootstrapComponents,
+		StatusComponents:    statusComponents,
+		Config:              triesConfig,
+		AccountsDB:          accountsDb,
+		ForkDetector:        nil,
+		NodesCoordinator:    tpn.NodesCoordinator,
+		FeeHandler:          tpn.FeeAccumulator,
+		RequestHandler:      tpn.RequestHandler,
+		BlockChainHook:      &mock.BlockChainHookHandlerMock{},
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		HeaderValidator:     tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
 			},
 		},
-		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
-		OutportHandler:          mock.NewNilOutport(),
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:       tpn.HistoryRepository,
-		EpochNotifier:           tpn.EpochNotifier,
-		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-		AppStatusHandler:        &mock.AppStatusHandlerStub{},
+		BlockTracker:       tpn.BlockTracker,
+		BlockSizeThrottler: TestBlockSizeThrottler,
+		HistoryRepository:  tpn.HistoryRepository,
+		EpochNotifier:      tpn.EpochNotifier,
+		OutportHandler:     mock.NewNilOutport(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -216,7 +225,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -237,9 +246,9 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
 		ChainHandler:        tpn.BlockChain,
-		Rounder:             tpn.Rounder,
+		RoundHandler:        tpn.RoundHandler,
 		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.Rounder.TimeDuration(),
+		WaitTime:            tpn.RoundHandler.TimeDuration(),
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		ForkDetector:        tpn.ForkDetector,
@@ -276,9 +285,9 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
 		ChainHandler:        tpn.BlockChain,
-		Rounder:             tpn.Rounder,
+		RoundHandler:        tpn.RoundHandler,
 		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.Rounder.TimeDuration(),
+		WaitTime:            tpn.RoundHandler.TimeDuration(),
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		ForkDetector:        tpn.ForkDetector,

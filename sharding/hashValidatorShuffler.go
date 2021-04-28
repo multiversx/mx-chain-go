@@ -6,23 +6,38 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 )
 
 var _ NodesShuffler = (*randHashShuffler)(nil)
 
+// NodesShufflerArgs defines the arguments required to create a nodes shuffler
+type NodesShufflerArgs struct {
+	NodesShard                     uint32
+	NodesMeta                      uint32
+	Hysteresis                     float32
+	Adaptivity                     bool
+	ShuffleBetweenShards           bool
+	MaxNodesEnableConfig           []config.MaxNodesChangeConfig
+	BalanceWaitingListsEnableEpoch uint32
+}
+
 type shuffleNodesArg struct {
-	eligible          map[uint32][]Validator
-	waiting           map[uint32][]Validator
-	unstakeLeaving    []Validator
-	additionalLeaving []Validator
-	newNodes          []Validator
-	randomness        []byte
-	distributor       ValidatorsDistributor
-	nodesMeta         uint32
-	nodesPerShard     uint32
-	nbShards          uint32
+	eligible                map[uint32][]Validator
+	waiting                 map[uint32][]Validator
+	unstakeLeaving          []Validator
+	additionalLeaving       []Validator
+	newNodes                []Validator
+	randomness              []byte
+	distributor             ValidatorsDistributor
+	nodesMeta               uint32
+	nodesPerShard           uint32
+	nbShards                uint32
+	maxNodesToSwapPerShard  uint32
+	flagBalanceWaitingLists atomic.Flag
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -31,28 +46,43 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	adaptivity           bool
-	nodesShard           uint32
-	nodesMeta            uint32
-	shardHysteresis      uint32
-	metaHysteresis       uint32
-	mutShufflerParams    sync.RWMutex
-	validatorDistributor ValidatorsDistributor
+	adaptivity                     bool
+	nodesShard                     uint32
+	nodesMeta                      uint32
+	shardHysteresis                uint32
+	metaHysteresis                 uint32
+	activeNodesConfig              config.MaxNodesChangeConfig
+	availableNodesConfigs          []config.MaxNodesChangeConfig
+	mutShufflerParams              sync.RWMutex
+	validatorDistributor           ValidatorsDistributor
+	balanceWaitingListsEnableEpoch uint32
+	flagBalanceWaitingLists        atomic.Flag
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
 // random number to do the shuffling
-func NewHashValidatorsShuffler(
-	nodesShard uint32,
-	nodesMeta uint32,
-	hysteresis float32,
-	adaptivity bool,
-	shuffleBetweenShards bool,
-) *randHashShuffler {
-	log.Debug("Shuffler created", "shuffleBetweenShards", shuffleBetweenShards)
-	rxs := &randHashShuffler{shuffleBetweenShards: shuffleBetweenShards}
+func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, error) {
+	if args == nil {
+		return nil, ErrNilNodeShufflerArguments
+	}
 
-	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
+	var configs []config.MaxNodesChangeConfig
+
+	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
+	log.Debug("hashValidatorShuffler: enable epoch for balance waiting lists", "epoch", args.BalanceWaitingListsEnableEpoch)
+	if args.MaxNodesEnableConfig != nil {
+		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
+		copy(configs, args.MaxNodesEnableConfig)
+	}
+
+	log.Debug("Shuffler created", "shuffleBetweenShards", args.ShuffleBetweenShards)
+	rxs := &randHashShuffler{
+		shuffleBetweenShards:           args.ShuffleBetweenShards,
+		availableNodesConfigs:          configs,
+		balanceWaitingListsEnableEpoch: args.BalanceWaitingListsEnableEpoch,
+	}
+
+	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
 
 	if rxs.shuffleBetweenShards {
 		rxs.validatorDistributor = &CrossShardValidatorDistributor{}
@@ -60,7 +90,9 @@ func NewHashValidatorsShuffler(
 		rxs.validatorDistributor = &IntraShardValidatorDistributor{}
 	}
 
-	return rxs
+	rxs.sortConfigs()
+
+	return rxs, nil
 }
 
 // UpdateParams updates the shuffler parameters
@@ -101,6 +133,7 @@ func (rhs *randHashShuffler) UpdateParams(
 //              execute the shard merge
 //          c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
+	rhs.UpdateShufflerConfig(args.Epoch)
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
@@ -130,16 +163,18 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	}
 
 	return shuffleNodes(shuffleNodesArg{
-		eligible:          eligibleAfterReshard,
-		waiting:           waitingAfterReshard,
-		unstakeLeaving:    args.UnStakeLeaving,
-		additionalLeaving: args.AdditionalLeaving,
-		newNodes:          args.NewNodes,
-		randomness:        args.Rand,
-		nodesMeta:         nodesMeta,
-		nodesPerShard:     nodesPerShard,
-		nbShards:          args.NbShards,
-		distributor:       rhs.validatorDistributor,
+		eligible:                eligibleAfterReshard,
+		waiting:                 waitingAfterReshard,
+		unstakeLeaving:          args.UnStakeLeaving,
+		additionalLeaving:       args.AdditionalLeaving,
+		newNodes:                args.NewNodes,
+		randomness:              args.Rand,
+		nodesMeta:               nodesMeta,
+		nodesPerShard:           nodesPerShard,
+		nbShards:                args.NbShards,
+		distributor:             rhs.validatorDistributor,
+		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
+		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists,
 	})
 }
 
@@ -204,6 +239,12 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		return nil, err
 	}
 
+	for i, toRemove := range numToRemove {
+		if toRemove > int(arg.maxNodesToSwapPerShard) {
+			numToRemove[i] = int(arg.maxNodesToSwapPerShard)
+		}
+	}
+
 	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
 	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
 
@@ -218,12 +259,13 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
 	}
-	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness)
+
+	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness, false)
 	if err != nil {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness)
+	err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness, arg.flagBalanceWaitingLists.IsSet())
 	if err != nil {
 		log.Warn("distributeValidators shuffledOut failed", "error", err)
 	}
@@ -412,7 +454,7 @@ func shuffleList(validators []Validator, randomness []byte) []Validator {
 	mapValidators := make(map[string]Validator)
 	var concat []byte
 
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	for i, v := range validators {
 		concat = append(v.PubKey(), randomness...)
 
@@ -535,6 +577,7 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 
 // moveMaxNumNodesToMap moves the validators in the source list to the corresponding destination list
 // but adding just enough nodes so that at most the number of nodes is kept in the destination list
+// The parameter maxNodesToMove is a limiting factor and should limit the number of nodes
 func moveMaxNumNodesToMap(
 	destination map[uint32][]Validator,
 	source map[uint32][]Validator,
@@ -574,17 +617,20 @@ func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
-func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte) error {
+func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte, balanced bool) error {
 	if len(destLists) == 0 {
 		return ErrNilOrEmptyDestinationForDistribute
 	}
 
-	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)
+	// if there was a split, or a merge, eligible map should already have a different nb of keys (shards)
 	shuffledValidators := shuffleList(validators, randomness)
 	var shardId uint32
-
 	sortedShardIds := sortKeys(destLists)
 	destLength := uint32(len(sortedShardIds))
+
+	if balanced {
+		shuffledValidators = equalizeValidatorsLists(destLists, shuffledValidators)
+	}
 
 	for i, v := range shuffledValidators {
 		shardId = sortedShardIds[uint32(i)%destLength]
@@ -592,6 +638,43 @@ func distributeValidators(destLists map[uint32][]Validator, validators []Validat
 	}
 
 	return nil
+}
+
+func equalizeValidatorsLists(destLists map[uint32][]Validator, validators []Validator) []Validator {
+	log.Debug("equalizeValidatorsLists")
+
+	maxListSize := getMaxListSize(destLists)
+	indexValidators := 0
+	remainingValidatorsNumber := len(validators)
+
+	sortedShardIds := sortKeys(destLists)
+
+	for _, shardID := range sortedShardIds {
+		shardList := destLists[shardID]
+		if len(shardList) < maxListSize {
+			toMove := maxListSize - len(shardList)
+			if toMove > remainingValidatorsNumber {
+				toMove = remainingValidatorsNumber
+			}
+
+			destLists[shardID] = append(destLists[shardID], validators[indexValidators:indexValidators+toMove]...)
+			remainingValidatorsNumber -= toMove
+			indexValidators += toMove
+		}
+	}
+
+	return validators[indexValidators : indexValidators+remainingValidatorsNumber]
+}
+
+func getMaxListSize(lists map[uint32][]Validator) int {
+	var maxSize int
+
+	for _, list := range lists {
+		if maxSize < len(list) {
+			maxSize = len(list)
+		}
+	}
+	return maxSize
 }
 
 func sortKeys(nodes map[uint32][]Validator) []uint32 {
@@ -605,4 +688,34 @@ func sortKeys(nodes map[uint32][]Validator) []uint32 {
 	})
 
 	return keys
+}
+
+// UpdateShufflerConfig updates the shuffler config according to the current epoch.
+func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
+	rhs.mutShufflerParams.Lock()
+	defer rhs.mutShufflerParams.Unlock()
+	rhs.activeNodesConfig.NodesToShufflePerShard = rhs.nodesShard
+	for _, maxNodesConfig := range rhs.availableNodesConfigs {
+		if epoch >= maxNodesConfig.EpochEnable {
+			rhs.activeNodesConfig = maxNodesConfig
+		}
+	}
+
+	log.Debug("randHashShuffler: UpdateShufflerConfig",
+		"epoch", epoch,
+		"maxNumNodes", rhs.activeNodesConfig.MaxNumNodes,
+		"epochEnable", rhs.activeNodesConfig.EpochEnable,
+		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
+	)
+
+	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
+	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
+}
+
+func (rhs *randHashShuffler) sortConfigs() {
+	rhs.mutShufflerParams.Lock()
+	sort.Slice(rhs.availableNodesConfigs, func(i, j int) bool {
+		return rhs.availableNodesConfigs[i].EpochEnable < rhs.availableNodesConfigs[j].EpochEnable
+	})
+	rhs.mutShufflerParams.Unlock()
 }

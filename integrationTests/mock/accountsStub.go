@@ -22,12 +22,22 @@ type AccountsStub struct {
 	RecreateTrieCalled       func(rootHash []byte) error
 	PruneTrieCalled          func(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	SnapshotStateCalled      func(rootHash []byte)
-	SetStateCheckpointCalled func(rootHash []byte)
+	SnapshotStateCalled      func(rootHash []byte, ctx context.Context)
+	SetStateCheckpointCalled func(rootHash []byte, ctx context.Context)
 	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeavesCalled       func(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
+	GetTrieCalled            func([]byte) (data.Trie, error)
+}
+
+// GetTrie -
+func (as *AccountsStub) GetTrie(codeHash []byte) (data.Trie, error) {
+	if as.GetTrieCalled != nil {
+		return as.GetTrieCalled(codeHash)
+	}
+
+	return nil, nil
 }
 
 // LoadAccount -
@@ -47,11 +57,16 @@ func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
+func (as *AccountsStub) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(rootHash)
+		return as.GetAllLeavesCalled(rootHash, ctx)
 	}
 	return nil, nil
+}
+
+// GetCode -
+func (as *AccountsStub) GetCode(_ []byte) []byte {
+	return nil
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -134,16 +149,16 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruning
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte, _ context.Context) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, ctx context.Context) {
 	if as.SnapshotStateCalled != nil {
-		as.SnapshotStateCalled(rootHash)
+		as.SnapshotStateCalled(rootHash, ctx)
 	}
 }
 
 // SetStateCheckpoint -
-func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, _ context.Context) {
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, ctx context.Context) {
 	if as.SetStateCheckpointCalled != nil {
-		as.SetStateCheckpointCalled(rootHash)
+		as.SetStateCheckpointCalled(rootHash, ctx)
 	}
 }
 

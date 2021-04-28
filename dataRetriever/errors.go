@@ -155,6 +155,9 @@ var ErrBadRequest = errors.New("request should not be done as it doesn't follow 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
+// ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
+var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
 // ErrSystemBusy signals that the system is busy and can not process more requests
 var ErrSystemBusy = errors.New("system busy")
 
@@ -185,6 +188,9 @@ var ErrNilConfig = errors.New("nil config provided")
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 
+// ErrNilTxGasHandler signals that a nil tx gas handler was provided
+var ErrNilTxGasHandler = errors.New("nil tx gas handler provided")
+
 // ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
 var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
 
@@ -193,3 +199,9 @@ var ErrNilGracefullyCloseChannel = errors.New("nil gracefully close channel")
 
 // ErrNilSmartContractsPool signals that a nil smart contracts pool has been provided
 var ErrNilSmartContractsPool = errors.New("nil smart contracts pool")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage manager")

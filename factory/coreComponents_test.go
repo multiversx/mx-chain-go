@@ -227,17 +227,6 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
-func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
-	t.Parallel()
-
-	args := getCoreArgs()
-	ccf, _ := factory.NewCoreComponentsFactory(args)
-
-	pathPruning, pathStatic := ccf.CreateStorerTemplatePaths()
-	require.Equal(t, "home/db/undefined/Epoch_[E]/Shard_[S]/[I]", pathPruning)
-	require.Equal(t, "home/db/undefined/Static/Shard_[S]/[I]", pathStatic)
-}
-
 // ------------ Test CoreComponents --------------------
 func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -286,8 +275,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				Shards:   16,
 			},
 			GeneralSettings: config.GeneralSettingsConfig{
-				ChainID:               "undefined",
-				MinTransactionVersion: 1,
+				ChainID:                  "undefined",
+				MinTransactionVersion:    1,
+				GenesisMaxNumberOfShards: 3,
 			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,
@@ -334,12 +324,25 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		ConfigPathsHolder: config.ConfigurationPathsHolder{
+			GasScheduleDirectoryName: "../cmd/node/config/gasSchedules",
+		},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),
 		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
 		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},
+		EpochConfig: config.EpochConfig{
+			GasSchedule: config.GasScheduleConfig{
+				GasScheduleByEpochs: []config.GasScheduleByEpochs{
+					{
+						StartEpoch: 0,
+						FileName:   "gasScheduleV1.toml",
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -359,6 +362,8 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			LeaderPercentage:                 0.1,
 			ProtocolSustainabilityPercentage: 0.1,
 			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpFactor:                      0.25,
+			TopUpGradientPoint:               "3000000000000000000000000",
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     "1500000000",
@@ -366,7 +371,7 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			MinGasPrice:             "1000000000",
 			MinGasLimit:             "50000",
 			GasPerDataByte:          "1500",
-			DataLimitForBaseCalc:    "10000",
+			GasPriceModifier:        1,
 		},
 	}
 }

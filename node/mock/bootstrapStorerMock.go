@@ -25,7 +25,7 @@ func (bsm *BootstrapStorerMock) GetHighestRound() int64 {
 }
 
 // SaveLastRound -
-func (bsm *BootstrapStorerMock) SaveLastRound(round int64) error {
+func (bsm *BootstrapStorerMock) SaveLastRound(_ int64) error {
 	return nil
 }
 

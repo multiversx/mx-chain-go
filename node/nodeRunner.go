@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -15,9 +16,12 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/api/gin"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
@@ -27,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	"github.com/ElrondNetwork/elrond-go/facade/disabled"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -68,10 +73,11 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 func (nr *nodeRunner) Start() error {
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
+	configurationPaths := configs.ConfigurationPathsHolder
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
-	log.Debug("config", "file", flagsConfig.GenesisFileName)
+	log.Debug("config", "file", configurationPaths.Genesis)
 
 	enableGopsIfNeeded(flagsConfig.EnableGops)
 
@@ -80,17 +86,19 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
-	flagsConfig.NodesFileName, err = nr.getNodesFileName()
+	configurationPaths.Nodes, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
-	log.Debug("config", "file", flagsConfig.NodesFileName)
+	log.Debug("config", "file", configurationPaths.Nodes)
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
+
+	printEnableEpochs(nr.configs)
 
 	logGoroutinesNumber(0)
 
@@ -108,11 +116,48 @@ func (nr *nodeRunner) Start() error {
 	return nil
 }
 
+func printEnableEpochs(configs *config.Configs) {
+	var readEpochFor = func(flag string) string {
+		return fmt.Sprintf("read enable epoch for %s", flag)
+	}
+
+	enableEpochs := configs.EpochConfig.EnableEpochs
+
+	log.Debug(readEpochFor("sc deploy"), "epoch", enableEpochs.SCDeployEnableEpoch)
+	log.Debug(readEpochFor("built in functions"), "epoch", enableEpochs.BuiltInFunctionsEnableEpoch)
+	log.Debug(readEpochFor("relayed transactions"), "epoch", enableEpochs.RelayedTransactionsEnableEpoch)
+	log.Debug(readEpochFor("penalized too much gas"), "epoch", enableEpochs.PenalizedTooMuchGasEnableEpoch)
+	log.Debug(readEpochFor("switch jail waiting"), "epoch", enableEpochs.SwitchJailWaitingEnableEpoch)
+	log.Debug(readEpochFor("switch hysteresis for min nodes"), "epoch", enableEpochs.SwitchHysteresisForMinNodesEnableEpoch)
+	log.Debug(readEpochFor("below signed threshold"), "epoch", enableEpochs.BelowSignedThresholdEnableEpoch)
+	log.Debug(readEpochFor("transaction signed with tx hash"), "epoch", enableEpochs.TransactionSignedWithTxHashEnableEpoch)
+	log.Debug(readEpochFor("meta protection"), "epoch", enableEpochs.MetaProtectionEnableEpoch)
+	log.Debug(readEpochFor("ahead of time gas usage"), "epoch", enableEpochs.AheadOfTimeGasUsageEnableEpoch)
+	log.Debug(readEpochFor("gas price modifier"), "epoch", enableEpochs.GasPriceModifierEnableEpoch)
+	log.Debug(readEpochFor("repair callback"), "epoch", enableEpochs.RepairCallbackEnableEpoch)
+	log.Debug(readEpochFor("max nodes change"), "epoch", enableEpochs.MaxNodesChangeEnableEpoch)
+	log.Debug(readEpochFor("block gas and fees re-check"), "epoch", enableEpochs.BlockGasAndFeesReCheckEnableEpoch)
+	log.Debug(readEpochFor("staking v2 epoch"), "epoch", enableEpochs.StakingV2Epoch)
+	log.Debug(readEpochFor("stake"), "epoch", enableEpochs.StakeEnableEpoch)
+	log.Debug(readEpochFor("double key protection"), "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
+	log.Debug(readEpochFor("esdt"), "epoch", enableEpochs.ESDTEnableEpoch)
+	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
+	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
+	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
+	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEpoch)
+	log.Debug(readEpochFor("balance waiting lists"), "epoch", enableEpochs.BalanceWaitingListsEnableEpoch)
+	log.Debug(readEpochFor("relayed transactions v2"), "epoch", enableEpochs.RelayedTransactionsV2EnableEpoch)
+	gasSchedule := configs.EpochConfig.GasSchedule
+
+	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
+}
+
 func (nr *nodeRunner) startShufflingProcessLoop(
 	chanStopNodeProcess1 chan endProcess.ArgEndProcess,
 ) error {
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
+	configurationPaths := configs.ConfigurationPathsHolder
 	for {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 
@@ -134,6 +179,12 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		log.Debug("creating network components")
 		managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("creating disabled API services")
+		httpServerWrapper, err := nr.createInitialHttpServer()
 		if err != nil {
 			return err
 		}
@@ -204,16 +255,16 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedStateComponents,
 			nodesCoordinator,
-			flagsConfig.ElasticSearchTemplatesPath,
-			flagsConfig.IsInImportMode,
+			configurationPaths.ElasticSearchTemplatesPath,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
 		}
 
 		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-			GasScheduleConfig: configs.GeneralConfig.GasSchedule,
-			ConfigDir:         configs.ConfigurationGasScheduleDirectoryName,
+			GasScheduleConfig: configs.EpochConfig.GasSchedule,
+			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 			EpochNotifier:     managedCoreComponents.EpochNotifier(),
 		}
 		gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
@@ -239,6 +290,9 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
+		if err != nil {
+			return err
+		}
 
 		log.Debug("starting node...")
 
@@ -265,6 +319,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedProcessComponents,
 			managedConsensusComponents.HardforkTrigger(),
+			managedProcessComponents.NodeRedundancyHandler(),
 		)
 
 		if err != nil {
@@ -285,6 +340,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedHeartbeatComponents,
 			managedConsensusComponents,
 			flagsConfig.BootstrapRoundIndex,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
@@ -299,7 +355,8 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			)
 		}
 
-		ef, err := nr.createApiFacade(currentNode, gasScheduleNotifier)
+		log.Debug("updating the API service after creating the node facade")
+		ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
 		if err != nil {
 			return err
 		}
@@ -308,7 +365,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, currentNode, goRoutinesNumberStart)
+		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, httpServerWrapper, currentNode, goRoutinesNumberStart)
 		if err != nil {
 			break
 		}
@@ -316,32 +373,27 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 	return nil
 }
 
-func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier core.GasScheduleNotifier) (closing.Closer, error) {
+func (nr *nodeRunner) createApiFacade(
+	currentNode *Node,
+	upgradableHttpServer shared.UpgradeableHttpServerHandler,
+	gasScheduleNotifier core.GasScheduleNotifier,
+) (closing.Closer, error) {
 	configs := nr.configs
 
 	log.Trace("creating api resolver structure")
-	apiResolver, err := mainFactory.CreateApiResolver(
-		configs.GeneralConfig,
-		currentNode.stateComponents.AccountsAdapter(),
-		currentNode.stateComponents.PeerAccounts(),
-		currentNode.coreComponents.AddressPubKeyConverter(),
-		currentNode.dataComponents.StorageService(),
-		currentNode.dataComponents.Datapool(),
-		currentNode.dataComponents.Blockchain(),
-		currentNode.coreComponents.InternalMarshalizer(),
-		currentNode.coreComponents.Hasher(),
-		currentNode.coreComponents.Uint64ByteSliceConverter(),
-		currentNode.bootstrapComponents.ShardCoordinator(),
-		currentNode.coreComponents.StatusHandlerUtils().Metrics(),
-		gasScheduleNotifier,
-		currentNode.coreComponents.EconomicsData(),
-		currentNode.cryptoComponents.MessageSignVerifier(),
-		currentNode.coreComponents.GenesisNodesSetup(),
-		configs.SystemSCConfig,
-		currentNode.coreComponents.Rater(),
-		currentNode.coreComponents.EpochNotifier(),
-		configs.FlagsConfig.WorkingDir,
-	)
+
+	apiResolverArgs := &mainFactory.ApiResolverArgs{
+		Configs:             configs,
+		CoreComponents:      currentNode.coreComponents,
+		DataComponents:      currentNode.dataComponents,
+		StateComponents:     currentNode.stateComponents,
+		BootstrapComponents: currentNode.bootstrapComponents,
+		CryptoComponents:    currentNode.cryptoComponents,
+		ProcessComponents:   currentNode.processComponents,
+		GasScheduleNotifier: gasScheduleNotifier,
+	}
+
+	apiResolver, err := mainFactory.CreateApiResolver(apiResolverArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +415,7 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
 		PeerState:       currentNode.stateComponents.PeerAccounts(),
+		Blockchain:      currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -373,9 +426,50 @@ func (nr *nodeRunner) createApiFacade(currentNode *Node, gasScheduleNotifier cor
 	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
 	ef.SetTpsBenchmark(currentNode.statusComponents.TpsBenchmark())
 
+	err = upgradableHttpServer.GetHttpServer().Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = upgradableHttpServer.UpdateFacade(ef)
+	if err != nil {
+		return nil, err
+	}
+
+	go upgradableHttpServer.GetHttpServer().Start()
+
+	log.Debug("updated node facade and restarted the API services")
+
 	log.Trace("starting background services")
-	ef.StartBackgroundServices()
+
 	return ef, nil
+}
+
+func (nr *nodeRunner) createInitialHttpServer() (shared.UpgradeableHttpServerHandler, error) {
+	httpServerArgs := gin.ArgsNewWebServer{
+		Facade:          disabled.NewDisabledNodeFacade(nr.configs.FlagsConfig.RestApiInterface),
+		ApiConfig:       *nr.configs.ApiRoutesConfig,
+		AntiFloodConfig: nr.configs.GeneralConfig.Antiflood.WebServer,
+	}
+
+	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	httpSever, err := httpServerWrapper.CreateHttpServer()
+	if err != nil {
+		return nil, err
+	}
+
+	err = httpServerWrapper.SetHttpServer(httpSever)
+	if err != nil {
+		return nil, err
+	}
+
+	go httpSever.Start()
+
+	return httpServerWrapper, nil
 }
 
 func (nr *nodeRunner) createMetrics(
@@ -393,6 +487,7 @@ func (nr *nodeRunner) createMetrics(
 		nr.configs.EconomicsConfig,
 		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		managedCoreComponents.MinTransactionVersion(),
+		nr.configs.EpochConfig,
 	)
 
 	if err != nil {
@@ -404,6 +499,9 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, managedCoreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, managedCoreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricRewardsTopUpGradientPoint, managedCoreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricTopUpFactor, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricGasPriceModifier, fmt.Sprintf("%g", managedCoreComponents.EconomicsData().GasPriceModifier()))
 
 	return nil
 }
@@ -435,6 +533,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
 		nr.configs.GeneralConfig,
+		nr.configs.EpochConfig,
 		managedBootstrapComponents.ShardCoordinator(),
 		nodesCoordinator,
 		nodesShuffledOut,
@@ -463,6 +562,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ProcessComponents:   managedProcessComponents,
 		StateComponents:     managedStateComponents,
 		StatusComponents:    managedStatusComponents,
+		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
@@ -490,6 +590,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	hardforkTrigger HardforkTrigger,
+	redundancyHandler consensus.NodeRedundancyHandler,
 ) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(managedCoreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
@@ -499,6 +600,7 @@ func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 		AppVersion:        nr.configs.FlagsConfig.Version,
 		GenesisTime:       genesisTime,
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    managedCoreComponents,
 		DataComponents:    managedDataComponents,
 		NetworkComponents: managedNetworkComponents,
@@ -528,6 +630,7 @@ func waitForSignal(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	healthService closing.Closer,
 	ef closing.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
 ) error {
@@ -545,14 +648,14 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, ef, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, ef, httpServer, currentNode, chanCloseComponents)
 	}()
 
 	select {
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
-		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
@@ -588,7 +691,7 @@ func (nr *nodeRunner) logInformation(
 		"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	sessionInfoFileOutput += nr.configs.FlagsConfig.SessionInfoFileOutput
 
 	nr.logSessionInformation(nr.configs.FlagsConfig.WorkingDir, sessionInfoFileOutput, managedCoreComponents)
@@ -596,7 +699,8 @@ func (nr *nodeRunner) logInformation(
 
 func (nr *nodeRunner) getNodesFileName() (string, error) {
 	flagsConfig := nr.configs.FlagsConfig
-	nodesFileName := flagsConfig.NodesFileName
+	configurationPaths := nr.configs.ConfigurationPathsHolder
+	nodesFileName := configurationPaths.Nodes
 
 	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
 	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
@@ -620,7 +724,7 @@ func logGoroutinesNumber(goRoutinesNumberStart int) {
 		"start", goRoutinesNumberStart,
 		"end", runtime.NumGoroutine())
 
-	log.Warn(buffer.String())
+	log.Debug(buffer.String())
 }
 
 // CreateManagedStatusComponents is the managed status components factory
@@ -670,23 +774,22 @@ func (nr *nodeRunner) logSessionInformation(
 	sessionInfoFileOutput string,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) {
-	configs := nr.configs
 	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
+	configurationPaths := nr.configs.ConfigurationPathsHolder
 	copyConfigToStatsFolder(
 		statsFolder,
+		configurationPaths.GasScheduleDirectoryName,
 		[]string{
-			configs.ConfigurationFileName,
-			configs.ConfigurationEconomicsFileName,
-			configs.ConfigurationRatingsFileName,
-			configs.ConfigurationPreferencesFileName,
-			configs.P2pConfigurationFileName,
-			configs.ConfigurationFileName,
-			configs.FlagsConfig.GenesisFileName,
-			configs.FlagsConfig.NodesFileName,
-			configs.ConfigurationApiRoutesFileName,
-			configs.ConfigurationExternalFileName,
-			configs.ConfigurationSystemSCFilename,
-			configs.ConfigurationGasScheduleDirectoryName,
+			configurationPaths.MainConfig,
+			configurationPaths.Economics,
+			configurationPaths.Ratings,
+			configurationPaths.Preferences,
+			configurationPaths.P2p,
+			configurationPaths.Genesis,
+			configurationPaths.Nodes,
+			configurationPaths.ApiRoutes,
+			configurationPaths.External,
+			configurationPaths.SystemSC,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -710,6 +813,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator sharding.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
+	configurationPaths := nr.configs.ConfigurationPathsHolder
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, core.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -722,7 +826,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	accountsParser, err := parsing.NewAccountsParser(
-		configs.FlagsConfig.GenesisFileName,
+		configurationPaths.Genesis,
 		totalSupply,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
@@ -732,7 +836,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
-		configs.FlagsConfig.SmartContractsFileName,
+		configurationPaths.SmartContracts,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 	)
@@ -771,52 +875,36 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
-		Config:                    *configs.GeneralConfig,
-		AccountsParser:            accountsParser,
-		SmartContractParser:       smartContractParser,
-		GasSchedule:               gasScheduleNotifier,
-		Rounder:                   managedCoreComponents.Rounder(),
-		ShardCoordinator:          managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:          nodesCoordinator,
-		Data:                      managedDataComponents,
-		CoreData:                  managedCoreComponents,
-		Crypto:                    managedCryptoComponents,
-		State:                     managedStateComponents,
-		Network:                   managedNetworkComponents,
-		RequestedItemsHandler:     requestedItemsHandler,
-		WhiteListHandler:          whiteListRequest,
-		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
-		EpochStartNotifier:        managedCoreComponents.EpochStartNotifierWithConfirm(),
-		EpochStart:                &configs.GeneralConfig.EpochStartConfig,
-		Rater:                     managedCoreComponents.Rater(),
-		RatingsData:               managedCoreComponents.RatingsData(),
-		StartEpochNum:             managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		SizeCheckDelta:            configs.GeneralConfig.Marshalizer.SizeCheckDelta,
-		StateCheckpointModulus:    configs.GeneralConfig.StateTriesConfig.CheckpointRoundsModulus,
-		MaxComputableRounds:       configs.GeneralConfig.GeneralSettings.MaxComputableRounds,
-		NumConcurrentResolverJobs: configs.GeneralConfig.Antiflood.NumConcurrentResolverJobs,
-		MinSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MinSizeInBytes,
-		MaxSizeInBytes:            configs.GeneralConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
-		MaxRating:                 configs.RatingsConfig.General.MaxRating,
-		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
-		SystemSCConfig:            configs.SystemSCConfig,
-		Version:                   configs.FlagsConfig.Version,
-		ImportStartHandler:        importStartHandler,
-		WorkingDir:                configs.FlagsConfig.WorkingDir,
-		OutportHandler:            managedStatusComponents.OutportHandler(),
-		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
-		HistoryRepo:               historyRepository,
-		EpochNotifier:             epochNotifier,
-		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
-		ChanGracefullyClose:       managedCoreComponents.ChanStopNodeProcess(),
-		EconomicsData:             managedCoreComponents.EconomicsData(),
+		Config:                 *configs.GeneralConfig,
+		EpochConfig:            *configs.EpochConfig,
+		PrefConfigs:            configs.PreferencesConfig.Preferences,
+		ImportDBConfig:         *configs.ImportDbConfig,
+		AccountsParser:         accountsParser,
+		SmartContractParser:    smartContractParser,
+		GasSchedule:            gasScheduleNotifier,
+		NodesCoordinator:       nodesCoordinator,
+		Data:                   managedDataComponents,
+		CoreData:               managedCoreComponents,
+		Crypto:                 managedCryptoComponents,
+		State:                  managedStateComponents,
+		Network:                managedNetworkComponents,
+		BootstrapComponents:    managedBootstrapComponents,
+		StatusComponents:       managedStatusComponents,
+		RequestedItemsHandler:  requestedItemsHandler,
+		WhiteListHandler:       whiteListRequest,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		MaxRating:              configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:         configs.SystemSCConfig,
+		Version:                configs.FlagsConfig.Version,
+		ImportStartHandler:     importStartHandler,
+		WorkingDir:             configs.FlagsConfig.WorkingDir,
+		HistoryRepo:            historyRepository,
+		OutportHandler:         managedStatusComponents.OutportHandler(),
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -850,11 +938,12 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	}
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
-		Config:             *configs.GeneralConfig,
-		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
-		Core:               managedCoreComponents,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CurrentEpoch:       storerEpoch,
+		Config:                        *configs.GeneralConfig,
+		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
+		Core:                          managedCoreComponents,
+		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CurrentEpoch:                  storerEpoch,
+		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 	}
 
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
@@ -921,7 +1010,9 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *nr.configs.GeneralConfig,
+		EpochConfig:       *nr.configs.EpochConfig,
 		PrefConfig:        *nr.configs.PreferencesConfig,
+		ImportDbConfig:    *nr.configs.ImportDbConfig,
 		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    managedCoreComponents,
 		CryptoComponents:  managedCryptoComponents,
@@ -960,6 +1051,9 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:               managedCoreComponents.SyncTimer(),
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
+	if nr.configs.ImportDbConfig.IsImportDBMode {
+		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+	}
 
 	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
 	if err != nil {
@@ -993,9 +1087,12 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *nr.configs.EpochConfig,
+		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,
-		NodesFilename:         nr.configs.FlagsConfig.NodesFileName,
+		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:      nr.configs.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess:   chanStopNodeProcess,
 		StatusHandlersFactory: statusHandlersFactory,
@@ -1024,7 +1121,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
-	validatorKeyPemFileName := configs.FlagsConfig.ValidatorKeyPemFileName
+	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
 	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
@@ -1032,8 +1129,8 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		IsInImportMode:                       configs.FlagsConfig.IsInImportMode,
-		ImportModeNoSigCheck:                 configs.FlagsConfig.ImportDbNoSigCheckFlag,
+		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
@@ -1057,12 +1154,16 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 func closeAllComponents(
 	healthService io.Closer,
 	facade mainFactory.Closer,
+	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
+
+	log.Debug("closing http server")
+	log.LogIfError(httpServer.Close())
 
 	log.Debug("closing facade")
 	log.LogIfError(facade.Close())
@@ -1113,13 +1214,46 @@ func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
 	return nil
 }
 
-func copyConfigToStatsFolder(statsFolder string, configs []string) {
+func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
 	err := os.MkdirAll(statsFolder, os.ModePerm)
+	log.LogIfError(err)
+
+	err = copyDirectory(gasScheduleFolder, statsFolder)
 	log.LogIfError(err)
 
 	for _, configFile := range configs {
 		copySingleFile(statsFolder, configFile)
 	}
+}
+
+// TODO: add some unit tests
+func copyDirectory(source string, destination string) error {
+	fileDescriptors, err := ioutil.ReadDir(source)
+	if err != nil {
+		return err
+	}
+
+	sourceInfo, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(destination, sourceInfo.Mode())
+	if err != nil {
+		return err
+	}
+
+	for _, fd := range fileDescriptors {
+		srcFilePath := path.Join(source, fd.Name())
+		dstFilePath := path.Join(destination, fd.Name())
+		if fd.IsDir() {
+			err = copyDirectory(srcFilePath, dstFilePath)
+			log.LogIfError(err)
+		} else {
+			copySingleFile(dstFilePath, srcFilePath)
+		}
+	}
+	return nil
 }
 
 func copySingleFile(folder string, configFile string) {
@@ -1132,7 +1266,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			log.Warn("copySingleFile", "Could not close file", source.Name())
+			log.Warn("copySingleFile", "Could not close file", source.Name(), "error", err.Error())
 		}
 	}()
 
@@ -1144,13 +1278,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			log.Warn("copySingleFile", "Could not close file", source.Name())
+			log.Warn("copySingleFile", "Could not close file", source.Name(), "error", err.Error())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		log.Warn("copySingleFile", "Could not copy file", source.Name())
+		log.Warn("copySingleFile", "Could not copy file", source.Name(), "error", err.Error())
 	}
 }
 

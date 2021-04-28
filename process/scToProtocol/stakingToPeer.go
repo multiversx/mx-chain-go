@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -75,6 +76,7 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		jailRating:       args.RatingsData.MinRating(),
 		stakeEnableEpoch: args.StakeEnableEpoch,
 	}
+	log.Debug("stakingToPeer: enable epoch for stake", "epoch", st.stakeEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
 
@@ -173,18 +175,28 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		blsPubKey := []byte(key)
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
-		var data []byte
-		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
+		buff := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
-		if len(data) == 0 {
+		var existingAcc state.AccountHandler
+		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
+		shouldDeleteAccount := len(buff) == 0 && !check.IfNil(existingAcc) && err == nil
+		if shouldDeleteAccount {
 			err = stp.peerState.RemoveAccount(blsPubKey)
-			log.LogIfError(err, "staking to protocol RemoveAccount blsPubKey", blsPubKey)
+			if err != nil {
+				log.Debug("staking to protocol RemoveAccount", "error", err, "blsPubKey", hex.EncodeToString(blsPubKey))
+				continue
+			}
+			log.Debug("remove account from validator statistics", "blsPubKey", blsPubKey)
 
 			continue
 		}
 
-		var stakingData systemSmartContracts.StakedDataV2
-		err = stp.marshalizer.Unmarshal(&stakingData, data)
+		if len(buff) == 0 {
+			continue
+		}
+
+		var stakingData systemSmartContracts.StakedDataV2_0
+		err = stp.marshalizer.Unmarshal(&stakingData, buff)
 		if err != nil {
 			return err
 		}
@@ -199,7 +211,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 }
 
 func (stp *stakingToPeer) updatePeerStateV1(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
@@ -261,7 +273,7 @@ func (stp *stakingToPeer) updatePeerStateV1(
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
@@ -397,7 +409,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
+func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
 }

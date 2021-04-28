@@ -124,7 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	multiSignerMock := InitMultiSignerMock()
-	rounderMock := &RounderMock{}
+	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
@@ -134,6 +134,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -147,7 +148,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
 		multiSigner:             multiSignerMock,
-		rounder:                 rounderMock,
+		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
 		validatorGroupSelector:  validatorGroupSelector,
@@ -156,6 +157,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		peerHonestyHandler:      peerHonestyHandler,
 		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
+		nodeRedundancyHandler:   nodeRedundancyHandler,
 	}
 
 	return container

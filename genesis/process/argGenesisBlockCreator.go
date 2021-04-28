@@ -46,7 +46,7 @@ type ArgsGenesisBlockCreator struct {
 	Accounts             state.AccountsAdapter
 	ValidatorAccounts    state.AccountsAdapter
 	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            process.EconomicsHandler
+	Economics            process.EconomicsDataHandler
 	ShardCoordinator     sharding.Coordinator
 	AccountsParser       genesis.AccountsParser
 	SmartContractParser  genesis.InitialSmartContractParser
@@ -56,7 +56,7 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig       config.HardforkConfig
 	TrieStorageManagers  map[string]data.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
-	GeneralConfig        *config.GeneralSettingsConfig
+	EpochConfig          *config.EpochConfig
 	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator

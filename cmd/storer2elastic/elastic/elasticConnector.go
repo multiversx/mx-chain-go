@@ -3,8 +3,10 @@ package elastic
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader/disabled"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -69,10 +71,9 @@ func (escf *elasticSearchConnectorFactory) Create() (outport.OutportHandler, err
 			Hasher:                   escf.hasher,
 			AddressPubkeyConverter:   escf.addressPubKeyConverter,
 			ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
-
-			Options: &elastic.Options{
-				UseKibana: false,
-			},
+			NodesCoordinator:         disabled.NewNodesCoordinator(),
+			EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
+			UseKibana:                false,
 			EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 		},
 		NodesCoordinator:   disabled.NewNodesCoordinator(),

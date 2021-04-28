@@ -366,7 +366,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	}
 	si.tries[identifier] = dataTrie
 
-	rootHash, err := dataTrie.Root()
+	rootHash, err := dataTrie.RootHash()
 	if err != nil {
 		return err
 	}
@@ -573,6 +573,11 @@ func (si *stateImport) GetValidatorAccountsDB() state.AccountsAdapter {
 	}
 
 	return accountsAdapter
+}
+
+// Close tries to close state import objects
+func (si *stateImport) Close() error {
+	return si.hardforkStorer.Close()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

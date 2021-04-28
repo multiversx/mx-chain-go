@@ -8,6 +8,7 @@ const HardforkTriggerString = hardforkTriggerString
 const PayloadSeparator = dataSeparator
 const HardforkGracePeriod = hardforkGracePeriod
 const MinimumEpochForHarfork = minimumEpochForHarfork
+const DeltaRoundsForForcedEpoch = deltaRoundsForForcedEpoch
 
 func (t *trigger) SetTimeHandler(handler func() int64) {
 	t.getTimestampHandler = handler

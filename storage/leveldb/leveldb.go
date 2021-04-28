@@ -77,6 +77,8 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		_ = db.Close()
 	})
 
+	log.Debug("opened level db persister", "path", path)
+
 	return dbStore, nil
 }
 

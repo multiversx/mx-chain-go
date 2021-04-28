@@ -108,7 +108,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	trieStorage, _ := trie.NewTrieStorageManagerWithoutPruning(store)
 
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, &blake2b.Blake2b{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), maxTrieLevelInMemory)
 
 	defer func() {
 		_ = store.DestroyUnit()

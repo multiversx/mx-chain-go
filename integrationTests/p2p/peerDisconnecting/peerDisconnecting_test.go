@@ -37,6 +37,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 	p2pConfig.Node.ThresholdMinConnectedPeers = 3

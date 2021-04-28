@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
@@ -459,4 +460,33 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	isPayable, err := bh.IsPayable(make([]byte, 32))
 	assert.True(t, isPayable)
 	assert.Nil(t, err)
+}
+
+func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
+	t.Parallel()
+
+	args := createMockVMAccountsArguments()
+
+	funcName := "func1"
+	builtInFunctionsContainer := builtInFunctions.NewBuiltInFunctionContainer()
+	_ = builtInFunctionsContainer.Add(funcName, &mock.BuiltInFunctionStub{})
+	args.BuiltInFunctions = builtInFunctionsContainer
+
+	args.Accounts = &mock.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock([]byte("addr1")), nil
+		},
+		LoadAccountCalled: func(_ []byte) (state.AccountHandler, error) {
+			return mock.NewAccountWrapMock([]byte("addr2")), nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	input := &vmcommon.ContractCallInput{
+		Function: funcName,
+	}
+	output, err := bh.ProcessBuiltInFunction(input)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.Ok, output.ReturnCode)
 }

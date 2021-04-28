@@ -3,8 +3,8 @@ package sync
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -52,7 +52,7 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
+func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
 		return update.ErrNotEpochStartBlock
 	}
@@ -96,10 +96,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 		}(shData)
 	}
 
-	err := WaitFor(chDone, waitTime)
-	if err != nil {
-		return err
-	}
+	<-chDone
 
 	if errFound != nil {
 		return errFound
@@ -115,12 +112,12 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w UserAccount, shard: meta", err)
 	}
 
 	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w ValidatorAccount, shard: meta", err)
 	}
 
 	return nil
@@ -129,7 +126,7 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.ShardID)
 	}
 	return nil
 }
@@ -180,7 +177,7 @@ func (st *syncAccountsDBs) setTries(shId uint32, initialID string, rootHash []by
 func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID state.AccountsDbIdentifier, rootHash []byte) bool {
 	savedTrie, ok := st.tries.getTrie(id)
 	if ok {
-		currHash, err := savedTrie.Root()
+		currHash, err := savedTrie.RootHash()
 		if err == nil && bytes.Equal(currHash, rootHash) {
 			return true
 		}

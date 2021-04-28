@@ -24,11 +24,6 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	consensusGroupSize := 1
 	maxGasLimitPerBlock := uint64(100000)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData())
 	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
@@ -41,7 +36,6 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 		coordinatorFactory,
 	)
 
@@ -52,7 +46,6 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	mintValue := big.NewInt(1000000)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -88,7 +81,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	for _, nodes := range nodesMap {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -20,8 +21,7 @@ type P2PMessenger interface {
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	HasTopicValidator(name string) bool
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
@@ -64,6 +64,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
 
@@ -110,5 +111,13 @@ type ValidatorStatisticsProcessor interface {
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler
+	IsInterfaceNil() bool
+}
+
+// NodeRedundancyHandler defines the interface responsible for the redundancy management of the node
+type NodeRedundancyHandler interface {
+	IsRedundancyNode() bool
+	IsMainMachineActive() bool
+	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }

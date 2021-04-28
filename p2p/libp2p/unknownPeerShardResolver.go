@@ -13,8 +13,9 @@ type unknownPeerShardResolver struct {
 // GetPeerInfo returns a P2PPeerInfo value holding an unknown peer value
 func (upsr *unknownPeerShardResolver) GetPeerInfo(_ core.PeerID) core.P2PPeerInfo {
 	return core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		PeerSubType: core.RegularPeer,
+		ShardID:     0,
 	}
 }
 

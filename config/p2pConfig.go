@@ -34,5 +34,6 @@ type ShardingConfig struct {
 	MaxIntraShardObservers  uint32
 	MaxCrossShardObservers  uint32
 	MaxSeeders              uint32
+	MaxFullHistoryObservers uint32
 	Type                    string
 }

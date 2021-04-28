@@ -1,8 +1,8 @@
 package factory
 
 import (
+	"bytes"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -29,16 +29,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config                config.Config
+	ConfigPathsHolder     config.ConfigurationPathsHolder
+	EpochConfig           config.EpochConfig
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
+	ImportDbConfig        config.ImportDbConfig
 	NodesFilename         string
 	WorkingDirectory      string
 	ChanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -48,8 +52,11 @@ type CoreComponentsFactoryArgs struct {
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
 	config                config.Config
+	configPathsHolder     config.ConfigurationPathsHolder
+	epochConfig           config.EpochConfig
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
+	importDbConfig        config.ImportDbConfig
 	nodesFilename         string
 	workingDir            string
 	chanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -69,11 +76,11 @@ type coreComponents struct {
 	statusHandlersUtils           factory.StatusHandlersUtils
 	pathHandler                   storage.PathManagerHandler
 	syncTimer                     ntp.SyncTimer
-	rounder                       consensus.Rounder
+	roundHandler                  consensus.RoundHandler
 	alarmScheduler                core.TimersScheduler
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
-	economicsData                 process.EconomicsHandler
+	economicsData                 process.EconomicsDataHandler
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
@@ -84,13 +91,17 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
+	encodedAddressLen             uint32
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:                args.Config,
+		configPathsHolder:     args.ConfigPathsHolder,
+		epochConfig:           args.EpochConfig,
 		ratingsConfig:         args.RatingsConfig,
+		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
 		workingDir:            args.WorkingDirectory,
 		chanStopNodeProcess:   args.ChanStopNodeProcess,
@@ -132,13 +143,18 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
+
 	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	pruningStorerPathTemplate, staticStorerPathTemplate := ccf.createStorerTemplatePaths()
-	pathHandler, err := pathmanager.NewPathManager(pruningStorerPathTemplate, staticStorerPathTemplate)
+	pathHandler, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: ccf.workingDir,
+			ChainID:    ccf.config.GeneralSettings.ChainID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +167,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ccf.nodesFilename,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return nil, err
@@ -180,7 +197,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Debug("config", "file", ccf.nodesFilename)
 
 	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
-	rounder, err := round.NewRound(
+	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
@@ -199,11 +216,32 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	epochNotifier := forking.NewGenericEpochNotifier()
 
+	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: ccf.epochConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
+		ArgsParser:  smartContract.NewArgumentParser(),
+		GasSchedule: gasScheduleNotifier,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      &ccf.economicsConfig,
-		PenalizedTooMuchGasEnableEpoch: ccf.config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: ccf.epochConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    ccf.epochConfig.EnableEpochs.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
+		BuiltInFunctionsCostHandler:    builtInCostHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -234,13 +272,25 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		genesisNodesConfig.MinNumberOfShardNodes(),
-		genesisNodesConfig.MinNumberOfMetaNodes(),
-		genesisNodesConfig.GetHysteresis(),
-		genesisNodesConfig.GetAdaptivity(),
-		true,
-	)
+	err = economicsData.SetStatusHandler(statusHandlersInfo.StatusHandler())
+	if err != nil {
+		log.Debug("cannot set status handler to economicsData", "error", err)
+	}
+
+	argsNodesShuffler := &sharding.NodesShufflerArgs{
+		NodesShard:                     genesisNodesConfig.MinNumberOfShardNodes(),
+		NodesMeta:                      genesisNodesConfig.MinNumberOfMetaNodes(),
+		Hysteresis:                     genesisNodesConfig.GetHysteresis(),
+		Adaptivity:                     genesisNodesConfig.GetAdaptivity(),
+		ShuffleBetweenShards:           true,
+		MaxNodesEnableConfig:           ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+		BalanceWaitingListsEnableEpoch: ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
+	}
+
+	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	if err != nil {
+		return nil, err
+	}
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
@@ -256,7 +306,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		statusHandlersUtils:           statusHandlersInfo,
 		pathHandler:                   pathHandler,
 		syncTimer:                     syncer,
-		rounder:                       rounder,
+		roundHandler:                  roundHandler,
 		alarmScheduler:                alarmScheduler,
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,
@@ -271,27 +321,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
+		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
 	}, nil
-}
-
-func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
-	pathTemplateForPruningStorer := filepath.Join(
-		ccf.workingDir,
-		core.DefaultDBPath,
-		ccf.config.GeneralSettings.ChainID,
-		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		ccf.workingDir,
-		core.DefaultDBPath,
-		ccf.config.GeneralSettings.ChainID,
-		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	return pathTemplateForPruningStorer, pathTemplateForStaticStorer
 }
 
 // Close closes all underlying components
@@ -309,4 +340,10 @@ func (cc *coreComponents) Close() error {
 		}
 	}
 	return nil
+}
+
+func computeEncodedAddressLen(converter core.PubkeyConverter) uint32 {
+	emptyAddress := bytes.Repeat([]byte{0}, converter.Len())
+	encodedEmptyAddress := converter.Encode(emptyAddress)
+	return uint32(len(encodedEmptyAddress))
 }

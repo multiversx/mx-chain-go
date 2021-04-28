@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -192,29 +193,6 @@ func TestConsensusComponentsFactory_Create_NilShardCoordinator(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
 }
 
-func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := getConsensusArgs(shardCoordinator)
-	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return true
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-	}
-	args.NetworkComponents = networkComponents
-
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
-	cc, err := bcf.Create()
-
-	require.Nil(t, cc)
-	require.Equal(t, errorsErd.ErrValidatorAlreadySet, err)
-}
-
 func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *testing.T) {
 	t.Parallel()
 
@@ -321,6 +299,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = nil
 	args.DataComponents = dataComponents
+	args.ProcessComponents = getDefaultProcessComponents(shardCoordinator)
 	bcf, err := factory.NewConsensusComponentsFactory(args)
 	require.Nil(t, err)
 	require.NotNil(t, bcf)
@@ -396,8 +375,9 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		coreComponents,
 		networkComponents,
 		dataComponents,
-		processComponents,
 		stateComponents,
+		shardCoordinator,
+		processComponents.NodesCoordinator(),
 	)
 
 	return factory.ConsensusComponentsFactoryArgs{
@@ -447,7 +427,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &mock.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
-		RoundHandler:             &testscommon.RounderMock{},
+		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
@@ -465,6 +445,17 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
+		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+			ObserverPrivateKeyCalled: func() crypto.PrivateKey {
+				return &mock.PrivateKeyStub{}
+			},
+		},
 	}
 }
 

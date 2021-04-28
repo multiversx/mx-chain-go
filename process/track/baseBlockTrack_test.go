@@ -110,7 +110,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
 			RequestHandler:   &mock.RequestHandlerStub{},
-			Rounder:          &mock.RounderMock{},
+			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
@@ -139,7 +139,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
 			RequestHandler:   &mock.RequestHandlerStub{},
-			Rounder:          &mock.RounderMock{},
+			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
@@ -165,7 +165,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		HeaderValidator:  headerValidator,
 		Marshalizer:      &mock.MarshalizerMock{},
 		RequestHandler:   &mock.RequestHandlerStub{},
-		Rounder:          &mock.RounderMock{},
+		RoundHandler:     &mock.RoundHandlerMock{},
 		ShardCoordinator: shardCoordinatorMock,
 		Store:            initStore(),
 		StartHeaders:     genesisBlocks,
@@ -1875,7 +1875,7 @@ func TestRegisterSelfNotarizedFromCrossHeadersHandler_ShouldWork(t *testing.T) {
 		PrevHash:     startHeaderHash,
 		PrevRandSeed: startHeader.GetRandSeed(),
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				Nonce:      1,
 				HeaderHash: []byte("hash"),
 			},
@@ -2069,15 +2069,15 @@ func TestCheckTrackerNilParameters_ShouldErrNilRequestHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
-func TestCheckTrackerNilParameters_ShouldErrNilRounder(t *testing.T) {
+func TestCheckTrackerNilParameters_ShouldErrNilRoundHandler(t *testing.T) {
 	t.Parallel()
 
 	baseArguments := CreateBaseTrackerMockArguments()
 
-	baseArguments.Rounder = nil
+	baseArguments.RoundHandler = nil
 	err := track.CheckTrackerNilParameters(baseArguments)
 
-	assert.Equal(t, process.ErrNilRounder, err)
+	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
 func TestCheckTrackerNilParameters_ShouldErrNilShardCoordinator(t *testing.T) {
@@ -2178,24 +2178,24 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	assert.Equal(t, longestChain+chains-1, uint64(len(headers)))
 }
 
-//------- CheckBlockAgainstRounder
+//------- CheckBlockAgainstRoundHandler
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderNilHeaderShouldErr(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
-	err := bbt.CheckBlockAgainstRounder(nil)
+	err := bbt.CheckBlockAgainstRoundHandler(nil)
 
 	assert.Equal(t, process.ErrNilHeaderHandler, err)
 }
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderHigherRoundShouldErr(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerHigherRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
 	currentRound := int64(50)
-	bbt.SetRounder(
-		&mock.RounderMock{
+	bbt.SetRoundHandler(
+		&mock.RoundHandlerMock{
 			RoundIndex: currentRound,
 		},
 	)
@@ -2203,18 +2203,18 @@ func TestBaseBlockTrack_CheckBlockAgainstRounderHigherRoundShouldErr(t *testing.
 	hdr := &block.Header{
 		Round: uint64(currentRound + 2),
 	}
-	err := bbt.CheckBlockAgainstRounder(hdr)
+	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
 }
 
-func TestBaseBlockTrack_CheckBlockAgainstRounderShouldWork(t *testing.T) {
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bbt := track.NewBaseBlockTrack()
 	currentRound := int64(50)
-	bbt.SetRounder(
-		&mock.RounderMock{
+	bbt.SetRoundHandler(
+		&mock.RoundHandlerMock{
 			RoundIndex: currentRound,
 		},
 	)
@@ -2222,7 +2222,7 @@ func TestBaseBlockTrack_CheckBlockAgainstRounderShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		Round: uint64(currentRound + 1),
 	}
-	err := bbt.CheckBlockAgainstRounder(hdr)
+	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.Nil(t, err)
 }

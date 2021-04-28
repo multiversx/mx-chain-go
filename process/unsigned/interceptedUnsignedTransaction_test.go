@@ -3,9 +3,11 @@ package unsigned_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -331,4 +333,45 @@ func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	var utxi *unsigned.InterceptedUnsignedTransaction
 
 	assert.True(t, check.IfNil(utxi))
+}
+
+func TestInterceptedUnsignedTransaction_Type(t *testing.T) {
+	t.Parallel()
+
+	tx := &smartContractResult.SmartContractResult{
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: nil,
+	}
+	txi, _ := createInterceptedScrFromPlainScr(tx)
+
+	expectedType := "intercepted unsigned tx"
+
+	assert.Equal(t, expectedType, txi.Type())
+}
+
+func TestInterceptedUnsignedTransaction_String(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	value := big.NewInt(200)
+	tx := &smartContractResult.SmartContractResult{
+		Nonce:      nonce,
+		Value:      value,
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: nil,
+	}
+	txi, _ := createInterceptedScrFromPlainScr(tx)
+
+	expectedFormat := fmt.Sprintf(
+		"sender=%s, nonce=%d, value=%s, recv=%s",
+		logger.DisplayByteSlice(senderAddress), nonce, value, logger.DisplayByteSlice(recvAddress),
+	)
+
+	assert.Equal(t, expectedFormat, txi.String())
 }

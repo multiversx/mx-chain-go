@@ -108,7 +108,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
-	_, cancelFunc := context.WithCancel(context.Background())
 	var err error
 	var resMon *statistics.ResourceMonitor
 	log.Trace("initializing stats file")
@@ -162,6 +161,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
+	_, cancelFunc := context.WithCancel(context.Background())
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
@@ -196,7 +196,7 @@ func (pc *statusComponents) Close() error {
 // authentication for the server is using the username and password
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	indexerFactoryArgs := &driversFactory.ArgsElasticDriverFactory{
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		ShardCoordinator:         scf.shardCoordinator,
@@ -205,17 +205,16 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              scf.coreComponents.InternalMarshalizer(),
 		Hasher:                   scf.coreComponents.Hasher(),
+		EpochStartNotifier:       scf.epochStartNotifier,
+		NodesCoordinator:         scf.nodesCoordinator,
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
-		TemplatesPath:            scf.elasticTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		FeeConfig:                &scf.economicsConfig.FeeSettings,
-		Options: &elastic.Options{
-			UseKibana: elasticSearchConfig.UseKibana,
-		},
-		IsInImportDBMode: scf.isInImportMode,
+		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
+		UseKibana:                elasticSearchConfig.UseKibana,
+		IsInImportDBMode:         scf.isInImportMode,
 	}
 
 	args := &outportDriverFactory.ArgsOutportFactory{

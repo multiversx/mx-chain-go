@@ -49,6 +49,10 @@ func NewESDTBurnFunc(
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtBurn) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
 	e.mutExecution.Unlock()
@@ -62,11 +66,9 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	e.mutExecution.RLock()
 	defer e.mutExecution.RUnlock()
 
-	if vmInput == nil {
-		return nil, process.ErrNilVmInput
-	}
-	if vmInput.CallValue.Cmp(zero) != 0 {
-		return nil, process.ErrBuiltInFunctionCalledWithValue
+	err := checkBasicESDTArguments(vmInput)
+	if err != nil {
+		return nil, err
 	}
 	if len(vmInput.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
@@ -89,18 +91,21 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 		return nil, process.ErrNotEnoughGas
 	}
 
-	err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+	err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	gasRemaining := computeGasRemaining(acntSnd, vmInput.GasProvided, e.funcGasCost)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		addOutPutTransferToVMOutput(
+		addOutputTransferToVMOutput(
+			vmInput.CallerAddr,
 			core.BuiltInFunctionESDTBurn,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
+			vmInput.CallType,
 			vmOutput)
 	}
 

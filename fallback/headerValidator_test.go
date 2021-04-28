@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/fallback"
@@ -55,7 +56,7 @@ func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 	storageService := &mock.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
-	assert.NotNil(t, fhv)
+	assert.False(t, check.IfNil(fhv))
 	assert.Nil(t, err)
 }
 
@@ -119,7 +120,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 	prevHash := []byte("prev_hash")
 	headersPool := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-			if bytes.Compare(hash, prevHash) == 0 {
+			if bytes.Equal(hash, prevHash)  {
 				return &block.MetaBlock{}, nil
 			}
 			return nil, errors.New("error")
@@ -148,7 +149,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 	prevHash := []byte("prev_hash")
 	headersPool := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-			if bytes.Compare(hash, prevHash) == 0 {
+			if bytes.Equal(hash, prevHash) {
 				return &block.MetaBlock{}, nil
 			}
 			return nil, errors.New("error")

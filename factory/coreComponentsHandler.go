@@ -123,8 +123,8 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.syncTimer) {
 		return errors.ErrNilSyncTimer
 	}
-	if check.IfNil(mcc.rounder) {
-		return errors.ErrNilRounder
+	if check.IfNil(mcc.roundHandler) {
+		return errors.ErrNilRoundHandler
 	}
 	if check.IfNil(mcc.economicsData) {
 		return errors.ErrNilEconomicsHandler
@@ -333,6 +333,18 @@ func (mcc *managedCoreComponents) TxVersionChecker() process.TxVersionCheckerHan
 	return mcc.coreComponents.txVersionChecker
 }
 
+// EncodedAddressLen returns the length of the encoded address
+func (mcc *managedCoreComponents) EncodedAddressLen() uint32 {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return 0
+	}
+
+	return mcc.coreComponents.encodedAddressLen
+}
+
 // AlarmScheduler returns the alarm scheduler
 func (mcc *managedCoreComponents) AlarmScheduler() core.TimersScheduler {
 	mcc.mutCoreComponents.RLock()
@@ -382,7 +394,7 @@ func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 }
 
 // EconomicsData returns the configured economics data
-func (mcc *managedCoreComponents) EconomicsData() process.EconomicsHandler {
+func (mcc *managedCoreComponents) EconomicsData() process.EconomicsDataHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -429,8 +441,8 @@ func (mcc *managedCoreComponents) GenesisNodesSetup() sharding.GenesisNodesSetup
 	return mcc.coreComponents.nodesSetupHandler
 }
 
-// Rounder returns the rounder
-func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
+// RoundHandler returns the roundHandler
+func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -438,7 +450,7 @@ func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
 		return nil
 	}
 
-	return mcc.coreComponents.rounder
+	return mcc.coreComponents.roundHandler
 }
 
 // NodesShuffler returns the nodes shuffler

@@ -333,10 +333,10 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 	h.mutMeta.Unlock()
 
 	if requested {
-		err := WaitFor(h.chReceivedAll, waitTime)
-		if err != nil {
+		errWaitFor := WaitFor(h.chReceivedAll, waitTime)
+		if errWaitFor != nil {
 			log.Warn("timeOut for requesting all unFinished metaBlocks")
-			return err
+			return errWaitFor
 		}
 	}
 
@@ -348,13 +348,13 @@ func (h *headersToSync) computeMissingNonce(epochStart *block.MetaBlock) error {
 	h.foundMetaNonces = make(map[uint64]string)
 
 	epochStartNonce := epochStart.Nonce
-	hash, err := core.CalculateHash(h.marshalizer, h.hasher, epochStart)
+	epochStartHash, err := core.CalculateHash(h.marshalizer, h.hasher, epochStart)
 	if err != nil {
 		return err
 	}
 
-	h.foundMetaNonces[epochStartNonce] = string(hash)
-	h.unFinishedMetaBlocks[string(hash)] = epochStart
+	h.foundMetaNonces[epochStartNonce] = string(epochStartHash)
+	h.unFinishedMetaBlocks[string(epochStartHash)] = epochStart
 
 	for hash, meta := range h.firstPendingMetaBlocks {
 		h.unFinishedMetaBlocks[hash] = meta
@@ -378,8 +378,8 @@ func (h *headersToSync) computeMissingNonce(epochStart *block.MetaBlock) error {
 			h.missingMetaNonces[nonce] = struct{}{}
 			continue
 		}
-		metaHdr, err := process.GetMetaHeader(attestingMeta.GetPrevHash(), h.metaBlockPool, h.marshalizer, h.store)
-		if err != nil {
+		metaHdr, errGetMetaHeader := process.GetMetaHeader(attestingMeta.GetPrevHash(), h.metaBlockPool, h.marshalizer, h.store)
+		if errGetMetaHeader != nil {
 			h.missingMetaNonces[nonce] = struct{}{}
 			continue
 		}

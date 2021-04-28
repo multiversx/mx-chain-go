@@ -197,7 +197,7 @@ func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 
 // GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
 func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	retMap := make(map[string][]byte, 0)
+	retMap := make(map[string][]byte)
 	for _, key := range keys {
 		value, err := u.Get(key)
 		if err != nil {
@@ -234,11 +234,6 @@ func (u *Unit) Has(key []byte) error {
 // SearchFirst will call the Get method as this storer doesn't handle epochs
 func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
 	return u.Get(key)
-}
-
-// HasInEpoch will call the Has method as this storer doesn't handle epochs
-func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
-	return u.Has(key)
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
@@ -448,6 +443,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 			return db, nil
 		}
 
+		//TODO: extract this in a parameter and inject it
 		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	if err != nil {
@@ -485,11 +481,11 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	switch h {
 	case Keccak:
-		return keccak.Keccak{}, nil
+		return keccak.NewKeccak(), nil
 	case Blake2b:
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	case Fnv:
-		return fnv.Fnv{}, nil
+		return fnv.NewFnv(), nil
 	default:
 		return nil, storage.ErrNotSupportedHashType
 	}

@@ -61,8 +61,8 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubkeyConverter)
 	}
-	if check.IfNil(args.Rounder) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRounder)
+	if check.IfNil(args.RoundHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRoundHandler)
 	}
 	if check.IfNil(args.StorageUnitOpener) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStorageUnitOpener)
@@ -83,19 +83,25 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
 	}
 	if check.IfNil(args.ArgumentsParser) {
-		return epochStart.ErrNilArgumentsParser
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilArgumentsParser)
 	}
 	if check.IfNil(args.StatusHandler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusHandler)
 	}
 	if check.IfNil(args.HeaderIntegrityVerifier) {
-		return epochStart.ErrNilHeaderIntegrityVerifier
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHeaderIntegrityVerifier)
 	}
 	if check.IfNil(args.CoreComponentsHolder.TxSignHasher()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
 	}
 	if check.IfNil(args.CoreComponentsHolder.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEpochNotifier)
+	}
+	if args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes < 1 {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidMaxHardCapForMissingNodes)
+	}
+	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
 	}
 
 	return nil

@@ -228,6 +228,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 
 	updatePubKeyWasCalled := false
 	updatePidShardIdCalled := false
+	updatePidSubTypeCalled := false
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{Signer: &mock.SinglesignMock{}},
 		marshalizer,
@@ -238,6 +239,9 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				updatePidShardIdCalled = true
 			},
+			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				updatePidSubTypeCalled = true
+			},
 		},
 	)
 	assert.Nil(t, err)
@@ -246,7 +250,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 		FromField:      nil,
 		DataField:      make([]byte, 5),
 		SeqNoField:     nil,
-		TopicsField:    nil,
+		TopicField:     "",
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -258,6 +262,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	assert.NotNil(t, ret)
 	assert.True(t, updatePubKeyWasCalled)
 	assert.True(t, updatePidShardIdCalled)
+	assert.True(t, updatePidSubTypeCalled)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
@@ -267,7 +272,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		FromField:      nil,
 		DataField:      nil,
 		SeqNoField:     nil,
-		TopicsField:    nil,
+		TopicField:     "",
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -294,7 +299,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 		FromField:      nil,
 		DataField:      []byte("hello"),
 		SeqNoField:     nil,
-		TopicsField:    nil,
+		TopicField:     "",
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",
@@ -366,7 +371,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 		FromField:      nil,
 		DataField:      make([]byte, 5),
 		SeqNoField:     nil,
-		TopicsField:    nil,
+		TopicField:     "",
 		SignatureField: nil,
 		KeyField:       nil,
 		PeerField:      "",

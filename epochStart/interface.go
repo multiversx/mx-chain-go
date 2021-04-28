@@ -2,6 +2,7 @@ package epochStart
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -12,7 +13,7 @@ import (
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
 	Close() error
-	ForceEpochStart()
+	ForceEpochStart(round uint64)
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32
@@ -30,8 +31,8 @@ type TriggerHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
-type Rounder interface {
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
 	// Index returns the current round
 	Index() int64
 	// TimeStamp returns the time stamp of the round
@@ -113,7 +114,6 @@ type PendingMiniBlocksSyncHandler interface {
 
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
-	GetSyncedTries() map[string]data.Trie
 	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
@@ -134,5 +134,65 @@ type NodesConfigProvider interface {
 type ImportStartHandler interface {
 	ShouldStartImport() bool
 	IsAfterExportBeforeImport() bool
+	IsInterfaceNil() bool
+}
+
+// ManualEpochStartNotifier represents a notifier that can be triggered manually for an epoch change event.
+// Useful in storage resolvers (import-db process)
+type ManualEpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}
+
+// TransactionCacher defines the methods for the local cacher, info for current round
+type TransactionCacher interface {
+	GetTx(txHash []byte) (data.TransactionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// StakingDataProvider is able to provide staking data from the system smart contracts
+type StakingDataProvider interface {
+	GetTotalStakeEligibleNodes() *big.Int
+	GetTotalTopUpStakeEligibleNodes() *big.Int
+	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
+	PrepareStakingDataForRewards(keys map[uint32][][]byte) error
+	FillValidatorInfo(blsKey []byte) error
+	ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error)
+	Clean()
+	IsInterfaceNil() bool
+}
+
+// EpochEconomicsDataProvider provides end of epoch economics data
+type EpochEconomicsDataProvider interface {
+	SetNumberOfBlocks(nbBlocks uint64)
+	SetNumberOfBlocksPerShard(blocksPerShard map[uint32]uint64)
+	SetLeadersFees(fees *big.Int)
+	SetRewardsToBeDistributed(rewards *big.Int)
+	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	NumberOfBlocks() uint64
+	NumberOfBlocksPerShard() map[uint32]uint64
+	LeaderFees() *big.Int
+	RewardsToBeDistributed() *big.Int
+	RewardsToBeDistributedForBlocks() *big.Int
+	IsInterfaceNil() bool
+}
+
+// RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type RewardsCreator interface {
+	CreateRewardsMiniBlocks(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) error
+	GetProtocolSustainabilityRewards() *big.Int
+	GetLocalTxCache() TransactionCacher
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }

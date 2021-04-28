@@ -1,6 +1,10 @@
 package vmcommon
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
+)
 
 // FunctionNames (alias) is a map of function names
 type FunctionNames = map[string]struct{}
@@ -65,6 +69,9 @@ type BlockchainHook interface {
 	// GetUserAccount returns a user account
 	GetUserAccount(address []byte) (UserAccountHandler, error)
 
+	// GetCode returns the code for the given account
+	GetCode(UserAccountHandler) []byte
+
 	// GetShardOfAddress returns the shard ID of a given address
 	GetShardOfAddress(address []byte) uint32
 
@@ -83,6 +90,9 @@ type BlockchainHook interface {
 	// ClearCompiledCodes clears the cache and storage of compiled codes
 	ClearCompiledCodes()
 
+	// GetESDTToken loads the ESDT digital token for the given key
+	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -91,7 +101,6 @@ type BlockchainHook interface {
 type UserAccountHandler interface {
 	AddressBytes() []byte
 	GetNonce() uint64
-	GetCode() []byte
 	GetCodeMetadata() []byte
 	GetCodeHash() []byte
 	GetRootHash() []byte

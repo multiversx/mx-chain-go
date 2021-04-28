@@ -11,7 +11,13 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	AddToBalanceCalled func(value *big.Int) error
+	AddToBalanceCalled    func(value *big.Int) error
+	DataTrieTrackerCalled func() state.DataTrieTracker
+}
+
+// HasNewCode -
+func (u *UserAccountStub) HasNewCode() bool {
+	return false
 }
 
 // SetUserName -
@@ -90,11 +96,6 @@ func (u *UserAccountStub) SetCode(_ []byte) {
 
 }
 
-// GetCode -
-func (u *UserAccountStub) GetCode() []byte {
-	return nil
-}
-
 // SetCodeMetadata -
 func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 }
@@ -136,10 +137,13 @@ func (u *UserAccountStub) DataTrie() data.Trie {
 
 // DataTrieTracker -
 func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
+	if u.DataTrieTrackerCalled != nil {
+		return u.DataTrieTrackerCalled()
+	}
 	return nil
 }
 
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return false
+	return u == nil
 }
