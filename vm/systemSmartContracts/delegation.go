@@ -29,6 +29,7 @@ const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
+const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
 
 const (
 	active    = uint32(0)
@@ -169,7 +170,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.init(args)
 	case initFromValidatorData:
 		return d.initFromValidatorData(args)
-	case "mergeValidatorDataToDelegation":
+	case mergeValidatorDataToDelegation:
 		return d.mergeValidatorDataToDelegation(args)
 	case "addNodes":
 		return d.addNodes(args)
@@ -345,10 +346,6 @@ func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.Contr
 		d.eei.AddReturnMessage("call value must be 0")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 3 {
-		d.eei.AddReturnMessage("invalid number of arguments")
-		return vmcommon.UserError
-	}
 	if len(args.Arguments[0]) != len(d.delegationMgrSCAddress) {
 		d.eei.AddReturnMessage("invalid arguments, first must be an address")
 		return vmcommon.UserError
@@ -359,7 +356,11 @@ func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.Contr
 func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkArgumentsForValidatorToDelegation(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.Ok
+		return returnCode
+	}
+	if len(args.Arguments) != 3 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
 	}
 
 	serviceFee := big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()
@@ -384,14 +385,9 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmOutput.ReturnCode
 	}
 
-	validatorData, err := d.getValidatorData(args.RecipientAddr)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	if !bytes.Equal(validatorData.RewardAddress, args.RecipientAddr) {
-		d.eei.AddReturnMessage("invalid reward address on validator data")
-		return vmcommon.UserError
+	validatorData, returnCode := d.getAndVerifyValidatorData(args.RecipientAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
@@ -400,21 +396,13 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	if validatorData.TotalStakeValue.Cmp(delegationManagement.MinDeposit) < 0 {
-		d.eei.AddReturnMessage("not enough stake to make delegation contract")
-		return vmcommon.UserError
-	}
-	if len(validatorData.UnstakedInfo) > 0 {
-		d.eei.AddReturnMessage("clean unStaked info before changing validator to delegation contract")
-		return vmcommon.UserError
-	}
-
 	returnCode = d.initDelegationStructures(delegationManagement.MinDeposit, ownerAddress, serviceFee, maxDelegationCap)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	dStatus, err := d.updateDelegationStatusFromValidatorData(validatorData)
+	dStatus := createNewDelegationContractStatus()
+	err = d.updateDelegationStatusFromValidatorData(validatorData, dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -428,12 +416,14 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-func (d *delegation) updateDelegationStatusFromValidatorData(validatorData *ValidatorDataV2) (*DelegationContractStatus, error) {
-	dStatus := createNewDelegationContractStatus()
+func (d *delegation) updateDelegationStatusFromValidatorData(
+	validatorData *ValidatorDataV2,
+	dStatus *DelegationContractStatus,
+) error {
 	for _, blsKey := range validatorData.BlsPubKeys {
 		status, err := d.getBLSKeyStatus(blsKey)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		nodesData := &NodesData{
@@ -448,7 +438,7 @@ func (d *delegation) updateDelegationStatusFromValidatorData(validatorData *Vali
 		}
 	}
 
-	return dStatus, nil
+	return nil
 }
 
 func (d *delegation) getBLSKeyStatus(key []byte) (uint32, error) {
@@ -486,11 +476,73 @@ func (d *delegation) getValidatorData(address []byte) (*ValidatorDataV2, error) 
 	return validatorData, nil
 }
 
+func (d *delegation) getAndVerifyValidatorData(address []byte) (*ValidatorDataV2, vmcommon.ReturnCode) {
+	validatorData, err := d.getValidatorData(address)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if !bytes.Equal(validatorData.RewardAddress, address) {
+		d.eei.AddReturnMessage("invalid reward address on validator data")
+		return nil, vmcommon.UserError
+	}
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if validatorData.TotalStakeValue.Cmp(delegationManagement.MinDeposit) < 0 {
+		d.eei.AddReturnMessage("not enough stake to make delegation contract")
+		return nil, vmcommon.UserError
+	}
+	if len(validatorData.UnstakedInfo) > 0 {
+		d.eei.AddReturnMessage("clean unStaked info before changing validator to delegation contract")
+		return nil, vmcommon.UserError
+	}
+
+	return validatorData, vmcommon.Ok
+}
+
 func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
-		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+	returnCode := d.checkArgumentsForValidatorToDelegation(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
+
+	validatorAddress := args.Arguments[0]
+	validatorData, returnCode := d.getAndVerifyValidatorData(validatorAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	argumentsForMerge := [][]byte{validatorAddress, args.RecipientAddr}
+	vmOutput, err := d.executeOnValidatorSC(d.delegationMgrSCAddress, "mergeValidatorData", argumentsForMerge, zero)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.updateDelegationStatusFromValidatorData(validatorData, dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	returnCode = d.delegateUser(validatorData.TotalStakeValue, validatorAddress, args.RecipientAddr, dStatus)
+
 	return vmcommon.Ok
 }
 

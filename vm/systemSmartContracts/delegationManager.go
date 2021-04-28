@@ -3,6 +3,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -260,18 +261,9 @@ func (d *delegationManager) deployNewContract(
 }
 
 func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.flagValidatorToDelegation.IsSet() {
-		d.eei.AddReturnMessage("invalid function to call")
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage("callValue must be 0")
-		return vmcommon.UserError
-	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.OutOfGas
+	returnCode := d.checkValidatorToDelegationInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 	if len(args.Arguments) != 2 {
 		d.eei.AddReturnMessage("invalid number of arguments")
@@ -279,11 +271,10 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
-
 	return d.deployNewContract(args, false, initFromValidatorData, arguments)
 }
 
-func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.flagValidatorToDelegation.IsSet() {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
@@ -297,10 +288,57 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
-
-	// TODO implement this
+	if core.IsSmartContractAddress(args.CallerAddr) {
+		d.eei.AddReturnMessage("cannot change from validator to delegation contract for a smart contract")
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkValidatorToDelegationInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	lenAddress := len(args.CallerAddr)
+	scAddress := args.Arguments[0]
+	if len(scAddress) != lenAddress {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+
+	buff := d.eei.GetStorage(args.CallerAddr)
+	if len(buff) == 0 {
+		d.eei.AddReturnMessage("no sc address under selected user")
+		return vmcommon.UserError
+	}
+
+	found := false
+	for i := 0; i < len(buff); i += lenAddress {
+		savedAddress := buff[i : i+lenAddress]
+		if bytes.Equal(savedAddress, scAddress) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		d.eei.AddReturnMessage("did not find delegation contract with given address for this caller")
+		return vmcommon.UserError
+	}
+
+	txData := mergeValidatorDataToDelegation + "@" + hex.EncodeToString(args.CallerAddr)
+	vmOutput, err := d.eei.ExecuteOnDestContext(scAddress, d.delegationMgrSCAddress, big.NewInt(0), []byte(txData))
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	return vmOutput.ReturnCode
 }
 
 func (d *delegationManager) checkConfigChangeInput(args *vmcommon.ContractCallInput) error {
