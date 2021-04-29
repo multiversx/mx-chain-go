@@ -102,6 +102,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlock := &api.NotarizedBlock{
 			Hash:  hex.EncodeToString(shardData.HeaderHash),
 			Nonce: shardData.Nonce,
+			Round: shardData.Round,
 			Shard: shardData.ShardID,
 		}
 

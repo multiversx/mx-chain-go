@@ -313,7 +313,14 @@ func TestMetaAPIBlockProcessor_GetBlockByHashEpochStartBlock(t *testing.T) {
 		DeveloperFees:          big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(10),
 		DevFeesInEpoch:         big.NewInt(5),
-
+		ShardInfo: []block.ShardData{
+			{
+				HeaderHash: []byte("hash"),
+				ShardID:    0,
+				Nonce:      1,
+				Round:      2,
+			},
+		},
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{{}},
 			Economics: block.Economics{
@@ -333,12 +340,19 @@ func TestMetaAPIBlockProcessor_GetBlockByHashEpochStartBlock(t *testing.T) {
 	_ = storerMock.Put(headerHash, headerBytes)
 
 	expectedBlock := &api.Block{
-		Nonce:           nonce,
-		Round:           round,
-		Shard:           core.MetachainShardId,
-		Epoch:           epoch,
-		Hash:            hex.EncodeToString(headerHash),
-		NotarizedBlocks: []*api.NotarizedBlock{},
+		Nonce: nonce,
+		Round: round,
+		Shard: core.MetachainShardId,
+		Epoch: epoch,
+		Hash:  hex.EncodeToString(headerHash),
+		NotarizedBlocks: []*api.NotarizedBlock{
+			{
+				Hash:  "68617368",
+				Shard: 0,
+				Nonce: 1,
+				Round: 2,
+			},
+		},
 		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
