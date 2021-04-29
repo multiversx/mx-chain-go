@@ -9,7 +9,7 @@ import (
 
 type disabledOutport struct{}
 
-// NewDisabledOutport wil create a new instance of disabledOutport
+// NewDisabledOutport will create a new instance of disabledOutport
 func NewDisabledOutport() OutportHandler {
 	return new(disabledOutport)
 }
