@@ -515,7 +515,6 @@ func (ed *economicsData) EpochConfirmed(epoch uint32) {
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
 	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
-
 	ed.setRewardsEpochConfig(epoch)
 }
 
