@@ -33,7 +33,7 @@
             DeveloperPercentage = 0.3, #fraction of value 0.3 - 30%
             ProtocolSustainabilityPercentage = 0.1, #fraction of value 0.1 - 10%
             ProtocolSustainabilityAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
-            TopUpGradientPoint = "1500000000000000000000000", # 15MIL eGLD
+            TopUpGradientPoint = "1500000000000000000000000", # 1.5MIL eGLD
             TopUpFactor = 0.35, # fraction of value 0.35 - 35%
             EpochEnable = 2
         }
