@@ -36,6 +36,76 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 	assert.Nil(t, blk)
 }
 
+func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	uint64Converter := mock.NewNonceHashConverterMock()
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+	dataComponentsMock := getDefaultDataComponents()
+	dataComponentsMock.Store = nil
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponentsMock),
+		node.WithProcessComponents(processComponentsMock),
+		node.WithDataComponents(dataComponentsMock),
+	)
+
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+}
+
+func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	uint64Converter := mock.NewNonceHashConverterMock()
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	storerMock := mock.NewStorerMock()
+	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+	dataComponentsMock := getDefaultDataComponents()
+	dataComponentsMock.Store = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return storerMock
+		},
+		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+			return headerHash, nil
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponentsMock),
+		node.WithProcessComponents(processComponentsMock),
+		node.WithDataComponents(dataComponentsMock),
+	)
+
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
+}
+
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
@@ -189,6 +259,37 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
+}
+
+func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	historyProc := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+			return 1, nil
+		},
+	}
+	nonce := uint64(1)
+	uint64Converter := mock.NewNonceHashConverterMock()
+	coreComponentsMock := getDefaultCoreComponents()
+	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
+	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepositoryInternal = historyProc
+	dataComponentsMock := getDefaultDataComponents()
+	dataComponentsMock.Store = nil
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponentsMock),
+		node.WithProcessComponents(processComponentsMock),
+		node.WithDataComponents(dataComponentsMock),
+	)
+
+	blk, err := n.GetBlockByNonce(nonce, false)
+	assert.Error(t, err)
+	assert.Nil(t, blk)
 }
 
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
