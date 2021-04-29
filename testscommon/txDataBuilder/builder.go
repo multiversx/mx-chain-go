@@ -129,6 +129,11 @@ func (builder *txDataBuilder) TransferESDT(token string, value int64) *txDataBui
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
 }
 
+//TrasnferNFTESDT
+func (builder *txDataBuilder) TransferESDTNFT(token string, nonce int, value int64) *txDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTNFTTransfer).Str(token).Int(nonce).Int64(value)
+}
+
 // BurnESDT appends to the data string all the elements required to burn ESDT tokens.
 func (builder *txDataBuilder) BurnESDT(token string, value int64) *txDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTBurn).Str(token).Int64(value)
