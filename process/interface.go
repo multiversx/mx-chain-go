@@ -821,6 +821,7 @@ type PeerValidatorMapper interface {
 type SCQueryService interface {
 	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 

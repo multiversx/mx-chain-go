@@ -84,7 +84,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		workingDir:          apiWorkingDir,
 	}
 
-	scQueryService, _, _, err := createScQueryService(argsSCQuery)
+	scQueryService, err := createScQueryService(argsSCQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -163,10 +163,10 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 func createScQueryService(
 	args *scQueryServiceArgs,
-) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
+) (process.SCQueryService, error) {
 	numConcurrentVms := args.generalConfig.VirtualMachine.Querying.NumConcurrentVMs
 	if numConcurrentVms < 1 {
-		return nil, nil, nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
 	}
 
 	argsQueryElem := &scQueryElementArgs{
@@ -184,16 +184,14 @@ func createScQueryService(
 	}
 
 	var err error
-	var vmFactory process.VirtualMachinesContainerFactory
-	var vmContainer process.VirtualMachinesContainer
 	var scQueryService process.SCQueryService
 
 	list := make([]process.SCQueryService, 0, numConcurrentVms)
 	for i := 0; i < numConcurrentVms; i++ {
 		argsQueryElem.index = i
-		scQueryService, vmFactory, vmContainer, err = createScQueryElement(argsQueryElem)
+		scQueryService, err = createScQueryElement(argsQueryElem)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 
 		list = append(list, scQueryService)
@@ -201,15 +199,15 @@ func createScQueryService(
 
 	sqQueryDispatcher, err := smartContract.NewScQueryServiceDispatcher(list)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return sqQueryDispatcher, vmFactory, vmContainer, nil
+	return sqQueryDispatcher, nil
 }
 
 func createScQueryElement(
 	args *scQueryElementArgs,
-) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
+) (process.SCQueryService, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
@@ -220,13 +218,13 @@ func createScQueryElement(
 		args.processComponents.ShardCoordinator(),
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	cacherCfg := storageFactory.GetCacherFromConfig(args.generalConfig.SmartContractDataPool)
 	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
@@ -264,7 +262,7 @@ func createScQueryElement(
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
@@ -287,18 +285,18 @@ func createScQueryElement(
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	scQueryService, err := smartContract.NewSCQueryService(
@@ -308,7 +306,7 @@ func createScQueryElement(
 		args.dataComponents.Blockchain(),
 	)
 
-	return scQueryService, vmFactory, vmContainer, err
+	return scQueryService, err
 }
 
 func createBuiltinFuncs(

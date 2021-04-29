@@ -153,238 +153,252 @@ func printEnableEpochs(configs *config.Configs) {
 }
 
 func (nr *nodeRunner) startShufflingProcessLoop(
-	chanStopNodeProcess1 chan endProcess.ArgEndProcess,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) error {
+	for {
+		log.Debug("\n\n====================Starting managedComponents creation================================")
+
+		shouldStop, err := nr.executeOneComponentCreationCycle(chanStopNodeProcess)
+		if shouldStop {
+			return err
+		}
+
+		log.Debug("node statistics before running GC", statistics.GetRuntimeStatistics()...)
+		runtime.GC()
+		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
+	}
+}
+
+func (nr *nodeRunner) executeOneComponentCreationCycle(
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (bool, error) {
+	goRoutinesNumberStart := runtime.NumGoroutine()
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
-	for {
-		goRoutinesNumberStart := runtime.NumGoroutine()
 
-		log.Debug("\n\n====================Starting managedComponents creation================================")
-
-		log.Debug("creating core components")
-		managedCoreComponents, err := nr.CreateManagedCoreComponents(
-			chanStopNodeProcess1,
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating crypto components")
-		managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating network components")
-		managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating disabled API services")
-		httpServerWrapper, err := nr.createInitialHttpServer()
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating bootstrap components")
-		managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
-		if err != nil {
-			return err
-		}
-
-		nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-
-		log.Debug("creating state components")
-		managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating data components")
-		managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating healthService")
-		healthService := nr.createHealthService(flagsConfig, managedDataComponents)
-
-		log.Trace("creating metrics")
-		err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
-		if err != nil {
-			return err
-		}
-
-		nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
-			managedCoreComponents.GenesisNodesSetup(),
-			configs.GeneralConfig.EpochStartConfig,
-			managedCoreComponents.ChanStopNodeProcess(),
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Debug("creating nodes coordinator")
-		nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
-			nodesShufflerOut,
-			managedCoreComponents.GenesisNodesSetup(),
-			configs.PreferencesConfig.Preferences,
-			managedCoreComponents.EpochStartNotifierWithConfirm(),
-			managedCryptoComponents.PublicKey(),
-			managedCoreComponents.InternalMarshalizer(),
-			managedCoreComponents.Hasher(),
-			managedCoreComponents.Rater(),
-			managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-			managedCoreComponents.NodesShuffler(),
-			managedBootstrapComponents.ShardCoordinator().SelfId(),
-			managedBootstrapComponents.EpochBootstrapParams(),
-			managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-		)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("starting status pooling components")
-		managedStatusComponents, err := nr.CreateManagedStatusComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedBootstrapComponents,
-			managedDataComponents,
-			managedStateComponents,
-			nodesCoordinator,
-			configurationPaths.ElasticSearchTemplatesPath,
-			configs.ImportDbConfig.IsImportDBMode,
-		)
-		if err != nil {
-			return err
-		}
-
-		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-			GasScheduleConfig: configs.EpochConfig.GasSchedule,
-			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
-			EpochNotifier:     managedCoreComponents.EpochNotifier(),
-		}
-		gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("creating process components")
-		managedProcessComponents, err := nr.CreateManagedProcessComponents(
-			managedCoreComponents,
-			managedCryptoComponents,
-			managedNetworkComponents,
-			managedBootstrapComponents,
-			managedStateComponents,
-			managedDataComponents,
-			managedStatusComponents,
-			gasScheduleNotifier,
-			nodesCoordinator,
-		)
-		if err != nil {
-			return err
-		}
-
-		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
-		err = managedStatusComponents.StartPolling()
-		if err != nil {
-			return err
-		}
-
-		elasticIndexer := managedStatusComponents.ElasticIndexer()
-		if !elasticIndexer.IsNilIndexer() {
-			elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-		}
-
-		log.Debug("starting node...")
-
-		managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedCryptoComponents,
-			managedBootstrapComponents,
-			managedDataComponents,
-			managedStateComponents,
-			managedStatusComponents,
-			managedProcessComponents,
-			nodesCoordinator,
-			nodesShufflerOut,
-		)
-		if err != nil {
-			return err
-		}
-
-		managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
-			managedCoreComponents,
-			managedNetworkComponents,
-			managedCryptoComponents,
-			managedDataComponents,
-			managedProcessComponents,
-			managedConsensusComponents.HardforkTrigger(),
-			managedProcessComponents.NodeRedundancyHandler(),
-		)
-
-		if err != nil {
-			return err
-		}
-
-		log.Trace("creating node structure")
-		currentNode, err := CreateNode(
-			configs.GeneralConfig,
-			managedBootstrapComponents,
-			managedCoreComponents,
-			managedCryptoComponents,
-			managedDataComponents,
-			managedNetworkComponents,
-			managedProcessComponents,
-			managedStateComponents,
-			managedStatusComponents,
-			managedHeartbeatComponents,
-			managedConsensusComponents,
-			flagsConfig.BootstrapRoundIndex,
-			configs.ImportDbConfig.IsImportDBMode,
-		)
-		if err != nil {
-			return err
-		}
-
-		if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-			log.Trace("activating nodesCoordinator's validators indexing")
-			indexValidatorsListIfNeeded(
-				elasticIndexer,
-				nodesCoordinator,
-				managedProcessComponents.EpochStartTrigger().Epoch(),
-			)
-		}
-
-		log.Debug("updating the API service after creating the node facade")
-		ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
-		if err != nil {
-			return err
-		}
-
-		log.Info("application is now running")
-		sigs := make(chan os.Signal, 1)
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-		err = waitForSignal(
-			sigs,
-			managedCoreComponents.ChanStopNodeProcess(),
-			healthService,
-			ef,
-			httpServerWrapper,
-			currentNode,
-			goRoutinesNumberStart,
-		)
-		if err != nil {
-			break
-		}
+	log.Debug("creating core components")
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(
+		chanStopNodeProcess,
+	)
+	if err != nil {
+		return true, err
 	}
-	return nil
+
+	log.Debug("creating crypto components")
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating network components")
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating disabled API services")
+	httpServerWrapper, err := nr.createInitialHttpServer()
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating bootstrap components")
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	if err != nil {
+		return true, err
+	}
+
+	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+
+	log.Debug("creating state components")
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating data components")
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating healthService")
+	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
+
+	log.Trace("creating metrics")
+	err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+	if err != nil {
+		return true, err
+	}
+
+	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.GeneralConfig.EpochStartConfig,
+		managedCoreComponents.ChanStopNodeProcess(),
+	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating nodes coordinator")
+	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+		nodesShufflerOut,
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.PreferencesConfig.Preferences,
+		managedCoreComponents.EpochStartNotifierWithConfirm(),
+		managedCryptoComponents.PublicKey(),
+		managedCoreComponents.InternalMarshalizer(),
+		managedCoreComponents.Hasher(),
+		managedCoreComponents.Rater(),
+		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		managedCoreComponents.NodesShuffler(),
+		managedBootstrapComponents.ShardCoordinator().SelfId(),
+		managedBootstrapComponents.EpochBootstrapParams(),
+		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("starting status pooling components")
+	managedStatusComponents, err := nr.CreateManagedStatusComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		nodesCoordinator,
+		configurationPaths.ElasticSearchTemplatesPath,
+		configs.ImportDbConfig.IsImportDBMode,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: configs.EpochConfig.GasSchedule,
+		ConfigDir:         configurationPaths.GasScheduleDirectoryName,
+		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("creating process components")
+	managedProcessComponents, err := nr.CreateManagedProcessComponents(
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedStateComponents,
+		managedDataComponents,
+		managedStatusComponents,
+		gasScheduleNotifier,
+		nodesCoordinator,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.StartPolling()
+	if err != nil {
+		return true, err
+	}
+
+	elasticIndexer := managedStatusComponents.ElasticIndexer()
+	if !elasticIndexer.IsNilIndexer() {
+		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
+		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
+	}
+
+	log.Debug("starting node...")
+
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		managedStatusComponents,
+		managedProcessComponents,
+		nodesCoordinator,
+		nodesShufflerOut,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedProcessComponents,
+		managedConsensusComponents.HardforkTrigger(),
+		managedProcessComponents.NodeRedundancyHandler(),
+	)
+
+	if err != nil {
+		return true, err
+	}
+
+	log.Trace("creating node structure")
+	currentNode, err := CreateNode(
+		configs.GeneralConfig,
+		managedBootstrapComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedNetworkComponents,
+		managedProcessComponents,
+		managedStateComponents,
+		managedStatusComponents,
+		managedHeartbeatComponents,
+		managedConsensusComponents,
+		flagsConfig.BootstrapRoundIndex,
+		configs.ImportDbConfig.IsImportDBMode,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		log.Trace("activating nodesCoordinator's validators indexing")
+		indexValidatorsListIfNeeded(
+			elasticIndexer,
+			nodesCoordinator,
+			managedProcessComponents.EpochStartTrigger().Epoch(),
+		)
+	}
+
+	log.Debug("updating the API service after creating the node facade")
+	ef, err := nr.createApiFacade(currentNode, httpServerWrapper, gasScheduleNotifier)
+	if err != nil {
+		return true, err
+	}
+
+	log.Info("application is now running")
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	err = waitForSignal(
+		sigs,
+		managedCoreComponents.ChanStopNodeProcess(),
+		healthService,
+		ef,
+		httpServerWrapper,
+		currentNode,
+		goRoutinesNumberStart,
+	)
+	if err != nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (nr *nodeRunner) createApiFacade(
@@ -1177,10 +1191,6 @@ func closeAllComponents(
 
 	log.Debug("closing node")
 	log.LogIfError(node.Close())
-
-	log.Debug("node statistics before running GC", statistics.GetRuntimeStatistics()...)
-	runtime.GC()
-	log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 
 	chanCloseComponents <- struct{}{}
 }
