@@ -19,7 +19,11 @@ func (ids *InterceptedDataStub) Hash() []byte {
 
 // CheckValidity -
 func (ids *InterceptedDataStub) CheckValidity() error {
-	return ids.CheckValidityCalled()
+	if ids.CheckValidityCalled != nil {
+		return ids.CheckValidityCalled()
+	}
+
+	return nil
 }
 
 // IsForCurrentShard -

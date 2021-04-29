@@ -1088,3 +1088,22 @@ type Indexer interface {
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
 }
+
+// ValidatorChecker is able to tell if the publicKey byte slice is or not a validator
+type ValidatorChecker interface {
+	GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error)
+	IsInterfaceNil() bool
+}
+
+// InterceptedPeerHeartbeat defines an intercepted peer heartbeat implementation
+type InterceptedPeerHeartbeat interface {
+	InterceptedData
+	PublicKey() []byte
+	SetShardID(shardId uint32)
+}
+
+// PeerHeartbeatProcessor is able to process and check the provided intercepted peer heartbeat instance
+type PeerHeartbeatProcessor interface {
+	Process(peerHeartbeat InterceptedPeerHeartbeat) error
+	IsInterfaceNil() bool
+}
