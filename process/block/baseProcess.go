@@ -1389,7 +1389,7 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) error {
 	startTime := time.Now()
-	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime, bp.txCoordinator)
+	err := bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to execute all scheduled transactions",
 		"time [s]", elapsedTime,
@@ -1426,7 +1426,7 @@ func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]da
 	}
 
 	if len(scrsBatch.Data) == 0 {
-		return nil, nil
+		return make([]byte, 0), nil
 	}
 
 	return bp.marshalizer.Marshal(scrsBatch)

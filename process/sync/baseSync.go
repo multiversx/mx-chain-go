@@ -105,13 +105,12 @@ type baseBootstrap struct {
 
 	indexer process.Indexer
 
-	chRcvMiniBlocks    chan bool
-	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksProvider process.MiniBlockProvider
-	poolsHolder        dataRetriever.PoolsHolder
-	mutRequestHeaders  sync.Mutex
-	cancelFunc         func()
-
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
@@ -700,12 +699,16 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		err = process.SetScheduledSCRs(prevHeaderHash, boot.store, boot.marshalizer, boot.scheduledTxsExecutionHandler)
+		mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(prevHeaderHash, boot.store, boot.marshalizer)
 		if err != nil {
-			log.Debug("set scheduled scrs",
+			log.Debug("get scheduled scrs from storage",
 				"error", err.Error(),
 				"header hash", prevHeaderHash,
 			)
+		}
+
+		if len(mapScheduledSCRs) > 0 {
+			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 		}
 
 		boot.indexer.RevertIndexedBlock(currHeader, currBody)

@@ -10,13 +10,14 @@ import (
 
 // ScheduledTxsExecutionStub -
 type ScheduledTxsExecutionStub struct {
-	InitCalled                    func()
-	AddCalled                     func([]byte, data.TransactionHandler) bool
-	ExecuteCalled                 func([]byte) error
-	ExecuteAllCalled              func(func() time.Duration, process.TransactionCoordinator) error
-	GetScheduledSCRsCalled        func() map[block.Type][]data.TransactionHandler
-	SetScheduledSCRsCalled        func(map[block.Type][]data.TransactionHandler)
-	SetTransactionProcessorCalled func(txProcessor process.TransactionProcessor)
+	InitCalled                      func()
+	AddCalled                       func([]byte, data.TransactionHandler) bool
+	ExecuteCalled                   func([]byte) error
+	ExecuteAllCalled                func(func() time.Duration) error
+	GetScheduledSCRsCalled          func() map[block.Type][]data.TransactionHandler
+	SetScheduledSCRsCalled          func(map[block.Type][]data.TransactionHandler)
+	SetTransactionProcessorCalled   func(txProcessor process.TransactionProcessor)
+	SetTransactionCoordinatorCalled func(txCoordinator process.TransactionCoordinator)
 }
 
 // Init -
@@ -43,9 +44,9 @@ func (stes *ScheduledTxsExecutionStub) Execute(txHash []byte) error {
 }
 
 // ExecuteAll -
-func (stes *ScheduledTxsExecutionStub) ExecuteAll(haveTime func() time.Duration, txCoordinator process.TransactionCoordinator) error {
+func (stes *ScheduledTxsExecutionStub) ExecuteAll(haveTime func() time.Duration) error {
 	if stes.ExecuteAllCalled != nil {
-		return stes.ExecuteAllCalled(haveTime, txCoordinator)
+		return stes.ExecuteAllCalled(haveTime)
 	}
 	return nil
 }
@@ -69,6 +70,13 @@ func (stes *ScheduledTxsExecutionStub) SetScheduledSCRs(mapScheduledSCRs map[blo
 func (stes *ScheduledTxsExecutionStub) SetTransactionProcessor(txProcessor process.TransactionProcessor) {
 	if stes.SetTransactionProcessorCalled != nil {
 		stes.SetTransactionProcessorCalled(txProcessor)
+	}
+}
+
+// SetTransactionCoordinator -
+func (stes *ScheduledTxsExecutionStub) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
+	if stes.SetTransactionCoordinatorCalled != nil {
+		stes.SetTransactionCoordinatorCalled(txCoordinator)
 	}
 }
 

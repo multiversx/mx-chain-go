@@ -368,6 +368,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 
@@ -663,6 +665,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
+
 	argsStaking := scToProtocol.ArgStakingToPeer{
 		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
 		Hasher:           pcf.coreData.Hasher(),
@@ -772,30 +776,26 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		CoreComponents:      pcf.coreData,
-		DataComponents:      pcf.data,
-		BootstrapComponents: pcf.bootstrapComponents,
-		StatusComponents:    pcf.statusComponents,
-		Config:              pcf.config, Version: pcf.version,
-		AccountsDB:   accountsDb,
-		ForkDetector: forkDetector,
-
-		NodesCoordinator:  pcf.nodesCoordinator,
-		RequestHandler:    requestHandler,
-		BlockChainHook:    vmFactory.BlockChainHookImpl(),
-		TxCoordinator:     txCoordinator,
-		EpochStartTrigger: epochStartTrigger,
-
-		HeaderValidator: headerValidator,
-		BootStorer:      bootStorer,
-		BlockTracker:    blockTracker,
-		FeeHandler:      txFeeHandler,
-
-		BlockSizeThrottler: blockSizeThrottler,
-
-		HistoryRepository: pcf.historyRepo,
-		EpochNotifier:     pcf.epochNotifier,
-
+		CoreComponents:               pcf.coreData,
+		DataComponents:               pcf.data,
+		BootstrapComponents:          pcf.bootstrapComponents,
+		StatusComponents:             pcf.statusComponents,
+		Config:                       pcf.config,
+		Version:                      pcf.version,
+		AccountsDB:                   accountsDb,
+		ForkDetector:                 forkDetector,
+		NodesCoordinator:             pcf.nodesCoordinator,
+		RequestHandler:               requestHandler,
+		BlockChainHook:               vmFactory.BlockChainHookImpl(),
+		TxCoordinator:                txCoordinator,
+		EpochStartTrigger:            epochStartTrigger,
+		HeaderValidator:              headerValidator,
+		BootStorer:                   bootStorer,
+		BlockTracker:                 blockTracker,
+		FeeHandler:                   txFeeHandler,
+		BlockSizeThrottler:           blockSizeThrottler,
+		HistoryRepository:            pcf.historyRepo,
+		EpochNotifier:                pcf.epochNotifier,
 		VMContainersFactory:          vmFactory,
 		VmContainer:                  vmContainer,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,

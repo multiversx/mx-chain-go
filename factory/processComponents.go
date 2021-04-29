@@ -435,7 +435,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 	}
 
-	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(&disabled.TxProcessor{})
+	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(&disabled.TxProcessor{}, &disabled.TxCoordinator{})
 	if err != nil {
 		return nil, err
 	}

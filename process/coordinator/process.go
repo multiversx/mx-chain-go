@@ -1050,7 +1050,7 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	}
 
 	if len(receiptsBatch.Data) == 0 {
-		return nil, nil
+		return make([]byte, 0), nil
 	}
 
 	return tc.marshalizer.Marshal(receiptsBatch)

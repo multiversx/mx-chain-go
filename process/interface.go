@@ -1098,9 +1098,10 @@ type ScheduledTxsExecutionHandler interface {
 	Init()
 	Add(txHash []byte, tx data.TransactionHandler) bool
 	Execute(txHash []byte) error
-	ExecuteAll(haveTime func() time.Duration, txCoordinator TransactionCoordinator) error
+	ExecuteAll(haveTime func() time.Duration) error
 	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
 	SetScheduledSCRs(mapScheduledSCRs map[block.Type][]data.TransactionHandler)
 	SetTransactionProcessor(txProcessor TransactionProcessor)
+	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsInterfaceNil() bool
 }

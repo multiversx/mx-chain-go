@@ -176,9 +176,13 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	err = process.SetScheduledSCRs(headerInfo.LastHeader.Hash, st.store, st.marshalizer, st.scheduledTxsExecutionHandler)
+	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerInfo.LastHeader.Hash, st.store, st.marshalizer)
 	if err != nil {
-		log.Debug("cannot set scheduled scrs", "error", err.Error())
+		log.Debug("cannot get scheduled scrs from storage", "error", err.Error())
+	}
+
+	if len(mapScheduledSCRs) > 0 {
+		st.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce

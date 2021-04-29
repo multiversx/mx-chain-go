@@ -700,37 +700,33 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
-// SetScheduledSCRs sets the scheduled scrs from the given header into the scheduled transactions execution component
-func SetScheduledSCRs(
+// GetScheduledSCRsFromStorage gets the scheduled scrs of the given header from storage
+func GetScheduledSCRsFromStorage(
 	headerHash []byte,
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	scheduledTxsExecutionHandler ScheduledTxsExecutionHandler,
-) error {
+) (map[block.Type][]data.TransactionHandler, error) {
 	if check.IfNil(storageService) {
-		return ErrNilStorage
+		return nil, ErrNilStorage
 	}
 	if check.IfNil(marshalizer) {
-		return ErrNilMarshalizer
-	}
-	if check.IfNil(scheduledTxsExecutionHandler) {
-		return ErrNilScheduledTxsExecutionHandler
+		return nil, ErrNilMarshalizer
 	}
 
 	scheduledSCRsStorer := storageService.GetStorer(dataRetriever.ScheduledSCRsUnit)
 	if check.IfNil(scheduledSCRsStorer) {
-		return ErrNilStorage
+		return nil, ErrNilStorage
 	}
 
 	marshalizedSCRsBatch, err := scheduledSCRsStorer.Get(headerHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b := &batch.Batch{}
 	err = marshalizer.Unmarshal(b, marshalizedSCRsBatch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mapScheduledSCRs := make(map[block.Type][]data.TransactionHandler)
@@ -738,7 +734,7 @@ func SetScheduledSCRs(
 		scheduledSCRs := &ScheduledSCRs{}
 		err = marshalizer.Unmarshal(scheduledSCRs, marshalizedScheduledSCRs)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if len(scheduledSCRs.TxHandlers) == 0 {
@@ -751,7 +747,5 @@ func SetScheduledSCRs(
 		}
 	}
 
-	scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
-
-	return nil
+	return mapScheduledSCRs, nil
 }

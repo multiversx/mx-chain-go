@@ -27,13 +27,13 @@ func (steh *ScheduledTxsExecutionHandler) Execute(_ []byte) error {
 }
 
 // ExecuteAll does nothing as it is a disabled component
-func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration, _ process.TransactionCoordinator) error {
+func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) error {
 	return nil
 }
 
 // GetScheduledSCRs does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
-	return nil
+	return make(map[block.Type][]data.TransactionHandler)
 }
 
 // SetScheduledSCRs does nothing as it is a disabled component
@@ -42,6 +42,10 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]da
 
 // SetTransactionProcessor does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
+}
+
+// SetTransactionCoordinator does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

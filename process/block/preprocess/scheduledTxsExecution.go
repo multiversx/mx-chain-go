@@ -22,6 +22,7 @@ type scrInfo struct {
 
 type scheduledTxsExecution struct {
 	txProcessor      process.TransactionProcessor
+	txCoordinator    process.TransactionCoordinator
 	mapScheduledTxs  map[string]data.TransactionHandler
 	mapScheduledSCRs map[block.Type][]data.TransactionHandler
 	scheduledTxs     []data.TransactionHandler
@@ -31,14 +32,19 @@ type scheduledTxsExecution struct {
 // NewScheduledTxsExecution creates a new object which handles the execution of scheduled transactions
 func NewScheduledTxsExecution(
 	txProcessor process.TransactionProcessor,
+	txCoordinator process.TransactionCoordinator,
 ) (*scheduledTxsExecution, error) {
 
 	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
+	if check.IfNil(txCoordinator) {
+		return nil, process.ErrNilTransactionCoordinator
+	}
 
 	ste := &scheduledTxsExecution{
 		txProcessor:      txProcessor,
+		txCoordinator:    txCoordinator,
 		mapScheduledTxs:  make(map[string]data.TransactionHandler),
 		mapScheduledSCRs: make(map[block.Type][]data.TransactionHandler),
 		scheduledTxs:     make([]data.TransactionHandler, 0),
@@ -91,23 +97,17 @@ func (ste *scheduledTxsExecution) Execute(txHash []byte) error {
 }
 
 // ExecuteAll method executes all the scheduled transactions
-func (ste *scheduledTxsExecution) ExecuteAll(
-	haveTime func() time.Duration,
-	txCoordinator process.TransactionCoordinator,
-) error {
+func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) error {
 	ste.mutScheduledTxs.Lock()
 	defer ste.mutScheduledTxs.Unlock()
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
-	if check.IfNil(txCoordinator) {
-		return process.ErrNilTransactionCoordinator
-	}
 
 	log.Debug("scheduledTxsExecution.ExecuteAll", "num of scheduled txs to be executed", len(ste.scheduledTxs))
 
-	mapAllIntermediateTxsBeforeScheduledExecution := txCoordinator.GetAllIntermediateTxs()
+	mapAllIntermediateTxsBeforeScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 
 	for _, txHandler := range ste.scheduledTxs {
 		if haveTime() < 0 {
@@ -120,7 +120,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(
 		}
 	}
 
-	mapAllIntermediateTxsAfterScheduledExecution := txCoordinator.GetAllIntermediateTxs()
+	mapAllIntermediateTxsAfterScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 	ste.computeScheduledSCRs(mapAllIntermediateTxsBeforeScheduledExecution, mapAllIntermediateTxsAfterScheduledExecution)
 
 	return nil
@@ -242,6 +242,11 @@ func (ste *scheduledTxsExecution) SetScheduledSCRs(mapScheduledSCRs map[block.Ty
 // SetTransactionProcessor sets the transaction processor needed by scheduled txs execution component
 func (ste *scheduledTxsExecution) SetTransactionProcessor(txProcessor process.TransactionProcessor) {
 	ste.txProcessor = txProcessor
+}
+
+// SetTransactionCoordinator sets the transaction coordinator needed by scheduled txs execution component
+func (ste *scheduledTxsExecution) SetTransactionCoordinator(txCoordinator process.TransactionCoordinator) {
+	ste.txCoordinator = txCoordinator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
