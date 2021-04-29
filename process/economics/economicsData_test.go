@@ -32,11 +32,16 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:                 0.1,
-			ProtocolSustainabilityPercentage: 0.1,
-			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-			TopUpGradientPoint:               "300000000000000000000",
-			TopUpFactor:                      0.25,
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					DeveloperPercentage:              0.1,
+					ProtocolSustainabilityPercentage: 0.1,
+					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					TopUpGradientPoint:               "300000000000000000000",
+					TopUpFactor:                      0.25,
+				},
+			},
 		},
 		FeeSettings: feeSettings,
 	}
@@ -162,7 +167,7 @@ func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsData(1)
-	args.Economics.RewardsSettings.LeaderPercentage = -0.1
+	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage = -0.1
 
 	_, err := economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
@@ -193,7 +198,7 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 
 	args := createArgsForEconomicsData(1)
 	leaderPercentage := 0.40
-	args.Economics.RewardsSettings.LeaderPercentage = leaderPercentage
+	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage = leaderPercentage
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	value := economicsData.LeaderPercentage()

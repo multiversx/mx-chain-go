@@ -51,6 +51,11 @@ func InitMetrics(
 	initString := ""
 	initZeroString := "0"
 
+	leaderPercentage := float64(0)
+	if len(economicsConfig.RewardsSettings.RewardsConfigByEpoch) > 0{
+		leaderPercentage = economicsConfig.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage
+	}
+
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
@@ -81,7 +86,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNoncesPassedInCurrentEpoch, initUint)
-	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(core.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)

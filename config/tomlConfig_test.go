@@ -152,10 +152,14 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:                 leaderPercentage,
-			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
-			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
-			DeveloperPercentage:              developerPercentage,
+			RewardsConfigByEpoch: []EpochRewardSettings{
+				{
+					LeaderPercentage:                 leaderPercentage,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+			},
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -168,10 +172,14 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
-	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
-    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+	RewardsConfigByEpoch = [
+		{
+    		ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `,
+			ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `",
+    		LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `,
+			DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   		 }
+    ]
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"

@@ -530,6 +530,11 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.mutRewardsSettings.Lock()
 	defer ed.mutRewardsSettings.Unlock()
 
+	if ed.rewardsSettingEpoch == rewardSetting.EpochEnable {
+		log.Debug("economics: RewardsConfig", "epoch", ed.rewardsSettingEpoch)
+		return
+	}
+
 	ed.rewardsSettingEpoch = rewardSetting.EpochEnable
 	ed.leaderPercentage = rewardSetting.LeaderPercentage
 	ed.protocolSustainabilityPercentage = rewardSetting.ProtocolSustainabilityPercentage
@@ -538,6 +543,17 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.topUpFactor = rewardSetting.TopUpFactor
 	// config was checked before for validity
 	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
+	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+
+	log.Debug("economics: RewardsConfig",
+		"epoch", ed.rewardsSettingEpoch,
+		"leaderPercentage", ed.leaderPercentage,
+		"protocolSustainabilityPercentage", ed.protocolSustainabilityPercentage,
+		"protocolSustainabilityAddress", ed.protocolSustainabilityAddress,
+		"developerPercentage", ed.developerPercentage,
+		"topUpFactor", ed.topUpFactor,
+		"topUpGradientPoint", ed.topUpGradientPoint,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
