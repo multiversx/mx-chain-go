@@ -108,7 +108,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
-	return &api.Block{
+	metaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
 		Round:                  blockHeader.Round,
 		Epoch:                  blockHeader.Epoch,
@@ -124,5 +124,22 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
 		Status:                 BlockStatusOnChain,
-	}, nil
+	}
+
+	if blockHeader.IsStartOfEpochBlock() {
+		epochStartEconomics := blockHeader.EpochStart.Economics
+
+		metaBlock.EpochStartInfo = &api.EpochStartInfo{
+			TotalSupply:                      epochStartEconomics.TotalSupply.String(),
+			TotalToDistribute:                epochStartEconomics.TotalToDistribute.String(),
+			TotalNewlyMinted:                 epochStartEconomics.TotalNewlyMinted.String(),
+			RewardsPerBlock:                  epochStartEconomics.RewardsPerBlock.String(),
+			RewardsForProtocolSustainability: epochStartEconomics.RewardsForProtocolSustainability.String(),
+			NodePrice:                        epochStartEconomics.NodePrice.String(),
+			PrevEpochStartRound:              epochStartEconomics.PrevEpochStartRound,
+			PrevEpochStartHash:               hex.EncodeToString(epochStartEconomics.PrevEpochStartHash),
+		}
+	}
+
+	return metaBlock, nil
 }

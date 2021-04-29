@@ -280,3 +280,89 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
+
+func TestMetaAPIBlockProcessor_GetBlockByHashEpochStartBlock(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	round := uint64(2)
+	epoch := uint32(1)
+	miniblockHeader := []byte("miniBlockHash")
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+	storerMock := mock.NewStorerMock()
+
+	metaAPIBlockProc := createMockMetaAPIProcessor(
+		headerHash,
+		storerMock,
+		true,
+		false,
+	)
+
+	header := &block.MetaBlock{
+		Nonce: nonce,
+		Round: round,
+		Epoch: epoch,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash: miniblockHeader,
+				Type: block.TxBlock,
+			},
+		},
+		AccumulatedFees:        big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(10),
+		DevFeesInEpoch:         big.NewInt(5),
+
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			Economics: block.Economics{
+				TotalSupply:                      big.NewInt(100),
+				TotalToDistribute:                big.NewInt(55),
+				TotalNewlyMinted:                 big.NewInt(20),
+				RewardsPerBlock:                  big.NewInt(15),
+				RewardsForProtocolSustainability: big.NewInt(2),
+				NodePrice:                        big.NewInt(10),
+				PrevEpochStartRound:              222,
+				PrevEpochStartHash:               []byte("prevEpoch"),
+			},
+		},
+	}
+
+	headerBytes, _ := json.Marshal(header)
+	_ = storerMock.Put(headerHash, headerBytes)
+
+	expectedBlock := &api.Block{
+		Nonce:           nonce,
+		Round:           round,
+		Shard:           core.MetachainShardId,
+		Epoch:           epoch,
+		Hash:            hex.EncodeToString(headerHash),
+		NotarizedBlocks: []*api.NotarizedBlock{},
+		MiniBlocks: []*api.MiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
+		AccumulatedFees:        "0",
+		DeveloperFees:          "0",
+		AccumulatedFeesInEpoch: "10",
+		DeveloperFeesInEpoch:   "5",
+		Status:                 BlockStatusOnChain,
+		EpochStartInfo: &api.EpochStartInfo{
+			TotalSupply:                      "100",
+			TotalToDistribute:                "55",
+			TotalNewlyMinted:                 "20",
+			RewardsPerBlock:                  "15",
+			RewardsForProtocolSustainability: "2",
+			NodePrice:                        "10",
+			PrevEpochStartRound:              222,
+			PrevEpochStartHash:               "7072657645706f6368",
+		},
+	}
+
+	blk, err := metaAPIBlockProc.GetBlockByNonce(1, false)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedBlock, blk)
+}
