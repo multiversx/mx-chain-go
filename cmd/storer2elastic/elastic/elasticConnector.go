@@ -58,21 +58,19 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 
 // Create will create and return a new indexer database handler
 func (escf *elasticSearchConnectorFactory) Create() (outport.OutportHandler, error) {
-	argsOutportFactory := &factory.ArgsOutportFactory{
-		ArgsElasticDriver: &indexerFactory.ArgsIndexerFactory{
-			Url:                      escf.elasticConfig.URL,
-			IndexerCacheSize:         100,
-			UserName:                 escf.elasticConfig.Username,
-			Password:                 escf.elasticConfig.Password,
-			Marshalizer:              escf.marshalizer,
-			Hasher:                   escf.hasher,
-			AddressPubkeyConverter:   escf.addressPubKeyConverter,
-			ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
-			NodesCoordinator:         disabled.NewNodesCoordinator(),
-			EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
-			UseKibana:                false,
-			EnabledIndexes:           []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
-		},
+	argsOutportFactory := &indexerFactory.ArgsIndexerFactory{
+		Url:                      escf.elasticConfig.URL,
+		IndexerCacheSize:         100,
+		UserName:                 escf.elasticConfig.Username,
+		Password:                 escf.elasticConfig.Password,
+		Marshalizer:              escf.marshalizer,
+		Hasher:                   escf.hasher,
+		AddressPubkeyConverter:   escf.addressPubKeyConverter,
+		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
+		NodesCoordinator:         disabled.NewNodesCoordinator(),
+		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
+		UseKibana:                false,
+		EnabledIndexes:           []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 	}
 
 	return factory.CreateOutport(argsOutportFactory)

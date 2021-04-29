@@ -213,11 +213,7 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		IsInImportDBMode:         scf.isInImportMode,
 	}
 
-	args := &outportDriverFactory.ArgsOutportFactory{
-		ArgsElasticDriver: indexerFactoryArgs,
-	}
-
-	return outportDriverFactory.CreateOutport(args)
+	return outportDriverFactory.CreateOutport(indexerFactoryArgs)
 }
 
 func startStatisticsMonitor(

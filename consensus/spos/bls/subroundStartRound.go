@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -45,7 +45,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
-		outportHandler:                outport.NewNilOutport(),
+		outportHandler:                outport.NewDisabledOutport(),
 		outportMutex:                  sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob

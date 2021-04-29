@@ -9,37 +9,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgsOutportHandler() *ArgsOutportFactory {
-	return &ArgsOutportFactory{
-		ArgsElasticDriver: &indexerFactory.ArgsIndexerFactory{},
-	}
+func createMockArgsOutportHandler() *indexerFactory.ArgsIndexerFactory {
+	return &indexerFactory.ArgsIndexerFactory{}
 }
 
 func TestNewIndexerFactory(t *testing.T) {
 	tests := []struct {
 		name     string
-		argsFunc func() *ArgsOutportFactory
+		argsFunc func() *indexerFactory.ArgsIndexerFactory
 		exError  error
 	}{
 		{
-			name: "NilArgsOutportHandler",
-			argsFunc: func() *ArgsOutportFactory {
-				return nil
-			},
-			exError: outport.ErrNilArgsOutportFactory,
-		},
-		{
 			name: "NilArgsElasticDriver",
-			argsFunc: func() *ArgsOutportFactory {
+			argsFunc: func() *indexerFactory.ArgsIndexerFactory {
 				args := createMockArgsOutportHandler()
-				args.ArgsElasticDriver = nil
+				args = nil
 				return args
 			},
 			exError: outport.ErrNilArgsElasticDriverFactory,
 		},
 		{
 			name: "AllOkShouldWork",
-			argsFunc: func() *ArgsOutportFactory {
+			argsFunc: func() *indexerFactory.ArgsIndexerFactory {
 				args := createMockArgsOutportHandler()
 				return args
 			},
