@@ -367,14 +367,14 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	serviceFee := big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()
-	if serviceFee < d.minServiceFee || serviceFee > d.maxServiceFee {
-		d.eei.AddReturnMessage("service fee out of bounds")
-		return vmcommon.UserError
-	}
-	maxDelegationCap := big.NewInt(0).SetBytes(args.Arguments[2])
+	maxDelegationCap := big.NewInt(0).SetBytes(args.Arguments[1])
 	if maxDelegationCap.Cmp(zero) < 0 {
 		d.eei.AddReturnMessage("invalid max delegation cap")
+		return vmcommon.UserError
+	}
+	serviceFee := big.NewInt(0).SetBytes(args.Arguments[2]).Uint64()
+	if serviceFee < d.minServiceFee || serviceFee > d.maxServiceFee {
+		d.eei.AddReturnMessage("service fee out of bounds")
 		return vmcommon.UserError
 	}
 

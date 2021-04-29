@@ -226,7 +226,7 @@ func (d *delegationManager) deployNewContract(
 	depositValue := big.NewInt(0).Set(args.CallValue)
 	newAddress := createNewAddress(delegationManagement.LastAddress)
 
-	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, initFunction, depositValue, arguments)
+	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, vm.DelegationManagerSCAddress, initFunction, depositValue, arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
