@@ -27,7 +27,7 @@ type Block struct {
 	EpochStartInfo         *EpochStartInfo   `json:"epochStartInfo,omitempty"`
 }
 
-// EpochStartInfo is a structure that hold information about epoch start meta block
+// EpochStartInfo is a structure that holds information about epoch start meta block
 type EpochStartInfo struct {
 	TotalSupply                      string `json:"totalSupply"`
 	TotalToDistribute                string `json:"totalToDistribute"`
