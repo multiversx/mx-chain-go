@@ -98,43 +98,65 @@ func (te *trieExport) ExportValidatorTrie(trie data.Trie, ctx context.Context) e
 
 	nodesSetupFilePath := filepath.Join(te.exportFolder, core.NodesSetupJsonFileName)
 	err = te.exportNodesSetupJson(validatorData)
-	if err == nil {
-		log.Debug("hardfork nodesSetup.json exported successfully", "file path", nodesSetupFilePath)
-	} else {
-		log.Warn("hardfork nodesSetup.json not exported", "file path", nodesSetupFilePath, "error", err)
+	if err != nil {
+		return fmt.Errorf("%w, hardfork nodesSetup.json not exported, file path %s", err, nodesSetupFilePath)
 	}
 
-	return err
+	log.Debug("hardfork nodesSetup.json exported successfully", "file path", nodesSetupFilePath)
+	return nil
 }
 
 // ExportMainTrie exports the main trie, and returns the root hashes for the data tries
 func (te *trieExport) ExportMainTrie(key string, trie data.Trie, ctx context.Context) ([][]byte, error) {
+	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return te.exportAccountLeaves(leavesChannel, accType, shId, identifier)
+}
+
+// ExportDataTrie exports the given data trie
+func (te *trieExport) ExportDataTrie(key string, trie data.Trie, ctx context.Context) error {
+	leavesChannel, accType, shId, identifier, err := te.getExportLeavesParameters(key, trie, ctx)
+	if err != nil {
+		return err
+	}
+
+	return te.exportDataTries(leavesChannel, accType, shId, identifier)
+}
+
+func (te *trieExport) getExportLeavesParameters(
+	key string,
+	trie data.Trie,
+	ctx context.Context,
+) (chan core.KeyValueHolder, genesis.Type, uint32, string, error) {
 	identifier := "trie@" + key
 
 	accType, shId, err := getTrieTypeAndShId(identifier)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, "", err
 	}
 
 	rootHash, err := trie.RootHash()
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, "", err
 	}
 
 	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, "", err
 	}
 
 	if shId > te.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
-		return nil, sharding.ErrInvalidShardId
+		return nil, 0, 0, "", sharding.ErrInvalidShardId
 	}
 
 	rootHashKey := createRootHashKey(key)
 
 	err = te.hardforkStorer.Write(identifier, []byte(rootHashKey), rootHash)
 	if err != nil {
-		return nil, err
+		return nil, 0, 0, "", err
 	}
 
 	log.Debug("exporting trie",
@@ -142,40 +164,7 @@ func (te *trieExport) ExportMainTrie(key string, trie data.Trie, ctx context.Con
 		"root hash", rootHash,
 	)
 
-	return te.exportAccountLeaves(leavesChannel, accType, shId, identifier)
-}
-
-// ExportDataTrie exports the given data trie
-func (te *trieExport) ExportDataTrie(key string, trie data.Trie, ctx context.Context) error {
-	identifier := "trie@" + key
-
-	accType, shId, err := getTrieTypeAndShId(identifier)
-	if err != nil {
-		return err
-	}
-
-	rootHash, err := trie.RootHash()
-	if err != nil {
-		return err
-	}
-
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
-	if err != nil {
-		return err
-	}
-
-	if shId > te.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
-		return sharding.ErrInvalidShardId
-	}
-
-	rootHashKey := createRootHashKey(key)
-
-	err = te.hardforkStorer.Write(identifier, []byte(rootHashKey), rootHash)
-	if err != nil {
-		return err
-	}
-
-	return te.exportDataTries(leavesChannel, accType, shId, identifier)
+	return leavesChannel, accType, shId, identifier, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

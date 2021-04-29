@@ -80,7 +80,9 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if err != nil {
 		return nil, err
 	}
-	// TODO add trie exporter check
+	if check.IfNil(args.TrieExporter) {
+		return nil, update.ErrNilTrieExporter
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,

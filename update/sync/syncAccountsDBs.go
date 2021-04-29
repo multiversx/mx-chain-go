@@ -194,6 +194,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 		}
 	}
 
+	// TODO investigate if this can raise an OOM issue
 	for hash, tr := range tries {
 		if bytes.Equal(rootHash, []byte(hash)) {
 			_, err = trieExporter.ExportMainTrie(id, tr, ctx)
