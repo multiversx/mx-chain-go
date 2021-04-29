@@ -11,8 +11,8 @@ import (
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
 	SaveBlockCalled             func(args *indexer.ArgsSaveBlockData)
-	SaveValidatorsRatingCalled  func(e string, k []*indexer.ValidatorRatingInfo)
-	SaveValidatorsPubKeysCalled func(k map[uint32][][]byte, e uint32)
+	SaveValidatorsRatingCalled  func(index string, validatorsInfo []*indexer.ValidatorRatingInfo)
+	SaveValidatorsPubKeysCalled func(shardPubKeys map[uint32][][]byte, epoch uint32)
 	HasDriversCalled            func() bool
 }
 
@@ -24,9 +24,9 @@ func (as *OutportStub) SaveBlock(args *indexer.ArgsSaveBlockData) {
 }
 
 // SaveValidatorsRating --
-func (as *OutportStub) SaveValidatorsRating(e string, k []*indexer.ValidatorRatingInfo) {
+func (as *OutportStub) SaveValidatorsRating(index string, validatorsInfo []*indexer.ValidatorRatingInfo) {
 	if as.SaveValidatorsRatingCalled != nil {
-		as.SaveValidatorsRatingCalled(e, k)
+		as.SaveValidatorsRatingCalled(index, validatorsInfo)
 	}
 }
 
@@ -35,9 +35,9 @@ func (as *OutportStub) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsPubKeys -
-func (as *OutportStub) SaveValidatorsPubKeys(k map[uint32][][]byte, e uint32) {
+func (as *OutportStub) SaveValidatorsPubKeys(shardPubKeys map[uint32][][]byte, epoch uint32) {
 	if as.SaveValidatorsPubKeysCalled != nil {
-		as.SaveValidatorsPubKeysCalled(k, e)
+		as.SaveValidatorsPubKeysCalled(shardPubKeys, epoch)
 	}
 }
 
