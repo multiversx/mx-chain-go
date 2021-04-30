@@ -166,6 +166,12 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 		log.Debug("node statistics before running GC", statistics.GetRuntimeStatistics()...)
 		runtime.GC()
 		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
+
+		parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
+		var stats runtime.MemStats
+		runtime.ReadMemStats(&stats)
+		err = health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
+		log.LogIfError(err)
 	}
 }
 
