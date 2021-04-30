@@ -71,6 +71,7 @@ type ArgEnableEpoch struct {
 	DeployEnableEpoch              uint32
 	MetaProtectionEnableEpoch      uint32
 	RelayedTxEnableEpoch           uint32
+	UnbondTokensV2EnableEpoch      uint32
 }
 
 // VMTestContext -
@@ -448,6 +449,7 @@ func CreateVMAndBlockchainHookMeta(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 	shardCoordinator sharding.Coordinator,
+	arg ArgEnableEpoch,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
@@ -495,7 +497,7 @@ func CreateVMAndBlockchainHookMeta(
 		NodesConfigProvider: &mock.NodesSetupStub{},
 		Hasher:              testHasher,
 		Marshalizer:         testMarshalizer,
-		SystemSCConfig:      createSystemSCConfig(),
+		SystemSCConfig:      createSystemSCConfig(arg),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
@@ -515,7 +517,7 @@ func CreateVMAndBlockchainHookMeta(
 	return vmContainer, blockChainHook
 }
 
-func createSystemSCConfig() *config.SystemSmartContractsConfig {
+func createSystemSCConfig(arg ArgEnableEpoch) *config.SystemSmartContractsConfig {
 	return &config.SystemSmartContractsConfig{
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 			BaseIssuingCost: "5000000000000000000",
@@ -546,6 +548,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			StakeEnableEpoch:                     0,
 			DoubleKeyProtectionEnableEpoch:       0,
 			ActivateBLSPubKeyMessageVerification: false,
+			UnbondTokensV2EnableEpoch:            arg.UnbondTokensV2EnableEpoch,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",
@@ -1017,7 +1020,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
 	if selfShardID == core.MetachainShardId {
-		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator)
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, argEnableEpoch)
 	} else {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
 	}
