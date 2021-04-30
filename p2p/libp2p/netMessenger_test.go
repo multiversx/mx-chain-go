@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
+	"runtime/pprof"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1557,11 +1559,12 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 }
 
 func TestNetworkMessenger_Bootstrap(t *testing.T) {
-	t.Skip("long test used to debug the kad dht discoverer")
+	t.Skip("long test used to debug go routines closing on the netMessenger")
 
 	t.Parallel()
 
 	_ = logger.SetLogLevel("*:DEBUG")
+	log := logger.GetOrCreate("internal tests")
 
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
@@ -1600,11 +1603,29 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Second * 1)
-		fmt.Println("aaaaa")
+		goRoutinesNumberStart := runtime.NumGoroutine()
+		log.Info("before closing", "num go routines", goRoutinesNumberStart)
+
 		_ = netMes.Close()
 	}()
 
 	_ = netMes.Bootstrap()
 
-	time.Sleep(time.Second * 12)
+	time.Sleep(time.Second * 5)
+
+	goRoutinesNumberStart := runtime.NumGoroutine()
+	logGoroutinesNumber(log, goRoutinesNumberStart)
+}
+
+func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
+	buffer := new(bytes.Buffer)
+	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
+	if err != nil {
+		log.Error("could not dump goroutines")
+	}
+	log.Debug("go routines number",
+		"start", goRoutinesNumberStart,
+		"end", runtime.NumGoroutine())
+
+	log.Debug(buffer.String())
 }

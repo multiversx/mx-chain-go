@@ -384,7 +384,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 			select {
 			case <-time.After(durationCheckConnections):
 			case <-netMes.ctx.Done():
-				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				log.Debug("peer monitoring go routine is stopping...")
 				return
 			}
 		}

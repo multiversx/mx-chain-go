@@ -30,7 +30,6 @@ type optimizedKadDhtDiscoverer struct {
 	chanInit                    chan struct{}
 	errChanInit                 chan error
 	chanConnectToSeeders        chan struct{}
-	chanDoneConnectToSeeders    chan struct{}
 	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
 }
 
@@ -61,7 +60,6 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		chanInit:                    make(chan struct{}),
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
-		chanDoneConnectToSeeders:    make(chan struct{}),
 	}
 
 	okdd.createKadDhtHandler = okdd.createKadDht
@@ -95,7 +93,6 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 
 		case <-okdd.chanConnectToSeeders:
 			chTimeSeedersReconnect = okdd.processSeedersReconnect(ctx)
-			okdd.chanDoneConnectToSeeders <- struct{}{}
 
 		case <-chTimeFindPeers:
 			okdd.findPeers(ctx)
@@ -129,11 +126,6 @@ func (okdd *optimizedKadDhtDiscoverer) processSeedersReconnect(ctx context.Conte
 func (okdd *optimizedKadDhtDiscoverer) finishMainLoopProcessing(ctx context.Context) {
 	select {
 	case okdd.errChanInit <- ctx.Err():
-	default:
-	}
-
-	select {
-	case okdd.chanDoneConnectToSeeders <- struct{}{}:
 	default:
 	}
 }
@@ -238,16 +230,11 @@ func (okdd *optimizedKadDhtDiscoverer) Name() string {
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (okdd *optimizedKadDhtDiscoverer) ReconnectToNetwork(ctx context.Context) {
+func (okdd *optimizedKadDhtDiscoverer) ReconnectToNetwork(_ context.Context) {
 	select {
 	case okdd.chanConnectToSeeders <- struct{}{}:
-	case <-ctx.Done():
-		return
+	default:
 	}
-
-	//do not use the ctx.Done() here as it is mandatory to finish the request to reconnect here (finish == reading
-	//back the written status)
-	<-okdd.chanDoneConnectToSeeders
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
