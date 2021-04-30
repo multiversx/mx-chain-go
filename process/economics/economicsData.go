@@ -32,9 +32,9 @@ type economicsData struct {
 	protocolSustainabilityPercentage float64
 	protocolSustainabilityAddress    string
 	developerPercentage              float64
-	mutRewardsSettings               sync.RWMutex
 	topUpGradientPoint               *big.Int
 	topUpFactor                      float64
+	mutRewardsSettings               sync.RWMutex
 	maxGasLimitPerBlock              uint64
 	maxGasLimitPerMetaBlock          uint64
 	gasPerDataByte                   uint64
@@ -85,17 +85,15 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	topUpGradientPoint, ok := big.NewInt(0).SetString(args.Economics.RewardsSettings.RewardsConfigByEpoch[0].TopUpGradientPoint, 10)
-	if !ok {
-		return nil, process.ErrInvalidRewardsTopUpGradientPoint
-	}
-
 	rewardsConfigs := make([]config.EpochRewardSettings, len(args.Economics.RewardsSettings.RewardsConfigByEpoch))
 	_ = copy(rewardsConfigs, args.Economics.RewardsSettings.RewardsConfigByEpoch)
 
 	sort.Slice(rewardsConfigs, func(i, j int) bool {
 		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
 	})
+
+	// validity checked in checkValues above
+	topUpGradientPoint, _ := big.NewInt(0).SetString(args.Economics.RewardsSettings.RewardsConfigByEpoch[0].TopUpGradientPoint, 10)
 
 	ed := &economicsData{
 		rewardsSettings:                  rewardsConfigs,
@@ -192,6 +190,11 @@ func checkValues(economics *config.EconomicsConfig) error {
 
 		if len(rewardsConfig.ProtocolSustainabilityAddress) == 0 {
 			return process.ErrNilProtocolSustainabilityAddress
+		}
+
+		_, ok := big.NewInt(0).SetString(rewardsConfig.TopUpGradientPoint, 10)
+		if !ok {
+			return process.ErrInvalidRewardsTopUpGradientPoint
 		}
 	}
 
@@ -521,6 +524,7 @@ func (ed *economicsData) EpochConfirmed(epoch uint32) {
 func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	rewardSetting := ed.rewardsSettings[0]
 	for i, setting := range ed.rewardsSettings {
+		// as we go from epoch k to epoch k+1 we set the config for epoch k before computing the economics/rewards
 		if currentEpoch > setting.EpochEnable {
 			rewardSetting = ed.rewardsSettings[i]
 		}
@@ -530,7 +534,15 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	defer ed.mutRewardsSettings.Unlock()
 
 	if ed.rewardsSettingEpoch == rewardSetting.EpochEnable {
-		log.Debug("economics: RewardsConfig", "epoch", ed.rewardsSettingEpoch)
+		log.Debug("economics: RewardsConfig",
+			"epoch", ed.rewardsSettingEpoch,
+			"leaderPercentage", ed.leaderPercentage,
+			"protocolSustainabilityPercentage", ed.protocolSustainabilityPercentage,
+			"protocolSustainabilityAddress", ed.protocolSustainabilityAddress,
+			"developerPercentage", ed.developerPercentage,
+			"topUpFactor", ed.topUpFactor,
+			"topUpGradientPoint", ed.topUpGradientPoint,
+		)
 		return
 	}
 
@@ -542,7 +554,11 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	ed.topUpFactor = rewardSetting.TopUpFactor
 	// config was checked before for validity
 	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
+
+	// TODO: add all metrics
 	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+	ed.statusHandler.SetStringValue(core.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+	ed.statusHandler.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
 
 	log.Debug("economics: RewardsConfig",
 		"epoch", ed.rewardsSettingEpoch,

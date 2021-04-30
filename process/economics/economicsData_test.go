@@ -40,6 +40,7 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					TopUpGradientPoint:               "300000000000000000000",
 					TopUpFactor:                      0.25,
+					EpochEnable:                      0,
 				},
 			},
 		},
@@ -281,6 +282,124 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	economicsData.EpochConfirmed(2)
 	cost = economicsData.ComputeTxFee(tx)
 	assert.Equal(t, big.NewInt(5050), cost)
+}
+
+func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	rs := []config.EpochRewardSettings{
+		{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpGradientPoint:               "300000000000000000000",
+			TopUpFactor:                      0.25,
+			EpochEnable:                      0,
+		},
+		{
+			LeaderPercentage:                 0.2,
+			DeveloperPercentage:              0.2,
+			ProtocolSustainabilityPercentage: 0.2,
+			ProtocolSustainabilityAddress:    "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49",
+			TopUpGradientPoint:               "200000000000000000000",
+			TopUpFactor:                      0.5,
+			EpochEnable:                      2,
+		},
+	}
+
+	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1)
+	setRewardsParams := economicsData.GetRewardsSetting()
+	require.Equal(t, rs[0].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[0].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[0].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[0].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[0].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[0].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[0].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
+
+	economicsData.EpochConfirmed(2)
+	setRewardsParams = economicsData.GetRewardsSetting()
+	require.Equal(t, rs[0].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[0].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[0].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[0].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[0].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[0].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[0].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
+
+	economicsData.EpochConfirmed(3)
+	setRewardsParams = economicsData.GetRewardsSetting()
+	require.Equal(t, rs[1].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[1].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[1].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[1].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[1].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[1].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[1].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
+}
+
+func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	rs := []config.EpochRewardSettings{
+		{
+			LeaderPercentage:                 0.2,
+			DeveloperPercentage:              0.2,
+			ProtocolSustainabilityPercentage: 0.2,
+			ProtocolSustainabilityAddress:    "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49",
+			TopUpGradientPoint:               "200000000000000000000",
+			TopUpFactor:                      0.5,
+			EpochEnable:                      2,
+		},
+		{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpGradientPoint:               "300000000000000000000",
+			TopUpFactor:                      0.25,
+			EpochEnable:                      0,
+		},
+	}
+
+	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1)
+	setRewardsParams := economicsData.GetRewardsSetting()
+	require.Equal(t, rs[1].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[1].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[1].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[1].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[1].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[1].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[1].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
+
+	economicsData.EpochConfirmed(2)
+	setRewardsParams = economicsData.GetRewardsSetting()
+	require.Equal(t, rs[1].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[1].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[1].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[1].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[1].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[1].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[1].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
+
+	economicsData.EpochConfirmed(3)
+	setRewardsParams = economicsData.GetRewardsSetting()
+	require.Equal(t, rs[0].EpochEnable, setRewardsParams.RewardsSettingEpoch)
+	require.Equal(t, rs[0].TopUpGradientPoint, setRewardsParams.TopUpGradientPoint.String())
+	require.Equal(t, rs[0].TopUpFactor, setRewardsParams.TopUpFactor)
+	require.Equal(t, rs[0].ProtocolSustainabilityPercentage, setRewardsParams.ProtocolSustainabilityPercentage)
+	require.Equal(t, rs[0].ProtocolSustainabilityAddress, setRewardsParams.ProtocolSustainabilityAddress)
+	require.Equal(t, rs[0].LeaderPercentage, setRewardsParams.LeaderPercentage)
+	require.Equal(t, rs[0].DeveloperPercentage, setRewardsParams.DeveloperPercentage)
 }
 
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
