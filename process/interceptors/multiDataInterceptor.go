@@ -4,7 +4,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -15,52 +14,30 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic            string
-	Marshalizer      marshal.Marshalizer
-	DataFactory      process.InterceptedDataFactory
-	Processor        process.InterceptorProcessor
-	Throttler        process.InterceptorThrottler
-	AntifloodHandler process.P2PAntifloodHandler
-	WhiteListRequest process.WhiteListHandler
-	CurrentPeerId    core.PeerID
+	ArgSingleDataInterceptor
+	Marshalizer marshal.Marshalizer
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
-	marshalizer      marshal.Marshalizer
-	factory          process.InterceptedDataFactory
 	whiteListRequest process.WhiteListHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
 func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor, error) {
-	if len(arg.Topic) == 0 {
-		return nil, process.ErrEmptyTopic
-	}
-	if check.IfNil(arg.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(arg.DataFactory) {
-		return nil, process.ErrNilInterceptedDataFactory
+	err := checkArguments(arg.ArgSingleDataInterceptor)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(arg.Processor) {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if check.IfNil(arg.Throttler) {
-		return nil, process.ErrNilInterceptorThrottler
-	}
-	if check.IfNil(arg.AntifloodHandler) {
-		return nil, process.ErrNilAntifloodHandler
-	}
-	if check.IfNil(arg.WhiteListRequest) {
-		return nil, process.ErrNilWhiteListHandler
-	}
-	if len(arg.CurrentPeerId) == 0 {
-		return nil, process.ErrEmptyPeerID
+	if check.IfNil(arg.Marshalizer) {
+		return nil, process.ErrNilMarshalizer
 	}
 
-	multiDataIntercept := &MultiDataInterceptor{
+	interceptor := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
 			throttler:        arg.Throttler,
 			antifloodHandler: arg.AntifloodHandler,
@@ -68,51 +45,20 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			currentPeerId:    arg.CurrentPeerId,
 			processor:        arg.Processor,
 			debugHandler:     resolver.NewDisabledInterceptorResolver(),
+			marshalizer:      arg.Marshalizer,
+			factory:          arg.DataFactory,
 		},
-		marshalizer:      arg.Marshalizer,
-		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 	}
 
-	return multiDataIntercept, nil
+	return interceptor, nil
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	err := mdi.preProcessMesage(message, fromConnectedPeer)
+	multiDataBuff, err := mdi.preProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
-	}
-
-	b := batch.Batch{}
-	err = mdi.marshalizer.Unmarshal(&b, message.Data())
-	if err != nil {
-		mdi.throttler.EndProcessing()
-
-		//this situation is so severe that we need to black list de peers
-		reason := "unmarshalable data got on topic " + mdi.topic
-		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
-
-		return err
-	}
-	multiDataBuff := b.Data
-	lenMultiData := len(multiDataBuff)
-	if lenMultiData == 0 {
-		mdi.throttler.EndProcessing()
-		return process.ErrNoDataInMessage
-	}
-
-	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(
-		fromConnectedPeer,
-		mdi.topic,
-		uint32(lenMultiData),
-		uint64(len(message.Data())),
-		message.SeqNo(),
-	)
-	if err != nil {
-		mdi.throttler.EndProcessing()
 		return err
 	}
 
@@ -162,42 +108,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}()
 
 	return nil
-}
-
-func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
-	interceptedData, err := mdi.factory.Create(dataBuff)
-	if err != nil {
-		//this situation is so severe that we need to black list de peers
-		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
-		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
-
-		return nil, err
-	}
-
-	mdi.receivedDebugInterceptedData(interceptedData)
-
-	err = interceptedData.CheckValidity()
-	if err != nil {
-		mdi.processDebugInterceptedData(interceptedData, err)
-
-		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
-		if isWrongVersion {
-			//this situation is so severe that we need to black list de peers
-			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
-			mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
-			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
-		}
-
-		return nil, err
-	}
-
-	return interceptedData, nil
-}
-
-// RegisterHandler registers a callback function to be notified on received data
-func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
-	mdi.processor.RegisterHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
