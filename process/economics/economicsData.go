@@ -93,7 +93,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	})
 
 	// validity checked in checkValues above
-	topUpGradientPoint, _ := big.NewInt(0).SetString(args.Economics.RewardsSettings.RewardsConfigByEpoch[0].TopUpGradientPoint, 10)
+	topUpGradientPoint, _ := big.NewInt(0).SetString(rewardsConfigs[0].TopUpGradientPoint, 10)
 
 	ed := &economicsData{
 		rewardsSettings:                  rewardsConfigs,
