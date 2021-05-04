@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
+func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode()
@@ -32,7 +32,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNode_GetTransaction_FromPool(t *testing.T) {
+func TestNode_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 
 	n, _, dataPool, _ := createNode(t, 42, false)
@@ -100,7 +100,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	require.Equal(t, transaction.TxStatusPending, actualG.Status)
 }
 
-func TestNode_GetTransaction_FromStorage(t *testing.T) {
+func TestNode_GetTransactionFromStorage(t *testing.T) {
 	t.Parallel()
 
 	n, chainStorer, _, _ := createNode(t, 0, false)
@@ -409,6 +409,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualH.Type)
 	require.Equal(t, transaction.TxStatusRewardReverted, actualH.Status)
+
 }
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {

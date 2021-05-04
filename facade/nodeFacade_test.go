@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1031,4 +1032,43 @@ func TestNodeFacade_VerifyProofShouldWork(t *testing.T) {
 	ok, err := nf.VerifyProof("deadbeef", "abcdef", [][]byte{})
 	assert.Nil(t, err)
 	assert.True(t, ok)
+}
+
+func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
+	t.Parallel()
+
+	executeScQueryHandlerWasCalled := false
+	arg := createMockArguments()
+
+	expectedAddress := []byte("addr")
+	expectedBalance := big.NewInt(37)
+	expectedVmOutput := &vmcommon.VMOutput{
+		ReturnData: [][]byte{[]byte("test return data")},
+		ReturnCode: vmcommon.AccountCollision,
+		OutputAccounts: map[string]*vmcommon.OutputAccount{
+			"key0": {
+				Address: expectedAddress,
+				Balance: expectedBalance,
+			},
+		},
+	}
+	arg.ApiResolver = &mock.ApiResolverStub{
+		ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
+			executeScQueryHandlerWasCalled = true
+			return expectedVmOutput, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	apiVmOutput, err := nf.ExecuteSCQuery(&process.SCQuery{})
+	require.NoError(t, err)
+	require.True(t, executeScQueryHandlerWasCalled)
+	require.Equal(t, expectedVmOutput.ReturnData, apiVmOutput.ReturnData)
+	require.Equal(t, expectedVmOutput.ReturnCode.String(), apiVmOutput.ReturnCode)
+	require.Equal(t, 1, len(apiVmOutput.OutputAccounts))
+
+	outputAccount := apiVmOutput.OutputAccounts[hex.EncodeToString([]byte("key0"))]
+	require.Equal(t, expectedBalance, outputAccount.Balance)
+	require.Equal(t, hex.EncodeToString(expectedAddress), outputAccount.Address)
 }

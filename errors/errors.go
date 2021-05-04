@@ -131,9 +131,6 @@ var ErrNilCoreComponents = errors.New("nil core components provided")
 // ErrNilCoreComponentsHolder signals that a nil core components holder was provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 
-// ErrNilCoreServiceContainer signals that a nil core service container has been provided
-var ErrNilCoreServiceContainer = errors.New("nil core service container")
-
 // ErrNilCryptoComponents signals that a nil crypto components has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components provided")
 
@@ -155,17 +152,11 @@ var ErrNilEconomicsHandler = errors.New("nil economics handler")
 // ErrNilOutportHandler signals that a nil outport handler has been provided
 var ErrNilOutportHandler = errors.New("nil outport handler")
 
-// ErrNilElasticOptions signals that nil elastic options have been provided
-var ErrNilElasticOptions = errors.New("nil elastic options")
-
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
 // ErrNilEpochStartBootstrapper signals that a nil epoch start bootstrapper was provided
 var ErrNilEpochStartBootstrapper = errors.New("nil epoch start bootstrapper")
-
-// ErrNilEpochStartConfig signals that a nil epoch start configuration was provided
-var ErrNilEpochStartConfig = errors.New("nil epoch start configuration")
 
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier was provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier provided")
@@ -199,9 +190,6 @@ var ErrNilHeaderSigVerifier = errors.New("")
 
 // ErrNilHeartbeatComponents signals that a nil heartbeat components instance was provided
 var ErrNilHeartbeatComponents = errors.New("nil heartbeat component")
-
-// ErrNilHeartbeatComponentsHolder signals that a nil heartbeat components holder was provided
-var ErrNilHeartbeatComponentsHolder = errors.New("nil heartbeat components holder")
 
 // ErrNilHeartbeatMessageHandler signals that a nil heartbeat message handler was provided
 var ErrNilHeartbeatMessageHandler = errors.New("nil heartbeat message handler")
@@ -323,9 +311,6 @@ var ErrNilRoundHandler = errors.New("nil roundHandler")
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")
 
-// ErrNilShuffler signals that a nil shuffler was provided
-var ErrNilShuffler = errors.New("nil nodes shuffler")
-
 // ErrNilSmartContractParser signals that a nil smart contract parser was provided
 var ErrNilSmartContractParser = errors.New("nil smart contract parser")
 
@@ -349,9 +334,6 @@ var ErrNilStatusHandler = errors.New("nil status handler provided")
 
 // ErrNilHardforkTrigger signals that a nil hardfork trigger was provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
-
-// ErrNilStatusHandlersUtils signals that a nil status handlers utils instance was provided
-var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")
 
 // ErrNilStorageManagers signals that a nil storage managers instance was provided
 var ErrNilStorageManagers = errors.New("nil storage managers")
@@ -388,9 +370,6 @@ var ErrNilTxSignKeyGen = errors.New("nil transaction signing key generator")
 
 // ErrNilTxSignMarshalizer signals that a nil transaction sign marshalizer was provided
 var ErrNilTxSignMarshalizer = errors.New("nil transaction marshalizer")
-
-// ErrNilTxSimulatorProcessorArgs signals that nil tx simulator processor arguments were provided
-var ErrNilTxSimulatorProcessorArgs = errors.New("nil tx simulator processor arguments")
 
 // ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
@@ -455,9 +434,6 @@ var ErrHeartbeatComponentsFactoryCreate = errors.New("heartbeatComponentsFactory
 // ErrNetworkComponentsFactoryCreate signals that an error occured on networkComponentsFactory create
 var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory create failed")
 
-// ErrProcessComponentsFactoryCreate signals that an error occured on processComponentsFactory create
-var ErrProcessComponentsFactoryCreate = errors.New("processComponentsFactory create failed")
-
 // ErrStateComponentsFactoryCreate signals that an error occured on stateComponentsFactory create
 var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create failed")
 
@@ -475,9 +451,6 @@ var ErrBootstrap = errors.New("bootstrap process has failed")
 
 // ErrNilDataPoolsHolder signals that a nil data pools holder was provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
-
-// ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
-var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
 
 // ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
