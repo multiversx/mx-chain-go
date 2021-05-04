@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -130,6 +131,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.
 				errFound = newErr
 				errMutex.Unlock()
 			}
+			atomic.AddInt32(&u.numTriesSynced, 1)
 			wg.Done()
 		}(rootHash)
 	}
@@ -204,6 +206,7 @@ func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie, ctx co
 
 		if len(account.RootHash) > 0 {
 			rootHashes = append(rootHashes, account.RootHash)
+			atomic.AddInt32(&u.numMaxTries, 1)
 		}
 	}
 

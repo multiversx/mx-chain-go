@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -31,6 +32,8 @@ type baseAccountsSyncer struct {
 	name                      string
 	maxHardCapForMissingNodes int
 	trieSyncerVersion         int
+	numTriesSynced            int32
+	numMaxTries               int32
 }
 
 const timeBetweenStatisticsPrints = time.Second * 2
@@ -78,6 +81,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	ctx context.Context,
 ) (data.Trie, error) {
 	b.rootHash = rootHash
+	atomic.AddInt32(&b.numMaxTries, 1)
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
@@ -107,6 +111,8 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		return nil, err
 	}
 
+	atomic.AddInt32(&b.numTriesSynced, 1)
+
 	return dataTrie.Recreate(rootHash)
 }
 
@@ -121,6 +127,7 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 				"name", b.name,
 				"num received", ssh.NumReceived(),
 				"num missing", ssh.NumMissing(),
+				"num tries", fmt.Sprintf("%d/%d", atomic.LoadInt32(&b.numTriesSynced), atomic.LoadInt32(&b.numMaxTries)),
 				"intercepted trie nodes cache", fmt.Sprintf("len: %d, size: %s", b.cacher.Len(), core.ConvertBytes(b.cacher.SizeInBytesContained())))
 		}
 	}
