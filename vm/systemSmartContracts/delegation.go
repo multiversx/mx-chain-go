@@ -346,6 +346,10 @@ func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.Contr
 		d.eei.AddReturnMessage("call value must be 0")
 		return vmcommon.UserError
 	}
+	if len(args.Arguments) < 1 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments[0]) != len(d.delegationMgrSCAddress) {
 		d.eei.AddReturnMessage("invalid arguments, first must be an address")
 		return vmcommon.UserError
@@ -541,9 +545,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
-	returnCode = d.delegateUser(validatorData.TotalStakeValue, validatorAddress, args.RecipientAddr, dStatus)
-
-	return vmcommon.Ok
+	return d.delegateUser(validatorData.TotalStakeValue, validatorAddress, args.RecipientAddr, dStatus)
 }
 
 func (d *delegation) delegateUser(

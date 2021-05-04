@@ -2067,6 +2067,76 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 	doGetStatus(t, stakingSmartContract, eei, []byte("thirddKey"), "queued")
 }
 
+func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.Eei = eei
+	sc, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("thirddKey"))
+
+	sc.flagValidatorToDelegation.Unset()
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "changeOwnerAndRewardAddress"
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	sc.flagValidatorToDelegation.Set()
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "change owner and reward address can be called by validator SC only")
+
+	eei.returnMessage = ""
+	arguments.CallerAddr = stakingAccessAddress
+	arguments.CallValue.SetUint64(10)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "callValue must be 0")
+
+	arguments.CallValue.SetUint64(0)
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "number of arguments is 2 at minimum")
+
+	arguments.Arguments = [][]byte{[]byte("key1"), []byte("key2")}
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "new address must be a smart contract address")
+
+	arguments.Arguments[0] = vm.FirstDelegationSCAddress
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "cannot change owner and reward address for a key which is not registered")
+
+	arguments.Arguments[1] = []byte("firsstKey")
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.Arguments = [][]byte{vm.FirstDelegationSCAddress, []byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")}
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
 func doUnStakeAtEndOfEpoch(t *testing.T, sc *stakingSC, blsKey []byte, expectedReturnCode vmcommon.ReturnCode) {
 	arguments := CreateVmContractCallInput()
 	arguments.CallerAddr = sc.endOfEpochAccessAddr
