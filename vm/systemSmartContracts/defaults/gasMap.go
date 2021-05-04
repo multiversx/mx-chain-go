@@ -20,7 +20,7 @@ func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	gasMap["PersistPerByte"] = value
 	gasMap["CompilePerByte"] = value
 	gasMap["AoTPreparePerByte"] = value
-
+	gasMap["GetCode"] = value
 	return gasMap
 }
 
@@ -33,6 +33,13 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["SaveKeyValue"] = value
 	gasMap["ESDTTransfer"] = value
 	gasMap["ESDTBurn"] = value
+	gasMap["ESDTLocalMint"] = value
+	gasMap["ESDTLocalBurn"] = value
+	gasMap["ESDTNFTCreate"] = value
+	gasMap["ESDTNFTAddQuantity"] = value
+	gasMap["ESDTNFTBurn"] = value
+	gasMap["ESDTNFTTransfer"] = value
+	gasMap["ESDTNFTChangeCreateOwner"] = value
 
 	return gasMap
 }
@@ -55,6 +62,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["DelegateVote"] = value
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
+	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
+	gasMap["DelegationMgrOps"] = value
+	gasMap["GetAllNodeStates"] = value
 
 	return gasMap
 }

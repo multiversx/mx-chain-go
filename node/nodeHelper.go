@@ -25,6 +25,7 @@ import (
 // TODO: move this to process components
 func CreateHardForkTrigger(
 	config *config.Config,
+	epochConfig *config.EpochConfig,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	nodesShuffledOut update.Closer,
@@ -65,19 +66,22 @@ func CreateHardForkTrigger(
 		ExportTriesStorageConfig:  hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig:  hardForkConfig.ExportStateStorageConfig,
 		ExportStateKeysConfig:     hardForkConfig.ExportKeysStorageConfig,
+		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		WhiteListHandler:          process.WhiteListHandler(),
 		WhiteListerVerifiedTxs:    process.WhiteListerVerifiedTxs(),
 		InterceptorsContainer:     process.InterceptorsContainer(),
 		NodesCoordinator:          nodesCoordinator,
 		HeaderSigVerifier:         process.HeaderSigVerifier(),
 		HeaderIntegrityVerifier:   process.HeaderIntegrityVerifier(),
-		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		ValidityAttester:          process.BlockTracker(),
 		InputAntifloodHandler:     network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
-		ValidityAttester:          process.BlockTracker(),
-		Rounder:                   process.Rounder(),
+		RoundHandler:              process.RoundHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
-		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		MaxHardCapForMissingNodes: config.TrieSync.MaxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  config.TrieSync.NumConcurrentTrieSyncers,
+		TrieSyncerVersion:         config.TrieSync.TrieSyncerVersion,
 	}
 	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -97,6 +101,7 @@ func CreateHardForkTrigger(
 		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
+		RoundHandler:              process.RoundHandler(),
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
@@ -141,6 +146,7 @@ func CreateNode(
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
+	isInImportMode bool,
 ) (*Node, error) {
 	var err error
 
@@ -199,9 +205,11 @@ func CreateNode(
 		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
 		WithTxAccumulator(txAccumulator),
 		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
-		WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
+		WithAddressSignatureSize(config.AddressPubkeyConverter.SignatureLength),
+		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
+		WithImportMode(isInImportMode),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

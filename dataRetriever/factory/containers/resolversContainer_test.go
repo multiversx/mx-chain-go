@@ -343,3 +343,29 @@ func TestResolversContainer_IterateEarlyExitShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
 }
+
+func TestResolversContainer_Close(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := uint32(0)
+	expectedErr := errors.New("expected error")
+	res1 := &mock.ResolverStub{
+		CloseCalled: func() error {
+			atomic.AddUint32(&closeCalled, 1)
+			return expectedErr
+		},
+	}
+	res2 := &mock.ResolverStub{
+		CloseCalled: func() error {
+			atomic.AddUint32(&closeCalled, 1)
+			return nil
+		},
+	}
+
+	c := containers.NewResolversContainer()
+	_ = c.Add("key1", res1)
+	_ = c.Add("key2", res2)
+
+	assert.Equal(t, expectedErr, c.Close())
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&closeCalled))
+}

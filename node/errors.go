@@ -49,11 +49,26 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrInvalidSignatureLength signals that an invalid signature length has been provided
+var ErrInvalidSignatureLength = errors.New("invalid signature length")
+
+// ErrInvalidAddressLength signals that an invalid address length has been provided
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrInvalidChainIDInTransaction signals that an invalid chain id has been provided in transaction
+var ErrInvalidChainIDInTransaction = errors.New("invalid chain ID")
+
+// ErrInvalidSenderUsernameLength signals that the length of the sender username is invalid
+var ErrInvalidSenderUsernameLength = errors.New("invalid sender username length")
+
+// ErrInvalidReceiverUsernameLength signals that the length of the receiver username is invalid
+var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username length")
+
+// ErrDataFieldTooBig signals that the data field is too big
+var ErrDataFieldTooBig = errors.New("data field is too big")
+
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
-
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID in Node")
 
 // ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
 var ErrNilTxAccumulator = errors.New("nil tx accumulator")
@@ -76,7 +91,7 @@ var ErrEmptyQueryHandlerName = errors.New("empty query handler name")
 // ErrUnknownPeerID signals that the provided peer is unknown by the current node
 var ErrUnknownPeerID = errors.New("unknown peer ID")
 
-// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+// ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrNilBootstrapComponents signals that a nil bootstrap components instance has been provided
@@ -90,6 +105,9 @@ var ErrNilCryptoComponents = errors.New("nil crypto components")
 
 // ErrNilDataComponents signals that a nil data components instance has been provided
 var ErrNilDataComponents = errors.New("nil data components")
+
+// ErrTransactionValueLengthTooBig signals that a too big value has been given to a transaction
+var ErrTransactionValueLengthTooBig = errors.New("value length is too big")
 
 // ErrNilNetworkComponents signals that a nil network components instance has been provided
 var ErrNilNetworkComponents = errors.New("nil network components")
@@ -114,3 +132,9 @@ var ErrNodeCloseFailed = errors.New("node closing failed ")
 
 // ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
 var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")
+
+// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilBlockHeader signals that current block header is nil
+var ErrNilBlockHeader = errors.New("nil block header")

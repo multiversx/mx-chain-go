@@ -1,8 +1,10 @@
 package hooks
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"path"
 	"sync"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -136,6 +139,11 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 
 	return nil
+}
+
+// GetCode returns the code for the given account
+func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byte {
+	return bh.accounts.GetCode(account.GetCodeHash())
 }
 
 // GetUserAccount returns the balance of a shard account
@@ -364,7 +372,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		}
 	}
 
-	if !check.IfNil(dstAccount) {
+	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
 			return nil, err
@@ -461,6 +469,43 @@ func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 	return nil, nil
 }
 
+// GetESDTToken returns the unmarshalled esdt data for the given key
+func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
+	account, err := bh.GetUserAccount(address)
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
+	if err == state.ErrAccNotFound {
+		return esdtData, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
+	if nonce > 0 {
+		esdtTokenKey = append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
+	}
+
+	value, err := userAcc.DataTrieTracker().RetrieveValue(esdtTokenKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(value) == 0 {
+		return esdtData, nil
+	}
+
+	err = bh.marshalizer.Unmarshal(esdtData, value)
+	if err != nil {
+		return nil, err
+	}
+
+	return esdtData, nil
+}
+
 // NumberOfShards returns the number of shards
 func (bh *BlockChainHookImpl) NumberOfShards() uint32 {
 	return bh.shardCoordinator.NumberOfShards()
@@ -470,7 +515,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
 	adrAndNonce := append(creatorAddress, buffNonce...)
-	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+	scAddress := keccak.NewKeccak().Compute(string(adrAndNonce))
 
 	return scAddress
 }

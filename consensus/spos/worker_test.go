@@ -57,7 +57,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	}
 	keyGeneratorMock, _, _ := mock.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
+	roundHandlerMock := initRoundHandlerMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{
 		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
@@ -83,7 +83,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		ForkDetector:             forkDetectorMock,
 		Marshalizer:              marshalizerMock,
 		Hasher:                   hasher,
-		Rounder:                  rounderMock,
+		RoundHandler:             roundHandlerMock,
 		ShardCoordinator:         shardCoordinatorMock,
 		PeerSignatureHandler:     peerSigHandler,
 		SyncTimer:                syncTimerMock,
@@ -96,6 +96,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
 		AppStatusHandler:         appStatusHandler,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 	}
 
 	return workerArgs
@@ -106,6 +107,7 @@ func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
 		UpdatePeerIdPublicKeyCalled:  func(pid core.PeerID, pk []byte) {},
 		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
 		UpdatePeerIdShardIdCalled:    func(pid core.PeerID, shardId uint32) {},
+		UpdatePeerIdSubTypeCalled:    func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
 	}
 }
 
@@ -127,8 +129,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRounderMock() *mock.RounderMock {
-	return &mock.RounderMock{
+func initRoundHandlerMock() *mock.RoundHandlerMock {
+	return &mock.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -237,15 +239,15 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
-func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerRoundHandlerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
-	workerArgs.Rounder = nil
+	workerArgs.RoundHandler = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
@@ -347,6 +349,17 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilPoolAdder, err)
 }
 
+func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
+	workerArgs.NodeRedundancyHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
+}
+
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -374,7 +387,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	workerArgs.AntifloodHandler = antifloodHandler
 	wrk, _ := spos.NewWorker(workerArgs)
 
-	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicsField: []string{"topic1"}}
+	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicField: "topic1"}
 	err := wrk.ProcessReceivedMessage(msg, "peer")
 	assert.Equal(t, expectedErr, err)
 }
@@ -513,6 +526,25 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 	assert.Equal(t, spos.ErrNilDataToProcess, err)
 }
 
+func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeeded(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
+	var wasCalled bool
+	nodeRedundancyMock := &mock.NodeRedundancyHandlerStub{
+		IsRedundancyNodeCalled: func() bool {
+			return true
+		},
+		ResetInactivityIfNeededCalled: func(selfPubKey string, consensusMsgPubKey string, consensusMsgPeerID core.PeerID) {
+			wasCalled = true
+		},
+	}
+	wrk.SetNodeRedundancyHandler(nodeRedundancyMock)
+	buff, _ := wrk.Marshalizer().Marshal(&consensus.Message{})
+	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+
+	assert.True(t, wasCalled)
+}
+
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&mock.AppStatusHandlerStub{})
@@ -566,7 +598,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	roundDuration := time.Millisecond * 1000
 	delay := time.Millisecond * 430
 	roundStartTimeStamp := time.Now()
-	wrk.SetRounder(&mock.RounderMock{
+	wrk.SetRoundHandler(&mock.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
@@ -885,7 +917,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return spos.ErrInvalidChainID
 					},
@@ -929,7 +961,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},
@@ -982,7 +1014,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},
@@ -1313,13 +1345,13 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
 	})
-	rnd := wrk.Rounder()
+	rnd := wrk.RoundHandler()
 	roundDuration := rnd.TimeDuration()
 	rnd.UpdateRound(time.Now(), time.Now().Add(roundDuration))
 	cnsGroup := wrk.ConsensusState().ConsensusGroup()
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
@@ -1509,7 +1541,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(

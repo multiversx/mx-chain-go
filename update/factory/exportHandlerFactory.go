@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -58,9 +59,12 @@ type ArgsExporter struct {
 	ValidityAttester          process.ValidityAttester
 	InputAntifloodHandler     process.P2PAntifloodHandler
 	OutputAntifloodHandler    process.P2PAntifloodHandler
-	Rounder                   process.Rounder
+	RoundHandler              process.RoundHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
+	MaxHardCapForMissingNodes int
+	NumConcurrentTrieSyncers  int
+	TrieSyncerVersion         int
 }
 
 type exportHandlerFactory struct {
@@ -91,9 +95,12 @@ type exportHandlerFactory struct {
 	resolverContainer         dataRetriever.ResolversContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
-	rounder                   process.Rounder
+	roundHandler              process.RoundHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
+	maxHardCapForMissingNodes int
+	numConcurrentTrieSyncers  int
+	trieSyncerVersion         int
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -188,8 +195,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
-	if check.IfNil(args.Rounder) {
-		return nil, update.ErrNilRounder
+	if check.IfNil(args.RoundHandler) {
+		return nil, update.ErrNilRoundHandler
 	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
@@ -197,6 +204,17 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.CoreComponents.EpochNotifier()) {
 		return nil, update.ErrNilEpochNotifier
 	}
+	if args.MaxHardCapForMissingNodes < 1 {
+		return nil, update.ErrInvalidMaxHardCapForMissingNodes
+	}
+	if args.NumConcurrentTrieSyncers < 1 {
+		return nil, update.ErrInvalidNumConcurrentTrieSyncers
+	}
+	err := trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	e := &exportHandlerFactory{
 		CoreComponents:            args.CoreComponents,
 		CryptoComponents:          args.CryptoComponents,
@@ -223,10 +241,14 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		inputAntifloodHandler:     args.InputAntifloodHandler,
 		outputAntifloodHandler:    args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		rounder:                   args.Rounder,
+		roundHandler:              args.RoundHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
+		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
+		trieSyncerVersion:         args.TrieSyncerVersion,
 	}
+	log.Debug("exportHandlerFactory: enable epoch for transaction signed with tx hash", "epoch", e.enableSignTxWithHashEpoch)
 
 	return e, nil
 }
@@ -265,7 +287,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Validity:             process.MetaBlockValidity,
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		Rounder:              e.rounder,
+		RoundHandler:         e.roundHandler,
 		AppStatusHandler:     e.CoreComponents.StatusHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
@@ -285,6 +307,16 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	trieStorageManager := dataTriesContainerFactory.TrieStorageManager()
+	defer func() {
+		if err != nil {
+			if !check.IfNil(trieStorageManager) {
+				_ = trieStorageManager.Close()
+			}
+		}
+	}()
+
 	dataTries, err := dataTriesContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -319,14 +351,17 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:           e.dataPool.TrieNodes(),
-		RequestHandler:       e.requestHandler,
-		ShardCoordinator:     e.shardCoordinator,
-		Hasher:               e.CoreComponents.Hasher(),
-		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:             time.Minute,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
+		TrieCacher:                e.dataPool.TrieNodes(),
+		RequestHandler:            e.requestHandler,
+		ShardCoordinator:          e.shardCoordinator,
+		Hasher:                    e.CoreComponents.Hasher(),
+		Marshalizer:               e.CoreComponents.InternalMarshalizer(),
+		TrieStorageManager:        trieStorageManager,
+		TimoutGettingTrieNode:     update.TimeoutGettingTrieNodes,
+		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
+		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
+		TrieSyncerVersion:         e.trieSyncerVersion,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -394,11 +429,25 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
+	var keysStorer storage.Storer
+	var keysVals storage.Storer
+
+	defer func() {
+		if err != nil {
+			if !check.IfNil(keysStorer) {
+				_ = keysStorer.Close()
+			}
+			if !check.IfNil(keysVals) {
+				_ = keysVals.Close()
+			}
+		}
+	}()
+
+	keysStorer, err = createStorer(e.exportStateKeysConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys storer", err)
 	}
-	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
+	keysVals, err = createStorer(e.exportStateStorageConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys-values storer", err)
 	}
@@ -409,6 +458,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer: e.CoreComponents.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating hardfork storer", err)
+	}
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator:         e.shardCoordinator,

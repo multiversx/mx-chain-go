@@ -47,13 +47,19 @@ func TestCreateAllBlocksAfterHardfork(t *testing.T) {
 	body1 := &block.Body{}
 	body2 := &block.Body{}
 	args.MapBlockProcessors[0] = &mock.HardForkBlockProcessor{
-		CreateNewBlockCalled: func(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
-			return hdr1, body1, nil
+		CreateBodyCalled: func() (*block.Body, []*update.MbInfo, error) {
+			return body1, nil, nil
+		},
+		CreateBlockCalled: func(body *block.Body, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error) {
+			return hdr1, nil
 		},
 	}
 	args.MapBlockProcessors[core.MetachainShardId] = &mock.HardForkBlockProcessor{
-		CreateNewBlockCalled: func(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
-			return hdr2, body2, nil
+		CreateBodyCalled: func() (*block.Body, []*update.MbInfo, error) {
+			return body2, nil, nil
+		},
+		CreateBlockCalled: func(body *block.Body, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error) {
+			return hdr2, nil
 		},
 	}
 
@@ -62,7 +68,7 @@ func TestCreateAllBlocksAfterHardfork(t *testing.T) {
 	expectedHeaders := map[uint32]data.HeaderHandler{
 		0: hdr1, core.MetachainShardId: hdr2,
 	}
-	expectedBodies := map[uint32]data.BodyHandler{
+	expectedBodies := map[uint32]*block.Body{
 		0: body1, core.MetachainShardId: body2,
 	}
 	chainID, round, nonce, epoch := "chainId", uint64(100), uint64(90), uint32(2)

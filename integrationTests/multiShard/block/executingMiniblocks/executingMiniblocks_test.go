@@ -38,22 +38,17 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100000)
+	valMinting := big.NewInt(10000000)
 	valToTransferPerTx := big.NewInt(2)
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -156,14 +151,10 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	nodesPerShard := 3
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	minGasLimit := uint64(10000)
@@ -180,13 +171,12 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	sendValue := big.NewInt(5)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	receiverAddress := []byte("12345678901234567890123456789012")
@@ -217,7 +207,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 			)
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -251,14 +241,10 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	minGasLimit := uint64(10000)
@@ -275,7 +261,6 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -339,7 +324,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -378,11 +363,6 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	nbShards := 1
 	consensusGroupSize := 400
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	cacheMut := &sync.Mutex{}
 
 	putCounter := 0
@@ -395,7 +375,6 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 		nbShards,
 		shardConsensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	roundsPerEpoch := uint64(1000)
@@ -412,7 +391,6 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -465,8 +443,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	maxShards := 2
 	consensusGroupSize := 2
 	nodesPerShard := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
 
 	// create map of shards - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
@@ -475,7 +451,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		maxShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	for _, nodes := range nodesMap {
@@ -484,7 +459,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -535,7 +509,8 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
-	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
+	tx := &transaction.Transaction{GasPrice: gasPrice, GasLimit: gasLimit, Data: []byte(txData)}
+	txCost := consensusNodes[shardId0][0].EconomicsData.ComputeTxFee(tx)
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
 

@@ -69,7 +69,7 @@ func NewValidatorsProvider(
 
 	currentContext, cancelfunc := context.WithCancel(context.Background())
 
-	validatorsProvider := &validatorsProvider{
+	valProvider := &validatorsProvider{
 		nodesCoordinator:             args.NodesCoordinator,
 		validatorStatistics:          args.ValidatorStatistics,
 		cache:                        make(map[string]*state.ValidatorApiResponse),
@@ -82,10 +82,10 @@ func NewValidatorsProvider(
 		currentEpoch:                 args.StartEpoch,
 	}
 
-	go validatorsProvider.startRefreshProcess(currentContext)
-	args.EpochStartEventNotifier.RegisterHandler(validatorsProvider.epochStartEventHandler())
+	go valProvider.startRefreshProcess(currentContext)
+	args.EpochStartEventNotifier.RegisterHandler(valProvider.epochStartEventHandler())
 
-	return validatorsProvider, nil
+	return valProvider, nil
 }
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
@@ -151,7 +151,7 @@ func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartAction
 			}()
 		},
 		func(_ data.HeaderHandler) {},
-		core.OutportOrder,
+		core.IndexerOrder,
 	)
 
 	return subscribeHandler

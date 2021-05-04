@@ -163,3 +163,6 @@ var ErrMissingDeployedSC = errors.New("missing deployed SC")
 
 // ErrNilGeneralSettingsConfig signals that a nil general settings config was provided
 var ErrNilGeneralSettingsConfig = errors.New("nil general settings config")
+
+// ErrNilEpochConfig signals that a nil epoch config was provided
+var ErrNilEpochConfig = errors.New("nil epoch config")

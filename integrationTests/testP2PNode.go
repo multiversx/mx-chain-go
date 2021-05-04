@@ -135,6 +135,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		EpochConfirmedNotifier:    epochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		RoundHandler:              &mock.RoundHandlerMock{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
@@ -184,6 +185,8 @@ func (tP2pNode *TestP2PNode) initNode() {
 	dataComponents.Store = tP2pNode.Storage
 	dataComponents.BlockChain = &mock.BlockChainMock{}
 
+	redundancyHandler := &mock.RedundancyHandlerStub{}
+
 	tP2pNode.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
@@ -194,6 +197,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithInitialNodesPubKeys(pubkeys),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
+		node.WithNodeRedundancyHandler(redundancyHandler),
 	)
 	log.LogIfError(err)
 
@@ -213,6 +217,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		AppVersion:        "test",
 		GenesisTime:       time.Time{},
 		HardforkTrigger:   hardforkTrigger,
+		RedundancyHandler: redundancyHandler,
 		CoreComponents:    coreComponents,
 		DataComponents:    dataComponents,
 		NetworkComponents: networkComponents,
@@ -295,7 +300,7 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 		return
 	}
 
-	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, processor)
+	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, "test", processor)
 	if err != nil {
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
@@ -410,7 +415,7 @@ func createCryptoPair() TestKeyPair {
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk/Sed"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -429,12 +434,13 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
 						peerInfo.NumIntraShardValidators,
 						peerInfo.NumCrossShardValidators,
 						peerInfo.NumIntraShardObservers,
 						peerInfo.NumCrossShardObservers,
+						peerInfo.NumFullHistoryObservers,
 						len(peerInfo.UnknownPeers),
 						len(peerInfo.Seeders),
 					),

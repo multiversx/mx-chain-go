@@ -5,17 +5,20 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
 type SystemSmartContract interface {
 	Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
+	CanUseContract() bool
 	SetNewGasCost(gasCost GasCost)
 	IsInterfaceNil() bool
 }
 
 // SystemSCContainerFactory defines the functionality to create a system smart contract container
 type SystemSCContainerFactory interface {
+	CreateForGenesis() (SystemSCContainer, error)
 	Create() (SystemSCContainer, error)
 	IsInterfaceNil() bool
 }
@@ -34,6 +37,7 @@ type SystemSCContainer interface {
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
+	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
@@ -44,9 +48,11 @@ type SystemEI interface {
 	GetStorageFromAddress(address []byte, key []byte) []byte
 	Finish(value []byte)
 	UseGas(gasToConsume uint64) error
+	GasLeft() uint64
 	BlockChainHook() BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 	IsValidator(blsKey []byte) bool
+	StatusFromValidatorStatistics(blsKey []byte) string
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
 
@@ -63,6 +69,7 @@ type EconomicsHandler interface {
 type ContextHandler interface {
 	SystemEI
 
+	GetContract(address []byte) (SystemSmartContract, error)
 	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
@@ -95,7 +102,7 @@ type NodesConfigProvider interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -106,6 +113,7 @@ type BlockchainHook interface {
 	CurrentRound() uint64
 	CurrentEpoch() uint32
 	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
+	GetCode(account vmcommon.UserAccountHandler) []byte
 	GetShardOfAddress(address []byte) uint32
 	IsSmartContract(address []byte) bool
 	IsPayable(address []byte) (bool, error)

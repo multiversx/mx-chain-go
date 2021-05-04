@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -59,7 +61,7 @@ type baseProcessor struct {
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
 	txCoordinator           process.TransactionCoordinator
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	bootStorer              process.BootStorer
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
@@ -242,7 +244,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.rounder.Index() - 1
+		lastRound := bp.roundHandler.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
@@ -356,6 +358,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents) {
 		return process.ErrNilCoreComponentsHolder
 	}
+	if check.IfNil(arguments.BootstrapComponents) {
+		return process.ErrNilBootstrapComponentsHolder
+	}
+	if check.IfNil(arguments.StatusComponents) {
+		return process.ErrNilStatusComponentsHolder
+	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
@@ -368,7 +376,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.DataComponents.StorageService()) {
 		return process.ErrNilStorage
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
+	if check.IfNil(arguments.BootstrapComponents.ShardCoordinator()) {
 		return process.ErrNilShardCoordinator
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
@@ -383,8 +391,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.CoreComponents.RoundHandler()) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
@@ -410,22 +418,22 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.OutportHandler) {
+	if check.IfNil(arguments.StatusComponents.OutportHandler()) {
 		return process.ErrNilOutportHandler
 	}
-	if check.IfNil(arguments.TpsBenchmark) {
+	if check.IfNil(arguments.StatusComponents.TpsBenchmark()) {
 		return process.ErrNilTpsBenchmark
 	}
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arguments.HeaderIntegrityVerifier) {
+	if check.IfNil(arguments.BootstrapComponents.HeaderIntegrityVerifier()) {
 		return process.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.AppStatusHandler) {
+	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
 
@@ -1079,6 +1087,7 @@ func (bp *baseProcessor) updateStateStorage(
 	rootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
+	statePruningQueue core.Queue,
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
@@ -1097,8 +1106,13 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(prevRootHash, data.NewRoot)
-	accounts.PruneTrie(prevRootHash, data.OldRoot)
+	rootHashToBePruned := statePruningQueue.Add(prevRootHash)
+	if len(rootHashToBePruned) == 0 {
+		return
+	}
+
+	accounts.CancelPrune(rootHashToBePruned, data.NewRoot)
+	accounts.PruneTrie(rootHashToBePruned, data.OldRoot)
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
@@ -1221,7 +1235,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	}
 
 	waitTime := core.ExtraDelayForRequestBlockInfo
-	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}
@@ -1253,6 +1267,65 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	for i := 0; i < len(headers); i++ {
 		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
+}
+
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if check.IfNil(trieEpochRootHashStorageUnit) {
+		return nil
+	}
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	if isStorerDisabled {
+		return nil
+	}
+
+	userAccountsDb := bp.accountsDB[state.UserAccountsState]
+	if userAccountsDb == nil {
+		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
+	}
+
+	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
+
+	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash, ctx)
+	if err != nil {
+		return err
+	}
+
+	balanceSum := big.NewInt(0)
+	for leaf := range allLeavesChan {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
+		if errUnmarshal != nil {
+			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+		balanceSum.Add(balanceSum, userAccount.GetBalance())
+	}
+
+	log.Debug("sum of addresses in shard at epoch start",
+		"shard", bp.shardCoordinator.SelfId(),
+		"epoch", metaBlock.Epoch,
+		"sum", balanceSum.String())
+
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
 }
 
 // Close - closes all underlying components

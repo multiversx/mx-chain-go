@@ -37,6 +37,9 @@ var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 // ErrNilPubkeyConverter signals that a nil public key converter has been provided
 var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
+// ErrInvalidMaximumNumberOfShards signals that an invalid maximum number of shards has been provided
+var ErrInvalidMaximumNumberOfShards = errors.New("trying to set an invalid maximum number of shards")
+
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
 
@@ -123,3 +126,6 @@ var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 
 // ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
 var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
+
+// ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
+var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")

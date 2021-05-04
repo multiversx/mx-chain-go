@@ -16,9 +16,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -40,10 +39,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 		for _, player := range players {
 			player.Nonce += 1
 			relayerTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFee := nodes[0].EconomicsData.ComputeTxFee(relayerTx)
 			totalFees.Add(totalFees, totalFee)
 			relayerTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFee = nodes[0].EconomicsData.ComputeTxFee(relayerTx)
 			totalFees.Add(totalFees, totalFee)
 		}
 
@@ -82,9 +81,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -130,30 +128,18 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
 
 	players = append(players, relayer)
-	additionalCost := big.NewInt(0).Mul(
-		big.NewInt(0).SetUint64(additionalGasLimit*uint64(nrRoundsToTest)),
-		big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice),
-	)
-	checkPlayerBalancesWithPenalization(t, nodes, players, additionalCost)
+	checkPlayerBalancesWithPenalization(t, nodes, players)
 }
 
 func checkPlayerBalancesWithPenalization(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	players []*integrationTests.TestWalletAccount,
-	additionalCost *big.Int,
 ) {
 
-	for i := 0; i < len(players)-1; i++ {
+	for i := 0; i < len(players); i++ {
 		userAcc := relayedTx.GetUserAccount(nodes, players[i].Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance.Add(players[i].Balance, additionalCost)), 0)
+		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance), 0)
 		assert.Equal(t, userAcc.GetNonce(), players[i].Nonce)
-	}
-
-	if len(players) > 0 {
-		relayer := players[len(players)-1]
-		userAcc := relayedTx.GetUserAccount(nodes, relayer.Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 0)
-		assert.Equal(t, userAcc.GetNonce(), relayer.Nonce)
 	}
 }

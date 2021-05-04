@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var durationTimeout = time.Second * 10
@@ -31,14 +32,12 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 	var nrOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
-	requesterNodeAddr := "0"
-	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -47,8 +46,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
-	assert.Nil(t, err)
+	err := nResolver.ConnectTo(nRequester)
+	require.Nil(t, err)
 
 	time.Sleep(time.Second)
 
@@ -89,14 +88,12 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 	var nrOfShards uint32 = 1
 	var shardID uint32 = 0
 	var txSignPrivKeyShardId uint32 = 0
-	requesterNodeAddr := "0"
-	resolverNodeAddr := "1"
 
 	fmt.Println("Requester:	")
-	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
 
 	fmt.Println("Resolver:")
-	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
+	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId)
 
 	defer func() {
 		_ = nRequester.Messenger.Close()
@@ -105,8 +102,8 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
-	assert.Nil(t, err)
+	err := nResolver.ConnectTo(nRequester)
+	require.Nil(t, err)
 
 	time.Sleep(time.Second)
 

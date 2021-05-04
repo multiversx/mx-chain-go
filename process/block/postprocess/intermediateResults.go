@@ -37,6 +37,7 @@ func NewIntermediateResultsProcessor(
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
+	economicsFee process.FeeHandler,
 ) (*intermediateResultsProcessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -56,6 +57,9 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(currTxs) {
 		return nil, process.ErrNilTxForCurrentBlockHandler
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	base := &basePostProcessor{
 		hasher:           hasher,
@@ -64,6 +68,7 @@ func NewIntermediateResultsProcessor(
 		store:            store,
 		storageType:      dataRetriever.UnsignedTransactionUnit,
 		mapTxToResult:    make(map[string][]string),
+		economicsFee:     economicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -148,18 +153,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		return finalMBs[i].ReceiverShardID < finalMBs[j].ReceiverShardID
 	})
 
+	splitMBs := irp.splitMiniBlocksIfNeeded(finalMBs)
+
 	irp.mutInterResultsForBlock.Unlock()
 
-	return finalMBs
+	return splitMBs
 }
 
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
-	createdMapMbs := make(map[uint32]*block.MiniBlock)
-	for _, mb := range scrMbs {
-		createdMapMbs[mb.ReceiverShardID] = mb
-	}
+	createdMapMbs := createMiniBlocksMap(scrMbs)
 
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -210,6 +214,12 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return process.ErrWrongTypeAssertion
 		}
 
+		err := irp.checkSmartContractResultIntegrity(addScr)
+		if err != nil {
+			log.Error("AddIntermediateTransaction", "error", err, "dump", spew.Sdump(addScr))
+			return err
+		}
+
 		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
 			return err
@@ -221,10 +231,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 				"dump", spew.Sdump(addScr))
 		}
 
-		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
-		if err != nil {
-			return err
-		}
+		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
@@ -235,7 +242,33 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 	return nil
 }
 
-func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
+func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *smartContractResult.SmartContractResult) error {
+	if len(scr.RcvAddr) == 0 {
+		return process.ErrNilRcvAddr
+	}
+	if len(scr.SndAddr) == 0 {
+		return process.ErrNilSndAddr
+	}
+
+	sndShId, dstShId := irp.getShardIdsFromAddresses(scr.SndAddr, scr.RcvAddr)
+	isInShardSCR := dstShId == irp.shardCoordinator.SelfId()
+	if isInShardSCR {
+		return nil
+	}
+
+	err := scr.CheckIntegrity()
+	if err != nil {
+		return err
+	}
+
+	if sndShId != irp.shardCoordinator.SelfId() && dstShId != irp.shardCoordinator.SelfId() {
+		return process.ErrShardIdMissmatch
+	}
+
+	return nil
+}
+
+func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32) {
 	shardForSrc := irp.shardCoordinator.ComputeId(sndAddr)
 	shardForDst := irp.shardCoordinator.ComputeId(rcvAddr)
 
@@ -249,7 +282,7 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 		shardForDst = irp.shardCoordinator.SelfId()
 	}
 
-	return shardForSrc, shardForDst, nil
+	return shardForSrc, shardForDst
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

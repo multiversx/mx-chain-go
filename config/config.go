@@ -114,6 +114,7 @@ type Config struct {
 	ReceiptsStorage                 StorageConfig
 	SmartContractsStorage           StorageConfig
 	SmartContractsStorageForSCQuery StorageConfig
+	TrieEpochRootHashStorage        StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -172,8 +173,9 @@ type Config struct {
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
-	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
+	TrieSync              TrieSyncConfig
+	Resolvers             ResolverConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -183,10 +185,12 @@ type LogsConfig struct {
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled             bool
-	CleanOldEpochsData  bool
-	NumEpochsToKeep     uint64
-	NumActivePersisters uint64
+	Enabled                        bool
+	CleanOldEpochsData             bool
+	NumEpochsToKeep                uint64
+	NumActivePersisters            uint64
+	FullArchive                    bool
+	FullArchiveNumActivePersisters uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -210,24 +214,22 @@ type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
 }
 
+// MaxNodesChangeConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
+type MaxNodesChangeConfig struct {
+	EpochEnable            uint32
+	MaxNumNodes            uint32
+	NodesToShufflePerShard uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec               int
-	MaxComputableRounds                    uint64
-	StartInEpochEnabled                    bool
-	ChainID                                string
-	MinTransactionVersion                  uint32
-	SCDeployEnableEpoch                    uint32
-	BuiltInFunctionsEnableEpoch            uint32
-	RelayedTransactionsEnableEpoch         uint32
-	PenalizedTooMuchGasEnableEpoch         uint32
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	BelowSignedThresholdEnableEpoch        uint32
-	TransactionSignedWithTxHashEnableEpoch uint32
-	MetaProtectionEnableEpoch              uint32
-	AheadOfTimeGasUsageEnableEpoch         uint32
-	GenesisString                          string
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
+	StartInEpochEnabled      bool
+	ChainID                  string
+	MinTransactionVersion    uint32
+	GenesisString            string
+	GenesisMaxNumberOfShards uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -243,6 +245,8 @@ type StateTriesConfig struct {
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	UserStatePruningQueueSize   uint
+	PeerStatePruningQueueSize   uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -250,6 +254,7 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen   uint32
 	SnapshotsBufferLen uint32
 	MaxSnapshots       uint32
+	KeepSnapshots      bool
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -331,14 +336,19 @@ type IncreaseFactorConfig struct {
 // VirtualMachineServicesConfig holds configuration for the Virtual Machine(s): both querying and execution services.
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
-	Querying  VirtualMachineConfig
+	Querying  QueryVirtualMachineConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
-	WarmInstanceEnabled bool
+	OutOfProcessEnabled bool
+}
+
+// QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
+type QueryVirtualMachineConfig struct {
+	VirtualMachineConfig
+	NumConcurrentVMs int
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
@@ -443,33 +453,48 @@ type VersionsConfig struct {
 
 // Configs is a holder for the node configuration parameters
 type Configs struct {
-	GeneralConfig                         *Config
-	ApiRoutesConfig                       *ApiRoutesConfig
-	EconomicsConfig                       *EconomicsConfig
-	SystemSCConfig                        *SystemSmartContractsConfig
-	RatingsConfig                         *RatingsConfig
-	PreferencesConfig                     *Preferences
-	ExternalConfig                        *ExternalConfig
-	P2pConfig                             *P2PConfig
-	FlagsConfig                           *ContextFlagsConfig
-	ConfigurationFileName                 string
-	ConfigurationApiRoutesFileName        string
-	ConfigurationEconomicsFileName        string
-	ConfigurationSystemSCFilename         string
-	ConfigurationRatingsFileName          string
-	ConfigurationPreferencesFileName      string
-	ConfigurationExternalFileName         string
-	P2pConfigurationFileName              string
-	ConfigurationGasScheduleDirectoryName string
+	GeneralConfig            *Config
+	ApiRoutesConfig          *ApiRoutesConfig
+	EconomicsConfig          *EconomicsConfig
+	SystemSCConfig           *SystemSmartContractsConfig
+	RatingsConfig            *RatingsConfig
+	PreferencesConfig        *Preferences
+	ExternalConfig           *ExternalConfig
+	P2pConfig                *P2PConfig
+	FlagsConfig              *ContextFlagsConfig
+	ImportDbConfig           *ImportDbConfig
+	ConfigurationPathsHolder *ConfigurationPathsHolder
+	EpochConfig              *EpochConfig
 }
 
-// GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
-type GasScheduleByEpochs struct {
-	StartEpoch uint32
-	FileName   string
+// ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
+type ConfigurationPathsHolder struct {
+	MainConfig               string
+	ApiRoutes                string
+	Economics                string
+	SystemSC                 string
+	Ratings                  string
+	Preferences              string
+	External                 string
+	P2p                      string
+	GasScheduleDirectoryName string
+	Nodes                    string
+	Genesis                  string
+	SmartContracts           string
+	ValidatorKey             string
+	Epoch                    string
 }
 
-// GasScheduleConfig represents the versioning config area for the gas schedule toml
-type GasScheduleConfig struct {
-	GasScheduleByEpochs []GasScheduleByEpochs
+// TrieSyncConfig represents the trie synchronization configuration area
+type TrieSyncConfig struct {
+	NumConcurrentTrieSyncers  int
+	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
+}
+
+// ResolverConfig represents the config options to be used when setting up the resolver instances
+type ResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumIntraShardPeers  uint32
+	NumFullHistoryPeers uint32
 }

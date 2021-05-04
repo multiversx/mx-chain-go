@@ -32,7 +32,6 @@ type baseInterceptorsContainerFactory struct {
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
-	addressPubkeyConverter core.PubkeyConverter
 }
 
 func checkBaseParams(
@@ -139,7 +138,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, core.DefaultInterceptorsIdentifier, interceptor)
 }
 
 //------- Tx interceptors

@@ -23,6 +23,11 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
+// GetCode returns the code for the given account
+func (w *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
+	return w.originalAccounts.GetCode(codeHash)
+}
+
 // GetExistingAccount will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (state.AccountHandler, error) {
 	return w.originalAccounts.GetExistingAccount(address)
@@ -101,6 +106,11 @@ func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte, ctx context.Context) 
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
 func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
+	return nil, nil
+}
+
+// GetTrie will return an error which indicates that this operation is not supported
+func (w *readOnlyAccountsDB) GetTrie(_ []byte) (data.Trie, error) {
 	return nil, nil
 }
 

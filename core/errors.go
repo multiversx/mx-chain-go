@@ -19,6 +19,9 @@ var ErrInvalidValue = errors.New("invalid value provided")
 // ErrNilInputData signals that a nil data has been provided
 var ErrNilInputData = errors.New("nil input data")
 
+// ErrNilUrl signals that the provided url is empty
+var ErrNilUrl = errors.New("url is empty")
+
 // ErrPemFileIsInvalid signals that a pem file is invalid
 var ErrPemFileIsInvalid = errors.New("pem file is invalid")
 
@@ -80,11 +83,20 @@ var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
-// ErrNilFeeConfig signals that a nil fee config is provided
-var ErrNilFeeConfig = errors.New("nil fee config")
+// ErrSuffixNotPresentOrInIncorrectPosition signals that the suffix is not present in the data field or its position is incorrect
+var ErrSuffixNotPresentOrInIncorrectPosition = errors.New("suffix is not present or the position is incorrect")
 
 // ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrInvalidGasScheduleConfig signals that invalid gas schedule config was provided
 var ErrInvalidGasScheduleConfig = errors.New("invalid gas schedule config")
+
+// ErrAdditionOverflow signals that uint64 addition overflowed
+var ErrAdditionOverflow = errors.New("uint64 addition overflowed")
+
+// ErrSubtractionOverflow signals that uint64 subtraction overflowed
+var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+
+// ErrNilTransactionFeeCalculator signals that a nil transaction fee calculator has been provided
+var ErrNilTransactionFeeCalculator = errors.New("nil transaction fee calculator")

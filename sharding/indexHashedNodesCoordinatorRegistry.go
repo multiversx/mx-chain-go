@@ -258,12 +258,12 @@ func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[u
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
-			validator, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
+			validatorObj, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
 			if err != nil {
 				return nil, err
 			}
 
-			validators = append(validators, validator)
+			validators = append(validators, validatorObj)
 		}
 		validatorsMap[shId] = validators
 	}

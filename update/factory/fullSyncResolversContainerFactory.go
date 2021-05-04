@@ -10,6 +10,7 @@ import (
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -20,6 +21,7 @@ import (
 const defaultTargetShardID = uint32(0)
 const numCrossShardPeers = 2
 const numIntraShardPeers = 2
+const numFullHistoryPeers = 3
 
 type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
@@ -28,7 +30,6 @@ type resolversContainerFactory struct {
 	intRandomizer          dataRetriever.IntRandomizer
 	dataTrieContainer      state.TriesHolder
 	container              dataRetriever.ResolversContainer
-	intraShardTopic        string
 	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
 	throttler              dataRetriever.ResolverThrottler
@@ -68,8 +69,6 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if err != nil {
 		return nil, err
 	}
-	intraShardTopic := core.ConsensusTopic +
-		args.ShardCoordinator.CommunicationIdentifier(args.ShardCoordinator.SelfId())
 	return &resolversContainerFactory{
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
@@ -77,7 +76,6 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
 		dataTrieContainer:      args.DataTrieContainer,
 		container:              args.ExistingResolvers,
-		intraShardTopic:        intraShardTopic,
 		inputAntifloodHandler:  args.InputAntifloodHandler,
 		outputAntifloodHandler: args.OutputAntifloodHandler,
 		throttler:              thr,
@@ -107,7 +105,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 		}
 
 		trieId := genesis.CreateTrieIdentifier(i, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, i)
 		if err != nil {
 			return err
 		}
@@ -119,7 +117,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, core.MetachainShardId)
 		if err != nil {
 			return err
 		}
@@ -131,7 +129,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.ValidatorAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID, core.MetachainShardId)
 		if err != nil {
 			return err
 		}
@@ -148,11 +146,19 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 	return err == nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string, targetShardID uint32) (dataRetriever.Resolver, error) {
+	//for each resolver we create a pseudo-intra shard topic as to make at least of half of the requests target the proper peers
+	//this pseudo-intra shard topic is the consensus_targetShardID
+	targetShardCoordinator, err := sharding.NewMultiShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
+	if err != nil {
+		return nil, err
+	}
+
+	targetConsensusStopic := core.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
 		rcf.messenger,
 		baseTopic,
-		rcf.intraShardTopic,
+		targetConsensusStopic,
 		factoryDataRetriever.EmptyExcludePeersOnTopic,
 	)
 	if err != nil {
@@ -160,15 +166,17 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:          rcf.messenger,
-		TopicName:          baseTopic,
-		PeerListCreator:    peerListCreator,
-		Marshalizer:        rcf.marshalizer,
-		Randomizer:         rcf.intRandomizer,
-		TargetShardId:      defaultTargetShardID,
-		OutputAntiflooder:  rcf.outputAntifloodHandler,
-		NumCrossShardPeers: numCrossShardPeers,
-		NumIntraShardPeers: numIntraShardPeers,
+		Messenger:                   rcf.messenger,
+		TopicName:                   baseTopic,
+		PeerListCreator:             peerListCreator,
+		Marshalizer:                 rcf.marshalizer,
+		Randomizer:                  rcf.intRandomizer,
+		TargetShardId:               defaultTargetShardID,
+		OutputAntiflooder:           rcf.outputAntifloodHandler,
+		NumCrossShardPeers:          numCrossShardPeers,
+		NumIntraShardPeers:          numIntraShardPeers,
+		NumFullHistoryPeers:         numFullHistoryPeers,
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {
@@ -188,7 +196,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

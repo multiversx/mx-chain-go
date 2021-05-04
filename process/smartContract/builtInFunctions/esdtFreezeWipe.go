@@ -70,7 +70,7 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "token", esdtTokenKey)
 
 	if e.wipe {
-		err := acntDst.DataTrieTracker().SaveKeyValue(esdtTokenKey, nil)
+		err := e.wipeIfApplicable(acntDst, esdtTokenKey)
 		if err != nil {
 			return nil, err
 		}
@@ -81,8 +81,22 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 		}
 	}
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 	return vmOutput, nil
+}
+
+func (e *esdtFreezeWipe) wipeIfApplicable(acntDst state.UserAccountHandler, tokenKey []byte) error {
+	tokenData, err := getESDTDataFromKey(acntDst, tokenKey, e.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	esdtUserMetadata := ESDTUserMetadataFromBytes(tokenData.Properties)
+	if !esdtUserMetadata.Frozen {
+		return process.ErrCannotWipeAccountNotFrozen
+	}
+
+	return acntDst.DataTrieTracker().SaveKeyValue(tokenKey, nil)
 }
 
 func (e *esdtFreezeWipe) toggleFreeze(acntDst state.UserAccountHandler, tokenKey []byte) error {

@@ -1,7 +1,7 @@
 package smartContract
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/pkg/errors"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
@@ -25,6 +24,7 @@ type SCQueryService struct {
 	blockChainHook process.BlockChainHookHandler
 	blockChain     data.ChainHandler
 	numQueries     int
+	gasForQuery    uint64
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -52,6 +52,7 @@ func NewSCQueryService(
 		economicsFee:   economicsFee,
 		blockChain:     blockChain,
 		blockChainHook: blockChainHook,
+		gasForQuery:    math.MaxUint64,
 	}, nil
 }
 
@@ -71,7 +72,7 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
@@ -97,11 +98,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 	}
 
-	err = service.checkVMOutput(vmOutput)
-	if err != nil {
-		return nil, err
-	}
-
 	return vmOutput, nil
 }
 
@@ -121,7 +117,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.CallerAddr,
 		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
-		GasProvided: math.MaxUint64,
+		GasProvided: service.gasForQuery,
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -139,30 +135,21 @@ func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMO
 	return vmOutput.ReturnMessage == "allocation error"
 }
 
-func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s (%s)",
-			vmOutput.ReturnCode,
-			vmOutput.ReturnCode,
-			vmOutput.ReturnMessage))
-	}
-
-	return nil
-}
-
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume
 func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
-	argumentParser := parsers.NewCallArgsParser()
+	argParser := parsers.NewCallArgsParser()
 
-	function, arguments, err := argumentParser.ParseData(string(tx.Data))
+	function, arguments, err := argParser.ParseData(string(tx.Data))
 	if err != nil {
 		return 0, err
 	}
 
 	query := &process.SCQuery{
-		ScAddress: tx.RcvAddr,
-		FuncName:  function,
-		Arguments: arguments,
+		ScAddress:  tx.RcvAddr,
+		CallerAddr: tx.SndAddr,
+		FuncName:   function,
+		Arguments:  arguments,
+		CallValue:  tx.Value,
 	}
 
 	service.mutRunSc.Lock()
@@ -173,9 +160,16 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	gasConsumed := service.economicsFee.MaxGasLimitPerBlock(0) - vmOutput.GasRemaining
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return 0, errors.New(vmOutput.ReturnMessage)
+	}
 
-	return gasConsumed, nil
+	moveBalanceGasLimit := service.economicsFee.ComputeGasLimit(tx)
+	gasConsumedExecution := service.gasForQuery - vmOutput.GasRemaining
+
+	gasLimit := moveBalanceGasLimit + gasConsumedExecution
+
+	return gasLimit, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

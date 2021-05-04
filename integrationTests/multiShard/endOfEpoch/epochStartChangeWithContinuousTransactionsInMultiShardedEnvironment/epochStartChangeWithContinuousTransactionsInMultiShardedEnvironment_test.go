@@ -18,14 +18,10 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -42,7 +38,6 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -74,7 +69,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)

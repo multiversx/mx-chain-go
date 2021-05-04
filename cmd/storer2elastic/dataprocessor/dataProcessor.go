@@ -14,11 +14,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -32,7 +31,7 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	OutportHandler      outport.OutportHandler
+	OutportHandler      StorageDataIndexer
 	DataReplayer        DataReplayerHandler
 	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
@@ -46,7 +45,7 @@ type ArgsDataProcessor struct {
 
 type dataProcessor struct {
 	startTime           time.Time
-	outportHandler      outport.OutportHandler
+	outportHandler      StorageDataIndexer
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
 	ratingConfig        config.RatingsConfig
@@ -176,21 +175,25 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 		return err
 	}
 
-	dp.outportHandler.SaveBlock(types.ArgsSaveBlocks{
+	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
+	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
+	// not all data was indexed
+	args := &indexer.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
 		Body:                   newBody,
 		Header:                 data.Header,
-		TxsFromPool:            data.BodyTransactions,
 		SignersIndexes:         signersIndexes,
 		NotarizedHeadersHashes: notarizedHeaders,
-		HeaderHash:             headerHash,
-	})
+		TransactionsPool:       data.BodyTransactions,
+	}
+	dp.outportHandler.SaveBlock(args)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header, headerHash)
 	return nil
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := types.RoundInfo{
+	ri := &indexer.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -198,7 +201,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.outportHandler.SaveRoundsInfo([]types.RoundInfo{ri})
+	dp.outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

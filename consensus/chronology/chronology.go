@@ -30,8 +30,8 @@ const chronologyAlarmID = "chronology"
 type chronology struct {
 	genesisTime time.Time
 
-	rounder   consensus.Rounder
-	syncTimer ntp.SyncTimer
+	roundHandler consensus.RoundHandler
+	syncTimer    ntp.SyncTimer
 
 	subroundId int
 
@@ -54,7 +54,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 
 	chr := chronology{
 		genesisTime:      arg.GenesisTime,
-		rounder:          arg.Rounder,
+		roundHandler:     arg.RoundHandler,
 		syncTimer:        arg.SyncTimer,
 		appStatusHandler: arg.AppStatusHandler,
 		watchdog:         arg.Watchdog,
@@ -70,8 +70,8 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 
 func checkNewChronologyParams(arg ArgChronology) error {
 
-	if check.IfNil(arg.Rounder) {
-		return ErrNilRounder
+	if check.IfNil(arg.RoundHandler) {
+		return ErrNilRoundHandler
 	}
 	if check.IfNil(arg.SyncTimer) {
 		return ErrNilSyncTimer
@@ -108,7 +108,7 @@ func (chr *chronology) RemoveAllSubrounds() {
 
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
-	watchdogAlarmDuration := chr.rounder.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
+	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
 	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
@@ -135,7 +135,7 @@ func (chr *chronology) startRound() {
 		chr.updateRound()
 	}
 
-	if chr.rounder.BeforeGenesis() {
+	if chr.roundHandler.BeforeGenesis() {
 		return
 	}
 
@@ -148,7 +148,7 @@ func (chr *chronology) startRound() {
 	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 	logger.SetCorrelationSubround(sr.Name())
 
-	if !sr.DoWork(chr.rounder) {
+	if !sr.DoWork(chr.roundHandler) {
 		chr.subroundId = srBeforeStartRound
 		return
 	}
@@ -158,14 +158,14 @@ func (chr *chronology) startRound() {
 
 // updateRound updates rounds and subrounds depending of the current time and the finished tasks
 func (chr *chronology) updateRound() {
-	oldRoundIndex := chr.rounder.Index()
-	chr.rounder.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
+	oldRoundIndex := chr.roundHandler.Index()
+	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
-	if oldRoundIndex != chr.rounder.Index() {
+	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
-		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.rounder.Index(), chr.rounder.TimeStamp().Unix())
+		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
-		logger.SetCorrelationRound(chr.rounder.Index())
+		logger.SetCorrelationRound(chr.roundHandler.Index())
 
 		chr.initRound()
 	}
@@ -177,12 +177,12 @@ func (chr *chronology) initRound() {
 
 	chr.mutSubrounds.RLock()
 
-	hasSubroundsAndGenesisTimePassed := !chr.rounder.BeforeGenesis() && len(chr.subroundHandlers) > 0
+	hasSubroundsAndGenesisTimePassed := !chr.roundHandler.BeforeGenesis() && len(chr.subroundHandlers) > 0
 
 	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
-		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.rounder.Index()))
-		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, uint64(chr.rounder.TimeStamp().Unix()))
+		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRound, uint64(chr.roundHandler.Index()))
+		chr.appStatusHandler.SetUInt64Value(core.MetricCurrentRoundTimestamp, uint64(chr.roundHandler.TimeStamp().Unix()))
 	}
 
 	chr.mutSubrounds.RUnlock()

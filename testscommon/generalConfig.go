@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+// GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
 		PublicKeyPeerId: config.CacheConfig{
@@ -44,7 +45,9 @@ func GetGeneralConfig() config.Config {
 			CacheRefreshIntervalInSec: uint32(100),
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled: true,
+			StartInEpochEnabled:      true,
+			GenesisMaxNumberOfShards: 100,
+			MaxComputableRounds:      1000,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -302,6 +305,19 @@ func GetGeneralConfig() config.Config {
 		},
 		SoftwareVersionConfig: config.SoftwareVersionConfig{
 			PollingIntervalInMinutes: 30,
+		},
+		TrieSync: config.TrieSyncConfig{
+			NumConcurrentTrieSyncers:  50,
+			MaxHardCapForMissingNodes: 500,
+			TrieSyncerVersion:         2,
+		},
+		Antiflood: config.AntifloodConfig{
+			NumConcurrentResolverJobs: 2,
+		},
+		Resolvers: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
 		},
 	}
 }

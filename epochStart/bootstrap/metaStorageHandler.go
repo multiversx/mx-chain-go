@@ -43,6 +43,7 @@ func NewMetaStorageHandler(
 		pathManagerHandler,
 		epochStartNotifier,
 		currentEpoch,
+		false,
 	)
 	if err != nil {
 		return nil, err
@@ -145,11 +146,6 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	}
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
 	err = bootStorer.Put(key, bootStrapDataBytes)
-	if err != nil {
-		return err
-	}
-
-	err = msh.commitTries(components)
 	if err != nil {
 		return err
 	}

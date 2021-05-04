@@ -171,3 +171,10 @@ func TestInterceptedTrieNode_Identifiers(t *testing.T) {
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, [][]byte{interceptedNode.Hash()}, interceptedNode.Identifiers())
 }
+
+func TestInterceptedTrieNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.Equal(t, 380, interceptedNode.SizeInBytes())
+}

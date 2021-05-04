@@ -16,6 +16,16 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
+// GetTrie -
+func (a *accountsAdapter) GetTrie(_ []byte) (data.Trie, error) {
+	return nil, nil
+}
+
+// GetCode -
+func (a *accountsAdapter) GetCode(_ []byte) []byte {
+	return nil
+}
+
 // LoadAccount -
 func (a *accountsAdapter) LoadAccount(_ []byte) (state.AccountHandler, error) {
 	return nil, nil

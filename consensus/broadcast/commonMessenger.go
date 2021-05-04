@@ -197,8 +197,8 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 	transactions map[string][][]byte,
 ) (map[uint32][]byte, map[string][][]byte) {
 
-	metaMiniBlocks := make(map[uint32][]byte, 0)
-	metaTransactions := make(map[string][][]byte, 0)
+	metaMiniBlocks := make(map[uint32][]byte)
+	metaTransactions := make(map[string][][]byte)
 
 	for shardID, mbsMarshalized := range miniBlocks {
 		if shardID != core.MetachainShardId {

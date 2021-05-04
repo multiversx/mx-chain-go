@@ -25,7 +25,7 @@ type ConsensusCore struct {
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
 	multiSigner                   crypto.MultiSigner
-	rounder                       consensus.Rounder
+	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              sharding.NodesCoordinator
 	syncTimer                     ntp.SyncTimer
@@ -34,6 +34,7 @@ type ConsensusCore struct {
 	peerHonestyHandler            consensus.PeerHonestyHandler
 	headerSigVerifier             consensus.HeaderSigVerifier
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
+	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -48,7 +49,7 @@ type ConsensusCoreArgs struct {
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
 	MultiSigner                   crypto.MultiSigner
-	Rounder                       consensus.Rounder
+	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
 	NodesCoordinator              sharding.NodesCoordinator
 	SyncTimer                     ntp.SyncTimer
@@ -57,6 +58,7 @@ type ConsensusCoreArgs struct {
 	PeerHonestyHandler            consensus.PeerHonestyHandler
 	HeaderSigVerifier             consensus.HeaderSigVerifier
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
+	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -74,7 +76,7 @@ func NewConsensusCore(
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
 		multiSigner:                   args.MultiSigner,
-		rounder:                       args.Rounder,
+		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,
 		syncTimer:                     args.SyncTimer,
@@ -83,6 +85,7 @@ func NewConsensusCore(
 		peerHonestyHandler:            args.PeerHonestyHandler,
 		headerSigVerifier:             args.HeaderSigVerifier,
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
+		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -138,12 +141,12 @@ func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cc.multiSigner
 }
 
-//Rounder gets the Rounder stored in the ConsensusCore
-func (cc *ConsensusCore) Rounder() consensus.Rounder {
-	return cc.rounder
+//RoundHandler gets the RoundHandler stored in the ConsensusCore
+func (cc *ConsensusCore) RoundHandler() consensus.RoundHandler {
+	return cc.roundHandler
 }
 
-// ShardCoordinator gets the Coordinator stored in the ConsensusCore
+// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cc.shardCoordinator
 }
@@ -186,6 +189,11 @@ func (cc *ConsensusCore) HeaderSigVerifier() consensus.HeaderSigVerifier {
 // FallbackHeaderValidator will return the fallback header validator which will be used in subrounds
 func (cc *ConsensusCore) FallbackHeaderValidator() consensus.FallbackHeaderValidator {
 	return cc.fallbackHeaderValidator
+}
+
+// NodeRedundancyHandler will return the node redundancy handler which will be used in subrounds
+func (cc *ConsensusCore) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	return cc.nodeRedundancyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

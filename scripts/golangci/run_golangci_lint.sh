@@ -5,7 +5,7 @@ if ! [ -x "$(command -v golangci-lint)" ]; then
   exit 1
 fi
 
-input="linters.txt"
+input="linters"
 
 dir_output="Output"
 if [ -d "$dir_output" ]; then
@@ -17,6 +17,6 @@ mkdir "$dir_output"
 while IFS= read -r linter
 do
   echo -n Running "$linter" "linter "
-	golangci-lint run ./../../... > "$dir_output/${linter}_output.txt" --max-issues-per-linter 0 --max-same-issues 0 --disable-all --enable="$linter"
+	golangci-lint run ./../../... > "$dir_output/${linter}_output" --max-issues-per-linter 0 --max-same-issues 0 --disable-all --enable="$linter"
 	echo -- Done
 done < "$input"

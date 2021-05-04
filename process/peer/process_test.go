@@ -62,6 +62,8 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				LeaderPercentage:                 0.1,
 				ProtocolSustainabilityPercentage: 0.1,
 				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				TopUpFactor:                      0.25,
+				TopUpGradientPoint:               "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000",
@@ -69,11 +71,12 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				MinGasPrice:             "10",
 				MinGasLimit:             "10",
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
+		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -84,16 +87,17 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:      &mock.ChainStorerMock{},
-		NodesCoordinator:    &mock.NodesCoordinatorMock{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		PubkeyConv:          createMockPubkeyConverter(),
-		PeerAdapter:         getAccountsMock(),
-		Rater:               createMockRater(),
-		RewardsHandler:      economicsData,
-		MaxComputableRounds: 1000,
-		NodesSetup:          &mock.NodesSetupStub{},
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		StorageService:       &mock.ChainStorerMock{},
+		NodesCoordinator:     &mock.NodesCoordinatorMock{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		PubkeyConv:           createMockPubkeyConverter(),
+		PeerAdapter:          getAccountsMock(),
+		Rater:                createMockRater(),
+		RewardsHandler:       economicsData,
+		MaxComputableRounds:  1000,
+		NodesSetup:           &mock.NodesSetupStub{},
+		EpochNotifier:        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: 5,
 	}
 	return arguments
 }
@@ -2141,6 +2145,49 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	assert.Equal(t, tempRating2, vi[0][0].TempRating)
 }
 
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLeaving(t *testing.T) {
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025
+	}
+	rater.MinRating = 1000
+	rater.MaxRating = 10000
+
+	arguments.Rater = rater
+
+	updateArgumentsWithNeeded(arguments)
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	validatorStatistics.EpochConfirmed(10, 0)
+
+	tempRating1 := uint32(5000)
+	tempRating2 := uint32(8000)
+
+	validatorSuccess1 := uint32(2)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
+	validatorSuccess2 := uint32(1)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
+	vi[core.MetachainShardId][0].List = string(core.LeavingList)
+
+	vi[0] = make([]*state.ValidatorInfo, 1)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
+	vi[0][0].List = string(core.WaitingList)
+
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
+	assert.Nil(t, err)
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*(validatorSuccess1+validatorIgnored1)
+	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
+
+	assert.Equal(t, tempRating2, vi[0][0].TempRating)
+}
+
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFailureBelowMinRatingShouldWork(t *testing.T) {
 	arguments := createMockArguments()
 	rater := createMockRater()
@@ -2180,13 +2227,13 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 
 func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 
-	startRating := uint32(50)
+	baseRating := uint32(50)
 	rating := uint32(70)
 	chancesForStartRating := uint32(20)
 	chancesForRating := uint32(22)
 	newRater := createMockRater()
 	newRater.GetChancesCalled = func(val uint32) uint32 {
-		if val == startRating {
+		if val == baseRating {
 			return chancesForStartRating
 		}
 		if val == rating {
@@ -2408,6 +2455,40 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 		},
 	}
 	return arguments
+}
+
+func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) {
+	t.Parallel()
+
+	peerAdapter := getAccountsMock()
+	arguments := createMockArguments()
+	arguments.PeerAdapter = peerAdapter
+
+	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		peerAcc := state.NewEmptyPeerAccount()
+		peerAcc.List = string(core.LeavingList)
+		return peerAcc, nil
+	}
+
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			mapNodes := make(map[uint32][][]byte)
+			mapNodes[0] = [][]byte{[]byte("someAddress")}
+			return mapNodes, nil
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	nodeForcedToRemain, err := validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	assert.Nil(t, err)
+	assert.True(t, nodeForcedToRemain)
+
+	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		return state.NewEmptyPeerAccount(), nil
+	}
+	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	assert.Nil(t, err)
+	assert.False(t, nodeForcedToRemain)
 }
 
 func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {

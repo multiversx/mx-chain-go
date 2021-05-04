@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -39,6 +40,7 @@ type trieStorageManager struct {
 	pruningBuffer      atomicBuffer
 	pruningBlockingOps uint32
 	maxSnapshots       uint32
+	keepSnapshots      bool
 	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -89,6 +91,7 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		pruningBlockingOps:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
+		keepSnapshots:         generalConfig.KeepSnapshots,
 		cancelFunc:            cancelFunc,
 	}
 
@@ -96,6 +99,7 @@ func NewTrieStorageManager(
 	return tsm, nil
 }
 
+//nolint
 func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
@@ -364,6 +368,11 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
+		log.Trace("should not snapshot an empty trie")
+		return
+	}
+
 	tsm.EnterPruningBufferingMode()
 
 	snapshotEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: true}
@@ -374,6 +383,11 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
+		log.Trace("should not set checkpoint for empty trie")
+		return
+	}
+
 	tsm.EnterPruningBufferingMode()
 
 	checkpointEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: false}
@@ -381,10 +395,7 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
-	select {
-	case tsm.snapshotReq <- entry:
-		return
-	}
+	tsm.snapshotReq <- entry
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
@@ -450,10 +461,32 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	}
 
 	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
-		tsm.removeSnapshot()
+		if tsm.keepSnapshots  {
+			tsm.disconnectSnapshot()
+		} else {
+			tsm.removeSnapshot()
+		}
 	}
 
 	return db
+}
+
+func (tsm *trieStorageManager) disconnectSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+	snapshot := tsm.snapshots[0]
+	tsm.snapshots = tsm.snapshots[1:]
+
+	if snapshot.IsInUse() {
+		snapshot.MarkForDisconnection()
+		log.Debug("can't disconnect, snapshot is still in use")
+		return
+	}
+	err := disconnectSnapshot(snapshot)
+	if err != nil {
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
+	}
 }
 
 func (tsm *trieStorageManager) removeSnapshot() {
@@ -478,10 +511,14 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removeSnapshot(snapshot, removePath)
 }
 
+func disconnectSnapshot(db data.DBWriteCacher) error {
+	return db.Close()
+}
+
 func removeSnapshot(db data.DBWriteCacher, path string) {
-	err := db.Close()
+	err := disconnectSnapshot(db)
 	if err != nil {
-		log.Error("trie storage manager: removeSnapshot", "error", err.Error())
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 		return
 	}
 
@@ -507,18 +544,7 @@ func newSnapshotNode(
 		return nil, err
 	}
 
-	trieStorage := &trieStorageManager{
-		db: db,
-	}
-
-	snapshotPmt := &patriciaMerkleTrie{
-		root:        newRoot,
-		trieStorage: trieStorage,
-		marshalizer: msh,
-		hasher:      hsh,
-	}
-
-	return snapshotPmt.root, nil
+	return newRoot, nil
 }
 
 func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {

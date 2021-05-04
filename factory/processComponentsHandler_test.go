@@ -54,6 +54,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 		networkComponents,
 	)
 
+	factory.SetShardCoordinator(shardCoordinator, processArgs.BootstrapComponents)
+
 	processComponentsFactory, err := factory.NewProcessComponentsFactory(processArgs)
 	require.Nil(t, err)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
@@ -61,7 +63,7 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
 	require.Nil(t, managedProcessComponents.InterceptorsContainer())
 	require.Nil(t, managedProcessComponents.ResolversFinder())
-	require.Nil(t, managedProcessComponents.Rounder())
+	require.Nil(t, managedProcessComponents.RoundHandler())
 	require.Nil(t, managedProcessComponents.ForkDetector())
 	require.Nil(t, managedProcessComponents.BlockProcessor())
 	require.Nil(t, managedProcessComponents.EpochStartTrigger())
@@ -83,7 +85,7 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedProcessComponents.NodesCoordinator())
 	require.NotNil(t, managedProcessComponents.InterceptorsContainer())
 	require.NotNil(t, managedProcessComponents.ResolversFinder())
-	require.NotNil(t, managedProcessComponents.Rounder())
+	require.NotNil(t, managedProcessComponents.RoundHandler())
 	require.NotNil(t, managedProcessComponents.ForkDetector())
 	require.NotNil(t, managedProcessComponents.BlockProcessor())
 	require.NotNil(t, managedProcessComponents.EpochStartTrigger())

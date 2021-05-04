@@ -25,6 +25,10 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *changeOwnerAddress) SetNewGasConfig(gasCost *process.GasCost) {
+	if gasCost == nil {
+		return
+	}
+
 	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ChangeOwnerAddress
 	c.mutExecution.Unlock()
@@ -32,7 +36,7 @@ func (c *changeOwnerAddress) SetNewGasConfig(gasCost *process.GasCost) {
 
 // ProcessBuiltinFunction processes simple protocol built-in function
 func (c *changeOwnerAddress) ProcessBuiltinFunction(
-	_, acntDst state.UserAccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 	c.mutExecution.RLock()
@@ -53,9 +57,10 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	if vmInput.GasProvided < c.gasCost {
 		return nil, process.ErrNotEnoughGas
 	}
+	gasRemaining := computeGasRemaining(acntSnd, vmInput.GasProvided, c.gasCost)
 	if check.IfNil(acntDst) {
 		// cross-shard call, in sender shard only the gas is taken out
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok, GasRemaining: gasRemaining}, nil
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
@@ -67,7 +72,20 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - c.gasCost, ReturnCode: vmcommon.Ok}, nil
+	return &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}, nil
+}
+
+func computeGasRemaining(snd state.UserAccountHandler, gasProvided uint64, gasToUse uint64) uint64 {
+	if gasProvided < gasToUse {
+		return 0
+	}
+	// in case of built in functions - gas is consumed in sender shard, returned already in sender shard
+	// thus we must return with 0 here
+	if check.IfNil(snd) {
+		return 0
+	}
+
+	return gasProvided - gasToUse
 }
 
 // IsInterfaceNil returns true if underlying object in nil

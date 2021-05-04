@@ -40,7 +40,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		blockProcessor:      arguments.BlockProcessor,
 		store:               arguments.Store,
 		headers:             arguments.PoolsHolder.Headers(),
-		rounder:             arguments.Rounder,
+		roundHandler:        arguments.RoundHandler,
 		waitTime:            arguments.WaitTime,
 		hasher:              arguments.Hasher,
 		marshalizer:         arguments.Marshalizer,

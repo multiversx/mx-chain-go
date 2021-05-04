@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -266,7 +266,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
-
 		reason := "blacklisted due to invalid heartbeat message"
 		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
 		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
@@ -331,6 +330,8 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		peerType,
 		hb.Nonce,
 		numInstances,
+		hb.PeerSubType,
+		core.PeerID(hb.Pid).Pretty(),
 	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
@@ -403,17 +404,28 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
+func (m *Monitor) getValsForUpdate(hbmiKey string, hbmi *heartbeatMessageInfo) (bool, uint32, string) {
+	hbmi.updateMutex.RLock()
+	defer hbmi.updateMutex.RUnlock()
+
+	if hbmi.isActive {
+		return false, 0, ""
+	}
+
+	peerType, shardId := m.computePeerTypeAndShardID([]byte(hbmiKey))
+	if hbmi.peerType != peerType || hbmi.computedShardID != shardId {
+		return true, shardId, peerType
+	}
+
+	return false, 0, ""
+}
+
 func (m *Monitor) computeInactiveHeartbeatMessages() {
 	m.mutHeartbeatMessages.Lock()
 	inactiveHbChangedMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
-		isActive := v.GetIsActive()
-		if isActive {
-			continue
-		}
-
-		peerType, shardId := m.computePeerTypeAndShardID([]byte(key))
-		if v.peerType != peerType || v.computedShardID != shardId {
+		shouldUpdate, shardId, peerType := m.getValsForUpdate(key, v)
+		if shouldUpdate {
 			v.UpdateShardAndPeerType(shardId, peerType)
 			inactiveHbChangedMap[key] = v
 		}
@@ -443,6 +455,7 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
 	for k, v := range m.heartbeatMessages {
+		v.updateMutex.RLock()
 		tmp := data.PubKeyHeartbeat{
 			PublicKey: m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp: v.timeStamp,
@@ -460,7 +473,10 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			PeerType:        v.peerType,
 			Nonce:           v.nonce,
 			NumInstances:    v.numInstances,
+			PeerSubType:     v.peerSubType,
+			PidString:       v.pidString,
 		}
+		v.updateMutex.RUnlock()
 		status = append(status, tmp)
 	}
 	m.mutHeartbeatMessages.Unlock()
@@ -511,6 +527,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		PeerType:        v.peerType,
 		Nonce:           v.nonce,
 		NumInstances:    v.numInstances,
+		PeerSubType:     v.peerSubType,
+		PidString:       v.pidString,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -535,6 +553,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		peerType:                    hbDTO.PeerType,
 		nonce:                       hbDTO.Nonce,
 		numInstances:                hbDTO.NumInstances,
+		peerSubType:                 hbDTO.PeerSubType,
+		pidString:                   hbDTO.PidString,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
@@ -573,13 +593,19 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
 		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
-		_=tc.Add(string(hb.Pid))
+		err := tc.Add(string(hb.Pid))
+		if err != nil {
+			log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)
+		}
 		m.doubleSignerPeers[pubKeyStr] = tc
 		return
 	}
 
 	tc.Sweep()
-	_=tc.Add(string(hb.Pid))
+	err := tc.Add(string(hb.Pid))
+	if err != nil {
+		log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)
+	}
 }
 
 func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
@@ -591,7 +617,7 @@ func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
 	return uint64(tc.Len())
 }
 
-// Cleanup cleans the unnecessary messages
+// Cleanup will delete all the entries in the heartbeatMessages map
 func (m *Monitor) Cleanup() {
 	m.mutHeartbeatMessages.Lock()
 	for k, v := range m.heartbeatMessages {

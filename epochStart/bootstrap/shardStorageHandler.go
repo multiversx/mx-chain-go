@@ -44,6 +44,7 @@ func NewShardStorageHandler(
 		pathManagerHandler,
 		epochStartNotifier,
 		currentEpoch,
+		false,
 	)
 	if err != nil {
 		return nil, err
@@ -143,11 +144,6 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	err = ssh.commitTries(components)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -203,7 +199,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	processedMbHashes := make([][]byte, 0)
 	miniBlocksDstMe := getAllMiniBlocksWithDst(neededMeta, ssh.shardCoordinator.SelfId())
 	for hash, mb := range miniBlocksDstMe {
-		if _, ok := pendingMBsMap[hash]; ok {
+		if _, hashExists := pendingMBsMap[hash]; hashExists {
 			continue
 		}
 

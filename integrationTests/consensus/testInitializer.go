@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -107,16 +106,6 @@ func pubKeysMapFromKeysMap(keyPairMap map[uint32][]*keyPair) map[uint32][]string
 	return keysMap
 }
 
-func getConnectableAddress(mes p2p.Messenger) string {
-	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
-			continue
-		}
-		return addr
-	}
-	return ""
-}
-
 func displayAndStartNodes(nodes []*testNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.sk.ToByteArray()
@@ -127,7 +116,6 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			testPubkeyConverter.Encode(pkBuff),
 		)
-		_ = n.mesenger.Bootstrap(0)
 	}
 }
 
@@ -160,7 +148,7 @@ func createTestStore() dataRetriever.StorageService {
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	store := createMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
@@ -183,7 +171,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -228,9 +216,10 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return &blake2b.Blake2b{HashSize: 32}
+		hasher, _ := blake2b.NewBlake2bWithSize(32)
+		return hasher
 	}
-	return &blake2b.Blake2b{}
+	return blake2b.NewBlake2b()
 }
 
 func createConsensusOnlyNode(
@@ -238,7 +227,6 @@ func createConsensusOnlyNode(
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	selfId uint32,
-	initialAddr string,
 	consensusSize uint32,
 	roundTime uint64,
 	privKey crypto.PrivateKey,
@@ -255,7 +243,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
+	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -312,7 +300,7 @@ func createConsensusOnlyNode(
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
-	rounder, _ := round.NewRound(
+	roundHandler, _ := round.NewRound(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
@@ -335,14 +323,14 @@ func createConsensusOnlyNode(
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
-		rounder,
+		roundHandler,
 		timecache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		0,
 	)
 
-	hdrResolver := &mock.HeaderResolverMock{}
-	mbResolver := &mock.MiniBlocksResolverMock{}
+	hdrResolver := &mock.HeaderResolverStub{}
+	mbResolver := &mock.MiniBlocksResolverStub{}
 	resolverFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
@@ -374,7 +362,7 @@ func createConsensusOnlyNode(
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()
 	coreComponents.SyncTimerField = syncer
-	coreComponents.RounderField = rounder
+	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = testMarshalizer
 	coreComponents.VmMarshalizerField = &marshal.JsonMarshalizer{}
 	coreComponents.TxMarshalizerField = &marshal.JsonMarshalizer{}
@@ -420,8 +408,7 @@ func createConsensusOnlyNode(
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &mock.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
-	// TODO: have rounder only in one component
-	processComponents.RoundHandler = rounder
+	processComponents.RoundHandlerField = roundHandler
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
@@ -451,9 +438,10 @@ func createConsensusOnlyNode(
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithSignatureSize(signatureSize),
+		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithNodeRedundancyHandler(&mock.RedundancyHandlerStub{}),
 	)
 
 	if err != nil {
@@ -467,7 +455,6 @@ func createNodes(
 	nodesPerShard int,
 	consensusSize int,
 	roundTime uint64,
-	serviceID string,
 	consensusType string,
 ) map[uint32][]*testNode {
 
@@ -477,6 +464,7 @@ func createNodes(
 	eligibleMap := genValidatorsFromPubKeys(keysMap)
 	waitingMap := make(map[uint32][]sharding.Validator)
 	nodesList := make([]*testNode, nodesPerShard)
+	connectableNodes := make([]integrationTests.Connectable, 0)
 
 	nodeShuffler := &mock.NodeShufflerMock{}
 
@@ -518,7 +506,6 @@ func createNodes(
 			nodesCoordinator,
 			testNodeObject.shardId,
 			uint32(i),
-			serviceID,
 			uint32(consensusSize),
 			roundTime,
 			kp.sk,
@@ -534,9 +521,13 @@ func createNodes(
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc
+
 		nodesList[i] = testNodeObject
+		connectableNodes = append(connectableNodes, &messengerWrapper{mes})
 	}
 	nodes[0] = nodesList
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	return nodes
 }

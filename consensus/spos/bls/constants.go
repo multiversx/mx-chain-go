@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	// MtUnknown defines ID of a message that has unknown Data inside
+	// MtUnknown defines ID of a message that has unknown data inside
 	MtUnknown consensus.MessageType = iota
 	// MtBlockBodyAndHeader defines ID of a message that has a block body and a block header inside
 	MtBlockBodyAndHeader

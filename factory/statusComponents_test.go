@@ -1,9 +1,9 @@
 package factory_test
 
 import (
-	"fmt"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/errors"
@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("factory/factory_test")
 
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -84,25 +86,20 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	require.Nil(t, err)
 	networkComponents := getNetworkComponents()
 	dataComponents := getDataComponents(coreComponents, shardCoordinator)
-	cryptoComponents := getCryptoComponents(coreComponents)
 	stateComponents := getStateComponents(coreComponents, shardCoordinator)
-	processComponents := getProcessComponents(
-		shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents,
-	)
 
 	statusArgs := factory.StatusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		ExternalConfig:       config.ExternalConfig{},
-		ShardCoordinator:     processComponents.ShardCoordinator(),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
-		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
-		EconomicsConfig:      config.EconomicsConfig{},
-		ElasticTemplatesPath: "",
+		Config:             testscommon.GetGeneralConfig(),
+		ExternalConfig:     config.ExternalConfig{},
+		ShardCoordinator:   shardCoordinator,
+		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StateComponents:    stateComponents,
+		IsInImportMode:     false,
+		EconomicsConfig:    config.EconomicsConfig{},
 	}
 	scf, err := factory.NewStatusComponentsFactory(statusArgs)
 	assert.Nil(t, err)
@@ -152,10 +149,10 @@ func getStatusComponents(
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
-	processComponents factory.ProcessComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
+	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
 ) factory.StatusComponentsHandler {
-
 	indexerURL := "url"
 	elasticUsername := "user"
 	elasticPassword := "pass"
@@ -171,27 +168,26 @@ func getStatusComponents(
 			},
 		},
 		EconomicsConfig:    config.EconomicsConfig{},
-		ShardCoordinator:   processComponents.ShardCoordinator(),
-		NodesCoordinator:   processComponents.NodesCoordinator(),
-		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		ShardCoordinator:   shardCoordinator,
+		NodesCoordinator:   nodesCoordinator,
+		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
 		NetworkComponents:  networkComponents,
 		StateComponents:    stateComponents,
 		IsInImportMode:     false,
-
-		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
 	}
 
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	if err != nil {
-		fmt.Println("getStatusComponents NewManagedStatusComponents", "error", err.Error())
+		log.Error("getStatusComponents NewManagedStatusComponents", "error", err.Error())
 		return nil
 	}
 	err = managedStatusComponents.Create()
 	if err != nil {
-		fmt.Println("getStatusComponents Create", "error", err.Error())
+		log.Error("getStatusComponents Create", "error", err.Error())
+		return nil
 	}
 	return managedStatusComponents
 }
@@ -225,16 +221,15 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
 		},
-		EconomicsConfig:      config.EconomicsConfig{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
-		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
-		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
+		EconomicsConfig:    config.EconomicsConfig{},
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StateComponents:    stateComponents,
+		IsInImportMode:     false,
 	}, processComponents
 }
 
@@ -261,13 +256,13 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(cryptoArgs)
 	cryptoComponents, err := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	if err != nil {
-		fmt.Println("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
+		log.Error("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
 		return nil
 	}
 
 	err = cryptoComponents.Create()
 	if err != nil {
-		fmt.Println("getCryptoComponents Create", "error", err.Error())
+		log.Error("getCryptoComponents Create", "error", err.Error())
 		return nil
 	}
 	return cryptoComponents
@@ -276,15 +271,20 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 func getStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
 	stateArgs := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, err := factory.NewStateComponentsFactory(stateArgs)
+	if err != nil {
+		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
+		return nil
+	}
 
 	stateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
-		fmt.Println("getStateComponents NewManagedStateComponents", "error", err.Error())
+		log.Error("getStateComponents NewManagedStateComponents", "error", err.Error())
 		return nil
 	}
 	err = stateComponents.Create()
 	if err != nil {
-		fmt.Println("getStateComponents Create", "error", err.Error())
+		log.Error("getStateComponents Create", "error", err.Error())
+		return nil
 	}
 	return stateComponents
 }
@@ -308,12 +308,13 @@ func getProcessComponents(
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
-		fmt.Println("getProcessComponents NewManagedProcessComponents", "error", err.Error())
+		log.Error("getProcessComponents NewManagedProcessComponents", "error", err.Error())
 		return nil
 	}
 	err = managedProcessComponents.Create()
 	if err != nil {
-		fmt.Println("getProcessComponents Create", "error", err.Error())
+		log.Error("getProcessComponents Create", "error", err.Error())
+		return nil
 	}
 	return managedProcessComponents
 }

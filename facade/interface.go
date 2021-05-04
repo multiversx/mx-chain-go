@@ -3,9 +3,10 @@ package facade
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -14,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-//NodeHandler contains all functions that a node should contain.
+// NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
 	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
@@ -25,29 +26,38 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
 
-	// GetESDTBalance returns the esdt balance and properties from a given account
-	GetESDTBalance(address string, key string) (string, string, error)
+	// GetKeyValuePairs returns the key-value pairs under a given address
+	GetKeyValuePairs(address string) (map[string]string, error)
+
+	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
+	GetAllIssuedESDTs() ([]string, error)
+
+	// GetESDTData returns the esdt data from a given account, given key and given nonce
+	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
-	GetAllESDTTokens(address string) ([]string, error)
+	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 
-	//CreateTransaction will return a transaction from all needed fields
-	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	// CreateTransaction will return a transaction from all needed fields
+	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 
-	//ValidateTransaction will validate a transaction
+	// ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
-	ValidateTransactionForSimulation(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 
-	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
+	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	//GetTransaction will return a transaction based on the hash
+	// GetTransaction will return a transaction based on the hash
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
-	//  about the account corelated with provided address
+	//  about the account correlated with provided address
 	GetAccount(address string) (state.UserAccountHandler, error)
+
+	// GetCode returns the code for the given account
+	GetCode(account state.UserAccountHandler) []byte
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []data.PubKeyHeartbeat
@@ -66,8 +76,8 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
-	GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
+	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
@@ -79,8 +89,11 @@ type TransactionSimulatorProcessor interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	StatusMetrics() external.StatusMetricsHandler
+	GetTotalStakedValue() (*api.StakeValues, error)
+	GetDirectStakedList() ([]*api.DirectStakedValue, error)
+	GetDelegatorsList() ([]*api.Delegator, error)
 	Close() error
 	IsInterfaceNil() bool
 }

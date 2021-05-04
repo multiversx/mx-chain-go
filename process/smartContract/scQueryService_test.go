@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -174,7 +175,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, d[1], vmOutput.ReturnData[1])
 }
 
-func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
+func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	mockVM := &mock.VMExecutionHandlerStub{
@@ -208,10 +209,9 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 
 	returnedData, err := target.ExecuteQuery(&query)
 
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error running vm func")
-	assert.Contains(t, err.Error(), "add more gas")
-	assert.Nil(t, returnedData)
+	assert.Nil(t, err)
+	assert.NotNil(t, returnedData)
+	assert.Contains(t, returnedData.ReturnMessage, "add more gas")
 }
 
 func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
@@ -392,4 +392,42 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	cost, err := target.ComputeScCallGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, consumedGas, cost)
+}
+
+func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
+	t.Parallel()
+
+	message := "function not found"
+	consumedGas := uint64(10000)
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			return &vmcommon.VMOutput{
+				GasRemaining:  uint64(math.MaxUint64) - consumedGas,
+				ReturnCode:    vmcommon.FunctionNotFound,
+				ReturnMessage: message,
+			}, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
+	)
+
+	tx := &transaction.Transaction{
+		RcvAddr: []byte(DummyScAddress),
+		Data:    []byte("incrementaaaa"),
+	}
+	_, err := target.ComputeScCallGasLimit(tx)
+	require.Equal(t, errors.New(message), err)
 }

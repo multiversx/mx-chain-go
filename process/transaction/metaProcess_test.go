@@ -243,8 +243,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -291,8 +291,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -354,6 +354,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

@@ -35,8 +35,9 @@ type ArgsNewGovernanceContract struct {
 	Hasher              hashing.Hasher
 	GovernanceSCAddress []byte
 	StakingSCAddress    []byte
-	AuctionSCAddress    []byte
+	ValidatorSCAddress  []byte
 	EpochNotifier       vm.EpochNotifier
+	EpochConfig         config.EpochConfig
 }
 
 type governanceContract struct {
@@ -46,7 +47,7 @@ type governanceContract struct {
 	ownerAddress        []byte
 	governanceSCAddress []byte
 	stakingSCAddress    []byte
-	auctionSCAddress    []byte
+	validatorSCAddress  []byte
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	governanceConfig    config.GovernanceSystemSCConfig
@@ -82,12 +83,14 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		ownerAddress:        nil,
 		governanceSCAddress: args.GovernanceSCAddress,
 		stakingSCAddress:    args.StakingSCAddress,
-		auctionSCAddress:    args.AuctionSCAddress,
+		validatorSCAddress:  args.ValidatorSCAddress,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
-		enabledEpoch:        args.GovernanceConfig.EnabledEpoch,
+		enabledEpoch:        args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
+	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil
@@ -142,7 +145,7 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 		ProposalFee:      g.baseProposalCost,
 	}
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
-	log.LogIfError(err, "marshal error on governance init function")
+	log.LogIfError(err, "function", "governanceContract.init")
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
@@ -795,25 +798,25 @@ func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmco
 }
 
 func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
-	marshaledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
+	marshaledData := g.eei.GetStorageFromAddress(g.validatorSCAddress, address)
 	if len(marshaledData) == 0 {
 		return 0, nil
 	}
 
-	auctionData := &AuctionData{}
-	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
+	validatorData := &ValidatorDataV2{}
+	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
 		return 0, err
 	}
 
 	numStakedNodes := uint32(0)
-	for _, blsKey := range auctionData.BlsPubKeys {
+	for _, blsKey := range validatorData.BlsPubKeys {
 		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
 		if len(marshaledData) == 0 {
 			continue
 		}
 
-		nodeData := &StakedDataV2{}
+		nodeData := &StakedDataV2_0{}
 		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
 		if err != nil {
 			return 0, err
@@ -909,9 +912,14 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (g *governanceContract) EpochConfirmed(epoch uint32) {
+func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
 	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
+}
+
+// CanUseContract returns true if contract is enabled
+func (g *governanceContract) CanUseContract() bool {
+	return true
 }
 
 // SetNewGasCost is called whenever a gas cost was changed

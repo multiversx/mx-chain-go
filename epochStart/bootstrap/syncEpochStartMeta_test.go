@@ -9,11 +9,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewEpochStartMetaSyncer_NilsShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := getEpochStartSyncerArgs()
+	args.CoreComponentsHolder = nil
+	ess, err := NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilCoreComponentsHolder, err)
+
+	args = getEpochStartSyncerArgs()
+	args.CryptoComponentsHolder = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilCryptoComponentsHolder, err)
+
+	args = getEpochStartSyncerArgs()
+	args.HeaderIntegrityVerifier = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilHeaderIntegrityVerifier, err)
+
+	args = getEpochStartSyncerArgs()
+	args.MetaBlockProcessor = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilMetablockProcessor, err)
+}
 
 func TestNewEpochStartMetaSyncer_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -31,7 +61,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsS
 
 	args := getEpochStartSyncerArgs()
 	messenger := &mock.MessengerStub{
-		RegisterMessageProcessorCalled: func(_ string, _ p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(_ string, _ string, _ p2p.MessageProcessor) error {
 			return expectedErr
 		},
 	}
@@ -118,12 +148,13 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		RequestHandler:   &mock.RequestHandlerStub{},
 		Messenger:        &mock.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		EconomicsData:    &economics.EconomicsData{},
+		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},
 		WhitelistHandler: &mock.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		MetaBlockProcessor:      &mock.EpochStartMetaBlockProcessorStub{},
 	}
 }

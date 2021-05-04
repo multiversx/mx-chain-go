@@ -26,6 +26,7 @@ type HeartbeatComponentsFactoryArgs struct {
 	AppVersion        string
 	GenesisTime       time.Time
 	HardforkTrigger   heartbeat.HardforkTrigger
+	RedundancyHandler heartbeat.NodeRedundancyHandler
 	CoreComponents    CoreComponentsHolder
 	DataComponents    DataComponentsHolder
 	NetworkComponents NetworkComponentsHolder
@@ -39,6 +40,7 @@ type heartbeatComponentsFactory struct {
 	version           string
 	GenesisTime       time.Time
 	hardforkTrigger   heartbeat.HardforkTrigger
+	redundancyHandler heartbeat.NodeRedundancyHandler
 	coreComponents    CoreComponentsHolder
 	dataComponents    DataComponentsHolder
 	networkComponents NetworkComponentsHolder
@@ -59,6 +61,9 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 
 	if check.IfNil(args.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.RedundancyHandler) {
+		return nil, heartbeat.ErrNilRedundancyHandler
 	}
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
@@ -82,6 +87,7 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 		version:           args.AppVersion,
 		GenesisTime:       args.GenesisTime,
 		hardforkTrigger:   args.HardforkTrigger,
+		redundancyHandler: args.RedundancyHandler,
 		coreComponents:    args.CoreComponents,
 		dataComponents:    args.DataComponents,
 		networkComponents: args.NetworkComponents,
@@ -107,9 +113,6 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	if check.IfNil(hcf.networkComponents.NetworkMessenger()) {
 		return nil, errors.ErrNilMessenger
 	}
-	if hcf.networkComponents.NetworkMessenger().HasTopicValidator(core.HeartbeatTopic) {
-		return nil, heartbeat.ErrValidatorAlreadySet
-	}
 	if !hcf.networkComponents.NetworkMessenger().HasTopic(core.HeartbeatTopic) {
 		err = hcf.networkComponents.NetworkMessenger().CreateTopic(core.HeartbeatTopic, true)
 		if err != nil {
@@ -126,7 +129,13 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		return nil, err
 	}
 
+	peerSubType := core.RegularPeer
+	if hcf.config.StoragePruning.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+
 	argSender := heartbeatProcess.ArgHeartbeatSender{
+		PeerSubType:          peerSubType,
 		PeerMessenger:        hcf.networkComponents.NetworkMessenger(),
 		PeerSignatureHandler: hcf.cryptoComponents.PeerSignatureHandler(),
 		PrivKey:              hcf.cryptoComponents.PrivateKey(),
@@ -140,6 +149,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
 		HardforkTrigger:      hcf.hardforkTrigger,
 		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
+		RedundancyHandler:    hcf.redundancyHandler,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -204,7 +214,9 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	log.Debug("heartbeat's monitor component has been instantiated")
 
 	err = hcf.networkComponents.NetworkMessenger().RegisterMessageProcessor(
-		core.HeartbeatTopic, hbc.monitor,
+		core.HeartbeatTopic,
+		core.DefaultInterceptorsIdentifier,
+		hbc.monitor,
 	)
 	if err != nil {
 		return nil, err

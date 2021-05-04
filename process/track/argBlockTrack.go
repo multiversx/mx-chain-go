@@ -16,7 +16,7 @@ type ArgBaseTracker struct {
 	HeaderValidator  process.HeaderConstructionValidator
 	Marshalizer      marshal.Marshalizer
 	RequestHandler   process.RequestHandler
-	Rounder          process.Rounder
+	RoundHandler     process.RoundHandler
 	ShardCoordinator sharding.Coordinator
 	Store            dataRetriever.StorageService
 	StartHeaders     map[uint32]data.HeaderHandler

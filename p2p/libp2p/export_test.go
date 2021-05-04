@@ -32,7 +32,10 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 }
 
 func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-	return netMes.pubsubCallback(handler, topic)
+	topicProcs := newTopicProcessors()
+	_ = topicProcs.addTopicProcessor("identifier", handler)
+
+	return netMes.pubsubCallback(topicProcs, topic)
 }
 
 func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {

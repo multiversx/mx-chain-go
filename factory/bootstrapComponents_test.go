@@ -82,8 +82,8 @@ func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 	bc, err := bcf.Create()
 
-	require.NotNil(t, bc)
 	require.Nil(t, err)
+	require.NotNil(t, bc)
 }
 
 func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *testing.T) {
@@ -133,6 +133,9 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 				DestinationShardAsObserver: "0",
 			},
 		},
+		ImportDbConfig: config.ImportDbConfig{
+			IsImportDBMode: false,
+		},
 	}
 }
 
@@ -152,11 +155,11 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:  &testscommon.AppStatusHandlerStub{},
-		WatchdogTimer: &testscommon.WatchdogMock{},
-		AlarmSch:      &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:  &testscommon.SyncTimerStub{},
-		RoundHandler:  &testscommon.RounderMock{},
+		AppStatusHdl:      &testscommon.AppStatusHandlerStub{},
+		WatchdogTimer:     &testscommon.WatchdogMock{},
+		AlarmSch:          &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:      &testscommon.SyncTimerStub{},
+		RoundHandlerField: &testscommon.RoundHandlerMock{},
 		//TODO: uncomment this
 		//EconomicsHandler: &testscommon.EconomicsHandlerMock{},
 		RatingsConfig: &testscommon.RatingsInfoMock{},

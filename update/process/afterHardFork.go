@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -64,9 +65,9 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	round uint64,
 	nonce uint64,
 	epoch uint32,
-) (map[uint32]data.HeaderHandler, map[uint32]data.BodyHandler, error) {
+) (map[uint32]data.HeaderHandler, map[uint32]*block.Body, error) {
 	mapHeaders := make(map[uint32]data.HeaderHandler)
-	mapBodies := make(map[uint32]data.BodyHandler)
+	mapBodies := make(map[uint32]*block.Body)
 
 	shardIDs := make([]uint32, a.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < a.shardCoordinator.NumberOfShards(); i++ {
@@ -74,22 +75,59 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	}
 	shardIDs[a.shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	for _, shardID := range shardIDs {
-		blockProcessor, ok := a.mapBlockProcessors[shardID]
-		if !ok {
-			return nil, nil, update.ErrNilHardForkBlockProcessor
-		}
+	args := update.ArgsHardForkProcessor{
+		Hasher:                    a.hasher,
+		Marshalizer:               a.marshalizer,
+		ShardIDs:                  shardIDs,
+		MapBodies:                 mapBodies,
+		MapHardForkBlockProcessor: a.mapBlockProcessors,
+	}
 
-		hdr, body, err := blockProcessor.CreateNewBlock(chainID, round, nonce, epoch)
-		if err != nil {
-			return nil, nil, err
-		}
+	lastPostMbs, err := update.CreateBody(args)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		mapHeaders[shardID] = hdr
-		mapBodies[shardID] = body
+	args.PostMbs = lastPostMbs
+	err = update.CreatePostMiniBlocks(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = a.createHeaders(shardIDs, mapBodies, mapHeaders, chainID, round, nonce, epoch)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return mapHeaders, mapBodies, nil
+}
+
+func (a *afterHardFork) createHeaders(
+	shardIDs []uint32,
+	mapBodies map[uint32]*block.Body,
+	mapHeaders map[uint32]data.HeaderHandler,
+	chainID string,
+	round uint64,
+	nonce uint64,
+	epoch uint32,
+) error {
+	for _, shardID := range shardIDs {
+		log.Debug("afterHardFork.createHeader", "shard", shardID)
+
+		blockProcessor, ok := a.mapBlockProcessors[shardID]
+		if !ok {
+			return update.ErrNilHardForkBlockProcessor
+		}
+
+		hdr, err := blockProcessor.CreateBlock(mapBodies[shardID], chainID, round, nonce, epoch)
+		if err != nil {
+			return err
+		}
+
+		mapHeaders[shardID] = hdr
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

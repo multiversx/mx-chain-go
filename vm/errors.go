@@ -53,8 +53,8 @@ var ErrInvalidNodePrice = errors.New("invalid node price")
 // ErrInvalidMinStepValue signals that an invalid min step value was provided
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
-// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
-var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
+// ErrInvalidMinUnstakeTokensValue signals that an invalid min unstake tokens value was provided
+var ErrInvalidMinUnstakeTokensValue = errors.New("invalid min unstake tokens value")
 
 // ErrBLSPublicKeyMismatch signals that public keys do not match
 var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
@@ -71,10 +71,10 @@ var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
 // ErrNilKeyGenerator signals that key generator is nil
 var ErrNilKeyGenerator = errors.New("nil key generator")
 
-// ErrSingleSigner signals that single signer is nil
-var ErrSingleSigner = errors.New("nil single signer")
+// ErrNilSingleSigner signals that the single signer is nil
+var ErrNilSingleSigner = errors.New("nil single signer")
 
-// ErrIncorrectConfig signals that auction config is incorrect
+// ErrIncorrectConfig signals that the config is incorrect
 var ErrIncorrectConfig = errors.New("config incorrect")
 
 // ErrNilMessageSignVerifier signals that message sign verifier is nil
@@ -83,14 +83,14 @@ var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
 // ErrNilStakingSmartContractAddress signals that staking smart contract address is nil
 var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
 
+// ErrNilEndOfEpochSmartContractAddress signals that the end of epoch smart contract address is nil
+var ErrNilEndOfEpochSmartContractAddress = errors.New("nil end of epoch smart contract address")
+
 // ErrNilArgumentsParser signals that arguments parses is nil
 var ErrNilArgumentsParser = errors.New("nil arguments parser")
 
-// ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
-var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
-
-// ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
-var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
+// ErrNilValidatorSmartContractAddress signals that validator smart contract address is nil
+var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contract address")
 
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
@@ -104,11 +104,11 @@ var ErrNotEnoughGas = errors.New("not enough gas")
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
-// ErrInvalidMinNumberOfNodes signals that provided minimum number of nodes is invalid
-var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
-
 // ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
 var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
+
+// ErrInvalidMinCreationDeposit signals that invalid min creation deposit has been provided
+var ErrInvalidMinCreationDeposit = errors.New("invalid min creation deposit")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
@@ -118,6 +118,9 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
+
+// ErrInvalidNumberOfDecimals signals that an invalid number of decimals has been provided
+var ErrInvalidNumberOfDecimals = errors.New("invalid number of decimals")
 
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
@@ -152,9 +155,6 @@ var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 // ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
 
-// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
-var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
-
 // ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
 var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
 
@@ -185,8 +185,20 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
+var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
+
 // ErrNoTickerWithGivenName signals that ticker does not exists with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
+
+// ErrInvalidAddress signals that invalid address has been provided
+var ErrInvalidAddress = errors.New("invalid address")
+
+// ErrDataNotFoundUnderKey signals that data was not found under requested key
+var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key")
+
+// ErrInvalidBLSKeys signals that invalid bls keys has been provided
+var ErrInvalidBLSKeys = errors.New("invalid bls keys")
 
 // ErrInvalidNumOfArguments signals that invalid number of arguments has been provided
 var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
@@ -196,3 +208,24 @@ var ErrInvalidArgument = errors.New("invalid argument")
 
 // ErrNilGasSchedule signals that nil gas schedule has been provided
 var ErrNilGasSchedule = errors.New("nil gas schedule")
+
+// ErrDuplicatesFoundInArguments signals that duplicates were found in arguments
+var ErrDuplicatesFoundInArguments = errors.New("duplicates found in arguments")
+
+// ErrInvalidCaller signals that the functions was called by a not authorized user
+var ErrInvalidCaller = errors.New("the function was called by a not authorized user")
+
+// ErrCallValueMustBeZero signals that call value must be zero
+var ErrCallValueMustBeZero = errors.New("call value must be zero")
+
+// ErrInvalidDelegationSCConfig signals that invalid delegation sc config has been provided
+var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
+
+// ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
+var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")
+
+// ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
+var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
+
+// ErrNFTCreateRoleAlreadyExists signals that NFT create role already exists
+var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")

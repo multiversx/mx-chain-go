@@ -1,6 +1,7 @@
 package mainFactoryMocks
 
 import (
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -12,7 +13,7 @@ type BootstrapComponentsStub struct {
 	BootstrapParams      factory.BootstrapParamsHolder
 	NodeRole             core.NodeType
 	ShCoordinator        sharding.Coordinator
-	HdrIntegrityVerifier factory.HeaderIntegrityVerifierHandler
+	HdrIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 }
 
 // Create -
@@ -51,7 +52,7 @@ func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator {
 }
 
 // HeaderIntegrityVerifier -
-func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
+func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler {
 	return bcs.HdrIntegrityVerifier
 }
 

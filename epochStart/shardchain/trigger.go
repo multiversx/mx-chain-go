@@ -50,7 +50,7 @@ type ArgsShardEpochStartTrigger struct {
 	RequestHandler       epochStart.RequestHandler
 	EpochStartNotifier   epochStart.Notifier
 	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
-	Rounder              process.Rounder
+	RoundHandler         process.RoundHandler
 	AppStatusHandler     core.AppStatusHandler
 
 	Epoch    uint32
@@ -90,7 +90,7 @@ type trigger struct {
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.Notifier
-	rounder            process.Rounder
+	roundHandler       process.RoundHandler
 
 	epoch                           uint32
 	metaEpoch                       uint32
@@ -169,8 +169,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
-	if check.IfNil(args.Rounder) {
-		return nil, epochStart.ErrNilRounder
+	if check.IfNil(args.RoundHandler) {
+		return nil, epochStart.ErrNilRoundHandler
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return nil, epochStart.ErrNilStatusHandler
@@ -231,7 +231,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartShardHeader:       &block.Header{},
 		peerMiniBlocksSyncer:        args.PeerMiniBlocksSyncer,
 		appStatusHandler:            args.AppStatusHandler,
-		rounder:                     args.Rounder,
+		roundHandler:                args.RoundHandler,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -355,7 +355,7 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart does nothing in this implementation
-func (t *trigger) ForceEpochStart() {
+func (t *trigger) ForceEpochStart(_ uint64) {
 }
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
@@ -449,11 +449,14 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
-	if t.metaEpoch == headerHandler.GetEpoch() && ok {
-		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
-		return
+	if !t.isPreviousEpochStartMetaBlock(metaHdr, metaBlockHash) {
+		_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
+		if t.metaEpoch == headerHandler.GetEpoch() && ok {
+			t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
+			return
+		}
 	}
+
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
@@ -475,7 +478,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
 		wait := core.ExtraDelayForRequestBlockInfo
-		roundDifferences := t.rounder.Index() - int64(headerHandler.GetRound())
+		roundDifferences := t.roundHandler.Index() - int64(headerHandler.GetRound())
 		if roundDifferences > 1 {
 			wait = 0
 		}
@@ -487,6 +490,24 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(metaBlockHash))
 
 	t.updateTriggerFromMeta()
+}
+
+// call only if mutex is locked before
+func (t *trigger) isPreviousEpochStartMetaBlock(metaBlock *block.MetaBlock, metaBlockHash []byte) bool {
+	metaHdrHashesWithNonce := t.mapNonceHashes[metaBlock.Nonce+1]
+	for _, hash := range metaHdrHashesWithNonce {
+		epochStartMetaBlock, ok := t.mapEpochStartHdrs[hash]
+		if !ok {
+			continue
+		}
+		if !bytes.Equal(metaBlockHash, epochStartMetaBlock.PrevHash) {
+			continue
+		}
+
+		return true
+	}
+
+	return false
 }
 
 // call only if mutex is locked before
