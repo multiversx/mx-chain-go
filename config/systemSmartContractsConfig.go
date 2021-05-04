@@ -26,6 +26,7 @@ type StakingSystemSCConfig struct {
 	StakeEnableEpoch                     uint32
 	CorrectLastUnjailedEpoch             uint32
 	DoubleKeyProtectionEnableEpoch       uint32
+	UnbondTokensV2EnableEpoch            uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
 
