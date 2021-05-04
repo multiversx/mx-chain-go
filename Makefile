@@ -1,5 +1,6 @@
 CURRENT_DIRECTORY := $(shell pwd)
 TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled)
+LINTERS := "bodyclose,errorlint,gofmt,nilerr,prealloc,predeclared"
 
 build:
 	go build ./...
@@ -96,6 +97,6 @@ endif
 
 run-lint:
 	@echo "Running golint"
-	bin/golangci-lint run --timeout=2m
+	bin/golangci-lint run --timeout=2m --print-resources-usage --enable=$(LINTERS)
 
 lint: lint-install run-lint
