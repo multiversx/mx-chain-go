@@ -179,6 +179,9 @@ func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
+	if len(economics.RewardsSettings.RewardsConfigByEpoch) == 0 {
+		return process.ErrEmptyEpochRewardsConfig
+	}
 
 	for _, rewardsConfig := range economics.RewardsSettings.RewardsConfigByEpoch {
 		if isPercentageInvalid(rewardsConfig.LeaderPercentage) ||
@@ -414,6 +417,9 @@ func (ed *economicsData) DeveloperPercentage() float64 {
 
 // ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
 func (ed *economicsData) ProtocolSustainabilityPercentage() float64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.protocolSustainabilityPercentage
 }
 
