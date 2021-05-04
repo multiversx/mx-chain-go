@@ -23,10 +23,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	pkBytes := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {

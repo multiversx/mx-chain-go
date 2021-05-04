@@ -87,3 +87,15 @@ endif
 
 cli-docs:
 	cd ./cmd && bash ./CLI.md.sh
+
+lint-install:
+ifeq (,$(wildcard test -f bin/golangci-lint))
+	@echo "Installing golint"
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
+endif
+
+run-lint:
+	@echo "Running golint"
+	bin/golangci-lint run --timeout=2m
+
+lint: lint-install run-lint
