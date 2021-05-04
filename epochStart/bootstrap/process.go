@@ -324,6 +324,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		e.initializeFromLocalStorage()
 		if !e.baseData.storageExists {
+			log.Debug("Bootstrap - storage does not exist")
 			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
 			if err != nil {
 				return Parameters{}, err
@@ -334,20 +335,26 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
 				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 			}, nil
+		} else {
+			log.Debug("Bootstrap - storage exists")
 		}
 
 		newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
+		log.Debug("Bootstrap", "newShardId", newShardId, "shuffledOut", shuffledOut, "err", err)
 		if err != nil {
+			log.Debug("Bootstrap error on getShardIDForLatestEpoch")
 			return Parameters{}, err
 		}
 
 		err = e.createTriesComponentsForShardId(newShardId)
 		if err != nil {
+			log.Debug("Bootstrap error on createTriesComponentsForShardId")
 			return Parameters{}, err
 		}
 
 		epochToStart := e.baseData.lastEpoch
 		if shuffledOut {
+			log.Debug("Node was shuffled out!!!", "epochToStart", e.startEpoch)
 			epochToStart = e.startEpoch
 		}
 
@@ -1008,7 +1015,7 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
 		receivedShardID = e.destinationShardAsObserver
 	}
-
+	log.Debug("applyShardIDAsObserverIfNeeded - newShardId != modifiedShardId", "receivedShardID", receivedShardID)
 	return receivedShardID
 }
 
