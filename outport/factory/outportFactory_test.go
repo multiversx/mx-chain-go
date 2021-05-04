@@ -22,17 +22,14 @@ func TestNewIndexerFactory(t *testing.T) {
 		{
 			name: "NilArgsElasticDriver",
 			argsFunc: func() *indexerFactory.ArgsIndexerFactory {
-				args := createMockArgsOutportHandler()
-				args = nil
-				return args
+				return nil
 			},
 			exError: outport.ErrNilArgsElasticDriverFactory,
 		},
 		{
 			name: "AllOkShouldWork",
 			argsFunc: func() *indexerFactory.ArgsIndexerFactory {
-				args := createMockArgsOutportHandler()
-				return args
+				return createMockArgsOutportHandler()
 			},
 			exError: nil,
 		},
