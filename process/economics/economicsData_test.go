@@ -92,6 +92,20 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 	return args
 }
 
+func TestNewEconomicsData_NilOrEmptyEpochRewardsConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.Economics.RewardsSettings.RewardsConfigByEpoch = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyEpochRewardsConfig, err)
+
+	args.Economics.RewardsSettings.RewardsConfigByEpoch = make([]config.EpochRewardSettings, 0)
+	_, err = economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyEpochRewardsConfig, err)
+}
+
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -113,7 +127,6 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
 	}
-
 }
 
 func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
