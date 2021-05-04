@@ -412,7 +412,7 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	returnCode = d.delegateUser(validatorData.TotalStakeValue, ownerAddress, args.RecipientAddr, dStatus)
+	returnCode = d.delegateUser(zero, ownerAddress, args.RecipientAddr, dStatus)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
