@@ -178,7 +178,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{stakingWalletAccount}, initialVal)
-	saveDelegationManagerConfig(nodes)
+	integrationTests.SaveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -212,7 +212,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	testStakingWasDone(t, nodes, frontendBLSPubkey)
 
-	saveDelegationContractsList(nodes)
+	integrationTests.SaveDelegationContractsList(nodes)
 
 	nonce, round = generateSendAndWaitToExecuteTransaction(
 		t,
@@ -350,7 +350,7 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{stakingWalletAccount}, initialVal)
-	saveDelegationManagerConfig(nodes)
+	integrationTests.SaveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -385,7 +385,7 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 
 	testStakingWasDone(t, nodes, frontendBLSPubkey)
 
-	saveDelegationContractsList(nodes)
+	integrationTests.SaveDelegationContractsList(nodes)
 
 	nonce, round = generateSendAndWaitToExecuteTransaction(
 		t,
@@ -458,47 +458,4 @@ func checkStakeOnNode(t *testing.T, n *integrationTests.TestProcessorNode, blsKe
 	require.NotNil(t, vmOutput)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 	assert.Equal(t, []byte("staked"), vmOutput.ReturnData[0])
-}
-
-const delegationManagementKey = "delegationManagement"
-const delegationContractsList = "delegationContracts"
-
-func saveDelegationManagerConfig(nodes []*integrationTests.TestProcessorNode) {
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		acc, _ := node.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
-
-		managementData := &systemSmartContracts.DelegationManagement{
-			MinDeposit:          big.NewInt(100),
-			LastAddress:         vm.FirstDelegationSCAddress,
-			MinDelegationAmount: big.NewInt(1),
-		}
-		marshaledData, _ := integrationTests.TestMarshalizer.Marshal(managementData)
-		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
-		_ = node.AccntState.SaveAccount(userAcc)
-		_, _ = node.AccntState.Commit()
-	}
-}
-
-func saveDelegationContractsList(nodes []*integrationTests.TestProcessorNode) {
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		acc, _ := node.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
-
-		managementData := &systemSmartContracts.DelegationContractList{
-			Addresses: [][]byte{[]byte("addr")},
-		}
-		marshaledData, _ := integrationTests.TestMarshalizer.Marshal(managementData)
-		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationContractsList), marshaledData)
-		_ = node.AccntState.SaveAccount(userAcc)
-		_, _ = node.AccntState.Commit()
-	}
 }
