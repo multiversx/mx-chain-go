@@ -1819,7 +1819,7 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (s *stakingSC) EpochConfirmed(epoch uint32) {
+func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagEnableStaking.Toggle(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
 

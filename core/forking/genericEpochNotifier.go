@@ -2,36 +2,52 @@ package forking
 
 import (
 	"sync"
-	"sync/atomic"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 var log = logger.GetOrCreate("core/forking")
 
 type genericEpochNotifier struct {
-	currentEpoch uint32
-	mutHandler   sync.RWMutex
-	handlers     []core.EpochSubscriberHandler
+	mutData          sync.RWMutex
+	wasInitialized   bool
+	currentEpoch     uint32
+	currentTimestamp uint64
+	mutHandler       sync.RWMutex
+	handlers         []core.EpochSubscriberHandler
 }
 
 // NewGenericEpochNotifier creates a new instance of a genericEpochNotifier component
 func NewGenericEpochNotifier() *genericEpochNotifier {
 	return &genericEpochNotifier{
-		handlers: make([]core.EpochSubscriberHandler, 0),
+		wasInitialized: false,
+		handlers:       make([]core.EpochSubscriberHandler, 0),
 	}
 }
 
 // CheckEpoch should be called whenever a new epoch is known. It will trigger the notifications of the registered handlers
 // only if the current stored epoch is different from the one provided
-func (gen *genericEpochNotifier) CheckEpoch(epoch uint32) {
-	old := atomic.SwapUint32(&gen.currentEpoch, epoch)
-	sameEpoch := old == epoch
-	if sameEpoch {
+func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
+	if check.IfNil(header) {
 		return
 	}
+
+	gen.mutData.Lock()
+	epoch := header.GetEpoch()
+	timestamp := header.GetTimeStamp()
+	shouldSkipHeader := gen.wasInitialized && gen.currentEpoch == epoch
+	if shouldSkipHeader {
+		gen.mutData.Unlock()
+
+		return
+	}
+	gen.wasInitialized = true
+	gen.currentEpoch = epoch
+	gen.currentTimestamp = timestamp
+	gen.mutData.Unlock()
 
 	gen.mutHandler.RLock()
 	handlersCopy := make([]core.EpochSubscriberHandler, len(gen.handlers))
@@ -40,11 +56,12 @@ func (gen *genericEpochNotifier) CheckEpoch(epoch uint32) {
 
 	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed",
 		"new epoch", epoch,
+		"new epoch at timestamp", timestamp,
 		"num handlers", len(handlersCopy),
 	)
 
 	for _, handler := range handlersCopy {
-		handler.EpochConfirmed(epoch)
+		handler.EpochConfirmed(epoch, timestamp)
 	}
 }
 
@@ -58,13 +75,23 @@ func (gen *genericEpochNotifier) RegisterNotifyHandler(handler core.EpochSubscri
 	gen.handlers = append(gen.handlers, handler)
 	gen.mutHandler.Unlock()
 
-	handler.EpochConfirmed(atomic.LoadUint32(&gen.currentEpoch))
+	epoch, timestamp := gen.getEpochTimestamp()
+	handler.EpochConfirmed(epoch, timestamp)
+}
+
+func (gen *genericEpochNotifier) getEpochTimestamp() (uint32, uint64) {
+	gen.mutData.RLock()
+	defer gen.mutData.RUnlock()
+
+	return gen.currentEpoch, gen.currentTimestamp
 }
 
 // CurrentEpoch returns the stored epoch. Useful when the epoch has already changed and a new component needs to be
 // created.
 func (gen *genericEpochNotifier) CurrentEpoch() uint32 {
-	return atomic.LoadUint32(&gen.currentEpoch)
+	epoch, _ := gen.getEpochTimestamp()
+
+	return epoch
 }
 
 // UnRegisterAll removes all registered handlers queue

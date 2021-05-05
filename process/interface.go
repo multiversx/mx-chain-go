@@ -473,7 +473,7 @@ type Interceptor interface {
 type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 	ID() core.PeerID
 	IsInterfaceNil() bool
 }
@@ -673,6 +673,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -1013,7 +1014,7 @@ type NodesCoordinator interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
@@ -1088,4 +1089,10 @@ type Indexer interface {
 	Close() error
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
+}
+
+// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
+type NumConnectedPeersProvider interface {
+	ConnectedPeers() []core.PeerID
+	IsInterfaceNil() bool
 }

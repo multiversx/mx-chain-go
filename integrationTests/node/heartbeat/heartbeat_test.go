@@ -135,7 +135,7 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
 	}
 
@@ -239,6 +239,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
+			UpdatePeerIdSubTypeCalled:   func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
 		})
 
 	argMonitor := process.ArgHeartbeatMonitor{

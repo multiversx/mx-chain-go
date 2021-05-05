@@ -449,6 +449,7 @@ func (nr *nodeRunner) createApiFacade(
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
 		PeerState:       currentNode.stateComponents.PeerAccounts(),
+		Blockchain:      currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -688,7 +689,7 @@ func waitForSignal(
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
-		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 

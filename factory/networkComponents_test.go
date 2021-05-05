@@ -94,6 +94,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 			MaxCrossShardValidators: 10,
 			MaxIntraShardObservers:  10,
 			MaxCrossShardObservers:  10,
+			MaxFullHistoryObservers: 10,
 			Type:                    "NilListSharder",
 		},
 	}

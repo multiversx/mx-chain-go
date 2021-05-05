@@ -161,6 +161,9 @@ fi
 let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
 export TOTAL_OBSERVERCOUNT=$total_observer_count
 
+# to enable the full archive feature on the observers, please use the --full-archive flag
+export EXTRA_OBSERVERS_FLAGS=""
+
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count

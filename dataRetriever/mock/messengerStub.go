@@ -7,25 +7,26 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedPeersOnTopicCalled       func(topic string) []core.PeerID
-	CloseCalled                       func() error
-	IDCalled                          func() core.PeerID
-	PeersCalled                       func() []core.PeerID
-	AddressesCalled                   func() []string
-	ConnectToPeerCalled               func(address string) error
-	TrimConnectionsCalled             func()
-	IsConnectedCalled                 func(peerID core.PeerID) bool
-	ConnectedPeersCalled              func() []core.PeerID
-	CreateTopicCalled                 func(name string, createChannelForTopic bool) error
-	HasTopicCalled                    func(name string) bool
-	HasTopicValidatorCalled           func(name string) bool
-	BroadcastOnChannelCalled          func(channel string, topic string, buff []byte)
-	BroadcastCalled                   func(topic string, buff []byte)
-	RegisterMessageProcessorCalled    func(topic string, handler p2p.MessageProcessor) error
-	UnregisterMessageProcessorCalled  func(topic string) error
-	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID core.PeerID) error
-	OutgoingChannelLoadBalancerCalled func() p2p.ChannelLoadBalancer
-	BootstrapCalled                   func() error
+	ConnectedPeersOnTopicCalled            func(topic string) []core.PeerID
+	ConnectedFullHistoryPeersOnTopicCalled func(topic string) []core.PeerID
+	CloseCalled                            func() error
+	IDCalled                               func() core.PeerID
+	PeersCalled                            func() []core.PeerID
+	AddressesCalled                        func() []string
+	ConnectToPeerCalled                    func(address string) error
+	TrimConnectionsCalled                  func()
+	IsConnectedCalled                      func(peerID core.PeerID) bool
+	ConnectedPeersCalled                   func() []core.PeerID
+	CreateTopicCalled                      func(name string, createChannelForTopic bool) error
+	HasTopicCalled                         func(name string) bool
+	HasTopicValidatorCalled                func(name string) bool
+	BroadcastOnChannelCalled               func(channel string, topic string, buff []byte)
+	BroadcastCalled                        func(topic string, buff []byte)
+	RegisterMessageProcessorCalled         func(topic string, identifier string, handler p2p.MessageProcessor) error
+	UnregisterMessageProcessorCalled       func(topic string, identifier string) error
+	SendToConnectedPeerCalled              func(topic string, buff []byte, peerID core.PeerID) error
+	OutgoingChannelLoadBalancerCalled      func() p2p.ChannelLoadBalancer
+	BootstrapCalled                        func() error
 }
 
 // ConnectedPeersOnTopic -
@@ -37,14 +38,23 @@ func (ms *MessengerStub) ConnectedPeersOnTopic(topic string) []core.PeerID {
 	return make([]core.PeerID, 0)
 }
 
+// ConnectedFullHistoryPeersOnTopic -
+func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
+	if ms.ConnectedFullHistoryPeersOnTopicCalled != nil {
+		return ms.ConnectedFullHistoryPeersOnTopicCalled(topic)
+	}
+
+	return make([]core.PeerID, 0)
+}
+
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	return ms.RegisterMessageProcessorCalled(topic, handler)
+func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+	return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(topic string) error {
-	return ms.UnregisterMessageProcessorCalled(topic)
+func (ms *MessengerStub) UnregisterMessageProcessor(topic string, identifier string) error {
+	return ms.UnregisterMessageProcessorCalled(topic, identifier)
 }
 
 // Broadcast -
@@ -129,6 +139,16 @@ func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID c
 // Bootstrap -
 func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
+}
+
+// UnregisterAllMessageProcessors -
+func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
+	return nil
+}
+
+// UnjoinAllTopics -
+func (ms *MessengerStub) UnjoinAllTopics() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

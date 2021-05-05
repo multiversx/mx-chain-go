@@ -25,30 +25,34 @@ var log = logger.GetOrCreate("dataretriever/resolverstopicresolversender")
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
-	Messenger          dataRetriever.MessageHandler
-	TopicName          string
-	PeerListCreator    dataRetriever.PeerListCreator
-	Marshalizer        marshal.Marshalizer
-	Randomizer         dataRetriever.IntRandomizer
-	TargetShardId      uint32
-	OutputAntiflooder  dataRetriever.P2PAntifloodHandler
-	NumIntraShardPeers int
-	NumCrossShardPeers int
+	Messenger                   dataRetriever.MessageHandler
+	TopicName                   string
+	PeerListCreator             dataRetriever.PeerListCreator
+	Marshalizer                 marshal.Marshalizer
+	Randomizer                  dataRetriever.IntRandomizer
+	TargetShardId               uint32
+	OutputAntiflooder           dataRetriever.P2PAntifloodHandler
+	NumIntraShardPeers          int
+	NumCrossShardPeers          int
+	NumFullHistoryPeers         int
+	CurrentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 }
 
 type topicResolverSender struct {
-	messenger               dataRetriever.MessageHandler
-	marshalizer             marshal.Marshalizer
-	topicName               string
-	peerListCreator         dataRetriever.PeerListCreator
-	randomizer              dataRetriever.IntRandomizer
-	targetShardId           uint32
-	outputAntiflooder       dataRetriever.P2PAntifloodHandler
-	mutNumPeersToQuery      sync.RWMutex
-	numIntraShardPeers      int
-	numCrossShardPeers      int
-	mutResolverDebugHandler sync.RWMutex
-	resolverDebugHandler    dataRetriever.ResolverDebugHandler
+	messenger                          dataRetriever.MessageHandler
+	marshalizer                        marshal.Marshalizer
+	topicName                          string
+	peerListCreator                    dataRetriever.PeerListCreator
+	randomizer                         dataRetriever.IntRandomizer
+	targetShardId                      uint32
+	outputAntiflooder                  dataRetriever.P2PAntifloodHandler
+	mutNumPeersToQuery                 sync.RWMutex
+	numIntraShardPeers                 int
+	numCrossShardPeers                 int
+	numFullHistoryPeers                int
+	mutResolverDebugHandler            sync.RWMutex
+	resolverDebugHandler               dataRetriever.ResolverDebugHandler
+	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -68,6 +72,9 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	if check.IfNil(arg.OutputAntiflooder) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
+	if check.IfNil(arg.CurrentNetworkEpochProvider) {
+		return nil, dataRetriever.ErrNilCurrentNetworkEpochProvider
+	}
 	if arg.NumIntraShardPeers < 0 {
 		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
 			dataRetriever.ErrInvalidValue)
@@ -76,21 +83,27 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater or equal than 0",
 			dataRetriever.ErrInvalidValue)
 	}
+	if arg.NumFullHistoryPeers < 0 {
+		return nil, fmt.Errorf("%w for NumFullHistoryPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
 	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
 		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater or equal than %d",
 			dataRetriever.ErrInvalidValue, minPeersToQuery)
 	}
 
 	resolver := &topicResolverSender{
-		messenger:          arg.Messenger,
-		topicName:          arg.TopicName,
-		peerListCreator:    arg.PeerListCreator,
-		marshalizer:        arg.Marshalizer,
-		randomizer:         arg.Randomizer,
-		targetShardId:      arg.TargetShardId,
-		outputAntiflooder:  arg.OutputAntiflooder,
-		numIntraShardPeers: arg.NumIntraShardPeers,
-		numCrossShardPeers: arg.NumCrossShardPeers,
+		messenger:                          arg.Messenger,
+		topicName:                          arg.TopicName,
+		peerListCreator:                    arg.PeerListCreator,
+		marshalizer:                        arg.Marshalizer,
+		randomizer:                         arg.Randomizer,
+		targetShardId:                      arg.TargetShardId,
+		outputAntiflooder:                  arg.OutputAntiflooder,
+		numIntraShardPeers:                 arg.NumIntraShardPeers,
+		numCrossShardPeers:                 arg.NumCrossShardPeers,
+		numFullHistoryPeers:                arg.NumFullHistoryPeers,
+		currentNetworkEpochProviderHandler: arg.CurrentNetworkEpochProvider,
 	}
 	resolver.resolverDebugHandler = resolverDebug.NewDisabledInterceptorResolver()
 
@@ -107,20 +120,30 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
-	crossPeers := trs.peerListCreator.PeerList()
-	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers, "cross peer")
+	var numSentIntra, numSentCross int
+	var intraPeers, crossPeers []core.PeerID
+	fullHistoryPeers := make([]core.PeerID, 0)
+	if trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
+		crossPeers = trs.peerListCreator.PeerList()
+		numSentCross = trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers, "cross peer")
 
-	intraPeers := trs.peerListCreator.IntraShardPeerList()
-	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers, "intra peer")
+		intraPeers = trs.peerListCreator.IntraShardPeerList()
+		numSentIntra = trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers, "intra peer")
+	} else {
+		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
+		numSentIntra = trs.sendOnTopic(fullHistoryPeers, topicToSendRequest, buff, trs.numFullHistoryPeers, "full history peer")
+	}
+
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
 	if numSentCross+numSentIntra == 0 {
-		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d",
+		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d, fullHistoryPeers: %d",
 			dataRetriever.ErrSendRequest,
 			trs.topicName,
 			len(crossPeers),
-			len(intraPeers))
+			len(intraPeers),
+			len(fullHistoryPeers))
 	}
 
 	return nil

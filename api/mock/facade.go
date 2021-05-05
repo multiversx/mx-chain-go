@@ -55,6 +55,36 @@ type Facade struct {
 	GetAllIssuedESDTsCalled                 func() ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetProofCalled                          func(string, string) ([][]byte, error)
+	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+}
+
+// GetProof -
+func (f *Facade) GetProof(rootHash string, address string) ([][]byte, error) {
+	if f.GetProofCalled != nil {
+		return f.GetProofCalled(rootHash, address)
+	}
+
+	return nil, nil
+}
+
+// GetProofCurrentRootHash -
+func (f *Facade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	if f.GetProofCurrentRootHashCalled != nil {
+		return f.GetProofCurrentRootHashCalled(address)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (f *Facade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if f.VerifyProofCalled != nil {
+		return f.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -

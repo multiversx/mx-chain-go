@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -280,8 +279,9 @@ func TestPeerShardMapper_GetPeerInfoPkNotFoundShouldReturnUnknown(t *testing.T) 
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -308,9 +308,10 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ValidatorPeer,
-		ShardID:  shardId,
-		PkBytes:  pk,
+		PeerType:    core.ValidatorPeer,
+		PeerSubType: core.RegularPeer,
+		ShardID:     shardId,
+		PkBytes:     pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -326,8 +327,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorWrongTypeInCacheShouldReturn
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -351,9 +353,10 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shardId,
-		PkBytes:  pk,
+		PeerType:    core.ObserverPeer,
+		PeerSubType: core.RegularPeer,
+		ShardID:     shardId,
+		PkBytes:     pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -377,8 +380,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -402,8 +406,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shardId,
+		PeerType:    core.ObserverPeer,
+		ShardID:     shardId,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -425,8 +430,9 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -448,8 +454,9 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -478,9 +485,10 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 		go func() {
 			peerInfo := psm.GetPeerInfo(pid)
 			expectedPeerInfo := core.P2PPeerInfo{
-				PeerType: core.ObserverPeer,
-				ShardID:  shardId,
-				PkBytes:  pk,
+				PeerType:    core.ObserverPeer,
+				PeerSubType: core.RegularPeer,
+				ShardID:     shardId,
+				PkBytes:     pk,
 			}
 
 			assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -512,10 +520,8 @@ func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
 	psm := createPeerShardMapper()
 	psm.EpochStartPrepare(nil, nil)
 	psm.EpochStartPrepare(
-		&mock.HeaderHandlerStub{
-			GetEpochCaled: func() uint32 {
-				return 0
-			},
+		&testscommon.HeaderHandlerStub{
+			EpochField: 0,
 		},
 		nil,
 	)
@@ -542,10 +548,8 @@ func TestPeerShardMapper_EpochStartActionShouldWork(t *testing.T) {
 
 	epoch := uint32(676)
 	psm.EpochStartAction(
-		&mock.HeaderHandlerStub{
-			GetEpochCaled: func() uint32 {
-				return epoch
-			},
+		&testscommon.HeaderHandlerStub{
+			EpochField: epoch,
 		},
 	)
 

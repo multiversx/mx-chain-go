@@ -6,14 +6,20 @@ import (
 
 // MessageHandlerStub -
 type MessageHandlerStub struct {
-	ConnectedPeersOnTopicCalled func(topic string) []core.PeerID
-	SendToConnectedPeerCalled   func(topic string, buff []byte, peerID core.PeerID) error
-	IDCalled                    func() core.PeerID
+	ConnectedPeersOnTopicCalled            func(topic string) []core.PeerID
+	ConnectedFullHistoryPeersOnTopicCalled func(topic string) []core.PeerID
+	SendToConnectedPeerCalled              func(topic string, buff []byte, peerID core.PeerID) error
+	IDCalled                               func() core.PeerID
 }
 
 // ConnectedPeersOnTopic -
 func (mhs *MessageHandlerStub) ConnectedPeersOnTopic(topic string) []core.PeerID {
 	return mhs.ConnectedPeersOnTopicCalled(topic)
+}
+
+// ConnectedFullHistoryPeersOnTopic -
+func (mhs *MessageHandlerStub) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
+	return mhs.ConnectedFullHistoryPeersOnTopicCalled(topic)
 }
 
 // SendToConnectedPeer -

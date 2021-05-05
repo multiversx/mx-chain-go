@@ -8,7 +8,7 @@ import (
 type TopicHandlerStub struct {
 	HasTopicCalled                 func(name string) bool
 	CreateTopicCalled              func(name string, createChannelForTopic bool) error
-	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled func(topic string, identifier string, handler p2p.MessageProcessor) error
 }
 
 // HasTopic -
@@ -22,8 +22,8 @@ func (ths *TopicHandlerStub) CreateTopic(name string, createChannelForTopic bool
 }
 
 // RegisterMessageProcessor -
-func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	return ths.RegisterMessageProcessorCalled(topic, handler)
+func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+	return ths.RegisterMessageProcessorCalled(topic, identifier, handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
