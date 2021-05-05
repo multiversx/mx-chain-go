@@ -505,8 +505,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		expectedTokenType := []byte(tokenType)
-		if bytes.Equal(esdtToken.TokenType, expectedTokenType) {
+		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
 			tokens = append(tokens, tokenName)
 		}
 	}
