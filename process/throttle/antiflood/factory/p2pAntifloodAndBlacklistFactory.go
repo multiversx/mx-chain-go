@@ -274,7 +274,7 @@ func createFloodPreventer(
 		for {
 			select {
 			case <-ctx.Done():
-				log.Debug("startSweepingP2PPeerBlackList's go routine is stopping...")
+				log.Debug("floodPreventer.Reset go routine is stopping...")
 				return
 			case <-time.After(wait):
 			}

@@ -80,7 +80,7 @@ func TestTimeAccumulator_EvictionShouldStopWhenCloseIsCalled(t *testing.T) {
 	ta.AddData(struct{}{})
 	time.Sleep(allowedTime * 3)
 
-	ta.Close()
+	_ = ta.Close()
 	time.Sleep(allowedTime)
 
 	ch := ta.OutputChannel()
@@ -97,7 +97,7 @@ func TestTimeAccumulator_EvictionDuringWaitShouldStopWhenCloseIsCalled(t *testin
 	ta, _ := accumulator.NewTimeAccumulator(allowedTime, 0)
 	ta.AddData(struct{}{})
 
-	ta.Close()
+	_ = ta.Close()
 	time.Sleep(allowedTime)
 
 	ch := ta.OutputChannel()

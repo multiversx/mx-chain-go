@@ -270,6 +270,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 			select {
 			case <-time.After(durationBetweenSends):
 			case <-netMes.ctx.Done():
+				log.Debug("closing networkMessenger's send from channel load balancer go routine")
 				return
 			}
 
@@ -414,6 +415,7 @@ func (netMes *networkMessenger) printLogsStats() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.printLogsStats go routine")
 			return
 		case <-time.After(timeBetweenPeerPrints):
 		}
@@ -477,6 +479,7 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.checkExternalLoggers go routine")
 			return
 		case <-time.After(timeBetweenExternalLoggersCheck):
 		}

@@ -147,6 +147,7 @@ func (rm *ResourceMonitor) StartMonitoring() {
 			case <-time.After(time.Second * time.Duration(rm.generalConfig.ResourceStats.RefreshIntervalInSec)):
 				rm.SaveStatistics()
 			case <-ctx.Done():
+				log.Debug("closing ResourceMonitor.StartMonitoring go routine")
 				return
 			}
 		}

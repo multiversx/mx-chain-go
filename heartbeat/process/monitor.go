@@ -568,6 +568,7 @@ func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				log.Debug("Monitor.startValidatorProcessing go routine is stopping...")
 				return
 			case <-time.After(refreshInterval):
 				m.refreshHeartbeatMessageInfo()

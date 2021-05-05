@@ -3029,3 +3029,56 @@ func TestGetKeyValuePairs_CannotRecreateTree(t *testing.T) {
 	require.Nil(t, res)
 	require.Equal(t, expectedErr, err)
 }
+
+func TestNode_Close(t *testing.T) {
+	t.Parallel()
+
+	n, err := node.NewNode()
+	require.Nil(t, err)
+
+	closerCalledOrder := make([]*mock.CloserStub, 0)
+	c1 := &mock.CloserStub{}
+	c1.CloseCalled = func() error {
+		closerCalledOrder = append(closerCalledOrder, c1)
+		return nil
+	}
+
+	c2 := &mock.CloserStub{}
+	c2.CloseCalled = func() error {
+		closerCalledOrder = append(closerCalledOrder, c2)
+		return nil
+	}
+
+	c3 := &mock.CloserStub{}
+	c3.CloseCalled = func() error {
+		closerCalledOrder = append(closerCalledOrder, c3)
+		return nil
+	}
+
+	queryCalled := make(map[string]*mock.QueryHandlerStub)
+	q1 := &mock.QueryHandlerStub{}
+	q1.CloseCalled = func() error {
+		queryCalled["q1"] = q1
+		return nil
+	}
+	q2 := &mock.QueryHandlerStub{}
+	q2.CloseCalled = func() error {
+		queryCalled["q2"] = q2
+		return nil
+	}
+
+	n.AddClosableComponents(c1, c2, c3)
+	_ = n.AddQueryHandler("q1", q1)
+	_ = n.AddQueryHandler("q2", q2)
+
+	err = n.Close()
+	assert.Nil(t, err)
+	require.Equal(t, 3, len(closerCalledOrder))
+	assert.True(t, c3 == closerCalledOrder[0]) //pointer testing
+	assert.True(t, c2 == closerCalledOrder[1]) //pointer testing
+	assert.True(t, c1 == closerCalledOrder[2]) //pointer testing
+
+	require.Equal(t, 2, len(queryCalled))
+	require.True(t, queryCalled["q1"] == q1) //pointer testing
+	require.True(t, queryCalled["q2"] == q2) //pointer testing
+}
