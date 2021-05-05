@@ -81,7 +81,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.NotNil(t, err)
 
 	args = getGoodArgs()
-	args.Config.TrieNodesDataPool.Capacity = 0
+	args.Config.TrieSyncStorage.Cache.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	fmt.Println(err)

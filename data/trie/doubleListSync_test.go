@@ -97,13 +97,7 @@ func createRequesterResolver(completeTrie data.Trie, interceptedNodes storage.Ca
 					continue
 				}
 
-				var n *InterceptedTrieNode
-				n, err = NewInterceptedTrieNode(buff, marshalizer, hasher)
-				if err != nil {
-					continue
-				}
-
-				interceptedNodes.Put(hash, n, 0)
+				interceptedNodes.Put(hash, buff, 0)
 			}
 		},
 	}
@@ -198,7 +192,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*6000)
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)

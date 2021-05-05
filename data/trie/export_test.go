@@ -11,13 +11,13 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 		return
 	}
 
-	interceptedNode, err := trieNode(val)
-	if err != nil {
+	interceptedNode, ok := val.(*InterceptedTrieNode)
+	if !ok {
 		return
 	}
 
 	ts.nodesForTrie[string(hash)] = trieNodeInfo{
-		trieNode: interceptedNode,
+		trieNode: interceptedNode.node,
 		received: true,
 	}
 }

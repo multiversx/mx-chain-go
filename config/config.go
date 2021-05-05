@@ -39,6 +39,14 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig
 }
 
+// TrieSyncStorageConfig will map trie sync storage configuration
+type TrieSyncStorageConfig struct {
+	Cache            CacheConfig
+	DB               DBConfig
+	Bloom            BloomFilterConfig
+	UseTmpAsFilePath bool
+}
+
 // PubkeyConfig will map the public key configuration
 type PubkeyConfig struct {
 	Length          int
@@ -126,10 +134,10 @@ type Config struct {
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig

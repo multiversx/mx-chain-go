@@ -855,14 +855,14 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(n.hash, n, len(n.EncodedNode()))
+		nodesCacher.Put(n.hash, n.encNode, len(n.EncodedNode()))
 	}
 
 	en := getCollapsedEn(t, tr.root)
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)
-		return trieNode(cacheData)
+		return trieNode(cacheData, marsh, hasher)
 	}
 	_, _, err := en.loadChildren(getNode)
 	assert.Nil(t, err)

@@ -74,6 +74,9 @@ type Cacher interface {
 	RegisterHandler(handler func(key []byte, value interface{}), id string)
 	// UnRegisterHandler deletes the handler from the list
 	UnRegisterHandler(id string)
+	// Close closes the underlying temporary db if the cacher implementation has one,
+	// otherwise it does nothing
+	Close() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

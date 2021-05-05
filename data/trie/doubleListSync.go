@@ -190,22 +190,13 @@ func (d *doubleListTrieSyncer) resetWatchdog() {
 }
 
 func (d *doubleListTrieSyncer) getNode(hash []byte) (node, error) {
-	n, ok := d.interceptedNodes.Get(hash)
-	if ok {
-		d.interceptedNodes.Remove(hash)
-		return trieNode(n)
-	}
-
-	existingNode, err := getNodeFromDBAndDecode(hash, d.db, d.marshalizer, d.hasher)
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
-	err = existingNode.setHash()
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
-
-	return existingNode, nil
+	return getNodeFromStorage(
+		hash,
+		d.interceptedNodes,
+		d.db,
+		d.marshalizer,
+		d.hasher,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

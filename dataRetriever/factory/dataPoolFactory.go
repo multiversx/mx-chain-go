@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"io/ioutil"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -83,12 +86,24 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
-	trieNodes, err := storageUnit.NewCache(cacherCfg)
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieSyncStorage.Cache)
+	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
+	if mainConfig.TrieSyncStorage.UseTmpAsFilePath {
+		filePath, err := ioutil.TempDir("", "trieSyncStorage")
+		if err != nil {
+			log.Error("error getting tempDir file path")
+			return nil, err
+		}
+
+		dbCfg.FilePath = filePath
+	}
+	bloomFilterCfg := factory.GetBloomFromConfig(mainConfig.TrieSyncStorage.Bloom)
+	trieNodesStorage, err := storageUnit.NewStorageUnitFromConf(cacherCfg, dbCfg, bloomFilterCfg)
 	if err != nil {
-		log.Error("error creating trieNodes")
+		log.Error("error creating trieNodesStorage")
 		return nil, err
 	}
+	adaptedTrieNodesStorage := storageCacherAdapter.NewStorageCacherAdapter(trieNodesStorage)
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)
@@ -109,7 +124,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		hdrPool,
 		txBlockBody,
 		peerChangeBlockBody,
-		trieNodes,
+		adaptedTrieNodesStorage,
 		currBlockTxs,
 		smartContracts,
 	)

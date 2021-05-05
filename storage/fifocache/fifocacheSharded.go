@@ -140,6 +140,11 @@ func (c *FIFOShardedCache) MaxSize() int {
 	return c.maxsize
 }
 
+// Close does nothing for this cacher implementation
+func (c *FIFOShardedCache) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *FIFOShardedCache) IsInterfaceNil() bool {
 	return c == nil

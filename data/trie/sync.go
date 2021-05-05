@@ -289,13 +289,29 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return nodeInfo.trieNode, nil
 	}
 
-	n, ok := ts.interceptedNodes.Get(hash)
+	return getNodeFromStorage(
+		hash,
+		ts.interceptedNodes,
+		ts.db,
+		ts.marshalizer,
+		ts.hasher,
+	)
+}
+
+func getNodeFromStorage(
+	hash []byte,
+	interceptedNodes storage.Cacher,
+	db data.DBWriteCacher,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
+	n, ok := interceptedNodes.Get(hash)
 	if ok {
-		ts.interceptedNodes.Remove(hash)
-		return trieNode(n)
+		interceptedNodes.Remove(hash)
+		return trieNode(n, marshalizer, hasher)
 	}
 
-	existingNode, err := getNodeFromDBAndDecode(hash, ts.db, ts.marshalizer, ts.hasher)
+	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
@@ -307,13 +323,30 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 	return existingNode, nil
 }
 
-func trieNode(data interface{}) (node, error) {
-	n, ok := data.(*InterceptedTrieNode)
+func trieNode(
+	data interface{},
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+) (node, error) {
+	n, ok := data.([]byte)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return n.node, nil
+	decodedNode, err := decodeNode(n, marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO decodedNode.setHash() encodes the given node and then computes the hash.
+	// Set the hash directly, by computing the hash from the given data,
+	// thus removing the extra serialization process.
+	err = decodedNode.setHash()
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedNode, nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

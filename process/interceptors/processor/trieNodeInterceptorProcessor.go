@@ -11,6 +11,7 @@ var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
 
 type interceptedTrieNodeHandler interface {
 	SizeInBytes() int
+	EncodedNode() []byte
 }
 
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes
@@ -41,7 +42,7 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ c
 		return process.ErrWrongTypeAssertion
 	}
 
-	tnip.interceptedNodes.Put(data.Hash(), nodeData, nodeData.SizeInBytes()+len(data.Hash()))
+	tnip.interceptedNodes.Put(data.Hash(), nodeData.EncodedNode(), nodeData.SizeInBytes()+len(data.Hash()))
 	return nil
 }
 
