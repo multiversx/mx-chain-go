@@ -23,7 +23,5 @@ func (n *Node) PrepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 
 // AddClosableComponents -
 func (n *Node) AddClosableComponents(components ...factory.Closer) {
-	for _, c := range components {
-		n.closableComponents = append(n.closableComponents, c)
-	}
+	n.closableComponents = append(n.closableComponents, components...)
 }

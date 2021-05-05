@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1614,18 +1613,5 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	goRoutinesNumberStart := runtime.NumGoroutine()
-	logGoroutinesNumber(log, goRoutinesNumberStart)
-}
-
-func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
-	buffer := new(bytes.Buffer)
-	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
-	if err != nil {
-		log.Error("could not dump goroutines")
-	}
-	log.Debug("go routines number",
-		"start", goRoutinesNumberStart,
-		"end", runtime.NumGoroutine())
-
-	log.Debug(buffer.String())
+	testscommon.LogGoroutinesNumber(goRoutinesNumberStart)
 }

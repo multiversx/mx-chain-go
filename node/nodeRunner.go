@@ -1,7 +1,6 @@
 package node
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
 	"syscall"
 	"time"
 
@@ -42,6 +40,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
@@ -100,7 +99,7 @@ func (nr *nodeRunner) Start() error {
 
 	printEnableEpochs(nr.configs)
 
-	logGoroutinesNumber(0)
+	testscommon.LogGoroutinesNumber(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
@@ -694,7 +693,7 @@ func waitForSignal(
 
 	if reshuffled {
 		log.Info("=============================Shuffled out - soft restart==================================")
-		logGoroutinesNumber(goRoutinesNumberStart)
+		testscommon.LogGoroutinesNumber(goRoutinesNumberStart)
 	} else {
 		return fmt.Errorf("not reshuffled, closing")
 	}
@@ -745,19 +744,6 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 		nodesFileName = exportFolderNodesSetupPath
 	}
 	return nodesFileName, nil
-}
-
-func logGoroutinesNumber(goRoutinesNumberStart int) {
-	buffer := new(bytes.Buffer)
-	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
-	if err != nil {
-		log.Error("could not dump goroutines")
-	}
-	log.Debug("go routines number",
-		"start", goRoutinesNumberStart,
-		"end", runtime.NumGoroutine())
-
-	log.Debug(buffer.String())
 }
 
 // CreateManagedStatusComponents is the managed status components factory
