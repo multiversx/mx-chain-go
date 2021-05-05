@@ -8,6 +8,7 @@ type Presenter interface {
 	GetShardId() uint64
 	GetNodeType() string
 	GetPeerType() string
+	GetPeerSubType() string
 	GetCountConsensus() uint64
 	GetCountConsensusAcceptedBlocks() uint64
 	GetCountLeader() uint64

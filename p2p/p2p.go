@@ -86,6 +86,10 @@ type Messenger interface {
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 
+	// ConnectedFullHistoryPeersOnTopic returns the IDs of the full history peers to which the Messenger
+	// is currently connected, but filtered by a topic they are registered to.
+	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
+
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error
@@ -99,14 +103,10 @@ type Messenger interface {
 	// and it is listening to messages referencing it.
 	HasTopic(name string) bool
 
-	// HasTopicValidator returns true if the Messenger has registered a custom
-	// validator for a given topic name.
-	HasTopicValidator(name string) bool
-
 	// RegisterMessageProcessor adds the provided MessageProcessor to the list
 	// of handlers that are invoked whenever a message is received on the
 	// specified topic.
-	RegisterMessageProcessor(topic string, handler MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
 
 	// UnregisterAllMessageProcessors removes all the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
@@ -116,7 +116,7 @@ type Messenger interface {
 	// UnregisterMessageProcessor removes the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
 	// given topic.
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
@@ -224,12 +224,14 @@ type ConnectedPeersInfo struct {
 	IntraShardObservers     map[uint32][]string
 	CrossShardValidators    map[uint32][]string
 	CrossShardObservers     map[uint32][]string
+	FullHistoryObservers    map[uint32][]string
 	NumValidatorsOnShard    map[uint32]int
 	NumObserversOnShard     map[uint32]int
 	NumIntraShardValidators int
 	NumIntraShardObservers  int
 	NumCrossShardValidators int
 	NumCrossShardObservers  int
+	NumFullHistoryObservers int
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component

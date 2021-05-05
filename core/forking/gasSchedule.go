@@ -99,7 +99,7 @@ func (g *gasScheduleNotifier) getMatchingVersion(epoch uint32) config.GasSchedul
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
+func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 	old := atomic.SwapUint32(&g.currentEpoch, epoch)
 	sameEpoch := old == epoch
 	if sameEpoch {

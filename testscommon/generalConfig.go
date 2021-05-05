@@ -314,6 +314,11 @@ func GetGeneralConfig() config.Config {
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs: 2,
 		},
+		Resolvers: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }
 

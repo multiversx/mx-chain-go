@@ -2159,7 +2159,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	updateArgumentsWithNeeded(arguments)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics.EpochConfirmed(10)
+	validatorStatistics.EpochConfirmed(10, 0)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

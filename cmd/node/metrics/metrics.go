@@ -101,6 +101,7 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, initString)
 	appStatusHandler.SetUInt64Value(core.MetricShardConsensusGroupSize, uint64(nodesConfig.GetShardConsensusGroupSize()))
 	appStatusHandler.SetUInt64Value(core.MetricMetaConsensusGroupSize, uint64(nodesConfig.GetMetaConsensusGroupSize()))

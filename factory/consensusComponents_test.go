@@ -193,29 +193,6 @@ func TestConsensusComponentsFactory_Create_NilShardCoordinator(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
 }
 
-func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := getConsensusArgs(shardCoordinator)
-	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return true
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-	}
-	args.NetworkComponents = networkComponents
-
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
-	cc, err := bcf.Create()
-
-	require.Nil(t, cc)
-	require.Equal(t, errorsErd.ErrValidatorAlreadySet, err)
-}
-
 func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *testing.T) {
 	t.Parallel()
 

@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -14,7 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	chainData "github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -53,6 +56,7 @@ func createMockArguments() ArgNodeFacade {
 		}},
 		AccountsState: &mock.AccountsStub{},
 		PeerState:     &mock.AccountsStub{},
+		Blockchain:    &mock.ChainHandlerStub{},
 	}
 }
 
@@ -839,4 +843,232 @@ func TestNodeFacade_GetDirectStakedList(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, called)
+}
+
+func TestNodeFacade_GetProofInvalidRootHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	proof, err := nf.GetProof("invalid rootHash", "addr")
+	assert.NotNil(t, err)
+	assert.Nil(t, proof)
+}
+
+func TestNodeFacade_GetProofGetTrieErrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	getTrieErr := fmt.Errorf("get trie err")
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return nil, getTrieErr
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	proof, err := nf.GetProof("deadbeef", "addr")
+	assert.Nil(t, proof)
+	assert.Equal(t, getTrieErr, err)
+}
+
+func TestNodeFacade_GetProofInvalidAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	proof, err := nf.GetProof("deadbeef", "addr")
+	assert.Nil(t, proof)
+	assert.NotNil(t, err)
+}
+
+func TestNodeFacade_GetProofShouldWork(t *testing.T) {
+	t.Parallel()
+
+	proof := [][]byte{[]byte("valid"), []byte("proof")}
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return &mock.TrieStub{
+				GetProofCalled: func(key []byte) ([][]byte, error) {
+					return proof, nil
+				},
+			}, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	returnedProof, err := nf.GetProof("deadbeef", "abcdef")
+	assert.Nil(t, err)
+	assert.Equal(t, proof, returnedProof)
+}
+
+func TestNodeFacade_GetProofCurrentRootHashNilHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.Blockchain = &mock.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() chainData.HeaderHandler {
+			return nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	proof, rh, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, proof)
+	assert.Nil(t, rh)
+	assert.Equal(t, ErrNilBlockHeader, err)
+}
+
+func TestNodeFacade_GetProofCurrentRootHashGetTrieErrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	getTrieErr := fmt.Errorf("get trie err")
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return nil, getTrieErr
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	proof, rh, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, proof)
+	assert.Nil(t, rh)
+	assert.Equal(t, getTrieErr, err)
+}
+
+func TestNodeFacade_GetProofCurrentRootHashInvalidAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	proof, rh, err := nf.GetProofCurrentRootHash("addr")
+	assert.Nil(t, proof)
+	assert.Nil(t, rh)
+	assert.NotNil(t, err)
+}
+
+func TestNodeFacade_GetProofCurrentRootHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	proof := [][]byte{[]byte("valid"), []byte("proof")}
+	rootHash := []byte("rootHash")
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return &mock.TrieStub{
+				GetProofCalled: func(key []byte) ([][]byte, error) {
+					return proof, nil
+				},
+			}, nil
+		},
+	}
+	arg.Blockchain = &mock.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() chainData.HeaderHandler {
+			return &block.Header{RootHash: rootHash}
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	returnedProof, rh, err := nf.GetProofCurrentRootHash("abcdef")
+	assert.Nil(t, err)
+	assert.Equal(t, rootHash, rh)
+	assert.Equal(t, proof, returnedProof)
+}
+
+func TestNodeFacade_VerifyProofInvalidRootHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	ok, err := nf.VerifyProof("invalid rootHash", "addr", [][]byte{})
+	assert.NotNil(t, err)
+	assert.False(t, ok)
+}
+
+func TestNodeFacade_VerifyProofGetTrieErrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	getTrieErr := fmt.Errorf("get trie err")
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return nil, getTrieErr
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	ok, err := nf.VerifyProof("deadbeef", "addr", [][]byte{})
+	assert.False(t, ok)
+	assert.Equal(t, getTrieErr, err)
+}
+
+func TestNodeFacade_VerifyProofInvalidAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nf, _ := NewNodeFacade(createMockArguments())
+
+	ok, err := nf.VerifyProof("deadbeef", "addr", [][]byte{})
+	assert.False(t, ok)
+	assert.NotNil(t, err)
+}
+
+func TestNodeFacade_VerifyProofShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.AccountsState = &mock.AccountsStub{
+		GetTrieCalled: func(bytes []byte) (chainData.Trie, error) {
+			return &mock.TrieStub{
+				VerifyProofCalled: func(_ []byte, _ [][]byte) (bool, error) {
+					return true, nil
+				},
+			}, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	ok, err := nf.VerifyProof("deadbeef", "abcdef", [][]byte{})
+	assert.Nil(t, err)
+	assert.True(t, ok)
+}
+
+func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
+	t.Parallel()
+
+	executeScQueryHandlerWasCalled := false
+	arg := createMockArguments()
+
+	expectedAddress := []byte("addr")
+	expectedBalance := big.NewInt(37)
+	expectedVmOutput := &vmcommon.VMOutput{
+		ReturnData: [][]byte{[]byte("test return data")},
+		ReturnCode: vmcommon.AccountCollision,
+		OutputAccounts: map[string]*vmcommon.OutputAccount{
+			"key0": {
+				Address: expectedAddress,
+				Balance: expectedBalance,
+			},
+		},
+	}
+	arg.ApiResolver = &mock.ApiResolverStub{
+		ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
+			executeScQueryHandlerWasCalled = true
+			return expectedVmOutput, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+
+	apiVmOutput, err := nf.ExecuteSCQuery(&process.SCQuery{})
+	require.NoError(t, err)
+	require.True(t, executeScQueryHandlerWasCalled)
+	require.Equal(t, expectedVmOutput.ReturnData, apiVmOutput.ReturnData)
+	require.Equal(t, expectedVmOutput.ReturnCode.String(), apiVmOutput.ReturnCode)
+	require.Equal(t, 1, len(apiVmOutput.OutputAccounts))
+
+	outputAccount := apiVmOutput.OutputAccounts[hex.EncodeToString([]byte("key0"))]
+	require.Equal(t, expectedBalance, outputAccount.Balance)
+	require.Equal(t, hex.EncodeToString(expectedAddress), outputAccount.Address)
 }

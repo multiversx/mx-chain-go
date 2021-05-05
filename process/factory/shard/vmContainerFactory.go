@@ -93,7 +93,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 // Close closes the vm container factory
-func (vmf *vmContainerFactory) Close() error{
+func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
 }
 
