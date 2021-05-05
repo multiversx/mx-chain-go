@@ -740,14 +740,14 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	expectedValue := []string{"value"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func() ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return expectedValue, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllIssuedESDTs()
+	res, err := nf.GetAllIssuedESDTs("")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, res)
 }
@@ -758,14 +758,14 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	localErr := errors.New("local")
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func() ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return nil, localErr
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	_, err := nf.GetAllIssuedESDTs()
+	_, err := nf.GetAllIssuedESDTs("")
 	assert.Equal(t, err, localErr)
 }
 
