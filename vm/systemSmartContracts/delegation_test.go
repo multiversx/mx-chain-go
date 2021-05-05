@@ -4472,7 +4472,7 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
 
 	eei.returnMessage = ""
-	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee + 1).Bytes(), big.NewInt(0).Bytes()}
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).Bytes(), big.NewInt(0).SetUint64(d.maxServiceFee + 1).Bytes()}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "service fee out of bounds")
@@ -4550,13 +4550,13 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	}
 
 	eei.returnMessage = ""
-	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), big.NewInt(1).Bytes()}
+	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(1).Bytes(), big.NewInt(0).SetUint64(d.maxServiceFee).Bytes()}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "total delegation cap reached")
 
 	eei.returnMessage = ""
-	vmInput.Arguments = [][]byte{oldAddress, big.NewInt(0).SetUint64(d.maxServiceFee).Bytes(), validatorData.TotalStakeValue.Bytes()}
+	vmInput.Arguments = [][]byte{oldAddress, validatorData.TotalStakeValue.Bytes(), big.NewInt(0).SetUint64(d.maxServiceFee).Bytes()}
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
