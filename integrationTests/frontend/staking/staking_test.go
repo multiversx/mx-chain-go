@@ -186,11 +186,9 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 	nonce++
 
 	///////////------- send stake tx and check sender's balance
-	var txData string
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
 	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
-	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 
 	log.Info("using tx sign pk for staking", "pk", pkString)
 
@@ -198,8 +196,54 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 	require.Nil(t, err)
 	frontendHexSignature := "17b1f945404c0c98d2e69a576f3635f4ebe77cd396561566afb969333b0da053e7485b61ef10311f512e3ec2f351ee95"
 
+	nonce, round = generateSendAndWaitToExecuteStakeTransaction(
+		t,
+		nodes,
+		stakingWalletAccount,
+		idxProposers,
+		nodePrice,
+		frontendBLSPubkey,
+		frontendHexSignature,
+		nonce,
+		round,
+	)
+
+	time.Sleep(time.Second)
+
+	testStakingWasDone(t, nodes, frontendBLSPubkey)
+
+	saveDelegationContractsList(nodes)
+
+	nonce, round = generateSendAndWaitToExecuteTransaction(
+		t,
+		nodes,
+		stakingWalletAccount,
+		idxProposers,
+		"makeNewContractFromValidatorData",
+		big.NewInt(0),
+		[]byte{10},
+		nonce,
+		round)
+
+	time.Sleep(time.Second)
+	testStakingWasDone(t, nodes, frontendBLSPubkey)
+	scAddressBytes, _ := hex.DecodeString("0000000000000000000100000000000000000000000000000000000002ffffff")
+	testBLSKeyOwnerIsAddress(t, nodes, scAddressBytes, frontendBLSPubkey)
+}
+
+func generateSendAndWaitToExecuteStakeTransaction(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	stakingWalletAccount *integrationTests.TestWalletAccount,
+	idxProposers []int,
+	nodePrice *big.Int,
+	frontendBLSPubkey []byte,
+	frontendHexSignature string,
+	nonce, round uint64,
+) (uint64, uint64) {
+	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	pubKey := hex.EncodeToString(frontendBLSPubkey)
-	txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + frontendHexSignature
+	txData := "stake" + "@" + oneEncoded + "@" + pubKey + "@" + frontendHexSignature
 	integrationTests.PlayerSendsTransaction(
 		nodes,
 		stakingWalletAccount,
@@ -213,25 +257,31 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 	nrRoundsToPropagateMultiShard := 6
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	time.Sleep(time.Second)
+	return nonce, round
+}
 
-	testStakingWasDone(t, nodes, frontendBLSPubkey)
-
-	saveDelegationContractsList(nodes)
-
+func generateSendAndWaitToExecuteTransaction(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	stakingWalletAccount *integrationTests.TestWalletAccount,
+	idxProposers []int,
+	function string,
+	value *big.Int,
+	serviceFee []byte,
+	nonce, round uint64,
+) (uint64, uint64) {
 	maxDelegationCap := []byte{0}
-	serviceFee := []byte{10}
-	txData = txDataBuilder.NewBuilder().Clear().
-		Func("makeNewContractFromValidatorData").
+	txData := txDataBuilder.NewBuilder().Clear().
+		Func(function).
 		Bytes(maxDelegationCap).
 		Bytes(serviceFee).
 		ToString()
-	//txData = "makeNewContractFromValidatorData" + "@" + hex.EncodeToString() + "@" + pubKey + "@" + frontendHexSignature
+
 	integrationTests.PlayerSendsTransaction(
 		nodes,
 		stakingWalletAccount,
 		vm.DelegationManagerSCAddress,
-		big.NewInt(0),
+		value,
 		txData,
 		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
 	)
@@ -240,10 +290,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
-	time.Sleep(time.Second)
-	testStakingWasDone(t, nodes, frontendBLSPubkey)
-	scAddressBytes, _ := hex.DecodeString("0000000000000000000100000000000000000000000000000000000002ffffff")
-	testBLSKeyOwnerIsAddress(t, nodes, scAddressBytes, frontendBLSPubkey)
+	return nonce, round
 }
 
 func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
@@ -315,7 +362,6 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
 	metaBlock := genesisBlock.(*block.MetaBlock)
 	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
-	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 
 	log.Info("using tx sign pk for staking", "pk", pkString)
 
@@ -323,20 +369,17 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 	require.Nil(t, err)
 	frontendHexSignature := "17b1f945404c0c98d2e69a576f3635f4ebe77cd396561566afb969333b0da053e7485b61ef10311f512e3ec2f351ee95"
 
-	pubKey := hex.EncodeToString(frontendBLSPubkey)
-	txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + frontendHexSignature
-	integrationTests.PlayerSendsTransaction(
+	nonce, round = generateSendAndWaitToExecuteStakeTransaction(
+		t,
 		nodes,
 		stakingWalletAccount,
-		vm.ValidatorSCAddress,
+		idxProposers,
 		nodePrice,
-		txData,
-		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
+		frontendBLSPubkey,
+		frontendHexSignature,
+		nonce,
+		round,
 	)
-	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 6
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
 
@@ -344,26 +387,17 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 
 	saveDelegationContractsList(nodes)
 
-	maxDelegationCap := []byte{0}
-	serviceFee := []byte{0}
-	txData = txDataBuilder.NewBuilder().Clear().
-		Func("createNewDelegationContract").
-		Bytes(maxDelegationCap).
-		Bytes(serviceFee).
-		ToString()
-	//txData = "makeNewContractFromValidatorData" + "@" + hex.EncodeToString() + "@" + pubKey + "@" + frontendHexSignature
-	integrationTests.PlayerSendsTransaction(
+	nonce, round = generateSendAndWaitToExecuteTransaction(
+		t,
 		nodes,
 		stakingWalletAccount,
-		vm.DelegationManagerSCAddress,
+		idxProposers,
+		"createNewDelegationContract",
 		big.NewInt(10000),
-		txData,
-		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
+		[]byte{0},
+		nonce,
+		round,
 	)
-
-	time.Sleep(time.Second)
-
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	scAddressBytes, _ := hex.DecodeString("0000000000000000000100000000000000000000000000000000000002ffffff")
 	txData = txDataBuilder.NewBuilder().Clear().
