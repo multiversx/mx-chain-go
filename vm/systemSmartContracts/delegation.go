@@ -283,7 +283,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	dStatus := createNewDelegationContractStatus()
-	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
+	return d.delegateUser(initialOwnerFunds, initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
 }
 
 func createNewDelegationContractStatus() *DelegationContractStatus {
@@ -412,7 +412,7 @@ func (d *delegation) initFromValidatorData(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	returnCode = d.delegateUser(zero, ownerAddress, args.RecipientAddr, dStatus)
+	returnCode = d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), ownerAddress, args.RecipientAddr, dStatus)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -545,10 +545,11 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
-	return d.delegateUser(validatorData.TotalStakeValue, validatorAddress, args.RecipientAddr, dStatus)
+	return d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
 }
 
 func (d *delegation) delegateUser(
+	delegationValue *big.Int,
 	callValue *big.Int,
 	callerAddr []byte,
 	recipientAddr []byte,
@@ -565,7 +566,7 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	err = d.checkAndUpdateOwnerInitialFunds(dConfig, callerAddr, callValue)
+	err = d.checkAndUpdateOwnerInitialFunds(dConfig, callerAddr, delegationValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -589,7 +590,7 @@ func (d *delegation) delegateUser(
 	}
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus,
-		callerAddr, recipientAddr, callValue, isNew, true)
+		callerAddr, recipientAddr, delegationValue, callValue, isNew, true)
 }
 
 func (d *delegation) makeStakeArgsIfAutomaticActivation(
@@ -1256,7 +1257,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 	delegator.UnClaimedRewards.SetUint64(0)
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr,
-		args.RecipientAddr, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
+		args.RecipientAddr, delegateValue, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
 }
 
 func (d *delegation) finishDelegateUser(
@@ -1266,11 +1267,12 @@ func (d *delegation) finishDelegateUser(
 	dStatus *DelegationContractStatus,
 	callerAddr []byte,
 	scAddress []byte,
+	delegateValue *big.Int,
 	callValue *big.Int,
 	isNew bool,
 	checkDelegationCap bool,
 ) vmcommon.ReturnCode {
-	globalFund.TotalActive.Add(globalFund.TotalActive, callValue)
+	globalFund.TotalActive.Add(globalFund.TotalActive, delegateValue)
 	withDelegationCap := dConfig.MaxDelegationCap.Cmp(zero) != 0
 	if withDelegationCap && checkDelegationCap && globalFund.TotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
 		d.eei.AddReturnMessage("total delegation cap reached")
@@ -1280,7 +1282,7 @@ func (d *delegation) finishDelegateUser(
 	var err error
 	if len(delegator.ActiveFund) == 0 {
 		var fundKey []byte
-		fundKey, err = d.createAndSaveNextKeyFund(callerAddr, callValue, active)
+		fundKey, err = d.createAndSaveNextKeyFund(callerAddr, delegateValue, active)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -1291,7 +1293,7 @@ func (d *delegation) finishDelegateUser(
 			dStatus.NumUsers++
 		}
 	} else {
-		err = d.addValueToFund(delegator.ActiveFund, callValue)
+		err = d.addValueToFund(delegator.ActiveFund, delegateValue)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -1362,7 +1364,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	return d.delegateUser(args.CallValue, args.CallerAddr, args.RecipientAddr, dStatus)
+	return d.delegateUser(args.CallValue, args.CallValue, args.CallerAddr, args.RecipientAddr, dStatus)
 }
 
 func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
