@@ -178,6 +178,24 @@ func (hv2 *HeaderV2) GetReserved() []byte {
 	return hv2.Header.Reserved
 }
 
+// GetMetaBlockHashes returns the metaBlock hashes
+func (hv2 *HeaderV2) GetMetaBlockHashes() [][]byte {
+	if hv2 == nil || hv2.Header == nil {
+		return nil
+	}
+
+	return hv2.Header.MetaBlockHashes
+}
+
+// GetEpochStartMetaHash returns the epoch start metaBlock hash
+func (hv2 *HeaderV2) GetEpochStartMetaHash() []byte {
+	if hv2 == nil || hv2.Header == nil {
+		return nil
+	}
+
+	return hv2.Header.EpochStartMetaHash
+}
+
 // SetNonce sets header nonce
 func (hv2 *HeaderV2) SetNonce(n uint64) error {
 	if hv2 == nil {
