@@ -8,11 +8,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockShardAPIProcessor(
@@ -267,4 +269,60 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
+}
+
+func TestShardAPIBlockProcessor_SetStatusESDTTransfer(t *testing.T) {
+	t.Parallel()
+
+	storerMock := mock.NewStorerMock()
+	headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+	sabp := createMockShardAPIProcessor(
+		0,
+		headerHash,
+		storerMock,
+		true,
+		true,
+	)
+
+	esdtTransferTx := &transaction.ApiTransactionResult{
+		Hash:             "myHash",
+		Nonce:            1,
+		SourceShard:      1,
+		DestinationShard: 0,
+		Data:             []byte("ESDTTransfer@42524f2d343663663439@a688906bd8b00000"),
+	}
+	mbs := []*api.MiniBlock{
+		{
+			SourceShard:      1,
+			DestinationShard: 0,
+			Transactions: []*transaction.ApiTransactionResult{
+				esdtTransferTx,
+				{},
+			},
+			Type: block.TxBlock.String(),
+		},
+		{
+			Type: block.TxBlock.String(),
+		},
+		{
+			DestinationShard: 1,
+			SourceShard:      0,
+			Type:             block.SmartContractResultBlock.String(),
+			Transactions: []*transaction.ApiTransactionResult{
+				{},
+				{
+					OriginalTransactionHash: "myHash",
+					Nonce:                   1,
+					SourceShard:             1,
+					DestinationShard:        0,
+					Data:                    []byte("ESDTTransfer@42524f2d343663663439@a688906bd8b00000@75736572206572726f72"),
+				},
+			},
+		},
+		{
+			Type: block.RewardsBlock.String(),
+		},
+	}
+	sabp.setStatusESDTTransferTransactionsCrossShard(mbs)
+	require.Equal(t, transaction.TxStatusFail, esdtTransferTx.Status)
 }

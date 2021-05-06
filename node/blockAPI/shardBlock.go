@@ -139,16 +139,20 @@ func iterateMiniblockTxsForESDTTransfer(miniblock *api.MiniBlock, miniblocks []*
 			continue
 		}
 
-		// search for unsigned transactions
-		for _, mb := range miniblocks {
-			if mb.Type != block.SmartContractResultBlock.String() {
-				continue
-			}
+		searchUnsignedTransaction(tx, miniblocks)
+	}
+}
 
-			// search unsigned transaction from me to the source shard of the current transaction
-			if mb.DestinationShard == tx.SourceShard && mb.SourceShard == tx.DestinationShard {
-				tryToSetStatusOfESDTTransfer(tx, mb)
-			}
+func searchUnsignedTransaction(tx *transaction.ApiTransactionResult, miniblocks []*api.MiniBlock) {
+	// search for unsigned transactions
+	for _, mb := range miniblocks {
+		if mb.Type != block.SmartContractResultBlock.String() {
+			continue
+		}
+
+		// search unsigned transaction from me to the source shard of the current transaction
+		if mb.DestinationShard == tx.SourceShard && mb.SourceShard == tx.DestinationShard {
+			tryToSetStatusOfESDTTransfer(tx, mb)
 		}
 	}
 }
@@ -161,6 +165,7 @@ func tryToSetStatusOfESDTTransfer(tx *transaction.ApiTransactionResult, minibloc
 
 		if bytes.HasPrefix(unsignedTx.Data, tx.Data) && unsignedTx.Nonce == tx.Nonce {
 			tx.Status = transaction.TxStatusFail
+			return
 		}
 	}
 }
