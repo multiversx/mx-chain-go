@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/data"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -165,7 +167,14 @@ func (st *syncAccountsDBs) syncAccountsOfType(
 		return err
 	}
 
-	success := st.tryRecreateTrie(shardId, accAdapterIdentifier, trieID, rootHash, accountsDBSyncer.GetTrieExporter())
+	success := st.tryRecreateTrie(
+		shardId,
+		accAdapterIdentifier,
+		trieID,
+		rootHash,
+		accountsDBSyncer.GetTrieExporter(),
+		accountType,
+	)
 	if success {
 		return nil
 	}
@@ -179,6 +188,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 	trieID state.AccountsDbIdentifier,
 	rootHash []byte,
 	trieExporter update.TrieExporter,
+	accountType genesis.Type,
 ) bool {
 	activeTrie := st.activeAccountsDBs[trieID]
 	if check.IfNil(activeTrie) {
@@ -201,7 +211,7 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 	// TODO investigate if this can raise an OOM issue
 	for hash, tr := range tries {
 		if bytes.Equal(rootHash, []byte(hash)) {
-			_, err = trieExporter.ExportMainTrie(id, tr, ctx)
+			err = exportTrie(trieExporter, id, tr, ctx, accountType)
 			if err != nil {
 				return false
 			}
@@ -218,6 +228,21 @@ func (st *syncAccountsDBs) tryRecreateTrie(
 	}
 
 	return true
+}
+
+func exportTrie(
+	trieExporter update.TrieExporter,
+	id string,
+	tr data.Trie,
+	ctx context.Context,
+	accountType genesis.Type,
+) error {
+	if accountType == genesis.UserAccount {
+		_, err := trieExporter.ExportMainTrie(id, tr, ctx)
+		return err
+	}
+
+	return trieExporter.ExportValidatorTrie(tr, ctx)
 }
 
 // IsInterfaceNil returns nil if underlying object is nil
