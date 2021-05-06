@@ -76,6 +76,8 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 			mutErr.Lock()
 			errFound = errMeta
 			mutErr.Unlock()
+
+			log.Error("error while synchronizing meta state", "err", errMeta)
 		}
 		wg.Done()
 	}()
@@ -87,6 +89,8 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 				mutErr.Lock()
 				errFound = err
 				mutErr.Unlock()
+
+				log.Error("error while synchronizing shard state", "err", err)
 			}
 			wg.Done()
 		}(shData)

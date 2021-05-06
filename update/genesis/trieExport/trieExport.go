@@ -80,6 +80,7 @@ func NewTrieExport(
 
 // ExportValidatorTrie exports the validator info from the validator trie
 func (te *trieExport) ExportValidatorTrie(trie data.Trie, ctx context.Context) error {
+	log.Debug("started validator trie export")
 	rootHash, err := trie.RootHash()
 	if err != nil {
 		return err
