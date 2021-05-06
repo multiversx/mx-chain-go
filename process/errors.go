@@ -991,3 +991,12 @@ var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost 
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
+
+// ErrNilValidatorChecker signals that a nil validator checker has been provided
+var ErrNilValidatorChecker = errors.New("nil validator checker")
+
+// ErrNilProcessingThrottler signals that a nil processing throttler has been provided
+var ErrNilProcessingThrottler = errors.New("nil processing throttler")
+
+// ErrNilHeartbeatProcessor signals that a nil heartbeat processor has been provided
+var ErrNilHeartbeatProcessor = errors.New("nil heartbeat processor")
