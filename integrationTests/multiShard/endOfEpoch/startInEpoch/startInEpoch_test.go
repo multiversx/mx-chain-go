@@ -268,7 +268,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			RestoreToGenesisCalled: func() {},
 		},
 		ChainID:                      string(integrationTests.ChainID),
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

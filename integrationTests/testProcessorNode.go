@@ -1838,7 +1838,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		EpochNotifier:                tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2011,7 +2011,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
-		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

@@ -204,7 +204,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		EpochNotifier:                tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -229,7 +229,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
-		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}
@@ -265,7 +265,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
 		Indexer:                      &mock.NilIndexer{},
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -305,7 +305,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
 		Indexer:                      &mock.NilIndexer{},
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

@@ -410,7 +410,7 @@ func createConsensusOnlyNode(
 	processComponents.ReqHandler = &mock.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
-	processComponents.ScheduledTxsExecutionHandlerInternal = &mock.ScheduledTxsExecutionStub{}
+	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain

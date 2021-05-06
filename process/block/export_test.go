@@ -131,7 +131,7 @@ func NewShardProcessorEmptyWith3shards(
 			Version:                      "softwareVersion",
 			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:                &mock.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

@@ -111,7 +111,7 @@ func createMockMetaArguments(
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:                &mock.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

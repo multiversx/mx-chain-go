@@ -359,7 +359,7 @@ func CreateMockArguments(
 			Version:                      "softwareVersion",
 			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:                &mock.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
 
