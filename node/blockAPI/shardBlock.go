@@ -125,8 +125,7 @@ func (sbp *shardAPIBlockProcessor) setStatusESDTTransferTransactionsCrossShard(m
 		}
 
 		// ignore miniblocks that are not cross shard destination me
-		if mb.SourceShard == mb.DestinationShard ||
-			mb.DestinationShard != sbp.selfShardID {
+		if mb.SourceShard == mb.DestinationShard || mb.DestinationShard != sbp.selfShardID {
 			continue
 		}
 
@@ -142,12 +141,14 @@ func iterateMiniblockTxsForESDTTransfer(miniblock *api.MiniBlock, miniblocks []*
 
 		// search for unsigned transactions
 		for _, mb := range miniblocks {
-			// search unsigned transaction from me to the source shard of the current transaction
-			if !(mb.DestinationShard == tx.SourceShard && mb.SourceShard == tx.DestinationShard) {
+			if mb.Type != block.SmartContractResultBlock {
 				continue
 			}
 
-			tryToSetStatusOfESDTTransfer(tx, miniblock)
+			// search unsigned transaction from me to the source shard of the current transaction
+			if mb.DestinationShard == tx.SourceShard && mb.SourceShard == tx.DestinationShard {
+				tryToSetStatusOfESDTTransfer(tx, mb)
+			}
 		}
 	}
 }
