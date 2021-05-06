@@ -196,13 +196,15 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
-	return d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.Arguments)
+	return d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.CallerAddr, args.CallValue, args.Arguments)
 }
 
 func (d *delegationManager) deployNewContract(
 	args *vmcommon.ContractCallInput,
 	checkMinDeposit bool,
 	initFunction string,
+	deployerAddr []byte,
+	depositValue *big.Int,
 	arguments [][]byte,
 ) vmcommon.ReturnCode {
 	delegationManagement, err := d.getDelegationManagementData()
@@ -223,10 +225,9 @@ func (d *delegationManager) deployNewContract(
 		return vmcommon.UserError
 	}
 
-	depositValue := big.NewInt(0).Set(args.CallValue)
 	newAddress := createNewAddress(delegationManagement.LastAddress)
 
-	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, initFunction, depositValue, arguments)
+	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, deployerAddr, initFunction, depositValue, arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -271,7 +272,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
-	return d.deployNewContract(args, false, initFromValidatorData, arguments)
+	return d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
