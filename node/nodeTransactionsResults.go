@@ -89,7 +89,7 @@ func (n *Node) setStatusIfIsESDTTransferFail(tx *transaction.ApiTransactionResul
 		return
 	}
 
-	// check if cross shard destination me
+	// check if is cross shard destination me
 	if !(tx.SourceShard != tx.DestinationShard && n.shardCoordinator.SelfId() == tx.DestinationShard) {
 		return
 	}

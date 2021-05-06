@@ -150,7 +150,7 @@ func searchUnsignedTransaction(tx *transaction.ApiTransactionResult, miniblocks 
 			continue
 		}
 
-		// search unsigned transaction from me to the source shard of the current transaction
+		// search unsigned transactions from me to the source shard of the current transaction
 		if mb.DestinationShard == tx.SourceShard && mb.SourceShard == tx.DestinationShard {
 			tryToSetStatusOfESDTTransfer(tx, mb)
 		}
