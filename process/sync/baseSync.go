@@ -699,17 +699,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(prevHeaderHash, boot.store, boot.marshalizer)
-		if err != nil {
-			log.Debug("get scheduled scrs from storage",
-				"error", err.Error(),
-				"header hash", prevHeaderHash,
-			)
-		}
-
-		if len(mapScheduledSCRs) > 0 {
-			boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
-		}
+		boot.setScheduledSCRs(prevHeaderHash)
 
 		boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
@@ -728,6 +718,20 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func (boot *baseBootstrap) setScheduledSCRs(headerHash []byte) {
+	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerHash, boot.store, boot.marshalizer)
+	if err != nil {
+		log.Debug("get scheduled scrs from storage",
+			"error", err.Error(),
+			"header hash", headerHash,
+		)
+	}
+
+	if len(mapScheduledSCRs) > 0 {
+		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	}
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
