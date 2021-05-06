@@ -17,10 +17,23 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxProcessor(t *testing
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		nil,
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	assert.Nil(t, scheduledTxsExec)
 	assert.Equal(t, process.ErrNilTxProcessor, err)
+}
+
+func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxCoordinator(t *testing.T) {
+	t.Parallel()
+
+	scheduledTxsExec, err := NewScheduledTxsExecution(
+		&mock.TxProcessorMock{},
+		nil,
+	)
+
+	assert.Nil(t, scheduledTxsExec)
+	assert.Equal(t, process.ErrNilTransactionCoordinator, err)
 }
 
 func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
@@ -28,6 +41,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	assert.Nil(t, err)
@@ -39,6 +53,7 @@ func TestScheduledTxsExecution_InitShouldWork(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
@@ -59,6 +74,7 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	res := scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
@@ -92,6 +108,7 @@ func TestScheduledTxsExecution_ExecuteShouldErrMissingTransaction(t *testing.T) 
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
@@ -108,6 +125,7 @@ func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
 				return vmcommon.Ok, localError
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
@@ -124,6 +142,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
@@ -140,6 +159,7 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 				return vmcommon.Ok, nil
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	scheduledTxsExec.Add([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
@@ -152,6 +172,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	err := scheduledTxsExec.ExecuteAll(nil)
@@ -163,6 +184,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(-1) }
@@ -182,6 +204,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 				return vmcommon.Ok, localError
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
@@ -200,6 +223,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
@@ -220,6 +244,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 				return vmcommon.Ok, nil
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	haveTimeFunction := func() time.Duration { return time.Duration(100) }
@@ -237,6 +262,7 @@ func TestScheduledTxsExecution_executeShouldErr(t *testing.T) {
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&mock.TxProcessorMock{},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	err := scheduledTxsExec.execute(nil)
@@ -253,8 +279,11 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 				return vmcommon.Ok, response
 			},
 		},
+		&mock.TransactionCoordinatorMock{},
 	)
 
 	err := scheduledTxsExec.execute(&transaction.Transaction{Nonce: 0})
 	assert.Equal(t, response, err)
 }
+
+//TODO: Add unit tests for computeScheduledSCRs, getAllIntermediateTxsAfterScheduledExecution, GetScheduledSCRs and SetScheduledSCRs methods

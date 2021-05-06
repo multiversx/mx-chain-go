@@ -210,6 +210,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 
@@ -358,7 +359,7 @@ func CreateMockArguments(
 			Version:                      "softwareVersion",
 			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:                &mock.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
 
@@ -371,14 +372,18 @@ func createMockTransactionCoordinatorArguments(
 	preProcessorsContainer process.PreProcessorsContainer,
 ) coordinator.ArgTransactionCoordinator {
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          accountAdapter,
-		MiniBlockPool:                     poolsHolder.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     preProcessorsContainer,
-		InterProcessors:                   &mock.InterimProcessorContainerMock{},
+		Hasher:           &mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:         accountAdapter,
+		MiniBlockPool:    poolsHolder.MiniBlocks(),
+		RequestHandler:   &mock.RequestHandlerStub{},
+		PreProcessors:    preProcessorsContainer,
+		InterProcessors: &mock.InterimProcessorContainerMock{
+			KeysCalled: func() []block.Type {
+				return []block.Type{block.SmartContractResultBlock}
+			},
+		},
 		GasHandler:                        &mock.GasHandlerMock{},
 		FeeHandler:                        &mock.FeeAccumulatorStub{},
 		BlockSizeComputation:              &mock.BlockSizeComputationStub{},

@@ -44,6 +44,7 @@ func initStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	return store
 }
 
@@ -107,7 +108,7 @@ func TestCreateBody(t *testing.T) {
 		"metaBlock_hash": &block.MetaBlock{Round: 1},
 	}
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler{
+		GetHardForkMetaBlockCalled: func() data.MetaHeaderHandler {
 			return metaBlock
 		},
 		GetUnFinishedMetaBlocksCalled: func() map[string]data.MetaHeaderHandler {

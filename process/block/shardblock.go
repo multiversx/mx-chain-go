@@ -167,7 +167,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
-	sp.createBlockStarted()
+	err = sp.createBlockStarted()
+	if err != nil {
+		return err
+	}
+
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
 
 	sp.txCoordinator.RequestBlockTransactions(body)
@@ -694,7 +698,10 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	sp.createBlockStarted()
+	err := sp.createBlockStarted()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if sp.epochStartTrigger.IsEpochStart() {
 		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
@@ -702,7 +709,7 @@ func (sp *shardProcessor) CreateBlock(
 		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
 	}
 
-	err := shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
+	err = shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -812,7 +819,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.saveBody(body, header)
+	sp.saveBody(body, header, headerHash)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {

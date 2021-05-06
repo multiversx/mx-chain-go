@@ -994,3 +994,6 @@ var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built
 
 // ErrNilScheduledTxsExecutionHandler signals that scheduled txs execution handler is nil
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled txs execution handler")
+
+// ErrNilIntermediateProcessor signals that intermediate processors is nil
+var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")

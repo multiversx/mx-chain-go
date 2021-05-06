@@ -230,7 +230,11 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}()
 
-	mp.createBlockStarted()
+	err = mp.createBlockStarted()
+	if err != nil {
+		return err
+	}
+
 	mp.blockChainHook.SetCurrentHeader(headerHandler)
 	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
@@ -813,7 +817,10 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 }
 
 func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.BodyHandler, error) {
-	mp.createBlockStarted()
+	err := mp.createBlockStarted()
+	if err != nil {
+		return nil, err
+	}
 
 	log.Debug("started creating epoch start block body",
 		"epoch", metaBlock.GetEpoch(),
@@ -885,7 +892,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	mp.createBlockStarted()
+	err := mp.createBlockStarted()
+	if err != nil {
+		return nil, err
+	}
+
 	mp.blockSizeThrottler.ComputeCurrentMaxSize()
 
 	log.Debug("started creating meta block body",
@@ -1151,7 +1162,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
-	mp.saveBody(body, header)
+	mp.saveBody(body, header, headerHash)
 
 	err = mp.commitAll()
 	if err != nil {

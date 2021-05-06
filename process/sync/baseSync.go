@@ -105,12 +105,13 @@ type baseBootstrap struct {
 
 	indexer process.Indexer
 
-	chRcvMiniBlocks    chan bool
-	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksProvider process.MiniBlockProvider
-	poolsHolder        dataRetriever.PoolsHolder
-	mutRequestHeaders  sync.Mutex
-	cancelFunc         func()
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -438,6 +439,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Indexer) {
 		return process.ErrNilIndexer
 	}
+	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
+	}
 
 	return nil
 }
@@ -695,6 +699,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
+		boot.setScheduledSCRs(prevHeaderHash)
+
 		boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
@@ -712,6 +718,20 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func (boot *baseBootstrap) setScheduledSCRs(headerHash []byte) {
+	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerHash, boot.store, boot.marshalizer)
+	if err != nil {
+		log.Debug("get scheduled scrs from storage",
+			"error", err.Error(),
+			"header hash", headerHash,
+		)
+	}
+
+	if len(mapScheduledSCRs) > 0 {
+		boot.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
+	}
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(

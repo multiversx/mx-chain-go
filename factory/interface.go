@@ -238,6 +238,7 @@ type ProcessComponentsHolder interface {
 	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
+	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	IsInterfaceNil() bool
 }
 

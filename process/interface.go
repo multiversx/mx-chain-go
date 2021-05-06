@@ -155,6 +155,8 @@ type TransactionCoordinator interface {
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	CreateMarshalizedReceipts() ([]byte, error)
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
+	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
+	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	IsInterfaceNil() bool
 }
 
@@ -1097,5 +1099,9 @@ type ScheduledTxsExecutionHandler interface {
 	Add(txHash []byte, tx data.TransactionHandler) bool
 	Execute(txHash []byte) error
 	ExecuteAll(haveTime func() time.Duration) error
+	GetScheduledSCRs() map[block.Type][]data.TransactionHandler
+	SetScheduledSCRs(mapScheduledSCRs map[block.Type][]data.TransactionHandler)
+	SetTransactionProcessor(txProcessor TransactionProcessor)
+	SetTransactionCoordinator(txCoordinator TransactionCoordinator)
 	IsInterfaceNil() bool
 }

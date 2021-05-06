@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -281,12 +282,12 @@ func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uin
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var valStatRootHash, epochStartMetaHash []byte
-	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
-	if ok {
+	metaHeader, isMetaHeader := headerHandler.(data.MetaHeaderHandler)
+	if isMetaHeader {
 		valStatRootHash = metaHeader.GetValidatorStatsRootHash()
 	} else {
-		shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
-		if ok {
+		shardHeader, isShardHeader := headerHandler.(data.ShardHeaderHandler)
+		if isShardHeader {
 			epochStartMetaHash = shardHeader.GetEpochStartMetaHash()
 		}
 	}
@@ -453,11 +454,18 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	return nil
 }
 
-func (bp *baseProcessor) createBlockStarted() {
+func (bp *baseProcessor) createBlockStarted() error {
 	bp.hdrsForCurrBlock.resetMissingHdrs()
 	bp.hdrsForCurrBlock.initMaps()
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted()
+
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledSCRs())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
@@ -996,7 +1004,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return header
 }
 
-func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
+func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
 
 	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
@@ -1029,6 +1037,19 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts)
 			if errNotCritical != nil {
 				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+			}
+		}
+	}
+
+	mapScheduledSCRs := bp.scheduledTxsExecutionHandler.GetScheduledSCRs()
+	marshalizedScheduledSCRs, errNotCritical := bp.getMarshalizedScheduledSCRs(mapScheduledSCRs)
+	if errNotCritical != nil {
+		log.Warn("saveBody.getMarshalizedScheduledSCRs", "error", errNotCritical.Error())
+	} else {
+		if len(marshalizedScheduledSCRs) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ScheduledSCRsUnit, headerHash, marshalizedScheduledSCRs)
+			if errNotCritical != nil {
+				log.Warn("saveBody.Put -> ScheduledSCRsUnit", "error", errNotCritical.Error())
 			}
 		}
 	}
@@ -1173,13 +1194,13 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 		return currHeader.GetRootHash(), prevHeader.GetRootHash()
 	case state.PeerAccountsState:
 		currMetaHeader, ok := currHeader.(data.MetaHeaderHandler)
-		if !ok{
+		if !ok {
 			return []byte{}, []byte{}
 		}
 		prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
- 		if !ok{
- 			return []byte{}, []byte{}
-	    }
+		if !ok {
+			return []byte{}, []byte{}
+		}
 		return currMetaHeader.GetValidatorStatsRootHash(), prevMetaHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
@@ -1378,4 +1399,35 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 	}
 
 	return err
+}
+
+func (bp *baseProcessor) getMarshalizedScheduledSCRs(mapSCRs map[block.Type][]data.TransactionHandler) ([]byte, error) {
+	scrsBatch := &batch.Batch{}
+	for blockType, scrs := range mapSCRs {
+		if len(scrs) == 0 {
+			continue
+		}
+
+		scheduledSCRs := &process.ScheduledSCRs{
+			BlockType:  blockType,
+			TxHandlers: make([]data.TransactionHandler, len(scrs)),
+		}
+
+		for scrIndex, scr := range scrs {
+			scheduledSCRs.TxHandlers[scrIndex] = scr
+		}
+
+		marshalizedScheduledSCRs, err := bp.marshalizer.Marshal(scheduledSCRs)
+		if err != nil {
+			return nil, err
+		}
+
+		scrsBatch.Data = append(scrsBatch.Data, marshalizedScheduledSCRs)
+	}
+
+	if len(scrsBatch.Data) == 0 {
+		return make([]byte, 0), nil
+	}
+
+	return bp.marshalizer.Marshal(scrsBatch)
 }

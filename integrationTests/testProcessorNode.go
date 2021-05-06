@@ -1404,7 +1404,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, &mock.TransactionCoordinatorMock{})
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1449,6 +1449,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
 }
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors() {
@@ -1624,7 +1625,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:    tpn.EpochNotifier,
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
-	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor)
+	scheduledTxsExecutionHandler, _ := preprocess.NewScheduledTxsExecution(tpn.TxProcessor, &mock.TransactionCoordinatorMock{})
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1667,6 +1668,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
 }
 
 // InitDelegationManager will initialize the delegation manager whenever required
@@ -1832,11 +1834,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		HistoryRepository:            tpn.HistoryRepository,
+		EpochNotifier:                tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2009,7 +2011,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
-		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,

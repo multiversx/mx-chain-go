@@ -47,6 +47,7 @@ type persistersHolder struct {
 	rewardTransactionsPersister   storage.Persister
 	shardHeadersPersister         storage.Persister
 	receiptsPersister             storage.Persister
+	scheduledSCRsPersister        storage.Persister
 }
 
 type metaBlocksPersistersHolder struct {
@@ -656,6 +657,12 @@ func (dr *dataReplayer) preparePersistersHolder(dbInfo *databasereader.DatabaseI
 	}
 	persHold.receiptsPersister = receiptsPersister
 
+	scheduledSCRsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.ScheduledSCRsStorage.DB.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	persHold.scheduledSCRsPersister = scheduledSCRsPersister
+
 	return persHold, nil
 }
 
@@ -676,6 +683,9 @@ func (dr *dataReplayer) closePersisters(persisters *persistersHolder) {
 	log.LogIfError(err)
 
 	err = persisters.receiptsPersister.Close()
+	log.LogIfError(err)
+
+	err = persisters.scheduledSCRsPersister.Close()
 	log.LogIfError(err)
 }
 
