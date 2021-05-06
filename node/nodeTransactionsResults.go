@@ -1,8 +1,11 @@
 package node
 
 import (
+	"bytes"
 	"encoding/hex"
+	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -75,6 +78,31 @@ func (n *Node) putSmartContractResultsInTransaction(
 			}
 
 			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
+		}
+	}
+
+	n.setStatusIfIsESDTTransferFail(tx)
+}
+
+func (n *Node) setStatusIfIsESDTTransferFail(tx *transaction.ApiTransactionResult) {
+	if len(tx.SmartContractResults) < 1 {
+		return
+	}
+
+	// check if cross shard destination me
+	if !(tx.SourceShard != tx.DestinationShard && n.shardCoordinator.SelfId() == tx.DestinationShard) {
+		return
+	}
+
+	// check if is an ESDT transfer
+	if !strings.HasPrefix(string(tx.Data), core.BuiltInFunctionESDTTransfer) {
+		return
+	}
+
+	for _, scr := range tx.SmartContractResults {
+		if bytes.HasPrefix([]byte(scr.Data), tx.Data) && scr.Nonce == tx.Nonce {
+			tx.Status = transaction.TxStatusFail
+			return
 		}
 	}
 }
