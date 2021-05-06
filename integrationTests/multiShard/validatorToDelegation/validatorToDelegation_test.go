@@ -83,7 +83,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	integrationTests.SaveDelegationContractsList(nodes)
 
-	nonce, round = generateSendAndWaitToExecuteTransaction(
+	_, _ = generateSendAndWaitToExecuteTransaction(
 		t,
 		nodes,
 		stakingWalletAccount,
