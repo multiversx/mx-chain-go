@@ -141,7 +141,7 @@ func iterateMiniblockTxsForESDTTransfer(miniblock *api.MiniBlock, miniblocks []*
 
 		// search for unsigned transactions
 		for _, mb := range miniblocks {
-			if mb.Type != block.SmartContractResultBlock {
+			if mb.Type != block.SmartContractResultBlock.String() {
 				continue
 			}
 
