@@ -39,13 +39,14 @@ type FacadeHandler interface {
 }
 
 type accountResponse struct {
-	Address  string `json:"address"`
-	Nonce    uint64 `json:"nonce"`
-	Balance  string `json:"balance"`
-	Username string `json:"username"`
-	Code     string `json:"code"`
-	CodeHash []byte `json:"codeHash"`
-	RootHash []byte `json:"rootHash"`
+	Address         string `json:"address"`
+	Nonce           uint64 `json:"nonce"`
+	Balance         string `json:"balance"`
+	Username        string `json:"username"`
+	Code            string `json:"code"`
+	CodeHash        []byte `json:"codeHash"`
+	RootHash        []byte `json:"rootHash"`
+	DeveloperReward string `json:"developerReward"`
 }
 
 type esdtTokenData struct {
@@ -549,12 +550,13 @@ func GetAllESDTData(c *gin.Context) {
 
 func accountResponseFromBaseAccount(address string, code []byte, account state.UserAccountHandler) accountResponse {
 	return accountResponse{
-		Address:  address,
-		Nonce:    account.GetNonce(),
-		Balance:  account.GetBalance().String(),
-		Username: string(account.GetUserName()),
-		Code:     hex.EncodeToString(code),
-		CodeHash: account.GetCodeHash(),
-		RootHash: account.GetRootHash(),
+		Address:         address,
+		Nonce:           account.GetNonce(),
+		Balance:         account.GetBalance().String(),
+		Username:        string(account.GetUserName()),
+		Code:            hex.EncodeToString(code),
+		CodeHash:        account.GetCodeHash(),
+		RootHash:        account.GetRootHash(),
+		DeveloperReward: account.GetDeveloperReward().String(),
 	}
 }

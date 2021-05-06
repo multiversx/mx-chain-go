@@ -31,12 +31,13 @@ func init() {
 
 type AccountResponse struct {
 	Account struct {
-		Address  string `json:"address"`
-		Nonce    uint64 `json:"nonce"`
-		Balance  string `json:"balance"`
-		Code     string `json:"code"`
-		CodeHash []byte `json:"codeHash"`
-		RootHash []byte `json:"rootHash"`
+		Address         string `json:"address"`
+		Nonce           uint64 `json:"nonce"`
+		Balance         string `json:"balance"`
+		Code            string `json:"code"`
+		CodeHash        []byte `json:"codeHash"`
+		RootHash        []byte `json:"rootHash"`
+		DeveloperReward string `json:"developerReward"`
 	} `json:"account"`
 }
 
@@ -442,6 +443,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
+			acc.DeveloperReward = big.NewInt(120)
 
 			return acc, nil
 		},
@@ -465,6 +467,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, accountResponse.Account.Address, reqAddress)
 	assert.Equal(t, accountResponse.Account.Nonce, uint64(1))
 	assert.Equal(t, accountResponse.Account.Balance, "100")
+	assert.Equal(t, accountResponse.Account.DeveloperReward, "120")
 	assert.Empty(t, response.Error)
 }
 
