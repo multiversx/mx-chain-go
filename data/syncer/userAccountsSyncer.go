@@ -200,7 +200,12 @@ func (u *userAccountsSyncer) syncDataTrie(
 		return err
 	}
 
-	err = u.trieExporter.ExportDataTrie(identifier, dataTrie, ctx)
+	exportDataTrie, err := dataTrie.Recreate(rootHash)
+	if err != nil {
+		return err
+	}
+
+	err = u.trieExporter.ExportDataTrie(identifier, exportDataTrie, ctx)
 	if err != nil {
 		return err
 	}
