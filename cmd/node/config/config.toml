@@ -443,11 +443,8 @@
 
 [TrieSyncStorage]
     UseTmpAsFilePath = true
-    [TrieSyncStorage.Cache]
-        Name = "TrieSyncStorage"
-        Capacity = 300000
-        Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
     [TrieSyncStorage.DB]
         FilePath = "TrieSyncStorageDB"
         Type = "LvlDBSerial"

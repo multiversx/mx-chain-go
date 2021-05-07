@@ -76,6 +76,7 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.mutOperation.Lock()
 	defer func() {
+		d.interceptedNodes.Clear()
 		d.mutOperation.Unlock()
 	}()
 

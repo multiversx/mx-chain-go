@@ -136,6 +136,8 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.rootFound = false
 	ts.rootHash = rootHash
 
+	defer ts.interceptedNodes.Clear()
+
 	for {
 		shouldRetryAfterRequest, err := ts.checkIfSynced()
 		if err != nil {
@@ -308,7 +310,7 @@ func getNodeFromStorage(
 	n, ok := interceptedNodes.Get(hash)
 	if ok {
 		interceptedNodes.Remove(hash)
-		return trieNode(n, marshalizer, hasher)
+		return trieNode(n)
 	}
 
 	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
@@ -325,28 +327,18 @@ func getNodeFromStorage(
 
 func trieNode(
 	data interface{},
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
 ) (node, error) {
-	n, ok := data.([]byte)
+	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	decodedNode, err := decodeNode(n, marshalizer, hasher)
+	err := n.node.setHash()
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO decodedNode.setHash() encodes the given node and then computes the hash.
-	// Set the hash directly, by computing the hash from the given data,
-	// thus removing the extra serialization process.
-	err = decodedNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedNode, nil
+	return n.node, nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

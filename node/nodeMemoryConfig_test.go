@@ -38,7 +38,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.BadBlocksCache.SizeInBytes
 	plannedMemory += nodeConfig.PeerBlockBodyDataPool.SizeInBytes
 	plannedMemory += nodeConfig.TxDataPool.SizeInBytes
-	plannedMemory += nodeConfig.TrieSyncStorage.Cache.SizeInBytes
+	plannedMemory += nodeConfig.TrieSyncStorage.SizeInBytes
 	// One cache for each pair (shard, otherShard), including meta
 	plannedMemory += nodeConfig.UnsignedTransactionDataPool.SizeInBytes * uint64(numShardsIncludingMeta*(numShardsIncludingMeta-1)) / 2
 	// One cache for each pair (meta, shard)

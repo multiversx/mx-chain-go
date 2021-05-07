@@ -99,7 +99,6 @@ func GetGeneralConfig() config.Config {
 		TxBlockBodyDataPool:   getLRUCacheConfig(),
 		PeerBlockBodyDataPool: getLRUCacheConfig(),
 		TrieSyncStorage: config.TrieSyncStorageConfig{
-			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("TrieSync"),
 				Type:              string(storageUnit.MemoryDB),
@@ -108,6 +107,8 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 			UseTmpAsFilePath: true,
+			Capacity:         10,
+			SizeInBytes:      10000,
 		},
 		SmartContractDataPool: getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{

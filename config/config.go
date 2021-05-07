@@ -41,10 +41,10 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	Cache            CacheConfig
 	DB               DBConfig
-	Bloom            BloomFilterConfig
 	UseTmpAsFilePath bool
+	Capacity         uint32
+	SizeInBytes      uint64
 }
 
 // PubkeyConfig will map the public key configuration

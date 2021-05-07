@@ -215,3 +215,14 @@ type TimeCacher interface {
 	Sweep()
 	IsInterfaceNil() bool
 }
+
+type AdaptedSizedLRUCache interface {
+	SizedLRUCacheHandler
+	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
+	IsInterfaceNil() bool
+}
+
+type StoredData interface {
+	CreateEmpty() interface{}
+	IsInterfaceNil() bool
+}

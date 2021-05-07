@@ -380,6 +380,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Config:           &e.generalConfig,
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
+			Marshalizer:      e.marshalizer,
 		},
 	)
 	if err != nil {

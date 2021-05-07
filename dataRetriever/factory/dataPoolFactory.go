@@ -3,6 +3,10 @@ package factory
 import (
 	"io/ioutil"
 
+	"github.com/ElrondNetwork/elrond-go/marshal"
+
+	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -25,6 +30,7 @@ type ArgsDataPool struct {
 	Config           *config.Config
 	EconomicsData    process.EconomicsDataHandler
 	ShardCoordinator sharding.Coordinator
+	Marshalizer      marshal.Marshalizer
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -86,24 +92,39 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieSyncStorage.Cache)
+	cacher, err := capacity.NewCapacityLRU(
+		int(mainConfig.TrieSyncStorage.Capacity),
+		int64(mainConfig.TrieSyncStorage.SizeInBytes),
+	)
+
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
+	argDB := storageUnit.ArgDB{
+		DBType:            dbCfg.Type,
+		Path:              dbCfg.FilePath,
+		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
+		MaxBatchSize:      dbCfg.MaxBatchSize,
+		MaxOpenFiles:      dbCfg.MaxOpenFiles,
+	}
+
 	if mainConfig.TrieSyncStorage.UseTmpAsFilePath {
 		filePath, err := ioutil.TempDir("", "trieSyncStorage")
 		if err != nil {
-			log.Error("error getting tempDir file path")
 			return nil, err
 		}
 
 		dbCfg.FilePath = filePath
 	}
-	bloomFilterCfg := factory.GetBloomFromConfig(mainConfig.TrieSyncStorage.Bloom)
-	trieNodesStorage, err := storageUnit.NewStorageUnitFromConf(cacherCfg, dbCfg, bloomFilterCfg)
+
+	db, err := storageUnit.NewDB(argDB)
 	if err != nil {
-		log.Error("error creating trieNodesStorage")
 		return nil, err
 	}
-	adaptedTrieNodesStorage := storageCacherAdapter.NewStorageCacherAdapter(trieNodesStorage)
+
+	tnf := trieNodeFactory.NewTrieNodeFactory()
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)

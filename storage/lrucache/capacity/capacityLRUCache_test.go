@@ -339,3 +339,160 @@ func TestCapacityLRUCache_RemovedShouldWork(t *testing.T) {
 	assert.Equal(t, 1, c.Len())
 	assert.True(t, c.Contains(key2))
 }
+
+// ---------- AddSizedAndReturnEvicted
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedNegativeSizeInBytesShouldReturn(t *testing.T) {
+	t.Parallel()
+
+	c := createDefaultCache()
+	data := []byte("test")
+	key := "key"
+	c.AddSizedAndReturnEvicted(key, data, -1)
+
+	assert.Equal(t, 0, c.Len())
+}
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedSimpleTestShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c := createDefaultCache()
+	data := []byte("test")
+	key := "key"
+	capacity := int64(5)
+	c.AddSizedAndReturnEvicted(key, data, capacity)
+
+	v, ok := c.Get(key)
+	assert.True(t, ok)
+	assert.NotNil(t, v)
+	assert.Equal(t, data, v)
+
+	keys := c.Keys()
+	assert.Equal(t, 1, len(keys))
+	assert.Equal(t, key, keys[0])
+}
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedEvictionByCacheSizeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCapacityLRU(3, 100000)
+
+	keys := []string{"key1", "key2", "key3", "key4", "key5"}
+	values := []string{"val1", "val2", "val3", "val4", "val5"}
+
+	evicted := c.AddSizedAndReturnEvicted(keys[0], values[0], int64(len(values[0])))
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 1, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[1], values[1], int64(len(values[1])))
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 2, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[2], values[2], int64(len(values[2])))
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 3, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[3], values[3], int64(len(values[3])))
+	assert.Equal(t, 3, c.Len())
+	assert.False(t, c.Contains(keys[0]))
+	assert.True(t, c.Contains(keys[3]))
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[0], evicted[keys[0]])
+
+	evicted = c.AddSizedAndReturnEvicted(keys[4], values[4], int64(len(values[4])))
+	assert.Equal(t, 3, c.Len())
+	assert.False(t, c.Contains(keys[1]))
+	assert.True(t, c.Contains(keys[4]))
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[1], evicted[keys[1]])
+}
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedEvictionBySizeInBytesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCapacityLRU(100000, 1000)
+
+	keys := []string{"key1", "key2", "key3", "key4"}
+	values := []string{"val1", "val2", "val3", "val4"}
+
+	evicted := c.AddSizedAndReturnEvicted(keys[0], values[0], 500)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 1, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[1], values[1], 500)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 2, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[2], values[2], 500)
+	assert.Equal(t, 2, c.Len())
+	assert.False(t, c.Contains(keys[0]))
+	assert.True(t, c.Contains(keys[2]))
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[0], evicted[keys[0]])
+
+	evicted = c.AddSizedAndReturnEvicted(keys[3], values[3], 500)
+	assert.Equal(t, 2, c.Len())
+	assert.False(t, c.Contains(keys[1]))
+	assert.True(t, c.Contains(keys[3]))
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[1], evicted[keys[1]])
+}
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedEvictionBySizeInBytesOneLargeElementShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCapacityLRU(100000, 1000)
+
+	keys := []string{"key1", "key2", "key3", "key4"}
+	values := []string{"val1", "val2", "val3", "val4"}
+
+	evicted := c.AddSizedAndReturnEvicted(keys[0], values[0], 500)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 1, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[1], values[1], 500)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 2, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[2], values[2], 500)
+	assert.Equal(t, 2, c.Len())
+	assert.False(t, c.Contains(keys[0]))
+	assert.True(t, c.Contains(keys[2]))
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[0], evicted[keys[0]])
+
+	evicted = c.AddSizedAndReturnEvicted(keys[3], values[3], 500000)
+	assert.Equal(t, 1, c.Len())
+	assert.False(t, c.Contains(keys[0]))
+	assert.False(t, c.Contains(keys[1]))
+	assert.False(t, c.Contains(keys[2]))
+	assert.True(t, c.Contains(keys[3]))
+	assert.Equal(t, 2, len(evicted))
+	assert.Equal(t, values[1], evicted[keys[1]])
+	assert.Equal(t, values[2], evicted[keys[2]])
+}
+
+func TestCapacityLRUCache_AddSizedAndReturnEvictedEvictionBySizeInBytesOneLargeElementEvictedBySmallElementsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCapacityLRU(100000, 1000)
+
+	keys := []string{"key1", "key2", "key3"}
+	values := []string{"val1", "val2", "val3"}
+
+	evicted := c.AddSizedAndReturnEvicted(keys[0], values[0], 500000)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 1, c.Len())
+
+	evicted = c.AddSizedAndReturnEvicted(keys[1], values[1], 500)
+	assert.Equal(t, 1, c.Len())
+	assert.Equal(t, 1, len(evicted))
+	assert.Equal(t, values[0], evicted[keys[0]])
+
+	evicted = c.AddSizedAndReturnEvicted(keys[2], values[2], 500)
+	assert.Equal(t, 0, len(evicted))
+	assert.Equal(t, 2, c.Len())
+	assert.False(t, c.Contains(keys[0]))
+	assert.True(t, c.Contains(keys[1]))
+	assert.True(t, c.Contains(keys[2]))
+}
