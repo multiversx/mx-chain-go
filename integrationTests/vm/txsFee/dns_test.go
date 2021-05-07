@@ -42,13 +42,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9528370))
+	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9297800))
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(471630), accumulatedFees)
+	require.Equal(t, big.NewInt(702200), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(47119), developerFees)
+	require.Equal(t, big.NewInt(70176), developerFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
