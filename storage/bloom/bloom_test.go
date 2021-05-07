@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
-
 	"github.com/stretchr/testify/assert"
 )
 

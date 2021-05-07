@@ -14,7 +14,6 @@ package bloom
 import (
 	"encoding/binary"
 	"errors"
-
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"

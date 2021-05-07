@@ -338,8 +338,7 @@ func newBaseTestProcessorNode(
 	sk, pk := kg.GeneratePair()
 
 	pksBytes := CreatePkBytes(maxShards)
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{

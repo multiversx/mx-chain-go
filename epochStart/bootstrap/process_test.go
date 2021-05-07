@@ -525,8 +525,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	pksBytes := createPkBytes(numOfShards)
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	roundDurationMillis := 4000
 	epochDurationMillis := 50 * int64(roundDurationMillis)
