@@ -17,7 +17,7 @@ type storageCacherAdapter struct {
 	db     storage.Persister
 	lock   sync.RWMutex
 
-	storedDataFactory storage.StoredData
+	storedDataFactory storage.StoredDataFactory
 	marshalizer       marshal.Marshalizer
 }
 
@@ -25,7 +25,7 @@ type storageCacherAdapter struct {
 func NewStorageCacherAdapter(
 	cacher storage.AdaptedSizedLRUCache,
 	db storage.Persister,
-	storedDataFactory storage.StoredData,
+	storedDataFactory storage.StoredDataFactory,
 	marshalizer marshal.Marshalizer,
 ) (*storageCacherAdapter, error) {
 	if check.IfNil(cacher) {

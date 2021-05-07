@@ -3,10 +3,6 @@ package factory
 import (
 	"io/ioutil"
 
-	"github.com/ElrondNetwork/elrond-go/marshal"
-
-	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,11 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
+	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 

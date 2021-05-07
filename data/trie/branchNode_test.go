@@ -1068,7 +1068,7 @@ func TestBranchNode_loadChildren(t *testing.T) {
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)
-		return trieNode(cacheData)
+		return trieNode(cacheData, marsh, hasher)
 	}
 
 	missing, _, err := bn.loadChildren(getNode)

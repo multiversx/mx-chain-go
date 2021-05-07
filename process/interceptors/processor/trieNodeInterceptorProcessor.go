@@ -11,7 +11,6 @@ var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
 
 type interceptedTrieNodeHandler interface {
 	SizeInBytes() int
-	EncodedNode() []byte
 }
 
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes

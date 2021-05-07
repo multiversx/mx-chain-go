@@ -216,13 +216,15 @@ type TimeCacher interface {
 	IsInterfaceNil() bool
 }
 
+// AdaptedSizedLRUCache defines a cache that returns the evicted value
 type AdaptedSizedLRUCache interface {
 	SizedLRUCacheHandler
 	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
 	IsInterfaceNil() bool
 }
 
-type StoredData interface {
+// StoredDataFactory creates empty objects of the stored data type
+type StoredDataFactory interface {
 	CreateEmpty() interface{}
 	IsInterfaceNil() bool
 }

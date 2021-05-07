@@ -85,21 +85,24 @@ func (c *capacityLRU) addSized(key, value interface{}, sizeInBytes int64) {
 	}
 }
 
+// AddSizedAndReturnEvicted adds the given key-value pair to the cache, and returns the evicted values
 func (c *capacityLRU) AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{} {
 	c.addSized(key, value, sizeInBytes)
 
 	evictedValues := make(map[interface{}]interface{})
 	for c.shouldEvict() {
 		evicted := c.evictList.Back()
-		if evicted != nil {
-			c.removeElement(evicted)
-			evictedEntry, ok := evicted.Value.(*entry)
-			if !ok {
-				continue
-			}
-
-			evictedValues[evictedEntry.key] = evictedEntry.value
+		if evicted == nil {
+			continue
 		}
+
+		c.removeElement(evicted)
+		evictedEntry, ok := evicted.Value.(*entry)
+		if !ok {
+			continue
+		}
+
+		evictedValues[evictedEntry.key] = evictedEntry.value
 	}
 
 	return evictedValues

@@ -310,7 +310,7 @@ func getNodeFromStorage(
 	n, ok := interceptedNodes.Get(hash)
 	if ok {
 		interceptedNodes.Remove(hash)
-		return trieNode(n)
+		return trieNode(n, marshalizer, hasher)
 	}
 
 	existingNode, err := getNodeFromDBAndDecode(hash, db, marshalizer, hasher)
@@ -327,18 +327,29 @@ func getNodeFromStorage(
 
 func trieNode(
 	data interface{},
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 ) (node, error) {
 	n, ok := data.(*InterceptedTrieNode)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	err := n.node.setHash()
+	if n.node != nil {
+		return n.node, nil
+	}
+
+	decodedNode, err := decodeNode(n.SerializedNode.NodeBytes, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.node, nil
+	err = decodedNode.setHash()
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedNode, nil
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

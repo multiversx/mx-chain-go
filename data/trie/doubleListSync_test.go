@@ -198,7 +198,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	arg.RequestHandler = createRequesterResolver(trSource, arg.InterceptedNodes, nil)
 
 	d, _ := NewDoubleListTrieSyncer(arg)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*6000)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()
 
 	err := d.StartSyncing(roothash, ctx)

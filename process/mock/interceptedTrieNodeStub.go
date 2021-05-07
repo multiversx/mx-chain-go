@@ -7,7 +7,6 @@ type InterceptedTrieNodeStub struct {
 	SizeInBytesCalled       func() int
 	HashField               []byte
 	StringField             string
-	SerializedNode          []byte
 	IdentifiersField        [][]byte
 	TypeField               string
 }
@@ -57,11 +56,6 @@ func (ins *InterceptedTrieNodeStub) Identifiers() [][]byte {
 // String -
 func (ins *InterceptedTrieNodeStub) String() string {
 	return ins.StringField
-}
-
-// EncodedNode -
-func (ins *InterceptedTrieNodeStub) EncodedNode() []byte {
-	return ins.SerializedNode
 }
 
 // IsInterfaceNil -
