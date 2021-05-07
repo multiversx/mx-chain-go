@@ -132,8 +132,8 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
+	require.Equal(t, uint64(400001), indexerTx.GasUsed)
+	require.Equal(t, "4000010", indexerTx.Fee)
 }
 
 func TestAsyncESDTCallsOutOfGas(t *testing.T) {
