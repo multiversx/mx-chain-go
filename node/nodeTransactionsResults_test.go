@@ -131,6 +131,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		WithDataStore(dataStore),
 		WithHistoryRepository(historyRepo),
 		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
@@ -162,64 +163,4 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	tx := &transaction.ApiTransactionResult{}
 	n.putResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
-}
-
-func TestSetStatusIfIsESDTTransferFail(t *testing.T) {
-	t.Parallel()
-
-	n, _ := NewNode(
-		WithShardCoordinator(&mock.ShardCoordinatorMock{
-			SelfShardId: 0,
-		}),
-	)
-
-	// ESDT transfer fail
-	tx1 := &transaction.ApiTransactionResult{
-		Nonce:            1,
-		Hash:             "myHash",
-		SourceShard:      1,
-		DestinationShard: 0,
-		Data:             []byte("ESDTTransfer@42524f2d343663663439@a688906bd8b00000"),
-		SmartContractResults: []*transaction.ApiSmartContractResult{
-			{
-				OriginalTxHash: "myHash",
-				Nonce:          1,
-				Data:           "ESDTTransfer@42524f2d343663663439@a688906bd8b00000@75736572206572726f72",
-			},
-		},
-	}
-
-	n.setStatusIfIsESDTTransferFail(tx1)
-	require.Equal(t, transaction.TxStatusFail, tx1.Status)
-
-	// transaction with no SCR should be ignored
-	tx2 := &transaction.ApiTransactionResult{
-		Status: transaction.TxStatusSuccess,
-	}
-	n.setStatusIfIsESDTTransferFail(tx2)
-	require.Equal(t, transaction.TxStatusSuccess, tx2.Status)
-
-	// intra shard transaction should be ignored
-	tx3 := &transaction.ApiTransactionResult{
-		Status: transaction.TxStatusSuccess,
-		SmartContractResults: []*transaction.ApiSmartContractResult{
-			{},
-			{},
-		},
-	}
-	n.setStatusIfIsESDTTransferFail(tx3)
-	require.Equal(t, transaction.TxStatusSuccess, tx3.Status)
-
-	// no ESDT transfer should be ignored
-	tx4 := &transaction.ApiTransactionResult{
-		Status:           transaction.TxStatusSuccess,
-		SourceShard:      1,
-		DestinationShard: 0,
-		SmartContractResults: []*transaction.ApiSmartContractResult{
-			{},
-			{},
-		},
-	}
-	n.setStatusIfIsESDTTransferFail(tx4)
-	require.Equal(t, transaction.TxStatusSuccess, tx4.Status)
 }
