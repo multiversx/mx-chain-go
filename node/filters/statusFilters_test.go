@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestShardAPIBlockProcessor_SetStatusESDTTransfer(t *testing.T) {
+func TestStatusFilters_ApplyStatusFilters(t *testing.T) {
 	t.Parallel()
 
 	sf := NewStatusFilters(0)
@@ -57,7 +57,7 @@ func TestShardAPIBlockProcessor_SetStatusESDTTransfer(t *testing.T) {
 	require.Equal(t, transaction.TxStatusFail, esdtTransferTx.Status)
 }
 
-func TestSetStatusIfIsESDTTransferFail(t *testing.T) {
+func TestStatusFilters_SetStatusIfIsFailedESDTTransfer(t *testing.T) {
 	t.Parallel()
 
 	sf := NewStatusFilters(0)

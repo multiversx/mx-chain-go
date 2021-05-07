@@ -27,8 +27,8 @@ func (sf *statusFilters) SetStatusIfIsFailedESDTTransfer(tx *transaction.ApiTran
 		return
 	}
 
-	isCrossShardTxDestMe := !(tx.SourceShard != tx.DestinationShard && sf.selfShardID == tx.DestinationShard)
-	if isCrossShardTxDestMe {
+	isCrossShardTxDestMe := tx.SourceShard != tx.DestinationShard && sf.selfShardID == tx.DestinationShard
+	if !isCrossShardTxDestMe {
 		return
 	}
 
