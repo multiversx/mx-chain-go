@@ -32,29 +32,31 @@ const (
 )
 
 type validatorSC struct {
-	eei                      vm.SystemEI
-	unBondPeriod             uint64
-	unBondPeriodInEpochs     uint32
-	sigVerifier              vm.MessageSignVerifier
-	baseConfig               ValidatorConfig
-	stakingV2Epoch           uint32
-	stakingSCAddress         []byte
-	validatorSCAddress       []byte
-	walletAddressLen         int
-	enableStakingEpoch       uint32
-	enableDoubleKeyEpoch     uint32
-	gasCost                  vm.GasCost
-	marshalizer              marshal.Marshalizer
-	flagEnableStaking        atomic.Flag
-	flagEnableTopUp          atomic.Flag
-	flagDoubleKey            atomic.Flag
-	minUnstakeTokensValue    *big.Int
-	minDeposit               *big.Int
-	mutExecution             sync.RWMutex
-	endOfEpochAddress        []byte
-	enableDelegationMgrEpoch uint32
-	delegationMgrSCAddress   []byte
-	flagDelegationMgr        atomic.Flag
+	eei                       vm.SystemEI
+	unBondPeriod              uint64
+	unBondPeriodInEpochs      uint32
+	sigVerifier               vm.MessageSignVerifier
+	baseConfig                ValidatorConfig
+	stakingV2Epoch            uint32
+	stakingSCAddress          []byte
+	validatorSCAddress        []byte
+	walletAddressLen          int
+	enableStakingEpoch        uint32
+	enableDoubleKeyEpoch      uint32
+	gasCost                   vm.GasCost
+	marshalizer               marshal.Marshalizer
+	flagEnableStaking         atomic.Flag
+	flagEnableTopUp           atomic.Flag
+	flagDoubleKey             atomic.Flag
+	minUnstakeTokensValue     *big.Int
+	minDeposit                *big.Int
+	mutExecution              sync.RWMutex
+	endOfEpochAddress         []byte
+	enableDelegationMgrEpoch  uint32
+	enableUnbondTokensV2Epoch uint32
+	delegationMgrSCAddress    []byte
+	flagDelegationMgr         atomic.Flag
+	flagUnbondTokensV2        atomic.Flag
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -138,28 +140,30 @@ func NewValidatorSmartContract(
 	}
 
 	reg := &validatorSC{
-		eei:                      args.Eei,
-		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
-		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
-		sigVerifier:              args.SigVerifier,
-		baseConfig:               baseConfig,
-		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
-		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
-		stakingSCAddress:         args.StakingSCAddress,
-		validatorSCAddress:       args.ValidatorSCAddress,
-		gasCost:                  args.GasCost,
-		marshalizer:              args.Marshalizer,
-		minUnstakeTokensValue:    minUnstakeTokensValue,
-		walletAddressLen:         len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:     args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
-		endOfEpochAddress:        args.EndOfEpochAddress,
-		minDeposit:               minDeposit,
-		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
+		eei:                       args.Eei,
+		unBondPeriod:              args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:      args.StakingSCConfig.UnBondPeriodInEpochs,
+		sigVerifier:               args.SigVerifier,
+		baseConfig:                baseConfig,
+		stakingV2Epoch:            args.EpochConfig.EnableEpochs.StakingV2Epoch,
+		enableStakingEpoch:        args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingSCAddress:          args.StakingSCAddress,
+		validatorSCAddress:        args.ValidatorSCAddress,
+		gasCost:                   args.GasCost,
+		marshalizer:               args.Marshalizer,
+		minUnstakeTokensValue:     minUnstakeTokensValue,
+		walletAddressLen:          len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:      args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:         args.EndOfEpochAddress,
+		minDeposit:                minDeposit,
+		enableDelegationMgrEpoch:  args.DelegationMgrEnableEpoch,
+		delegationMgrSCAddress:    args.DelegationMgrSCAddress,
+		enableUnbondTokensV2Epoch: args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
 	}
 	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
+	log.Debug("validator: enable epoch for unbond tokens v2", "epoch", reg.enableUnbondTokensV2Epoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 
@@ -1700,6 +1704,18 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	registrationData *ValidatorDataV2,
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
+	isV1Active := !v.flagUnbondTokensV2.IsSet()
+	if isV1Active {
+		return v.unBondTokensFromRegistrationDataV1(registrationData, valueToUnBond)
+	}
+
+	return v.unBondTokensFromRegistrationDataV2(registrationData, valueToUnBond)
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV1(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
 	var unstakedValue *UnstakedValue
 	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	totalUnBond := big.NewInt(0)
@@ -1730,6 +1746,58 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	}
 
 	registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
+	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
+	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
+		v.eei.AddReturnMessage("too much requested to unBond")
+		return nil, vmcommon.UserError
+	}
+
+	return totalUnBond, vmcommon.Ok
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV2(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
+	totalUnBond := big.NewInt(0)
+	remainingValueToUnbond := big.NewInt(0).Set(valueToUnBond)
+
+	unDelegateAllPossible := valueToUnBond.Cmp(zero) == 0
+	newUnstakedInfo := make([]*UnstakedValue, 0, len(registrationData.UnstakedInfo))
+	stopUnboding := false
+	for _, unstakedValue := range registrationData.UnstakedInfo {
+		canUnbond := currentEpoch-unstakedValue.UnstakedEpoch >= v.unBondPeriodInEpochs
+		if !canUnbond || stopUnboding {
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+			continue
+		}
+
+		if unDelegateAllPossible {
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		positionDoesNotHaveEnoughValues := remainingValueToUnbond.Cmp(unstakedValue.UnstakedValue) > 0
+		if positionDoesNotHaveEnoughValues {
+			//consume all value from unstakeValue item and do not keep it
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			remainingValueToUnbond.Sub(remainingValueToUnbond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		totalUnBond.Add(totalUnBond, remainingValueToUnbond)
+		unstakedValue.UnstakedValue.Sub(unstakedValue.UnstakedValue, remainingValueToUnbond)
+		remainingValueToUnbond.Set(zero)
+		if unstakedValue.UnstakedValue.Cmp(zero) > 0 {
+			//position still containing value, will be kept
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+		}
+
+		stopUnboding = true
+	}
+
+	registrationData.UnstakedInfo = newUnstakedInfo
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("too much requested to unBond")
@@ -1852,6 +1920,9 @@ func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
 
 	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
 	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
+
+	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2Epoch)
+	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
