@@ -30,6 +30,7 @@ const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
+const whiteListedAddress = "whiteListedAddress"
 
 const (
 	active    = uint32(0)
@@ -172,6 +173,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.initFromValidatorData(args)
 	case mergeValidatorDataToDelegation:
 		return d.mergeValidatorDataToDelegation(args)
+	case "whiteListForMerge":
+		return d.whiteListForMerge(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -546,6 +549,32 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 	}
 
 	return d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
+}
+
+func (d *delegation) whiteListForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	if !d.isOwner(args.CallerAddr) {
+		d.eei.AddReturnMessage("can be called by owner only")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+	}
+
+	d.eei.SetStorage([]byte(whiteListedAddress), args.Arguments[0])
+	return vmcommon.Ok
 }
 
 func (d *delegation) delegateUser(
