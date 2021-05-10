@@ -142,8 +142,10 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.changeMinDelegationAmount(args)
 	case "makeNewContractFromValidatorData":
 		return d.makeNewContractFromValidatorData(args)
-	case "mergeValidatorDataToContract":
-		return d.mergeValidatorDataToContract(args)
+	case "mergeValidatorToDelegationSameOwner":
+		return d.mergeValidatorToDelegation(args, d.checkCallerIsOwnerOfContract)
+	case "mergeValidatorToDelegationWithWhitelist":
+		return d.mergeValidatorToDelegation(args, d.isAddressWhiteListedForMerge)
 	}
 
 	d.eei.AddReturnMessage("invalid function to call")
@@ -297,22 +299,9 @@ func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.Contr
 	return vmcommon.Ok
 }
 
-func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkValidatorToDelegationInput(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-	if len(args.Arguments) != 1 {
-		d.eei.AddReturnMessage("invalid number of arguments")
-		return vmcommon.UserError
-	}
-	lenAddress := len(args.CallerAddr)
+func (d *delegationManager) checkCallerIsOwnerOfContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scAddress := args.Arguments[0]
-	if len(scAddress) != lenAddress {
-		d.eei.AddReturnMessage("invalid argument, wanted an address")
-		return vmcommon.UserError
-	}
-
+	lenAddress := len(args.CallerAddr)
 	buff := d.eei.GetStorage(args.CallerAddr)
 	if len(buff) == 0 {
 		d.eei.AddReturnMessage("no sc address under selected user")
@@ -333,6 +322,33 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 		return vmcommon.UserError
 	}
 
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) mergeValidatorToDelegation(
+	args *vmcommon.ContractCallInput,
+	checkFunc func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode,
+) vmcommon.ReturnCode {
+	returnCode := d.checkValidatorToDelegationInput(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	lenAddress := len(args.CallerAddr)
+	scAddress := args.Arguments[0]
+	if len(scAddress) != lenAddress {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+
+	returnCode = checkFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
 	txData := mergeValidatorDataToDelegation + "@" + hex.EncodeToString(args.CallerAddr)
 	vmOutput, err := d.eei.ExecuteOnDestContext(scAddress, d.delegationMgrSCAddress, big.NewInt(0), []byte(txData))
 	if err != nil {
@@ -340,6 +356,16 @@ func (d *delegationManager) mergeValidatorDataToContract(args *vmcommon.Contract
 		return vmcommon.UserError
 	}
 	return vmOutput.ReturnCode
+}
+
+func (d *delegationManager) isAddressWhiteListedForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	scAddress := args.Arguments[0]
+	savedAddress := d.eei.GetStorageFromAddress(scAddress, []byte(whitelistedAddress))
+	if !bytes.Equal(savedAddress, args.CallerAddr) {
+		d.eei.AddReturnMessage("address is not whitelisted for merge")
+		return vmcommon.UserError
+	}
+	return vmcommon.Ok
 }
 
 func (d *delegationManager) checkConfigChangeInput(args *vmcommon.ContractCallInput) error {

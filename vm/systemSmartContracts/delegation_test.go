@@ -4698,3 +4698,79 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
+
+func TestDelegation_whiteListForMerge(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+
+	vmInput := getDefaultVmInputForFunc("whitelistForMerge", [][]byte{[]byte("address")})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "whitelistForMerge"+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "can be called by owner only")
+
+	vmInput.CallerAddr = []byte("address0")
+	vmInput.GasProvided = 0
+	eei.gasRemaining = 0
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 1
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, returnCode)
+
+	vmInput.GasProvided = 1000
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("a")}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address")
+
+	vmInput.Arguments = [][]byte{[]byte("address0")}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "cannot whitelist own address")
+
+	vmInput.Arguments = [][]byte{[]byte("address1")}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, []byte("address1"), d.eei.GetStorage([]byte(whitelistedAddress)))
+}

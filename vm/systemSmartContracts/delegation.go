@@ -30,7 +30,7 @@ const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
-const whiteListedAddress = "whiteListedAddress"
+const whitelistedAddress = "whitelistedAddress"
 
 const (
 	active    = uint32(0)
@@ -173,8 +173,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.initFromValidatorData(args)
 	case mergeValidatorDataToDelegation:
 		return d.mergeValidatorDataToDelegation(args)
-	case "whiteListForMerge":
-		return d.whiteListForMerge(args)
+	case "whitelistForMerge":
+		return d.whitelistForMerge(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -551,7 +551,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 	return d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
 }
 
-func (d *delegation) whiteListForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.flagValidatorToDelegation.IsSet() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
@@ -571,9 +571,14 @@ func (d *delegation) whiteListForMerge(args *vmcommon.ContractCallInput) vmcommo
 	}
 	if len(args.Arguments[0]) != len(args.CallerAddr) {
 		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(args.Arguments[0], args.CallerAddr) {
+		d.eei.AddReturnMessage("cannot whitelist own address")
+		return vmcommon.UserError
 	}
 
-	d.eei.SetStorage([]byte(whiteListedAddress), args.Arguments[0])
+	d.eei.SetStorage([]byte(whitelistedAddress), args.Arguments[0])
 	return vmcommon.Ok
 }
 

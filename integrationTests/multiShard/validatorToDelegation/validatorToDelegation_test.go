@@ -180,7 +180,7 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 
 	scAddressBytes, _ := hex.DecodeString("0000000000000000000100000000000000000000000000000000000002ffffff")
 	txData = txDataBuilder.NewBuilder().Clear().
-		Func("mergeValidatorDataToContract").
+		Func("mergeValidatorToDelegationSameOwner").
 		Bytes(scAddressBytes).
 		ToString()
 	integrationTests.PlayerSendsTransaction(
