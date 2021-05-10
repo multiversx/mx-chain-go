@@ -23,20 +23,20 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 	}
 
 	base := &storageBootstrapper{
-		bootStorer:        arguments.BootStorer,
-		forkDetector:      arguments.ForkDetector,
-		blkExecutor:       arguments.BlockProcessor,
-		blkc:              arguments.ChainHandler,
-		marshalizer:       arguments.Marshalizer,
-		store:             arguments.Store,
-		shardCoordinator:  arguments.ShardCoordinator,
-		nodesCoordinator:  arguments.NodesCoordinator,
-		epochStartTrigger: arguments.EpochStartTrigger,
-		blockTracker:      arguments.BlockTracker,
-
-		uint64Converter:     arguments.Uint64Converter,
-		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
-		chainID:             arguments.ChainID,
+		bootStorer:                   arguments.BootStorer,
+		forkDetector:                 arguments.ForkDetector,
+		blkExecutor:                  arguments.BlockProcessor,
+		blkc:                         arguments.ChainHandler,
+		marshalizer:                  arguments.Marshalizer,
+		store:                        arguments.Store,
+		shardCoordinator:             arguments.ShardCoordinator,
+		nodesCoordinator:             arguments.NodesCoordinator,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		blockTracker:                 arguments.BlockTracker,
+		uint64Converter:              arguments.Uint64Converter,
+		bootstrapRoundIndex:          arguments.BootstrapRoundIndex,
+		chainID:                      arguments.ChainID,
+		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 	}
 
 	boot := shardStorageBootstrapper{

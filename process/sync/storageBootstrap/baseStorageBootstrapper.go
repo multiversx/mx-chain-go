@@ -22,19 +22,20 @@ var log = logger.GetOrCreate("process/sync")
 
 // ArgsBaseStorageBootstrapper is structure used to create a new storage bootstrapper
 type ArgsBaseStorageBootstrapper struct {
-	BootStorer          process.BootStorer
-	ForkDetector        process.ForkDetector
-	BlockProcessor      process.BlockProcessor
-	ChainHandler        data.ChainHandler
-	Marshalizer         marshal.Marshalizer
-	Store               dataRetriever.StorageService
-	Uint64Converter     typeConverters.Uint64ByteSliceConverter
-	BootstrapRoundIndex uint64
-	ShardCoordinator    sharding.Coordinator
-	NodesCoordinator    sharding.NodesCoordinator
-	EpochStartTrigger   process.EpochStartTriggerHandler
-	BlockTracker        process.BlockTracker
-	ChainID             string
+	BootStorer                   process.BootStorer
+	ForkDetector                 process.ForkDetector
+	BlockProcessor               process.BlockProcessor
+	ChainHandler                 data.ChainHandler
+	Marshalizer                  marshal.Marshalizer
+	Store                        dataRetriever.StorageService
+	Uint64Converter              typeConverters.Uint64ByteSliceConverter
+	BootstrapRoundIndex          uint64
+	ShardCoordinator             sharding.Coordinator
+	NodesCoordinator             sharding.NodesCoordinator
+	EpochStartTrigger            process.EpochStartTriggerHandler
+	BlockTracker                 process.BlockTracker
+	ChainID                      string
+	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -49,23 +50,23 @@ type ArgsMetaStorageBootstrapper struct {
 }
 
 type storageBootstrapper struct {
-	bootStorer        process.BootStorer
-	forkDetector      process.ForkDetector
-	blkExecutor       process.BlockProcessor
-	blkc              data.ChainHandler
-	marshalizer       marshal.Marshalizer
-	store             dataRetriever.StorageService
-	uint64Converter   typeConverters.Uint64ByteSliceConverter
-	shardCoordinator  sharding.Coordinator
-	nodesCoordinator  sharding.NodesCoordinator
-	epochStartTrigger process.EpochStartTriggerHandler
-	blockTracker      process.BlockTracker
-
-	bootstrapRoundIndex  uint64
-	bootstrapper         storageBootstrapperHandler
-	headerNonceHashStore storage.Storer
-	highestNonce         uint64
-	chainID              string
+	bootStorer                   process.BootStorer
+	forkDetector                 process.ForkDetector
+	blkExecutor                  process.BlockProcessor
+	blkc                         data.ChainHandler
+	marshalizer                  marshal.Marshalizer
+	store                        dataRetriever.StorageService
+	uint64Converter              typeConverters.Uint64ByteSliceConverter
+	shardCoordinator             sharding.Coordinator
+	nodesCoordinator             sharding.NodesCoordinator
+	epochStartTrigger            process.EpochStartTriggerHandler
+	blockTracker                 process.BlockTracker
+	bootstrapRoundIndex          uint64
+	bootstrapper                 storageBootstrapperHandler
+	headerNonceHashStore         storage.Storer
+	highestNonce                 uint64
+	chainID                      string
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -173,6 +174,15 @@ func (st *storageBootstrapper) loadBlocks() error {
 	err = st.bootStorer.SaveLastRound(round)
 	if err != nil {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
+	}
+
+	mapScheduledSCRs, err := process.GetScheduledSCRsFromStorage(headerInfo.LastHeader.Hash, st.store, st.marshalizer)
+	if err != nil {
+		log.Debug("cannot get scheduled scrs from storage", "error", err.Error())
+	}
+
+	if len(mapScheduledSCRs) > 0 {
+		st.scheduledTxsExecutionHandler.SetScheduledSCRs(mapScheduledSCRs)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce
@@ -455,6 +465,9 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.BlockTracker) {
 		return process.ErrNilBlockTracker
+	}
+	if check.IfNil(args.ScheduledTxsExecutionHandler) {
+		return process.ErrNilScheduledTxsExecutionHandler
 	}
 
 	return nil

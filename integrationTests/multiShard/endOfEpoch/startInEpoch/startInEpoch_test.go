@@ -267,7 +267,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
-		ChainID: string(integrationTests.ChainID),
+		ChainID:                      string(integrationTests.ChainID),
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
@@ -304,6 +305,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

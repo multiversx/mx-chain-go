@@ -143,6 +143,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, createMemUnit())
 	return store
 }
 
@@ -409,6 +410,7 @@ func createConsensusOnlyNode(
 	processComponents.ReqHandler = &mock.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
+	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain

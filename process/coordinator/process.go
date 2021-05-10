@@ -1050,7 +1050,7 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	}
 
 	if len(receiptsBatch.Data) == 0 {
-		return nil, nil
+		return make([]byte, 0), nil
 	}
 
 	return tc.marshalizer.Marshal(receiptsBatch)
@@ -1344,6 +1344,38 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 
 	return nil
+}
+
+// AddIntermediateTransactions adds the given intermediate transactions
+func (tc *transactionCoordinator) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error {
+	for blockType, scrs := range mapSCRs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if check.IfNil(interimProc) {
+			return process.ErrNilIntermediateProcessor
+		}
+
+		err := interimProc.AddIntermediateTransactions(scrs)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetAllIntermediateTxs gets all the intermediate transactions separated by block type
+func (tc *transactionCoordinator) GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler {
+	mapIntermediateTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if check.IfNil(interimProc) {
+			continue
+		}
+
+		mapIntermediateTxs[blockType] = interimProc.GetAllCurrentFinishedTxs()
+	}
+
+	return mapIntermediateTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

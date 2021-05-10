@@ -81,6 +81,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
 	var receiptsUnit *pruning.PruningStorer
+	var scheduledSCRsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -223,6 +224,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
 
+	scheduledSCRsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ScheduledSCRsStorage)
+	scheduledSCRsUnit, err = pruning.NewPruningStorer(scheduledSCRsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, scheduledSCRsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -240,6 +248,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, scheduledSCRsUnit)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {
@@ -260,6 +269,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
 	var receiptsUnit *pruning.PruningStorer
+	var scheduledSCRsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -400,6 +410,13 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
 
+	scheduledSCRsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ScheduledSCRsStorage)
+	scheduledSCRsUnit, err = pruning.NewPruningStorer(scheduledSCRsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, scheduledSCRsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
@@ -418,6 +435,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, scheduledSCRsUnit)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {

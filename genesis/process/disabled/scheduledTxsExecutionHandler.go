@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ScheduledTxsExecutionHandler implements ScheduledTxsExecutionHandler interface but does nothing as it is a disabled component
@@ -27,6 +29,23 @@ func (steh *ScheduledTxsExecutionHandler) Execute(_ []byte) error {
 // ExecuteAll does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) ExecuteAll(_ func() time.Duration) error {
 	return nil
+}
+
+// GetScheduledSCRs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) GetScheduledSCRs() map[block.Type][]data.TransactionHandler {
+	return make(map[block.Type][]data.TransactionHandler)
+}
+
+// SetScheduledSCRs does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetScheduledSCRs(_ map[block.Type][]data.TransactionHandler) {
+}
+
+// SetTransactionProcessor does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetTransactionProcessor(_ process.TransactionProcessor) {
+}
+
+// SetTransactionCoordinator does nothing as it is a disabled component
+func (steh *ScheduledTxsExecutionHandler) SetTransactionCoordinator(_ process.TransactionCoordinator) {
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -62,7 +62,7 @@ func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader data.HeaderHandler) {
 	currShardHeader, ok := currentHeader.(data.ShardHeaderHandler)
-	if !ok{
+	if !ok {
 		return
 	}
 	sp.updateState(finalHeaders, currShardHeader)
@@ -126,12 +126,12 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
-			ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
+			Version:                      "softwareVersion",
+			HistoryRepository:            &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:                &mock.EpochNotifierStub{},
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -343,8 +343,8 @@ func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
-func (bp *baseProcessor) CreateBlockStarted() {
-	bp.createBlockStarted()
+func (bp *baseProcessor) CreateBlockStarted() error {
+	return bp.createBlockStarted()
 }
 
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header data.HeaderHandler) error {

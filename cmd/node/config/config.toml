@@ -76,6 +76,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[ScheduledSCRsStorage]
+    [ScheduledSCRsStorage.Cache]
+        Name = "ScheduledSCRsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [ScheduledSCRsStorage.DB]
+        FilePath = "ScheduledSCRs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
         Name = "PeerBlockBodyStorage"

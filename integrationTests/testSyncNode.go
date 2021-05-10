@@ -200,11 +200,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
-		ScheduledTxsExecutionHandler: &mock.ScheduledTxsExecutionStub{},
+		BlockTracker:                 tpn.BlockTracker,
+		BlockSizeThrottler:           TestBlockSizeThrottler,
+		HistoryRepository:            tpn.HistoryRepository,
+		EpochNotifier:                tpn.EpochNotifier,
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -229,7 +229,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
-		argumentsBase.ScheduledTxsExecutionHandler = &mock.ScheduledTxsExecutionStub{}
+		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}
@@ -244,27 +244,28 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         tpn.DataPool,
-		Store:               tpn.Storage,
-		ChainHandler:        tpn.BlockChain,
-		RoundHandler:        tpn.RoundHandler,
-		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.RoundHandler.TimeDuration(),
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		ForkDetector:        tpn.ForkDetector,
-		RequestHandler:      tpn.RequestHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Accounts:            tpn.AccntState,
-		BlackListHandler:    tpn.BlockBlackListHandler,
-		NetworkWatcher:      tpn.Messenger,
-		BootStorer:          tpn.BootstrapStorer,
-		StorageBootstrapper: tpn.StorageBootstrapper,
-		EpochHandler:        tpn.EpochStartTrigger,
-		MiniblocksProvider:  tpn.MiniblocksProvider,
-		Uint64Converter:     TestUint64Converter,
-		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             &mock.NilIndexer{},
+		PoolsHolder:                  tpn.DataPool,
+		Store:                        tpn.Storage,
+		ChainHandler:                 tpn.BlockChain,
+		RoundHandler:                 tpn.RoundHandler,
+		BlockProcessor:               tpn.BlockProcessor,
+		WaitTime:                     tpn.RoundHandler.TimeDuration(),
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		ForkDetector:                 tpn.ForkDetector,
+		RequestHandler:               tpn.RequestHandler,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Accounts:                     tpn.AccntState,
+		BlackListHandler:             tpn.BlockBlackListHandler,
+		NetworkWatcher:               tpn.Messenger,
+		BootStorer:                   tpn.BootstrapStorer,
+		StorageBootstrapper:          tpn.StorageBootstrapper,
+		EpochHandler:                 tpn.EpochStartTrigger,
+		MiniblocksProvider:           tpn.MiniblocksProvider,
+		Uint64Converter:              TestUint64Converter,
+		AppStatusHandler:             TestAppStatusHandler,
+		Indexer:                      &mock.NilIndexer{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -283,27 +284,28 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         tpn.DataPool,
-		Store:               tpn.Storage,
-		ChainHandler:        tpn.BlockChain,
-		RoundHandler:        tpn.RoundHandler,
-		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.RoundHandler.TimeDuration(),
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		ForkDetector:        tpn.ForkDetector,
-		RequestHandler:      tpn.RequestHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Accounts:            tpn.AccntState,
-		BlackListHandler:    tpn.BlockBlackListHandler,
-		NetworkWatcher:      tpn.Messenger,
-		BootStorer:          tpn.BootstrapStorer,
-		StorageBootstrapper: tpn.StorageBootstrapper,
-		EpochHandler:        tpn.EpochStartTrigger,
-		MiniblocksProvider:  tpn.MiniblocksProvider,
-		Uint64Converter:     TestUint64Converter,
-		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             &mock.NilIndexer{},
+		PoolsHolder:                  tpn.DataPool,
+		Store:                        tpn.Storage,
+		ChainHandler:                 tpn.BlockChain,
+		RoundHandler:                 tpn.RoundHandler,
+		BlockProcessor:               tpn.BlockProcessor,
+		WaitTime:                     tpn.RoundHandler.TimeDuration(),
+		Hasher:                       TestHasher,
+		Marshalizer:                  TestMarshalizer,
+		ForkDetector:                 tpn.ForkDetector,
+		RequestHandler:               tpn.RequestHandler,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		Accounts:                     tpn.AccntState,
+		BlackListHandler:             tpn.BlockBlackListHandler,
+		NetworkWatcher:               tpn.Messenger,
+		BootStorer:                   tpn.BootstrapStorer,
+		StorageBootstrapper:          tpn.StorageBootstrapper,
+		EpochHandler:                 tpn.EpochStartTrigger,
+		MiniblocksProvider:           tpn.MiniblocksProvider,
+		Uint64Converter:              TestUint64Converter,
+		AppStatusHandler:             TestAppStatusHandler,
+		Indexer:                      &mock.NilIndexer{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

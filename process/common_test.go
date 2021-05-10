@@ -1891,3 +1891,5 @@ func TestSortHeadersByNonceShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(2), headers[1].GetNonce())
 	assert.Equal(t, uint64(3), headers[2].GetNonce())
 }
+
+//TODO: Add unit tests for SetScheduledSCRs method

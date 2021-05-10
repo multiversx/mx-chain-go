@@ -193,7 +193,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -224,7 +224,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -255,7 +255,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -286,7 +286,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -317,7 +317,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -348,7 +348,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -379,7 +379,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -409,7 +409,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -440,7 +440,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -471,7 +471,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -502,7 +502,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -533,7 +533,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -564,7 +564,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -595,7 +595,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -626,7 +626,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		nil,
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -657,7 +657,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T
 		&mock.EpochNotifierStub{},
 		0,
 		nil,
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -719,7 +719,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.Nil(t, err)
@@ -945,7 +945,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -1019,7 +1019,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -1103,7 +1103,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -1237,7 +1237,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	return preprocessor
@@ -1286,7 +1286,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
@@ -1371,7 +1371,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&mock.EpochNotifierStub{},
 		0,
 		&mock.TxTypeHandlerMock{},
-		&mock.ScheduledTxsExecutionStub{},
+		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
 	assert.NotNil(t, txs)

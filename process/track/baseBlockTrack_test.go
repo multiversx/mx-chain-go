@@ -75,6 +75,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateStorageUnit())
+	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateStorageUnit())
 	return store
 }
 
