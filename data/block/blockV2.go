@@ -605,3 +605,13 @@ func (hv2 *HeaderV2) SetScheduledRootHash(rootHash []byte) error {
 
 	return nil
 }
+
+// ValidateHeaderVersion does extra validation for header version
+func (hv2 *HeaderV2) ValidateHeaderVersion() error {
+	// the header needs to have a not nil & not empty scheduled root hash
+	if len(hv2.ScheduledRootHash) == 0 {
+		return data.ErrNilScheduledRootHash
+	}
+
+	return nil
+}

@@ -314,3 +314,13 @@ func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) er
 func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 	panic("implement me")
 }
+
+// SetScheduledRootHash -
+func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error{
+	panic("implement me")
+}
+
+// ValidateHeaderVersion -
+func (hhs *HeaderHandlerStub) ValidateHeaderVersion() error {
+	return nil
+}

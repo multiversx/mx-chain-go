@@ -390,3 +390,19 @@ func TestMiniBlock_Clone(t *testing.T) {
 
 	assert.True(t, reflect.DeepEqual(miniBlock, clonedMB))
 }
+
+func TestHeader_SetScheduledRootHash(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{}
+	err := header.SetScheduledRootHash([]byte("root hash"))
+	require.Equal(t, data.ErrScheduledRootHashNotSupported, err)
+}
+
+func TestHeader_ValidateHeaderVersion(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{}
+	err := header.ValidateHeaderVersion()
+	require.Nil(t, err)
+}

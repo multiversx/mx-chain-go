@@ -357,7 +357,13 @@ func (h *Header) SetScheduledRootHash(rootHash []byte) error {
 		return data.ErrNilPointerReceiver
 	}
 
-	return data.ErrNotAV2Header
+	return data.ErrScheduledRootHashNotSupported
+}
+
+// ValidateHeaderVersion does extra validation for header version
+func (h *Header) ValidateHeaderVersion() error {
+	// no extra validation for v1 header
+	return nil
 }
 
 // IntegrityAndValidity checks if data is valid

@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
+const v1 = "1"
 const wildcard = "*"
 const keySize = 4
 
@@ -184,7 +184,9 @@ func (hdrIntVer *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHa
 		)
 	}
 
-	return nil
+	err = hdr.ValidateHeaderVersion()
+
+	return err
 }
 
 // checkChainID returns nil if the header's chain ID matches the one provided

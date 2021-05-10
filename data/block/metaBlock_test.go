@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -356,4 +357,20 @@ func TestMetaBlock_GetOrderedCrossMiniblocksWithDstShouldWork(t *testing.T) {
 	assert.Equal(t, miniBlocksInfo[1].Round, uint64(6))
 	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash5"))
 	assert.Equal(t, miniBlocksInfo[2].Round, uint64(7))
+}
+
+func TestMetaBlock_SetScheduledRootHash(t *testing.T) {
+	t.Parallel()
+
+	metaHdr := &block.MetaBlock{}
+	err := metaHdr.SetScheduledRootHash([]byte(""))
+	require.Equal(t, data.ErrScheduledRootHashNotSupported, err)
+}
+
+func TestMetaBlock_ValidateHeaderVersion(t *testing.T) {
+	t.Parallel()
+
+	metaHdr := &block.MetaBlock{}
+	err := metaHdr.ValidateHeaderVersion()
+	require.Nil(t, err)
 }

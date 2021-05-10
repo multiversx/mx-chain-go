@@ -651,3 +651,22 @@ func TestHeaderV2_SetScheduledRootHash(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, rootHash, hv2.ScheduledRootHash)
 }
+
+func TestHeaderV2_ValidateHeaderVersion(t *testing.T) {
+	t.Parallel()
+
+	hv2 := block.HeaderV2{
+		Header: &block.Header{},
+	}
+
+	err := hv2.ValidateHeaderVersion()
+	require.Equal(t, data.ErrNilScheduledRootHash, err)
+
+	hv2.ScheduledRootHash = make([]byte, 0)
+	err = hv2.ValidateHeaderVersion()
+	require.Equal(t, data.ErrNilScheduledRootHash, err)
+
+	hv2.ScheduledRootHash = make([]byte, 32)
+	err = hv2.ValidateHeaderVersion()
+	require.Nil(t, err)
+}
