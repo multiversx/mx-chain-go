@@ -3602,7 +3602,7 @@ func TestStakingValidatorSC_UnbondTokensWithCallValueShouldError(t *testing.T) {
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
 
-func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
+func TestStakingValidatorSC_UnBondTokensV1ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -3618,6 +3618,7 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 	}
 	args := createMockArgumentsForValidatorSC()
 	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = 1000
 	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
 	args.Eei = eei
@@ -3674,6 +3675,259 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 			},
 		},
 		TotalUnstaked: big.NewInt(4),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingValidatorSC_UnBondTokensV2ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
+		CurrentNonceCalled: func() uint64 {
+			return uint64(startEpoch + unbondPeriod)
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1000),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedEpoch: startEpoch + 1,
+					UnstakedValue: big.NewInt(4),
+				},
+				{
+					UnstakedEpoch: startEpoch - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+				{
+					UnstakedEpoch: startEpoch - 1,
+					UnstakedValue: big.NewInt(2),
+				},
+				{
+					UnstakedEpoch: startEpoch,
+					UnstakedValue: big.NewInt(3),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
+
+	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, nil, zero, vmcommon.Ok)
+
+	expected := &ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedEpoch: startEpoch + 1,
+				UnstakedValue: big.NewInt(4),
+			},
+		},
+		TotalUnstaked: big.NewInt(4),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingValidatorSC_UnBondTokensV2WithTooMuchToUnbondShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
+		CurrentNonceCalled: func() uint64 {
+			return uint64(startEpoch + unbondPeriod)
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1000),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedEpoch: startEpoch + 1,
+					UnstakedValue: big.NewInt(4),
+				},
+				{
+					UnstakedEpoch: startEpoch - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+				{
+					UnstakedEpoch: startEpoch - 1,
+					UnstakedValue: big.NewInt(2),
+				},
+				{
+					UnstakedEpoch: startEpoch,
+					UnstakedValue: big.NewInt(3),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
+
+	unbondValueBytes := big.NewInt(7).Bytes()
+	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{unbondValueBytes}, zero, vmcommon.Ok)
+
+	expected := &ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedEpoch: startEpoch + 1,
+				UnstakedValue: big.NewInt(4),
+			},
+		},
+		TotalUnstaked: big.NewInt(4),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingValidatorSC_UnBondTokensV2WithSplitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint32(10)
+	startEpoch := uint32(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return startEpoch + unbondPeriod
+		},
+		CurrentNonceCalled: func() uint64 {
+			return uint64(startEpoch + unbondPeriod)
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriodInEpochs = unbondPeriod
+	args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, uint64(unbondPeriod), blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1000),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedEpoch: startEpoch + 1,
+					UnstakedValue: big.NewInt(4),
+				},
+				{
+					UnstakedEpoch: startEpoch - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+				{
+					UnstakedEpoch: startEpoch - 1,
+					UnstakedValue: big.NewInt(2),
+				},
+				{
+					UnstakedEpoch: startEpoch,
+					UnstakedValue: big.NewInt(3),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
+
+	unbondValueBytes := big.NewInt(2).Bytes()
+	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{unbondValueBytes}, zero, vmcommon.Ok)
+
+	expected := &ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedEpoch: startEpoch + 1,
+				UnstakedValue: big.NewInt(4),
+			},
+			{
+				UnstakedEpoch: startEpoch - 1,
+				UnstakedValue: big.NewInt(1),
+			},
+			{
+				UnstakedEpoch: startEpoch,
+				UnstakedValue: big.NewInt(3),
+			},
+		},
+		TotalUnstaked: big.NewInt(8),
 	}
 
 	recovered, err := sc.getOrCreateRegistrationData(caller)
