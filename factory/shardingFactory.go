@@ -134,16 +134,19 @@ func CreateNodesCoordinator(
 	if bootstrapParameters.NodesConfig() != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig()
 		currentEpoch = bootstrapParameters.Epoch()
-		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
-		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
-		if err != nil {
-			return nil, err
-		}
+		epochsConfig, ok := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)]
+		if ok {
+			eligibles := epochsConfig.EligibleValidators
+			eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
+			if err != nil {
+				return nil, err
+			}
 
-		waitings := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].WaitingValidators
-		waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
-		if err != nil {
-			return nil, err
+			waitings := epochsConfig.WaitingValidators
+			waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

@@ -79,7 +79,7 @@ func (n *Node) putSmartContractResultsInTransaction(
 		}
 	}
 
-	statusFilters := filters.NewStatusFilters(n.shardCoordinator.SelfId())
+	statusFilters := filters.NewStatusFilters(n.processComponents.ShardCoordinator().SelfId())
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 }
 

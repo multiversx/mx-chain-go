@@ -361,17 +361,17 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer(container)
+	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
 
 	remainingTime := time.Millisecond
-	roundHandlerMock := &mock.RounderMock{
+	roundHandlerMock := &mock.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
 	}
 
-	container.SetRounder(roundHandlerMock)
+	container.SetRoundHandler(roundHandlerMock)
 	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()

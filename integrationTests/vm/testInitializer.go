@@ -489,7 +489,7 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
-	vmFactory, err := metachain.NewVMContainerFactory(metachain.ArgsNewVMContainerFactory{
+	argVmContainer := metachain.ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   args,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
@@ -497,12 +497,14 @@ func CreateVMAndBlockchainHookMeta(
 		NodesConfigProvider: &mock.NodesSetupStub{},
 		Hasher:              testHasher,
 		Marshalizer:         testMarshalizer,
-		SystemSCConfig:      createSystemSCConfig(arg),
+		SystemSCConfig:      createSystemSCConfig(),
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
-	})
+	}
+	argVmContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
+	vmFactory, err := metachain.NewVMContainerFactory(argVmContainer)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -532,7 +534,7 @@ func createEpochConfig() *config.EpochConfig {
 	}
 }
 
-func createSystemSCConfig(arg ArgEnableEpoch) *config.SystemSmartContractsConfig {
+func createSystemSCConfig() *config.SystemSmartContractsConfig {
 	return &config.SystemSmartContractsConfig{
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 			BaseIssuingCost: "5000000000000000000",
@@ -558,7 +560,6 @@ func createSystemSCConfig(arg ArgEnableEpoch) *config.SystemSmartContractsConfig
 			BleedPercentagePerRound:              0.00001,
 			MaxNumberOfNodesForStake:             36,
 			ActivateBLSPubKeyMessageVerification: false,
-			UnbondTokensV2EnableEpoch:            arg.UnbondTokensV2EnableEpoch,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",

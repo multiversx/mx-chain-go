@@ -163,7 +163,7 @@ func NewValidatorSmartContract(
 	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
-	add print here
+	log.Debug("validator: enable epoch for unbond tokens v2", "epoch", reg.enableUnbondTokensV2Epoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 

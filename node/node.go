@@ -247,7 +247,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
 		if err != nil {
 			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
 			continue
