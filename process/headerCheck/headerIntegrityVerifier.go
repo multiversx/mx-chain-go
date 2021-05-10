@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-const v1 = "1"
+
 const wildcard = "*"
 const keySize = 4
 
