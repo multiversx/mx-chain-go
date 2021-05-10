@@ -44,7 +44,7 @@ func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgIntercepted
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		Hasher:                  testHasher,
-		Marshalizer:             createMockMarshallerWithHeaderV2Support(),
+		Marshalizer:             &marshal.GogoProtoMarshalizer{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
@@ -77,19 +77,6 @@ func createMockShardHeader() *dataBlock.Header {
 		ChainID:          []byte("chain ID"),
 		SoftwareVersion:  []byte("version"),
 	}
-}
-
-func createMockMarshallerWithHeaderV2Support() marshal.Marshalizer {
-	marshaler := &marshal.GogoProtoMarshalizer{}
-	m := &mock.MarshalizerStub{
-		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return marshaler.Marshal(obj)
-		},
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return marshaler.Unmarshal(obj, buff)
-		},
-	}
-	return m
 }
 
 //------- TestNewInterceptedHeader
@@ -405,4 +392,18 @@ func Test_TryCreateHeaderV2FromHeaderV2(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, recreatedHdrV2)
 	require.Equal(t, hdrV2, recreatedHdrV2)
+}
+
+func Test_TryCreateHeaderV2FromHeaderV1WithJson(t *testing.T) {
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+	hdrBuff, err := marshalizer.Marshal(hdr)
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuff)
+
+	recreatedHdr, err := interceptedBlocks.TryCreateHeaderV2(marshalizer, hdrBuff)
+	require.NotNil(t, err)
+	require.Nil(t, recreatedHdr)
 }

@@ -9,191 +9,191 @@ import (
 
 // GetShardID returns the header shardID
 func (hv2 *HeaderV2) GetShardID() uint32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.ShardID
+	return hv2.Header.GetShardID()
 }
 
 // GetNonce returns the header nonce
 func (hv2 *HeaderV2) GetNonce() uint64 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.Nonce
+	return hv2.Header.GetNonce()
 }
 
 // GetEpoch returns the header epoch
 func (hv2 *HeaderV2) GetEpoch() uint32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.Epoch
+	return hv2.Header.GetEpoch()
 }
 
 // GetRound returns the header round
 func (hv2 *HeaderV2) GetRound() uint64 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.Round
+	return hv2.Header.GetRound()
 }
 
 // GetRootHash returns the header root hash
 func (hv2 *HeaderV2) GetRootHash() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.RootHash
+	return hv2.Header.GetRootHash()
 }
 
 // GetPrevHash returns the header previous header hash
 func (hv2 *HeaderV2) GetPrevHash() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.PrevHash
+	return hv2.Header.GetPrevHash()
 }
 
 // GetPrevRandSeed returns the header previous random seed
 func (hv2 *HeaderV2) GetPrevRandSeed() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.PrevRandSeed
+	return hv2.Header.GetPrevRandSeed()
 }
 
 // GetRandSeed returns the header random seed
 func (hv2 *HeaderV2) GetRandSeed() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.RandSeed
+	return hv2.Header.GetRandSeed()
 }
 
 // GetPubKeysBitmap returns the header public key bitmap for the aggregated signatures
 func (hv2 *HeaderV2) GetPubKeysBitmap() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.PubKeysBitmap
+	return hv2.Header.GetPubKeysBitmap()
 }
 
 // GetSignature returns the header aggregated signature
 func (hv2 *HeaderV2) GetSignature() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.Signature
+	return hv2.Header.GetSignature()
 }
 
 // GetLeaderSignature returns the leader signature on top of the finalized (signed) header
 func (hv2 *HeaderV2) GetLeaderSignature() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.LeaderSignature
+	return hv2.Header.GetLeaderSignature()
 }
 
 // GetChainID returns the chain ID
 func (hv2 *HeaderV2) GetChainID() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.ChainID
+	return hv2.Header.GetChainID()
 }
 
 // GetSoftwareVersion returns the header software version
 func (hv2 *HeaderV2) GetSoftwareVersion() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.SoftwareVersion
+	return hv2.Header.GetSoftwareVersion()
 }
 
 // GetTimeStamp returns the header timestamp
 func (hv2 *HeaderV2) GetTimeStamp() uint64 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.TimeStamp
+	return hv2.Header.GetTimeStamp()
 }
 
 // GetTxCount returns the number of txs included in the block
 func (hv2 *HeaderV2) GetTxCount() uint32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return 0
 	}
 
-	return hv2.Header.TxCount
+	return hv2.Header.GetTxCount()
 }
 
 // GetReceiptsHash returns the header receipt hash
 func (hv2 *HeaderV2) GetReceiptsHash() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.ReceiptsHash
+	return hv2.Header.GetReceiptsHash()
 }
 
 // GetAccumulatedFees returns the block accumulated fees
 func (hv2 *HeaderV2) GetAccumulatedFees() *big.Int {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.AccumulatedFees
+	return hv2.Header.GetAccumulatedFees()
 }
 
 // GetDeveloperFees returns the block developer fees
 func (hv2 *HeaderV2) GetDeveloperFees() *big.Int {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.DeveloperFees
+	return hv2.Header.GetDeveloperFees()
 }
 
 // GetReserved returns the reserved field
 func (hv2 *HeaderV2) GetReserved() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.Reserved
+	return hv2.Header.GetReserved()
 }
 
 // GetMetaBlockHashes returns the metaBlock hashes
 func (hv2 *HeaderV2) GetMetaBlockHashes() [][]byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.MetaBlockHashes
+	return hv2.Header.GetMetaBlockHashes()
 }
 
 // GetEpochStartMetaHash returns the epoch start metaBlock hash
 func (hv2 *HeaderV2) GetEpochStartMetaHash() []byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	return hv2.Header.EpochStartMetaHash
+	return hv2.Header.GetEpochStartMetaHash()
 }
 
 // SetNonce sets header nonce
@@ -201,12 +201,7 @@ func (hv2 *HeaderV2) SetNonce(n uint64) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
-
-	hv2.Header.Nonce = n
-	return nil
+	return hv2.Header.SetNonce(n)
 }
 
 // SetEpoch sets header epoch
@@ -214,12 +209,8 @@ func (hv2 *HeaderV2) SetEpoch(e uint32) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.Epoch = e
-	return nil
+	return hv2.Header.SetEpoch(e)
 }
 
 // SetRound sets header round
@@ -227,12 +218,8 @@ func (hv2 *HeaderV2) SetRound(r uint64) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.Round = r
-	return nil
+	return hv2.Header.SetRound(r)
 }
 
 // SetRootHash sets root hash
@@ -240,12 +227,8 @@ func (hv2 *HeaderV2) SetRootHash(rHash []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.RootHash = rHash
-	return nil
+	return hv2.Header.SetRootHash(rHash)
 }
 
 // SetPrevHash sets prev hash
@@ -253,12 +236,8 @@ func (hv2 *HeaderV2) SetPrevHash(pvHash []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.PrevHash = pvHash
-	return nil
+	return hv2.Header.SetPrevHash(pvHash)
 }
 
 // SetPrevRandSeed sets previous random seed
@@ -266,12 +245,8 @@ func (hv2 *HeaderV2) SetPrevRandSeed(pvRandSeed []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.PrevRandSeed = pvRandSeed
-	return nil
+	return hv2.Header.SetPrevRandSeed(pvRandSeed)
 }
 
 // SetRandSeed sets previous random seed
@@ -279,12 +254,8 @@ func (hv2 *HeaderV2) SetRandSeed(randSeed []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.RandSeed = randSeed
-	return nil
+	return hv2.Header.SetRandSeed(randSeed)
 }
 
 // SetPubKeysBitmap sets public key bitmap
@@ -292,12 +263,8 @@ func (hv2 *HeaderV2) SetPubKeysBitmap(pkbm []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.PubKeysBitmap = pkbm
-	return nil
+	return hv2.Header.SetPubKeysBitmap(pkbm)
 }
 
 // SetSignature sets header signature
@@ -305,12 +272,8 @@ func (hv2 *HeaderV2) SetSignature(sg []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.Signature = sg
-	return nil
+	return hv2.Header.SetSignature(sg)
 }
 
 // SetLeaderSignature will set the leader's signature
@@ -318,12 +281,8 @@ func (hv2 *HeaderV2) SetLeaderSignature(sg []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.LeaderSignature = sg
-	return nil
+	return hv2.Header.SetLeaderSignature(sg)
 }
 
 // SetChainID sets the chain ID on which this block is valid on
@@ -331,12 +290,8 @@ func (hv2 *HeaderV2) SetChainID(chainID []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.ChainID = chainID
-	return nil
+	return hv2.Header.SetChainID(chainID)
 }
 
 // SetSoftwareVersion sets the software version of the header
@@ -344,12 +299,8 @@ func (hv2 *HeaderV2) SetSoftwareVersion(version []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.SoftwareVersion = version
-	return nil
+	return hv2.Header.SetSoftwareVersion(version)
 }
 
 // SetTimeStamp sets header timestamp
@@ -357,12 +308,8 @@ func (hv2 *HeaderV2) SetTimeStamp(ts uint64) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.TimeStamp = ts
-	return nil
+	return hv2.Header.SetTimeStamp(ts)
 }
 
 // SetAccumulatedFees sets the accumulated fees in the header
@@ -370,15 +317,8 @@ func (hv2 *HeaderV2) SetAccumulatedFees(value *big.Int) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
-	if hv2.Header.AccumulatedFees == nil {
-		hv2.Header.AccumulatedFees = big.NewInt(0)
-	}
 
-	hv2.Header.AccumulatedFees.Set(value)
-	return nil
+	return hv2.Header.SetAccumulatedFees(value)
 }
 
 // SetDeveloperFees sets the developer fees in the header
@@ -386,14 +326,8 @@ func (hv2 *HeaderV2) SetDeveloperFees(value *big.Int) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
-	if hv2.Header.DeveloperFees == nil {
-		hv2.Header.DeveloperFees = big.NewInt(0)
-	}
-	hv2.Header.DeveloperFees.Set(value)
-	return nil
+
+	return hv2.Header.SetDeveloperFees(value)
 }
 
 // SetTxCount sets the transaction count of the block associated with this header
@@ -401,12 +335,8 @@ func (hv2 *HeaderV2) SetTxCount(txCount uint32) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.TxCount = txCount
-	return nil
+	return hv2.Header.SetTxCount(txCount)
 }
 
 // SetShardID sets header shard ID
@@ -414,74 +344,45 @@ func (hv2 *HeaderV2) SetShardID(shId uint32) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.ShardID = shId
-	return nil
+	return hv2.Header.SetShardID(shId)
 }
 
 // GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
 func (hv2 *HeaderV2) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	hashDst := make(map[string]uint32)
-	for _, val := range hv2.Header.MiniBlockHeaders {
-		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			hashDst[string(val.Hash)] = val.SenderShardID
-		}
-	}
-	return hashDst
+	return hv2.Header.GetMiniBlockHeadersWithDst(destId)
 }
 
 // GetOrderedCrossMiniblocksWithDst gets all cross miniblocks with the given destination shard ID, ordered in a
 // chronological way, taking into consideration the round in which they were created/executed in the sender shard
 func (hv2 *HeaderV2) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	miniBlocks := make([]*data.MiniBlockInfo, 0)
-	for _, mb := range hv2.Header.MiniBlockHeaders {
-		if mb.ReceiverShardID == destId && mb.SenderShardID != destId {
-			miniBlocks = append(miniBlocks, &data.MiniBlockInfo{
-				Hash:          mb.Hash,
-				SenderShardID: mb.SenderShardID,
-				Round:         hv2.Header.Round,
-			})
-		}
-	}
-
-	return miniBlocks
+	return hv2.Header.GetOrderedCrossMiniblocksWithDst(destId)
 }
 
 // GetMiniBlockHeadersHashes gets the miniblock hashes
 func (hv2 *HeaderV2) GetMiniBlockHeadersHashes() [][]byte {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	result := make([][]byte, 0, len(hv2.Header.MiniBlockHeaders))
-	for _, miniblock := range hv2.Header.MiniBlockHeaders {
-		result = append(result, miniblock.Hash)
-	}
-	return result
+	return hv2.Header.GetMiniBlockHeadersHashes()
 }
 
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (hv2 *HeaderV2) MapMiniBlockHashesToShards() map[string]uint32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	hashDst := make(map[string]uint32)
-	for _, val := range hv2.Header.MiniBlockHeaders {
-		hashDst[string(val.Hash)] = val.SenderShardID
-	}
-	return hashDst
+	return hv2.Header.MapMiniBlockHashesToShards()
 }
 
 // ShallowClone returns a clone of the object
@@ -504,36 +405,29 @@ func (hv2 *HeaderV2) IsInterfaceNil() bool {
 
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (hv2 *HeaderV2) IsStartOfEpochBlock() bool {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return false
 	}
 
-	return len(hv2.Header.EpochStartMetaHash) > 0
+	return hv2.Header.IsStartOfEpochBlock()
 }
 
 // GetBlockBodyTypeInt32 returns the block body type as int32
 func (hv2 *HeaderV2) GetBlockBodyTypeInt32() int32 {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return -1
 	}
 
-	return int32(hv2.Header.GetBlockBodyType())
+	return hv2.Header.GetBlockBodyTypeInt32()
 }
 
 // GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
 func (hv2 *HeaderV2) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
-	if hv2 == nil || hv2.Header == nil {
+	if hv2 == nil {
 		return nil
 	}
 
-	mbHeaders := hv2.Header.GetMiniBlockHeaders()
-	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(mbHeaders))
-
-	for i := range mbHeaders {
-		mbHeaderHandlers[i] = &mbHeaders[i]
-	}
-
-	return mbHeaderHandlers
+	return hv2.Header.GetMiniBlockHeaderHandlers()
 }
 
 // SetMiniBlockHeaderHandlers sets the miniBlock headers from the given miniBlock header handlers
@@ -541,30 +435,8 @@ func (hv2 *HeaderV2) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBloc
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
-	if mbHeaderHandlers == nil {
-		hv2.Header.MiniBlockHeaders = nil
-		return nil
-	}
 
-	miniBlockHeaders := make([]MiniBlockHeader, len(mbHeaderHandlers))
-	hv2.Header.MiniBlockHeaders = make([]MiniBlockHeader, len(mbHeaderHandlers))
-	for i, mbHeaderHandler := range mbHeaderHandlers {
-		mbHeader, ok := mbHeaderHandler.(*MiniBlockHeader)
-		if !ok {
-			return data.ErrInvalidTypeAssertion
-		}
-		if mbHeader == nil {
-			return data.ErrNilPointerDereference
-		}
-		miniBlockHeaders[i] = *mbHeader
-	}
-
-	hv2.Header.MiniBlockHeaders = miniBlockHeaders
-
-	return nil
+	return hv2.Header.SetMiniBlockHeaderHandlers(mbHeaderHandlers)
 }
 
 // SetReceiptsHash sets the receipts hash
@@ -572,13 +444,8 @@ func (hv2 *HeaderV2) SetReceiptsHash(hash []byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.ReceiptsHash = hash
-
-	return nil
+	return hv2.Header.SetReceiptsHash(hash)
 }
 
 // SetMetaBlockHashes sets the metaBlock hashes
@@ -586,13 +453,8 @@ func (hv2 *HeaderV2) SetMetaBlockHashes(hashes [][]byte) error {
 	if hv2 == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if hv2.Header == nil {
-		return data.ErrNilPointerDereference
-	}
 
-	hv2.Header.MetaBlockHashes = hashes
-
-	return nil
+	return hv2.Header.SetMetaBlockHashes(hashes)
 }
 
 // SetScheduledRootHash sets the scheduled root hash
@@ -613,5 +475,5 @@ func (hv2 *HeaderV2) ValidateHeaderVersion() error {
 		return data.ErrNilScheduledRootHash
 	}
 
-	return nil
+	return hv2.Header.ValidateHeaderVersion()
 }

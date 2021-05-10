@@ -5,6 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -71,6 +72,9 @@ func tryCreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.He
 	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(hdrV2.Header){
+		return nil, fmt.Errorf("%w while checking inner header", process.ErrNilHeaderHandler)
 	}
 
 	return hdrV2, nil

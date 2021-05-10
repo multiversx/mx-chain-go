@@ -290,7 +290,7 @@ func TestHeaderV2_SetEpochNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetEpoch(1))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetEpoch(1))
 }
 
 func TestHeaderV2_SetEpoch(t *testing.T) {
@@ -315,7 +315,7 @@ func TestHeaderV2_SetNonceNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetNonce(1))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetNonce(1))
 }
 
 func TestHeaderV2_SetNonce(t *testing.T) {
@@ -340,7 +340,7 @@ func TestHeaderV2_SetPrevHashNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetPrevHash([]byte("prev hash")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetPrevHash([]byte("prev hash")))
 }
 
 func TestHeaderV2_SetPrevHash(t *testing.T) {
@@ -365,7 +365,7 @@ func TestHeaderV2_SetPrevRandSeedNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetPrevRandSeed([]byte("prev rand seed")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetPrevRandSeed([]byte("prev rand seed")))
 }
 
 func TestHeaderV2_SetPrevRandSeed(t *testing.T) {
@@ -390,7 +390,7 @@ func TestHeaderV2_SetRandSeedNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetRandSeed([]byte("rand seed")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetRandSeed([]byte("rand seed")))
 }
 
 func TestHeaderV2_SetRandSeed(t *testing.T) {
@@ -415,7 +415,7 @@ func TestHeaderV2_SetPubKeysBitmapNilPointerReceiverOrInnerHeader(t *testing.T) 
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetPubKeysBitmap([]byte("pub key bitmap")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetPubKeysBitmap([]byte("pub key bitmap")))
 }
 
 func TestHeaderV2_SetPubKeysBitmap(t *testing.T) {
@@ -440,7 +440,7 @@ func TestHeaderV2_SetRootHashNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetRootHash([]byte("root hash")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetRootHash([]byte("root hash")))
 }
 
 func TestHeaderV2_SetRootHash(t *testing.T) {
@@ -465,20 +465,20 @@ func TestHeaderV2_SetRoundNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetRound(1))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetRound(1))
 }
 
 func TestHeaderV2_SetRound(t *testing.T) {
 	t.Parallel()
 
-	rootHash := []byte("root hash")
+	round := uint64(10)
 	h := &block.HeaderV2{
 		Header: &block.Header{},
 	}
 
-	err := h.SetRootHash(rootHash)
+	err := h.SetRound(round)
 	require.Nil(t, err)
-	require.Equal(t, rootHash, h.GetRootHash())
+	require.Equal(t, round, h.GetRound())
 }
 
 func TestHeaderV2_SetSignatureNilPointerReceiverOrInnerHeader(t *testing.T) {
@@ -490,7 +490,7 @@ func TestHeaderV2_SetSignatureNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetSignature([]byte("signature")))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetSignature([]byte("signature")))
 }
 
 func TestHeaderV2_SetSignature(t *testing.T) {
@@ -515,7 +515,7 @@ func TestHeaderV2_SetTimeStampNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetTimeStamp(100000))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetTimeStamp(100000))
 }
 
 func TestHeaderV2_SetTimeStamp(t *testing.T) {
@@ -540,7 +540,7 @@ func TestHeaderV2_SetTxCountNilPointerReceiverOrInnerHeader(t *testing.T) {
 	h = &block.HeaderV2{
 		Header: nil,
 	}
-	require.Equal(t, data.ErrNilPointerDereference, h.SetTxCount(10000))
+	require.Equal(t, data.ErrNilPointerReceiver, h.SetTxCount(10000))
 }
 
 func TestHeaderV2_SetTxCount(t *testing.T) {
