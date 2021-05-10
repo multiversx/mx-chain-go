@@ -288,8 +288,8 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigit
 }
 
 // GetAllIssuedESDTs returns all the issued esdts from the esdt system smart contract
-func (nf *nodeFacade) GetAllIssuedESDTs() ([]string, error) {
-	return nf.node.GetAllIssuedESDTs()
+func (nf *nodeFacade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+	return nf.node.GetAllIssuedESDTs(tokenType)
 }
 
 // CreateTransaction creates a transaction from all needed fields

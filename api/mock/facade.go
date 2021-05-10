@@ -52,7 +52,7 @@ type Facade struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                 func() ([]string, error)
+	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
 }
@@ -145,10 +145,11 @@ func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalTok
 }
 
 // GetAllIssuedESDTs -
-func (f *Facade) GetAllIssuedESDTs() ([]string, error) {
+func (f *Facade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	if f.GetAllIssuedESDTsCalled != nil {
-		return f.GetAllIssuedESDTsCalled()
+		return f.GetAllIssuedESDTsCalled(tokenType)
 	}
+
 	return make([]string, 0), nil
 }
 

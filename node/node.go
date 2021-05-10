@@ -56,6 +56,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 )
 
 const (
@@ -452,7 +453,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 }
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
-func (n *Node) GetAllIssuedESDTs() ([]string, error) {
+func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
@@ -480,9 +481,32 @@ func (n *Node) GetAllIssuedESDTs() ([]string, error) {
 	}
 
 	for leaf := range chLeaves {
-		key := string(leaf.Key())
-		if strings.Contains(key, "-") {
-			tokens = append(tokens, key)
+		tokenName := string(leaf.Key())
+		if !strings.Contains(tokenName, "-") {
+			continue
+		}
+
+		if tokenType == "" {
+			tokens = append(tokens, tokenName)
+			continue
+		}
+
+		esdtToken := &systemSmartContracts.ESDTData{}
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		if err != nil {
+			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			continue
+		}
+
+		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
+			tokens = append(tokens, tokenName)
 		}
 	}
 
@@ -591,7 +615,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
-// GetAllESDTTokens returns the value of a key from a given account
+// GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandlerAPIAccounts(address)
 	if err != nil {
