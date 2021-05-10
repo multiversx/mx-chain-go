@@ -88,21 +88,28 @@ func TestStorageCacherAdapter_Clear(t *testing.T) {
 func TestStorageCacherAdapter_Put(t *testing.T) {
 	t.Parallel()
 
+	addedKey := "key1"
+	addedVal := []byte("value1")
 	addSizedAndReturnEvictedCalled := false
 	putCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			AddSizedAndReturnEvictedCalled: func(_, _ interface{}, _ int64) map[interface{}]interface{} {
+			AddSizedAndReturnEvictedCalled: func(key, value interface{}, _ int64) map[interface{}]interface{} {
+				stringKey, ok := key.(string)
+				assert.True(t, ok)
+				assert.Equal(t, addedKey, stringKey)
+
 				res := make(map[interface{}]interface{})
 				res[100] = 10
-				res["key"] = "value"
+				res[stringKey] = value
 
 				addSizedAndReturnEvictedCalled = true
 				return res
 			},
 		},
 		&storageMock.PersisterStub{
-			PutCalled: func(_, _ []byte) error {
+			PutCalled: func(key, _ []byte) error {
+				assert.Equal(t, []byte(addedKey), key)
 				putCalled = true
 				return nil
 			},
@@ -112,7 +119,7 @@ func TestStorageCacherAdapter_Put(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	evicted := sca.Put([]byte("key1"), []byte("value1"), 100)
+	evicted := sca.Put([]byte(addedKey), addedVal, 100)
 	assert.True(t, evicted)
 	assert.True(t, putCalled)
 	assert.True(t, addSizedAndReturnEvictedCalled)
@@ -121,11 +128,16 @@ func TestStorageCacherAdapter_Put(t *testing.T) {
 func TestStorageCacherAdapter_GetFoundInCacherShouldNotCallDbGet(t *testing.T) {
 	t.Parallel()
 
+	keyString := "key"
 	cacherGetCalled := false
 	dbGetCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			GetCalled: func(_ interface{}) (interface{}, bool) {
+			GetCalled: func(key interface{}) (interface{}, bool) {
+				k, ok := key.(string)
+				assert.True(t, ok)
+				assert.Equal(t, keyString, k)
+
 				cacherGetCalled = true
 				return []byte("val"), true
 			},
@@ -141,7 +153,7 @@ func TestStorageCacherAdapter_GetFoundInCacherShouldNotCallDbGet(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	retrievedVal, _ := sca.Get([]byte("key"))
+	retrievedVal, _ := sca.Get([]byte(keyString))
 
 	assert.Equal(t, []byte("val"), retrievedVal)
 	assert.True(t, cacherGetCalled)
@@ -211,7 +223,10 @@ func TestStorageCacherAdapter_HasReturnsIfFoundInCacher(t *testing.T) {
 	hasCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			ContainsCalled: func(_ interface{}) bool {
+			ContainsCalled: func(key interface{}) bool {
+				_, ok := key.(string)
+				assert.True(t, ok)
+
 				containsCalled = true
 				return true
 			},
@@ -300,7 +315,10 @@ func TestStorageCacherAdapter_Peek(t *testing.T) {
 	peekCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			PeekCalled: func(_ interface{}) (interface{}, bool) {
+			PeekCalled: func(key interface{}) (interface{}, bool) {
+				_, ok := key.(string)
+				assert.True(t, ok)
+
 				peekCalled = true
 				return "value", true
 			},
@@ -325,7 +343,10 @@ func TestStorageCacherAdapter_RemoveFromCacherFirst(t *testing.T) {
 	dbRemoveCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			RemoveCalled: func(_ interface{}) bool {
+			RemoveCalled: func(key interface{}) bool {
+				_, ok := key.(string)
+				assert.True(t, ok)
+
 				cacherRemoveCalled = true
 				return true
 			},
