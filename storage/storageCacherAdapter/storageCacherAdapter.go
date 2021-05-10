@@ -118,7 +118,7 @@ func (c *storageCacherAdapter) Has(key []byte) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	isPresent := c.cacher.Contains(key)
+	isPresent := c.cacher.Contains(string(key))
 	if isPresent {
 		return true
 	}
@@ -136,7 +136,7 @@ func (c *storageCacherAdapter) Peek(key []byte) (value interface{}, ok bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	return c.cacher.Peek(key)
+	return c.cacher.Peek(string(key))
 }
 
 // HasOrAdd adds the given value in the storageUnit
@@ -167,15 +167,15 @@ func (c *storageCacherAdapter) Keys() [][]byte {
 	cacherKeys := c.cacher.Keys()
 	storedKeys := make([][]byte, 0)
 	for i := range cacherKeys {
-		key, ok := cacherKeys[i].([]byte)
+		key, ok := cacherKeys[i].(string)
 		if !ok {
 			continue
 		}
 
-		storedKeys = append(storedKeys, key)
+		storedKeys = append(storedKeys, []byte(key))
 	}
 
-	getKeys := func(key []byte, val []byte) bool {
+	getKeys := func(key []byte, _ []byte) bool {
 		storedKeys = append(storedKeys, key)
 		return true
 	}
@@ -190,7 +190,7 @@ func (c *storageCacherAdapter) Len() int {
 	defer c.lock.RUnlock()
 
 	cacheLen := c.cacher.Len()
-	countValues := func(key []byte, val []byte) bool {
+	countValues := func(_ []byte, _ []byte) bool {
 		cacheLen++
 		return true
 	}
@@ -205,7 +205,7 @@ func (c *storageCacherAdapter) SizeInBytesContained() uint64 {
 	defer c.lock.RUnlock()
 
 	size := c.cacher.SizeInBytesContained()
-	countSize := func(key []byte, val []byte) bool {
+	countSize := func(_ []byte, val []byte) bool {
 		size += uint64(len(val))
 		return true
 	}

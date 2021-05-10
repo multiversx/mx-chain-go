@@ -348,6 +348,7 @@ func trieNode(
 	if err != nil {
 		return nil, err
 	}
+	decodedNode.setDirty(true)
 
 	return decodedNode, nil
 }

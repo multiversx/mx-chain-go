@@ -125,13 +125,13 @@ func TestStorageCacherAdapter_GetFoundInCacherShouldNotCallDbGet(t *testing.T) {
 	dbGetCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			GetCalled: func(key interface{}) (value interface{}, ok bool) {
+			GetCalled: func(_ interface{}) (interface{}, bool) {
 				cacherGetCalled = true
 				return []byte("val"), true
 			},
 		},
 		&storageMock.PersisterStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(_ []byte) ([]byte, error) {
 				dbGetCalled = true
 				return nil, nil
 			},
@@ -177,13 +177,13 @@ func TestStorageCacherAdapter_GetFromDb(t *testing.T) {
 	dbGetCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			GetCalled: func(key interface{}) (value interface{}, ok bool) {
+			GetCalled: func(_ interface{}) (interface{}, bool) {
 				cacherGetCalled = true
 				return nil, false
 			},
 		},
 		&storageMock.PersisterStub{
-			GetCalled: func(key []byte) ([]byte, error) {
+			GetCalled: func(_ []byte) ([]byte, error) {
 				dbGetCalled = true
 				byteData, err := marshalizer.Marshal(testData)
 				return byteData, err
@@ -211,13 +211,13 @@ func TestStorageCacherAdapter_HasReturnsIfFoundInCacher(t *testing.T) {
 	hasCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			ContainsCalled: func(key interface{}) (ok bool) {
+			ContainsCalled: func(_ interface{}) bool {
 				containsCalled = true
 				return true
 			},
 		},
 		&storageMock.PersisterStub{
-			HasCalled: func(key []byte) error {
+			HasCalled: func(_ []byte) error {
 				hasCalled = true
 				return nil
 			},
@@ -241,13 +241,13 @@ func TestStorageCacherAdapter_HasReturnsTrueIfFoundInDB(t *testing.T) {
 	hasCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			ContainsCalled: func(key interface{}) (ok bool) {
+			ContainsCalled: func(_ interface{}) bool {
 				containsCalled = true
 				return false
 			},
 		},
 		&storageMock.PersisterStub{
-			HasCalled: func(key []byte) error {
+			HasCalled: func(_ []byte) error {
 				hasCalled = true
 				return nil
 			},
@@ -271,13 +271,13 @@ func TestStorageCacherAdapter_HasReturnsFalseIfNotFound(t *testing.T) {
 	hasCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			ContainsCalled: func(key interface{}) (ok bool) {
+			ContainsCalled: func(_ interface{}) bool {
 				containsCalled = true
 				return false
 			},
 		},
 		&storageMock.PersisterStub{
-			HasCalled: func(key []byte) error {
+			HasCalled: func(_ []byte) error {
 				hasCalled = true
 				return fmt.Errorf("not found err")
 			},
@@ -300,7 +300,7 @@ func TestStorageCacherAdapter_Peek(t *testing.T) {
 	peekCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			PeekCalled: func(key interface{}) (value interface{}, ok bool) {
+			PeekCalled: func(_ interface{}) (interface{}, bool) {
 				peekCalled = true
 				return "value", true
 			},
@@ -325,7 +325,7 @@ func TestStorageCacherAdapter_RemoveFromCacherFirst(t *testing.T) {
 	dbRemoveCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			RemoveCalled: func(key interface{}) bool {
+			RemoveCalled: func(_ interface{}) bool {
 				cacherRemoveCalled = true
 				return true
 			},
@@ -354,13 +354,13 @@ func TestStorageCacherAdapter_RemoveFromDb(t *testing.T) {
 	dbRemoveCalled := false
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
-			RemoveCalled: func(key interface{}) bool {
+			RemoveCalled: func(_ interface{}) bool {
 				cacherRemoveCalled = true
 				return false
 			},
 		},
 		&storageMock.PersisterStub{
-			RemoveCalled: func(key []byte) error {
+			RemoveCalled: func(_ []byte) error {
 				dbRemoveCalled = true
 				return nil
 			},
@@ -385,7 +385,7 @@ func TestStorageCacherAdapter_Keys(t *testing.T) {
 		&storageMock.AdaptedSizedLruCacheStub{
 			KeysCalled: func() []interface{} {
 				res := make([]interface{}, 0)
-				res = append(res, []byte("key2"))
+				res = append(res, "key2")
 				return res
 			},
 		},

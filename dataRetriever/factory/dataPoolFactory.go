@@ -110,7 +110,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 			return nil, err
 		}
 
-		dbCfg.FilePath = filePath
+		argDB.Path = filePath
 	}
 
 	db, err := storageUnit.NewDB(argDB)
