@@ -4699,7 +4699,7 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
 
-func TestDelegation_whiteListForMerge(t *testing.T) {
+func TestDelegation_whitelistForMerge(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{
@@ -4769,8 +4769,69 @@ func TestDelegation_whiteListForMerge(t *testing.T) {
 	assert.Equal(t, eei.returnMessage, "cannot whitelist own address")
 
 	vmInput.Arguments = [][]byte{[]byte("address1")}
+	vmInput.CallValue = big.NewInt(10)
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "non-payable function")
+
+	vmInput.CallValue = big.NewInt(0)
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	assert.Equal(t, []byte("address1"), d.eei.GetStorage([]byte(whitelistedAddress)))
+}
+
+func TestDelegation_deleteWhitelist(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+
+	vmInput := getDefaultVmInputForFunc("deleteWhitelist", [][]byte{[]byte("address")})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "deleteWhitelist"+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+	vmInput.CallerAddr = []byte("address0")
+
+	vmInput.GasProvided = 1000
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{[]byte("a")}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	d.eei.SetStorage([]byte(whitelistedAddress), []byte("address"))
+	vmInput.Arguments = [][]byte{}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, 0, len(d.eei.GetStorage([]byte(whitelistedAddress))))
 }

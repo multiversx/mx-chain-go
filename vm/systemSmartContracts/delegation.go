@@ -175,6 +175,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.mergeValidatorDataToDelegation(args)
 	case "whitelistForMerge":
 		return d.whitelistForMerge(args)
+	case "deleteWhitelist":
+		return d.deleteWhitelist(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -551,7 +553,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 	return d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
 }
 
-func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.flagValidatorToDelegation.IsSet() {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
@@ -560,10 +562,22 @@ func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommo
 		d.eei.AddReturnMessage("can be called by owner only")
 		return vmcommon.UserError
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("non-payable function")
+		return vmcommon.UserError
+	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
+	}
+	return vmcommon.Ok
+}
+
+func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkInputForWhitelisting(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 	if len(args.Arguments) != 1 {
 		d.eei.AddReturnMessage("invalid number of arguments")
@@ -579,6 +593,20 @@ func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	d.eei.SetStorage([]byte(whitelistedAddress), args.Arguments[0])
+	return vmcommon.Ok
+}
+
+func (d *delegation) deleteWhitelist(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkInputForWhitelisting(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage([]byte(whitelistedAddress), nil)
 	return vmcommon.Ok
 }
 
