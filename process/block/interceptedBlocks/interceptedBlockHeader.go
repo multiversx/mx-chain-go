@@ -58,16 +58,16 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 }
 
 func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	hdr, err := tryCreateHeaderV2(marshalizer, hdrBuff)
+	hdr, err := createHeaderV2(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = tryCreateHeaderV1(marshalizer, hdrBuff)
+	hdr, err = createHeaderV1(marshalizer, hdrBuff)
 	return hdr, err
 }
 
-func tryCreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+func createHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
 	hdrV2 := &block.HeaderV2{}
 	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
 	if err != nil {
@@ -80,7 +80,7 @@ func tryCreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.He
 	return hdrV2, nil
 }
 
-func tryCreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+func createHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
 	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {

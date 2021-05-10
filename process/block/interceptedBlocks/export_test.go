@@ -5,12 +5,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-// TryCreateHeaderV2 -
-func TryCreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	return tryCreateHeaderV2(marshalizer, hdrBuff)
+// CreateHeaderV2 -
+func CreateHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+	return createHeaderV2(marshalizer, hdrBuff)
 }
 
-// TryCreateHeaderV1 -
-func TryCreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
-	return tryCreateHeaderV1(marshalizer, hdrBuff)
+// CreateHeaderV1 -
+func CreateHeaderV1(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.HeaderHandler, error) {
+	return createHeaderV1(marshalizer, hdrBuff)
 }
