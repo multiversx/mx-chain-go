@@ -23,6 +23,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+const (
+	numOfTokens      = 4
+	accountTypeIndex = 3
+	shardIdIndex     = 2
+)
+
 var log = logger.GetOrCreate("update/genesis")
 
 type trieExport struct {
@@ -176,17 +182,17 @@ func (te *trieExport) IsInterfaceNil() bool {
 // getTrieTypeAndShId returns the type and shard Id for a given account according to the saved key
 func getTrieTypeAndShId(key string) (genesis.Type, uint32, error) {
 	splitString := strings.Split(key, "@")
-	if len(splitString) < 3 {
+	if len(splitString) < numOfTokens {
 		return genesis.UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeInt64, err := strconv.ParseInt(splitString[3], 10, 0)
+	accTypeInt64, err := strconv.ParseInt(splitString[accountTypeIndex], 10, 0)
 	if err != nil {
 		return genesis.UserAccount, 0, err
 	}
 	accType := genesis.Type(accTypeInt64)
 
-	shId, err := strconv.ParseInt(splitString[2], 10, 0)
+	shId, err := strconv.ParseInt(splitString[shardIdIndex], 10, 0)
 	if err != nil {
 		return genesis.UserAccount, 0, err
 	}

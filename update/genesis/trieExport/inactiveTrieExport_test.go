@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-
 	"github.com/ElrondNetwork/elrond-go/core"
-
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +18,7 @@ func TestNewInactiveTrieExporter_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ite, err := NewInactiveTrieExporter(nil)
-	assert.Nil(t, ite)
+	assert.True(t, check.IfNil(ite))
 	assert.Equal(t, data.ErrNilMarshalizer, err)
 }
 

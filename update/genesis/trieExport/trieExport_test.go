@@ -34,7 +34,7 @@ func TestNewTrieExport_InvalidExportFolderShouldErr(t *testing.T) {
 		&mock.PubkeyConverterStub{},
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.Equal(t, update.ErrEmptyExportFolderPath, err)
 }
 
@@ -50,7 +50,7 @@ func TestNewTrieExport_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.PubkeyConverterStub{},
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.Equal(t, data.ErrNilShardCoordinator, err)
 }
 
@@ -82,7 +82,7 @@ func TestNewTrieExport_NilHardforkStorerShouldErr(t *testing.T) {
 		&mock.PubkeyConverterStub{},
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.Equal(t, update.ErrNilHardforkStorer, err)
 }
 
@@ -98,7 +98,7 @@ func TestNewTrieExport_NilValidatorPubKeyConverterShouldErr(t *testing.T) {
 		&mock.PubkeyConverterStub{},
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), update.ErrNilPubKeyConverter.Error()))
 }
@@ -115,7 +115,7 @@ func TestNewTrieExport_NilAddressPubKeyConverterShouldErr(t *testing.T) {
 		nil,
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), update.ErrNilPubKeyConverter.Error()))
 }
@@ -132,7 +132,7 @@ func TestNewTrieExport_NilGenesisNodesSetupHandlerShouldErr(t *testing.T) {
 		&mock.PubkeyConverterStub{},
 		nil,
 	)
-	assert.Nil(t, trieExporter)
+	assert.True(t, check.IfNil(trieExporter))
 	assert.Equal(t, update.ErrNilGenesisNodesSetupHandler, err)
 }
 
@@ -149,7 +149,7 @@ func TestNewTrieExport(t *testing.T) {
 		&mock.GenesisNodesSetupHandlerStub{},
 	)
 	assert.Nil(t, err)
-	assert.NotNil(t, trieExporter)
+	assert.False(t, check.IfNil(trieExporter))
 }
 
 func TestTrieExport_ExportValidatorTrieInvalidTrieRootHashShouldErr(t *testing.T) {
