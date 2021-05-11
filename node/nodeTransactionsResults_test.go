@@ -131,6 +131,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		WithDataStore(dataStore),
 		WithHistoryRepository(historyRepo),
 		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
