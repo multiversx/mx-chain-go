@@ -3,8 +3,8 @@ package mock
 // InterceptedPeerHeartbeatStub -
 type InterceptedPeerHeartbeatStub struct {
 	InterceptedDataStub
-	PublicKeyCalled  func() []byte
-	SetShardIDCalled func(shardId uint32)
+	PublicKeyCalled          func() []byte
+	SetComputedShardIDCalled func(shardId uint32)
 }
 
 // PublicKey -
@@ -16,9 +16,9 @@ func (i *InterceptedPeerHeartbeatStub) PublicKey() []byte {
 	return make([]byte, 0)
 }
 
-// SetShardID -
-func (i *InterceptedPeerHeartbeatStub) SetShardID(shardId uint32) {
-	if i.SetShardIDCalled != nil {
-		i.SetShardIDCalled(shardId)
+// SetComputedShardID -
+func (i *InterceptedPeerHeartbeatStub) SetComputedShardID(shardId uint32) {
+	if i.SetComputedShardIDCalled != nil {
+		i.SetComputedShardIDCalled(shardId)
 	}
 }

@@ -1099,7 +1099,7 @@ type ValidatorChecker interface {
 type InterceptedPeerHeartbeat interface {
 	InterceptedData
 	PublicKey() []byte
-	SetShardID(shardId uint32)
+	SetComputedShardID(shardId uint32)
 }
 
 // PeerHeartbeatProcessor is able to process and check the provided intercepted peer heartbeat instance

@@ -94,7 +94,8 @@ func (phi *peerHeartbeatInterceptor) ProcessReceivedMessage(message p2p.MessageP
 
 		var shardID uint32
 		_, shardID, err = phi.validatorChecker.GetValidatorWithPublicKey(peerHb.PublicKey())
-		isSkippableObserver := err != nil && !phi.peerHeartbeatProcessingThrottler.CanProcess()
+		isObserver := err != nil
+		isSkippableObserver := isObserver && !phi.peerHeartbeatProcessingThrottler.CanProcess()
 		if isSkippableObserver {
 			continue
 		}
@@ -102,7 +103,9 @@ func (phi *peerHeartbeatInterceptor) ProcessReceivedMessage(message p2p.MessageP
 		//validators will always get the chance to get their message processed despite the number of observers messages
 		//being broadcast
 		phi.peerHeartbeatProcessingThrottler.StartProcessing()
-		peerHb.SetShardID(shardID)
+		if !isObserver {
+			peerHb.SetComputedShardID(shardID)
+		}
 		peerHbs = append(peerHbs, peerHb)
 	}
 
