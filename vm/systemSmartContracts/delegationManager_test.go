@@ -326,10 +326,13 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
+	argsStaking.StakingAccessAddr = vm.ValidatorSCAddress
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	argsValidator := createMockArgumentsForValidatorSC()
 	argsValidator.Eei = eei
+	argsValidator.StakingSCAddress = vm.StakingSCAddress
+	argsValidator.ValidatorSCAddress = vm.ValidatorSCAddress
 	validatorSc, _ := NewValidatorSmartContract(argsValidator)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
@@ -980,4 +983,60 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *te
 
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataWithJailedNodes(t *testing.T) {
+	maxDelegationCap := []byte{0}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	eei.scAddress = vm.DelegationManagerSCAddress
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	validator, _ := eei.systemContracts.Get(d.validatorSCAddr)
+	s, _ := eei.systemContracts.Get(d.stakingSCAddr)
+	staking := s.(*stakingSC)
+
+	key1 := []byte("Key1")
+	key2 := []byte("Key2")
+
+	arguments := &vmcommon.ContractCallInput{}
+	arguments.CallerAddr = vmInput.CallerAddr
+	arguments.RecipientAddr = d.validatorSCAddr
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
+	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key2, []byte("msg2")}
+
+	eei.scAddress = vm.ValidatorSCAddress
+	returnCode := validator.Execute(arguments)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+
+	eei.scAddress = vm.StakingSCAddress
+	doJail(t, staking, staking.jailAccessAddr, key1, vmcommon.Ok)
+
+	eei.scAddress = vm.DelegationManagerSCAddress
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{maxDelegationCap, serviceFee}
+	vmInput.GasProvided = 1000000
+	eei.gasRemaining = 1000000
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "can not migrate nodes while jailed nodes exists")
 }

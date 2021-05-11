@@ -100,6 +100,14 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 }
 
 func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
+	testValidatorToDelegationWithMerge(t, false)
+}
+
+func TestValidatorToDelegationManagerWithMergeAndJailedNodes(t *testing.T) {
+	testValidatorToDelegationWithMerge(t, true)
+}
+
+func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -164,6 +172,10 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 
 	time.Sleep(time.Second)
 
+	if withJail {
+		jailNodes(nodes, [][]byte{frontendBLSPubkey})
+	}
+
 	integrationTests.SaveDelegationContractsList(nodes)
 
 	nonce, round = generateSendAndWaitToExecuteTransaction(
@@ -197,7 +209,35 @@ func TestValidatorToDelegationManagerWithMerge(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
-	testBLSKeyOwnerIsAddress(t, nodes, scAddressBytes, frontendBLSPubkey)
+
+	ownerAddress := scAddressBytes
+	if withJail {
+		ownerAddress = stakingWalletAccount.Address
+	}
+	testBLSKeyOwnerIsAddress(t, nodes, ownerAddress, frontendBLSPubkey)
+}
+
+func jailNodes(nodes []*integrationTests.TestProcessorNode, blsKeys [][]byte) {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := node.AccntState.GetExistingAccount(vm.StakingSCAddress)
+		stakingAcc := acc.(state.UserAccountHandler)
+
+		for _, blsKey := range blsKeys {
+			marshaledData, _ := stakingAcc.DataTrieTracker().RetrieveValue(blsKey)
+			stakingData := &systemSmartContracts.StakedDataV2_0{}
+			_ = integrationTests.TestMarshalizer.Unmarshal(stakingData, marshaledData)
+			stakingData.Jailed = true
+			marshaledData, _ = integrationTests.TestMarshalizer.Marshal(stakingData)
+			_ = stakingAcc.DataTrieTracker().SaveKeyValue(blsKey, marshaledData)
+		}
+
+		_ = node.AccntState.SaveAccount(stakingAcc)
+		_, _ = node.AccntState.Commit()
+	}
 }
 
 func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
