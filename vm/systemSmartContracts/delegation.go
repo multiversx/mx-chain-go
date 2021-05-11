@@ -30,6 +30,7 @@ const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
+const whitelistedAddress = "whitelistedAddress"
 
 const (
 	active    = uint32(0)
@@ -172,6 +173,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.initFromValidatorData(args)
 	case mergeValidatorDataToDelegation:
 		return d.mergeValidatorDataToDelegation(args)
+	case "whitelistForMerge":
+		return d.whitelistForMerge(args)
+	case "deleteWhitelistForMerge":
+		return d.deleteWhitelistForMerge(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -546,6 +551,63 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 	}
 
 	return d.delegateUser(validatorData.TotalStakeValue, big.NewInt(0), validatorAddress, args.RecipientAddr, dStatus)
+}
+
+func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.flagValidatorToDelegation.IsSet() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	if !d.isOwner(args.CallerAddr) {
+		d.eei.AddReturnMessage("can be called by owner only")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("non-payable function")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	return vmcommon.Ok
+}
+
+func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkInputForWhitelisting(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(args.Arguments[0], args.CallerAddr) {
+		d.eei.AddReturnMessage("cannot whitelist own address")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage([]byte(whitelistedAddress), args.Arguments[0])
+	return vmcommon.Ok
+}
+
+func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkInputForWhitelisting(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+
+	d.eei.SetStorage([]byte(whitelistedAddress), nil)
+	return vmcommon.Ok
 }
 
 func (d *delegation) delegateUser(

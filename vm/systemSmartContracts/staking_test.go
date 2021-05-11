@@ -2132,7 +2132,15 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	doJail(t, sc, sc.jailAccessAddr, []byte("secondKey"), vmcommon.Ok)
+
 	arguments.Arguments = [][]byte{vm.FirstDelegationSCAddress, []byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")}
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "can not migrate nodes while jailed nodes exists")
+
+	doUnJail(t, sc, sc.stakeAccessAddr, []byte("secondKey"), vmcommon.Ok)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 }

@@ -828,7 +828,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
-func TestDelegationManagerSystemSC_MergeValidatorDataToContract(t *testing.T) {
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testing.T) {
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegationManager()
@@ -846,7 +846,7 @@ func TestDelegationManagerSystemSC_MergeValidatorDataToContract(t *testing.T) {
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorDataToContract", [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
 	d.flagValidatorToDelegation.Unset()
@@ -887,6 +887,81 @@ func TestDelegationManagerSystemSC_MergeValidatorDataToContract(t *testing.T) {
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "did not find delegation contract with given address for this caller")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+	eei.SetStorage(vmInput.CallerAddr, vmInput.CallerAddr)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrUnknownSystemSmartContract.Error())
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *testing.T) {
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid function to call")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{[]byte("somearg")}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "address is not whitelisted for merge")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	d.eei.SetStorageForAddress(vmInput.CallerAddr, []byte(whitelistedAddress), vmInput.CallerAddr)
 
 	eei.returnMessage = ""
 	eei.gasRemaining = vmInput.GasProvided
