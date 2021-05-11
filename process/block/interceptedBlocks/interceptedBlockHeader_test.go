@@ -8,10 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
@@ -33,7 +35,23 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	}
 
 	hdr := createMockShardHeader()
-	arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
+	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
+
+	return arg
+}
+
+func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgInterceptedBlockHeader {
+	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		Hasher:                  testHasher,
+		Marshalizer:             &marshal.GogoProtoMarshalizer{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+	}
+	hdr := createMockShardHeader()
+	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
 
 	return arg
 }
@@ -108,7 +126,7 @@ func TestNewInterceptedHeader_NotForThisShardShouldWork(t *testing.T) {
 func TestNewInterceptedHeader_ForThisShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultShardArgumentWithV2Support()
 	arg.ShardCoordinator = &mock.CoordinatorStub{
 		NumberOfShardsCalled: func() uint32 {
 			return hdrShardId + 2
@@ -166,11 +184,12 @@ func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {
 	t.Parallel()
 
+	arg := createDefaultShardArgumentWithV2Support()
+	marshaller := arg.Marshalizer
 	hdr := createMockShardHeader()
 	expectedErr := errors.New("expected err")
-	buff, _ := testMarshalizer.Marshal(hdr)
+	buff, _ := marshaller.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
 	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
@@ -187,16 +206,19 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
 	t.Parallel()
 
+	arg := createDefaultShardArgumentWithV2Support()
+	marshaller := arg.Marshalizer
 	hdr := createMockShardHeader()
 	expectedSignature := []byte("ran")
 	hdr.LeaderSignature = expectedSignature
-	buff, _ := testMarshalizer.Marshal(hdr)
+	buff, _ := marshaller.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
 	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
 
-	err := inHdr.CheckValidity()
+	err = inHdr.CheckValidity()
 	assert.Nil(t, err)
 }
 
@@ -214,13 +236,16 @@ func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 			Type:            0,
 		},
 	}
-	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultShardArgumentWithV2Support()
+	marshaller := arg.Marshalizer
+	buff, _ := marshaller.Marshal(hdr)
 	arg.HdrBuff = buff
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
 
-	err := inHdr.CheckValidity()
+	err = inHdr.CheckValidity()
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -228,10 +253,12 @@ func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultShardArgument()
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+	arg := createDefaultShardArgumentWithV2Support()
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
 
-	err := inHdr.CheckValidity()
+	err = inHdr.CheckValidity()
 
 	assert.Nil(t, err)
 }
@@ -239,16 +266,18 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultShardArgumentWithV2Support()
 	expectedErr := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstRoundHandlerCalled: func(headerHandler data.HeaderHandler) error {
 			return expectedErr
 		},
 	}
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
 
-	err := inHdr.CheckValidity()
+	err = inHdr.CheckValidity()
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -256,16 +285,18 @@ func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T)
 func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createDefaultShardArgument()
+	arg := createDefaultShardArgumentWithV2Support()
 	expectedErr := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
 		CheckBlockAgainstFinalCalled: func(headerHandler data.HeaderHandler) error {
 			return expectedErr
 		},
 	}
-	inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
 
-	err := inHdr.CheckValidity()
+	err = inHdr.CheckValidity()
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -291,4 +322,88 @@ func TestInterceptedHeader_IsInterfaceNil(t *testing.T) {
 	var inHdr *interceptedBlocks.InterceptedHeader
 
 	assert.True(t, check.IfNil(inHdr))
+}
+
+func Test_CreateHeaderV1FromHeaderV1(t *testing.T) {
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+	hdrBuff, err := hdr.Marshal()
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuff)
+
+	recreatedHdr, err := interceptedBlocks.CreateHeaderV1(marshalizer, hdrBuff)
+	require.Nil(t, err)
+	require.NotNil(t, recreatedHdr)
+	require.Equal(t, hdr, recreatedHdr)
+}
+
+func Test_CreateHeaderV1FromHeaderV2(t *testing.T) {
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+
+	hdrV2 := &dataBlock.HeaderV2{
+		Header:            hdr,
+		ScheduledRootHash: nil,
+	}
+
+	hdrBuffV2, err := hdrV2.Marshal()
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuffV2)
+
+	recreatedHdr, err := interceptedBlocks.CreateHeaderV1(marshalizer, hdrBuffV2)
+	require.Nil(t, recreatedHdr)
+	require.NotNil(t, err)
+}
+
+func Test_CreateHeaderV2FromHeaderV1(t *testing.T) {
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+	hdrBuff, err := hdr.Marshal()
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuff)
+
+	recreatedHdr, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuff)
+	require.NotNil(t, err)
+	require.Nil(t, recreatedHdr)
+}
+
+func Test_CreateHeaderV2FromHeaderV2(t *testing.T) {
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+
+	hdrV2 := &dataBlock.HeaderV2{
+		Header:            hdr,
+		ScheduledRootHash: nil,
+	}
+
+	hdrBuffV2, err := hdrV2.Marshal()
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuffV2)
+
+	recreatedHdrV2, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuffV2)
+	require.Nil(t, err)
+	require.NotNil(t, recreatedHdrV2)
+	require.Equal(t, hdrV2, recreatedHdrV2)
+}
+
+func Test_CreateHeaderV2FromHeaderV1WithJson(t *testing.T) {
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	// normal HeaderV1
+	hdr := createMockShardHeader()
+	hdrBuff, err := marshalizer.Marshal(hdr)
+	require.Nil(t, err)
+	require.NotNil(t, hdrBuff)
+
+	recreatedHdr, err := interceptedBlocks.CreateHeaderV2(marshalizer, hdrBuff)
+	require.NotNil(t, err)
+	require.Nil(t, recreatedHdr)
 }

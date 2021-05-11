@@ -69,3 +69,9 @@ var ErrNilPointerDereference = errors.New("nil pointer dereference")
 
 // ErrInvalidTypeAssertion signals an invalid type assertion
 var ErrInvalidTypeAssertion = errors.New("invalid type assertion")
+
+// ErrNilScheduledRootHash signals that a nil scheduled root hash was used
+var ErrNilScheduledRootHash = errors.New("scheduled root hash is nil")
+
+// ErrScheduledRootHashNotSupported signals that a scheduled root hash is not supported
+var ErrScheduledRootHashNotSupported = errors.New("scheduled root hash is not supported")

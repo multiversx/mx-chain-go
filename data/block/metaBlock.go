@@ -183,7 +183,7 @@ func (m *MetaBlock) SetAccumulatedFeesInEpoch(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if value == nil{
+	if value == nil {
 		return data.ErrInvalidValue
 	}
 	if m.AccumulatedFeesInEpoch == nil {
@@ -200,7 +200,7 @@ func (m *MetaBlock) SetDeveloperFees(value *big.Int) error {
 	if m == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if value == nil{
+	if value == nil {
 		return data.ErrInvalidValue
 	}
 	if m.DeveloperFees == nil {
@@ -476,5 +476,15 @@ func (m *MetaBlock) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) erro
 
 	m.ShardInfo = sInfo
 
+	return nil
+}
+
+// SetScheduledRootHash not supported on the first version of metablock
+func (m *MetaBlock) SetScheduledRootHash(_ []byte) error {
+	return data.ErrScheduledRootHashNotSupported
+}
+
+// ValidateHeaderVersion - always valid for initial version
+func (m *MetaBlock) ValidateHeaderVersion() error {
 	return nil
 }

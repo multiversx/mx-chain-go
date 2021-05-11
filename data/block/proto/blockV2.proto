@@ -1,0 +1,16 @@
+// This file holds the data structures related with the functionality of a shard block V2
+syntax = "proto3";
+
+package proto;
+
+option go_package = "block";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "block.proto";
+
+// HeaderV2 extends the Header structure with extra fields for version 2
+message HeaderV2 {
+    Header  Header              = 1;
+    bytes   ScheduledRootHash   = 2;
+}

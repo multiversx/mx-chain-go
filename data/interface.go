@@ -66,6 +66,8 @@ type HeaderHandler interface {
 	SetTxCount(txCount uint32) error
 	SetMiniBlockHeaderHandlers(mbHeaderHandlers []MiniBlockHeaderHandler) error
 	SetReceiptsHash(hash []byte) error
+	SetScheduledRootHash(rootHash []byte) error
+	ValidateHeaderVersion() error
 
 	IsStartOfEpochBlock() bool
 	ShallowClone() HeaderHandler

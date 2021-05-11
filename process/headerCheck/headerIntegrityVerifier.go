@@ -184,7 +184,7 @@ func (hdrIntVer *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHa
 		)
 	}
 
-	return nil
+	return hdr.ValidateHeaderVersion()
 }
 
 // checkChainID returns nil if the header's chain ID matches the one provided

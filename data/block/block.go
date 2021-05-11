@@ -290,7 +290,7 @@ func (h *Header) GetBlockBodyTypeInt32() int32 {
 	return int32(h.GetBlockBodyType())
 }
 
-// GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
+// GetMiniBlockHeaderHandlers returns the miniBlock headers as an array of miniBlock header handlers
 func (h *Header) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	if h == nil {
 		return nil
@@ -348,6 +348,21 @@ func (h *Header) SetMetaBlockHashes(hashes [][]byte) error {
 		return data.ErrNilPointerReceiver
 	}
 	h.MetaBlockHashes = hashes
+	return nil
+}
+
+// SetScheduledRootHash not supported by V1 header
+func (h *Header) SetScheduledRootHash(_ []byte) error {
+	if h == nil {
+		return data.ErrNilPointerReceiver
+	}
+
+	return data.ErrScheduledRootHashNotSupported
+}
+
+// ValidateHeaderVersion does extra validation for header version
+func (h *Header) ValidateHeaderVersion() error {
+	// no extra validation for v1 header
 	return nil
 }
 

@@ -15,13 +15,14 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // Type identifies the type of the block
 enum Type {
-	TxBlock  = 0;
-	StateBlock  = 30;
-	PeerBlock  = 60;
-	SmartContractResultBlock  = 90;
-	InvalidBlock  = 120;
-	ReceiptBlock  = 150;
-	RewardsBlock  = 255;
+	TxBlock                     = 0;
+	StateBlock                  = 30;
+	PeerBlock                   = 60;
+	SmartContractResultBlock    = 90;
+	InvalidBlock                = 120;
+	ReceiptBlock                = 150;
+	ScheduledBlock              = 180;
+	RewardsBlock                = 255;
 }
 
 message MiniBlock {
