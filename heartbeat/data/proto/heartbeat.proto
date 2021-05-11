@@ -44,24 +44,3 @@ message HeartbeatDTO {
 message DbTimeStamp {
     int64   Timestamp = 1;
 }
-
-// Heartbeat represents the heartbeat message that is sent between peers from the same shard containing
-// current node status
-message HeartbeatV2 {
-    bytes   Payload         = 1;
-    uint32  ShardID         = 2;
-    string  VersionNumber   = 3;
-    string  NodeDisplayName = 4;
-    string  Identity        = 5;
-    uint64  Nonce           = 6;
-}
-
-// PeerInfo represents the peer information message used to pass peer information such as public key, peer id,
-// signature and payload. This message is used to link the peerID with the associated public key
-message PeerInfo {
-    bytes   Payload   = 1; //marshalized timestamp or hardfork message
-    bytes   Pubkey    = 2;
-    bytes   Signature = 3;
-    uint32  ShardID   = 4;
-    bytes   Pid       = 5;
-}

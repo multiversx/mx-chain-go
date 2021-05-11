@@ -1000,3 +1000,15 @@ var ErrNilProcessingThrottler = errors.New("nil processing throttler")
 
 // ErrNilHeartbeatProcessor signals that a nil heartbeat processor has been provided
 var ErrNilHeartbeatProcessor = errors.New("nil heartbeat processor")
+
+// ErrNilOrEmptyPublicKeyBytes signals that a nil or empty public key bytes data has been provided
+var ErrNilOrEmptyPublicKeyBytes = errors.New("nil or empty public key bytes")
+
+// ErrNilOrEmptySignatureBytes signals that a nil or empty signature bytes data has been provided
+var ErrNilOrEmptySignatureBytes = errors.New("nil or empty signature bytes")
+
+// ErrNilOrEmptyPayloadBytes signals that a nil or empty payload bytes data has been provided
+var ErrNilOrEmptyPayloadBytes = errors.New("nil or empty payload bytes")
+
+// ErrNilOrEmptyPeerId signals that a nil or empty peer id data has been provided
+var ErrNilOrEmptyPeerId = errors.New("nil or empty peer id")
