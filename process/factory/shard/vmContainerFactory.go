@@ -107,10 +107,15 @@ func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
 }
 
+// EpochConfirmed updates VMs in all created containers depending on the epoch
 func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
 	if epoch >= vmf.ArwenGasManagementRewriteEnableEpoch {
 		for _, container := range vmf.containers {
-			newArwenVM := vmf.createInProcessArwenVMByEpoch(epoch)
+			newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
+			if err != nil {
+				logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
+				continue
+			}
 			container.Replace(factory.ArwenVirtualMachine, newArwenVM)
 		}
 	}
