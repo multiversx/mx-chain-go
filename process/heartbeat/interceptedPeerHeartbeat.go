@@ -5,38 +5,114 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const (
+	minSizeInBytes    = 1
+	maxSizeInBytes    = 128
+	interceptedType   = "intercepted peer heartbeat"
+	publicKeyProperty = "public key"
+	signatureProperty = "signature"
+	payloadProperty   = "payload"
+	peerIdProperty    = "peer id"
+)
+
+// ArgInterceptedPeerHeartbeat is the argument used in the intercepted peer heartbeat constructor
+type ArgInterceptedPeerHeartbeat struct {
+	DataBuff             []byte
+	Marshalizer          marshal.Marshalizer
+	PeerSignatureHandler crypto.PeerSignatureHandler
+	Hasher               hashing.Hasher
+}
+
 type interceptedPeerHeartbeat struct {
-	peerHeartbeat heartbeat.PeerHeartbeat
-	peerId        core.PeerID
-	hash          []byte
+	peerHeartbeat        heartbeat.PeerHeartbeat
+	peerId               core.PeerID
+	hash                 []byte
+	computedShardID      uint32
+	peerSignatureHandler crypto.PeerSignatureHandler
 }
 
+// NewInterceptedPeerHeartbeat tries to create a new intercepted peer heartbeat instance
+func NewInterceptedPeerHeartbeat(arg ArgInterceptedPeerHeartbeat) (*interceptedPeerHeartbeat, error) {
+	if len(arg.DataBuff) == 0 {
+		return nil, process.ErrNilBuffer
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(arg.PeerSignatureHandler) {
+		return nil, process.ErrNilPeerSignatureHandler
+	}
+	if check.IfNil(arg.Hasher) {
+		return nil, process.ErrNilHasher
+	}
+
+	peerHeartbeat, err := createPeerHeartbeat(arg.Marshalizer, arg.DataBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	intercepted := &interceptedPeerHeartbeat{
+		peerHeartbeat:        *peerHeartbeat,
+		peerSignatureHandler: arg.PeerSignatureHandler,
+	}
+
+	intercepted.processFields(arg.Hasher, arg.DataBuff)
+
+	return intercepted, nil
+}
+
+func createPeerHeartbeat(marshalizer marshal.Marshalizer, buff []byte) (*heartbeat.PeerHeartbeat, error) {
+	peerHeartbeat := &heartbeat.PeerHeartbeat{}
+	err := marshalizer.Unmarshal(peerHeartbeat, buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return peerHeartbeat, nil
+}
+
+func (iph *interceptedPeerHeartbeat) processFields(hasher hashing.Hasher, buff []byte) {
+	iph.hash = hasher.Compute(string(buff))
+	iph.peerId = core.PeerID(iph.peerHeartbeat.Pid)
+}
+
+// PublicKey returns the public key as byte slice
 func (iph *interceptedPeerHeartbeat) PublicKey() []byte {
-	panic("implement me")
+	return iph.peerHeartbeat.Pubkey
 }
 
-func (iph *interceptedPeerHeartbeat) SetShardID(shardId uint32) {
-	panic("implement me")
+// SetComputedShardID sets the computed shard ID. Should normally be called by the peer heartbeat interceptor
+//only once, before the processing start
+func (iph *interceptedPeerHeartbeat) SetComputedShardID(shardId uint32) {
+	iph.computedShardID = shardId
 }
 
 // CheckValidity will check the validity of the received peer heartbeat
 // However, this will not perform the signature validation since that can be an attack vector
 func (iph *interceptedPeerHeartbeat) CheckValidity() error {
-	if len(iph.peerHeartbeat.Pubkey) == 0 {
-		return process.ErrNilOrEmptyPublicKeyBytes
+	err := VerifyHeartbeatProperyLen(publicKeyProperty, iph.peerHeartbeat.Pubkey)
+	if err != nil {
+		return err
 	}
-	if len(iph.peerHeartbeat.Payload) == 0 {
-		return process.ErrNilOrEmptyPayloadBytes
+	err = VerifyHeartbeatProperyLen(signatureProperty, iph.peerHeartbeat.Signature)
+	if err != nil {
+		return err
 	}
-	if len(iph.peerHeartbeat.Signature) == 0 {
-		return process.ErrNilOrEmptySignatureBytes
+	err = VerifyHeartbeatProperyLen(payloadProperty, iph.peerHeartbeat.Payload)
+	if err != nil {
+		return err
 	}
-	if len(iph.peerHeartbeat.Pid) == 0 {
-		return process.ErrNilOrEmptyPeerId
+	err = VerifyHeartbeatProperyLen(peerIdProperty, iph.peerId.Bytes())
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -54,7 +130,7 @@ func (iph *interceptedPeerHeartbeat) Hash() []byte {
 
 // Type returns the type of this intercepted data
 func (iph *interceptedPeerHeartbeat) Type() string {
-	return "intercepted peer heartbeat"
+	return interceptedType
 }
 
 // Identifiers returns the identifiers used in requests
@@ -64,13 +140,26 @@ func (iph *interceptedPeerHeartbeat) Identifiers() [][]byte {
 
 // String returns the transaction's most important fields as string
 func (iph *interceptedPeerHeartbeat) String() string {
-	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, shardID=%d",
+	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, received shardID=%d, computed shardID=%d",
 		logger.DisplayByteSlice(iph.peerHeartbeat.Pubkey),
 		iph.peerId.Pretty(),
 		logger.DisplayByteSlice(iph.peerHeartbeat.Signature),
 		logger.DisplayByteSlice(iph.peerHeartbeat.Payload),
 		iph.peerHeartbeat.ShardID,
+		iph.computedShardID,
 	)
+}
+
+// VerifyHeartbeatProperyLen returns an error if the provided value is longer than accepted by the network
+func VerifyHeartbeatProperyLen(property string, value []byte) error {
+	if len(value) > maxSizeInBytes {
+		return fmt.Errorf("%w for %s", process.ErrPropertyTooLong, property)
+	}
+	if len(value) < minSizeInBytes {
+		return fmt.Errorf("%w for %s", process.ErrPropertyTooShort, property)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
