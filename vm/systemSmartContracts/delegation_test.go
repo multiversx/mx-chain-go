@@ -4782,7 +4782,7 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 	assert.Equal(t, []byte("address1"), d.eei.GetStorage([]byte(whitelistedAddress)))
 }
 
-func TestDelegation_deleteWhitelist(t *testing.T) {
+func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{
@@ -4809,12 +4809,12 @@ func TestDelegation_deleteWhitelist(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
 
-	vmInput := getDefaultVmInputForFunc("deleteWhitelist", [][]byte{[]byte("address")})
+	vmInput := getDefaultVmInputForFunc("deleteWhitelistForMerge", [][]byte{[]byte("address")})
 
 	d.flagValidatorToDelegation.Unset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, "deleteWhitelist"+" is an unknown function")
+	assert.Equal(t, eei.returnMessage, "deleteWhitelistForMerge"+" is an unknown function")
 
 	d.flagValidatorToDelegation.Set()
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))

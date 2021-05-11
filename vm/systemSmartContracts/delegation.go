@@ -175,8 +175,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.mergeValidatorDataToDelegation(args)
 	case "whitelistForMerge":
 		return d.whitelistForMerge(args)
-	case "deleteWhitelist":
-		return d.deleteWhitelist(args)
+	case "deleteWhitelistForMerge":
+		return d.deleteWhitelistForMerge(args)
 	case "addNodes":
 		return d.addNodes(args)
 	case "removeNodes":
@@ -596,7 +596,7 @@ func (d *delegation) whitelistForMerge(args *vmcommon.ContractCallInput) vmcommo
 	return vmcommon.Ok
 }
 
-func (d *delegation) deleteWhitelist(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkInputForWhitelisting(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
