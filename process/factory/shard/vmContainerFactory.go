@@ -1,8 +1,8 @@
 package shard
 
 import (
-	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
-	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	arwen1_2_7 "github.com/ElrondNetwork/arwen-wasm-vm/1_2_7/arwen/host"
+	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
 	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
 	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
@@ -22,28 +22,31 @@ var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
-	config                         config.VirtualMachineConfig
-	blockChainHookImpl             *hooks.BlockChainHookImpl
-	cryptoHook                     vmcommon.CryptoHook
-	blockGasLimit                  uint64
-	gasSchedule                    core.GasScheduleNotifier
-	builtinFunctions               vmcommon.FunctionNames
-	deployEnableEpoch              uint32
-	aheadOfTimeGasUsageEnableEpoch uint32
-	arwenV3EnableEpoch             uint32
-	ArwenESDTFunctionsEnableEpoch  uint32
+	config                               config.VirtualMachineConfig
+	blockChainHookImpl                   *hooks.BlockChainHookImpl
+	cryptoHook                           vmcommon.CryptoHook
+	blockGasLimit                        uint64
+	gasSchedule                          core.GasScheduleNotifier
+	builtinFunctions                     vmcommon.FunctionNames
+	deployEnableEpoch                    uint32
+	aheadOfTimeGasUsageEnableEpoch       uint32
+	arwenV3EnableEpoch                   uint32
+	ArwenESDTFunctionsEnableEpoch        uint32
+	ArwenGasManagementRewriteEnableEpoch uint32
+	containers                           []process.VirtualMachinesContainer
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
 type ArgVMContainerFactory struct {
-	Config                         config.VirtualMachineConfig
-	BlockGasLimit                  uint64
-	GasSchedule                    core.GasScheduleNotifier
-	ArgBlockChainHook              hooks.ArgBlockChainHook
-	DeployEnableEpoch              uint32
-	AheadOfTimeGasUsageEnableEpoch uint32
-	ArwenV3EnableEpoch             uint32
-	ArwenESDTFunctionsEnableEpoch  uint32
+	Config                               config.VirtualMachineConfig
+	BlockGasLimit                        uint64
+	GasSchedule                          core.GasScheduleNotifier
+	ArgBlockChainHook                    hooks.ArgBlockChainHook
+	DeployEnableEpoch                    uint32
+	AheadOfTimeGasUsageEnableEpoch       uint32
+	ArwenV3EnableEpoch                   uint32
+	ArwenESDTFunctionsEnableEpoch        uint32
+	ArwenGasManagementRewriteEnableEpoch uint32
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -61,16 +64,18 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
 	return &vmContainerFactory{
-		config:                         args.Config,
-		blockChainHookImpl:             blockChainHookImpl,
-		cryptoHook:                     cryptoHook,
-		blockGasLimit:                  args.BlockGasLimit,
-		gasSchedule:                    args.GasSchedule,
-		builtinFunctions:               builtinFunctions,
-		deployEnableEpoch:              args.DeployEnableEpoch,
-		aheadOfTimeGasUsageEnableEpoch: args.AheadOfTimeGasUsageEnableEpoch,
-		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  args.ArwenESDTFunctionsEnableEpoch,
+		config:                               args.Config,
+		blockChainHookImpl:                   blockChainHookImpl,
+		cryptoHook:                           cryptoHook,
+		blockGasLimit:                        args.BlockGasLimit,
+		gasSchedule:                          args.GasSchedule,
+		builtinFunctions:                     builtinFunctions,
+		deployEnableEpoch:                    args.DeployEnableEpoch,
+		aheadOfTimeGasUsageEnableEpoch:       args.AheadOfTimeGasUsageEnableEpoch,
+		arwenV3EnableEpoch:                   args.ArwenV3EnableEpoch,
+		ArwenESDTFunctionsEnableEpoch:        args.ArwenESDTFunctionsEnableEpoch,
+		ArwenGasManagementRewriteEnableEpoch: args.ArwenGasManagementRewriteEnableEpoch,
+		containers:                           make([]process.VirtualMachinesContainer),
 	}, nil
 }
 
@@ -89,12 +94,26 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
+	// The vmContainerFactory keeps references to all containers it has created,
+	// in order to replace, from within the containers, those VM instances that
+	// become out-of-date after specific epochs.
+	vmf.containers = append(vmf.containers, container)
+
 	return container, nil
 }
 
 // Close closes the vm container factory
 func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
+}
+
+func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
+	if epoch >= vmf.ArwenGasManagementRewriteEnableEpoch {
+		for _, container := range vmf.containers {
+			newArwenVM := vmf.createInProcessArwenVMByEpoch(epoch)
+			container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+		}
+	}
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
@@ -140,20 +159,32 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
-	return arwenHost.NewArwenVM(
-		vmf.blockChainHookImpl,
-		&arwen.VMHostParameters{
-			VMType:                   factory.ArwenVirtualMachine,
-			BlockGasLimit:            vmf.blockGasLimit,
-			GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-			ProtocolBuiltinFunctions: vmf.builtinFunctions,
-			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-			AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
-			DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
-			ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
-		},
-	)
+	// TODO obtain the currentEpoch without the blockchain hook
+	currentEpoch := vmf.blockChainHookImpl.CurrentEpoch()
+	return vmf.createInProcessArwenVMByEpoch(currentEpoch)
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmcommon.VMExecutionHandler, error) {
+	vmHostParams := vmf.makeArwenVMHostParams()
+	if epoch < vmf.ArwenGasManagementRewriteEnableEpoch {
+		return arwen1_2_7.NewArwenVM(vmf.blockChainHookImpl, vmHostParams)
+	}
+
+	return arwen.NewArwenVM(vmf.blockChainHookImpl, vmHostParams)
+}
+
+func (vmf *vmContainerFactory) makeArwenVMHostParams() *arwen.VMHostParameters {
+	return &arwen.VMHostParameters{
+		VMType:                   factory.ArwenVirtualMachine,
+		BlockGasLimit:            vmf.blockGasLimit,
+		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
+		ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
+	}
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl
