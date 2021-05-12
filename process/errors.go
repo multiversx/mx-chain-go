@@ -1000,3 +1000,12 @@ var ErrNilProcessingThrottler = errors.New("nil processing throttler")
 
 // ErrNilHeartbeatProcessor signals that a nil heartbeat processor has been provided
 var ErrNilHeartbeatProcessor = errors.New("nil heartbeat processor")
+
+// ErrPropertyTooLong signals that a heartbeat property was too long
+var ErrPropertyTooLong = errors.New("property too long")
+
+// ErrPropertyTooShort signals that a heartbeat property was too short
+var ErrPropertyTooShort = errors.New("property too short")
+
+// ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
+var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")

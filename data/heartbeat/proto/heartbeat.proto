@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "heartbeat";
+
+// Heartbeat represents the heartbeat message that is sent between peers from the same shard containing
+// current node status
+message Heartbeat {
+    bytes   Payload         = 1;
+    uint32  ShardID         = 2;
+    string  VersionNumber   = 3;
+    string  NodeDisplayName = 4;
+    string  Identity        = 5;
+    uint64  Nonce           = 6;
+}
+
+// PeerHeartbeat represents the DTO used to pass peer information such as public key, peer id,
+// signature and payload. This message is used to link the peerID with the associated public key
+message PeerHeartbeat {
+    bytes   Payload   = 1; //marshalized timestamp or hardfork message
+    bytes   Pubkey    = 2;
+    bytes   Signature = 3;
+    uint32  ShardID   = 4;
+    bytes   Pid       = 5;
+}

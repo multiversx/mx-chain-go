@@ -63,7 +63,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 			return "chainID"
 		},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField: &mock.EpochNotifierStub{},
+		EpochNotifierField:  &mock.EpochNotifierStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),
@@ -92,6 +92,7 @@ func createMockArgument(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
+		PeerSignatureHandler:    &mock.PeerSignatureHandlerStub{},
 	}
 }
 
