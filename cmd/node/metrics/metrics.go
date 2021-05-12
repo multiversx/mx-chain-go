@@ -51,6 +51,18 @@ func InitMetrics(
 	initString := ""
 	initZeroString := "0"
 
+	leaderPercentage := float64(0)
+	rewardsConfigs := make([]config.EpochRewardSettings, len(economicsConfig.RewardsSettings.RewardsConfigByEpoch))
+	_ = copy(rewardsConfigs, economicsConfig.RewardsSettings.RewardsConfigByEpoch)
+
+	sort.Slice(rewardsConfigs, func(i, j int) bool {
+		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
+	})
+
+	if len(rewardsConfigs) > 0 {
+		leaderPercentage = rewardsConfigs[0].LeaderPercentage
+	}
+
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
@@ -81,7 +93,8 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNoncesPassedInCurrentEpoch, initUint)
-	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	// TODO: add all other rewards parameters
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(core.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
