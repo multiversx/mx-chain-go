@@ -1720,7 +1720,9 @@ func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput
 			return vmcommon.UserError
 		}
 
-		if registrationData.Jailed {
+		log.Warn("changeOwner ", "jailed", registrationData.Jailed, "VSJailed", s.eei.CanUnJail(blsKey), "waiting", registrationData.Waiting, "unStaked", registrationData.UnStakedNonce > registrationData.StakedNonce)
+
+		if registrationData.Jailed || s.eei.CanUnJail(blsKey) {
 			s.eei.AddReturnMessage("can not migrate nodes while jailed nodes exists")
 			return vmcommon.UserError
 		}
