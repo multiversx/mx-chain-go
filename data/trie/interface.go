@@ -29,12 +29,11 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, db data.DBWriteCacher) ([]byte, error)
 	getNext(key []byte, db data.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error)
+	insert(n *leafNode, db data.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db data.DBWriteCacher)
-	deepClone() node
 	getDirtyHashes(data.ModifiedHashes) error
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool

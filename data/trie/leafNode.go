@@ -173,11 +173,10 @@ func (ln *leafNode) getNext(key []byte, _ data.DBWriteCacher) (node, []byte, err
 	}
 	return nil, nil, ErrNodeNotFound
 }
-
-func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return false, nil, [][]byte{}, fmt.Errorf("insert error %w", err)
+		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
 	}
 
 	oldHash := make([][]byte, 0)
@@ -185,51 +184,67 @@ func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]b
 		oldHash = append(oldHash, ln.hash)
 	}
 
-	if bytes.Equal(n.Key, ln.Key) {
-		if bytes.Equal(ln.Value, n.Value) {
-			return false, ln, [][]byte{}, nil
-		}
+	insertedKey := n.Key
+	nodeKey := ln.Key
 
-		ln.Value = n.Value
-		ln.dirty = true
-		ln.hash = nil
-		return true, ln, oldHash, nil
+	if bytes.Equal(insertedKey, nodeKey) {
+		return ln.insertInSameLn(n, oldHash)
 	}
 
-	keyMatchLen := prefixLen(n.Key, ln.Key)
+	keyMatchLen := prefixLen(insertedKey, nodeKey)
+	bn, err := ln.insertInNewBn(n, keyMatchLen)
+	if err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	if keyMatchLen == 0 {
+		return bn, oldHash, nil
+	}
+
+	newEn, err := newExtensionNode(nodeKey[:keyMatchLen], bn, ln.marsh, ln.hasher)
+	if err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	return newEn, oldHash, nil
+}
+
+func (ln *leafNode) insertInSameLn(n *leafNode, oldHashes [][]byte) (node, [][]byte, error) {
+	if bytes.Equal(ln.Value, n.Value) {
+		return nil, [][]byte{}, nil
+	}
+
+	ln.Value = n.Value
+	ln.dirty = true
+	ln.hash = nil
+	return ln, oldHashes, nil
+}
+
+func (ln *leafNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
-		return false, nil, [][]byte{}, err
+		return nil, err
 	}
 
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return false, nil, [][]byte{}, ErrChildPosOutOfRange
+		return nil, ErrChildPosOutOfRange
 	}
 
 	newLnOldChildPos, err := newLeafNode(ln.Key[keyMatchLen+1:], ln.Value, ln.marsh, ln.hasher)
 	if err != nil {
-		return false, nil, [][]byte{}, err
+		return nil, err
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
 
 	newLnNewChildPos, err := newLeafNode(n.Key[keyMatchLen+1:], n.Value, ln.marsh, ln.hasher)
 	if err != nil {
-		return false, nil, [][]byte{}, err
+		return nil, err
 	}
 	bn.children[newChildPos] = newLnNewChildPos
 
-	if keyMatchLen == 0 {
-		return true, bn, oldHash, nil
-	}
-
-	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.marsh, ln.hasher)
-	if err != nil {
-		return false, nil, [][]byte{}, err
-	}
-
-	return true, newEn, oldHash, nil
+	return bn, nil
 }
 
 func (ln *leafNode) delete(key []byte, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
@@ -281,35 +296,6 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ data.DBWriteCacher) {
 	}
 
 	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
-}
-
-func (ln *leafNode) deepClone() node {
-	if ln == nil {
-		return nil
-	}
-
-	clonedNode := &leafNode{baseNode: &baseNode{}}
-
-	if ln.Key != nil {
-		clonedNode.Key = make([]byte, len(ln.Key))
-		copy(clonedNode.Key, ln.Key)
-	}
-
-	if ln.Value != nil {
-		clonedNode.Value = make([]byte, len(ln.Value))
-		copy(clonedNode.Value, ln.Value)
-	}
-
-	if ln.hash != nil {
-		clonedNode.hash = make([]byte, len(ln.hash))
-		copy(clonedNode.hash, ln.hash)
-	}
-
-	clonedNode.dirty = ln.dirty
-	clonedNode.marsh = ln.marsh
-	clonedNode.hasher = ln.hasher
-
-	return clonedNode
 }
 
 func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {

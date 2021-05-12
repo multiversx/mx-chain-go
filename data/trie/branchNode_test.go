@@ -2,11 +2,9 @@ package trie
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -604,12 +602,12 @@ func TestBranchNode_insert(t *testing.T) {
 	nodeKey := []byte{0, 2, 3}
 	n, _ := newLeafNode(nodeKey, []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, newBn, _, err := bn.insert(n, nil)
-	nodeKeyRemainder := nodeKey[1:]
-
-	bn.children[0], _ = newLeafNode(nodeKeyRemainder, []byte("dogs"), bn.marsh, bn.hasher)
-	assert.True(t, dirty)
+	newBn, _, err := bn.insert(n, nil)
+	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
+
+	nodeKeyRemainder := nodeKey[1:]
+	bn.children[0], _ = newLeafNode(nodeKeyRemainder, []byte("dogs"), bn.marsh, bn.hasher)
 	assert.Equal(t, bn, newBn)
 }
 
@@ -619,8 +617,7 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte{}, []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, newBn, _, err := bn.insert(n, nil)
-	assert.False(t, dirty)
+	newBn, _, err := bn.insert(n, nil)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
 }
@@ -631,8 +628,7 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, newBn, _, err := bn.insert(n, nil)
-	assert.False(t, dirty)
+	newBn, _, err := bn.insert(n, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, newBn)
 }
@@ -649,8 +645,8 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	_ = bn.setHash()
 	_ = bn.commit(false, 0, 5, db, db)
 
-	dirty, newBn, _, err := collapsedBn.insert(n, db)
-	assert.True(t, dirty)
+	newBn, _, err := collapsedBn.insert(n, db)
+	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
 	val, _ := newBn.tryGet(key, db)
@@ -672,8 +668,8 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	lnHash := ln.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
-	dirty, _, oldHashes, err := bn.insert(n, db)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := bn.insert(n, db)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
 }
@@ -691,8 +687,8 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
-	dirty, _, oldHashes, err := bn.insert(n, db)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := bn.insert(n, db)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
 }
@@ -705,8 +701,8 @@ func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 	n, _ := newLeafNode(key, []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, _, oldHashes, err := bn.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := bn.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
@@ -719,8 +715,8 @@ func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	n, _ := newLeafNode(key, []byte("dogs"), bn.marsh, bn.hasher)
 
-	dirty, _, oldHashes, err := bn.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := bn.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
@@ -730,8 +726,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	dirty, newBn, _, err := bn.insert(&leafNode{}, nil)
-	assert.False(t, dirty)
+	newBn, _, err := bn.insert(&leafNode{}, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
@@ -1088,46 +1083,6 @@ func getCollapsedBn(t *testing.T, n node) *branchNode {
 	return bn
 }
 
-//------- deepClone
-
-func TestBranchNode_deepCloneWithNilHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	bn := &branchNode{baseNode: &baseNode{}}
-	bn.dirty = true
-	bn.hash = nil
-	bn.EncodedChildren = make([][]byte, len(bn.children))
-	bn.EncodedChildren[4] = getRandomByteSlice()
-	bn.EncodedChildren[5] = getRandomByteSlice()
-	bn.EncodedChildren[12] = getRandomByteSlice()
-	bn.children[4] = &leafNode{baseNode: &baseNode{}}
-	bn.children[5] = &leafNode{baseNode: &baseNode{}}
-	bn.children[12] = &leafNode{baseNode: &baseNode{}}
-
-	cloned := bn.deepClone().(*branchNode)
-
-	testSameBranchNodeContent(t, bn, cloned)
-}
-
-func TestBranchNode_deepCloneShouldWork(t *testing.T) {
-	t.Parallel()
-
-	bn := &branchNode{baseNode: &baseNode{}}
-	bn.dirty = true
-	bn.hash = getRandomByteSlice()
-	bn.EncodedChildren = make([][]byte, len(bn.children))
-	bn.EncodedChildren[4] = getRandomByteSlice()
-	bn.EncodedChildren[5] = getRandomByteSlice()
-	bn.EncodedChildren[12] = getRandomByteSlice()
-	bn.children[4] = &leafNode{baseNode: &baseNode{}}
-	bn.children[5] = &leafNode{baseNode: &baseNode{}}
-	bn.children[12] = &leafNode{baseNode: &baseNode{}}
-
-	cloned := bn.deepClone().(*branchNode)
-
-	testSameBranchNodeContent(t, bn, cloned)
-}
-
 func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1146,61 +1101,6 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Commit()
 
 	assert.False(t, tr.root.isDirty())
-}
-
-func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
-	if !reflect.DeepEqual(expected, actual) {
-		assert.Fail(t, "not equal content")
-		fmt.Printf(
-			"expected:\n %s, got: \n%s",
-			getBranchNodeContents(expected),
-			getBranchNodeContents(actual),
-		)
-	}
-	assert.False(t, expected == actual)
-}
-
-func getBranchNodeContents(bn *branchNode) string {
-	encodedChildrenString := ""
-	for i := 0; i < len(bn.EncodedChildren); i++ {
-		if i > 0 {
-			encodedChildrenString += ", "
-		}
-
-		if bn.EncodedChildren[i] == nil {
-			encodedChildrenString += "<nil>"
-			continue
-		}
-
-		encodedChildrenString += hex.EncodeToString(bn.EncodedChildren[i])
-	}
-
-	childrenString := ""
-	for i := 0; i < len(bn.children); i++ {
-		if i > 0 {
-			childrenString += ", "
-		}
-
-		if bn.children[i] == nil {
-			childrenString += "<nil>"
-			continue
-		}
-
-		childrenString += fmt.Sprintf("%p", bn.children[i])
-	}
-
-	str := fmt.Sprintf(`extension node:
-  		encoded child: %s
-  		hash: %s
- 		child: %s,
-  		dirty: %v
-`,
-		encodedChildrenString,
-		hex.EncodeToString(bn.hash),
-		childrenString,
-		bn.dirty)
-
-	return str
 }
 
 func BenchmarkMarshallNodeJson(b *testing.B) {

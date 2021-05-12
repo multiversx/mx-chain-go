@@ -388,61 +388,68 @@ func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, 
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("insert error %w", err)
+		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
 	}
-	if len(n.Key) == 0 {
-		return false, nil, emptyHashes, ErrValueTooShort
+
+	insertedKey := n.Key
+	if len(insertedKey) == 0 {
+		return nil, emptyHashes, ErrValueTooShort
 	}
-	childPos := n.Key[firstByte]
+	childPos := insertedKey[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, emptyHashes, ErrChildPosOutOfRange
+		return nil, emptyHashes, ErrChildPosOutOfRange
 	}
-	n.Key = n.Key[1:]
+
+	n.Key = insertedKey[1:]
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, emptyHashes, err
 	}
 
-	if bn.children[childPos] != nil {
-		var dirty bool
-		var newNode node
-		var oldHashes [][]byte
-
-		dirty, newNode, oldHashes, err = bn.children[childPos].insert(n, db)
-		if !dirty || err != nil {
-			return false, bn, emptyHashes, err
-		}
-
-		if !bn.dirty {
-			oldHashes = append(oldHashes, bn.hash)
-		}
-
-		bn.children[childPos] = newNode
-		bn.dirty = dirty
-		if dirty {
-			bn.hash = nil
-		}
-		return true, bn, oldHashes, nil
+	if bn.children[childPos] == nil {
+		return bn.insertOnNilChild(n, childPos)
 	}
 
+	return bn.insertOnExistingChild(n, childPos, db)
+}
+
+func (bn *branchNode) insertOnNilChild(n *leafNode, childPos byte) (node, [][]byte, error) {
 	newLn, err := newLeafNode(n.Key, n.Value, bn.marsh, bn.hasher)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, [][]byte{}, err
 	}
-	bn.children[childPos] = newLn
 
-	oldHash := make([][]byte, 0)
+	modifiedHashes := make([][]byte, 0)
+	modifiedHashes = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newLn)
+
+	return bn, modifiedHashes, nil
+}
+
+func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db data.DBWriteCacher) (node, [][]byte, error) {
+	newNode, modifiedHashes, err := bn.children[childPos].insert(n, db)
+	if check.IfNil(newNode) || err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	modifiedHashes = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
+
+	return bn, modifiedHashes, nil
+}
+
+func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos byte, newNode node) [][]byte {
 	if !bn.dirty {
-		oldHash = append(oldHash, bn.hash)
+		modifiedHashes = append(modifiedHashes, bn.hash)
 	}
 
+	bn.children[childPos] = newNode
 	bn.dirty = true
 	bn.hash = nil
-	return true, bn, oldHash, nil
+
+	return modifiedHashes
 }
 
 func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error) {
@@ -576,45 +583,6 @@ func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) 
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, db)
 	}
-}
-
-func (bn *branchNode) deepClone() node {
-	if bn == nil {
-		return nil
-	}
-
-	clonedNode := &branchNode{baseNode: &baseNode{}}
-
-	if bn.hash != nil {
-		clonedNode.hash = make([]byte, len(bn.hash))
-		copy(clonedNode.hash, bn.hash)
-	}
-
-	clonedNode.EncodedChildren = make([][]byte, len(bn.EncodedChildren))
-	for idx, encChild := range bn.EncodedChildren {
-		if encChild == nil {
-			continue
-		}
-
-		clonedEncChild := make([]byte, len(encChild))
-		copy(clonedEncChild, encChild)
-
-		clonedNode.EncodedChildren[idx] = clonedEncChild
-	}
-
-	for idx, child := range bn.children {
-		if child == nil {
-			continue
-		}
-
-		clonedNode.children[idx] = child.deepClone()
-	}
-
-	clonedNode.dirty = bn.dirty
-	clonedNode.marsh = bn.marsh
-	clonedNode.hasher = bn.hasher
-
-	return clonedNode
 }
 
 func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
