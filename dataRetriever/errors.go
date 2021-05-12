@@ -202,3 +202,9 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage manager")
+
+// ErrNilPeerHeartbeatPool signals that a nil peer heartbeat pool has been provided
+var ErrNilPeerHeartbeatPool = errors.New("nil peer heartbeat pool")
+
+// ErrNotFound signals that a data is missing
+var ErrNotFound = errors.New("data not found")
