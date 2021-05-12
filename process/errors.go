@@ -491,6 +491,9 @@ var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
+// ErrEmptyEpochRewardsConfig signals that the epoch rewards config is empty
+var ErrEmptyEpochRewardsConfig = errors.New("the epoch rewards config is empty")
+
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 

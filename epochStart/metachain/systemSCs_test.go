@@ -986,11 +986,16 @@ func createEconomicsData() process.EconomicsDataHandler {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: "protocol",
-				TopUpGradientPoint:            "300000000000000000000",
-				TopUpFactor:                   0.25,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "protocol",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
