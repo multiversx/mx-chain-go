@@ -2271,6 +2271,7 @@ func newMetaBlockProcessor(
 		CorrectLastUnJailEnableEpoch:           systemSCConfig.StakingSystemSCConfig.CorrectLastUnjailedEpoch,
 		ESDTOwnerAddressBytes:                  esdtOwnerAddress,
 		ESDTEnableEpoch:                        systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		SaveJailedAlwaysEnableEpoch:            generalConfig.GeneralSettings.SaveJailedAlwaysEnableEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
