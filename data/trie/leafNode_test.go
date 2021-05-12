@@ -150,7 +150,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commit(false, 0, 5, db, db)
+	err := ln.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -165,7 +165,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commit(false, 0, 5, nil, nil)
+	err := ln.commitDirty(0, 5, nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
@@ -174,7 +174,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commit(false, 0, 5, nil, nil)
+	err := ln.commitDirty(0, 5, nil, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
@@ -348,7 +348,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
 	newNode, oldHashes, err := ln.insert(n, db)
@@ -364,7 +364,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
 	n, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), marsh, hasher)
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
 	newNode, oldHashes, err := ln.insert(n, db)
@@ -425,7 +425,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
@@ -439,7 +439,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	wrongKey := []byte{1, 2, 3}
 
 	dirty, _, oldHashes, err := ln.delete(wrongKey, db)

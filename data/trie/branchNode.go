@@ -246,31 +246,23 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
 	}
 
-	shouldNotCommit := !bn.dirty && !force
-	if shouldNotCommit {
+	if !bn.dirty {
 		return nil
 	}
 
 	for i := range bn.children {
-		if force {
-			err = resolveIfCollapsed(bn, byte(i), originDb)
-			if err != nil {
-				return err
-			}
-		}
-
 		if bn.children[i] == nil {
 			continue
 		}
 
-		err = bn.children[i].commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
+		err = bn.children[i].commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -292,6 +284,72 @@ func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, 
 		*bn = *collapsedBn
 	}
 	return nil
+}
+
+func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), originDb)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].commitCheckpoint(originDb, targetDb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return bn.saveToStorage(targetDb)
+}
+
+func (bn *branchNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), originDb)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].commitSnapshot(originDb, targetDb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return bn.saveToStorage(targetDb)
+}
+
+func (bn *branchNode) saveToStorage(targetDb data.DBWriteCacher) error {
+	err := encodeNodeAndCommitToDB(bn, targetDb)
+	if err != nil {
+		return err
+	}
+
+	bn.removeChildrenPointers()
+	return nil
+}
+
+func (bn *branchNode) removeChildrenPointers() {
+	for i := range bn.children {
+		bn.children[i] = nil
+	}
 }
 
 func (bn *branchNode) getEncodedNode() ([]byte, error) {

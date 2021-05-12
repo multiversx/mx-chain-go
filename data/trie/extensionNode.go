@@ -161,27 +161,19 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
 	}
 
-	shouldNotCommit := !en.dirty && !force
-	if shouldNotCommit {
+	if !en.dirty {
 		return nil
 	}
 
-	if force {
-		err = resolveIfCollapsed(en, 0, originDb)
-		if err != nil {
-			return err
-		}
-	}
-
 	if en.child != nil {
-		err = en.child.commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
+		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -203,6 +195,54 @@ func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uin
 
 		*en = *collapsedEn
 	}
+	return nil
+}
+
+func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, originDb)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.commitCheckpoint(originDb, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return en.saveToStorage(targetDb)
+}
+
+func (en *extensionNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, originDb)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.commitSnapshot(originDb, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return en.saveToStorage(targetDb)
+}
+
+func (en *extensionNode) saveToStorage(targetDb data.DBWriteCacher) error {
+	err := encodeNodeAndCommitToDB(en, targetDb)
+	if err != nil {
+		return err
+	}
+
+	en.child = nil
 	return nil
 }
 
