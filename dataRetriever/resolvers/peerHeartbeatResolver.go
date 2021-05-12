@@ -99,7 +99,7 @@ func (res *peerheartbeatResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 	return err
 }
 
-func (res *peerheartbeatResolver) fetchPhbAsByteSlice(pk []byte) ([]byte, error) {
+func (res *peerheartbeatResolver) fetchPeerHeartbeatAsByteSlice(pk []byte) ([]byte, error) {
 	value, ok := res.peerHeartbeatsPool.Peek(pk)
 	if ok {
 		return res.marshalizer.Marshal(value)
@@ -120,10 +120,10 @@ func (res *peerheartbeatResolver) resolveRequests(mbBuff []byte, pid core.PeerID
 	errorsFound := 0
 	dataSlice := make([][]byte, 0, len(pubKeys))
 	for _, pk := range pubKeys {
-		phb, errTemp := res.fetchPhbAsByteSlice(pk)
+		phb, errTemp := res.fetchPeerHeartbeatAsByteSlice(pk)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for public key %s", errTemp, logger.DisplayByteSlice(pk))
-			log.Trace("fetchPhbAsByteSlice missing",
+			log.Trace("fetchPeerHeartbeatAsByteSlice missing",
 				"error", errFetch.Error(),
 				"pk", pk)
 			errorsFound++
