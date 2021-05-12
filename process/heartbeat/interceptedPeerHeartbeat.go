@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"fmt"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -35,6 +36,7 @@ type interceptedPeerHeartbeat struct {
 	peerHeartbeat        heartbeat.PeerHeartbeat
 	peerId               core.PeerID
 	hash                 []byte
+	mutComputedShardID   sync.RWMutex
 	computedShardID      uint32
 	peerSignatureHandler crypto.PeerSignatureHandler
 }
@@ -89,10 +91,11 @@ func (iph *interceptedPeerHeartbeat) PublicKey() []byte {
 	return iph.peerHeartbeat.Pubkey
 }
 
-// SetComputedShardID sets the computed shard ID. Should normally be called by the peer heartbeat interceptor
-//only once, before the processing start
+// SetComputedShardID sets the computed shard ID. Concurrency safe.
 func (iph *interceptedPeerHeartbeat) SetComputedShardID(shardId uint32) {
+	iph.mutComputedShardID.Lock()
 	iph.computedShardID = shardId
+	iph.mutComputedShardID.Unlock()
 }
 
 // CheckValidity will check the validity of the received peer heartbeat
@@ -140,6 +143,9 @@ func (iph *interceptedPeerHeartbeat) Identifiers() [][]byte {
 
 // String returns the transaction's most important fields as string
 func (iph *interceptedPeerHeartbeat) String() string {
+	iph.mutComputedShardID.RLock()
+	defer iph.mutComputedShardID.RUnlock()
+
 	return fmt.Sprintf("pk=%s, pid=%s, sig=%s, payload=%s, received shardID=%d, computed shardID=%d",
 		logger.DisplayByteSlice(iph.peerHeartbeat.Pubkey),
 		iph.peerId.Pretty(),
