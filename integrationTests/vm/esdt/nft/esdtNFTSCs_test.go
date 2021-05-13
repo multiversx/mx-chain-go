@@ -417,8 +417,8 @@ func TestESDTTransferNFTToSCIntraShardNFTMarketplace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(1)
 
+	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(1)
 	defer func() {
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
@@ -453,15 +453,14 @@ func TestESDTTransferNFTToSCIntraShardNFTMarketplace(t *testing.T) {
 	quantityToTransfer := hex.EncodeToString(big.NewInt(1).Bytes())
 	destinationSCAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/esdt-nft-marketplace.wasm", "@01")
 	txData := core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
-		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress) + "@" +
-		hex.EncodeToString([]byte("auctionToken")) + "@" + hex.EncodeToString(big.NewInt(100).Bytes()) + "@" + hex.EncodeToString(big.NewInt(99999).Bytes()) + "@" + hex.EncodeToString([]byte("EGLD")) + "@" + hex.EncodeToString(big.NewInt(0).SetBytes([]byte("9999999999999999999999999999999999999")).Bytes())
+		"@" + nonceArg + "@" + quantityToTransfer + "@" + hex.EncodeToString(destinationSCAddress) + "@" + "61756374696f6e546f6b656e@01@46@60c5f6fc@45474c44"
 	integrationTests.CreateAndSendTransaction(
 		nodes[0],
 		nodes,
 		big.NewInt(0),
 		nodes[0].OwnAccount.Address,
 		txData,
-		integrationTests.AdditionalGasLimit,
+		integrationTests.AdditionalGasLimit*2,
 	)
 
 	time.Sleep(time.Second)

@@ -782,16 +782,6 @@ func prepareNFTWithRoles(
 	*nonce, *round = integrationTests.WaitOperationToBeDone(t, nodes, 3, *nonce, *round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkNftData(
-		t,
-		nftCreator.OwnAccount.Address,
-		nftCreator.OwnAccount.Address,
-		nodes,
-		tokenIdentifier,
-		&nftMetaData,
-		1,
-	)
-
 	return tokenIdentifier, &nftMetaData
 }
 
@@ -814,6 +804,12 @@ func createNFT(tokenIdentifier []byte, issuer *integrationTests.TestProcessorNod
 		hex.EncodeToString(args.hash),
 		hex.EncodeToString(args.attributes),
 		hex.EncodeToString(args.uri[0]),
+	)
+
+	txData = fmt.Sprintf("%s@%s@%s",
+		core.BuiltInFunctionESDTNFTCreate,
+		hex.EncodeToString(tokenIdentifier),
+		"01@54657374@03e8@516d566d3465387063525237566f6a71345175525634395165795a5735584148734579563965695a726953487a73@61747472696275746573@68747470733a2f2f697066732e696f2f697066732f516d566d3465387063525237566f6a71345175525634395165795a5735584148734579563965695a726953487a73",
 	)
 
 	integrationTests.CreateAndSendTransaction(issuer, nodes, big.NewInt(0), issuer.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
