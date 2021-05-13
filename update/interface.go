@@ -23,7 +23,7 @@ type TrieExporter interface {
 type StateSyncer interface {
 	GetEpochStartMetaBlock() (*block.MetaBlock, error)
 	GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error)
-	SyncAllState(epoch uint32) error
+	SyncAllState(epoch uint32, ownShardId uint32) error
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
 	GetAllMiniBlocks() (map[string]*block.MiniBlock, error)
 	IsInterfaceNil() bool
@@ -132,7 +132,7 @@ type HeaderSyncHandler interface {
 
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
-	SyncTriesFrom(meta *block.MetaBlock) error
+	SyncTriesFrom(meta *block.MetaBlock, ownShardId uint32) error
 	IsInterfaceNil() bool
 }
 

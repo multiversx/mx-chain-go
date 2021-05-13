@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/data"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -51,57 +50,43 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
+func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, ownShardId uint32) error {
 	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
 		return update.ErrNotEpochStartBlock
 	}
-
-	var errFound error
-	mutErr := sync.Mutex{}
 
 	st.mutSynced.Lock()
 	st.synced = false
 	st.mutSynced.Unlock()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
+	numHeadersToSync := len(meta.EpochStart.LastFinalizedHeaders) + 1
+	tempMetaShardId := numHeadersToSync - 1
 
-	chDone := make(chan bool)
-	go func() {
-		wg.Wait()
-		chDone <- true
-	}()
-
-	go func() {
-		errMeta := st.syncMeta(meta)
-		if errMeta != nil {
-			mutErr.Lock()
-			errFound = errMeta
-			mutErr.Unlock()
-
-			log.Error("error while synchronizing meta state", "err", errMeta)
-		}
-		wg.Done()
-	}()
-
-	for _, shData := range meta.EpochStart.LastFinalizedHeaders {
-		go func(shardData block.EpochStartShardData) {
-			err := st.syncShard(shardData)
-			if err != nil {
-				mutErr.Lock()
-				errFound = err
-				mutErr.Unlock()
-
-				log.Error("error while synchronizing shard state", "err", err)
-			}
-			wg.Done()
-		}(shData)
+	invalidShardId := int(ownShardId) > len(meta.EpochStart.LastFinalizedHeaders)-1 && ownShardId != core.MetachainShardId
+	if invalidShardId {
+		return update.ErrInvalidOwnShardId
 	}
 
-	<-chDone
+	if ownShardId == core.MetachainShardId {
+		ownShardId = uint32(tempMetaShardId)
+	}
 
-	if errFound != nil {
-		return errFound
+	for i := 0; i < numHeadersToSync; i++ {
+		headerToSync := (i + int(ownShardId)) % numHeadersToSync
+
+		if headerToSync == tempMetaShardId {
+			err := st.syncMeta(meta)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		err := st.syncShard(meta.EpochStart.LastFinalizedHeaders[headerToSync])
+		if err != nil {
+			return err
+		}
 	}
 
 	st.mutSynced.Lock()

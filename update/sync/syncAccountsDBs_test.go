@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -81,9 +82,15 @@ func TestNewSyncState(t *testing.T) {
 		},
 	}
 
-	err = triesSyncHandler.SyncTriesFrom(metaBlock)
+	err = triesSyncHandler.SyncTriesFrom(metaBlock, 0)
 	require.Nil(t, err)
 
 	assert.True(t, metaStateSynced)
 	assert.True(t, shardStateSynced)
+
+	err = triesSyncHandler.SyncTriesFrom(metaBlock, core.MetachainShardId)
+	require.Nil(t, err)
+
+	err = triesSyncHandler.SyncTriesFrom(metaBlock, 1)
+	require.Equal(t, update.ErrInvalidOwnShardId, err)
 }

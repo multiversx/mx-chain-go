@@ -169,7 +169,7 @@ func TestNewSyncState_Ok(t *testing.T) {
 	require.Nil(t, err)
 	require.False(t, ss.IsInterfaceNil())
 
-	err = ss.SyncAllState(1)
+	err = ss.SyncAllState(1, 0)
 	require.Nil(t, err)
 }
 
@@ -186,7 +186,7 @@ func TestNewSyncState_CannotSyncHeaderErr(t *testing.T) {
 	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = ss.SyncAllState(1)
+	err = ss.SyncAllState(1, 0)
 	require.NotNil(t, err)
 }
 
@@ -203,7 +203,7 @@ func TestNewSyncState_CannotSyncTriesErr(t *testing.T) {
 	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = ss.SyncAllState(1)
+	err = ss.SyncAllState(1, 0)
 	require.NotNil(t, err)
 }
 
@@ -232,7 +232,7 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = ss.SyncAllState(0)
+	err = ss.SyncAllState(0, 0)
 	require.True(t, errors.Is(err, localErr))
 }
 
@@ -261,7 +261,7 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = ss.SyncAllState(0)
+	err = ss.SyncAllState(0, 0)
 	require.True(t, errors.Is(err, localErr))
 }
 
@@ -290,6 +290,6 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = ss.SyncAllState(0)
+	err = ss.SyncAllState(0, 0)
 	require.True(t, errors.Is(err, localErr))
 }

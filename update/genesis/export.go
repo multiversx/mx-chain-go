@@ -91,7 +91,7 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 
 // ExportAll syncs and exports all the data from every shard for a certain epoch start block
 func (se *stateExport) ExportAll(epoch uint32) error {
-	err := se.stateSyncer.SyncAllState(epoch)
+	err := se.stateSyncer.SyncAllState(epoch, se.shardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
