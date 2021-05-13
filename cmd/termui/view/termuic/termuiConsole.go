@@ -69,14 +69,14 @@ func (tc *TermuiConsole) Start() error {
 func (tc *TermuiConsole) eventLoop() {
 	tc.grid = termuiRenders.NewDrawableContainer()
 	if tc.grid == nil {
-		log.Debug("cannot presenter termui console", "error", view.ErrNilGrid.Error())
+		log.Debug("cannot render termui console", "error", view.ErrNilGrid.Error())
 		return
 	}
 
 	var err error
 	tc.consoleRender, err = termuiRenders.NewWidgetsRender(tc.presenter, tc.grid)
 	if err != nil {
-		log.Debug("nil console presenter", "error", err.Error())
+		log.Debug("nil console render", "error", err.Error())
 		return
 	}
 
