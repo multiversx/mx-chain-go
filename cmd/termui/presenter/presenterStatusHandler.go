@@ -34,6 +34,11 @@ func (psh *PresenterStatusHandler) IsInterfaceNil() bool {
 	return psh == nil
 }
 
+// InvalidateCache will clear the entire map
+func (psh *PresenterStatusHandler) InvalidateCache() {
+	psh.presenterMetrics = &sync.Map{}
+}
+
 // SetInt64Value method - will update the value for a key
 func (psh *PresenterStatusHandler) SetInt64Value(key string, value int64) {
 	psh.presenterMetrics.Store(key, value)

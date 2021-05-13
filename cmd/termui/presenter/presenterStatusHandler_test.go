@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/presenter"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/stretchr/testify/assert"
 )
 
