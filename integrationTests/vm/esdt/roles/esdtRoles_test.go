@@ -294,7 +294,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/egld-esdt-swap.wasm")
+	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/egld-esdt-swap.wasm", "")
 
 	// issue ESDT by calling exec on dest context on child contract
 	ticker := "DSN"

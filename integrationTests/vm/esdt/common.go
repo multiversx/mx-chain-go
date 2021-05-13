@@ -99,6 +99,7 @@ func DeployNonPayableSmartContract(
 	nonce *uint64,
 	round *uint64,
 	fileName string,
+	initString string,
 ) []byte {
 	// deploy Smart Contract which can do local mint and local burn
 	scCode := arwen.GetSCCode(fileName)
@@ -109,7 +110,7 @@ func DeployNonPayableSmartContract(
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxDataNonPayable(scCode),
+		arwen.CreateDeployTxDataNonPayable(scCode)+initString,
 		integrationTests.AdditionalGasLimit,
 	)
 
