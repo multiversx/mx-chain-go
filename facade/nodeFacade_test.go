@@ -752,6 +752,25 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	assert.Equal(t, expectedValue, res)
 }
 
+func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []string{"ABC-1q2w3e", "PPP-sc78gh"}
+	args := createMockArguments()
+
+	args.Node = &mock.NodeStub{
+		GetESDTsWithRoleCalled: func(address string, role string) ([]string, error) {
+			return expectedResponse, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(args)
+
+	res, err := nf.GetESDTsWithRole("address", "role")
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
+}
+
 func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	t.Parallel()
 
