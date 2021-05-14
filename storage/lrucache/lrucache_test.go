@@ -409,3 +409,12 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 
 	assert.Equal(t, 1, len(c.AddedDataHandlers()))
 }
+
+func TestLRUCache_CloseShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	c, _ := lrucache.NewCache(1)
+
+	err := c.Close()
+	assert.Nil(t, err)
+}
