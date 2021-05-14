@@ -228,15 +228,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	go func() {
-		time.Sleep(1 * time.Minute)
-		arg := endProcess.ArgEndProcess{
-			Reason:      core.ShuffledOut,
-			Description: "test description",
-		}
-		managedCoreComponents.ChanStopNodeProcess() <- arg
-	}()
-
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig, managedDataComponents)
 
