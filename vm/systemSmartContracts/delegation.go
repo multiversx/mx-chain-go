@@ -1428,7 +1428,7 @@ func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
 
 	belowMinDelegationAmount := fund.Value.Cmp(delegationManagement.MinDelegationAmount) < 0
 	if belowMinDelegationAmount {
-		return vm.ErrRedelegateValueWillGenerateDust
+		return vm.ErrRedelegateValueBelowMinimum
 	}
 
 	return nil
