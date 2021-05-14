@@ -19,7 +19,7 @@ type RewardsSettings struct {
 	RewardsConfigByEpoch []EpochRewardSettings
 }
 
-// RewardsConfig holds the economics rewards settings for a specific epoch
+// EpochRewardSettings holds the economics rewards settings for a specific epoch
 type EpochRewardSettings struct {
 	LeaderPercentage                 float64
 	DeveloperPercentage              float64
