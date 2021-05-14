@@ -454,6 +454,10 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
@@ -617,6 +621,10 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address
 func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	if !core.IsValidESDTRole(role) {
 		return nil, ErrInvalidESDTRole
 	}
