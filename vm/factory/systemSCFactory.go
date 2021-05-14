@@ -230,19 +230,19 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 
 func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, error) {
 	argsDelegation := systemSmartContracts.ArgsNewDelegation{
-		DelegationSCConfig:               scf.systemSCConfig.DelegationSystemSCConfig,
-		StakingSCConfig:                  scf.systemSCConfig.StakingSystemSCConfig,
-		Eei:                              scf.systemEI,
-		SigVerifier:                      scf.sigVerifier,
-		DelegationMgrSCAddress:           vm.DelegationManagerSCAddress,
-		StakingSCAddress:                 vm.StakingSCAddress,
-		ValidatorSCAddress:               vm.ValidatorSCAddress,
-		GasCost:                          scf.gasCost,
-		Marshalizer:                      scf.marshalizer,
-		EpochNotifier:                    scf.epochNotifier,
-		EndOfEpochAddress:                vm.EndOfEpochAddress,
-		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
-		ReDelegateDustCheckEnableEpoch:   scf.systemSCConfig.DelegationManagerSystemSCConfig.ReDelegateDustCheckEnableEpoch,
+		DelegationSCConfig:                 scf.systemSCConfig.DelegationSystemSCConfig,
+		StakingSCConfig:                    scf.systemSCConfig.StakingSystemSCConfig,
+		Eei:                                scf.systemEI,
+		SigVerifier:                        scf.sigVerifier,
+		DelegationMgrSCAddress:             vm.DelegationManagerSCAddress,
+		StakingSCAddress:                   vm.StakingSCAddress,
+		ValidatorSCAddress:                 vm.ValidatorSCAddress,
+		GasCost:                            scf.gasCost,
+		Marshalizer:                        scf.marshalizer,
+		EpochNotifier:                      scf.epochNotifier,
+		EndOfEpochAddress:                  vm.EndOfEpochAddress,
+		ValidatorToDelegationEnableEpoch:   scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
+		ReDelegateBelowMinCheckEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ReDelegateBelowMinCheckEnableEpoch,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
 	return delegation, err
