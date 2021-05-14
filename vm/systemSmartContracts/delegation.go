@@ -60,6 +60,8 @@ type delegation struct {
 	stakingV2Enabled                 atomic.Flag
 	flagValidatorToDelegation        atomic.Flag
 	validatorToDelegationEnableEpoch uint32
+	flagReDelegateDustCheck          atomic.Flag
+	reDelegateDustCheckEnableEpoch   uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -76,6 +78,7 @@ type ArgsNewDelegation struct {
 	Marshalizer                      marshal.Marshalizer
 	EpochNotifier                    vm.EpochNotifier
 	ValidatorToDelegationEnableEpoch uint32
+	ReDelegateDustCheckEnableEpoch   uint32
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -125,6 +128,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		stakingV2EnableEpoch:             args.StakingSCConfig.StakingV2Epoch,
 		stakingV2Enabled:                 atomic.Flag{},
 		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		reDelegateDustCheckEnableEpoch:   args.ReDelegateDustCheckEnableEpoch,
 	}
 
 	var okValue bool
@@ -1302,6 +1306,12 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
+	err = d.checkNotToReDelegateDust(delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	globalFund, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1320,6 +1330,31 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr,
 		args.RecipientAddr, delegateValue, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
+}
+
+func (d *delegation) checkNotToReDelegateDust(delegator *DelegatorData) error {
+	if !d.flagReDelegateDustCheck.IsSet() {
+		return nil
+	}
+
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		return err
+	}
+
+	fund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		return err
+	}
+
+	newActiveFundValue := big.NewInt(0).Set(fund.Value)
+	newActiveFundValue.Add(newActiveFundValue, delegator.UnClaimedRewards)
+	willRemainDust := newActiveFundValue.Cmp(delegationManagement.MinDelegationAmount) < 0
+	if willRemainDust {
+		return vm.ErrRedelegateValueWillGenerateDust
+	}
+
+	return nil
 }
 
 func (d *delegation) finishDelegateUser(
@@ -2772,6 +2807,9 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 
 	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
 	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
+
+	d.flagReDelegateDustCheck.Toggle(epoch >= d.reDelegateDustCheckEnableEpoch)
+	log.Debug("re-delegate dust check", "enabled", d.flagReDelegateDustCheck.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

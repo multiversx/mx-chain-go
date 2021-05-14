@@ -52,6 +52,7 @@ type DelegationManagerSystemSCConfig struct {
 	MinCreationDeposit               string
 	EnabledEpoch                     uint32
 	ValidatorToDelegationEnableEpoch uint32
+	ReDelegateDustCheckEnableEpoch   uint32
 	MinStakeAmount                   string
 	ConfigChangeAddress              string
 }

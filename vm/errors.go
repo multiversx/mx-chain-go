@@ -229,3 +229,6 @@ var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
 
 // ErrNFTCreateRoleAlreadyExists signals that NFT create role already exists
 var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")
+
+// ErrRedelegateValueWillGenerateDust signals that the re-delegate value will generate dust in the delegation SC
+var ErrRedelegateValueWillGenerateDust = errors.New("re-delegate value will generate dust in the delegation SC")
