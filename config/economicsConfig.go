@@ -14,14 +14,20 @@ type YearSetting struct {
 	MaximumInflation float64
 }
 
-// RewardsSettings will hold economics rewards settings
+// RewardsSettings holds the economics rewards config changes by epoch
 type RewardsSettings struct {
+	RewardsConfigByEpoch []EpochRewardSettings
+}
+
+// RewardsConfig holds the economics rewards settings for a specific epoch
+type EpochRewardSettings struct {
 	LeaderPercentage                 float64
 	DeveloperPercentage              float64
 	ProtocolSustainabilityPercentage float64
 	ProtocolSustainabilityAddress    string
 	TopUpGradientPoint               string
 	TopUpFactor                      float64
+	EpochEnable                      uint32
 }
 
 // FeeSettings will hold economics fee settings

@@ -13,26 +13,27 @@ type BaseOperationCost struct {
 
 // MetaChainSystemSCsCost defines the cost of system staking SCs methods
 type MetaChainSystemSCsCost struct {
-	Stake               uint64
-	UnStake             uint64
-	UnBond              uint64
-	Claim               uint64
-	Get                 uint64
-	ChangeRewardAddress uint64
-	ChangeValidatorKeys uint64
-	UnJail              uint64
-	ESDTIssue           uint64
-	ESDTOperations      uint64
-	Proposal            uint64
-	Vote                uint64
-	DelegateVote        uint64
-	RevokeVote          uint64
-	CloseProposal       uint64
-	DelegationOps       uint64
-	UnStakeTokens       uint64
-	UnBondTokens        uint64
-	DelegationMgrOps    uint64
-	GetAllNodeStates    uint64
+	Stake                 uint64
+	UnStake               uint64
+	UnBond                uint64
+	Claim                 uint64
+	Get                   uint64
+	ChangeRewardAddress   uint64
+	ChangeValidatorKeys   uint64
+	UnJail                uint64
+	ESDTIssue             uint64
+	ESDTOperations        uint64
+	Proposal              uint64
+	Vote                  uint64
+	DelegateVote          uint64
+	RevokeVote            uint64
+	CloseProposal         uint64
+	DelegationOps         uint64
+	UnStakeTokens         uint64
+	UnBondTokens          uint64
+	DelegationMgrOps      uint64
+	ValidatorToDelegation uint64
+	GetAllNodeStates      uint64
 }
 
 // BuiltInCost defines cost for built-in methods

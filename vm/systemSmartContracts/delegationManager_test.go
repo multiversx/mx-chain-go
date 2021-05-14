@@ -326,10 +326,13 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
+	argsStaking.StakingAccessAddr = vm.ValidatorSCAddress
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	argsValidator := createMockArgumentsForValidatorSC()
 	argsValidator.Eei = eei
+	argsValidator.StakingSCAddress = vm.StakingSCAddress
+	argsValidator.ValidatorSCAddress = vm.ValidatorSCAddress
 	validatorSc, _ := NewValidatorSmartContract(argsValidator)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
@@ -346,7 +349,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 			case string(vm.FirstDelegationSCAddress):
 				return delegationSc, nil
 			}
-			return nil, nil
+			return nil, vm.ErrUnknownSystemSmartContract
 		},
 	}
 
@@ -735,4 +738,305 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(int64(delegationManagement.MaxServiceFee)).Bytes(), results.ReturnData[3])
 	assert.Equal(t, delegationManagement.MinDeposit.Bytes(), results.ReturnData[4])
 	assert.Equal(t, delegationManagement.MinDelegationAmount.Bytes(), results.ReturnData[5])
+}
+
+func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T) {
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.checkValidatorToDelegationInput(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid function to call")
+
+	d.flagValidatorToDelegation.Set()
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(10)
+	returnCode = d.checkValidatorToDelegationInput(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "callValue must be 0")
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = 0
+	returnCode = d.checkValidatorToDelegationInput(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, returnCode)
+
+	eei.returnMessage = ""
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallerAddr = vm.ESDTSCAddress
+	returnCode = d.checkValidatorToDelegationInput(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "cannot change from validator to delegation contract for a smart contract")
+}
+
+func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T) {
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid function to call")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = append(vmInput.Arguments, []byte("someotherarg"))
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.Arguments = [][]byte{maxDelegationCap, serviceFee}
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testing.T) {
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid function to call")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{[]byte("somearg")}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "no sc address under selected user")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	eei.SetStorage(vmInput.CallerAddr, make([]byte, len(vmInput.CallerAddr)))
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "did not find delegation contract with given address for this caller")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+	eei.SetStorage(vmInput.CallerAddr, vmInput.CallerAddr)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrUnknownSystemSmartContract.Error())
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *testing.T) {
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid function to call")
+
+	d.flagValidatorToDelegation.Set()
+
+	eei.returnMessage = ""
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{[]byte("somearg")}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address")
+
+	eei.returnMessage = ""
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	eei.gasRemaining = vmInput.GasProvided
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "address is not whitelisted for merge")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	d.eei.SetStorageForAddress(vmInput.CallerAddr, []byte(whitelistedAddress), vmInput.CallerAddr)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+	eei.SetStorage(vmInput.CallerAddr, vmInput.CallerAddr)
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, vm.ErrUnknownSystemSmartContract.Error())
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+	eei.returnMessage = ""
+	eei.gasRemaining = vmInput.GasProvided
+
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataWithJailedNodes(t *testing.T) {
+	maxDelegationCap := []byte{0}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegationManager()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		parsers.NewCallArgsParser(),
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
+
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
+	d, _ := NewDelegationManagerSystemSC(args)
+	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	eei.scAddress = vm.DelegationManagerSCAddress
+	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
+
+	validator, _ := eei.systemContracts.Get(d.validatorSCAddr)
+	s, _ := eei.systemContracts.Get(d.stakingSCAddr)
+	staking := s.(*stakingSC)
+
+	key1 := []byte("Key1")
+	key2 := []byte("Key2")
+
+	arguments := &vmcommon.ContractCallInput{}
+	arguments.CallerAddr = vmInput.CallerAddr
+	arguments.RecipientAddr = d.validatorSCAddr
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
+	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key2, []byte("msg2")}
+
+	eei.scAddress = vm.ValidatorSCAddress
+	returnCode := validator.Execute(arguments)
+	assert.Equal(t, returnCode, vmcommon.Ok)
+
+	eei.scAddress = vm.StakingSCAddress
+	doJail(t, staking, staking.jailAccessAddr, key1, vmcommon.Ok)
+
+	eei.scAddress = vm.DelegationManagerSCAddress
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{maxDelegationCap, serviceFee}
+	vmInput.GasProvided = 1000000
+	eei.gasRemaining = 1000000
+
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "can not migrate nodes while jailed nodes exists")
 }

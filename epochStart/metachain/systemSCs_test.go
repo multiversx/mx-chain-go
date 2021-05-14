@@ -189,7 +189,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
+	testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t, 0)
+	testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t, 1000)
+}
+
+func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, saveJailedAlwaysEnableEpoch uint32) {
 	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
+	args.SaveJailedAlwaysEnableEpoch = saveJailedAlwaysEnableEpoch
+
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -224,6 +231,29 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	}
 	for i := numWaiting; i < numJailed; i++ {
 		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
+	}
+
+	newJailedNodes := jailed[numWaiting:numJailed]
+	checkNodesStatusInSystemSCDataTrie(t, newJailedNodes, args.UserAccountsDB, args.Marshalizer, saveJailedAlwaysEnableEpoch == 0)
+}
+
+func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorInfo, accounts state.AccountsAdapter, marshalizer marshal.Marshalizer, jailed bool) {
+	account, err := accounts.LoadAccount(vm.StakingSCAddress)
+	require.Nil(t, err)
+
+	var buff []byte
+	systemScAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+	for _, nodeInfo := range nodes {
+		buff, err = systemScAccount.DataTrieTracker().RetrieveValue(nodeInfo.PublicKey)
+		require.Nil(t, err)
+		require.True(t, len(buff) > 0)
+
+		stakingData := &systemSmartContracts.StakedDataV1_1{}
+		err = marshalizer.Unmarshal(stakingData, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, jailed, stakingData.Jailed)
 	}
 }
 
@@ -986,11 +1016,16 @@ func createEconomicsData() process.EconomicsDataHandler {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: "protocol",
-				TopUpGradientPoint:            "300000000000000000000",
-				TopUpFactor:                   0.25,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "protocol",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
