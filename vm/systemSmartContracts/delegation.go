@@ -2807,7 +2807,7 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 
 	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
-	log.Debug("re-delegate dust check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
+	log.Debug("re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
