@@ -376,6 +376,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 		parsers.NewCallArgsParser(),
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
+	createDelegationManagerConfig(eei, args.Marshalizer, callValue)
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 20
 	args.StakingSCConfig.UnBondPeriodInEpochs = 20
@@ -2734,9 +2735,68 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).SetBytes(lastValue).Uint64(), uint64(180))
 }
 
-func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
+func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
 	t.Parallel()
 
+	d, eei := prepareReDelegateRewardsComponents(t, 1000, big.NewInt(1156))
+	vmInput := getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.False(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(155), delegatorData.TotalCumulatedRewards.Uint64())
+
+	activeFund, _ := d.getFund(delegatorData.ActiveFund)
+	assert.Equal(t, big.NewInt(155+1000), activeFund.Value)
+}
+
+func TestDelegation_ExecuteReDelegateRewardsWithExtraCheckReDelegateIsAboveMinimum(t *testing.T) {
+	t.Parallel()
+
+	d, eei := prepareReDelegateRewardsComponents(t, 0, big.NewInt(155))
+	vmInput := getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.False(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+	assert.Equal(t, uint64(155), delegatorData.TotalCumulatedRewards.Uint64())
+
+	activeFund, _ := d.getFund(delegatorData.ActiveFund)
+	assert.Equal(t, big.NewInt(155+1000), activeFund.Value)
+}
+
+func TestDelegation_ExecuteReDelegateRewardsWithExtraCheckReDelegateIsBelowMinimum(t *testing.T) {
+	t.Parallel()
+
+	d, eei := prepareReDelegateRewardsComponents(t, 0, big.NewInt(1000))
+	createDelegationManagerConfig(eei, &mock.MarshalizerMock{}, big.NewInt(1156))
+	vmInput := getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func prepareReDelegateRewardsComponents(
+	t *testing.T,
+	extraCheckEpoch uint32,
+	minDelegation *big.Int,
+) (*delegation, *vmContext) {
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{
@@ -2755,9 +2815,11 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 		}}, nil
 	}})
 
+	createDelegationManagerConfig(eei, args.Marshalizer, minDelegation)
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
+	args.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)
@@ -2789,23 +2851,8 @@ func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
 		TotalActive:         big.NewInt(2000),
 		ServiceFee:          1000,
 	})
-	vmInput = getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
-	vmInput.CallerAddr = []byte("stakingProvider")
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
 
-	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
-	assert.False(t, exists)
-	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
-	assert.True(t, exists)
-
-	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
-	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
-	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
-	assert.Equal(t, uint64(155), delegatorData.TotalCumulatedRewards.Uint64())
-
-	activeFund, _ := d.getFund(delegatorData.ActiveFund)
-	assert.Equal(t, big.NewInt(155+1000), activeFund.Value)
+	return d, eei
 }
 
 func TestDelegation_ExecuteGetRewardDataUserErrors(t *testing.T) {
@@ -4247,7 +4294,7 @@ func TestDelegation_GetDelegationManagementShouldWork(t *testing.T) {
 	assert.Equal(t, minDelegationAmount, delegationManagement.MinDelegationAmount)
 }
 
-func TestDelegation_ExecuteinitFromValidatorData(t *testing.T) {
+func TestDelegation_ExecuteInitFromValidatorData(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
@@ -4268,6 +4315,7 @@ func TestDelegation_ExecuteinitFromValidatorData(t *testing.T) {
 		}}, nil
 	}})
 
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(1000))
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
