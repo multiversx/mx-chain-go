@@ -9,20 +9,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	getAccountPath  = "/:address"
-	getBalancePath  = "/:address/balance"
-	getUsernamePath = "/:address/username"
-	getKeysPath     = "/:address/keys"
-	getKeyPath      = "/:address/key/:key"
-	getESDTTokens   = "/:address/esdt"
-	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
-	getESDTNFTData  = "/:address/nft/:tokenIdentifier/nonce/:nonce"
+	getAccountPath        = "/:address"
+	getBalancePath        = "/:address/balance"
+	getUsernamePath       = "/:address/username"
+	getKeysPath           = "/:address/keys"
+	getKeyPath            = "/:address/key/:key"
+	getESDTTokens         = "/:address/esdt"
+	getESDTBalance        = "/:address/esdt/:tokenIdentifier"
+	getESDTTokensWithRole = "/:address/esdts-with-role/:role"
+	getESDTNFTData        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -33,6 +35,7 @@ type FacadeHandler interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 	GetCode(account state.UserAccountHandler) []byte
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
 	IsInterfaceNil() bool
@@ -77,6 +80,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
 	router.RegisterHandler(http.MethodGet, getESDTNFTData, GetESDTNFTData)
 	router.RegisterHandler(http.MethodGet, getESDTTokens, GetAllESDTData)
+	router.RegisterHandler(http.MethodGet, getESDTTokensWithRole, GetESDTTokensWithRole)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -381,6 +385,74 @@ func GetESDTBalance(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"tokenData": tokenData},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetESDTTokensWithRole returns the token identifiers where a given address has the given role
+func GetESDTTokensWithRole(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	role := c.Param("role")
+	if role == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyKey.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	if !core.IsValidESDTRole(role) {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("invalid role: %s", role),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokens, err := facade.GetESDTsWithRole(addr, role)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

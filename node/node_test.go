@@ -571,6 +571,75 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	assert.Equal(t, 3, len(value))
 }
 
+func TestNode_GetESDTsWithRole(t *testing.T) {
+	addrBytes := []byte("newaddress")
+	acc, _ := state.NewUserAccount(addrBytes)
+	esdtToken := []byte("TCK-RANDOM")
+
+	specialRoles := []*systemSmartContracts.ESDTRoles{
+		{
+			Address: addrBytes,
+			Roles:   [][]byte{[]byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleLocalMint)},
+		},
+	}
+
+	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+		node.WithAccountsAdapterAPI(accDB),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
+		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		}}),
+	)
+
+	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(tokenResult))
+	require.Equal(t, string(esdtToken), tokenResult[0])
+
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(tokenResult))
+	require.Equal(t, string(esdtToken), tokenResult[0])
+
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate)
+	require.NoError(t, err)
+	require.Len(t, tokenResult, 0)
+}
+
 //------- GenerateTransaction
 
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {

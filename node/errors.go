@@ -231,3 +231,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilBlockHeader signals that current block header is nil
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrInvalidESDTRole signals that an invalid ESDT role has been provided
+var ErrInvalidESDTRole = errors.New("invalid ESDT role")
