@@ -105,7 +105,7 @@ func TestInterceptedTrieNode_EncodedNode(t *testing.T) {
 	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
-	encNode := interceptedNode.EncodedNode()
+	encNode := interceptedNode.GetSerialized()
 	assert.Equal(t, nodes[0], encNode)
 }
 

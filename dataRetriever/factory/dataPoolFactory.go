@@ -94,6 +94,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		int(mainConfig.TrieSyncStorage.Capacity),
 		int64(mainConfig.TrieSyncStorage.SizeInBytes),
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
 	argDB := storageUnit.ArgDB{
@@ -104,7 +107,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		MaxOpenFiles:      dbCfg.MaxOpenFiles,
 	}
 
-	if mainConfig.TrieSyncStorage.UseTmpAsFilePath {
+	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
 		filePath, err := ioutil.TempDir("", "trieSyncStorage")
 		if err != nil {
 			return nil, err

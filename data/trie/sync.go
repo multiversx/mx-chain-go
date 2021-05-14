@@ -33,7 +33,7 @@ type trieSyncer struct {
 	hasher                    hashing.Hasher
 	db                        data.DBWriteCacher
 	requestHandler            RequestHandler
-	interceptedNodes          storage.Cacher
+	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
 	handlerID                 string
 	trieSyncStatistics        data.SyncStatisticsHandler
@@ -68,7 +68,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 
 	ts := &trieSyncer{
 		requestHandler:            arg.RequestHandler,
-		interceptedNodes:          arg.InterceptedNodes,
+		interceptedNodesCacher:    arg.InterceptedNodes,
 		db:                        arg.DB,
 		marshalizer:               arg.Marshalizer,
 		hasher:                    arg.Hasher,
@@ -135,8 +135,6 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 	ts.rootFound = false
 	ts.rootHash = rootHash
-
-	defer ts.interceptedNodes.Clear()
 
 	for {
 		shouldRetryAfterRequest, err := ts.checkIfSynced()
@@ -293,7 +291,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 
 	return getNodeFromStorage(
 		hash,
-		ts.interceptedNodes,
+		ts.interceptedNodesCacher,
 		ts.db,
 		ts.marshalizer,
 		ts.hasher,
@@ -302,14 +300,14 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 
 func getNodeFromStorage(
 	hash []byte,
-	interceptedNodes storage.Cacher,
+	interceptedNodesCacher storage.Cacher,
 	db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {
-	n, ok := interceptedNodes.Get(hash)
+	n, ok := interceptedNodesCacher.Get(hash)
 	if ok {
-		interceptedNodes.Remove(hash)
+		interceptedNodesCacher.Remove(hash)
 		return trieNode(n, marshalizer, hasher)
 	}
 
@@ -339,7 +337,7 @@ func trieNode(
 		return n.node, nil
 	}
 
-	decodedNode, err := decodeNode(n.SerializedNode.NodeBytes, marshalizer, hasher)
+	decodedNode, err := decodeNode(n.SerializedNode, marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}

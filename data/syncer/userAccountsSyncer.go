@@ -78,7 +78,10 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	defer u.mutex.Unlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer func() {
+		cancel()
+		u.cacher.Clear()
+	}()
 
 	tss := statistics.NewTrieSyncStatistics()
 	go u.printStatistics(tss, ctx)

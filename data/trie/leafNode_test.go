@@ -537,7 +537,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		n, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(n.hash, n, len(n.EncodedNode()))
+		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
 	lnPosition := 5

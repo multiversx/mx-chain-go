@@ -19,6 +19,8 @@ type storageCacherAdapter struct {
 
 	storedDataFactory storage.StoredDataFactory
 	marshalizer       marshal.Marshalizer
+
+	numValuesInStorage int
 }
 
 // NewStorageCacherAdapter creates a new storageCacherAdapter
@@ -42,11 +44,12 @@ func NewStorageCacherAdapter(
 	}
 
 	return &storageCacherAdapter{
-		cacher:            cacher,
-		db:                db,
-		lock:              sync.RWMutex{},
-		storedDataFactory: storedDataFactory,
-		marshalizer:       marshalizer,
+		cacher:             cacher,
+		db:                 db,
+		lock:               sync.RWMutex{},
+		storedDataFactory:  storedDataFactory,
+		marshalizer:        marshalizer,
+		numValuesInStorage: 0,
 	}, nil
 }
 
@@ -55,12 +58,16 @@ func (c *storageCacherAdapter) Clear() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	// TODO also clear the underlying db
+	err := c.db.Destroy()
+	if err != nil {
+		log.Error("could not destroy the db", "err", err.Error())
+	}
+
 	c.cacher.Purge()
 }
 
 // Put adds the given value in the cacher. If the cacher is full, the evicted values will be persisted to the db
-func (c *storageCacherAdapter) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+func (c *storageCacherAdapter) Put(key []byte, value interface{}, sizeInBytes int) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -68,30 +75,46 @@ func (c *storageCacherAdapter) Put(key []byte, value interface{}, sizeInBytes in
 	for evictedKey, evictedVal := range evictedValues {
 		evictedKeyStr, ok := evictedKey.(string)
 		if !ok {
-			log.Warn("invalid key type")
+			log.Warn("invalid key type", "key", evictedKey)
 			continue
 		}
 
-		evictedValBytes, err := c.marshalizer.Marshal(evictedVal)
-		if err != nil {
-			log.Error("could not marshall value", "error", err)
+		evictedValBytes := getBytes(evictedVal, c.marshalizer)
+		if len(evictedValBytes) == 0 {
 			continue
 		}
 
-		err = c.db.Put([]byte(evictedKeyStr), evictedValBytes)
+		err := c.db.Put([]byte(evictedKeyStr), evictedValBytes)
 		if err != nil {
 			log.Error("could not save to db", "error", err)
 			continue
 		}
+
+		c.numValuesInStorage++
 	}
 
 	return len(evictedValues) != 0
 }
 
+func getBytes(data interface{}, marshalizer marshal.Marshalizer) []byte {
+	evictedVal, ok := data.(storage.SerializedStoredData)
+	if ok {
+		return evictedVal.GetSerialized()
+	}
+
+	evictedValBytes, err := marshalizer.Marshal(data)
+	if err != nil {
+		log.Error("could not marshal value", "error", err)
+		return nil
+	}
+
+	return evictedValBytes
+}
+
 // Get returns the value at the given key
-func (c *storageCacherAdapter) Get(key []byte) (value interface{}, ok bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+func (c *storageCacherAdapter) Get(key []byte) (interface{}, bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	val, ok := c.cacher.Get(string(key))
 	if ok {
@@ -103,20 +126,35 @@ func (c *storageCacherAdapter) Get(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
 
-	storedData := c.storedDataFactory.CreateEmpty()
-	err = c.marshalizer.Unmarshal(storedData, valBytes)
+	storedData, err := c.getData(valBytes)
 	if err != nil {
-		log.Error("could not unmarshall", "error", err)
+		log.Error("could not get data", "error", err)
 		return nil, false
 	}
 
 	return storedData, true
 }
 
+func (c *storageCacherAdapter) getData(serializedData []byte) (interface{}, error) {
+	storedData := c.storedDataFactory.CreateEmpty()
+	data, ok := storedData.(storage.SerializedStoredData)
+	if ok {
+		data.SetSerialized(serializedData)
+		return data, nil
+	}
+
+	err := c.marshalizer.Unmarshal(storedData, serializedData)
+	if err != nil {
+		return nil, err
+	}
+
+	return storedData, nil
+}
+
 // Has checks if the given key is present in the storageUnit
 func (c *storageCacherAdapter) Has(key []byte) bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	isPresent := c.cacher.Contains(string(key))
 	if isPresent {
@@ -124,26 +162,27 @@ func (c *storageCacherAdapter) Has(key []byte) bool {
 	}
 
 	err := c.db.Has(key)
-	if err == nil {
-		return true
-	}
-
-	return false
+	return err == nil
 }
 
-// Peek returns the value at the given key
-func (c *storageCacherAdapter) Peek(key []byte) (value interface{}, ok bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+// Peek returns the value at the given key by searching only in cacher
+func (c *storageCacherAdapter) Peek(key []byte) (interface{}, bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	return c.cacher.Peek(string(key))
 }
 
-// HasOrAdd adds the given value in the storageUnit
-func (c *storageCacherAdapter) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
-	_ = c.Put(key, value, sizeInBytes)
+// HasOrAdd checks if the value exists and adds it otherwise
+func (c *storageCacherAdapter) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (bool, bool) {
+	ok := c.Has(key)
+	if ok {
+		return true, false
+	}
 
-	return false, true
+	added := c.Put(key, value, sizeInBytes)
+
+	return false, added
 }
 
 // Remove deletes the given key from the storageUnit
@@ -153,10 +192,14 @@ func (c *storageCacherAdapter) Remove(key []byte) {
 
 	removed := c.cacher.Remove(string(key))
 	if removed {
+		c.numValuesInStorage--
 		return
 	}
 
-	_ = c.db.Remove(key)
+	err := c.db.Remove(key)
+	if err == nil {
+		c.numValuesInStorage--
+	}
 }
 
 // Keys returns all the keys present in the storageUnit
@@ -165,7 +208,7 @@ func (c *storageCacherAdapter) Keys() [][]byte {
 	defer c.lock.RUnlock()
 
 	cacherKeys := c.cacher.Keys()
-	storedKeys := make([][]byte, 0)
+	storedKeys := make([][]byte, 0, len(cacherKeys))
 	for i := range cacherKeys {
 		key, ok := cacherKeys[i].(string)
 		if !ok {
@@ -190,28 +233,15 @@ func (c *storageCacherAdapter) Len() int {
 	defer c.lock.RUnlock()
 
 	cacheLen := c.cacher.Len()
-	countValues := func(_ []byte, _ []byte) bool {
-		cacheLen++
-		return true
-	}
-
-	c.db.RangeKeys(countValues)
-	return cacheLen
+	return cacheLen + c.numValuesInStorage
 }
 
-// SizeInBytesContained returns the number of bytes stored in the storageUnit
+// SizeInBytesContained returns the number of bytes stored in the cache
 func (c *storageCacherAdapter) SizeInBytesContained() uint64 {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	size := c.cacher.SizeInBytesContained()
-	countSize := func(_ []byte, val []byte) bool {
-		size += uint64(len(val))
-		return true
-	}
-
-	c.db.RangeKeys(countSize)
-	return size
+	return c.cacher.SizeInBytesContained()
 }
 
 // MaxSize returns MaxInt64
@@ -220,13 +250,11 @@ func (c *storageCacherAdapter) MaxSize() int {
 }
 
 // RegisterHandler does nothing
-func (c *storageCacherAdapter) RegisterHandler(_ func(key []byte, _ interface{}), _ string) {
-	return
+func (c *storageCacherAdapter) RegisterHandler(_ func(_ []byte, _ interface{}), _ string) {
 }
 
 // UnRegisterHandler does nothing
 func (c *storageCacherAdapter) UnRegisterHandler(_ string) {
-	return
 }
 
 // Close closes the underlying db

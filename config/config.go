@@ -24,6 +24,7 @@ type DBConfig struct {
 	BatchDelaySeconds int
 	MaxBatchSize      int
 	MaxOpenFiles      int
+	UseTmpAsFilePath  bool
 }
 
 // BloomFilterConfig will map the bloom filter configuration
@@ -41,10 +42,9 @@ type StorageConfig struct {
 
 // TrieSyncStorageConfig will map trie sync storage configuration
 type TrieSyncStorageConfig struct {
-	DB               DBConfig
-	UseTmpAsFilePath bool
-	Capacity         uint32
-	SizeInBytes      uint64
+	DB          DBConfig
+	Capacity    uint32
+	SizeInBytes uint64
 }
 
 // PubkeyConfig will map the public key configuration

@@ -63,7 +63,7 @@ func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
 	return c.evictIfNeeded()
 }
 
-func (c *capacityLRU) addSized(key, value interface{}, sizeInBytes int64) {
+func (c *capacityLRU) addSized(key interface{}, value interface{}, sizeInBytes int64) {
 	if sizeInBytes < 0 {
 		log.Error("size LRU cache add error",
 			"key", fmt.Sprintf("%v", key),

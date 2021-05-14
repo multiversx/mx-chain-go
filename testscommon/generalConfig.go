@@ -105,10 +105,10 @@ func GetGeneralConfig() config.Config {
 				BatchDelaySeconds: 2,
 				MaxBatchSize:      1000,
 				MaxOpenFiles:      10,
+				UseTmpAsFilePath:  true,
 			},
-			UseTmpAsFilePath: true,
-			Capacity:         10,
-			SizeInBytes:      10000,
+			Capacity:    10,
+			SizeInBytes: 10000,
 		},
 		SmartContractDataPool: getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{

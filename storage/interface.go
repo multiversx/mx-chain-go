@@ -228,3 +228,9 @@ type StoredDataFactory interface {
 	CreateEmpty() interface{}
 	IsInterfaceNil() bool
 }
+
+// SerializedStoredData defines a data type that has the serialized data as a field
+type SerializedStoredData interface {
+	GetSerialized() []byte
+	SetSerialized([]byte)
+}

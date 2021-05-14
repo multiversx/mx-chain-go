@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -35,7 +36,7 @@ func TestNewStorageCacherAdapter_NilDB(t *testing.T) {
 		factory.NewTrieNodeFactory(),
 		&mock.MarshalizerMock{},
 	)
-	assert.Nil(t, sca)
+	assert.True(t, check.IfNil(sca))
 	assert.Equal(t, storage.ErrNilPersister, err)
 }
 
@@ -424,11 +425,15 @@ func TestStorageCacherAdapter_Len(t *testing.T) {
 	t.Parallel()
 
 	db := dataMock.NewMemDbMock()
-	_ = db.Put([]byte("key"), []byte("val"))
 	sca, err := NewStorageCacherAdapter(
 		&storageMock.AdaptedSizedLruCacheStub{
 			LenCalled: func() int {
 				return 3
+			},
+			AddSizedAndReturnEvictedCalled: func(key, value interface{}, sizeInBytes int64) map[interface{}]interface{} {
+				res := make(map[interface{}]interface{})
+				res[key] = value
+				return res
 			},
 		},
 		db,
@@ -437,6 +442,7 @@ func TestStorageCacherAdapter_Len(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
+	_ = sca.Put([]byte("key"), []byte("val"), 3)
 	numVals := sca.Len()
 	assert.Equal(t, 4, numVals)
 }
@@ -459,7 +465,7 @@ func TestStorageCacherAdapter_SizeInBytesContained(t *testing.T) {
 	assert.Nil(t, err)
 
 	totalSize := sca.SizeInBytesContained()
-	assert.Equal(t, uint64(1003), totalSize)
+	assert.Equal(t, uint64(1000), totalSize)
 }
 
 func TestStorageCacherAdapter_MaxSize(t *testing.T) {

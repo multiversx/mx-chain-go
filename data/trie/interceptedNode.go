@@ -1,4 +1,3 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/elrond-go/data/trie/proto/interceptedNode.proto  --gogoslick_out=. interceptedNode.proto
 package trie
 
 import (
@@ -17,9 +16,9 @@ var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {
-	node node
-	SerializedNode
-	hash []byte
+	node           node
+	SerializedNode []byte
+	hash           []byte
 }
 
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
@@ -51,7 +50,7 @@ func NewInterceptedTrieNode(
 
 	return &InterceptedTrieNode{
 		node:           n,
-		SerializedNode: SerializedNode{buff},
+		SerializedNode: buff,
 		hash:           n.getHash(),
 	}, nil
 }
@@ -79,9 +78,14 @@ func (inTn *InterceptedTrieNode) IsInterfaceNil() bool {
 	return inTn == nil
 }
 
-// EncodedNode returns the intercepted encoded node
-func (inTn *InterceptedTrieNode) EncodedNode() []byte {
-	return inTn.SerializedNode.NodeBytes
+// GetSerialized returns the intercepted encoded node
+func (inTn *InterceptedTrieNode) GetSerialized() []byte {
+	return inTn.SerializedNode
+}
+
+// SetSerialized sets the given bytes as the SerializedNode
+func (inTn *InterceptedTrieNode) SetSerialized(serializedNode []byte) {
+	inTn.SerializedNode = serializedNode
 }
 
 // Type returns the type of this intercepted data
@@ -123,7 +127,7 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 
 // SizeInBytes returns the size in bytes held by this instance plus the inner node's instance size
 func (inTn *InterceptedTrieNode) SizeInBytes() int {
-	return len(inTn.hash) + len(inTn.SerializedNode.NodeBytes) + inTn.node.sizeInBytes()
+	return len(inTn.hash) + len(inTn.SerializedNode) + inTn.node.sizeInBytes()
 }
 
 // Identifiers returns the identifiers used in requests

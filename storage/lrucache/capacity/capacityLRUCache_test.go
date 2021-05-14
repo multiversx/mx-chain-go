@@ -3,6 +3,7 @@ package capacity
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestNewCapacityLRU_WithInvalidSize(t *testing.T) {
 	size := 0
 	capacity := int64(1)
 	cache, err := NewCapacityLRU(size, capacity)
-	assert.Nil(t, cache)
+	assert.True(t, check.IfNil(cache))
 	assert.Equal(t, storage.ErrCacheSizeInvalid, err)
 }
 
@@ -41,7 +42,7 @@ func TestNewCapacityLRU(t *testing.T) {
 	capacity := int64(5)
 
 	cache, err := NewCapacityLRU(size, capacity)
-	assert.NotNil(t, cache)
+	assert.False(t, check.IfNil(cache))
 	assert.Nil(t, err)
 	assert.Equal(t, size, cache.size)
 	assert.Equal(t, capacity, cache.maxCapacityInBytes)
