@@ -50,6 +50,7 @@ type Facade struct {
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
+	GetOwnedNFTsCalled                      func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
@@ -143,6 +144,15 @@ func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalTok
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), nil
+}
+
+// GetOwnedNFTs -
+func (f *Facade) GetOwnedNFTs(address string) ([]string, error) {
+	if f.GetOwnedNFTsCalled != nil {
+		return f.GetOwnedNFTsCalled(address)
+	}
+
+	return make([]string, 0), nil
 }
 
 // GetESDTsWithRole -

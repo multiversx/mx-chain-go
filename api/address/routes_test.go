@@ -730,6 +730,67 @@ func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 }
 
+func TestGetOwnedNFTs_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/myAddress/owned-nfts", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetOwnedNFTs_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetOwnedNFTsCalled: func(_ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/owned-nfts", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetOwnedNFTs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
+	facade := mock.Facade{
+		GetOwnedNFTsCalled: func(address string) ([]string, error) {
+			return expectedTokens, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/owned-nfts", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
+}
+
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -893,6 +954,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
 					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 					{Name: "/:address/esdts-with-role/:role", Open: true},
+					{Name: "/:address/owned-nfts", Open: true},
 				},
 			},
 		},

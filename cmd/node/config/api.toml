@@ -52,7 +52,10 @@
         { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true },
 
         # /address/:address/esdts-with-role/:role will return the token identifiers with the given role for an address
-        { Name = "/:address/esdts-with-role/:role", Open = true }
+        { Name = "/:address/esdts-with-role/:role", Open = true },
+
+        # /address/:address/owned-nfts will return the token identifiers of the tokens where the given address is the owner
+        { Name = "/:address/owned-nfts", Open = true }
 	]
 
 [APIPackages.hardfork]

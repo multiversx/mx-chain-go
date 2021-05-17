@@ -43,6 +43,7 @@ type NodeStub struct {
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTDataCalled                              func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                         func(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetOwnedNFTsCalled                             func(address string) ([]string, error)
 	GetESDTsWithRoleCalled                         func(address string, role string) ([]string, error)
 	GetKeyValuePairsCalled                         func(address string) (map[string]string, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string) ([]string, error)
@@ -216,6 +217,15 @@ func (ns *NodeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	if ns.GetAllIssuedESDTsCalled != nil {
 		return ns.GetAllIssuedESDTsCalled(tokenType)
 	}
+	return make([]string, 0), nil
+}
+
+// GetOwnedNFTs -
+func (ns *NodeStub) GetOwnedNFTs(address string) ([]string, error) {
+	if ns.GetOwnedNFTsCalled != nil {
+		return ns.GetOwnedNFTsCalled(address)
+	}
+
 	return make([]string, 0), nil
 }
 

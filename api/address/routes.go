@@ -24,6 +24,7 @@ const (
 	getESDTTokens         = "/:address/esdt"
 	getESDTBalance        = "/:address/esdt/:tokenIdentifier"
 	getESDTTokensWithRole = "/:address/esdts-with-role/:role"
+	getOwnedNFTs          = "/:address/owned-nfts"
 	getESDTNFTData        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 )
 
@@ -35,6 +36,7 @@ type FacadeHandler interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 	GetCode(account state.UserAccountHandler) []byte
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetOwnedNFTs(address string) ([]string, error)
 	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
@@ -80,6 +82,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
 	router.RegisterHandler(http.MethodGet, getESDTNFTData, GetESDTNFTData)
 	router.RegisterHandler(http.MethodGet, getESDTTokens, GetAllESDTData)
+	router.RegisterHandler(http.MethodGet, getOwnedNFTs, GetOwnedNFTs)
 	router.RegisterHandler(http.MethodGet, getESDTTokensWithRole, GetESDTTokensWithRole)
 }
 
@@ -437,6 +440,49 @@ func GetESDTTokensWithRole(c *gin.Context) {
 	}
 
 	tokens, err := facade.GetESDTsWithRole(addr, role)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokens},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetOwnedNFTs returns the token identifiers of the tokens where a given address is the owner
+func GetOwnedNFTs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokens, err := facade.GetOwnedNFTs(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

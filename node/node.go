@@ -619,6 +619,71 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
+// GetOwnedNFTs returns all the token identifiers for semi or non fungible tokens where the given address is the owner
+func (n *Node) GetOwnedNFTs(address string) ([]string, error) {
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
+	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		tokenName := string(leaf.Key())
+		if !strings.Contains(tokenName, "-") {
+			continue
+		}
+
+		esdtToken := &systemSmartContracts.ESDTData{}
+		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+		value, errVal := leaf.ValueWithoutSuffix(suffix)
+		if errVal != nil {
+			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+			continue
+		}
+
+		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
+		if err != nil {
+			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+			continue
+		}
+
+		if !bytes.Equal(esdtToken.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtToken.OwnerAddress, addressBytes) {
+			tokens = append(tokens, tokenName)
+		}
+	}
+
+	return tokens, nil
+}
+
 // GetESDTsWithRole returns all the tokens with the given role for the given address
 func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 	if n.shardCoordinator.SelfId() != core.MetachainShardId {
