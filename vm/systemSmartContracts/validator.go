@@ -32,46 +32,51 @@ const (
 )
 
 type validatorSC struct {
-	eei                      vm.SystemEI
-	unBondPeriod             uint64
-	unBondPeriodInEpochs     uint32
-	sigVerifier              vm.MessageSignVerifier
-	baseConfig               ValidatorConfig
-	stakingV2Epoch           uint32
-	stakingSCAddress         []byte
-	validatorSCAddress       []byte
-	walletAddressLen         int
-	enableStakingEpoch       uint32
-	enableDoubleKeyEpoch     uint32
-	gasCost                  vm.GasCost
-	marshalizer              marshal.Marshalizer
-	flagEnableStaking        atomic.Flag
-	flagEnableTopUp          atomic.Flag
-	flagDoubleKey            atomic.Flag
-	minUnstakeTokensValue    *big.Int
-	minDeposit               *big.Int
-	mutExecution             sync.RWMutex
-	endOfEpochAddress        []byte
-	enableDelegationMgrEpoch uint32
-	delegationMgrSCAddress   []byte
-	flagDelegationMgr        atomic.Flag
+	eei                              vm.SystemEI
+	unBondPeriod                     uint64
+	unBondPeriodInEpochs             uint32
+	sigVerifier                      vm.MessageSignVerifier
+	baseConfig                       ValidatorConfig
+	stakingV2Epoch                   uint32
+	stakingSCAddress                 []byte
+	validatorSCAddress               []byte
+	walletAddressLen                 int
+	enableStakingEpoch               uint32
+	enableDoubleKeyEpoch             uint32
+	gasCost                          vm.GasCost
+	marshalizer                      marshal.Marshalizer
+	flagEnableStaking                atomic.Flag
+	flagEnableTopUp                  atomic.Flag
+	flagDoubleKey                    atomic.Flag
+	minUnstakeTokensValue            *big.Int
+	minDeposit                       *big.Int
+	mutExecution                     sync.RWMutex
+	endOfEpochAddress                []byte
+	enableDelegationMgrEpoch         uint32
+	delegationMgrSCAddress           []byte
+	flagDelegationMgr                atomic.Flag
+	validatorToDelegationEnableEpoch uint32
+	flagValidatorToDelegation        atomic.Flag
+	enableUnbondTokensV2Epoch        uint32
+	flagUnbondTokensV2               atomic.Flag
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
 type ArgsValidatorSmartContract struct {
-	StakingSCConfig          config.StakingSystemSCConfig
-	GenesisTotalSupply       *big.Int
-	Eei                      vm.SystemEI
-	SigVerifier              vm.MessageSignVerifier
-	StakingSCAddress         []byte
-	ValidatorSCAddress       []byte
-	GasCost                  vm.GasCost
-	Marshalizer              marshal.Marshalizer
-	EpochNotifier            vm.EpochNotifier
-	EndOfEpochAddress        []byte
-	MinDeposit               string
-	DelegationMgrSCAddress   []byte
-	DelegationMgrEnableEpoch uint32
+	StakingSCConfig                  config.StakingSystemSCConfig
+	GenesisTotalSupply               *big.Int
+	Eei                              vm.SystemEI
+	SigVerifier                      vm.MessageSignVerifier
+	StakingSCAddress                 []byte
+	ValidatorSCAddress               []byte
+	GasCost                          vm.GasCost
+	Marshalizer                      marshal.Marshalizer
+	EpochNotifier                    vm.EpochNotifier
+	EndOfEpochAddress                []byte
+	MinDeposit                       string
+	DelegationMgrSCAddress           []byte
+	DelegationMgrEnableEpoch         uint32
+	ValidatorToDelegationEnableEpoch uint32
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -137,24 +142,26 @@ func NewValidatorSmartContract(
 	}
 
 	reg := &validatorSC{
-		eei:                      args.Eei,
-		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
-		unBondPeriodInEpochs:     args.StakingSCConfig.UnBondPeriodInEpochs,
-		sigVerifier:              args.SigVerifier,
-		baseConfig:               baseConfig,
-		stakingV2Epoch:           args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:         args.StakingSCAddress,
-		validatorSCAddress:       args.ValidatorSCAddress,
-		gasCost:                  args.GasCost,
-		marshalizer:              args.Marshalizer,
-		minUnstakeTokensValue:    minUnstakeTokensValue,
-		walletAddressLen:         len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:     args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
-		endOfEpochAddress:        args.EndOfEpochAddress,
-		minDeposit:               minDeposit,
-		enableDelegationMgrEpoch: args.DelegationMgrEnableEpoch,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
+		eei:                              args.Eei,
+		unBondPeriod:                     args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
+		sigVerifier:                      args.SigVerifier,
+		baseConfig:                       baseConfig,
+		stakingV2Epoch:                   args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:               args.StakingSCConfig.StakeEnableEpoch,
+		stakingSCAddress:                 args.StakingSCAddress,
+		validatorSCAddress:               args.ValidatorSCAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		minUnstakeTokensValue:            minUnstakeTokensValue,
+		walletAddressLen:                 len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:             args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:                args.EndOfEpochAddress,
+		minDeposit:                       minDeposit,
+		enableDelegationMgrEpoch:         args.DelegationMgrEnableEpoch,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		enableUnbondTokensV2Epoch:        args.StakingSCConfig.UnbondTokensV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -216,6 +223,10 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.getUnStakedTokensList(args)
 	case "reStakeUnStakedNodes":
 		return v.reStakeUnStakedNodes(args)
+	case "mergeValidatorData":
+		return v.mergeValidatorData(args)
+	case "changeOwnerOfValidatorData":
+		return v.changeOwnerOfValidatorData(args)
 	}
 
 	v.eei.AddReturnMessage("invalid method to call")
@@ -1696,6 +1707,18 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	registrationData *ValidatorDataV2,
 	valueToUnBond *big.Int,
 ) (*big.Int, vmcommon.ReturnCode) {
+	isV1Active := !v.flagUnbondTokensV2.IsSet()
+	if isV1Active {
+		return v.unBondTokensFromRegistrationDataV1(registrationData, valueToUnBond)
+	}
+
+	return v.unBondTokensFromRegistrationDataV2(registrationData, valueToUnBond)
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV1(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
 	var unstakedValue *UnstakedValue
 	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
 	totalUnBond := big.NewInt(0)
@@ -1726,6 +1749,58 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	}
 
 	registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
+	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
+	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
+		v.eei.AddReturnMessage("too much requested to unBond")
+		return nil, vmcommon.UserError
+	}
+
+	return totalUnBond, vmcommon.Ok
+}
+
+func (v *validatorSC) unBondTokensFromRegistrationDataV2(
+	registrationData *ValidatorDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, vmcommon.ReturnCode) {
+	currentEpoch := v.eei.BlockChainHook().CurrentEpoch()
+	totalUnBond := big.NewInt(0)
+	remainingValueToUnbond := big.NewInt(0).Set(valueToUnBond)
+
+	unDelegateAllPossible := valueToUnBond.Cmp(zero) == 0
+	newUnstakedInfo := make([]*UnstakedValue, 0, len(registrationData.UnstakedInfo))
+	stopUnboding := false
+	for _, unstakedValue := range registrationData.UnstakedInfo {
+		canUnbond := currentEpoch-unstakedValue.UnstakedEpoch >= v.unBondPeriodInEpochs
+		if !canUnbond || stopUnboding {
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+			continue
+		}
+
+		if unDelegateAllPossible {
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		positionDoesNotHaveEnoughValues := remainingValueToUnbond.Cmp(unstakedValue.UnstakedValue) > 0
+		if positionDoesNotHaveEnoughValues {
+			//consume all value from unstakeValue item and do not keep it
+			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+			remainingValueToUnbond.Sub(remainingValueToUnbond, unstakedValue.UnstakedValue)
+			continue
+		}
+
+		totalUnBond.Add(totalUnBond, remainingValueToUnbond)
+		unstakedValue.UnstakedValue.Sub(unstakedValue.UnstakedValue, remainingValueToUnbond)
+		remainingValueToUnbond.Set(zero)
+		if unstakedValue.UnstakedValue.Cmp(zero) > 0 {
+			//position still containing value, will be kept
+			newUnstakedInfo = append(newUnstakedInfo, unstakedValue)
+		}
+
+		stopUnboding = true
+	}
+
+	registrationData.UnstakedInfo = newUnstakedInfo
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("too much requested to unBond")
@@ -1828,6 +1903,174 @@ func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCa
 	return vmcommon.Ok
 }
 
+func (v *validatorSC) checkInputArgsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagValidatorToDelegation.IsSet() {
+		v.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, v.delegationMgrSCAddress) {
+		v.eei.AddReturnMessage("invalid caller address")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		v.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 2 {
+		v.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	oldAddress := args.Arguments[0]
+	newAddress := args.Arguments[1]
+	if len(oldAddress) != len(args.CallerAddr) || len(newAddress) != len(args.CallerAddr) {
+		v.eei.AddReturnMessage("invalid argument, wanted an address for the first and second argument")
+		return vmcommon.UserError
+	}
+	if !core.IsSmartContractAddress(newAddress) {
+		v.eei.AddReturnMessage("destination address must be a delegation smart contract")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(oldAddress, newAddress) {
+		v.eei.AddReturnMessage("sender and destination addresses are equal")
+		return vmcommon.UserError
+	}
+	if core.IsSmartContractAddress(oldAddress) {
+		v.eei.AddReturnMessage("sender address must not be a smart contract")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) getAndValidateRegistrationData(address []byte) (*ValidatorDataV2, vmcommon.ReturnCode) {
+	oldValidatorData, err := v.getOrCreateRegistrationData(address)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if !bytes.Equal(oldValidatorData.RewardAddress, address) {
+		v.eei.AddReturnMessage("reward address mismatch")
+		return nil, vmcommon.UserError
+	}
+	if len(oldValidatorData.UnstakedInfo) > 0 {
+		v.eei.AddReturnMessage("clean unstaked info before merge")
+		return nil, vmcommon.UserError
+	}
+	if oldValidatorData.TotalSlashed != nil && oldValidatorData.TotalSlashed.Cmp(zero) > 0 {
+		v.eei.AddReturnMessage("cannot merge with validator who was slashed")
+		return nil, vmcommon.UserError
+	}
+	if oldValidatorData.TotalUnstaked.Cmp(zero) > 0 {
+		v.eei.AddReturnMessage("cannot merge with validator who has unStaked tokens")
+		return nil, vmcommon.UserError
+	}
+	return oldValidatorData, vmcommon.Ok
+}
+
+func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := v.checkInputArgsForValidatorToDelegation(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	oldAddress := args.Arguments[0]
+	delegationAddr := args.Arguments[1]
+	oldValidatorData, returnCode := v.getAndValidateRegistrationData(oldAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if len(v.eei.GetStorage(delegationAddr)) == 0 {
+		v.eei.AddReturnMessage("cannot merge with an empty state")
+		return vmcommon.UserError
+	}
+
+	finalValidatorData, err := v.getOrCreateRegistrationData(delegationAddr)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(finalValidatorData.RewardAddress, delegationAddr) {
+		v.eei.AddReturnMessage("rewards address mismatch")
+		return vmcommon.UserError
+	}
+
+	oldValidatorData.RewardAddress = delegationAddr
+	returnCode = v.changeOwnerAndRewardAddressOnStaking(oldValidatorData)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	finalValidatorData.NumRegistered += oldValidatorData.NumRegistered
+	finalValidatorData.BlsPubKeys = append(finalValidatorData.BlsPubKeys, oldValidatorData.BlsPubKeys...)
+	finalValidatorData.TotalStakeValue.Add(finalValidatorData.TotalStakeValue, oldValidatorData.TotalStakeValue)
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	finalValidatorData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(int64(finalValidatorData.NumRegistered)))
+
+	v.eei.SetStorage(oldAddress, nil)
+	err = v.saveRegistrationData(delegationAddr, finalValidatorData)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) changeOwnerOfValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := v.checkInputArgsForValidatorToDelegation(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	oldAddress := args.Arguments[0]
+	newAddress := args.Arguments[1]
+
+	validatorData, returnCode := v.getAndValidateRegistrationData(oldAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(v.eei.GetStorage(newAddress)) != 0 {
+		v.eei.AddReturnMessage("there is already a validator data under the new address")
+		return vmcommon.UserError
+	}
+
+	validatorData.RewardAddress = newAddress
+	returnCode = v.changeOwnerAndRewardAddressOnStaking(validatorData)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	v.eei.SetStorage(oldAddress, nil)
+	err := v.saveRegistrationData(newAddress, validatorData)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) changeOwnerAndRewardAddressOnStaking(registrationData *ValidatorDataV2) vmcommon.ReturnCode {
+	txData := "changeOwnerAndRewardAddress@" + hex.EncodeToString(registrationData.RewardAddress)
+	for _, blsKey := range registrationData.BlsPubKeys {
+		txData += "@" + hex.EncodeToString(blsKey)
+	}
+
+	vmOutput, err := v.executeOnStakingSC([]byte(txData))
+	if err != nil {
+		v.eei.AddReturnMessage("cannot change reward address: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	return vmcommon.Ok
+}
+
 //nolint
 func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	// TODO: implement this. It is needed as last component of slashing. Slashing should happen to the funds of the
@@ -1848,6 +2091,12 @@ func (v *validatorSC) EpochConfirmed(epoch uint32) {
 
 	v.flagDelegationMgr.Toggle(epoch >= v.enableDelegationMgrEpoch)
 	log.Debug("validatorSC: delegation manager", "enabled", v.flagDelegationMgr.IsSet())
+
+	v.flagValidatorToDelegation.Toggle(epoch >= v.validatorToDelegationEnableEpoch)
+	log.Debug("validatorSC: validator to delegation", "enabled", v.flagValidatorToDelegation.IsSet())
+
+	v.flagUnbondTokensV2.Toggle(epoch >= v.enableUnbondTokensV2Epoch)
+	log.Debug("validatorSC: unbond tokens v2", "enabled", v.flagUnbondTokensV2.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

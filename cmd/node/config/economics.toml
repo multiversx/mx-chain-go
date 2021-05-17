@@ -18,11 +18,13 @@
     Denomination = 18 # represents the smallest eGLD subdivision (10^-X eGLD for a denomination of X)
 
 [RewardsSettings]
+    [[RewardsSettings.RewardsConfigByEpoch]]
+    EpochEnable = 0
     LeaderPercentage = 0.1 #fraction of value 0.1 - 10%
     DeveloperPercentage = 0.3 #fraction of value 0.3 - 30%
     ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
     ProtocolSustainabilityAddress = "erd135enn78u7fy352ny9mcl26a08wvu02mjdumfkt7cn587cwtnerksagqsfm"
-    TopUpGradientPoint = "3000000000000000000000000" # 3MIL eGLD
+    TopUpGradientPoint = "3000000000000000000000000" # 3MIL eGLD (eligible topUp)
     TopUpFactor = 0.25 # fraction of value 0.25 - 25%
 
 [FeeSettings]

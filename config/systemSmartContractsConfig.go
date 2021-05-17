@@ -26,6 +26,7 @@ type StakingSystemSCConfig struct {
 	StakeEnableEpoch                     uint32
 	CorrectLastUnjailedEpoch             uint32
 	DoubleKeyProtectionEnableEpoch       uint32
+	UnbondTokensV2EnableEpoch            uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
 
@@ -48,10 +49,12 @@ type GovernanceSystemSCConfig struct {
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract
 type DelegationManagerSystemSCConfig struct {
-	MinCreationDeposit  string
-	EnabledEpoch        uint32
-	MinStakeAmount      string
-	ConfigChangeAddress string
+	MinCreationDeposit                 string
+	EnabledEpoch                       uint32
+	ValidatorToDelegationEnableEpoch   uint32
+	ReDelegateBelowMinCheckEnableEpoch uint32
+	MinStakeAmount                     string
+	ConfigChangeAddress                string
 }
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract

@@ -9,6 +9,7 @@
     StakingV2Epoch = 239
     CorrectLastUnjailedEpoch = 272
     DoubleKeyProtectionEnableEpoch = 180
+    UnbondTokensV2EnableEpoch = 1000000
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
@@ -34,6 +35,8 @@
     EnabledEpoch = 239
     MinStakeAmount = "1000000000000000000" #1 eGLD
     ConfigChangeAddress = "erd1qqqqqqqqqqqqqpgq0gq09608js3gje72v0yzc56k6glc852gl94sgtahk2"
+    ReDelegateBelowMinCheckEnableEpoch = 1000000
+    ValidatorToDelegationEnableEpoch = 1000000
 
 [DelegationSystemSCConfig]
     EnabledEpoch   = 239
