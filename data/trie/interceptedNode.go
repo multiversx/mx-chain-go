@@ -20,8 +20,7 @@ type InterceptedTrieNode struct {
 	node           node
 	serializedNode []byte
 	hash           []byte
-
-	mutex sync.RWMutex
+	mutex          sync.RWMutex
 }
 
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
