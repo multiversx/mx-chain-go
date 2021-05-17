@@ -337,7 +337,7 @@ func trieNode(
 		return n.node, nil
 	}
 
-	decodedNode, err := decodeNode(n.SerializedNode, marshalizer, hasher)
+	decodedNode, err := decodeNode(n.GetSerialized(), marshalizer, hasher)
 	if err != nil {
 		return nil, err
 	}

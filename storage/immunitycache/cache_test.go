@@ -302,7 +302,7 @@ func TestImmunityCache_ClearConcurrentWithRangeOverChunks(t *testing.T) {
 	wg.Wait()
 }
 
-func TestImmunityCache_CloseDoesNotPanic(t *testing.T) {
+func TestImmunityCache_CloseDoesNotErr(t *testing.T) {
 	cache := newCacheToTest(1, 4, 1000)
 
 	err := cache.Close()

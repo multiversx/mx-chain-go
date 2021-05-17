@@ -17,9 +17,8 @@ type storageCacherAdapter struct {
 	db     storage.Persister
 	lock   sync.RWMutex
 
-	storedDataFactory storage.StoredDataFactory
-	marshalizer       marshal.Marshalizer
-
+	storedDataFactory  storage.StoredDataFactory
+	marshalizer        marshal.Marshalizer
 	numValuesInStorage int
 }
 

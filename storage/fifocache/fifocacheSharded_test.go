@@ -251,7 +251,7 @@ func TestFIFOShardedCache_Clear(t *testing.T) {
 	assert.Zero(t, l, "expected size 0, got %d", l)
 }
 
-func TestFIFOShardedCache_CloseDoesNotPanic(t *testing.T) {
+func TestFIFOShardedCache_CloseDoesNotErr(t *testing.T) {
 	t.Parallel()
 
 	c, _ := fifocache.NewShardedCache(10, 2)
