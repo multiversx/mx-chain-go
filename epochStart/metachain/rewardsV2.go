@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 
@@ -276,42 +275,37 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	nodesRewardInfo := rc.initNodesRewardsInfo(validatorsInfo)
 
 	// totalTopUpEligible is the cumulative top-up stake value for eligible nodes
+	totalStakeEligible := rc.stakingDataProvider.GetTotalStakeEligibleNodes()
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
-	totalString := totalTopUpEligible.String()
-	if len(totalString) > 18 {
-		totalString = totalString[0 : len(totalString)-18]
-	} else {
-		totalString = "0"
-	}
-
-	totalTopupString := fmt.Sprintf("topup eligible %s EGLD", totalString)
-	log.Info(totalTopupString)
-
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
 	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
-
-	topUpRewardsString := topUpRewards.String()
-	if len(topUpRewardsString) > 18 {
-		topUpRewardsString = topUpRewardsString[0 : len(topUpRewardsString)-18]
-	} else {
-		topUpRewardsString = "0"
-	}
-
-	baseRewardsString := baseRewards.String()
-	baseRewardsString = baseRewardsString[0 : len(baseRewardsString)-18]
-
-	baseRewardValue := fmt.Sprintf("baseRewards %s EGLD", baseRewardsString)
-	topupRewardValue := fmt.Sprintf("topUpRewards %s EGLD", topUpRewardsString)
-	log.Info(baseRewardValue)
-	log.Info(topupRewardValue)
-
 	nbBlocks := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
 	if nbBlocks.Cmp(zero) <= 0 {
 		baseRewardsPerBlock = big.NewInt(0)
 	} else {
 		baseRewardsPerBlock = big.NewInt(0).Div(baseRewards, nbBlocks)
 	}
+
+	baseRewardPerYearPerHundrethPercent := big.NewInt(0).Mul(big.NewInt(365*10000*9/2/10), baseRewards)
+	baseRewardsAPR := big.NewInt(0)
+	if totalStakeEligible.Cmp(big.NewInt(0)) != 0 {
+		baseRewardsAPR = big.NewInt(0).Div(baseRewardPerYearPerHundrethPercent, totalStakeEligible)
+	}
+
+	topupRewardPerYearPerHundrethPercent := big.NewInt(0).Mul(big.NewInt(365*10000*9/2/10), topUpRewards)
+	topupRewardsAPR := big.NewInt(0)
+	if totalStakeEligible.Cmp(big.NewInt(0)) != 0 {
+		topupRewardsAPR = big.NewInt(0).Div(topupRewardPerYearPerHundrethPercent, totalTopUpEligible)
+	}
+
+	log.Info("Rewards to be distributed",
+		"totalStakeEligible", totalStakeEligible.String(),
+		"totalTopUpEligible", totalTopUpEligible.String(),
+		"baseRewards", baseRewards.String(),
+		"topupRewards", topUpRewards.String(),
+		"baseRewardsAPR", baseRewardsAPR.String(),
+		"topupRewardsAPR", topupRewardsAPR.String())
 
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 
@@ -406,11 +400,6 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 	if totalToDistribute.Cmp(zero) <= 0 || totalTopUpEligible.Cmp(zero) <= 0 {
 		return big.NewInt(0)
 	}
-
-	log.Info("totalToDistribute", "value", totalToDistribute.String())
-	log.Info("totalTopUpEligible", "value", totalTopUpEligible)
-	log.Info("topUpGradientPoint", "value", rc.topUpGradientPoint)
-	log.Info("topUpRewardFactor", "value", rc.topUpRewardFactor)
 
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
 	k := core.GetIntTrimmedPercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
