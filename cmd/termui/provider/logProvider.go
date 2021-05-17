@@ -16,6 +16,7 @@ import (
 var formatter = logger.PlainFormatter{}
 var webSocket *websocket.Conn
 var retryDuration = time.Second * 10
+var marshalizer = &marshal.GogoProtoMarshalizer{}
 
 const (
 	ws  = "ws"
@@ -118,6 +119,7 @@ func startListeningOnWebSocket(presenter PresenterHandler, chanNodeIsStarting ch
 		} else {
 			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
 		}
+		chanNodeIsStarting <- struct{}{}
 		return
 	}
 }
@@ -126,7 +128,7 @@ func writeMessage(presenter PresenterHandler, message []byte, chanNodeIsStarting
 	if strings.Contains(string(message), "/node/status") {
 		return
 	}
-	if strings.Contains(string(message), "creating core components") {
+	if strings.Contains(string(message), "Shuffled out - soft restart") {
 		chanNodeIsStarting <- struct{}{}
 	}
 
@@ -137,7 +139,6 @@ func writeMessage(presenter PresenterHandler, message []byte, chanNodeIsStarting
 func formatMessage(message []byte) []byte {
 	logLine := &logger.LogLineWrapper{}
 
-	marshalizer := &marshal.GogoProtoMarshalizer{}
 	err := marshalizer.Unmarshal(logLine, message)
 	if err != nil {
 		log.Debug("can not unmarshal received data", "data", hex.EncodeToString(message))
