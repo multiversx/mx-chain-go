@@ -249,6 +249,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		BlockGasLimit:                  maxGasLimit,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		ArgBlockChainHook:              args,
+		InitialEpoch:                   0,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,

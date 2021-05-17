@@ -30,6 +30,7 @@ type vmContainerFactory struct {
 	blockGasLimit                        uint64
 	gasSchedule                          core.GasScheduleNotifier
 	builtinFunctions                     vmcommon.FunctionNames
+	initialEpoch                         uint32
 	deployEnableEpoch                    uint32
 	aheadOfTimeGasUsageEnableEpoch       uint32
 	arwenV3EnableEpoch                   uint32
@@ -44,6 +45,7 @@ type ArgVMContainerFactory struct {
 	BlockGasLimit                        uint64
 	GasSchedule                          core.GasScheduleNotifier
 	ArgBlockChainHook                    hooks.ArgBlockChainHook
+	InitialEpoch                         uint32
 	DeployEnableEpoch                    uint32
 	AheadOfTimeGasUsageEnableEpoch       uint32
 	ArwenV3EnableEpoch                   uint32
@@ -111,15 +113,12 @@ func (vmf *vmContainerFactory) Close() error {
 
 // EpochConfirmed updates VMs in all created containers depending on the epoch
 func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
-	if epoch >= vmf.ArwenGasManagementRewriteEnableEpoch {
-		for _, container := range vmf.containers {
-			newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
-			if err != nil {
-				logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
-				continue
-			}
-			container.Replace(factory.ArwenVirtualMachine, newArwenVM)
-		}
+	if vmf.config.OutOfProcessEnabled {
+		return
+	}
+
+	if epoch == vmf.ArwenGasManagementRewriteEnableEpoch {
+		vmf.replaceInProcessArwen(epoch)
 	}
 }
 
@@ -166,9 +165,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
-	// TODO obtain the currentEpoch without the blockchain hook
-	currentEpoch := vmf.blockChainHookImpl.CurrentEpoch()
-	return vmf.createInProcessArwenVMByEpoch(currentEpoch)
+	return vmf.createInProcessArwenVMByEpoch(vmf.initialEpoch)
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmcommon.VMExecutionHandler, error) {
@@ -177,6 +174,20 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmco
 	}
 
 	return vmf.createInProcessArwenVM_v1_3()
+}
+
+func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
+	for _, container := range vmf.containers {
+		newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
+		if err != nil {
+			logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
+			continue
+		}
+
+		container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	}
+
+	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {

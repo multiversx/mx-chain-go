@@ -428,6 +428,7 @@ func CreateVMAndBlockchainHook(
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
 		ArgBlockChainHook:              args,
+		InitialEpoch:                   0,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
