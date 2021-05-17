@@ -197,7 +197,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	rootHash := bn.getHash()
 	db := mock.NewMemDbMock()
 
-	err = bn.commit(true, 2, 2, db, db)
+	err = bn.commitSnapshot(db, db)
 	require.Nil(t, err)
 
 	arg := createMockArgument()

@@ -389,7 +389,10 @@ func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
-	defer tsm.ExitPruningBufferingMode()
+	defer func() {
+		tsm.ExitPruningBufferingMode()
+		log.Trace("trie snapshot finished", "rootHash", snapshot.rootHash)
+	}()
 
 	if tsm.isPresentInLastSnapshotDb(snapshot.rootHash) {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
@@ -408,14 +411,19 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 		return
 	}
 
-	maxTrieLevelInMemory := uint(5)
-	err = newRoot.commit(true, 0, maxTrieLevelInMemory, tsm.db, db)
-	if err != nil {
-		log.Error("trie storage manager: commit", "error", err.Error())
+	if snapshot.newDb {
+		err = newRoot.commitSnapshot(tsm.db, db)
+		if err != nil {
+			log.Error("trie storage manager: commit", "error", err.Error())
+		}
+
 		return
 	}
 
-	log.Trace("trie snapshot finished", "rootHash", snapshot.rootHash)
+	err = newRoot.commitCheckpoint(tsm.db, db)
+	if err != nil {
+		log.Error("trie storage manager: commit", "error", err.Error())
+	}
 }
 
 func (tsm *trieStorageManager) isPresentInLastSnapshotDb(rootHash []byte) bool {

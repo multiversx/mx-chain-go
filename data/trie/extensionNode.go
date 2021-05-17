@@ -161,27 +161,19 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
 	}
 
-	shouldNotCommit := !en.dirty && !force
-	if shouldNotCommit {
+	if !en.dirty {
 		return nil
 	}
 
-	if force {
-		err = resolveIfCollapsed(en, 0, originDb)
-		if err != nil {
-			return err
-		}
-	}
-
 	if en.child != nil {
-		err = en.child.commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
+		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -203,6 +195,54 @@ func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uin
 
 		*en = *collapsedEn
 	}
+	return nil
+}
+
+func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, originDb)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.commitCheckpoint(originDb, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return en.saveToStorage(targetDb)
+}
+
+func (en *extensionNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, originDb)
+	if err != nil {
+		return err
+	}
+
+	err = en.child.commitSnapshot(originDb, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return en.saveToStorage(targetDb)
+}
+
+func (en *extensionNode) saveToStorage(targetDb data.DBWriteCacher) error {
+	err := encodeNodeAndCommitToDB(en, targetDb)
+	if err != nil {
+		return err
+	}
+
+	en.child = nil
 	return nil
 }
 
@@ -285,63 +325,68 @@ func (en *extensionNode) getNext(key []byte, db data.DBWriteCacher) (node, []byt
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("insert error %w", err)
+		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
 	}
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, emptyHashes, err
 	}
+
 	keyMatchLen := prefixLen(n.Key, en.Key)
 
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		var dirty bool
-		var newNode, newEn node
-		var oldHashes [][]byte
-
-		n.Key = n.Key[keyMatchLen:]
-		dirty, newNode, oldHashes, err = en.child.insert(n, db)
-		if !dirty || err != nil {
-			return false, en, emptyHashes, err
-		}
-
-		if !en.dirty {
-			oldHashes = append(oldHashes, en.hash)
-		}
-
-		newEn, err = newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		return true, newEn, oldHashes, nil
+		return en.insertInSameEn(n, keyMatchLen, db)
 	}
 
+	// Otherwise branch out at the index where they differ.
+	return en.insertInNewBn(n, keyMatchLen)
+}
+
+func (en *extensionNode) insertInSameEn(n *leafNode, keyMatchLen int, db data.DBWriteCacher) (node, [][]byte, error) {
+	n.Key = n.Key[keyMatchLen:]
+	newNode, oldHashes, err := en.child.insert(n, db)
+	if check.IfNil(newNode) || err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	if !en.dirty {
+		oldHashes = append(oldHashes, en.hash)
+	}
+
+	newEn, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
+	if err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	return newEn, oldHashes, nil
+}
+
+func (en *extensionNode) insertInNewBn(n *leafNode, keyMatchLen int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
 	}
 
-	// Otherwise branch out at the index where they differ.
 	bn, err := newBranchNode(en.marsh, en.hasher)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, [][]byte{}, err
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return false, nil, emptyHashes, ErrChildPosOutOfRange
+		return nil, [][]byte{}, ErrChildPosOutOfRange
 	}
 
 	followingExtensionNode, err := newExtensionNode(en.Key[keyMatchLen+1:], en.child, en.marsh, en.hasher)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, [][]byte{}, err
 	}
 
 	if len(followingExtensionNode.Key) < 1 {
@@ -353,15 +398,15 @@ func (en *extensionNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node,
 	bn.children[newChildPos] = n
 
 	if keyMatchLen == 0 {
-		return true, bn, oldHash, nil
+		return bn, oldHash, nil
 	}
 
 	newEn, err := newExtensionNode(en.Key[:keyMatchLen], bn, en.marsh, en.hasher)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, [][]byte{}, err
 	}
 
-	return true, newEn, oldHash, nil
+	return newEn, oldHash, nil
 }
 
 func (en *extensionNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error) {
@@ -465,40 +510,6 @@ func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCache
 		return
 	}
 	en.child.print(writer, index+len(str), db)
-}
-
-func (en *extensionNode) deepClone() node {
-	if en == nil {
-		return nil
-	}
-
-	clonedNode := &extensionNode{baseNode: &baseNode{}}
-
-	if en.Key != nil {
-		clonedNode.Key = make([]byte, len(en.Key))
-		copy(clonedNode.Key, en.Key)
-	}
-
-	if en.EncodedChild != nil {
-		clonedNode.EncodedChild = make([]byte, len(en.EncodedChild))
-		copy(clonedNode.EncodedChild, en.EncodedChild)
-	}
-
-	if en.hash != nil {
-		clonedNode.hash = make([]byte, len(en.hash))
-		copy(clonedNode.hash, en.hash)
-	}
-
-	clonedNode.dirty = en.dirty
-
-	if en.child != nil {
-		clonedNode.child = en.child.deepClone()
-	}
-
-	clonedNode.marsh = en.marsh
-	clonedNode.hasher = en.hasher
-
-	return clonedNode
 }
 
 func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {

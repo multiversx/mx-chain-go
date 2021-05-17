@@ -246,31 +246,23 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
 	}
 
-	shouldNotCommit := !bn.dirty && !force
-	if shouldNotCommit {
+	if !bn.dirty {
 		return nil
 	}
 
 	for i := range bn.children {
-		if force {
-			err = resolveIfCollapsed(bn, byte(i), originDb)
-			if err != nil {
-				return err
-			}
-		}
-
 		if bn.children[i] == nil {
 			continue
 		}
 
-		err = bn.children[i].commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
+		err = bn.children[i].commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -292,6 +284,72 @@ func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, 
 		*bn = *collapsedBn
 	}
 	return nil
+}
+
+func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), originDb)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].commitCheckpoint(originDb, targetDb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return bn.saveToStorage(targetDb)
+}
+
+func (bn *branchNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("commit snapshot error %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), originDb)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		err = bn.children[i].commitSnapshot(originDb, targetDb)
+		if err != nil {
+			return err
+		}
+	}
+
+	return bn.saveToStorage(targetDb)
+}
+
+func (bn *branchNode) saveToStorage(targetDb data.DBWriteCacher) error {
+	err := encodeNodeAndCommitToDB(bn, targetDb)
+	if err != nil {
+		return err
+	}
+
+	bn.removeChildrenPointers()
+	return nil
+}
+
+func (bn *branchNode) removeChildrenPointers() {
+	for i := range bn.children {
+		bn.children[i] = nil
+	}
 }
 
 func (bn *branchNode) getEncodedNode() ([]byte, error) {
@@ -388,61 +446,68 @@ func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, 
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error) {
+func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("insert error %w", err)
+		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
 	}
-	if len(n.Key) == 0 {
-		return false, nil, emptyHashes, ErrValueTooShort
+
+	insertedKey := n.Key
+	if len(insertedKey) == 0 {
+		return nil, emptyHashes, ErrValueTooShort
 	}
-	childPos := n.Key[firstByte]
+	childPos := insertedKey[firstByte]
 	if childPosOutOfRange(childPos) {
-		return false, nil, emptyHashes, ErrChildPosOutOfRange
+		return nil, emptyHashes, ErrChildPosOutOfRange
 	}
-	n.Key = n.Key[1:]
+
+	n.Key = insertedKey[1:]
 	err = resolveIfCollapsed(bn, childPos, db)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, emptyHashes, err
 	}
 
-	if bn.children[childPos] != nil {
-		var dirty bool
-		var newNode node
-		var oldHashes [][]byte
-
-		dirty, newNode, oldHashes, err = bn.children[childPos].insert(n, db)
-		if !dirty || err != nil {
-			return false, bn, emptyHashes, err
-		}
-
-		if !bn.dirty {
-			oldHashes = append(oldHashes, bn.hash)
-		}
-
-		bn.children[childPos] = newNode
-		bn.dirty = dirty
-		if dirty {
-			bn.hash = nil
-		}
-		return true, bn, oldHashes, nil
+	if bn.children[childPos] == nil {
+		return bn.insertOnNilChild(n, childPos)
 	}
 
+	return bn.insertOnExistingChild(n, childPos, db)
+}
+
+func (bn *branchNode) insertOnNilChild(n *leafNode, childPos byte) (node, [][]byte, error) {
 	newLn, err := newLeafNode(n.Key, n.Value, bn.marsh, bn.hasher)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return nil, [][]byte{}, err
 	}
-	bn.children[childPos] = newLn
 
-	oldHash := make([][]byte, 0)
+	modifiedHashes := make([][]byte, 0)
+	modifiedHashes = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newLn)
+
+	return bn, modifiedHashes, nil
+}
+
+func (bn *branchNode) insertOnExistingChild(n *leafNode, childPos byte, db data.DBWriteCacher) (node, [][]byte, error) {
+	newNode, modifiedHashes, err := bn.children[childPos].insert(n, db)
+	if check.IfNil(newNode) || err != nil {
+		return nil, [][]byte{}, err
+	}
+
+	modifiedHashes = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
+
+	return bn, modifiedHashes, nil
+}
+
+func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos byte, newNode node) [][]byte {
 	if !bn.dirty {
-		oldHash = append(oldHash, bn.hash)
+		modifiedHashes = append(modifiedHashes, bn.hash)
 	}
 
+	bn.children[childPos] = newNode
 	bn.dirty = true
 	bn.hash = nil
-	return true, bn, oldHash, nil
+
+	return modifiedHashes
 }
 
 func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error) {
@@ -576,45 +641,6 @@ func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) 
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, db)
 	}
-}
-
-func (bn *branchNode) deepClone() node {
-	if bn == nil {
-		return nil
-	}
-
-	clonedNode := &branchNode{baseNode: &baseNode{}}
-
-	if bn.hash != nil {
-		clonedNode.hash = make([]byte, len(bn.hash))
-		copy(clonedNode.hash, bn.hash)
-	}
-
-	clonedNode.EncodedChildren = make([][]byte, len(bn.EncodedChildren))
-	for idx, encChild := range bn.EncodedChildren {
-		if encChild == nil {
-			continue
-		}
-
-		clonedEncChild := make([]byte, len(encChild))
-		copy(clonedEncChild, encChild)
-
-		clonedNode.EncodedChildren[idx] = clonedEncChild
-	}
-
-	for idx, child := range bn.children {
-		if child == nil {
-			continue
-		}
-
-		clonedNode.children[idx] = child.deepClone()
-	}
-
-	clonedNode.dirty = bn.dirty
-	clonedNode.marsh = bn.marsh
-	clonedNode.hasher = bn.hasher
-
-	return clonedNode
 }
 
 func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
