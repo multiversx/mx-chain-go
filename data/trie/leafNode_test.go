@@ -1,11 +1,7 @@
 package trie
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
@@ -154,7 +150,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commit(false, 0, 5, db, db)
+	err := ln.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -169,7 +165,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commit(false, 0, 5, nil, nil)
+	err := ln.commitDirty(0, 5, nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
@@ -178,7 +174,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commit(false, 0, 5, nil, nil)
+	err := ln.commitDirty(0, 5, nil, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
@@ -317,8 +313,8 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	expectedVal := []byte("dogs")
 	n, _ := newLeafNode(key, expectedVal, ln.marsh, ln.hasher)
 
-	dirty, newNode, _, err := ln.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, _, err := ln.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
 	val, _ := newNode.tryGet(key, nil)
@@ -337,8 +333,8 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	nodeVal := []byte{3, 4, 5}
 	n, _ := newLeafNode(nodeKey, nodeVal, marsh, hasher)
 
-	dirty, newNode, _, err := ln.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, _, err := ln.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
 	val, _ := newNode.tryGet(nodeKey, nil)
@@ -352,11 +348,11 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
-	dirty, _, oldHashes, err := ln.insert(n, db)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := ln.insert(n, db)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
 }
@@ -368,11 +364,11 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
 	n, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), marsh, hasher)
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
-	dirty, _, oldHashes, err := ln.insert(n, db)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := ln.insert(n, db)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
 }
@@ -383,8 +379,8 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	n, _ := newLeafNode([]byte("dog"), []byte("dogs"), ln.marsh, ln.hasher)
 
-	dirty, _, oldHashes, err := ln.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := ln.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
@@ -396,8 +392,8 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 	ln, _ := newLeafNode([]byte{1, 2, 3}, []byte("dog"), marsh, hasher)
 	n, _ := newLeafNode([]byte{4, 5, 6}, []byte("dogs"), marsh, hasher)
 
-	dirty, _, oldHashes, err := ln.insert(n, nil)
-	assert.True(t, dirty)
+	newNode, oldHashes, err := ln.insert(n, nil)
+	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
@@ -407,8 +403,8 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	dirty, newNode, _, err := ln.insert(&leafNode{}, nil)
-	assert.False(t, dirty)
+	newNode, _, err := ln.insert(&leafNode{}, nil)
+	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
 }
@@ -429,7 +425,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
@@ -443,7 +439,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commit(false, 0, 5, db, db)
+	_ = ln.commitDirty(0, 5, db, db)
 	wrongKey := []byte{1, 2, 3}
 
 	dirty, _, oldHashes, err := ln.delete(wrongKey, db)
@@ -546,99 +542,6 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 6, nodesCacher.Len())
 	assert.Equal(t, 0, len(missing))
-}
-
-//------- deepClone
-
-func TestLeafNode_deepCloneWithNilHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-	ln.dirty = true
-	ln.hash = nil
-	ln.Value = getRandomByteSlice()
-	ln.Key = getRandomByteSlice()
-
-	cloned := ln.deepClone().(*leafNode)
-
-	testSameLeafNodeContent(t, ln, cloned)
-}
-
-func TestLeafNode_deepCloneWithNilValueShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-	ln.dirty = true
-	ln.hash = getRandomByteSlice()
-	ln.Value = nil
-	ln.Key = getRandomByteSlice()
-
-	cloned := ln.deepClone().(*leafNode)
-
-	testSameLeafNodeContent(t, ln, cloned)
-}
-
-func TestLeafNode_deepCloneWithNilKeyShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-	ln.dirty = true
-	ln.hash = getRandomByteSlice()
-	ln.Value = getRandomByteSlice()
-	ln.Key = nil
-
-	cloned := ln.deepClone().(*leafNode)
-
-	testSameLeafNodeContent(t, ln, cloned)
-}
-
-func TestLeafNode_deepCloneShouldWork(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-	ln.dirty = true
-	ln.hash = getRandomByteSlice()
-	ln.Value = getRandomByteSlice()
-	ln.Key = getRandomByteSlice()
-
-	cloned := ln.deepClone().(*leafNode)
-
-	testSameLeafNodeContent(t, ln, cloned)
-}
-
-func testSameLeafNodeContent(t *testing.T, expected *leafNode, actual *leafNode) {
-	if !reflect.DeepEqual(expected, actual) {
-		assert.Fail(t, "not equal content")
-		fmt.Printf(
-			"expected:\n %s, got: \n%s",
-			getLeafNodeContents(expected),
-			getLeafNodeContents(actual),
-		)
-	}
-	assert.False(t, expected == actual)
-}
-
-func getRandomByteSlice() []byte {
-	maxChars := 32
-	buff := make([]byte, maxChars)
-	_, _ = rand.Reader.Read(buff)
-
-	return buff
-}
-
-func getLeafNodeContents(lf *leafNode) string {
-	str := fmt.Sprintf(`leaf node:
-  key: %s
-  value: %s
-  hash: %s
-  dirty: %v
-`,
-		hex.EncodeToString(lf.Key),
-		hex.EncodeToString(lf.Value),
-		hex.EncodeToString(lf.hash),
-		lf.dirty)
-
-	return str
 }
 
 func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {

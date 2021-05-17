@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -128,10 +128,15 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage.Database())
+		newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage.Database())
 		if err != nil {
 			return err
 		}
+
+		if check.IfNil(newRoot) {
+			return nil
+		}
+
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
@@ -237,7 +242,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
+	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
 	}
@@ -348,7 +353,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patricia
 		return nil, err
 	}
 
-	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.trieStorage.Database())
+	err = newRoot.commitSnapshot(db, tr.trieStorage.Database())
 	if err != nil {
 		return nil, err
 	}
