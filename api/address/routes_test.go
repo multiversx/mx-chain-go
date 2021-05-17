@@ -730,7 +730,7 @@ func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
 	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
 }
 
-func TestGetOwnedNFTs_NilContextShouldError(t *testing.T) {
+func TestGetNFTTokenIDsRegisteredByAddress_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServer(nil)
@@ -745,13 +745,13 @@ func TestGetOwnedNFTs_NilContextShouldError(t *testing.T) {
 	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
-func TestGetOwnedNFTs_NodeFailsShouldError(t *testing.T) {
+func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		GetOwnedNFTsCalled: func(_ string) ([]string, error) {
+		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string) ([]string, error) {
 			return nil, expectedErr
 		},
 	}
@@ -768,13 +768,13 @@ func TestGetOwnedNFTs_NodeFailsShouldError(t *testing.T) {
 	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
 }
 
-func TestGetOwnedNFTs_ShouldWork(t *testing.T) {
+func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
 	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
 	facade := mock.Facade{
-		GetOwnedNFTsCalled: func(address string) ([]string, error) {
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
 			return expectedTokens, nil
 		},
 	}

@@ -54,8 +54,8 @@
         # /address/:address/esdts-with-role/:role will return the token identifiers with the given role for an address
         { Name = "/:address/esdts-with-role/:role", Open = true },
 
-        # /address/:address/owned-nfts will return the token identifiers of the tokens where the given address is the owner
-        { Name = "/:address/owned-nfts", Open = true }
+        # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
+        { Name = "/:address/registered-nfts", Open = true }
 	]
 
 [APIPackages.hardfork]

@@ -495,17 +495,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		esdtToken := &systemSmartContracts.ESDTData{}
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
-		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !ok {
 			continue
 		}
 
@@ -515,6 +506,24 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	}
 
 	return tokens, nil
+}
+
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
+	esdtToken := &systemSmartContracts.ESDTData{}
+	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+	value, errVal := leaf.ValueWithoutSuffix(suffix)
+	if errVal != nil {
+		log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+		return nil, false
+	}
+
+	err := n.internalMarshalizer.Unmarshal(esdtToken, value)
+	if err != nil {
+		log.Warn("cannot unmarshal esdt data", "err", err)
+		return nil, false
+	}
+
+	return esdtToken, true
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
@@ -619,15 +628,9 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
-// GetOwnedNFTs returns all the token identifiers for semi or non fungible tokens where the given address is the owner
-func (n *Node) GetOwnedNFTs(address string) ([]string, error) {
+func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
 	if n.shardCoordinator.SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
-	}
-
-	addressBytes, err := n.addressPubkeyConverter.Decode(address)
-	if err != nil {
-		return nil, err
 	}
 
 	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
@@ -662,21 +665,12 @@ func (n *Node) GetOwnedNFTs(address string) ([]string, error) {
 			continue
 		}
 
-		esdtToken := &systemSmartContracts.ESDTData{}
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !ok {
 			continue
 		}
 
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
-		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
-			continue
-		}
-
-		if !bytes.Equal(esdtToken.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtToken.OwnerAddress, addressBytes) {
+		if filterFunc(esdtToken) {
 			tokens = append(tokens, tokenName)
 		}
 	}
@@ -684,12 +678,21 @@ func (n *Node) GetOwnedNFTs(address string) ([]string, error) {
 	return tokens, nil
 }
 
-// GetESDTsWithRole returns all the tokens with the given role for the given address
-func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
-	if n.shardCoordinator.SelfId() != core.MetachainShardId {
-		return nil, ErrMetachainOnlyEndpoint
+// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, err
+	}
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
 	}
 
+	return n.getTokensIDsWithFilter(filterFunc)
+}
+
+// GetESDTsWithRole returns all the tokens with the given role for the given address
+func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 	if !core.IsValidESDTRole(role) {
 		return nil, ErrInvalidESDTRole
 	}
@@ -699,59 +702,11 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, err
 	}
 
-	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
-	if err != nil {
-		return nil, err
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
 	}
 
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, ErrAccountNotFound
-	}
-
-	tokens := make([]string, 0)
-	if check.IfNil(userAccount.DataTrie()) {
-		return tokens, nil
-	}
-
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for leaf := range chLeaves {
-		tokenName := string(leaf.Key())
-		if !strings.Contains(tokenName, "-") {
-			continue
-		}
-
-		esdtToken := &systemSmartContracts.ESDTData{}
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
-		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
-			continue
-		}
-
-		shouldAdd := isTokenWithRoleForAddress(addressBytes, role, esdtToken)
-		if shouldAdd {
-			tokens = append(tokens, tokenName)
-		}
-	}
-
-	return tokens, nil
+	return n.getTokensIDsWithFilter(filterFunc)
 }
 
 func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {

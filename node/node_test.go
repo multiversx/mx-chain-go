@@ -640,7 +640,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	require.Len(t, tokenResult, 0)
 }
 
-func TestNode_GetOwnedNFTs(t *testing.T) {
+func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	addrBytes := []byte("newaddress")
 	acc, _ := state.NewUserAccount(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -687,7 +687,7 @@ func TestNode_GetOwnedNFTs(t *testing.T) {
 		}}),
 	)
 
-	tokenResult, err := n.GetOwnedNFTs(hex.EncodeToString(addrBytes))
+	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes))
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])

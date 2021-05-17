@@ -277,9 +277,9 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*es
 	return nf.node.GetESDTData(address, key, nonce)
 }
 
-// GetOwnedNFTs returns all the token identifiers for semi or non fungible tokens where the given address is the owner
-func (nf *nodeFacade) GetOwnedNFTs(address string) ([]string, error) {
-	return nf.node.GetOwnedNFTs(address)
+// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	return nf.node.GetNFTTokenIDsRegisteredByAddress(address)
 }
 
 // GetESDTsWithRole returns all the tokens with the given role for the given address

@@ -38,8 +38,8 @@ type NodeHandler interface {
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
 
-	// GetOwnedNFTs returns all the token identifiers for semi or non fungible tokens where the given address is the owner
-	GetOwnedNFTs(address string) ([]string, error)
+	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
 
 	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
 	GetESDTsWithRole(address string, role string) ([]string, error)
