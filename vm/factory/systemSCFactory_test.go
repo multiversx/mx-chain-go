@@ -67,7 +67,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     1,
+				StakingV2EnableEpoch:               1,
 				StakeEnableEpoch:                   0,
 				DelegationSmartContractEnableEpoch: 0,
 				DelegationManagerEnableEpoch:       0,

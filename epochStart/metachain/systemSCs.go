@@ -36,19 +36,12 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
 	ChanceComputer       sharding.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
+	EpochConfig          config.EpochConfig
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
-
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	DelegationEnableEpoch                  uint32
-	StakingV2EnableEpoch                   uint32
-	CorrectLastUnJailEnableEpoch           uint32
-	ESDTEnableEpoch                        uint32
-	SaveJailedAlwaysEnableEpoch            uint32
-	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
-	ESDTOwnerAddressBytes                  []byte
+	MaxNodesEnableConfig    []config.MaxNodesChangeConfig
+	ESDTOwnerAddressBytes   []byte
 
 	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
 	EpochNotifier       process.EpochNotifier
@@ -172,23 +165,26 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		chanceComputer:              args.ChanceComputer,
 		mapNumSwitchedPerShard:      make(map[uint32]uint32),
 		mapNumSwitchablePerShard:    make(map[uint32]uint32),
-		switchEnableEpoch:           args.SwitchJailWaitingEnableEpoch,
-		hystNodesEnableEpoch:        args.SwitchHysteresisForMinNodesEnableEpoch,
-		delegationEnableEpoch:       args.DelegationEnableEpoch,
-		stakingV2EnableEpoch:        args.StakingV2EnableEpoch,
-		esdtEnableEpoch:             args.ESDTEnableEpoch,
+		switchEnableEpoch:           args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:        args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:       args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
+		stakingV2EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		esdtEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		stakingDataProvider:         args.StakingDataProvider,
 		nodesConfigProvider:         args.NodesConfigProvider,
 		shardCoordinator:            args.ShardCoordinator,
-		correctLastUnJailEpoch:      args.CorrectLastUnJailEnableEpoch,
+		correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
 		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
-		saveJailedAlwaysEnableEpoch: args.SaveJailedAlwaysEnableEpoch,
+		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
 	log.Debug("systemSC: enable epoch for switch hysteresis for min nodes", "epoch", s.hystNodesEnableEpoch)
 	log.Debug("systemSC: enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
 	log.Debug("systemSC: enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
+	log.Debug("systemSC: enable epoch for ESDT", "epoch", s.esdtEnableEpoch)
+	log.Debug("systemSC: enable epoch for correct num nodes to stake", "epoch", s.correctLastUnJailEpoch)
+	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -1442,7 +1438,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagSetOwnerEnabled.Toggle(epoch == s.stakingV2EnableEpoch)
 	s.flagStakingV2Enabled.Toggle(epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
-	log.Debug("systemSCProcessor:change of maximum number of nodes and/or shuffling percentage",
+	log.Debug("systemSCProcessor: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,

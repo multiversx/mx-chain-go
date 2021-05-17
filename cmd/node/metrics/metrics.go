@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -143,7 +144,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricGasPriceModifierEnableEpoch, uint64(enableEpochs.GasPriceModifierEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricRepairCallbackEnableEpoch, uint64(enableEpochs.RepairCallbackEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricBlockGasAndFreeRecheckEnableEpoch, uint64(enableEpochs.BlockGasAndFeesReCheckEnableEpoch))
-	appStatusHandler.SetUInt64Value(core.MetricStakingV2EnableEpoch, uint64(enableEpochs.StakingV2Epoch))
+	appStatusHandler.SetUInt64Value(core.MetricStakingV2EnableEpoch, uint64(enableEpochs.StakingV2EnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricStakeEnableEpoch, uint64(enableEpochs.StakeEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDoubleKeyProtectionEnableEpoch, uint64(enableEpochs.DoubleKeyProtectionEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricEsdtEnableEpoch, uint64(enableEpochs.ESDTEnableEpoch))

@@ -1182,7 +1182,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
-	validatorArgs.EpochConfig.EnableEpochs.StakingV2Epoch = 0
+	validatorArgs.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
@@ -2819,7 +2819,7 @@ func prepareReDelegateRewardsComponents(
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
-	args.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
+	args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)

@@ -834,7 +834,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			EpochNotifier:       tpn.EpochNotifier,
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
-					StakingV2Epoch:                     0,
+					StakingV2EnableEpoch:               0,
 					StakeEnableEpoch:                   0,
 					DelegationSmartContractEnableEpoch: 0,
 					DelegationManagerEnableEpoch:       0,
@@ -1564,7 +1564,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:       tpn.EpochNotifier,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     0,
+				StakingV2EnableEpoch:               0,
 				StakeEnableEpoch:                   0,
 				DelegationSmartContractEnableEpoch: 0,
 				DelegationManagerEnableEpoch:       0,
@@ -1953,12 +1953,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ChanceComputer:          tpn.NodesCoordinator,
 			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
-			StakingV2EnableEpoch:    StakingV2Epoch,
 			StakingDataProvider:     stakingDataProvider,
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
-			ESDTEnableEpoch:         0,
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
+			EpochConfig: config.EpochConfig{
+				EnableEpochs: config.EnableEpochs{
+					StakingV2EnableEpoch: StakingV2Epoch,
+					ESDTEnableEpoch:      0,
+				},
+			},
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

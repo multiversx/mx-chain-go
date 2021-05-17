@@ -325,17 +325,17 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3)
+	economicsData.EpochConfirmed(3, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
@@ -369,17 +369,17 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	economicsData.EpochConfirmed(1)
+	economicsData.EpochConfirmed(1, 0)
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(2)
+	economicsData.EpochConfirmed(2, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[1], *rewardsActiveConfig)
 
-	economicsData.EpochConfirmed(3)
+	economicsData.EpochConfirmed(3, 0)
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
 	require.NotNil(t, rewardsActiveConfig)
 	require.Equal(t, rs[0], *rewardsActiveConfig)

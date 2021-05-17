@@ -82,8 +82,8 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:   10,
-				StakeEnableEpoch: 0,
+				StakingV2EnableEpoch: 10,
+				StakeEnableEpoch:     0,
 			},
 		},
 	}
@@ -184,7 +184,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     10,
+				StakingV2EnableEpoch:               10,
 				StakeEnableEpoch:                   1,
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,

@@ -91,23 +91,23 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	}
 
 	d := &delegationManager{
-		eei:                      args.Eei,
-		stakingSCAddr:            args.StakingSCAddress,
-		validatorSCAddr:          args.ValidatorSCAddress,
-		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
-		configChangeAddr:         args.ConfigChangeAddress,
-		gasCost:                  args.GasCost,
-		marshalizer:              args.Marshalizer,
-		delegationMgrEnabled:     atomic.Flag{},
-		enableDelegationMgrEpoch: args.EpochConfig.EnableEpochs.DelegationManagerEnableEpoch,
-		minCreationDeposit:       minCreationDeposit,
-		minDelegationAmount:      minDelegationAmount,
-		minFee:                   args.DelegationSCConfig.MinServiceFee,
-		maxFee:                   args.DelegationSCConfig.MaxServiceFee,
-		validatorToDelegationEnableEpoch: xxx
+		eei:                              args.Eei,
+		stakingSCAddr:                    args.StakingSCAddress,
+		validatorSCAddr:                  args.ValidatorSCAddress,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		configChangeAddr:                 args.ConfigChangeAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		delegationMgrEnabled:             atomic.Flag{},
+		enableDelegationMgrEpoch:         args.EpochConfig.EnableEpochs.DelegationManagerEnableEpoch,
+		minCreationDeposit:               minCreationDeposit,
+		minDelegationAmount:              minDelegationAmount,
+		minFee:                           args.DelegationSCConfig.MinServiceFee,
+		maxFee:                           args.DelegationSCConfig.MaxServiceFee,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 	}
 	log.Debug("delegationManager: enable epoch for delegation manager", "epoch", d.enableDelegationMgrEpoch)
-	TODO add logs
+	log.Debug("delegationManager: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
 
@@ -560,10 +560,10 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegationManager) EpochConfirmed(epoch uint32, _ uint64) {
 	d.delegationMgrEnabled.Toggle(epoch >= d.enableDelegationMgrEpoch)
-	log.Debug("delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
+	log.Debug("delegationManagerSC: delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
 
 	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
-	log.Debug("delegationManager validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
+	log.Debug("delegationManagerSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

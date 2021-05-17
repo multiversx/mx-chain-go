@@ -113,29 +113,29 @@ func NewStakingSmartContract(
 	}
 
 	reg := &stakingSC{
-		eei:                      args.Eei,
-		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
-		stakeAccessAddr:          args.StakingAccessAddr,
-		jailAccessAddr:           args.JailAccessAddr,
-		numRoundsWithoutBleed:    args.StakingSCConfig.NumRoundsWithoutBleed,
-		bleedPercentagePerRound:  args.StakingSCConfig.BleedPercentagePerRound,
-		maximumPercentageToBleed: args.StakingSCConfig.MaximumPercentageToBleed,
-		gasCost:                  args.GasCost,
-		minNumNodes:              args.MinNumNodes,
-		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
-		marshalizer:              args.Marshalizer,
-		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
-		enableStakingEpoch:       args.EpochConfig.EnableEpochs.StakeEnableEpoch,
-		stakingV2Epoch:           args.EpochConfig.EnableEpochs.StakingV2Epoch,
-		walletAddressLen:         len(args.StakingAccessAddr),
-		minNodePrice:             minStakeValue,
-		correctLastUnjailedEpoch: args.EpochConfig.EnableEpochs.CorrectLastUnjailedEpoch,
-		validatorToDelegationEnableEpoch: xxx
+		eei:                              args.Eei,
+		unBondPeriod:                     args.StakingSCConfig.UnBondPeriod,
+		stakeAccessAddr:                  args.StakingAccessAddr,
+		jailAccessAddr:                   args.JailAccessAddr,
+		numRoundsWithoutBleed:            args.StakingSCConfig.NumRoundsWithoutBleed,
+		bleedPercentagePerRound:          args.StakingSCConfig.BleedPercentagePerRound,
+		maximumPercentageToBleed:         args.StakingSCConfig.MaximumPercentageToBleed,
+		gasCost:                          args.GasCost,
+		minNumNodes:                      args.MinNumNodes,
+		maxNumNodes:                      args.StakingSCConfig.MaxNumberOfNodesForStake,
+		marshalizer:                      args.Marshalizer,
+		endOfEpochAccessAddr:             args.EndOfEpochAccessAddr,
+		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		walletAddressLen:                 len(args.StakingAccessAddr),
+		minNodePrice:                     minStakeValue,
+		correctLastUnjailedEpoch:         args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 	}
 	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
-	TODO add logs
+	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)

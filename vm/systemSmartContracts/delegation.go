@@ -111,27 +111,28 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	d := &delegation{
-		eei:                    args.Eei,
-		stakingSCAddr:          args.StakingSCAddress,
-		validatorSCAddr:        args.ValidatorSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		gasCost:                args.GasCost,
-		marshalizer:            args.Marshalizer,
-		delegationEnabled:      atomic.Flag{},
-		enableDelegationEpoch:  args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
-		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:            args.SigVerifier,
-		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:         args.EndOfEpochAddress,
-		stakingV2EnableEpoch:   args.EpochConfig.EnableEpochs.StakingV2Epoch,
-		stakingV2Enabled:       atomic.Flag{},
-		validatorToDelegationEnableEpoch: xxx
-		reDelegateBelowMinCheckEnableEpoch: yyy
+		eei:                                args.Eei,
+		stakingSCAddr:                      args.StakingSCAddress,
+		validatorSCAddr:                    args.ValidatorSCAddress,
+		delegationMgrSCAddress:             args.DelegationMgrSCAddress,
+		gasCost:                            args.GasCost,
+		marshalizer:                        args.Marshalizer,
+		delegationEnabled:                  atomic.Flag{},
+		enableDelegationEpoch:              args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
+		minServiceFee:                      args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:                      args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:                        args.SigVerifier,
+		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
+		endOfEpochAddr:                     args.EndOfEpochAddress,
+		stakingV2EnableEpoch:               args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		stakingV2Enabled:                   atomic.Flag{},
+		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
 	}
 	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
 	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
-	TODO add logs
+	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
+	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
 
 	var okValue bool
 
@@ -2800,16 +2801,16 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
-	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
+	log.Debug("delegationSC: delegation", "enabled", d.delegationEnabled.IsSet())
 
 	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
-	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
+	log.Debug("delegationSC: stakingV2", "enabled", d.stakingV2Enabled.IsSet())
 
 	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
-	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
+	log.Debug("delegationSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 
 	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
-	log.Debug("re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
+	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

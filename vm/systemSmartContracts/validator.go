@@ -142,32 +142,32 @@ func NewValidatorSmartContract(
 	}
 
 	reg := &validatorSC{
-		eei:                       args.Eei,
-		unBondPeriod:              args.StakingSCConfig.UnBondPeriod,
-		unBondPeriodInEpochs:      args.StakingSCConfig.UnBondPeriodInEpochs,
-		sigVerifier:               args.SigVerifier,
-		baseConfig:                baseConfig,
-		stakingV2Epoch:            args.EpochConfig.EnableEpochs.StakingV2Epoch,
-		enableStakingEpoch:        args.EpochConfig.EnableEpochs.StakeEnableEpoch,
-		stakingSCAddress:          args.StakingSCAddress,
-		validatorSCAddress:        args.ValidatorSCAddress,
-		gasCost:                   args.GasCost,
-		marshalizer:               args.Marshalizer,
-		minUnstakeTokensValue:     minUnstakeTokensValue,
-		walletAddressLen:          len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:      args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
-		endOfEpochAddress:         args.EndOfEpochAddress,
-		minDeposit:                minDeposit,
-		enableDelegationMgrEpoch:  args.DelegationMgrEnableEpoch,
-		delegationMgrSCAddress:    args.DelegationMgrSCAddress,
-		enableUnbondTokensV2Epoch: args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
-		validatorToDelegationEnableEpoch: xxx
+		eei:                              args.Eei,
+		unBondPeriod:                     args.StakingSCConfig.UnBondPeriod,
+		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
+		sigVerifier:                      args.SigVerifier,
+		baseConfig:                       baseConfig,
+		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingSCAddress:                 args.StakingSCAddress,
+		validatorSCAddress:               args.ValidatorSCAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		minUnstakeTokensValue:            minUnstakeTokensValue,
+		walletAddressLen:                 len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:             args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:                args.EndOfEpochAddress,
+		minDeposit:                       minDeposit,
+		enableDelegationMgrEpoch:         args.DelegationMgrEnableEpoch,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		enableUnbondTokensV2Epoch:        args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 	}
 	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
 	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
 	log.Debug("validator: enable epoch for unbond tokens v2", "epoch", reg.enableUnbondTokensV2Epoch)
-	TODO add logs
+	log.Debug("validator: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 

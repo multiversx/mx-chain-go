@@ -528,7 +528,7 @@ func CreateVMAndBlockchainHookMeta(
 func createEpochConfig() *config.EpochConfig {
 	return &config.EpochConfig{
 		EnableEpochs: config.EnableEpochs{
-			StakingV2Epoch:                     0,
+			StakingV2EnableEpoch:               0,
 			StakeEnableEpoch:                   0,
 			DoubleKeyProtectionEnableEpoch:     0,
 			ESDTEnableEpoch:                    0,
