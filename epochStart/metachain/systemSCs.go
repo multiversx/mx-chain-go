@@ -46,6 +46,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	StakingV2EnableEpoch                   uint32
 	CorrectLastUnJailEnableEpoch           uint32
 	ESDTEnableEpoch                        uint32
+	SaveJailedAlwaysEnableEpoch            uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 	ESDTOwnerAddressBytes                  []byte
 
@@ -75,6 +76,7 @@ type systemSCProcessor struct {
 	stakingV2EnableEpoch           uint32
 	correctLastUnJailEpoch         uint32
 	esdtEnableEpoch                uint32
+	saveJailedAlwaysEnableEpoch    uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -86,6 +88,7 @@ type systemSCProcessor struct {
 	flagCorrectLastUnjailedEnabled atomic.Flag
 	flagCorrectNumNodesToStake     atomic.Flag
 	flagESDTEnabled                atomic.Flag
+	flagSaveJailedAlwaysEnabled    atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -157,28 +160,29 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	}
 
 	s := &systemSCProcessor{
-		systemVM:                 args.SystemVM,
-		userAccountsDB:           args.UserAccountsDB,
-		peerAccountsDB:           args.PeerAccountsDB,
-		marshalizer:              args.Marshalizer,
-		startRating:              args.StartRating,
-		validatorInfoCreator:     args.ValidatorInfoCreator,
-		genesisNodesConfig:       args.GenesisNodesConfig,
-		endOfEpochCallerAddress:  args.EndOfEpochCallerAddress,
-		stakingSCAddress:         args.StakingSCAddress,
-		chanceComputer:           args.ChanceComputer,
-		mapNumSwitchedPerShard:   make(map[uint32]uint32),
-		mapNumSwitchablePerShard: make(map[uint32]uint32),
-		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
-		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
-		delegationEnableEpoch:    args.DelegationEnableEpoch,
-		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
-		esdtEnableEpoch:          args.ESDTEnableEpoch,
-		stakingDataProvider:      args.StakingDataProvider,
-		nodesConfigProvider:      args.NodesConfigProvider,
-		shardCoordinator:         args.ShardCoordinator,
-		correctLastUnJailEpoch:   args.CorrectLastUnJailEnableEpoch,
-		esdtOwnerAddressBytes:    args.ESDTOwnerAddressBytes,
+		systemVM:                    args.SystemVM,
+		userAccountsDB:              args.UserAccountsDB,
+		peerAccountsDB:              args.PeerAccountsDB,
+		marshalizer:                 args.Marshalizer,
+		startRating:                 args.StartRating,
+		validatorInfoCreator:        args.ValidatorInfoCreator,
+		genesisNodesConfig:          args.GenesisNodesConfig,
+		endOfEpochCallerAddress:     args.EndOfEpochCallerAddress,
+		stakingSCAddress:            args.StakingSCAddress,
+		chanceComputer:              args.ChanceComputer,
+		mapNumSwitchedPerShard:      make(map[uint32]uint32),
+		mapNumSwitchablePerShard:    make(map[uint32]uint32),
+		switchEnableEpoch:           args.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:        args.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:       args.DelegationEnableEpoch,
+		stakingV2EnableEpoch:        args.StakingV2EnableEpoch,
+		esdtEnableEpoch:             args.ESDTEnableEpoch,
+		stakingDataProvider:         args.StakingDataProvider,
+		nodesConfigProvider:         args.NodesConfigProvider,
+		shardCoordinator:            args.ShardCoordinator,
+		correctLastUnJailEpoch:      args.CorrectLastUnJailEnableEpoch,
+		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
+		saveJailedAlwaysEnableEpoch: args.SaveJailedAlwaysEnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -770,6 +774,13 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
+		if s.flagSaveJailedAlwaysEnabled.IsSet() {
+			err := s.processSCOutputAccounts(vmOutput)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return nil, nil
 	}
 
@@ -1445,4 +1456,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
 	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
+
+	s.flagSaveJailedAlwaysEnabled.Toggle(epoch >= s.saveJailedAlwaysEnableEpoch)
+	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
 }

@@ -940,12 +940,16 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:                 0.1,
-			DeveloperPercentage:              0.1,
-			ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
-			TopUpFactor:                      0.25,
-			TopUpGradientPoint:               "300000000000000000000",
-			ProtocolSustainabilityPercentage: 0.1,
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					DeveloperPercentage:              0.1,
+					ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+					TopUpFactor:                      0.25,
+					TopUpGradientPoint:               "300000000000000000000",
+					ProtocolSustainabilityPercentage: 0.1,
+				},
+			},
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
