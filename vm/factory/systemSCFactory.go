@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
@@ -28,6 +29,7 @@ type systemSCFactory struct {
 	epochNotifier          vm.EpochNotifier
 	systemSCsContainer     vm.SystemSCContainer
 	addressPubKeyConverter core.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -42,6 +44,7 @@ type ArgsNewSystemSCFactory struct {
 	SystemSCConfig         *config.SystemSmartContractsConfig
 	EpochNotifier          vm.EpochNotifier
 	AddressPubKeyConverter core.PubkeyConverter
+	ShardCoordinator       sharding.Coordinator
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -73,6 +76,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
+	}
 
 	scf := &systemSCFactory{
 		systemEI:               args.SystemEI,
@@ -84,6 +90,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		economics:              args.Economics,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
+		shardCoordinator:       args.ShardCoordinator,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -190,6 +197,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		DelegationMgrEnableEpoch:         scf.systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		DelegationMgrSCAddress:           vm.DelegationManagerSCAddress,
 		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
+		ShardCoordinator:                 scf.shardCoordinator,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err

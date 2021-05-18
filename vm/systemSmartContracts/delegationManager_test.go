@@ -881,7 +881,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	eei.gasRemaining = vmInput.GasProvided
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, "no sc address under selected user")
+	assert.Equal(t, eei.returnMessage, "the caller does not own a delegation sc")
 
 	eei.returnMessage = ""
 	eei.gasRemaining = vmInput.GasProvided

@@ -1,11 +1,13 @@
 package metachain
 
 import (
+	"errors"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -14,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,11 +43,8 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	return arguments
 }
 
-func TestNewVMContainerFactory_OkValues(t *testing.T) {
-	t.Parallel()
-
-	gasSchedule := makeGasSchedule()
-	argsNewVmContainerFactory := ArgsNewVMContainerFactory{
+func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
+	return ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   createMockVMAccountsArguments(),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
@@ -82,12 +82,31 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		ValidatorAccountsDB: &mock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
+}
+
+func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ShardCoordinator = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
-	assert.NotNil(t, vmf)
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
+}
+
+func TestNewVMContainerFactory_OkValues(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.False(t, check.IfNil(vmf))
 	assert.Nil(t, err)
-	assert.False(t, vmf.IsInterfaceNil())
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
@@ -182,6 +201,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ValidatorAccountsDB: &mock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)
@@ -197,9 +217,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
-	vm, err := container.Get(factory.SystemVirtualMachine)
+	vmInstance, err := container.Get(factory.SystemVirtualMachine)
 	assert.Nil(t, err)
-	assert.NotNil(t, vm)
+	assert.NotNil(t, vmInstance)
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)

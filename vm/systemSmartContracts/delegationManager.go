@@ -308,7 +308,7 @@ func (d *delegationManager) checkCallerIsOwnerOfContract(args *vmcommon.Contract
 	lenAddress := len(args.CallerAddr)
 	buff := d.eei.GetStorage(args.CallerAddr)
 	if len(buff) == 0 {
-		d.eei.AddReturnMessage("no sc address under selected user")
+		d.eei.AddReturnMessage("the caller does not own a delegation sc")
 		return vmcommon.UserError
 	}
 

@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -38,6 +40,7 @@ type vmContainerFactory struct {
 	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 	scFactory              vm.SystemSCContainerFactory
+	shardCoordinator       sharding.Coordinator
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -53,6 +56,7 @@ type ArgsNewVMContainerFactory struct {
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      sharding.ChanceComputer
 	EpochNotifier       process.EpochNotifier
+	ShardCoordinator    sharding.Coordinator
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -87,6 +91,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilShardCoordinator)
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
@@ -108,6 +115,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		chanceComputer:         args.ChanceComputer,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
+		shardCoordinator:       args.ShardCoordinator,
 	}, nil
 }
 
@@ -172,6 +180,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Economics:              vmf.economics,
 		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+		ShardCoordinator:       vmf.shardCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

@@ -69,6 +69,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
+		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -169,6 +170,17 @@ func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
+}
+
+func TestNewSystemSCFactory_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.ShardCoordinator = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.True(t, check.IfNil(scFactory))
+	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {

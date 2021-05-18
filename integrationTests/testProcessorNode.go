@@ -828,6 +828,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			EpochNotifier:       tpn.EpochNotifier,
+			ShardCoordinator:    tpn.ShardCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1540,6 +1541,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       tpn.EpochNotifier,
+		ShardCoordinator:    tpn.ShardCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 

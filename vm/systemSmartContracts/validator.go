@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -59,6 +60,7 @@ type validatorSC struct {
 	flagValidatorToDelegation        atomic.Flag
 	enableUnbondTokensV2Epoch        uint32
 	flagUnbondTokensV2               atomic.Flag
+	shardCoordinator                 sharding.Coordinator
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -77,6 +79,7 @@ type ArgsValidatorSmartContract struct {
 	DelegationMgrSCAddress           []byte
 	DelegationMgrEnableEpoch         uint32
 	ValidatorToDelegationEnableEpoch uint32
+	ShardCoordinator                 sharding.Coordinator
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -109,6 +112,9 @@ func NewValidatorSmartContract(
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilShardCoordinator)
 	}
 
 	baseConfig := ValidatorConfig{
@@ -162,6 +168,7 @@ func NewValidatorSmartContract(
 		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
 		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
 		enableUnbondTokensV2Epoch:        args.StakingSCConfig.UnbondTokensV2EnableEpoch,
+		shardCoordinator:                 args.ShardCoordinator,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -403,7 +410,7 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) != v.walletAddressLen {
-		v.eei.AddReturnMessage("wrong reward address")
+		v.eei.AddReturnMessage(vm.ErrWrongRewardAddress.Error())
 		return vmcommon.UserError
 	}
 
@@ -418,6 +425,11 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 	}
 	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
 		v.eei.AddReturnMessage("new reward address is equal with the old reward address")
+		return vmcommon.UserError
+	}
+	err = v.extraChecksForChangeRewardAddress(args.Arguments[0])
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -450,6 +462,25 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 	}
 
 	return vmcommon.Ok
+}
+
+func (v *validatorSC) extraChecksForChangeRewardAddress(newAddress []byte) error {
+	if !v.flagValidatorToDelegation.IsSet() {
+		return nil
+	}
+
+	if bytes.Equal(newAddress, vm.JailingAddress) {
+		return fmt.Errorf("%w when trying to set the jailing address", vm.ErrWrongRewardAddress)
+	}
+	if bytes.Equal(newAddress, vm.EndOfEpochAddress) {
+		return fmt.Errorf("%w when trying to set the end-of-epoch reserved address", vm.ErrWrongRewardAddress)
+	}
+	shardID := v.shardCoordinator.ComputeId(newAddress)
+	if shardID == core.MetachainShardId {
+		return fmt.Errorf("%w when trying to set a metachain address", vm.ErrWrongRewardAddress)
+	}
+
+	return nil
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
