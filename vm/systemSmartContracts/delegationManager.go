@@ -305,7 +305,6 @@ func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.Contr
 
 func (d *delegationManager) checkCallerIsOwnerOfContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scAddress := args.Arguments[0]
-	lenAddress := len(args.CallerAddr)
 	buff := d.eei.GetStorage(args.CallerAddr)
 	if len(buff) == 0 {
 		d.eei.AddReturnMessage("the caller does not own a delegation sc")
@@ -313,6 +312,7 @@ func (d *delegationManager) checkCallerIsOwnerOfContract(args *vmcommon.Contract
 	}
 
 	found := false
+	lenAddress := len(args.CallerAddr)
 	for i := 0; i < len(buff); i += lenAddress {
 		savedAddress := buff[i : i+lenAddress]
 		if bytes.Equal(savedAddress, scAddress) {
