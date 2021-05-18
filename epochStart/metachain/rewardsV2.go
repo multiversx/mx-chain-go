@@ -287,25 +287,11 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		baseRewardsPerBlock = big.NewInt(0).Div(baseRewards, nbBlocks)
 	}
 
-	baseRewardPerYearPerHundrethPercent := big.NewInt(0).Mul(big.NewInt(365*10000*9/2/10), baseRewards)
-	baseRewardsAPR := big.NewInt(0)
-	if totalStakeEligible.Cmp(big.NewInt(0)) != 0 {
-		baseRewardsAPR = big.NewInt(0).Div(baseRewardPerYearPerHundrethPercent, totalStakeEligible)
-	}
-
-	topupRewardPerYearPerHundrethPercent := big.NewInt(0).Mul(big.NewInt(365*10000*9/2/10), topUpRewards)
-	topupRewardsAPR := big.NewInt(0)
-	if totalStakeEligible.Cmp(big.NewInt(0)) != 0 {
-		topupRewardsAPR = big.NewInt(0).Div(topupRewardPerYearPerHundrethPercent, totalTopUpEligible)
-	}
-
 	log.Info("Rewards to be distributed",
 		"totalStakeEligible", totalStakeEligible.String(),
 		"totalTopUpEligible", totalTopUpEligible.String(),
 		"baseRewards", baseRewards.String(),
-		"topupRewards", topUpRewards.String(),
-		"baseRewardsAPR", baseRewardsAPR.String(),
-		"topupRewardsAPR", topupRewardsAPR.String())
+		"topupRewards", topUpRewards.String())
 
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 
