@@ -771,6 +771,25 @@ func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
 	require.Equal(t, expectedResponse, res)
 }
 
+func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []string{"ABC-1q2w3e", "PPP-sc78gh"}
+	args := createMockArguments()
+
+	args.Node = &mock.NodeStub{
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
+			return expectedResponse, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(args)
+
+	res, err := nf.GetNFTTokenIDsRegisteredByAddress("address")
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
+}
+
 func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	t.Parallel()
 

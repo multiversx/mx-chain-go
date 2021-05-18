@@ -735,7 +735,7 @@ func TestGetNFTTokenIDsRegisteredByAddress_NilContextShouldError(t *testing.T) {
 
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/myAddress/owned-nfts", nil)
+	req, _ := http.NewRequest("GET", "/address/myAddress/registered-nfts", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -758,7 +758,7 @@ func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/owned-nfts", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -781,7 +781,7 @@ func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/owned-nfts", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -954,7 +954,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
 					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 					{Name: "/:address/esdts-with-role/:role", Open: true},
-					{Name: "/:address/owned-nfts", Open: true},
+					{Name: "/:address/registered-nfts", Open: true},
 				},
 			},
 		},

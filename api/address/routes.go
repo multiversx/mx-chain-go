@@ -358,7 +358,7 @@ func GetESDTBalance(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyKey.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyTokenIdentifier.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -420,7 +420,7 @@ func GetESDTTokensWithRole(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyKey.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyRole.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -531,7 +531,7 @@ func GetESDTNFTData(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTNFTData.Error(), errors.ErrEmptyKey.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTNFTData.Error(), errors.ErrEmptyTokenIdentifier.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
