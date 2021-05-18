@@ -1948,6 +1948,10 @@ func (v *validatorSC) getAndValidateRegistrationData(address []byte) (*Validator
 		v.eei.AddReturnMessage(err.Error())
 		return nil, vmcommon.UserError
 	}
+	if len(oldValidatorData.BlsPubKeys) == 0 {
+		v.eei.AddReturnMessage("address does not contain any staked nodes")
+		return nil, vmcommon.UserError
+	}
 	if !bytes.Equal(oldValidatorData.RewardAddress, address) {
 		v.eei.AddReturnMessage("reward address mismatch")
 		return nil, vmcommon.UserError

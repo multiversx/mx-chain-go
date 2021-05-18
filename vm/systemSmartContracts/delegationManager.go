@@ -272,6 +272,10 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
+	if d.callerAlreadyDeployed(args.CallerAddr) {
+		d.eei.AddReturnMessage("caller already deployed a delegation sc")
+		return vmcommon.UserError
+	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
 	return d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
@@ -355,6 +359,17 @@ func (d *delegationManager) mergeValidatorToDelegation(
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	txData = deleteWhitelistForMerge
+	vmOutput, err = d.eei.ExecuteOnDestContext(scAddress, d.delegationMgrSCAddress, big.NewInt(0), []byte(txData))
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmOutput.ReturnCode
 }
 

@@ -4669,6 +4669,20 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 	eei.returnMessage = ""
 	_, returnCode := sc.getAndValidateRegistrationData(addr)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress: []byte("a"),
+		UnstakedInfo:  []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
+		TotalUnstaked: big.NewInt(10),
+		TotalSlashed:  big.NewInt(10),
+		BlsPubKeys:    [][]byte{[]byte("first key"), []byte("second key")},
+	}
+	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(addr, marshaledData)
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "reward address mismatch")
 
 	eei.SetStorage(addr, []byte("randomValue"))
@@ -4677,13 +4691,14 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid character 'r' looking for beginning of value")
 
-	validatorData := &ValidatorDataV2{
+	validatorData = &ValidatorDataV2{
 		RewardAddress: addr,
 		UnstakedInfo:  []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
 		TotalUnstaked: big.NewInt(10),
 		TotalSlashed:  big.NewInt(10),
+		BlsPubKeys:    [][]byte{[]byte("first key"), []byte("second key")},
 	}
-	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(addr, marshaledData)
 	eei.returnMessage = ""
 	_, returnCode = sc.getAndValidateRegistrationData(addr)
@@ -4748,10 +4763,10 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
 
 	validatorData := &ValidatorDataV2{
-		RewardAddress:   randomAddress,
+		RewardAddress:   []byte("nit a valid address"),
 		TotalSlashed:    big.NewInt(0),
 		TotalUnstaked:   big.NewInt(0),
 		TotalStakeValue: big.NewInt(0),
@@ -4759,6 +4774,21 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
 	}
 	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData = &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(randomAddress, marshaledData)
 
 	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
@@ -4830,10 +4860,10 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
 
 	validatorData := &ValidatorDataV2{
-		RewardAddress:   randomAddress,
+		RewardAddress:   []byte("not a valid address"),
 		TotalSlashed:    big.NewInt(0),
 		TotalUnstaked:   big.NewInt(0),
 		TotalStakeValue: big.NewInt(0),
@@ -4841,6 +4871,22 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
 	}
 	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData = &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(randomAddress, marshaledData)
 
 	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
