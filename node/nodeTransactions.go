@@ -47,6 +47,8 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 		return nil, err
 	}
 
+	tx.SourceShard = n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr())
+	tx.DestinationShard = n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr())
 	tx.Status = transaction.TxStatusPending
 
 	return tx, nil

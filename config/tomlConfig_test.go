@@ -139,7 +139,10 @@ func TestTomlParser(t *testing.T) {
 
 func TestTomlEconomicsParser(t *testing.T) {
 	protocolSustainabilityPercentage := 0.1
-	leaderPercentage := 0.1
+	leaderPercentage1 := 0.1
+	leaderPercentage2 := 0.2
+	epoch0 := uint32(0)
+	epoch1 := uint32(1)
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
@@ -154,7 +157,15 @@ func TestTomlEconomicsParser(t *testing.T) {
 		RewardsSettings: RewardsSettings{
 			RewardsConfigByEpoch: []EpochRewardSettings{
 				{
-					LeaderPercentage:                 leaderPercentage,
+					EpochEnable:                      epoch0,
+					LeaderPercentage:                 leaderPercentage1,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+				{
+					EpochEnable:                      epoch1,
+					LeaderPercentage:                 leaderPercentage2,
 					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
 					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
 					DeveloperPercentage:              developerPercentage,
@@ -172,14 +183,20 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-	RewardsConfigByEpoch = [
-		{
-    		ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `,
-			ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `",
-    		LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `,
-			DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
-   		 }
-    ]
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"

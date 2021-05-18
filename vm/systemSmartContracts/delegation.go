@@ -39,43 +39,46 @@ const (
 )
 
 type delegation struct {
-	eei                              vm.SystemEI
-	sigVerifier                      vm.MessageSignVerifier
-	delegationMgrSCAddress           []byte
-	stakingSCAddr                    []byte
-	validatorSCAddr                  []byte
-	endOfEpochAddr                   []byte
-	gasCost                          vm.GasCost
-	marshalizer                      marshal.Marshalizer
-	delegationEnabled                atomic.Flag
-	enableDelegationEpoch            uint32
-	minServiceFee                    uint64
-	maxServiceFee                    uint64
-	unBondPeriodInEpochs             uint32
-	nodePrice                        *big.Int
-	unJailPrice                      *big.Int
-	minStakeValue                    *big.Int
-	mutExecution                     sync.RWMutex
-	stakingV2EnableEpoch             uint32
-	stakingV2Enabled                 atomic.Flag
-	flagValidatorToDelegation        atomic.Flag
-	validatorToDelegationEnableEpoch uint32
+	eei                                vm.SystemEI
+	sigVerifier                        vm.MessageSignVerifier
+	delegationMgrSCAddress             []byte
+	stakingSCAddr                      []byte
+	validatorSCAddr                    []byte
+	endOfEpochAddr                     []byte
+	gasCost                            vm.GasCost
+	marshalizer                        marshal.Marshalizer
+	delegationEnabled                  atomic.Flag
+	enableDelegationEpoch              uint32
+	minServiceFee                      uint64
+	maxServiceFee                      uint64
+	unBondPeriodInEpochs               uint32
+	nodePrice                          *big.Int
+	unJailPrice                        *big.Int
+	minStakeValue                      *big.Int
+	mutExecution                       sync.RWMutex
+	stakingV2EnableEpoch               uint32
+	stakingV2Enabled                   atomic.Flag
+	flagValidatorToDelegation          atomic.Flag
+	validatorToDelegationEnableEpoch   uint32
+	flagReDelegateBelowMinCheck        atomic.Flag
+	reDelegateBelowMinCheckEnableEpoch uint32
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
-	DelegationSCConfig               config.DelegationSystemSCConfig
-	StakingSCConfig                  config.StakingSystemSCConfig
-	Eei                              vm.SystemEI
-	SigVerifier                      vm.MessageSignVerifier
-	DelegationMgrSCAddress           []byte
-	StakingSCAddress                 []byte
-	ValidatorSCAddress               []byte
-	EndOfEpochAddress                []byte
-	GasCost                          vm.GasCost
-	Marshalizer                      marshal.Marshalizer
-	EpochNotifier                    vm.EpochNotifier
-	ValidatorToDelegationEnableEpoch uint32
+	DelegationSCConfig                 config.DelegationSystemSCConfig
+	StakingSCConfig                    config.StakingSystemSCConfig
+	Eei                                vm.SystemEI
+	SigVerifier                        vm.MessageSignVerifier
+	DelegationMgrSCAddress             []byte
+	StakingSCAddress                   []byte
+	ValidatorSCAddress                 []byte
+	EndOfEpochAddress                  []byte
+	GasCost                            vm.GasCost
+	Marshalizer                        marshal.Marshalizer
+	EpochNotifier                      vm.EpochNotifier
+	ValidatorToDelegationEnableEpoch   uint32
+	ReDelegateBelowMinCheckEnableEpoch uint32
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -109,22 +112,23 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	d := &delegation{
-		eei:                              args.Eei,
-		stakingSCAddr:                    args.StakingSCAddress,
-		validatorSCAddr:                  args.ValidatorSCAddress,
-		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
-		gasCost:                          args.GasCost,
-		marshalizer:                      args.Marshalizer,
-		delegationEnabled:                atomic.Flag{},
-		enableDelegationEpoch:            args.DelegationSCConfig.EnabledEpoch,
-		minServiceFee:                    args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:                    args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:                      args.SigVerifier,
-		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:                   args.EndOfEpochAddress,
-		stakingV2EnableEpoch:             args.StakingSCConfig.StakingV2Epoch,
-		stakingV2Enabled:                 atomic.Flag{},
-		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		eei:                                args.Eei,
+		stakingSCAddr:                      args.StakingSCAddress,
+		validatorSCAddr:                    args.ValidatorSCAddress,
+		delegationMgrSCAddress:             args.DelegationMgrSCAddress,
+		gasCost:                            args.GasCost,
+		marshalizer:                        args.Marshalizer,
+		delegationEnabled:                  atomic.Flag{},
+		enableDelegationEpoch:              args.DelegationSCConfig.EnabledEpoch,
+		minServiceFee:                      args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:                      args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:                        args.SigVerifier,
+		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
+		endOfEpochAddr:                     args.EndOfEpochAddress,
+		stakingV2EnableEpoch:               args.StakingSCConfig.StakingV2Epoch,
+		stakingV2Enabled:                   atomic.Flag{},
+		validatorToDelegationEnableEpoch:   args.ValidatorToDelegationEnableEpoch,
+		reDelegateBelowMinCheckEnableEpoch: args.ReDelegateBelowMinCheckEnableEpoch,
 	}
 
 	var okValue bool
@@ -1362,6 +1366,12 @@ func (d *delegation) finishDelegateUser(
 		}
 	}
 
+	err = d.checkActiveFund(delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	stakeArgs := d.makeStakeArgsIfAutomaticActivation(dConfig, dStatus, globalFund)
 	vmOutput, err := d.executeOnValidatorSC(scAddress, "stake", stakeArgs, callValue)
 	if err != nil {
@@ -1399,6 +1409,29 @@ func (d *delegation) finishDelegateUser(
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
+	if !d.flagReDelegateBelowMinCheck.IsSet() {
+		return nil
+	}
+
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		return err
+	}
+
+	fund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		return err
+	}
+
+	belowMinDelegationAmount := fund.Value.Cmp(delegationManagement.MinDelegationAmount) < 0
+	if belowMinDelegationAmount {
+		return vm.ErrRedelegateValueBelowMinimum
+	}
+
+	return nil
 }
 
 func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -2772,6 +2805,9 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 
 	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
 	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
+
+	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
+	log.Debug("re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
