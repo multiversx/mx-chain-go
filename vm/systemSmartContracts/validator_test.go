@@ -4847,7 +4847,7 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
 
 	validatorData := &ValidatorDataV2{
-		RewardAddress:   []byte("nit a valid address"),
+		RewardAddress:   []byte("not a valid address"),
 		TotalSlashed:    big.NewInt(0),
 		TotalUnstaked:   big.NewInt(0),
 		TotalStakeValue: big.NewInt(0),
