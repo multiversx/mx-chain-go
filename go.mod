@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v1.2.7
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.4-0.20210420123135-a07f88bb89c9
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.4-0.20210518131645-60c8cb2ff9a4
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.21.0-beta
