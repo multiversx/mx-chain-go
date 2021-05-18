@@ -231,3 +231,9 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilBlockHeader signals that current block header is nil
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrInvalidESDTRole signals that an invalid ESDT role has been provided
+var ErrInvalidESDTRole = errors.New("invalid ESDT role")
+
+// ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
+var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")
