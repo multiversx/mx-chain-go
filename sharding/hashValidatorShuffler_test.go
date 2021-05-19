@@ -1021,6 +1021,55 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffleOutList, leaving, stillRemainingInLeaving)
 }
 
+func Test_removeLeavingNodesFromValidatorMaps(t *testing.T) {
+	t.Parallel()
+
+	maxShuffleOutNumber := 20
+	eligibleNodesPerShard := eligiblePerShard
+	waitingNodesPerShard := 40
+	nbShards := uint32(2)
+
+	tests := []struct {
+		waitingFixEnabled bool
+		remainingToRemove int
+	}{
+		{
+			waitingFixEnabled: false,
+			remainingToRemove: 18,
+		},
+		{
+			waitingFixEnabled: true,
+			remainingToRemove: 20,
+		},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+
+			leaving := make([]Validator, 0)
+
+			eligibleMap := generateValidatorMap(eligibleNodesPerShard, nbShards)
+			waitingMap := generateValidatorMap(waitingNodesPerShard, nbShards)
+			for _, waitingValidators := range waitingMap {
+				leaving = append(leaving, waitingValidators[:2]...)
+			}
+
+			numToRemove := make(map[uint32]int)
+
+			for shardId := range waitingMap {
+				numToRemove[shardId] = maxShuffleOutNumber
+			}
+			copyEligibleMap := copyValidatorMap(eligibleMap)
+			copyWaitingMap := copyValidatorMap(waitingMap)
+
+			_, _, _ = removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard, tt.waitingFixEnabled)
+
+			for _, remainingToRemove := range numToRemove {
+				require.Equal(t, tt.remainingToRemove, remainingToRemove)
+			}
+		})
+	}
+}
+
 func TestNewHashValidatorsShuffler(t *testing.T) {
 	t.Parallel()
 
