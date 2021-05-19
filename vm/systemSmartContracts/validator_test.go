@@ -194,7 +194,7 @@ func TestNewStakingValidatorSmartContract_NilSystemEnvironmentInterface(t *testi
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
 }
 
 func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *testing.T) {
@@ -205,7 +205,7 @@ func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *test
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilStakingSmartContractAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrNilStakingSmartContractAddress))
 }
 
 func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *testing.T) {
@@ -216,7 +216,7 @@ func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *te
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilValidatorSmartContractAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrNilValidatorSmartContractAddress))
 }
 
 func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
@@ -227,7 +227,7 @@ func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilMessageSignVerifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
 }
 
 func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
@@ -238,7 +238,7 @@ func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilMarshalizer, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMarshalizer))
 }
 
 func TestNewStakingValidatorSmartContract_InvalidGenesisTotalSupply(t *testing.T) {
@@ -272,7 +272,7 @@ func TestNewStakingValidatorSmartContract_NilEpochNotifier(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
@@ -283,7 +283,7 @@ func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrInvalidEndOfEpochAccessAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrInvalidEndOfEpochAccessAddress))
 }
 
 func TestNewStakingValidatorSmartContract_EmptyDelegationManagerAddress(t *testing.T) {

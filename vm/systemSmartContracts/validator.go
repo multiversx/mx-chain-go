@@ -87,31 +87,31 @@ func NewValidatorSmartContract(
 	args ArgsValidatorSmartContract,
 ) (*validatorSC, error) {
 	if check.IfNil(args.Eei) {
-		return nil, vm.ErrNilSystemEnvironmentInterface
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilSystemEnvironmentInterface)
 	}
 	if len(args.StakingSCAddress) == 0 {
-		return nil, vm.ErrNilStakingSmartContractAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilStakingSmartContractAddress)
 	}
 	if len(args.ValidatorSCAddress) == 0 {
-		return nil, vm.ErrNilValidatorSmartContractAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilValidatorSmartContractAddress)
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, vm.ErrNilMarshalizer
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilMarshalizer)
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilMessageSignVerifier)
 	}
 	if args.GenesisTotalSupply == nil || args.GenesisTotalSupply.Cmp(zero) <= 0 {
-		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
+		return nil, fmt.Errorf("%w, value is %v in validatorSC", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilEpochNotifier)
 	}
 	if len(args.EndOfEpochAddress) < 1 {
-		return nil, vm.ErrInvalidEndOfEpochAccessAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidEndOfEpochAccessAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for delegation sc address in validatorSC", vm.ErrInvalidAddress)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilShardCoordinator)

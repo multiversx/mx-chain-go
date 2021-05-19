@@ -50,31 +50,31 @@ type ArgsNewSystemSCFactory struct {
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
 func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.SystemEI) {
-		return nil, vm.ErrNilSystemEnvironmentInterface
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilSystemEnvironmentInterface)
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
-		return nil, vm.ErrNilNodesConfigProvider
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilNodesConfigProvider)
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, vm.ErrNilMarshalizer
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilMarshalizer)
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, vm.ErrNilHasher
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilHasher)
 	}
 	if check.IfNil(args.Economics) {
-		return nil, vm.ErrNilEconomicsData
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEconomicsData)
 	}
 	if args.SystemSCConfig == nil {
-		return nil, vm.ErrNilSystemSCConfig
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilSystemSCConfig)
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEpochNotifier)
 	}
 	if check.IfNil(args.AddressPubKeyConverter) {
-		return nil, vm.ErrNilAddressPubKeyConverter
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilAddressPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
