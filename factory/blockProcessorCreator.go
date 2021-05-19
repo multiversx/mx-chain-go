@@ -242,7 +242,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		SenderInOutTransferEnableEpoch:      pcf.epochConfig.EnableEpochs.SenderInOutTransferEnableEpoch,
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       pcf.epochNotifier,
-		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -553,7 +553,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       pcf.epochNotifier,
-		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -696,7 +696,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
-		StakingV2EnableEpoch:  pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+		StakingV2EnableEpoch:  pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -729,13 +729,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			NodesConfigProvider:           pcf.nodesCoordinator,
 			UserAccountsDB:                pcf.state.AccountsAdapter(),
 			RewardsFix1EpochEnable:        enableEpochs.SwitchJailWaitingEnableEpoch,
-			DelegationSystemSCEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+			DelegationSystemSCEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		},
 		StakingDataProvider:   stakingDataProvider,
 		TopUpRewardFactor:     pcf.coreData.EconomicsData().RewardsTopUpFactor(),
 		TopUpGradientPoint:    pcf.coreData.EconomicsData().RewardsTopUpGradientPoint(),
 		EconomicsDataProvider: economicsDataProvider,
-		EpochEnableV2:         pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+		EpochEnableV2:         pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
@@ -790,28 +790,23 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                               systemVM,
-		UserAccountsDB:                         pcf.state.AccountsAdapter(),
-		PeerAccountsDB:                         pcf.state.PeerAccounts(),
-		Marshalizer:                            pcf.coreData.InternalMarshalizer(),
-		StartRating:                            pcf.coreData.RatingsData().StartRating(),
-		ValidatorInfoCreator:                   validatorStatisticsProcessor,
-		EndOfEpochCallerAddress:                vm.EndOfEpochAddress,
-		StakingSCAddress:                       vm.StakingSCAddress,
-		ChanceComputer:                         pcf.coreData.Rater(),
-		EpochNotifier:                          pcf.coreData.EpochNotifier(),
-		SwitchJailWaitingEnableEpoch:           enableEpochs.SwitchJailWaitingEnableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch: enableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
-		DelegationEnableEpoch:                  pcf.epochConfig.EnableEpochs.DelegationManagerEnableEpoch,
-		StakingV2EnableEpoch:                   pcf.epochConfig.EnableEpochs.StakingV2Epoch,
-		GenesisNodesConfig:                     pcf.coreData.GenesisNodesSetup(),
-		MaxNodesEnableConfig:                   enableEpochs.MaxNodesChangeEnableEpoch,
-		StakingDataProvider:                    stakingDataProvider,
-		NodesConfigProvider:                    pcf.nodesCoordinator,
-		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
-		CorrectLastUnJailEnableEpoch:           enableEpochs.CorrectLastUnjailedEpoch,
-		ESDTOwnerAddressBytes:                  esdtOwnerAddress,
-		ESDTEnableEpoch:                        enableEpochs.ESDTEnableEpoch,
+		SystemVM:                systemVM,
+		UserAccountsDB:          pcf.state.AccountsAdapter(),
+		PeerAccountsDB:          pcf.state.PeerAccounts(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		StartRating:             pcf.coreData.RatingsData().StartRating(),
+		ValidatorInfoCreator:    validatorStatisticsProcessor,
+		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
+		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          pcf.coreData.Rater(),
+		EpochNotifier:           pcf.coreData.EpochNotifier(),
+		GenesisNodesConfig:      pcf.coreData.GenesisNodesSetup(),
+		MaxNodesEnableConfig:    enableEpochs.MaxNodesChangeEnableEpoch,
+		StakingDataProvider:     stakingDataProvider,
+		NodesConfigProvider:     pcf.nodesCoordinator,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		ESDTOwnerAddressBytes:   esdtOwnerAddress,
+		EpochConfig:             pcf.epochConfig,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -828,7 +823,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-		RewardsV2EnableEpoch:         pcf.epochConfig.EnableEpochs.StakingV2Epoch,
+		RewardsV2EnableEpoch:         pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

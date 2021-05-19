@@ -189,7 +189,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
+	testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t, 0)
+	testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t, 1000)
+}
+
+func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, saveJailedAlwaysEnableEpoch uint32) {
 	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
+	args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch = saveJailedAlwaysEnableEpoch
+
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -225,6 +232,29 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	for i := numWaiting; i < numJailed; i++ {
 		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
 	}
+
+	newJailedNodes := jailed[numWaiting:numJailed]
+	checkNodesStatusInSystemSCDataTrie(t, newJailedNodes, args.UserAccountsDB, args.Marshalizer, saveJailedAlwaysEnableEpoch == 0)
+}
+
+func checkNodesStatusInSystemSCDataTrie(t *testing.T, nodes []*state.ValidatorInfo, accounts state.AccountsAdapter, marshalizer marshal.Marshalizer, jailed bool) {
+	account, err := accounts.LoadAccount(vm.StakingSCAddress)
+	require.Nil(t, err)
+
+	var buff []byte
+	systemScAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+	for _, nodeInfo := range nodes {
+		buff, err = systemScAccount.DataTrieTracker().RetrieveValue(nodeInfo.PublicKey)
+		require.Nil(t, err)
+		require.True(t, len(buff) > 0)
+
+		stakingData := &systemSmartContracts.StakedDataV1_1{}
+		err = marshalizer.Unmarshal(stakingData, buff)
+		require.Nil(t, err)
+
+		assert.Equal(t, jailed, stakingData.Jailed)
+	}
 }
 
 func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
@@ -239,7 +269,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 			return rating
 		},
 	}
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
@@ -282,7 +312,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
-	args.StakingV2EnableEpoch = 1
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 1
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -342,7 +372,7 @@ func TestSystemSCProcessor_UpdateStakingV2MoreKeysShouldWork(t *testing.T) {
 	}()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(1000, db)
-	args.StakingV2EnableEpoch = 1
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 1
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -932,7 +962,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		EpochNotifier:       epochNotifier,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     stakingV2EnableEpoch,
+				StakingV2EnableEpoch:               stakingV2EnableEpoch,
 				StakeEnableEpoch:                   0,
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
@@ -959,8 +989,8 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
-		StakingV2EnableEpoch:    1000000,
-		StakingDataProvider:     stakingSCprovider,
+
+		StakingDataProvider: stakingSCprovider,
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
@@ -971,7 +1001,12 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		},
 		ShardCoordinator:      shardCoordinator,
 		ESDTOwnerAddressBytes: bytes.Repeat([]byte{1}, 32),
-		ESDTEnableEpoch:       1000000,
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				StakingV2EnableEpoch: 1000000,
+				ESDTEnableEpoch:      1000000,
+			},
+		},
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -994,11 +1029,16 @@ func createEconomicsData() process.EconomicsDataHandler {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: "protocol",
-				TopUpGradientPoint:            "300000000000000000000",
-				TopUpFactor:                   0.25,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "protocol",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1204,7 +1244,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwne
 
 	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
-	args.StakingV2EnableEpoch = 10
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 10
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1233,8 +1273,8 @@ func TestSystemSCProcessor_ESDTInitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.ESDTEnableEpoch = 1
-	args.SwitchJailWaitingEnableEpoch = 1000000
+	args.EpochConfig.EnableEpochs.ESDTEnableEpoch = 1
+	args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch = 1000000
 	hdr := &block.MetaBlock{
 		Epoch: 1,
 	}
@@ -1264,7 +1304,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1334,7 +1374,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWor
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1397,7 +1437,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1486,7 +1526,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractShouldUnStakeFromAdditional
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1573,7 +1613,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromAdditionalQueue(
 	t.Parallel()
 
 	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
@@ -1670,7 +1710,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(
@@ -1724,7 +1764,7 @@ func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	err := s.ToggleUnStakeUnBond(true)
@@ -1767,7 +1807,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractJailAndUnStake(t *testing.T
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("ownerKey"), args.Marshalizer)
