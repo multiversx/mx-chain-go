@@ -11,7 +11,8 @@ var maxLogLines = 100
 
 // PresenterStatusHandler is the AppStatusHandler impl that is able to process and store received data
 type PresenterStatusHandler struct {
-	presenterMetrics            *sync.Map
+	presenterMetrics            map[interface{}]interface{}
+	mutPresenterMap             sync.RWMutex
 	logLines                    []string
 	mutLogLineWrite             sync.RWMutex
 	oldRound                    uint64
@@ -22,7 +23,7 @@ type PresenterStatusHandler struct {
 // NewPresenterStatusHandler will return an instance of the struct
 func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
-		presenterMetrics:            &sync.Map{},
+		presenterMetrics:            make(map[interface{}]interface{}),
 		synchronizationSpeedHistory: make([]uint64, 0),
 		totalRewardsOld:             big.NewFloat(0),
 	}
@@ -36,27 +37,38 @@ func (psh *PresenterStatusHandler) IsInterfaceNil() bool {
 
 // InvalidateCache will clear the entire map
 func (psh *PresenterStatusHandler) InvalidateCache() {
-	psh.presenterMetrics = &sync.Map{}
+	psh.mutPresenterMap.Lock()
+	psh.presenterMetrics = make(map[interface{}]interface{})
+	psh.mutPresenterMap.Unlock()
 }
 
 // SetInt64Value method - will update the value for a key
 func (psh *PresenterStatusHandler) SetInt64Value(key string, value int64) {
-	psh.presenterMetrics.Store(key, value)
+	psh.mutPresenterMap.Lock()
+	psh.presenterMetrics[key] = value
+	psh.mutPresenterMap.Unlock()
 }
 
 // SetUInt64Value method - will update the value for a key
 func (psh *PresenterStatusHandler) SetUInt64Value(key string, value uint64) {
-	psh.presenterMetrics.Store(key, value)
+	psh.mutPresenterMap.Lock()
+	psh.presenterMetrics[key] = value
+	psh.mutPresenterMap.Unlock()
 }
 
 // SetStringValue method - will update the value of a key
 func (psh *PresenterStatusHandler) SetStringValue(key string, value string) {
-	psh.presenterMetrics.Store(key, value)
+	psh.mutPresenterMap.Lock()
+	psh.presenterMetrics[key] = value
+	psh.mutPresenterMap.Unlock()
 }
 
 // Increment - will increment the value of a key
 func (psh *PresenterStatusHandler) Increment(key string) {
-	keyValueI, ok := psh.presenterMetrics.Load(key)
+	psh.mutPresenterMap.Lock()
+	defer psh.mutPresenterMap.Unlock()
+
+	keyValueI, ok := psh.presenterMetrics[key]
 	if !ok {
 		return
 	}
@@ -67,12 +79,15 @@ func (psh *PresenterStatusHandler) Increment(key string) {
 	}
 
 	keyValue++
-	psh.presenterMetrics.Store(key, keyValue)
+	psh.presenterMetrics[key] = keyValue
 }
 
 // AddUint64 - will increase the value of a key with a value
 func (psh *PresenterStatusHandler) AddUint64(key string, value uint64) {
-	keyValueI, ok := psh.presenterMetrics.Load(key)
+	psh.mutPresenterMap.Lock()
+	defer psh.mutPresenterMap.Unlock()
+
+	keyValueI, ok := psh.presenterMetrics[key]
 	if !ok {
 		return
 	}
@@ -83,12 +98,15 @@ func (psh *PresenterStatusHandler) AddUint64(key string, value uint64) {
 	}
 
 	keyValue += value
-	psh.presenterMetrics.Store(key, keyValue)
+	psh.presenterMetrics[key] = keyValue
 }
 
 // Decrement - will decrement the value of a key
 func (psh *PresenterStatusHandler) Decrement(key string) {
-	keyValueI, ok := psh.presenterMetrics.Load(key)
+	psh.mutPresenterMap.Lock()
+	defer psh.mutPresenterMap.Unlock()
+
+	keyValueI, ok := psh.presenterMetrics[key]
 	if !ok {
 		return
 	}
@@ -102,7 +120,7 @@ func (psh *PresenterStatusHandler) Decrement(key string) {
 	}
 
 	keyValue--
-	psh.presenterMetrics.Store(key, keyValue)
+	psh.presenterMetrics[key] = keyValue
 }
 
 // Close method - won't do anything

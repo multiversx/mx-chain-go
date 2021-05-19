@@ -187,3 +187,27 @@ func TestPresenterStatusHandler_AddUint64(t *testing.T) {
 
 	assert.Equal(t, countConsensus+value, result)
 }
+
+func TestPresenterStatusHandler_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	psh := presenter.NewPresenterStatusHandler()
+
+	for i := 0; i < 1000; i++ {
+		go func(i int) {
+			modRes := i % 5
+			switch modRes {
+			case 0:
+				psh.SetStringValue("test-key-2", "test-value")
+			case 1:
+				psh.Increment("test-key")
+			case 2:
+				psh.Decrement("test-key")
+			case 3:
+				psh.SetInt64Value("test-key-3", 37)
+			case 4:
+				psh.InvalidateCache()
+			}
+		}(i)
+	}
+}
