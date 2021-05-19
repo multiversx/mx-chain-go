@@ -55,8 +55,8 @@
     # StakeEnableEpoch represents the epoch when staking is enabled
     StakeEnableEpoch = 0
 
-    # StakingV2Epoch represents the epoch when staking v2 is enabled
-    StakingV2Epoch = 1
+    # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
+    StakingV2EnableEpoch = 1
 
     DoubleKeyProtectionEnableEpoch = 1
 
@@ -74,8 +74,8 @@
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 1
 
-    # CorrectLastUnjailedEpoch represents the epoch when the fix regaring the last unjailed node should apply
-    CorrectLastUnjailedEpoch = 2
+    # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
+    CorrectLastUnjailedEnableEpoch = 2
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
     RelayedTransactionsV2EnableEpoch = 2
@@ -89,7 +89,7 @@
     # ReDelegateBelowMinCheckEnableEpoch represents the epoch when the check for the re-delegated value will be enabled
     ReDelegateBelowMinCheckEnableEpoch = 3
 
-    # ReDelegateBelowMinCheckEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
+    # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 3
 
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
