@@ -111,8 +111,8 @@ const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
 
-// MetricNumShardsWithoutMetacahin is the metric for monitoring the number of shards (excluding meta)
-const MetricNumShardsWithoutMetacahin = "erd_num_shards_without_meta"
+// MetricNumShardsWithoutMetachain is the metric for monitoring the number of shards (excluding meta)
+const MetricNumShardsWithoutMetachain = "erd_num_shards_without_meta"
 
 // MetricTxPoolLoad is the metric for monitoring number of transactions from pool of a node
 const MetricTxPoolLoad = "erd_tx_pool_load"
