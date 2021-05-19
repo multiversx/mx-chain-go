@@ -400,7 +400,7 @@ func removeLeavingNodes(
 	minNodesPerShard int,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 	maxNumToRemoveFromWaiting := make(map[uint32]int)
-	for shardId := range numToRemove {
+	for shardId := range eligible {
 		minimumNumberOfNodes := minNodesPerShard
 		if shardId == core.MetachainShardId {
 			minimumNumberOfNodes = minNodesMeta
@@ -430,7 +430,7 @@ func removeLeavingNodes(
 	}
 
 	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-	return newWaiting, newEligible, stillRemainingInLeaving
+	return newEligible, newWaiting, stillRemainingInLeaving
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
