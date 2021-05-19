@@ -257,6 +257,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		waitingCopy,
 		numToRemove,
 		remainingUnstakeLeaving,
+		int(arg.nodesMeta),
 		int(arg.nodesPerShard),
 		arg.flagWaitingListFix.IsSet())
 	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(
@@ -264,6 +265,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		newWaiting,
 		numToRemove,
 		remainingAdditionalLeaving,
+		int(arg.nodesMeta),
 		int(arg.nodesPerShard),
 		arg.flagWaitingListFix.IsSet())
 
@@ -372,6 +374,7 @@ func removeLeavingNodesFromValidatorMaps(
 	waiting map[uint32][]Validator,
 	numToRemove map[uint32]int,
 	leaving []Validator,
+	minNodesMeta int,
 	minNodesPerShard int,
 	waitingFixEnabled bool,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
@@ -382,23 +385,41 @@ func removeLeavingNodesFromValidatorMaps(
 	if !waitingFixEnabled {
 		waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
 		eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-	} else {
-		maxNumToRemoveFromWaiting := make(map[uint32]int)
-		for i := range numToRemove {
-			maxNumToRemoveFromWaiting[i] = len(eligible[i]) + len(waiting[i]) - minNodesPerShard
-		}
-
-		waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
-
-		for i, toRemove := range numToRemove {
-			currentOnShard := len(eligible[i]) + len(waiting[i]) - minNodesPerShard
-			if toRemove > currentOnShard {
-				numToRemove[i] = currentOnShard
-			}
-		}
-
-		eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+		return eligible, waiting, stillRemainingInLeaving
 	}
+
+	maxNumToRemoveFromWaiting := make(map[uint32]int)
+	for shardId := range numToRemove {
+		minimumNumberOfNodes := minNodesPerShard
+		if shardId == core.MetachainShardId {
+			minimumNumberOfNodes = minNodesMeta
+		}
+		computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
+		if computedMinNumberOfNodes < 0 {
+			computedMinNumberOfNodes = 0
+		}
+		maxNumToRemoveFromWaiting[shardId] = computedMinNumberOfNodes
+	}
+
+	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
+
+	for shardId, toRemove := range numToRemove {
+		minimumNumberOfNodes := minNodesPerShard
+		if shardId == core.MetachainShardId {
+			minimumNumberOfNodes = minNodesMeta
+		}
+
+		computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
+		if computedMinNumberOfNodes < 0 {
+			computedMinNumberOfNodes = 0
+		}
+		if toRemove > computedMinNumberOfNodes {
+			numToRemove[shardId] = computedMinNumberOfNodes
+		}
+	}
+
+	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+
 	return eligible, waiting, stillRemainingInLeaving
 }
 
