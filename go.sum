@@ -35,8 +35,6 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.7 h1:ksB2pEMTPTlXmxIu6T0a/3X+pw63CSa
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.7/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.8 h1:6G9kK4BmJ9Oe2R1FuNxuBZeSsWi8iz5kslN9Hs7xk1M=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.8/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
-github.com/ElrondNetwork/arwen-wasm-vm v1.2.9-0.20210423110314-b185da7c720d h1:XKdnwLRPiOxpvY7mSPmgU5ISSLqQslI+AH/cC3/FXWs=
-github.com/ElrondNetwork/arwen-wasm-vm v1.2.9-0.20210423110314-b185da7c720d/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -52,8 +50,8 @@ github.com/ElrondNetwork/elastic-indexer-go v1.0.2-0.20210305124948-8191d92dc7fe
 github.com/ElrondNetwork/elastic-indexer-go v1.0.2-0.20210308132434-93aea699e448/go.mod h1:xYFnPexpAxxLjDiZRxLqZveHsc5bnyngJitBgI2JrfM=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.3 h1:N0OPEAQD2vhalRupdLVR0SDxJyhd8YBYcn82ksCRE+o=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.3/go.mod h1:Jj5loOE5jRz1E5jn1yeH+M/0kQmsWFDONRaXG3WADLw=
-github.com/ElrondNetwork/elastic-indexer-go v1.0.4 h1:OPf2MZLzxfXeaB3ewuwQO8DVlY01/itP3nPc9afl+OA=
-github.com/ElrondNetwork/elastic-indexer-go v1.0.4/go.mod h1:ipmcRwU+D5yQu5/9NGzOWhHz+C54XunQa9XVxQJKONQ=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.5-0.20210519112501-2663025b17c3 h1:DvkOwTT+IDRs50vq6iS1k7Vb28DoFa0qPOSn4zbRRZw=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.5-0.20210519112501-2663025b17c3/go.mod h1:ipmcRwU+D5yQu5/9NGzOWhHz+C54XunQa9XVxQJKONQ=
 github.com/ElrondNetwork/elrond-go v1.1.0/go.mod h1:R5HRN9NnnJ0gRd4QogmbUbQNTEczLsFCtfIgd3+3cYY=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113091116-de0c9a4e63c6/go.mod h1:dUNMqGg/jqTgHbnNxAmW7WkApWXlCQ8brVPbwIEFghI=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113120119-5f3406f2d6b5/go.mod h1:JsrmzX05L/GHE/nOeQuJCKHasJnZN2WMFr+Y6jjvHGg=
