@@ -29,6 +29,16 @@ const (
 
 const defaultBlocksPerShard = uint32(14400)
 
+// SetupRewardsResult -
+type SetupRewardsResult struct {
+	RewardsCreatorArgsV2
+	smallestDivisionEGLD  *big.Int
+	totalRewardsFirstYear *big.Int
+	epochsInYear          *big.Int
+	rewardsForBlocks      *big.Int
+	baseStake             *big.Int
+}
+
 func TestNewRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
 	t.Parallel()
 
@@ -794,326 +804,270 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	require.Equal(t, rewardsForBlocks, big.NewInt(0).Add(sumRwds, accumulatedDust))
 }
 
-func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
+func TestNewRewardsCreatorV2_computeAverageRewardsPer2169Nodes(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		return 0
-	}
-	args.ShardCoordinator = shardCoordinator
-
-	nbEligiblePerShard := uint32(542)
-
-	nbBlocksPerShard := uint64(14400)
-	blocksPerShard := make(map[uint32]uint64)
-	shardMap := createShardsMap(args.ShardCoordinator)
-	for shardID := range shardMap {
-		blocksPerShard[shardID] = nbBlocksPerShard
-	}
-
-	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
-	smallesDivisionERD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	totalRewardsFirstYear := big.NewInt(0).Mul(big.NewInt(2169000), smallesDivisionERD)
-	epochsInYear := big.NewInt(365)
-
-	rewardsForBlocks := big.NewInt(0).Div(totalRewardsFirstYear, epochsInYear)
+	setupResult := setUpRewards(args)
 
 	tests := []struct {
-		rewardsForBlocks *big.Int
-		rewardsForDev    *big.Int
-		baseStake        *big.Int
-		topupStake       *big.Int
-		expectedROI      float64
+		topupStake  *big.Int
+		expectedROI float64
 	}{
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0),
-			expectedROI:      36.007,
+			topupStake:  big.NewInt(0),
+			expectedROI: 36.007,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(500), smallesDivisionERD),
-			expectedROI:      30.01,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			expectedROI: 30.01,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(1500), smallesDivisionERD),
-			expectedROI:      22.51,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			expectedROI: 22.51,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			expectedROI:      18.00,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 18.00,
 		},
 	}
 
-	factor := int64(1000 * 1000)
-	tolerance := 0.01
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(142)
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-
-			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-			dummyRwd, _ := NewRewardsCreatorV2(args)
-			nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-			_, totalTopUpStake := setValuesInNodesRewardInfo(nodesRewardInfo, tt.topupStake, tuStake)
-
-			args.StakingDataProvider = &mock.StakingDataProviderStub{
-				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
-					return totalTopUpStake
-				},
-				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-					for shardID, vList := range vInfo {
-						for i, v := range vList {
-							if bytes.Equal(v.PublicKey, blsKey) {
-								return nodesRewardInfo[shardID][i].topUpStake, nil
-							}
-						}
-					}
-					return nil, fmt.Errorf("not found")
-				},
-			}
-
-			args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(tt.rewardsForBlocks)
-
-			rwd, _ := NewRewardsCreatorV2(args)
-
-			var dust *big.Int
-			nodesRewardInfo, dust = rwd.computeRewardsPerNode(vInfo)
-
-			sumRewards := big.NewInt(0)
-			for _, nodeInfoList := range nodesRewardInfo {
-				for _, nodeInfo := range nodeInfoList {
-					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
-
-					yearRewardsTimesFactor := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimesFactor, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
-					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
-
-					diff := math.Abs(tt.expectedROI - actualROI)
-					require.True(t, diff < tolerance, fmt.Sprintf("expected %f, actual %f", tt.expectedROI, actualROI))
-				}
-			}
-
-			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
-			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
-			maxEGLDDustPerYear := int64(1000)
-			dustPerYear := big.NewInt(0).Mul(dust, big.NewInt(epochsInYear.Int64()))
-			dustInEGLD := dustPerYear.Div(dustPerYear, smallesDivisionERD)
-			require.Equal(t, dustInEGLD.Int64(), egldRemaining.Int64())
-			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
+			verifyRewardsComputation(
+				t,
+				nbEligiblePerShard,
+				setupResult,
+				tt.topupStake,
+				tt.expectedROI,
+				eligiblePercentage,
+			)
 		})
 	}
 }
 
-func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
+func TestNewRewardsCreatorV2_computeAverageRewardsPer1920Nodes(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		return 0
-	}
-	args.ShardCoordinator = shardCoordinator
-
-	nbEligiblePerShard := uint32(480)
-
-	nbBlocksPerShard := uint64(14400)
-	blocksPerShard := make(map[uint32]uint64)
-	shardMap := createShardsMap(args.ShardCoordinator)
-	for shardID := range shardMap {
-		blocksPerShard[shardID] = nbBlocksPerShard
-	}
-
-	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
-	smallesDivisionERD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	totalRewardsFirstYear := big.NewInt(0).Mul(big.NewInt(2169000), smallesDivisionERD)
-	epochsInYear := big.NewInt(365)
-
-	rewardsForBlocks := big.NewInt(0).Div(totalRewardsFirstYear, epochsInYear)
+	setupResult := setUpRewards(args)
 
 	tests := []struct {
-		rewardsForBlocks *big.Int
-		rewardsForDev    *big.Int
-		baseStake        *big.Int
-		topupStake       *big.Int
-		expectedROI      float64
+		topupStake  *big.Int
+		expectedROI float64
 	}{
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(smallesDivisionERD, big.NewInt(100))),
-			expectedROI:      40.67,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(setupResult.smallestDivisionEGLD, big.NewInt(100))),
+			expectedROI: 40.67,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(500), smallesDivisionERD),
-			expectedROI:      33.89,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			expectedROI: 33.89,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(1500), smallesDivisionERD),
-			expectedROI:      25.41,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			expectedROI: 25.41,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			expectedROI:      20.33,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 20.33,
 		},
 	}
 
-	factor := int64(1000 * 1000)
-	tolerance := 0.01
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(80)
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-
-			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-			dummyRwd, _ := NewRewardsCreatorV2(args)
-			nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-			_, totalTopUpStake := setValuesInNodesRewardInfo(nodesRewardInfo, tt.topupStake, tuStake)
-
-			args.StakingDataProvider = &mock.StakingDataProviderStub{
-				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
-					return totalTopUpStake
-				},
-				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-					for shardID, vList := range vInfo {
-						for i, v := range vList {
-							if bytes.Equal(v.PublicKey, blsKey) {
-								return nodesRewardInfo[shardID][i].topUpStake, nil
-							}
-						}
-					}
-					return nil, fmt.Errorf("not found")
-				},
-			}
-
-			args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(tt.rewardsForBlocks)
-
-			rwd, _ := NewRewardsCreatorV2(args)
-
-			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
-
-			sumRewards := big.NewInt(0)
-			for _, nodeInfoList := range nodesRewardInfo {
-				for _, nodeInfo := range nodeInfoList {
-					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
-
-					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimes100, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
-					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
-
-					diff := math.Abs(tt.expectedROI - actualROI)
-					require.True(t, diff < tolerance, fmt.Sprintf("expected %f, actual %f", tt.expectedROI, actualROI))
-				}
-			}
-
-			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
-			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
-			maxEGLDDustPerYear := int64(1000)
-			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
+			verifyRewardsComputation(
+				t,
+				nbEligiblePerShard,
+				setupResult,
+				tt.topupStake,
+				tt.expectedROI,
+				eligiblePercentage,
+			)
 		})
 	}
 }
 
-func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
+func TestNewRewardsCreatorV2_computeAverageRewardsPer3200Nodes(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		return 0
-	}
-	args.ShardCoordinator = shardCoordinator
-
-	nbEligiblePerShard := uint32(800)
-
-	nbBlocksPerShard := uint64(14400)
-	blocksPerShard := make(map[uint32]uint64)
-	shardMap := createShardsMap(args.ShardCoordinator)
-	for shardID := range shardMap {
-		blocksPerShard[shardID] = nbBlocksPerShard
-	}
-
-	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
-	smallesDivisionERD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	totalRewardsFirstYear := big.NewInt(0).Mul(big.NewInt(2169000), smallesDivisionERD)
-	epochsInYear := big.NewInt(365)
-
-	rewardsForBlocks := big.NewInt(0).Div(totalRewardsFirstYear, epochsInYear)
+	setupResult := setUpRewards(args)
 
 	tests := []struct {
-		rewardsForBlocks *big.Int
-		rewardsForDev    *big.Int
-		baseStake        *big.Int
-		topupStake       *big.Int
-		expectedROI      float64
+		topupStake  *big.Int
+		expectedROI float64
 	}{
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(smallesDivisionERD, big.NewInt(100))),
-			expectedROI:      24.40,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(setupResult.smallestDivisionEGLD, big.NewInt(100))),
+			expectedROI: 24.40,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(500), smallesDivisionERD),
-			expectedROI:      20.33,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			expectedROI: 20.33,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(1500), smallesDivisionERD),
-			expectedROI:      15.25,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			expectedROI: 15.25,
 		},
 		{
-			rewardsForBlocks: rewardsForBlocks,
-			rewardsForDev:    big.NewInt(0),
-			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			expectedROI:      12.20,
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 12.20,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2*2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 8.13,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(3*2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 6.10,
 		},
 	}
 
-	factor := int64(1000 * 1000)
-	tolerance := 0.01
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(400)
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			verifyRewardsComputation(
+				t,
+				nbEligiblePerShard,
+				setupResult,
+				tt.topupStake,
+				tt.expectedROI,
+				eligiblePercentage,
+			)
+		})
+	}
+}
+
+func TestNewRewardsCreatorV35_computeAverageRewardsPer3200Nodes(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV35Arguments()
+	setupResult := setUpRewards(args)
+
+	tests := []struct {
+		topupStake  *big.Int
+		expectedROI float64
+	}{
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(setupResult.smallestDivisionEGLD, big.NewInt(100))),
+			expectedROI: 24.40,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			expectedROI: 20.33,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			expectedROI: 15.25,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 12.20,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(2*2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 8.13,
+		},
+		{
+			topupStake:  big.NewInt(0).Mul(big.NewInt(3*2500), setupResult.smallestDivisionEGLD),
+			expectedROI: 6.10,
+		},
+	}
+
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(400)
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			verifyRewardsComputation(
+				t,
+				nbEligiblePerShard,
+				setupResult,
+				tt.topupStake,
+				tt.expectedROI,
+				eligiblePercentage,
+			)
+		})
+	}
+}
+
+// Test for 10.4 staked in the network with v3.5
+func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV35Arguments()
+	setupResult := setUpRewards(args)
+
+	baseStakePerNode := big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD)
+	topupStakePerNode := big.NewInt(0).Mul(big.NewInt(750), setupResult.smallestDivisionEGLD)
+
+	baseEligibleStake := big.NewInt(0).Mul(big.NewInt(1600), baseStakePerNode)
+	topupEligibleStake := big.NewInt(0).Mul(big.NewInt(1600), topupStakePerNode)
+
+	baseAPR := 20.20
+	topupAPR := 13.99
+
+	tests := []struct {
+		validatorTopupStake      *big.Int
+		validatorExpectedFullROI float64
+	}{
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(setupResult.smallestDivisionEGLD, big.NewInt(100))),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*0.25) / 2500.25,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*500) / 3000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*1500) / 4000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*2500) / 5000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(2*2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*5000) / 7500,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(3*2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*7500) / 10000,
+		},
+	}
+
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(400)
+
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
 
-			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-			dummyRwd, _ := NewRewardsCreatorV2(args)
-			nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-			_, totalTopUpStake := setValuesInNodesRewardInfo(nodesRewardInfo, tt.topupStake, tuStake)
+			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, setupResult.ShardCoordinator, setupResult.NodesConfigProvider, 100, defaultBlocksPerShard)
+			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
-			args.StakingDataProvider = &mock.StakingDataProviderStub{
+			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
+			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &mock.StakingDataProviderStub{
 				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
-					return totalTopUpStake
+					return topupEligibleStake
+				},
+				GetTotalStakeEligibleNodesCalled: func() *big.Int {
+					return baseEligibleStake
 				},
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 					for shardID, vList := range vInfo {
@@ -1127,31 +1081,254 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 				},
 			}
 
-			args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(tt.rewardsForBlocks)
-
-			rwd, _ := NewRewardsCreatorV2(args)
-
+			rwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
 			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
 
-			sumRewards := big.NewInt(0)
-			for _, nodeInfoList := range nodesRewardInfo {
-				for _, nodeInfo := range nodeInfoList {
-					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
+			currentRewardInfo := nodesRewardInfo[0][0]
 
-					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimes100, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
-					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
+			log.Info("baseReward", "amount", currentRewardInfo.baseReward)
 
-					diff := math.Abs(tt.expectedROI - actualROI)
-					require.True(t, diff < tolerance, fmt.Sprintf("expected %f, actual %f", tt.expectedROI, actualROI))
-				}
+			verifyValidatorRewards(
+				t,
+				setupResult.epochsInYear,
+				currentRewardInfo.baseReward,
+				baseStakePerNode,
+				baseAPR,
+				eligiblePercentage,
+			)
+			verifyValidatorRewards(
+				t,
+				setupResult.epochsInYear,
+				currentRewardInfo.topUpReward,
+				currentRewardInfo.topUpStake,
+				topupAPR,
+				eligiblePercentage,
+			)
+			verifyValidatorRewards(t, setupResult.epochsInYear,
+				currentRewardInfo.fullRewards,
+				big.NewInt(0).Add(baseStakePerNode, currentRewardInfo.topUpStake),
+				tt.validatorExpectedFullROI, eligiblePercentage)
+		})
+	}
+}
+
+// Test for 10.4 staked in the network with v2
+func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	setupResult := setUpRewards(args)
+
+	baseStakePerNode := big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD)
+	topupStakePerNode := big.NewInt(0).Mul(big.NewInt(750), setupResult.smallestDivisionEGLD)
+
+	baseEligibleStake := big.NewInt(0).Mul(big.NewInt(1600), baseStakePerNode)
+	topupEligibleStake := big.NewInt(0).Mul(big.NewInt(1600), topupStakePerNode)
+
+	baseAPR := 22.92
+	topupAPR := 4.93
+
+	tests := []struct {
+		validatorTopupStake      *big.Int
+		validatorExpectedFullROI float64
+	}{
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(setupResult.smallestDivisionEGLD, big.NewInt(100))),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*0.25) / 2500.25,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*500) / 3000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(1500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*1500) / 4000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*2500) / 5000,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(2*2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*5000) / 7500,
+		},
+		{
+			validatorTopupStake:      big.NewInt(0).Mul(big.NewInt(3*2500), setupResult.smallestDivisionEGLD),
+			validatorExpectedFullROI: (baseAPR*2500 + topupAPR*7500) / 10000,
+		},
+	}
+
+	nbEligiblePerShard := uint32(400)
+	nbWaitingPerShard := uint32(400)
+	eligiblePercentage := float64(nbEligiblePerShard) / float64(nbWaitingPerShard+nbEligiblePerShard)
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+
+			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, setupResult.ShardCoordinator, setupResult.NodesConfigProvider, 100, defaultBlocksPerShard)
+			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
+
+			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
+			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &mock.StakingDataProviderStub{
+				GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
+					return topupEligibleStake
+				},
+				GetTotalStakeEligibleNodesCalled: func() *big.Int {
+					return baseEligibleStake
+				},
+				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+					for shardID, vList := range vInfo {
+						for i, v := range vList {
+							if bytes.Equal(v.PublicKey, blsKey) {
+								return nodesRewardInfo[shardID][i].topUpStake, nil
+							}
+						}
+					}
+					return nil, fmt.Errorf("not found")
+				},
 			}
 
-			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
-			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
-			maxEGLDDustPerYear := int64(1000)
-			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
+			rwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
+			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
+
+			currentRewardInfo := nodesRewardInfo[0][0]
+
+			verifyValidatorRewards(
+				t,
+				setupResult.epochsInYear,
+				currentRewardInfo.baseReward,
+				baseStakePerNode,
+				baseAPR,
+				eligiblePercentage)
+			verifyValidatorRewards(
+				t,
+				setupResult.epochsInYear,
+				currentRewardInfo.topUpReward,
+				currentRewardInfo.topUpStake,
+				topupAPR,
+				eligiblePercentage)
+			verifyValidatorRewards(
+				t,
+				setupResult.epochsInYear,
+				currentRewardInfo.fullRewards,
+				big.NewInt(0).Add(baseStakePerNode, currentRewardInfo.topUpStake),
+				tt.validatorExpectedFullROI,
+				eligiblePercentage)
 		})
+	}
+}
+
+func setupNodeRewardInfo(
+	setupResult SetupRewardsResult,
+	vInfo map[uint32][]*state.ValidatorInfo,
+	topupStakePerNode *big.Int,
+	validatorTopupStake *big.Int,
+) (map[uint32][]*nodeRewardsData, error) {
+	dummyRwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
+	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
+	_, _ = setValuesInNodesRewardInfo(nodesRewardInfo, topupStakePerNode, tuStake)
+
+	nodesRewardInfo[0][0].topUpStake = validatorTopupStake
+
+	nrValidatorsToRemoveTopup := big.NewInt(0).Div(validatorTopupStake, topupStakePerNode)
+
+	//remove the newly added topup from some other nodes
+	for i := int64(1); i < nrValidatorsToRemoveTopup.Int64(); i++ {
+		nodesRewardInfo[0][i].topUpStake = big.NewInt(0)
+	}
+
+	return nodesRewardInfo, nil
+}
+
+func verifyValidatorRewards(t *testing.T, epochsInYear *big.Int, reward *big.Int, amount *big.Int, expectedROI float64, eligiblePercentage float64) {
+	factor := int64(1000 * 1000)
+	tolerance := 0.1
+	yearRewardsTimesFactor := big.NewInt(0).Mul(reward, big.NewInt(epochsInYear.Int64()*factor))
+	roiInt := big.NewInt(0).Div(yearRewardsTimesFactor, amount)
+	computedROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9 * eligiblePercentage
+
+	diff := math.Abs(expectedROI - computedROI)
+	require.True(t, diff < tolerance, fmt.Sprintf("expected %f, actual %f", expectedROI, computedROI))
+}
+
+func setUpRewards(args RewardsCreatorArgsV2) SetupRewardsResult {
+	nbBlocksPerShard := uint64(14400)
+	blocksPerShard := make(map[uint32]uint64)
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
+	args.ShardCoordinator = shardCoordinator
+
+	shardMap := createShardsMap(args.ShardCoordinator)
+	for shardID := range shardMap {
+		blocksPerShard[shardID] = nbBlocksPerShard
+	}
+
+	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
+	smallestDivisionGLD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	totalRewardsFirstYear := big.NewInt(0).Mul(big.NewInt(2169000), smallestDivisionGLD)
+	epochsInYear := big.NewInt(365)
+
+	rewardsForBlocks := big.NewInt(0).Div(totalRewardsFirstYear, epochsInYear)
+	baseStake := big.NewInt(0).Mul(big.NewInt(2500), smallestDivisionGLD)
+	return SetupRewardsResult{
+		args, smallestDivisionGLD, totalRewardsFirstYear, epochsInYear, rewardsForBlocks, baseStake,
+	}
+}
+
+func computeRewardsAndDust(nbEligiblePerShard uint32, args SetupRewardsResult, topupStake *big.Int) (map[uint32][]*nodeRewardsData, *big.Int) {
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+	dummyRwd, _ := NewRewardsCreatorV2(args.RewardsCreatorArgsV2)
+	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
+	_, totalTopUpStake := setValuesInNodesRewardInfo(nodesRewardInfo, topupStake, tuStake)
+
+	totalEligibleStake, _ := big.NewInt(0).SetString("4000000"+"000000000000000000", 10)
+
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
+		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
+			return totalTopUpStake
+		},
+		GetTotalStakeEligibleNodesCalled: func() *big.Int {
+			return totalEligibleStake
+		},
+		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+			for shardID, vList := range vInfo {
+				for i, v := range vList {
+					if bytes.Equal(v.PublicKey, blsKey) {
+						return nodesRewardInfo[shardID][i].topUpStake, nil
+					}
+				}
+			}
+			return nil, fmt.Errorf("not found")
+		},
+	}
+
+	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(args.rewardsForBlocks)
+
+	rwd, _ := NewRewardsCreatorV2(args.RewardsCreatorArgsV2)
+
+	var dust *big.Int
+	nodesRewardInfo, dust = rwd.computeRewardsPerNode(vInfo)
+	return nodesRewardInfo, dust
+}
+
+func verifyRewardsComputation(
+	t *testing.T,
+	nbEligiblePerShard uint32,
+	srr SetupRewardsResult,
+	topupStake *big.Int,
+	expectedROI float64,
+	eligiblePercentage float64,
+) {
+	nodesRewardInfo, _ := computeRewardsAndDust(nbEligiblePerShard, srr, topupStake)
+
+	for _, nodeInfoList := range nodesRewardInfo {
+		for _, nodeInfo := range nodeInfoList {
+			verifyValidatorRewards(t, srr.epochsInYear, nodeInfo.fullRewards, big.NewInt(0).Add(srr.baseStake, topupStake), expectedROI, eligiblePercentage)
+		}
 	}
 }
 
@@ -1233,7 +1410,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	}
 
 	expectedSumFees := big.NewInt(int64(proposerFee))
-	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(nbEligiblePerShard-uint32(nbOfflinePerShard))))
+	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(nbEligiblePerShard-nbOfflinePerShard)))
 	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(args.ShardCoordinator.NumberOfShards())+1))
 
 	require.Equal(t, big.NewInt(0).Sub(totalRwd, unassigned), sumRwds)
@@ -1621,6 +1798,17 @@ func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	}
 }
 
+func getRewardsCreatorV35Arguments() RewardsCreatorArgsV2 {
+	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
+	return RewardsCreatorArgsV2{
+		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
+		StakingDataProvider:    &mock.StakingDataProviderStub{},
+		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
+		TopUpRewardFactor:      0.5,
+		TopUpGradientPoint:     rewardsTopUpGradientPoint,
+	}
+}
+
 func setDummyValuesInNodesRewardInfo(
 	nodesRewardInfo map[uint32][]*nodeRewardsData,
 	eligibleNodesPerShard uint32,
@@ -1715,7 +1903,7 @@ func createDefaultValidatorInfo(
 
 			leaderSuccess := uint32(20)
 			validators[shardID][i] = &state.ValidatorInfo{
-				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d", i)),
+				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d%d", shardID, i)),
 				ShardId:                    shardID,
 				RewardAddress:              addrHex,
 				LeaderSuccess:              leaderSuccess,

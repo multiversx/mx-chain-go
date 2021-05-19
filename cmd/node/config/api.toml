@@ -49,7 +49,13 @@
         { Name = "/:address/esdt/:tokenIdentifier", Open = true },
 
         # /address/:address/nft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
-        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true }
+        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true },
+
+        # /address/:address/esdts-with-role/:role will return the token identifiers with the given role for an address
+        { Name = "/:address/esdts-with-role/:role", Open = true },
+
+        # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
+        { Name = "/:address/registered-nfts", Open = true }
 	]
 
 [APIPackages.hardfork]
