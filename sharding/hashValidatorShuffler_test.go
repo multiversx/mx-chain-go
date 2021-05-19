@@ -980,7 +980,7 @@ func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 
 	copyEligibleMap := copyValidatorMap(eligibleMap)
 	copyWaitingMap := copyValidatorMap(waitingMap)
-	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard)
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard, true)
 	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 	shuffleOutList := make([]Validator, 0)
 	for _, shuffledOutPerShard := range shuffledOut {
@@ -1011,7 +1011,7 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 	copyEligibleMap := copyValidatorMap(eligibleMap)
 	copyWaitingMap := copyValidatorMap(waitingMap)
 
-	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard)
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard, true)
 
 	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 	shuffleOutList := make([]Validator, 0)
@@ -1511,7 +1511,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromEligible(t *te
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard, true)
 
 	assert.Equal(t, eligiblePerShard-1, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
@@ -1545,7 +1545,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromWaiting(t *tes
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard, true)
 
 	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard-1, len(newWaiting[core.MetachainShardId]))
@@ -1577,7 +1577,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_NonExisting(t *tes
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard, true)
 
 	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
@@ -1616,7 +1616,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2Eligible2Waiting2
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard, true)
 
 	remainingInEligible := eligiblePerShard - 2
 	remainingInWaiting := waitingPerShard - 2
@@ -1669,7 +1669,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2FromEligible2From
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard, true)
 
 	// removed first 2 from waiting and just one from eligible
 	remainingInEligible := eligiblePerShard - 1

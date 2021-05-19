@@ -909,6 +909,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShuffleBetweenShards:           true,
 		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
+		WaitingListFixEnableEpoch:      generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)

@@ -59,6 +59,8 @@ type randHashShuffler struct {
 	validatorDistributor           ValidatorsDistributor
 	balanceWaitingListsEnableEpoch uint32
 	flagBalanceWaitingLists        atomic.Flag
+	waitingListFixEnableEpoch      uint32
+	flagWaitingListFix             atomic.Flag
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -80,6 +82,7 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		shuffleBetweenShards:           args.ShuffleBetweenShards,
 		availableNodesConfigs:          configs,
 		balanceWaitingListsEnableEpoch: args.BalanceWaitingListsEnableEpoch,
+		waitingListFixEnableEpoch:      args.WaitingListFixEnableEpoch,
 	}
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
@@ -175,6 +178,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
 		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists,
+		flagWaitingListFix:      rhs.flagWaitingListFix,
 	})
 }
 
@@ -248,8 +252,20 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
 	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
 
-	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving, int(arg.nodesPerShard))
-	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving, int(arg.nodesPerShard))
+	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(
+		eligibleCopy,
+		waitingCopy,
+		numToRemove,
+		remainingUnstakeLeaving,
+		int(arg.nodesPerShard),
+		arg.flagWaitingListFix.IsSet())
+	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(
+		newEligible,
+		newWaiting,
+		numToRemove,
+		remainingAdditionalLeaving,
+		int(arg.nodesPerShard),
+		arg.flagWaitingListFix.IsSet())
 
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
@@ -357,27 +373,32 @@ func removeLeavingNodesFromValidatorMaps(
 	numToRemove map[uint32]int,
 	leaving []Validator,
 	minNodesPerShard int,
+	waitingFixEnabled bool,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
-	maxNumToRemoveFromWaiting := make(map[uint32]int)
-	for i := range numToRemove {
-		maxNumToRemoveFromWaiting[i] = len(eligible[i]) + len(waiting[i]) - minNodesPerShard
-	}
-
-	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
-
-	for i, toRemove := range numToRemove {
-		currentOnShard := len(eligible[i]) + len(waiting[i]) - int(minNodesPerShard)
-		if toRemove > currentOnShard {
-			numToRemove[i] = currentOnShard
+	if !waitingFixEnabled {
+		waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+		eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+	} else {
+		maxNumToRemoveFromWaiting := make(map[uint32]int)
+		for i := range numToRemove {
+			maxNumToRemoveFromWaiting[i] = len(eligible[i]) + len(waiting[i]) - minNodesPerShard
 		}
+
+		waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
+
+		for i, toRemove := range numToRemove {
+			currentOnShard := len(eligible[i]) + len(waiting[i]) - minNodesPerShard
+			if toRemove > currentOnShard {
+				numToRemove[i] = currentOnShard
+			}
+		}
+
+		eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
 	}
-
-	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-
 	return eligible, waiting, stillRemainingInLeaving
 }
 
@@ -725,6 +746,8 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 
 	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
+	rhs.flagWaitingListFix.Toggle(epoch >= rhs.waitingListFixEnableEpoch)
+	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {
