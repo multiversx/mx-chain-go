@@ -22,12 +22,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockStakingScArguments() ArgsNewStakingSmartContract {
+func createMockStakingScArgumentsWithSystemScAddresses(
+	validatorScAddress []byte,
+	jailScAddress []byte,
+	endOfEpochAddress []byte,
+) ArgsNewStakingSmartContract {
 	return ArgsNewStakingSmartContract{
 		Eei:                  &mock.SystemEIStub{},
-		StakingAccessAddr:    []byte("validator"),
-		JailAccessAddr:       []byte("jail"),
-		EndOfEpochAccessAddr: []byte("endOfEpoch"),
+		StakingAccessAddr:    validatorScAddress,
+		JailAccessAddr:       jailScAddress,
+		EndOfEpochAccessAddr: endOfEpochAddress,
 		MinNumNodes:          1,
 		Marshalizer:          &mock.MarshalizerMock{},
 		StakingSCConfig: config.StakingSystemSCConfig{
@@ -47,6 +51,22 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
 	}
+}
+
+func createMockStakingScArguments() ArgsNewStakingSmartContract {
+	return createMockStakingScArgumentsWithSystemScAddresses(
+		[]byte("validator"),
+		[]byte("jail"),
+		[]byte("endOfEpoch"),
+	)
+}
+
+func createMockStakingScArgumentsWithRealSystemScAddresses() ArgsNewStakingSmartContract {
+	return createMockStakingScArgumentsWithSystemScAddresses(
+		vm.ValidatorSCAddress,
+		vm.JailingAddress,
+		vm.EndOfEpochAddress,
+	)
 }
 
 func CreateVmContractCallInput() *vmcommon.ContractCallInput {

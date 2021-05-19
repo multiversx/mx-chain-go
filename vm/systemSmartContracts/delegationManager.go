@@ -272,6 +272,10 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 		d.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
+	if d.callerAlreadyDeployed(args.CallerAddr) {
+		d.eei.AddReturnMessage("caller already deployed a delegation sc")
+		return vmcommon.UserError
+	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
 	return d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
@@ -301,14 +305,14 @@ func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.Contr
 
 func (d *delegationManager) checkCallerIsOwnerOfContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scAddress := args.Arguments[0]
-	lenAddress := len(args.CallerAddr)
 	buff := d.eei.GetStorage(args.CallerAddr)
 	if len(buff) == 0 {
-		d.eei.AddReturnMessage("no sc address under selected user")
+		d.eei.AddReturnMessage("the caller does not own a delegation sc")
 		return vmcommon.UserError
 	}
 
 	found := false
+	lenAddress := len(args.CallerAddr)
 	for i := 0; i < len(buff); i += lenAddress {
 		savedAddress := buff[i : i+lenAddress]
 		if bytes.Equal(savedAddress, scAddress) {
@@ -355,6 +359,17 @@ func (d *delegationManager) mergeValidatorToDelegation(
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	txData = deleteWhitelistForMerge
+	vmOutput, err = d.eei.ExecuteOnDestContext(scAddress, d.delegationMgrSCAddress, big.NewInt(0), []byte(txData))
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmOutput.ReturnCode
 }
 
