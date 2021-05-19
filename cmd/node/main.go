@@ -2740,6 +2740,7 @@ func createScQueryElement(
 			ValidatorAccountsDB: validatorAccounts,
 			ChanceComputer:      rater,
 			EpochNotifier:       epochNotifier,
+			ShardCoordinator:    shardCoordinator,
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
