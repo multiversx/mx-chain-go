@@ -318,6 +318,7 @@ func (host *vmContext) DeploySystemSC(
 	baseContract []byte,
 	newAddress []byte,
 	ownerAddress []byte,
+	initFunction string,
 	value *big.Int,
 	input [][]byte,
 ) (vmcommon.ReturnCode, error) {
@@ -326,7 +327,7 @@ func (host *vmContext) DeploySystemSC(
 		return vmcommon.ExecutionFailed, vm.ErrUnknownSystemSmartContract
 	}
 
-	callInput := createDirectCallInput(newAddress, ownerAddress, value, core.SCDeployInitFunctionName, input)
+	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
 	if err != nil {
 		return vmcommon.ExecutionFailed, err

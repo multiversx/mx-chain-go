@@ -3,6 +3,7 @@ package economics
 import (
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -25,16 +26,21 @@ var log = logger.GetOrCreate("process/economics")
 
 // economicsData will store information about economics
 type economicsData struct {
+	rewardsSettings                  []config.EpochRewardSettings
+	rewardsSettingEpoch              uint32
 	leaderPercentage                 float64
 	protocolSustainabilityPercentage float64
 	protocolSustainabilityAddress    string
+	developerPercentage              float64
+	topUpGradientPoint               *big.Int
+	topUpFactor                      float64
+	mutRewardsSettings               sync.RWMutex
 	maxGasLimitPerBlock              uint64
 	maxGasLimitPerMetaBlock          uint64
 	gasPerDataByte                   uint64
 	minGasPrice                      uint64
 	gasPriceModifier                 float64
 	minGasLimit                      uint64
-	developerPercentage              float64
 	genesisTotalSupply               *big.Int
 	minInflation                     float64
 	yearSettings                     map[uint32]*config.YearSetting
@@ -43,8 +49,6 @@ type economicsData struct {
 	flagGasPriceModifier             atomic.Flag
 	penalizedTooMuchGasEnableEpoch   uint32
 	gasPriceModifierEnableEpoch      uint32
-	topUpGradientPoint               *big.Int
-	topUpFactor                      float64
 	statusHandler                    core.AppStatusHandler
 	builtInFunctionsCostHandler      BuiltInFunctionsCostHandler
 }
@@ -81,28 +85,35 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	topUpGradientPoint, ok := big.NewInt(0).SetString(args.Economics.RewardsSettings.TopUpGradientPoint, 10)
-	if !ok {
-		return nil, process.ErrInvalidRewardsTopUpGradientPoint
-	}
+	rewardsConfigs := make([]config.EpochRewardSettings, len(args.Economics.RewardsSettings.RewardsConfigByEpoch))
+	_ = copy(rewardsConfigs, args.Economics.RewardsSettings.RewardsConfigByEpoch)
+
+	sort.Slice(rewardsConfigs, func(i, j int) bool {
+		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
+	})
+
+	// validity checked in checkValues above
+	topUpGradientPoint, _ := big.NewInt(0).SetString(rewardsConfigs[0].TopUpGradientPoint, 10)
 
 	ed := &economicsData{
-		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
-		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
-		protocolSustainabilityAddress:    args.Economics.RewardsSettings.ProtocolSustainabilityAddress,
+		rewardsSettings:                  rewardsConfigs,
+		rewardsSettingEpoch:              rewardsConfigs[0].EpochEnable,
+		leaderPercentage:                 rewardsConfigs[0].LeaderPercentage,
+		protocolSustainabilityPercentage: rewardsConfigs[0].ProtocolSustainabilityPercentage,
+		protocolSustainabilityAddress:    rewardsConfigs[0].ProtocolSustainabilityAddress,
+		developerPercentage:              rewardsConfigs[0].DeveloperPercentage,
+		topUpFactor:                      rewardsConfigs[0].TopUpFactor,
+		topUpGradientPoint:               topUpGradientPoint,
 		maxGasLimitPerBlock:              convertedData.maxGasLimitPerBlock,
 		maxGasLimitPerMetaBlock:          convertedData.maxGasLimitPerMetaBlock,
 		minGasPrice:                      convertedData.minGasPrice,
 		minGasLimit:                      convertedData.minGasLimit,
 		gasPerDataByte:                   convertedData.gasPerDataByte,
-		developerPercentage:              args.Economics.RewardsSettings.DeveloperPercentage,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               convertedData.genesisTotalSupply,
 		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:      args.GasPriceModifierEnableEpoch,
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,
-		topUpGradientPoint:               topUpGradientPoint,
-		topUpFactor:                      args.Economics.RewardsSettings.TopUpFactor,
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
 	}
@@ -167,22 +178,35 @@ func convertValues(economics *config.EconomicsConfig) (*economicsData, error) {
 }
 
 func checkValues(economics *config.EconomicsConfig) error {
-	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.ProtocolSustainabilityPercentage) ||
-		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) ||
-		isPercentageInvalid(economics.RewardsSettings.TopUpFactor) {
+	if isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
+	}
+	if len(economics.RewardsSettings.RewardsConfigByEpoch) == 0 {
+		return process.ErrEmptyEpochRewardsConfig
+	}
+
+	for _, rewardsConfig := range economics.RewardsSettings.RewardsConfigByEpoch {
+		if isPercentageInvalid(rewardsConfig.LeaderPercentage) ||
+			isPercentageInvalid(rewardsConfig.DeveloperPercentage) ||
+			isPercentageInvalid(rewardsConfig.ProtocolSustainabilityPercentage) ||
+			isPercentageInvalid(rewardsConfig.TopUpFactor) {
+			return process.ErrInvalidRewardsPercentages
+		}
+
+		if len(rewardsConfig.ProtocolSustainabilityAddress) == 0 {
+			return process.ErrNilProtocolSustainabilityAddress
+		}
+
+		_, ok := big.NewInt(0).SetString(rewardsConfig.TopUpGradientPoint, 10)
+		if !ok {
+			return process.ErrInvalidRewardsTopUpGradientPoint
+		}
 	}
 
 	for _, yearSetting := range economics.GlobalSettings.YearSettings {
 		if isPercentageInvalid(yearSetting.MaximumInflation) {
 			return process.ErrInvalidInflationPercentages
 		}
-	}
-
-	if len(economics.RewardsSettings.ProtocolSustainabilityAddress) == 0 {
-		return process.ErrNilProtocolSustainabilityAddress
 	}
 
 	if economics.FeeSettings.GasPriceModifier > 1.0 || economics.FeeSettings.GasPriceModifier < epsilon {
@@ -214,7 +238,11 @@ func (ed *economicsData) SetStatusHandler(statusHandler core.AppStatusHandler) e
 
 // LeaderPercentage will return leader reward percentage
 func (ed *economicsData) LeaderPercentage() float64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.leaderPercentage
+
 }
 
 // MinInflationRate will return the minimum inflation rate
@@ -372,6 +400,9 @@ func (ed *economicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 
 // MaxGasLimitPerBlock will return maximum gas limit allowed per block
 func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	if shardID == core.MetachainShardId {
 		return ed.maxGasLimitPerMetaBlock
 	}
@@ -380,26 +411,41 @@ func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
 
 // DeveloperPercentage will return the developer percentage value
 func (ed *economicsData) DeveloperPercentage() float64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.developerPercentage
 }
 
 // ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
 func (ed *economicsData) ProtocolSustainabilityPercentage() float64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.protocolSustainabilityPercentage
 }
 
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (ed *economicsData) ProtocolSustainabilityAddress() string {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.protocolSustainabilityAddress
 }
 
 // RewardsTopUpGradientPoint returns the rewards top-up gradient point
 func (ed *economicsData) RewardsTopUpGradientPoint() *big.Int {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return big.NewInt(0).Set(ed.topUpGradientPoint)
 }
 
 // RewardsTopUpFactor returns the rewards top-up factor
 func (ed *economicsData) RewardsTopUpFactor() float64 {
+	ed.mutRewardsSettings.RLock()
+	defer ed.mutRewardsSettings.RUnlock()
+
 	return ed.topUpFactor
 }
 
@@ -480,6 +526,57 @@ func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
 	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.GasPriceModifier()))
+	ed.setRewardsEpochConfig(epoch)
+}
+
+func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
+	rewardSetting := ed.rewardsSettings[0]
+	for i, setting := range ed.rewardsSettings {
+		// as we go from epoch k to epoch k+1 we set the config for epoch k before computing the economics/rewards
+		if currentEpoch > setting.EpochEnable {
+			rewardSetting = ed.rewardsSettings[i]
+		}
+	}
+
+	ed.mutRewardsSettings.Lock()
+	defer ed.mutRewardsSettings.Unlock()
+
+	if ed.rewardsSettingEpoch == rewardSetting.EpochEnable {
+		log.Debug("economics: RewardsConfig",
+			"epoch", ed.rewardsSettingEpoch,
+			"leaderPercentage", ed.leaderPercentage,
+			"protocolSustainabilityPercentage", ed.protocolSustainabilityPercentage,
+			"protocolSustainabilityAddress", ed.protocolSustainabilityAddress,
+			"developerPercentage", ed.developerPercentage,
+			"topUpFactor", ed.topUpFactor,
+			"topUpGradientPoint", ed.topUpGradientPoint,
+		)
+		return
+	}
+
+	ed.rewardsSettingEpoch = rewardSetting.EpochEnable
+	ed.leaderPercentage = rewardSetting.LeaderPercentage
+	ed.protocolSustainabilityPercentage = rewardSetting.ProtocolSustainabilityPercentage
+	ed.protocolSustainabilityAddress = rewardSetting.ProtocolSustainabilityAddress
+	ed.developerPercentage = rewardSetting.DeveloperPercentage
+	ed.topUpFactor = rewardSetting.TopUpFactor
+	// config was checked before for validity
+	ed.topUpGradientPoint, _ = big.NewInt(0).SetString(rewardSetting.TopUpGradientPoint, 10)
+
+	// TODO: add all metrics
+	ed.statusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", rewardSetting.LeaderPercentage))
+	ed.statusHandler.SetStringValue(core.MetricRewardsTopUpGradientPoint, rewardSetting.TopUpGradientPoint)
+	ed.statusHandler.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%f", rewardSetting.TopUpFactor))
+
+	log.Debug("economics: RewardsConfig",
+		"epoch", ed.rewardsSettingEpoch,
+		"leaderPercentage", ed.leaderPercentage,
+		"protocolSustainabilityPercentage", ed.protocolSustainabilityPercentage,
+		"protocolSustainabilityAddress", ed.protocolSustainabilityAddress,
+		"developerPercentage", ed.developerPercentage,
+		"topUpFactor", ed.topUpFactor,
+		"topUpGradientPoint", ed.topUpGradientPoint,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

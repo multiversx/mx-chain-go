@@ -136,17 +136,21 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("repair callback"), "epoch", enableEpochs.RepairCallbackEnableEpoch)
 	log.Debug(readEpochFor("max nodes change"), "epoch", enableEpochs.MaxNodesChangeEnableEpoch)
 	log.Debug(readEpochFor("block gas and fees re-check"), "epoch", enableEpochs.BlockGasAndFeesReCheckEnableEpoch)
-	log.Debug(readEpochFor("staking v2 epoch"), "epoch", enableEpochs.StakingV2Epoch)
+	log.Debug(readEpochFor("staking v2 epoch"), "epoch", enableEpochs.StakingV2EnableEpoch)
 	log.Debug(readEpochFor("stake"), "epoch", enableEpochs.StakeEnableEpoch)
 	log.Debug(readEpochFor("double key protection"), "epoch", enableEpochs.DoubleKeyProtectionEnableEpoch)
 	log.Debug(readEpochFor("esdt"), "epoch", enableEpochs.ESDTEnableEpoch)
 	log.Debug(readEpochFor("governance"), "epoch", enableEpochs.GovernanceEnableEpoch)
 	log.Debug(readEpochFor("delegation manager"), "epoch", enableEpochs.DelegationManagerEnableEpoch)
 	log.Debug(readEpochFor("delegation smart contract"), "epoch", enableEpochs.DelegationSmartContractEnableEpoch)
-	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEpoch)
+	log.Debug(readEpochFor("correct last unjailed"), "epoch", enableEpochs.CorrectLastUnjailedEnableEpoch)
 	log.Debug(readEpochFor("balance waiting lists"), "epoch", enableEpochs.BalanceWaitingListsEnableEpoch)
 	log.Debug(readEpochFor("relayed transactions v2"), "epoch", enableEpochs.RelayedTransactionsV2EnableEpoch)
 	log.Debug(readEpochFor("unbond tokens v2"), "epoch", enableEpochs.UnbondTokensV2EnableEpoch)
+	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
+	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
+	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
