@@ -1215,6 +1215,158 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
 }
 
+func TestRandHashShuffler_UpdateNodeListsWithoutWaitingListFix(t *testing.T) {
+	t.Parallel()
+
+	testUpdateNodesAndCheckNumLeaving(t, true)
+}
+
+func TestRandHashShuffler_UpdateNodeListsWithWaitingListFix(t *testing.T) {
+	t.Parallel()
+
+	testUpdateNodesAndCheckNumLeaving(t, false)
+}
+
+func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
+	eligiblePerShard := 400
+	eligibleMeta := 10
+
+	waitingPerShard := 400
+	nbShards := 1
+
+	numLeaving := 200
+
+	numNodesToShuffle := 80
+
+	waitingListFixEnableEpoch := 0
+	if beforeFix {
+		waitingListFixEnableEpoch = 9999
+	}
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           uint32(eligiblePerShard),
+		NodesMeta:            uint32(eligibleMeta),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            100,
+				NodesToShufflePerShard: uint32(numNodesToShuffle),
+			},
+		},
+		WaitingListFixEnableEpoch: uint32(waitingListFixEnableEpoch),
+	}
+
+	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
+
+	for i := 0; i < numLeaving; i++ {
+		args.UnStakeLeaving = append(args.UnStakeLeaving, args.Waiting[0][i])
+	}
+
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	eligibleInShard0 := resUpdateNodeList.Eligible[0]
+	assert.Equal(t, numValidatorsInEligibleList, len(eligibleInShard0))
+
+	expectedNumLeaving := numLeaving
+	if beforeFix {
+		expectedNumLeaving = numNodesToShuffle
+	}
+	assert.Equal(t, expectedNumLeaving, len(resUpdateNodeList.Leaving))
+
+	for i := 0; i < numNodesToShuffle; i++ {
+		assert.Equal(t, resUpdateNodeList.Leaving[i], args.UnStakeLeaving[i])
+	}
+}
+
+func TestRandHashShuffler_UpdateNodeListsWithoutWaitingListFixCheckWaiting(t *testing.T) {
+	t.Parallel()
+
+	testUpdateNodeListsAndCheckWaitingList(t, true)
+}
+
+func TestRandHashShuffler_UpdateNodeListsWithWaitingListFixCheckWaiting(t *testing.T) {
+	t.Parallel()
+
+	testUpdateNodeListsAndCheckWaitingList(t, false)
+}
+
+func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
+	eligiblePerShard := 400
+	eligibleMeta := 10
+
+	waitingPerShard := 400
+	nbShards := 1
+
+	numLeaving := 2
+
+	numNodesToShuffle := 80
+
+	waitingListFixEnableEpoch := 0
+	if beforeFix {
+		waitingListFixEnableEpoch = 9999
+	}
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           uint32(eligiblePerShard),
+		NodesMeta:            uint32(eligibleMeta),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            100,
+				NodesToShufflePerShard: uint32(numNodesToShuffle),
+			},
+		},
+		WaitingListFixEnableEpoch: uint32(waitingListFixEnableEpoch),
+	}
+
+	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
+
+	initialWaitingListCopy := make(map[uint32][]Validator, len(args.Waiting))
+	for shID, val := range args.Waiting {
+		initialWaitingListCopy[shID] = make([]Validator, len(val))
+		copy(initialWaitingListCopy[shID], args.Waiting[shID])
+	}
+
+	for i := 0; i < numLeaving; i++ {
+		args.UnStakeLeaving = append(args.UnStakeLeaving, args.Waiting[0][i])
+	}
+
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	eligibleInShard0 := resUpdateNodeList.Eligible[0]
+	assert.Equal(t, numValidatorsInEligibleList, len(eligibleInShard0))
+
+	numWaitingListToEligible := 0
+	for _, waiting := range initialWaitingListCopy[0] {
+		for _, eligible := range resUpdateNodeList.Eligible[0] {
+			if bytes.Equal(waiting.PubKey(), eligible.PubKey()) {
+				numWaitingListToEligible++
+			}
+		}
+	}
+
+	expectedNumWaitingMovedToEligible := numNodesToShuffle
+	if beforeFix {
+		expectedNumWaitingMovedToEligible -= numLeaving
+	}
+
+	assert.Equal(t, expectedNumWaitingMovedToEligible, numWaitingListToEligible)
+}
+
 func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t *testing.T) {
 	t.Parallel()
 
