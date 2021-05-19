@@ -11,7 +11,7 @@ var maxLogLines = 100
 
 // PresenterStatusHandler is the AppStatusHandler impl that is able to process and store received data
 type PresenterStatusHandler struct {
-	presenterMetrics            map[interface{}]interface{}
+	presenterMetrics            map[string]interface{}
 	mutPresenterMap             sync.RWMutex
 	logLines                    []string
 	mutLogLineWrite             sync.RWMutex
@@ -23,7 +23,7 @@ type PresenterStatusHandler struct {
 // NewPresenterStatusHandler will return an instance of the struct
 func NewPresenterStatusHandler() *PresenterStatusHandler {
 	psh := &PresenterStatusHandler{
-		presenterMetrics:            make(map[interface{}]interface{}),
+		presenterMetrics:            make(map[string]interface{}),
 		synchronizationSpeedHistory: make([]uint64, 0),
 		totalRewardsOld:             big.NewFloat(0),
 	}
@@ -38,7 +38,7 @@ func (psh *PresenterStatusHandler) IsInterfaceNil() bool {
 // InvalidateCache will clear the entire map
 func (psh *PresenterStatusHandler) InvalidateCache() {
 	psh.mutPresenterMap.Lock()
-	psh.presenterMetrics = make(map[interface{}]interface{})
+	psh.presenterMetrics = make(map[string]interface{})
 	psh.mutPresenterMap.Unlock()
 }
 
