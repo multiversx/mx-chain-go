@@ -149,7 +149,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 
 	sm := statusHandler.NewStatusMetrics()
 
-	sm.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, 1)
+	sm.SetUInt64Value(core.MetricNumShardsWithoutMetachain, 1)
 	sm.SetUInt64Value(core.MetricNumNodesPerShard, 100)
 	sm.SetUInt64Value(core.MetricNumMetachainNodes, 50)
 	sm.SetUInt64Value(core.MetricShardConsensusGroupSize, 20)
