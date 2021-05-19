@@ -714,7 +714,7 @@ func Test_shuffleListConsistentShuffling(t *testing.T) {
 
 func Test_equalizeValidatorsListsZeroToDistributeNoError(t *testing.T) {
 	t.Parallel()
-	valToGenerate:= map[uint32]int{0:20, 1:0, core.MetachainShardId:10}
+	valToGenerate := map[uint32]int{0: 20, 1: 0, core.MetachainShardId: 10}
 	validatorsMap := make(map[uint32][]Validator)
 	for i, nbValidators := range valToGenerate {
 		validatorsMap[i] = generateValidatorList(nbValidators)
@@ -732,7 +732,7 @@ func Test_equalizeValidatorsListsZeroToDistributeNoError(t *testing.T) {
 
 func Test_equalizeValidatorsListsOneEmptyWaitingListNotEnoughToEqualize(t *testing.T) {
 	t.Parallel()
-	valToGenerate:= map[uint32]int{0:20, 1:0, core.MetachainShardId:10}
+	valToGenerate := map[uint32]int{0: 20, 1: 0, core.MetachainShardId: 10}
 	validatorsMap := make(map[uint32][]Validator)
 	for i, nbValidators := range valToGenerate {
 		validatorsMap[i] = generateValidatorList(nbValidators)
@@ -750,7 +750,7 @@ func Test_equalizeValidatorsListsOneEmptyWaitingListNotEnoughToEqualize(t *testi
 
 func Test_equalizeValidatorsListsOneEmptyWaitingListExactNumberToEqualize(t *testing.T) {
 	t.Parallel()
-	valToGenerate:= map[uint32]int{0:20, 1:0, core.MetachainShardId:10}
+	valToGenerate := map[uint32]int{0: 20, 1: 0, core.MetachainShardId: 10}
 	validatorsMap := make(map[uint32][]Validator)
 	for i, nbValidators := range valToGenerate {
 		validatorsMap[i] = generateValidatorList(nbValidators)
@@ -762,16 +762,16 @@ func Test_equalizeValidatorsListsOneEmptyWaitingListExactNumberToEqualize(t *tes
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
 	v, _ := removeValidatorsFromList(validatorsToDistribute, remainingToDistribute, len(remainingToDistribute))
 	require.Equal(t, nbToDistribute, len(v))
-	for _, nbValidators := range validatorsMap{
+	for _, nbValidators := range validatorsMap {
 		require.Equal(t, 20, len(nbValidators))
 	}
 
 	testDistributeValidators(t, validatorsCopy, validatorsMap, v)
 }
 
-func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T){
+func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T) {
 	t.Parallel()
-	valToGenerate := map[uint32]int{0:30, 1:10, core.MetachainShardId:20}
+	valToGenerate := map[uint32]int{0: 30, 1: 10, core.MetachainShardId: 20}
 	validatorsMap := make(map[uint32][]Validator)
 	for i, nbValidators := range valToGenerate {
 		validatorsMap[i] = generateValidatorList(nbValidators)
@@ -783,7 +783,7 @@ func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T)
 	validatorsCopy := copyValidatorMap(validatorsMap)
 
 	remainingToDistribute := equalizeValidatorsLists(validatorsMap, validatorsToDistribute)
-	for _, nbValidators := range validatorsMap{
+	for _, nbValidators := range validatorsMap {
 		require.Equal(t, 30, len(nbValidators))
 	}
 
@@ -792,9 +792,9 @@ func Test_equalizeValidatorsListsUnbalancedListsEnoughToDistribute(t *testing.T)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, v)
 }
 
-func Test_equalizeValidatorsListsUnbalancedListsNotEnoughToDistribute(t *testing.T){
+func Test_equalizeValidatorsListsUnbalancedListsNotEnoughToDistribute(t *testing.T) {
 	t.Parallel()
-	valToGenerate := map[uint32]int{0:30, 1:10, core.MetachainShardId:20}
+	valToGenerate := map[uint32]int{0: 30, 1: 10, core.MetachainShardId: 20}
 	validatorsMap := make(map[uint32][]Validator)
 	for i, nbValidators := range valToGenerate {
 		validatorsMap[i] = generateValidatorList(nbValidators)
@@ -980,7 +980,7 @@ func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 
 	copyEligibleMap := copyValidatorMap(eligibleMap)
 	copyWaitingMap := copyValidatorMap(waitingMap)
-	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving)
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard)
 	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 	shuffleOutList := make([]Validator, 0)
 	for _, shuffledOutPerShard := range shuffledOut {
@@ -1011,7 +1011,7 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 	copyEligibleMap := copyValidatorMap(eligibleMap)
 	copyWaitingMap := copyValidatorMap(waitingMap)
 
-	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving)
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving, eligibleNodesPerShard)
 
 	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 	shuffleOutList := make([]Validator, 0)
@@ -1511,7 +1511,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromEligible(t *te
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
 
 	assert.Equal(t, eligiblePerShard-1, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
@@ -1545,7 +1545,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_FromWaiting(t *tes
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
 
 	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard-1, len(newWaiting[core.MetachainShardId]))
@@ -1577,7 +1577,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_NonExisting(t *tes
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
 
 	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
 	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
@@ -1616,7 +1616,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2Eligible2Waiting2
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
 
 	remainingInEligible := eligiblePerShard - 2
 	remainingInWaiting := waitingPerShard - 2
@@ -1669,7 +1669,7 @@ func TestRandHashShuffler_RemoveLeavingNodesFromValidatorMaps_2FromEligible2From
 	eligibleCopy := copyValidatorMap(eligibleMap)
 	waitingCopy := copyValidatorMap(waitingMap)
 
-	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators, eligiblePerShard)
 
 	// removed first 2 from waiting and just one from eligible
 	remainingInEligible := eligiblePerShard - 1

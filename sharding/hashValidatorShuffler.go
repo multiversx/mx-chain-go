@@ -23,6 +23,7 @@ type NodesShufflerArgs struct {
 	ShuffleBetweenShards           bool
 	MaxNodesEnableConfig           []config.MaxNodesChangeConfig
 	BalanceWaitingListsEnableEpoch uint32
+	WaitingListFixEnableEpoch      uint32
 }
 
 type shuffleNodesArg struct {
@@ -38,6 +39,7 @@ type shuffleNodesArg struct {
 	nbShards                uint32
 	maxNodesToSwapPerShard  uint32
 	flagBalanceWaitingLists atomic.Flag
+	flagWaitingListFix      atomic.Flag
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -246,8 +248,8 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
 	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
 
-	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving)
-	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving)
+	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving, int(arg.nodesPerShard))
+	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving, int(arg.nodesPerShard))
 
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
@@ -354,13 +356,28 @@ func removeLeavingNodesFromValidatorMaps(
 	waiting map[uint32][]Validator,
 	numToRemove map[uint32]int,
 	leaving []Validator,
+	minNodesPerShard int,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
-	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+	maxNumToRemoveFromWaiting := make(map[uint32]int)
+	for i := range numToRemove {
+		maxNumToRemoveFromWaiting[i] = len(eligible[i]) + len(waiting[i]) - minNodesPerShard
+	}
+
+	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
+
+	for i, toRemove := range numToRemove {
+		currentOnShard := len(eligible[i]) + len(waiting[i]) - int(minNodesPerShard)
+		if toRemove > currentOnShard {
+			numToRemove[i] = currentOnShard
+		}
+	}
+
 	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+
 	return eligible, waiting, stillRemainingInLeaving
 }
 
