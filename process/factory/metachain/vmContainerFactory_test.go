@@ -82,8 +82,8 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:   10,
-				StakeEnableEpoch: 0,
+				StakingV2EnableEpoch: 10,
+				StakeEnableEpoch:     0,
 			},
 		},
 	}
@@ -110,11 +110,16 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				ProtocolSustainabilityPercentage: 0.1,
-				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-				TopUpFactor:                      0.25,
-				TopUpGradientPoint:               "300000000000000000000",
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000000",
@@ -179,7 +184,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     10,
+				StakingV2EnableEpoch:               10,
 				StakeEnableEpoch:                   1,
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
@@ -255,6 +260,7 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["UnBondTokens"] = value
 	gasMap["DelegationMgrOps"] = value
 	gasMap["GetAllNodeStates"] = value
+	gasMap["ValidatorToDelegation"] = value
 
 	return gasMap
 }

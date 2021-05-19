@@ -228,10 +228,15 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				TopUpGradientPoint:            "100000",
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+						TopUpGradientPoint:               "100000",
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -523,7 +528,7 @@ func CreateVMAndBlockchainHookMeta(
 func createEpochConfig() *config.EpochConfig {
 	return &config.EpochConfig{
 		EnableEpochs: config.EnableEpochs{
-			StakingV2Epoch:                     0,
+			StakingV2EnableEpoch:               0,
 			StakeEnableEpoch:                   0,
 			DoubleKeyProtectionEnableEpoch:     0,
 			ESDTEnableEpoch:                    0,
