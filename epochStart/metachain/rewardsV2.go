@@ -287,11 +287,11 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		baseRewardsPerBlock = big.NewInt(0).Div(baseRewards, nbBlocks)
 	}
 
-	log.Info("Rewards to be distributed",
+	log.Info("rewards to be distributed",
 		"totalStakeEligible", totalStakeEligible.String(),
 		"totalTopUpEligible", totalTopUpEligible.String(),
 		"baseRewards", baseRewards.String(),
-		"topupRewards", topUpRewards.String())
+		"topUpRewards", topUpRewards.String())
 
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 
