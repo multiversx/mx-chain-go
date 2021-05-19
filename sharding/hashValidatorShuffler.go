@@ -383,11 +383,22 @@ func removeLeavingNodesFromValidatorMaps(
 	copy(stillRemainingInLeaving, leaving)
 
 	if !waitingFixEnabled {
-		waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
-		eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-		return eligible, waiting, stillRemainingInLeaving
+		newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+		newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+		return newEligible, newWaiting, stillRemainingInLeaving
 	}
 
+	return removeLeavingNodes(eligible, waiting, numToRemove, stillRemainingInLeaving, minNodesMeta, minNodesPerShard)
+}
+
+func removeLeavingNodes(
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	numToRemove map[uint32]int,
+	stillRemainingInLeaving []Validator,
+	minNodesMeta int,
+	minNodesPerShard int,
+) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 	maxNumToRemoveFromWaiting := make(map[uint32]int)
 	for shardId := range numToRemove {
 		minimumNumberOfNodes := minNodesPerShard
@@ -401,7 +412,7 @@ func removeLeavingNodesFromValidatorMaps(
 		maxNumToRemoveFromWaiting[shardId] = computedMinNumberOfNodes
 	}
 
-	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
+	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
 
 	for shardId, toRemove := range numToRemove {
 		minimumNumberOfNodes := minNodesPerShard
@@ -409,7 +420,7 @@ func removeLeavingNodesFromValidatorMaps(
 			minimumNumberOfNodes = minNodesMeta
 		}
 
-		computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
+		computedMinNumberOfNodes := len(eligible[shardId]) + len(newWaiting[shardId]) - minimumNumberOfNodes
 		if computedMinNumberOfNodes < 0 {
 			computedMinNumberOfNodes = 0
 		}
@@ -418,9 +429,8 @@ func removeLeavingNodesFromValidatorMaps(
 		}
 	}
 
-	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-
-	return eligible, waiting, stillRemainingInLeaving
+	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+	return newWaiting, newEligible, stillRemainingInLeaving
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
