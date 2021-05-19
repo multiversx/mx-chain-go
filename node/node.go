@@ -454,6 +454,10 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
@@ -491,17 +495,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		esdtToken := &systemSmartContracts.ESDTData{}
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		err = n.internalMarshalizer.Unmarshal(esdtToken, value)
-		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !ok {
 			continue
 		}
 
@@ -511,6 +506,24 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	}
 
 	return tokens, nil
+}
+
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
+	esdtToken := &systemSmartContracts.ESDTData{}
+	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+	value, errVal := leaf.ValueWithoutSuffix(suffix)
+	if errVal != nil {
+		log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+		return nil, false
+	}
+
+	err := n.internalMarshalizer.Unmarshal(esdtToken, value)
+	if err != nil {
+		log.Warn("cannot unmarshal esdt data", "err", err)
+		return nil, false
+	}
+
+	return esdtToken, true
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
@@ -613,6 +626,103 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	}
 
 	return esdtToken, nil
+}
+
+func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		tokenName := string(leaf.Key())
+		if !strings.Contains(tokenName, "-") {
+			continue
+		}
+
+		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !ok {
+			continue
+		}
+
+		if filterFunc(esdtToken) {
+			tokens = append(tokens, tokenName)
+		}
+	}
+
+	return tokens, nil
+}
+
+// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, err
+	}
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
+	}
+
+	return n.getTokensIDsWithFilter(filterFunc)
+}
+
+// GetESDTsWithRole returns all the tokens with the given role for the given address
+func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
+	if !core.IsValidESDTRole(role) {
+		return nil, ErrInvalidESDTRole
+	}
+
+	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return nil, err
+	}
+
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
+	}
+
+	return n.getTokensIDsWithFilter(filterFunc)
+}
+
+func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {
+	for _, esdtRoles := range token.SpecialRoles {
+		if !bytes.Equal(esdtRoles.Address, addressBytes) {
+			continue
+		}
+
+		for _, specialRole := range esdtRoles.Roles {
+			if bytes.Equal(specialRole, []byte(role)) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
