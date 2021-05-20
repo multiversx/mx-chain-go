@@ -147,7 +147,7 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		err = proc.messenger.CreateTopic(topic, true)
 		log.LogIfError(err)
 
-		err = proc.messenger.RegisterMessageProcessor(topic, proc)
+		err = proc.messenger.RegisterMessageProcessor(topic, "test", proc)
 		log.LogIfError(err)
 	}
 

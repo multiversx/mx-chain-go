@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"math/big"
@@ -6,45 +6,53 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// HeaderHandlerStub --
+// HeaderHandlerStub -
 type HeaderHandlerStub struct {
-	GetPrevRandSeedCalled     func() []byte
-	GetRandSeedCalled         func() []byte
-	IsStartOfEpochBlockCalled func() bool
-	GetEpochCaled             func() uint32
+	EpochField                             uint32
+	TimestampField                         uint64
+	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
+	GetPubKeysBitmapCalled                 func() []byte
+	GetSignatureCalled                     func() []byte
+	GetRootHashCalled                      func() []byte
+	GetRandSeedCalled                      func() []byte
+	GetPrevRandSeedCalled                  func() []byte
+	GetPrevHashCalled                      func() []byte
+	CloneCalled                            func() data.HeaderHandler
+	GetChainIDCalled                       func() []byte
+	CheckChainIDCalled                     func(reference []byte) error
+	GetReservedCalled                      func() []byte
+	IsStartOfEpochBlockCalled              func() bool
 }
 
-// GetAccumulatedFees --
+// GetAccumulatedFees -
 func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
-	panic("implement me")
+	return big.NewInt(0)
 }
 
-// GetDeveloperFees --
+// GetDeveloperFees -
 func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
-	panic("implement me")
+	return big.NewInt(0)
 }
 
-// SetAccumulatedFees --
+// SetAccumulatedFees -
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
-	panic("implement me")
 }
 
-// SetDeveloperFees --
+// SetDeveloperFees -
 func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
-	panic("implement me")
 }
 
-// GetReceiptsHash --
+// GetReceiptsHash -
 func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
-	return []byte("hash")
+	return []byte("receipt")
 }
 
-// Clone --
-func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
-	panic("implement me")
+// SetShardID -
+func (hhs *HeaderHandlerStub) SetShardID(_ uint32) {
 }
 
-// IsStartOfEpochBlock --
+// IsStartOfEpochBlock -
 func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
 	if hhs.IsStartOfEpochBlockCalled != nil {
 		return hhs.IsStartOfEpochBlockCalled()
@@ -53,94 +61,87 @@ func (hhs *HeaderHandlerStub) IsStartOfEpochBlock() bool {
 	return false
 }
 
-// GetShardID --
-func (hhs *HeaderHandlerStub) GetShardID() uint32 {
-	panic("implement me")
+// Clone -
+func (hhs *HeaderHandlerStub) Clone() data.HeaderHandler {
+	return hhs.CloneCalled()
 }
 
-// SetShardID --
-func (hhs *HeaderHandlerStub) SetShardID(_ uint32) {
+// GetShardID -
+func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	return 1
 }
 
 // GetNonce -
 func (hhs *HeaderHandlerStub) GetNonce() uint64 {
-	panic("implement me")
+	return 1
 }
 
 // GetEpoch -
 func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
-	if hhs.GetEpochCaled != nil {
-		return hhs.GetEpochCaled()
-	}
-
-	return 0
+	return hhs.EpochField
 }
 
 // GetRound -
 func (hhs *HeaderHandlerStub) GetRound() uint64 {
-	panic("implement me")
+	return 1
 }
 
 // GetTimeStamp -
 func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
-	panic("implement me")
+	return hhs.TimestampField
 }
 
 // GetRootHash -
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
-	panic("implement me")
+	return hhs.GetRootHashCalled()
 }
 
 // GetPrevHash -
 func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
-	panic("implement me")
+	return hhs.GetPrevHashCalled()
 }
 
 // GetPrevRandSeed -
 func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
-	if hhs.GetPrevRandSeedCalled != nil {
-		return hhs.GetPrevRandSeedCalled()
-	}
-
-	return []byte("prev rand seed")
+	return hhs.GetPrevRandSeedCalled()
 }
 
 // GetRandSeed -
 func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
-	if hhs.GetRandSeedCalled != nil {
-		return hhs.GetRandSeedCalled()
-	}
-
-	return []byte("rand seed")
+	return hhs.GetRandSeedCalled()
 }
 
 // GetPubKeysBitmap -
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
-	panic("implement me")
+	return hhs.GetPubKeysBitmapCalled()
 }
 
 // GetSignature -
 func (hhs *HeaderHandlerStub) GetSignature() []byte {
-	panic("implement me")
+	return hhs.GetSignatureCalled()
 }
 
 // GetLeaderSignature -
 func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
-	panic("implement me")
+	return hhs.GetSignatureCalled()
 }
 
 // GetChainID -
 func (hhs *HeaderHandlerStub) GetChainID() []byte {
-	panic("implement me")
+	return hhs.GetChainIDCalled()
 }
 
 // GetTxCount -
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
-	panic("implement me")
+	return 0
 }
 
 // GetReserved -
 func (hhs *HeaderHandlerStub) GetReserved() []byte {
+	if hhs.GetReservedCalled != nil {
+		return hhs.GetReservedCalled()
+	}
+
 	return nil
 }
 
@@ -210,13 +211,13 @@ func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) {
 }
 
 // GetMiniBlockHeadersWithDst -
-func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(_ uint32) map[string]uint32 {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
 }
 
 // GetOrderedCrossMiniblocksWithDst -
 func (hhs *HeaderHandlerStub) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
-	panic("implement me")
+	return hhs.GetOrderedCrossMiniblocksWithDstCalled(destId)
 }
 
 // GetMiniBlockHeadersHashes -
@@ -226,7 +227,7 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
-	panic("implement me")
+	return []byte("vs root hash")
 }
 
 // SetValidatorStatsRootHash -
@@ -246,7 +247,7 @@ func (hhs *HeaderHandlerStub) GetEpochStartMetaHash() []byte {
 
 // GetSoftwareVersion -
 func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
-	return []byte("v1.0")
+	return []byte("softwareVersion")
 }
 
 // SetSoftwareVersion -

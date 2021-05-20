@@ -33,12 +33,13 @@ func createDefaultConfig() config.P2PConfig {
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount:         11,
+		TargetPeerCount:         12,
 		MaxIntraShardValidators: 6,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 

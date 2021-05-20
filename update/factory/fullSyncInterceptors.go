@@ -441,7 +441,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, ficf.messenger.RegisterMessageProcessor(topic, core.HardforkInterceptorsIdentifier, interceptor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error {

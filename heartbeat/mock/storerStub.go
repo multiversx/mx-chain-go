@@ -21,11 +21,6 @@ func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	return ss.GetFromEpochCalled(key, epoch)
 }
 
-// HasInEpoch -
-func (ss *StorerStub) HasInEpoch(key []byte, epoch uint32) error {
-	return ss.HasInEpochCalled(key, epoch)
-}
-
 // GetBulkFromEpoch -
 func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
 	return ss.GetBulkFromEpochCalled(keys, epoch)

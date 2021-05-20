@@ -35,7 +35,7 @@ type StartInEpochNodesCoordinator interface {
 type Messenger interface {
 	dataRetriever.MessageHandler
 	dataRetriever.TopicHandler
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 	UnregisterAllMessageProcessors() error
 	UnjoinAllTopics() error
 	ConnectedPeers() []core.PeerID

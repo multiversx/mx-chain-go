@@ -253,7 +253,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
+	temporaryMetaHeader := &block.MetaBlock{
+		Epoch:     arg.StartEpochNum,
+		TimeStamp: arg.GenesisTime,
+	}
+	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
@@ -313,10 +317,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
+		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:       arg.ShardCoordinator,
+		BuiltInFuncNames:       builtInFuncs.Keys(),
+		ArgumentParser:         parsers.NewCallArgsParser(),
+		EpochNotifier:          epochNotifier,
+		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -355,7 +361,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
-		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2Epoch,
+		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

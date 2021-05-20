@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -36,7 +37,7 @@ type SystemSCContainer interface {
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
+	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
@@ -101,7 +102,7 @@ type NodesConfigProvider interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

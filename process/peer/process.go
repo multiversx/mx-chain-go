@@ -1234,7 +1234,7 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
+func (vs *validatorStatistics) EpochConfirmed(epoch uint32, _ uint64) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)

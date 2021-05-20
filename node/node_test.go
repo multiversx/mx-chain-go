@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -546,12 +547,24 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
+	sftToken := []byte("SFT-RANDOM")
+	nftToken := []byte("NFT-RANDOM")
 
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
 
-	suffix := append(esdtToken, acc.AddressBytes()...)
+	sftData := &systemSmartContracts.ESDTData{TokenName: []byte("semi fungible"), TokenType: []byte(core.SemiFungibleESDT)}
+	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
+	_ = acc.DataTrieTracker().SaveKeyValue(sftToken, sftMarshalledData)
+
+	nftData := &systemSmartContracts.ESDTData{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
+	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
+	_ = acc.DataTrieTracker().SaveKeyValue(nftToken, nftMarshalledData)
+
+	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
+	nftSuffix := append(nftToken, acc.AddressBytes()...)
+	sftSuffix := append(sftToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
 		&mock.TrieStub{
@@ -559,7 +572,13 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, suffix...))
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(sftToken, append(sftMarshalledData, sftSuffix...))
+					ch <- trieLeaf
+
+					trieLeaf = keyValStorage.NewKeyValStorage(nftToken, append(nftMarshalledData, nftSuffix...))
 					ch <- trieLeaf
 					close(ch)
 				}()
@@ -594,10 +613,24 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	value, err := n.GetAllIssuedESDTs()
+	value, err := n.GetAllIssuedESDTs(core.FungibleESDT)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(value))
 	assert.Equal(t, string(esdtToken), value[0])
+
+	value, err = n.GetAllIssuedESDTs(core.SemiFungibleESDT)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, string(sftToken), value[0])
+
+	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, string(nftToken), value[0])
+
+	value, err = n.GetAllIssuedESDTs("")
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(value))
 }
 
 //------- GenerateTransaction
@@ -2873,6 +2906,7 @@ func TestNode_ShouldWork(t *testing.T) {
 			Pk:            hex.EncodeToString([]byte(pid1)),
 			IsBlacklisted: true,
 			PeerType:      core.UnknownPeer.String(),
+			PeerSubType:   core.RegularPeer.String(),
 		},
 		{
 			Pid:           core.PeerID(pid2).Pretty(),
@@ -2880,6 +2914,7 @@ func TestNode_ShouldWork(t *testing.T) {
 			Pk:            hex.EncodeToString([]byte(pid2)),
 			IsBlacklisted: false,
 			PeerType:      core.UnknownPeer.String(),
+			PeerSubType:   core.RegularPeer.String(),
 		},
 	}
 

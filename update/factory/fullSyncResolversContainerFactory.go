@@ -10,6 +10,7 @@ import (
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -20,6 +21,7 @@ import (
 const defaultTargetShardID = uint32(0)
 const numCrossShardPeers = 2
 const numIntraShardPeers = 2
+const numFullHistoryPeers = 3
 
 type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
@@ -164,15 +166,17 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:          rcf.messenger,
-		TopicName:          baseTopic,
-		PeerListCreator:    peerListCreator,
-		Marshalizer:        rcf.marshalizer,
-		Randomizer:         rcf.intRandomizer,
-		TargetShardId:      defaultTargetShardID,
-		OutputAntiflooder:  rcf.outputAntifloodHandler,
-		NumCrossShardPeers: numCrossShardPeers,
-		NumIntraShardPeers: numIntraShardPeers,
+		Messenger:                   rcf.messenger,
+		TopicName:                   baseTopic,
+		PeerListCreator:             peerListCreator,
+		Marshalizer:                 rcf.marshalizer,
+		Randomizer:                  rcf.intRandomizer,
+		TargetShardId:               defaultTargetShardID,
+		OutputAntiflooder:           rcf.outputAntifloodHandler,
+		NumCrossShardPeers:          numCrossShardPeers,
+		NumIntraShardPeers:          numIntraShardPeers,
+		NumFullHistoryPeers:         numFullHistoryPeers,
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {
@@ -192,7 +196,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
