@@ -168,6 +168,10 @@ func TestOptimizedKadDhtDiscoverer_BootstrapErrorsShouldKeepRetrying(t *testing.
 }
 
 func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	arg := createTestArgument()

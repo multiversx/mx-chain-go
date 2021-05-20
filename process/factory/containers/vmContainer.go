@@ -169,15 +169,16 @@ func (vmc *virtualMachinesContainer) tryClose(item interface{}) closeResult {
 }
 
 func (vmc *virtualMachinesContainer) tryClean(item interface{}) closeResult {
-	asCleaner, ok := item.(cleaner)
+	_, ok := item.(cleaner)
 	if !ok {
 		return closeResult{
 			resolved: false,
 		}
 	}
 
-	asCleaner.Clean()
-	logVMContainer.Debug("vm container item cleaned", "item", fmt.Sprintf("%T", item))
+	//TODO call clean here after the ARWEN concurrency problems will be solved
+	//asCleaner.Clean()
+	//logVMContainer.Debug("vm container item cleaned", "item", fmt.Sprintf("%T", item))
 
 	return closeResult{
 		resolved:   true,
