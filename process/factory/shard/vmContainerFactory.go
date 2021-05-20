@@ -30,13 +30,13 @@ type vmContainerFactory struct {
 	blockGasLimit                        uint64
 	gasSchedule                          core.GasScheduleNotifier
 	builtinFunctions                     vmcommon.FunctionNames
-	initialEpoch                         uint32
+	epochNotifier                        process.EpochNotifier
 	deployEnableEpoch                    uint32
 	aheadOfTimeGasUsageEnableEpoch       uint32
 	arwenV3EnableEpoch                   uint32
 	ArwenESDTFunctionsEnableEpoch        uint32
 	ArwenGasManagementRewriteEnableEpoch uint32
-	containers                           []process.VirtualMachinesContainer
+	container                            process.VirtualMachinesContainer
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -45,7 +45,7 @@ type ArgVMContainerFactory struct {
 	BlockGasLimit                        uint64
 	GasSchedule                          core.GasScheduleNotifier
 	ArgBlockChainHook                    hooks.ArgBlockChainHook
-	InitialEpoch                         uint32
+	EpochNotifier                        process.EpochNotifier
 	DeployEnableEpoch                    uint32
 	AheadOfTimeGasUsageEnableEpoch       uint32
 	ArwenV3EnableEpoch                   uint32
@@ -67,20 +67,24 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	cryptoHook := hooks.NewVMCryptoHook()
 	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
-	return &vmContainerFactory{
+	factory := &vmContainerFactory{
 		config:                               args.Config,
 		blockChainHookImpl:                   blockChainHookImpl,
 		cryptoHook:                           cryptoHook,
 		blockGasLimit:                        args.BlockGasLimit,
 		gasSchedule:                          args.GasSchedule,
 		builtinFunctions:                     builtinFunctions,
+		epochNotifier:                        args.EpochNotifier,
 		deployEnableEpoch:                    args.DeployEnableEpoch,
 		aheadOfTimeGasUsageEnableEpoch:       args.AheadOfTimeGasUsageEnableEpoch,
 		arwenV3EnableEpoch:                   args.ArwenV3EnableEpoch,
 		ArwenESDTFunctionsEnableEpoch:        args.ArwenESDTFunctionsEnableEpoch,
 		ArwenGasManagementRewriteEnableEpoch: args.ArwenGasManagementRewriteEnableEpoch,
-		containers:                           make([]process.VirtualMachinesContainer, 0),
-	}, nil
+		container:                            nil,
+	}
+
+	factory.epochNotifier.RegisterNotifyHandler(factory)
+	return factory, nil
 }
 
 // Create sets up all the needed virtual machine returning a container of all the VMs
@@ -98,10 +102,10 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 		return nil, err
 	}
 
-	// The vmContainerFactory keeps references to all containers it has created,
-	// in order to replace, from within the containers, those VM instances that
+	// The vmContainerFactory keeps a reference to the container it has created,
+	// in order to replace, from within the container, the VM instances that
 	// become out-of-date after specific epochs.
-	vmf.containers = append(vmf.containers, container)
+	vmf.container = container
 
 	return container, nil
 }
@@ -165,7 +169,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
-	return vmf.createInProcessArwenVMByEpoch(vmf.initialEpoch)
+	return vmf.createInProcessArwenVMByEpoch(vmf.epochNotifier.CurrentEpoch())
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmcommon.VMExecutionHandler, error) {
@@ -177,16 +181,13 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmco
 }
 
 func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
-	for _, container := range vmf.containers {
-		newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
-		if err != nil {
-			logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
-			continue
-		}
-
-		container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
+	if err != nil {
+		logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
+		return
 	}
 
+	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
 	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
 }
 
