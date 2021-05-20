@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -37,10 +36,10 @@ type WidgetsRender struct {
 //NewWidgetsRender method will create new WidgetsRender that display termui console
 func NewWidgetsRender(presenter view.Presenter, grid *DrawableContainer) (*WidgetsRender, error) {
 	if presenter == nil || presenter.IsInterfaceNil() {
-		return nil, statusHandler.ErrNilPresenterInterface
+		return nil, view.ErrNilPresenterInterface
 	}
 	if grid == nil {
-		return nil, statusHandler.ErrNilGrid
+		return nil, view.ErrNilGrid
 	}
 
 	self := &WidgetsRender{

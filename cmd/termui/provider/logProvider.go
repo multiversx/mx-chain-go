@@ -16,36 +16,57 @@ import (
 var formatter = logger.PlainFormatter{}
 var webSocket *websocket.Conn
 var retryDuration = time.Second * 10
+var marshalizer = &marshal.GogoProtoMarshalizer{}
 
 const (
 	ws  = "ws"
 	wss = "wss"
 )
 
-// InitLogHandler will open the websocket and set the log level
-func InitLogHandler(presenter PresenterHandler, nodeURL string, profile *logger.Profile, useWss bool, customLogProfile bool) error {
+// LogHandlerArgs hold the arguments needed to initialize log handling
+type LogHandlerArgs struct {
+	Presenter          PresenterHandler
+	NodeURL            string
+	Profile            *logger.Profile
+	ChanNodeIsStarting chan struct{}
+	UseWss             bool
+	CustomLogProfile   bool
+}
+
+// InitLogHandler will open the websocket and start listening to logs
+func InitLogHandler(args LogHandlerArgs) error {
+	if args.Presenter == nil {
+		return ErrNilTermuiPresenter
+	}
+	if args.ChanNodeIsStarting == nil {
+		return ErrNilChanNodeIsStarting
+	}
+	if len(args.NodeURL) == 0 {
+		return ErrEmptyNodeURL
+	}
+
 	var err error
 	scheme := ws
-	if useWss {
+	if args.UseWss {
 		scheme = wss
 	}
 	go func() {
 		for {
-			webSocket, err = openWebSocket(scheme, nodeURL)
+			webSocket, err = openWebSocket(scheme, args.NodeURL)
 			if err != nil {
-				_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
+				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
 				time.Sleep(retryDuration)
 				continue
 			}
 
-			if customLogProfile {
-				err = sendProfile(webSocket, profile)
+			if args.CustomLogProfile {
+				err = sendProfile(webSocket, args.Profile)
 			} else {
 				err = sendDefaultProfileIdentifier(webSocket)
 			}
 			log.LogIfError(err)
 
-			startListeningOnWebSocket(presenter)
+			startListeningOnWebSocket(args.Presenter, args.ChanNodeIsStarting)
 			time.Sleep(retryDuration)
 		}
 	}()
@@ -81,14 +102,14 @@ func sendDefaultProfileIdentifier(conn *websocket.Conn) error {
 }
 
 // startListeningOnWebSocket will listen if a new log message is received and will display it
-func startListeningOnWebSocket(presenter PresenterHandler) {
+func startListeningOnWebSocket(presenter PresenterHandler, chanNodeIsStarting chan struct{}) {
 	for {
 		msgType, message, err := webSocket.ReadMessage()
 		if msgType == websocket.CloseMessage {
 			return
 		}
 		if err == nil {
-			writeMessage(presenter, message)
+			writeMessage(presenter, message, chanNodeIsStarting)
 			continue
 		}
 
@@ -98,13 +119,17 @@ func startListeningOnWebSocket(presenter PresenterHandler) {
 		} else {
 			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
 		}
+		chanNodeIsStarting <- struct{}{}
 		return
 	}
 }
 
-func writeMessage(presenter PresenterHandler, message []byte) {
+func writeMessage(presenter PresenterHandler, message []byte, chanNodeIsStarting chan struct{}) {
 	if strings.Contains(string(message), "/node/status") {
 		return
+	}
+	if strings.Contains(string(message), "Shuffled out - soft restart") {
+		chanNodeIsStarting <- struct{}{}
 	}
 
 	message = formatMessage(message)
@@ -114,7 +139,6 @@ func writeMessage(presenter PresenterHandler, message []byte) {
 func formatMessage(message []byte) []byte {
 	logLine := &logger.LogLineWrapper{}
 
-	marshalizer := &marshal.GogoProtoMarshalizer{}
 	err := marshalizer.Unmarshal(logLine, message)
 	if err != nil {
 		log.Debug("can not unmarshal received data", "data", hex.EncodeToString(message))

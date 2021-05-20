@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
 )
 
@@ -28,38 +26,39 @@ type TermuiConsole struct {
 	consoleRender             TermuiRender
 	grid                      *termuiRenders.DrawableContainer
 	mutRefresh                *sync.RWMutex
+	chanNodeIsStarting        chan struct{}
 	refreshTimeInMilliseconds int
 }
 
 // NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole(presenter view.Presenter, refreshTimeInMilliseconds int) (*TermuiConsole, error) {
-	if check.IfNil(presenter) {
-		return nil, statusHandler.ErrNilPresenterInterface
+func NewTermuiConsole(presenter view.Presenter, refreshTimeInMilliseconds int, chanNodeIsStarting chan struct{}) (*TermuiConsole, error) {
+	if presenter == nil {
+		return nil, view.ErrNilPresenterInterface
 	}
 	if refreshTimeInMilliseconds < 1 {
-		return nil, statusHandler.ErrInvalidRefreshTimeInMilliseconds
+		return nil, view.ErrInvalidRefreshTimeInMilliseconds
+	}
+	if chanNodeIsStarting == nil {
+		return nil, view.ErrNilChanNodeIsStarting
 	}
 
 	tc := TermuiConsole{
 		presenter:                 presenter,
 		mutRefresh:                &sync.RWMutex{},
 		refreshTimeInMilliseconds: refreshTimeInMilliseconds,
+		chanNodeIsStarting:        chanNodeIsStarting,
 	}
 
 	return &tc, nil
 }
 
 // Start method - will start termui console
-func (tc *TermuiConsole) Start(chanStart chan struct{}) error {
-	if chanStart == nil {
-		return statusHandler.ErrNilTermUIStartChannel
-	}
+func (tc *TermuiConsole) Start() error {
 	go func() {
 		defer func() {
 			log.Debug("closing termui ui")
 			ui.Close()
 		}()
-		<-chanStart
 		_ = ui.Init()
 		tc.eventLoop()
 	}()
@@ -70,7 +69,7 @@ func (tc *TermuiConsole) Start(chanStart chan struct{}) error {
 func (tc *TermuiConsole) eventLoop() {
 	tc.grid = termuiRenders.NewDrawableContainer()
 	if tc.grid == nil {
-		log.Debug("cannot render termui console", "error", statusHandler.ErrNilGrid.Error())
+		log.Debug("cannot render termui console", "error", view.ErrNilGrid.Error())
 		return
 	}
 
@@ -101,6 +100,8 @@ func (tc *TermuiConsole) eventLoop() {
 			return
 		case e := <-uiEvents:
 			tc.processUiEvents(e, tc.refreshTimeInMilliseconds)
+		case <-tc.chanNodeIsStarting:
+			tc.presenter.InvalidateCache()
 		}
 	}
 }

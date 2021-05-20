@@ -59,6 +59,6 @@ type Presenter interface {
 	CalculateRewardsPerHour() string
 	GetZeros() string
 
-	// IsInterfaceNil returns true if there is no value under the interface
+	InvalidateCache()
 	IsInterfaceNil() bool
 }
