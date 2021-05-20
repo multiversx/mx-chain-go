@@ -38,3 +38,4 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+          make arwen
