@@ -816,8 +816,7 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldWork(t *testing.T) {
 	roundStartTime := time.Now()
 	maxTime := 100 * time.Millisecond
-	newRoundStartTime := time.Time{}
-	newRoundStartTime = roundStartTime
+	newRoundStartTime := roundStartTime
 	remainingTimeInCurrentRound := func() time.Duration {
 		return RemainingTimeWithStruct(newRoundStartTime, maxTime)
 	}

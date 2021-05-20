@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/filters"
 )
 
 type shardAPIBlockProcessor struct {
@@ -97,6 +98,9 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
+
+	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
+	statusFilters.ApplyStatusFilters(miniblocks)
 
 	return &api.Block{
 		Nonce:           blockHeader.Nonce,

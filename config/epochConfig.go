@@ -27,19 +27,23 @@ type EnableEpochs struct {
 	RepairCallbackEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	BlockGasAndFeesReCheckEnableEpoch      uint32
-	StakingV2Epoch                         uint32
+	StakingV2EnableEpoch                   uint32
 	StakeEnableEpoch                       uint32
 	DoubleKeyProtectionEnableEpoch         uint32
 	ESDTEnableEpoch                        uint32
 	GovernanceEnableEpoch                  uint32
 	DelegationManagerEnableEpoch           uint32
 	DelegationSmartContractEnableEpoch     uint32
-	CorrectLastUnjailedEpoch               uint32
+	CorrectLastUnjailedEnableEpoch         uint32
 	BalanceWaitingListsEnableEpoch         uint32
 	ReturnDataToLastTransferEnableEpoch    uint32
 	ArwenESDTFunctionsEnableEpoch          uint32
 	SenderInOutTransferEnableEpoch         uint32
 	RelayedTransactionsV2EnableEpoch       uint32
+	UnbondTokensV2EnableEpoch              uint32
+	SaveJailedAlwaysEnableEpoch            uint32
+	ValidatorToDelegationEnableEpoch       uint32
+	ReDelegateBelowMinCheckEnableEpoch     uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/filters"
 )
 
 func (n *Node) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
@@ -77,6 +78,9 @@ func (n *Node) putSmartContractResultsInTransaction(
 			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
 		}
 	}
+
+	statusFilters := filters.NewStatusFilters(n.processComponents.ShardCoordinator().SelfId())
+	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 }
 
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
