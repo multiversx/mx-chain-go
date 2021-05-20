@@ -1,11 +1,11 @@
 package shard
 
 import (
-	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
-	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
-	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
-	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
-	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
+	arwen1_2 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
+	arwenHost1_2 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	ipcCommon1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
+	ipcMarshaling1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
+	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	arwen1_3 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost1_3 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -138,16 +138,16 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
-	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
-	messagesMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.MessagesMarshalizer)
+	logsMarshalizer := ipcMarshaling1_2.ParseKind(outOfProcessConfig.LogsMarshalizer)
+	messagesMarshalizer := ipcMarshaling1_2.ParseKind(outOfProcessConfig.MessagesMarshalizer)
 	maxLoopTime := outOfProcessConfig.MaxLoopTime
 
 	logger.GetLogLevelPattern()
 
-	arwenVM, err := ipcNodePart.NewArwenDriver(
+	arwenVM, err := ipcNodePart1_2.NewArwenDriver(
 		vmf.blockChainHookImpl,
-		ipcCommon.ArwenArguments{
-			VMHostParameters: arwen.VMHostParameters{
+		ipcCommon1_2.ArwenArguments{
+			VMHostParameters: arwen1_2.VMHostParameters{
 				VMType:                   factory.ArwenVirtualMachine,
 				BlockGasLimit:            vmf.blockGasLimit,
 				GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
@@ -161,7 +161,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
 		},
-		ipcNodePart.Config{MaxLoopTime: maxLoopTime},
+		ipcNodePart1_2.Config{MaxLoopTime: maxLoopTime},
 	)
 	return arwenVM, err
 }
@@ -192,7 +192,7 @@ func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen.VMHostParameters{
+	hostParameters := &arwen1_2.VMHostParameters{
 		VMType:                   factory.ArwenVirtualMachine,
 		BlockGasLimit:            vmf.blockGasLimit,
 		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
@@ -203,7 +203,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecuti
 		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 	}
-	return arwenHost.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+	return arwenHost1_2.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM_v1_3() (vmcommon.VMExecutionHandler, error) {

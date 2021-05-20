@@ -113,6 +113,9 @@ type UserAccountHandler interface {
 
 // VMExecutionHandler interface for any Elrond VM endpoint
 type VMExecutionHandler interface {
+	// GetVersion returns the version of the VM instance
+	GetVersion() string
+
 	// RunSmartContractCreate computes how a smart contract creation should be performed
 	RunSmartContractCreate(input *ContractCreateInput) (*VMOutput, error)
 
