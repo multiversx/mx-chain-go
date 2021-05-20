@@ -338,8 +338,7 @@ func newBaseTestProcessorNode(
 	sk, pk := kg.GeneratePair()
 
 	pksBytes := CreatePkBytes(maxShards)
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
@@ -835,7 +834,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			EpochNotifier:       tpn.EpochNotifier,
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
-					StakingV2Epoch:                     0,
+					StakingV2EnableEpoch:               0,
 					StakeEnableEpoch:                   0,
 					DelegationSmartContractEnableEpoch: 0,
 					DelegationManagerEnableEpoch:       0,
@@ -941,12 +940,16 @@ func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsCo
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:                 0.1,
-			DeveloperPercentage:              0.1,
-			ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
-			TopUpFactor:                      0.25,
-			TopUpGradientPoint:               "300000000000000000000",
-			ProtocolSustainabilityPercentage: 0.1,
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					DeveloperPercentage:              0.1,
+					ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+					TopUpFactor:                      0.25,
+					TopUpGradientPoint:               "300000000000000000000",
+					ProtocolSustainabilityPercentage: 0.1,
+				},
+			},
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1191,18 +1194,24 @@ func (tpn *TestProcessorNode) initResolvers() {
 	_ = tpn.Messenger.CreateTopic(core.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           tpn.ShardCoordinator,
-		Messenger:                  tpn.Messenger,
-		Store:                      tpn.Storage,
-		Marshalizer:                TestMarshalizer,
-		DataPools:                  tpn.DataPool,
-		Uint64ByteSliceConverter:   TestUint64Converter,
-		DataPacker:                 dataPacker,
-		TriesContainer:             tpn.TrieContainer,
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            tpn.ShardCoordinator,
+		Messenger:                   tpn.Messenger,
+		Store:                       tpn.Storage,
+		Marshalizer:                 TestMarshalizer,
+		DataPools:                   tpn.DataPool,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		DataPacker:                  dataPacker,
+		TriesContainer:              tpn.TrieContainer,
+		SizeCheckDelta:              100,
+		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  2,
+			NumIntraShardPeers:  1,
+			NumFullHistoryPeers: 3,
+		},
 	}
 
 	var err error
@@ -1350,6 +1359,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
@@ -1554,7 +1564,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EpochNotifier:       tpn.EpochNotifier,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				StakingV2Epoch:                     0,
+				StakingV2EnableEpoch:               0,
 				StakeEnableEpoch:                   0,
 				DelegationSmartContractEnableEpoch: 0,
 				DelegationManagerEnableEpoch:       0,
@@ -1575,6 +1585,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
@@ -1942,12 +1953,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ChanceComputer:          tpn.NodesCoordinator,
 			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
-			StakingV2EnableEpoch:    StakingV2Epoch,
 			StakingDataProvider:     stakingDataProvider,
 			NodesConfigProvider:     tpn.NodesCoordinator,
 			ShardCoordinator:        tpn.ShardCoordinator,
-			ESDTEnableEpoch:         0,
 			ESDTOwnerAddressBytes:   vm.EndOfEpochAddress,
+			EpochConfig: config.EpochConfig{
+				EnableEpochs: config.EnableEpochs{
+					StakingV2EnableEpoch: StakingV2Epoch,
+					ESDTEnableEpoch:      0,
+				},
+			},
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

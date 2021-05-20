@@ -40,6 +40,7 @@ type trieStorageManager struct {
 	pruningBuffer      atomicBuffer
 	pruningBlockingOps uint32
 	maxSnapshots       uint32
+	keepSnapshots      bool
 	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
@@ -90,6 +91,7 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		pruningBlockingOps:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
+		keepSnapshots:         generalConfig.KeepSnapshots,
 		cancelFunc:            cancelFunc,
 	}
 
@@ -459,10 +461,32 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	}
 
 	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
-		tsm.removeSnapshot()
+		if tsm.keepSnapshots  {
+			tsm.disconnectSnapshot()
+		} else {
+			tsm.removeSnapshot()
+		}
 	}
 
 	return db
+}
+
+func (tsm *trieStorageManager) disconnectSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+	snapshot := tsm.snapshots[0]
+	tsm.snapshots = tsm.snapshots[1:]
+
+	if snapshot.IsInUse() {
+		snapshot.MarkForDisconnection()
+		log.Debug("can't disconnect, snapshot is still in use")
+		return
+	}
+	err := disconnectSnapshot(snapshot)
+	if err != nil {
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
+	}
 }
 
 func (tsm *trieStorageManager) removeSnapshot() {
@@ -487,10 +511,14 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removeSnapshot(snapshot, removePath)
 }
 
+func disconnectSnapshot(db data.DBWriteCacher) error {
+	return db.Close()
+}
+
 func removeSnapshot(db data.DBWriteCacher, path string) {
-	err := db.Close()
+	err := disconnectSnapshot(db)
 	if err != nil {
-		log.Error("trie storage manager: removeSnapshot", "error", err.Error())
+		log.Error("trie storage manager: disconnectSnapshot", "error", err.Error())
 		return
 	}
 

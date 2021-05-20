@@ -52,9 +52,39 @@ type Facade struct {
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                 func() ([]string, error)
+	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
+	GetProofCalled                          func(string, string) ([][]byte, error)
+	GetProofCurrentRootHashCalled           func(string) ([][]byte, []byte, error)
+	VerifyProofCalled                       func(string, string, [][]byte) (bool, error)
+}
+
+// GetProof -
+func (f *Facade) GetProof(rootHash string, address string) ([][]byte, error) {
+	if f.GetProofCalled != nil {
+		return f.GetProofCalled(rootHash, address)
+	}
+
+	return nil, nil
+}
+
+// GetProofCurrentRootHash -
+func (f *Facade) GetProofCurrentRootHash(address string) ([][]byte, []byte, error) {
+	if f.GetProofCurrentRootHashCalled != nil {
+		return f.GetProofCurrentRootHashCalled(address)
+	}
+
+	return nil, nil, nil
+}
+
+// VerifyProof -
+func (f *Facade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
+	if f.VerifyProofCalled != nil {
+		return f.VerifyProofCalled(rootHash, address, proof)
+	}
+
+	return false, nil
 }
 
 // GetUsername -
@@ -145,10 +175,11 @@ func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalTok
 }
 
 // GetAllIssuedESDTs -
-func (f *Facade) GetAllIssuedESDTs() ([]string, error) {
+func (f *Facade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	if f.GetAllIssuedESDTsCalled != nil {
-		return f.GetAllIssuedESDTsCalled()
+		return f.GetAllIssuedESDTsCalled(tokenType)
 	}
+
 	return make([]string, 0), nil
 }
 

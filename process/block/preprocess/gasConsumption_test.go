@@ -242,6 +242,29 @@ func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayed(t *testing.T) {
 	assert.Equal(t, uint64(3), gasInRcv)
 }
 
+func TestComputeGasConsumedByTx_ShouldReturnGasLimitWhenRelayedV2(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 0
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.RelayedTxV2, process.RelayedTxV2
+		}},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	assert.Equal(t, uint64(3), gasInSnd)
+	assert.Equal(t, uint64(3), gasInRcv)
+}
+
 func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
 	t.Parallel()
 

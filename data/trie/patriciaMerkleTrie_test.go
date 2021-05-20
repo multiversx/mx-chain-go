@@ -5,7 +5,6 @@ import (
 	cryptoRand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/rand"
 	"strconv"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var emptyTrieHash = make([]byte, 32)

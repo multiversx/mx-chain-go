@@ -64,7 +64,7 @@ func CreateTopicsAndMockInterceptors(
 			return nil, err
 		}
 
-		err = p.RegisterMessageProcessor(topic, interceptors[idx])
+		err = p.RegisterMessageProcessor(topic, "test", interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}

@@ -37,6 +37,7 @@ type PeerShardMapper struct {
 	pkPeerIdCache            storage.Cacher
 	fallbackPkShardCache     storage.Cacher
 	fallbackPidShardCache    storage.Cacher
+	peerIdSubTypeCache       storage.Cacher
 	mutUpdatePeerIdPublicKey sync.Mutex
 
 	mutEpoch         sync.RWMutex
@@ -74,6 +75,11 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		return nil, err
 	}
 
+	peerIdSubTypeCache, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("peerShardMapper epoch", "epoch", arg.StartEpoch)
 
 	return &PeerShardMapper{
@@ -81,6 +87,7 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		pkPeerIdCache:         pkPeerId,
 		fallbackPkShardCache:  arg.FallbackPkShardCache,
 		fallbackPidShardCache: arg.FallbackPidShardCache,
+		peerIdSubTypeCache:    peerIdSubTypeCache,
 		nodesCoordinator:      arg.NodesCoordinator,
 		epoch:                 arg.StartEpoch,
 	}, nil
@@ -96,8 +103,10 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 		if pInfo != nil {
 			log.Trace("PeerShardMapper.GetPeerInfo",
 				"peer type", pInfo.PeerType.String(),
+				"peer subtype", pInfo.PeerSubType.String(),
 				"pid", p2p.PeerIdToShortString(pid),
 				"pk", hex.EncodeToString(pInfo.PkBytes),
+				"shardID", pInfo.ShardID,
 			)
 		}
 	}()
@@ -111,6 +120,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	if ok {
 		pInfo.PeerType = core.ObserverPeer
 		pInfo.ShardID = shardId
+		pInfo.PeerSubType = psm.getPeerSubType(pid)
 
 		return *pInfo
 	}
@@ -174,6 +184,21 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 	return shard, true
 }
 
+func (psm *PeerShardMapper) getPeerSubType(pid core.PeerID) core.P2PPeerSubType {
+	subTypeObj, ok := psm.peerIdSubTypeCache.Get([]byte(pid))
+	if !ok {
+		return core.RegularPeer
+	}
+
+	subType, ok := subTypeObj.(core.P2PPeerSubType)
+	if !ok {
+		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type core.P2PPeerSubType")
+		return core.RegularPeer
+	}
+
+	return subType
+}
+
 func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.PeerID) *core.P2PPeerInfo {
 	shardObj, ok := psm.fallbackPidShardCache.Get([]byte(pid))
 	if !ok {
@@ -194,8 +219,9 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 
 	return &core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shard,
+		PeerType:    core.ObserverPeer,
+		PeerSubType: psm.getPeerSubType(pid),
+		ShardID:     shard,
 	}
 }
 
@@ -283,6 +309,11 @@ func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
+}
+
+// UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
+func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	psm.peerIdSubTypeCache.HasOrAdd([]byte(pid), peerSubType, uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

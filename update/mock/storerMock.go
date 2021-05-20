@@ -39,11 +39,6 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]by
 	return retValue, nil
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
-	return sm.Has(key)
-}
-
 // Put -
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()

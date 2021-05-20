@@ -40,6 +40,9 @@ var ErrEmptyKey = errors.New("key is empty")
 // ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
 var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persisters")
 
+// ErrInvalidNumberOfOldPersisters signals that an invalid number of old persisters has been provided
+var ErrInvalidNumberOfOldPersisters = errors.New("invalid number of old active persisters")
+
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
 
