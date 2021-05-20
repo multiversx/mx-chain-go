@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/factory/block"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -47,6 +48,7 @@ type bootstrapComponents struct {
 	bootstrapParamsHolder   BootstrapParamsHolder
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
+	headerVersionHandler    factory.HeaderVersionHandler
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 }
 
@@ -89,11 +91,18 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-		[]byte(bcf.coreComponents.ChainID()),
+	headerVersionHandler, err := block.NewHeaderVersionHandler(
 		bcf.config.Versions.VersionsByEpochs,
 		bcf.config.Versions.DefaultVersion,
 		versionsCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(bcf.coreComponents.ChainID()),
+		headerVersionHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -205,6 +214,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		},
 		nodeType:                nodeType,
 		shardCoordinator:        shardCoordinator,
+		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 	}, nil
 }
@@ -227,6 +237,11 @@ func (bc *bootstrapComponents) NodeType() core.NodeType {
 // ShardCoordinator returns the shard coordinator
 func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 	return bc.shardCoordinator
+}
+
+// HeaderVersionHandler returns the header version handler
+func (bc *bootstrapComponents) HeaderVersionHandler() factory.HeaderVersionHandler {
+	return bc.headerVersionHandler
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier

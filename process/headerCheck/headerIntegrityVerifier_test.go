@@ -1,15 +1,9 @@
 package headerCheck
 
 import (
-	"encoding/binary"
 	"errors"
-	"fmt"
-	"strings"
-	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,141 +12,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var versionsCorrectlyConstructed = []config.VersionByEpochs{
-	{
-		StartEpoch: 0,
-		Version:    "*",
-	},
-	{
-		StartEpoch: 1,
-		Version:    "v1",
-	},
-	{
-		StartEpoch: 5,
-		Version:    "v2",
-	},
-}
-
-const defaultVersion = "default"
-
 func TestNewHeaderIntegrityVerifier_InvalidReferenceChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		nil,
-		make([]config.VersionByEpochs, 0),
-		defaultVersion,
-		&testscommon.CacherStub{},
+		hvh,
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.Equal(t, ErrInvalidReferenceChainID, err)
 }
 
-func TestNewHeaderIntegrityVerifierr_InvalidVersionElementOnEpochValuesEqualShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifierr_NilVersionHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "",
-			},
-			{
-				StartEpoch: 0,
-				Version:    "",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
-}
-
-func TestNewHeaderIntegrityVerifier_InvalidVersionElementOnStringTooLongShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    strings.Repeat("a", core.MaxSoftwareVersionLengthInBytes+1),
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionStringTooLong))
-}
-
-func TestNewHeaderIntegrityVerifierr_InvalidDefaultVersionShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		defaultVersion,
 		nil,
 	)
 	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrNilCacher))
-}
-
-func TestNewHeaderIntegrityVerifier_NilCacherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		"",
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
-}
-
-func TestNewHeaderIntegrityVerifier_EmptyListShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		make([]config.VersionByEpochs, 0),
-		"",
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrEmptyVersionsByEpochsList))
-}
-
-func TestNewHeaderIntegrityVerifier_ZerothElementIsNotOnEpochZeroShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 1,
-				Version:    "",
-			},
-		},
-		"",
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
+	require.True(t, errors.Is(err, ErrNilHeaderVersionHandler))
 }
 
 func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		defaultVersion,
-		&testscommon.CacherStub{},
+		hvh,
 	)
 	require.False(t, check.IfNil(hdrIntVer))
 	require.NoError(t, err)
@@ -164,94 +53,22 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 	hdr := &block.MetaBlock{
 		Reserved: []byte("r"),
 	}
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
-		make([]config.VersionByEpochs, 0),
-		defaultVersion,
-		&testscommon.CacherStub{},
+		hvh,
 	)
 	err := hdrIntVer.Verify(hdr)
 	require.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
 
-func TestHeaderIntegrityVerifier_VerifySoftwareVersionEmptyVersionInHeaderShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, _ := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		make([]config.VersionByEpochs, 0),
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	err := hdrIntVer.Verify(&block.MetaBlock{})
-	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
-}
-
-func TestHeaderIntegrityVerifierr_VerifySoftwareVersionWrongVersionShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, _ := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "v1",
-			},
-			{
-				StartEpoch: 1,
-				Version:    "v2",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	err := hdrIntVer.Verify(
-		&block.MetaBlock{
-			ChainID:         []byte("chainID"),
-			SoftwareVersion: []byte("v3"),
-			Epoch:           1,
-		},
-	)
-	require.True(t, errors.Is(err, ErrSoftwareVersionMismatch))
-}
-
-func TestHeaderIntegrityVerifier_VerifySoftwareVersionWildcardShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, _ := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "v1",
-			},
-			{
-				StartEpoch: 1,
-				Version:    "*",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	err := hdrIntVer.Verify(
-		&block.MetaBlock{
-			ChainID:         []byte("chainID"),
-			SoftwareVersion: []byte("v3"),
-			Epoch:           1,
-		},
-	)
-
-	assert.Nil(t, err)
-}
-
 func TestHeaderIntegrityVerifier_VerifyHdrChainIDAndReferenceChainIDMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		"software",
-		&testscommon.CacherStub{},
+		hvh,
 	)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
@@ -265,11 +82,10 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedChainID := []byte("#chainID")
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		expectedChainID,
-		versionsCorrectlyConstructed,
-		"software",
-		&testscommon.CacherStub{},
+		hvh,
 	)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
@@ -279,97 +95,18 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHeaderIntegrityVerifier_VerifyNotWildcardShouldWork(t *testing.T) {
-	t.Parallel()
-
-	expectedChainID := []byte("#chainID")
-	hdrIntVer, _ := NewHeaderIntegrityVerifier(
-		expectedChainID,
-		versionsCorrectlyConstructed,
-		"software",
-		&testscommon.CacherStub{},
-	)
-	mb := &block.MetaBlock{
-		SoftwareVersion: []byte("v1"),
-		ChainID:         expectedChainID,
-		Epoch:           1,
-	}
-	err := hdrIntVer.Verify(mb)
-	require.NoError(t, err)
-}
-
 func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	numPutCalls := uint32(0)
+	hvh := &testscommon.HeaderVersionHandlerMock{
+		GetVersionCalled: func(epoch uint32) string {
+			return "v1"
+		},
+	}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		defaultVersion,
-		&testscommon.CacherStub{
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) bool {
-				atomic.AddUint32(&numPutCalls, 1)
-				epoch := binary.BigEndian.Uint32(key)
-				switch epoch {
-				case 0:
-					assert.Equal(t, "*", value.(string))
-				case 1:
-					assert.Equal(t, "v1", value.(string))
-				case 2:
-					assert.Equal(t, "v1", value.(string))
-				case 3:
-					assert.Equal(t, "v1", value.(string))
-				case 4:
-					assert.Equal(t, "v1", value.(string))
-				case 5:
-					assert.Equal(t, "v2", value.(string))
-				case 6:
-					assert.Equal(t, "v2", value.(string))
-				case 1000:
-					assert.Equal(t, "v2", value.(string))
-				case 1200:
-					assert.Equal(t, "v2", value.(string))
-				default:
-					assert.Fail(t, fmt.Sprintf("unexpected case for epoch %d", epoch))
-				}
-
-				return false
-			},
-		},
+		hvh,
 	)
 
-	assert.Equal(t, defaultVersion, hdrIntVer.GetVersion(0))
 	assert.Equal(t, "v1", hdrIntVer.GetVersion(1))
-	assert.Equal(t, "v1", hdrIntVer.GetVersion(2))
-	assert.Equal(t, "v1", hdrIntVer.GetVersion(3))
-	assert.Equal(t, "v1", hdrIntVer.GetVersion(4))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(5))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(6))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(1000))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(1200))
-	assert.Equal(t, uint32(9), atomic.LoadUint32(&numPutCalls))
-}
-
-func TestHeaderIntegrityVerifier_ExistsInInternalCacheShouldReturn(t *testing.T) {
-	t.Parallel()
-
-	cachedVersion := "cached version"
-	hdrIntVer, _ := NewHeaderIntegrityVerifier(
-		[]byte("chainID"),
-		versionsCorrectlyConstructed,
-		defaultVersion,
-		&testscommon.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return cachedVersion, true
-			},
-		},
-	)
-
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(0))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(1))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(2))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(500))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(999))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(1000))
-	assert.Equal(t, cachedVersion, hdrIntVer.GetVersion(1200))
 }

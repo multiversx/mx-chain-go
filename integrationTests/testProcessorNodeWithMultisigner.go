@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -438,16 +437,10 @@ func CreateNode(
 }
 
 func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerMock{}
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning
