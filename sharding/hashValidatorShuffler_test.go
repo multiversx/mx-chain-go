@@ -1286,13 +1286,13 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
 }
 
-func TestRandHashShuffler_UpdateNodeListsWithoutWaitingListFix(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeListsWaitingListFixDisabled(t *testing.T) {
 	t.Parallel()
 
 	testUpdateNodesAndCheckNumLeaving(t, true)
 }
 
-func TestRandHashShuffler_UpdateNodeListsWithWaitingListFix(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeListsWithWaitingListFixEnabled(t *testing.T) {
 	t.Parallel()
 
 	testUpdateNodesAndCheckNumLeaving(t, false)
@@ -1356,13 +1356,13 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 	}
 }
 
-func TestRandHashShuffler_UpdateNodeListsWithoutWaitingListFixCheckWaiting(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeListsWaitingListWithFixCheckWaitingDisabled(t *testing.T) {
 	t.Parallel()
 
 	testUpdateNodeListsAndCheckWaitingList(t, true)
 }
 
-func TestRandHashShuffler_UpdateNodeListsWithWaitingListFixCheckWaiting(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeListsWaitingListWithFixCheckWaitingEnabled(t *testing.T) {
 	t.Parallel()
 
 	testUpdateNodeListsAndCheckWaitingList(t, false)
@@ -1375,7 +1375,7 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 	waitingPerShard := 400
 	nbShards := 1
 
-	numLeaving := 2
+	numLeaving := 82
 
 	numNodesToShuffle := 80
 
