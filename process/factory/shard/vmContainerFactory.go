@@ -89,7 +89,6 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 
 	factory.arwenVersions, err = factory.prepareVersions(args.Config.ArwenVersions)
 
-	factory.epochNotifier.RegisterNotifyHandler(factory)
 	return factory, nil
 }
 
@@ -142,6 +141,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	// in order to replace, from within the container, the VM instances that
 	// become out-of-date after specific epochs.
 	vmf.container = container
+	vmf.epochNotifier.RegisterNotifyHandler(vmf)
 
 	return container, nil
 }
@@ -205,11 +205,11 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
-	return vmf.createInProcessArwenVMByEpoch(vmf.epochNotifier.CurrentEpoch())
+	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
+	return vmf.createInProcessArwenVMByVersion(version)
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmcommon.VMExecutionHandler, error) {
-	version := vmf.getMatchingVersion(epoch)
+func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version string) (vmcommon.VMExecutionHandler, error) {
 	if version == "v1.2" {
 		return vmf.createInProcessArwenVM_v1_2()
 	}
@@ -218,9 +218,20 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmco
 }
 
 func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
-	newArwenVM, err := vmf.createInProcessArwenVMByEpoch(epoch)
+	version := vmf.getMatchingVersion(epoch)
+	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
 	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM in epoch", "epoch", epoch)
+		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch)
+		return
+	}
+
+	if version == currentArwenVM.GetVersion() {
+		return
+	}
+
+	newArwenVM, err := vmf.createInProcessArwenVMByVersion(version)
+	if err != nil {
+		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
 		return
 	}
 

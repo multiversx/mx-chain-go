@@ -5,6 +5,7 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -110,4 +111,58 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+}
+
+func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
+	vmConfig := config.VirtualMachineConfig{
+		ArwenVersions: []config.VersionByEpochs{
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 12, Version: "v1.3"},
+		},
+	}
+
+	epochNotifier := forking.NewGenericEpochNotifier()
+
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         vmConfig,
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  epochNotifier,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	require.NotNil(t, vmf)
+	require.Nil(t, err)
+
+	container, err := vmf.Create()
+	require.Nil(t, err)
+	require.NotNil(t, container)
+	defer func() {
+		_ = container.Close()
+	}()
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(1)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(6)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(11)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(12)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
+}
+
+func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) string {
+	vm, err := container.Get(factory.ArwenVirtualMachine)
+	require.Nil(t, err)
+	require.NotNil(t, vm)
+
+	return vm.GetVersion()
 }
