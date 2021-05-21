@@ -65,6 +65,18 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PeersHolderHandler defines the behavior of a component able to handle peers operations
+type PeersHolderHandler interface {
+	Add(publicKey string, peerID string)
+	GetPeerIDForPublicKey(publicKey string) (string, bool)
+	GetPublicKeyForPeerID(peerID string) (string, bool)
+	DeletePublicKey(pubKey string) bool
+	DeletePeerID(pID string) bool
+	Len() int
+	Clear()
+	IsInterfaceNil() bool
+}
+
 // Closer defines the Close behavior
 type Closer interface {
 	Close() error

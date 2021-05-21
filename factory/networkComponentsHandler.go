@@ -164,7 +164,20 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
 	return mnc.networkComponents.peerHonestyHandler
 }
 
-// IsInterfaceNil returns true if the interface is nil
+// PreferredPeersHolder returns the preferred peers holder
+// TODO: add it to interface when required in other places (interceptors for example)
+func (mnc *managedNetworkComponents) PreferredPeersHolder() PeersHolderHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.networkComponents.peersHolder
+}
+
+// IsInterfaceNil returns true if the value under the interface is nil
 func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 	return mnc == nil
 }

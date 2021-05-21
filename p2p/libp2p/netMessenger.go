@@ -102,14 +102,16 @@ type networkMessenger struct {
 	debugger            p2p.Debugger
 	marshalizer         p2p.Marshalizer
 	syncTimer           p2p.SyncTimer
+	peersHolder         p2p.PreferredPeersHolderHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress string
-	Marshalizer   p2p.Marshalizer
-	P2pConfig     config.P2PConfig
-	SyncTimer     p2p.SyncTimer
+	ListenAddress        string
+	Marshalizer          p2p.Marshalizer
+	P2pConfig            config.P2PConfig
+	SyncTimer            p2p.SyncTimer
+	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -119,6 +121,9 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	}
 	if check.IfNil(args.SyncTimer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilSyncTimer)
+	}
+	if check.IfNil(args.PreferredPeersHolder) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
 	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
@@ -204,6 +209,7 @@ func createMessenger(
 		peerShardResolver: &unknownPeerShardResolver{},
 		marshalizer:       args.Marshalizer,
 		syncTimer:         args.SyncTimer,
+		peersHolder:       args.PreferredPeersHolder,
 	}
 	netMes.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pHost.ID()))
 
@@ -323,16 +329,10 @@ func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
-		PeerShardResolver:       &unknownPeerShardResolver{},
-		Pid:                     netMes.p2pHost.ID(),
-		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
-		MaxIntraShardValidators: p2pConfig.Sharding.MaxIntraShardValidators,
-		MaxCrossShardValidators: p2pConfig.Sharding.MaxCrossShardValidators,
-		MaxIntraShardObservers:  p2pConfig.Sharding.MaxIntraShardObservers,
-		MaxCrossShardObservers:  p2pConfig.Sharding.MaxCrossShardObservers,
-		MaxSeeders:              p2pConfig.Sharding.MaxSeeders,
-		MaxFullHistoryObservers: p2pConfig.Sharding.MaxFullHistoryObservers,
-		Type:                    p2pConfig.Sharding.Type,
+		PeerShardResolver: &unknownPeerShardResolver{},
+		Pid:               netMes.p2pHost.ID(),
+		P2pConfig:         p2pConfig,
+		Type:              p2pConfig.Sharding.Type,
 	}
 
 	var err error

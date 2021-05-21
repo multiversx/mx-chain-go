@@ -256,6 +256,18 @@ type Marshalizer interface {
 	IsInterfaceNil() bool
 }
 
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Add(publicKey string, peerID string)
+	GetPeerIDForPublicKey(publicKey string) (string, bool)
+	GetPublicKeyForPeerID(peerID string) (string, bool)
+	DeletePublicKey(pubKey string) bool
+	DeletePeerID(pID string) bool
+	Len() int
+	Clear()
+	IsInterfaceNil() bool
+}
+
 // PeerCounts represents the DTO structure used to output the count metrics for connected peers
 type PeerCounts struct {
 	UnknownPeers    int

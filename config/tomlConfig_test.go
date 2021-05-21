@@ -331,3 +331,75 @@ func TestAPIRoutesToml(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCfg, cfg)
 }
+
+func TestP2pConfig(t *testing.T) {
+	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
+	protocolID := "test protocol id"
+	prefCon0 := "123456789"
+	prefCon1 := "qwerty"
+	shardingType := "ListSharder"
+	seed := "test seed"
+	port := "37373-38383"
+
+	testString := `
+#P2P config file
+[Node]
+    Port = "` + port + `"
+    Seed = "` + seed + `"
+    ThresholdMinConnectedPeers = 0
+
+[KadDhtPeerDiscovery]
+    Enabled = false
+    Type = ""
+    RefreshIntervalInSec = 0
+    ProtocolID = "` + protocolID + `"
+    InitialPeerList = ["` + initialPeersList + `"]
+
+    #kademlia's routing table bucket size
+    BucketSize = 0
+
+    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
+    RoutingTableRefreshIntervalInSec = 0
+
+[Sharding]
+    # The targeted number of peer connections
+    TargetPeerCount = 0
+    MaxIntraShardValidators = 0
+    MaxCrossShardValidators = 0
+    MaxIntraShardObservers = 0
+    MaxCrossShardObservers = 0
+    MaxFullHistoryObservers = 0
+    MaxSeeders = 0
+    Type = "` + shardingType + `"
+
+[PreferredConnections] 
+	Enabled = true
+	PublicKeys = [
+		"` + prefCon0 + `",
+		"` + prefCon1 + `"
+	]
+`
+	expectedCfg := P2PConfig{
+		Node: NodeConfig{
+			Port: port,
+			Seed: seed,
+		},
+		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+			ProtocolID:      protocolID,
+			InitialPeerList: []string{initialPeersList},
+		},
+		Sharding: ShardingConfig{
+			Type: shardingType,
+		},
+		PreferredConnections: PreferredConnectionsConfig{
+			Enabled:    true,
+			PublicKeys: []string{prefCon0, prefCon1},
+		},
+	}
+	cfg := P2PConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}

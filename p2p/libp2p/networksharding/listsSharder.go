@@ -1,6 +1,7 @@
 package networksharding
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"math/bits"
@@ -9,6 +10,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -74,15 +76,10 @@ var _ = leadingZerosCount[255]
 
 // ArgListsSharder represents the argument structure used in the initialization of a listsSharder implementation
 type ArgListsSharder struct {
-	PeerResolver            p2p.PeerShardResolver
-	SelfPeerId              peer.ID
-	MaxPeerCount            uint32
-	MaxIntraShardValidators uint32
-	MaxCrossShardValidators uint32
-	MaxIntraShardObservers  uint32
-	MaxCrossShardObservers  uint32
-	MaxFullHistoryObservers uint32
-	MaxSeeders              uint32
+	PeerResolver         p2p.PeerShardResolver
+	SelfPeerId           peer.ID
+	P2pConfig            config.P2PConfig
+	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // listsSharder is the struct able to compute an eviction list of connected peers id according to the
@@ -104,6 +101,9 @@ type listsSharder struct {
 	mutSeeders              sync.RWMutex
 	seeders                 []string
 	computeDistance         func(src peer.ID, dest peer.ID) *big.Int
+	preferredPeersEnabled   bool
+	preferredPeersHolder    p2p.PreferredPeersHolderHandler
+	mapPreferredPeers       map[string]struct{}
 }
 
 // NewListsSharder creates a new kad list based kad sharder instance
@@ -111,45 +111,52 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 	if check.IfNil(arg.PeerResolver) {
 		return nil, p2p.ErrNilPeerShardResolver
 	}
-	if arg.MaxPeerCount < minAllowedConnectedPeersListSharder {
+	if arg.P2pConfig.Sharding.TargetPeerCount < minAllowedConnectedPeersListSharder {
 		return nil, fmt.Errorf("%w, maxPeerCount should be at least %d", p2p.ErrInvalidValue, minAllowedConnectedPeersListSharder)
 	}
-	if arg.MaxIntraShardValidators < minAllowedValidators {
+	if arg.P2pConfig.Sharding.MaxIntraShardValidators < minAllowedValidators {
 		return nil, fmt.Errorf("%w, maxIntraShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
-	if arg.MaxCrossShardValidators < minAllowedValidators {
+	if arg.P2pConfig.Sharding.MaxCrossShardValidators < minAllowedValidators {
 		return nil, fmt.Errorf("%w, maxCrossShardValidators should be at least %d", p2p.ErrInvalidValue, minAllowedValidators)
 	}
-	if arg.MaxIntraShardObservers < minAllowedObservers {
+	if arg.P2pConfig.Sharding.MaxIntraShardObservers < minAllowedObservers {
 		return nil, fmt.Errorf("%w, maxIntraShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if arg.MaxCrossShardObservers < minAllowedObservers {
+	if arg.P2pConfig.Sharding.MaxCrossShardObservers < minAllowedObservers {
 		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if arg.MaxCrossShardObservers+arg.MaxIntraShardObservers+arg.MaxFullHistoryObservers == 0 {
+	if arg.P2pConfig.Sharding.MaxCrossShardObservers+arg.P2pConfig.Sharding.MaxIntraShardObservers+arg.P2pConfig.Sharding.MaxFullHistoryObservers == 0 {
 		log.Warn("no connections to observers are possible")
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, fmt.Errorf("%w while creating a new listsShared", p2p.ErrNilPreferredPeersHolder)
+	}
 
-	providedPeers := arg.MaxIntraShardValidators + arg.MaxCrossShardValidators +
-		arg.MaxIntraShardObservers + arg.MaxCrossShardObservers + arg.MaxSeeders + arg.MaxFullHistoryObservers
-	if providedPeers+minUnknownPeers > arg.MaxPeerCount {
-		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, arg.MaxPeerCount)
+	providedPeers := arg.P2pConfig.Sharding.MaxIntraShardValidators + arg.P2pConfig.Sharding.MaxCrossShardValidators +
+		arg.P2pConfig.Sharding.MaxIntraShardObservers + arg.P2pConfig.Sharding.MaxCrossShardObservers +
+		arg.P2pConfig.Sharding.MaxSeeders + arg.P2pConfig.Sharding.MaxFullHistoryObservers
+	if providedPeers+minUnknownPeers > arg.P2pConfig.Sharding.TargetPeerCount {
+		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, arg.P2pConfig.Sharding.TargetPeerCount)
 	}
 
 	ls := &listsSharder{
 		peerShardResolver:       arg.PeerResolver,
 		selfPeerId:              arg.SelfPeerId,
-		maxPeerCount:            int(arg.MaxPeerCount),
+		maxPeerCount:            int(arg.P2pConfig.Sharding.TargetPeerCount),
 		computeDistance:         computeDistanceByCountingBits,
-		maxIntraShardValidators: int(arg.MaxIntraShardValidators),
-		maxCrossShardValidators: int(arg.MaxCrossShardValidators),
-		maxIntraShardObservers:  int(arg.MaxIntraShardObservers),
-		maxCrossShardObservers:  int(arg.MaxCrossShardObservers),
-		maxSeeders:              int(arg.MaxSeeders),
-		maxFullHistoryObservers: int(arg.MaxFullHistoryObservers),
+		maxIntraShardValidators: int(arg.P2pConfig.Sharding.MaxIntraShardValidators),
+		maxCrossShardValidators: int(arg.P2pConfig.Sharding.MaxCrossShardValidators),
+		maxIntraShardObservers:  int(arg.P2pConfig.Sharding.MaxIntraShardObservers),
+		maxCrossShardObservers:  int(arg.P2pConfig.Sharding.MaxCrossShardObservers),
+		maxSeeders:              int(arg.P2pConfig.Sharding.MaxSeeders),
+		maxFullHistoryObservers: int(arg.P2pConfig.Sharding.MaxFullHistoryObservers),
+		preferredPeersEnabled:   arg.P2pConfig.PreferredConnections.Enabled,
+		mapPreferredPeers:       computePreferredPeersMap(arg.P2pConfig),
+		preferredPeersHolder:    arg.PreferredPeersHolder,
 	}
 
-	ls.maxUnknown = int(arg.MaxPeerCount - providedPeers)
+	ls.maxUnknown = int(arg.P2pConfig.Sharding.TargetPeerCount - providedPeers)
 
 	return ls, nil
 }
@@ -252,6 +259,11 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		peerInfo := ls.peerShardResolver.GetPeerInfo(pid)
 		ls.mutResolver.RUnlock()
 
+		ls.addPeerToPreferredIfNeeded(pid, peerInfo)
+		if ls.shouldNotEvictPeer(pid) {
+			continue
+		}
+
 		if peerInfo.PeerType == core.UnknownPeer {
 			peerDistances[unknown] = append(peerDistances[unknown], pd)
 			continue
@@ -283,6 +295,44 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 	}
 
 	return peerDistances
+}
+
+func (ls *listsSharder) addPeerToPreferredIfNeeded(peerID core.PeerID, peerInfo core.P2PPeerInfo) {
+	if !ls.preferredPeersEnabled {
+		return
+	}
+
+	// TODO: inject validator pub key converter
+	pubKey := hex.EncodeToString(peerInfo.PkBytes)
+	_, found := ls.mapPreferredPeers[pubKey]
+	if !found {
+		return
+	}
+
+	ls.preferredPeersHolder.Add(pubKey, string(peerID))
+}
+
+func (ls *listsSharder) shouldNotEvictPeer(peerID core.PeerID) bool {
+	if !ls.preferredPeersEnabled {
+		return false
+	}
+
+	_, found := ls.preferredPeersHolder.GetPublicKeyForPeerID(string(peerID))
+
+	return found
+}
+
+func computePreferredPeersMap(p2pConfig config.P2PConfig) map[string]struct{} {
+	if !p2pConfig.PreferredConnections.Enabled {
+		return make(map[string]struct{})
+	}
+
+	mapToReturn := make(map[string]struct{})
+	for _, pubKey := range p2pConfig.PreferredConnections.PublicKeys {
+		mapToReturn[pubKey] = struct{}{}
+	}
+
+	return mapToReturn
 }
 
 func evict(distances sorting.PeerDistances, numKeep int) []peer.ID {

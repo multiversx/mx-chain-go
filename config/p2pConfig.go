@@ -2,9 +2,10 @@ package config
 
 // P2PConfig will hold all the P2P settings
 type P2PConfig struct {
-	Node                NodeConfig
-	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
-	Sharding            ShardingConfig
+	Node                 NodeConfig
+	KadDhtPeerDiscovery  KadDhtPeerDiscoveryConfig
+	Sharding             ShardingConfig
+	PreferredConnections PreferredConnectionsConfig
 }
 
 // NodeConfig will hold basic p2p settings
@@ -36,4 +37,10 @@ type ShardingConfig struct {
 	MaxSeeders              uint32
 	MaxFullHistoryObservers uint32
 	Type                    string
+}
+
+// PreferredConnectionsConfig will hold the configuration for the preferred connections options
+type PreferredConnectionsConfig struct {
+	Enabled    bool
+	PublicKeys []string
 }
