@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -37,6 +38,19 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
+
+	vmConfig := VirtualMachineConfig{
+		OutOfProcessEnabled: false,
+		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []VersionByEpochs{
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
+		},
+	}
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -70,8 +84,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -82,6 +100,13 @@ func TestTomlParser(t *testing.T) {
 		},
 		Consensus: ConsensusConfig{
 			Type: consensusType,
+		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
 		},
 	}
 
@@ -128,13 +153,35 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = false
+            ArwenVersions = [
+                { StartEpoch = 12, Version = "v0.3" },
+                { StartEpoch = 88, Version = "v1.2" },
+            ]
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+				ArwenVersions = [
+						{ StartEpoch = 12, Version = "v0.3" },
+						{ StartEpoch = 88, Version = "v1.2" },
+				]
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+
 `
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {

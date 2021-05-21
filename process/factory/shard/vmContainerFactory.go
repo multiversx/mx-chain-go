@@ -1,6 +1,9 @@
 package shard
 
 import (
+	"fmt"
+	"sort"
+
 	arwen1_2 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost1_2 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
@@ -37,6 +40,7 @@ type vmContainerFactory struct {
 	ArwenESDTFunctionsEnableEpoch        uint32
 	ArwenGasManagementRewriteEnableEpoch uint32
 	container                            process.VirtualMachinesContainer
+	arwenVersions                        []config.VersionByEpochs
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -83,8 +87,40 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		container:                            nil,
 	}
 
+	factory.arwenVersions, err = factory.prepareVersions(args.Config.ArwenVersions)
+
 	factory.epochNotifier.RegisterNotifyHandler(factory)
 	return factory, nil
+}
+
+func (vmf *vmContainerFactory) prepareVersions(versionsByEpochs []config.VersionByEpochs) ([]config.VersionByEpochs, error) {
+	if len(versionsByEpochs) == 0 {
+		return nil, ErrEmptyVersionsByEpochsList
+	}
+
+	sort.Slice(versionsByEpochs, func(i, j int) bool {
+		return versionsByEpochs[i].StartEpoch < versionsByEpochs[j].StartEpoch
+	})
+
+	currentEpoch := uint32(0)
+	for idx, ver := range versionsByEpochs {
+		if idx == 0 && ver.StartEpoch != 0 {
+			return nil, fmt.Errorf("%w first version should start on epoch 0", ErrInvalidVersionOnEpochValues)
+		}
+
+		if idx > 0 && currentEpoch >= ver.StartEpoch {
+			return nil, fmt.Errorf("%w, StartEpoch is greater or equal to next epoch StartEpoch value, version %s",
+				ErrInvalidVersionOnEpochValues, ver.Version)
+		}
+		currentEpoch = ver.StartEpoch
+
+		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
+			return nil, fmt.Errorf("%w for version %s",
+				ErrInvalidVersionStringTooLong, ver.Version)
+		}
+	}
+
+	return versionsByEpochs, nil
 }
 
 // Create sets up all the needed virtual machine returning a container of all the VMs
@@ -173,7 +209,8 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMByEpoch(epoch uint32) (vmcommon.VMExecutionHandler, error) {
-	if epoch < vmf.ArwenGasManagementRewriteEnableEpoch {
+	version := vmf.getMatchingVersion(epoch)
+	if version == "v1.2" {
 		return vmf.createInProcessArwenVM_v1_2()
 	}
 
@@ -189,6 +226,19 @@ func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
 
 	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
 	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
+}
+
+func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) string {
+	matchingVersion := vmf.arwenVersions[len(vmf.arwenVersions)-1].Version
+	for idx := 0; idx < len(vmf.arwenVersions)-1; idx++ {
+		crtVer := vmf.arwenVersions[idx]
+		nextVer := vmf.arwenVersions[idx+1]
+		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
+			return crtVer.Version
+		}
+	}
+
+	return matchingVersion
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {

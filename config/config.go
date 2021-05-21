@@ -343,6 +343,7 @@ type VirtualMachineServicesConfig struct {
 type VirtualMachineConfig struct {
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
 	OutOfProcessEnabled bool
+	ArwenVersions       []VersionByEpochs
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
@@ -491,6 +492,12 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
 	Epoch                      string
+}
+
+// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
+type ArwenVersionByEpoch struct {
+	StartEpoch uint32
+	Version    string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

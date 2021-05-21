@@ -603,12 +603,20 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         OutOfProcessEnabled = false
+        ArwenVersions = [
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.3" },
+        ]
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
+        ArwenVersions = [
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.3" },
+        ]
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
@@ -618,16 +626,16 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
-	CloseAfterExportInMinutes = 10000
-	AfterHardFork = false
-	ImportFolder = "export"
-	StartRound = 10000
-	StartNonce = 10000
-	StartEpoch = 100
-	GenesisTime = 0
-	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
-	[Hardfork.ExportStateStorageConfig]
-	    [Hardfork.ExportStateStorageConfig.Cache]
+    CloseAfterExportInMinutes = 10000
+    AfterHardFork = false
+    ImportFolder = "export"
+    StartRound = 10000
+    StartNonce = 10000
+    StartEpoch = 100
+    GenesisTime = 0
+    ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
+    [Hardfork.ExportStateStorageConfig]
+        [Hardfork.ExportStateStorageConfig.Cache]
             Name = "HardFork.ExportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -659,8 +667,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportStateStorageConfig]
-	    [Hardfork.ImportStateStorageConfig.Cache]
+    [Hardfork.ImportStateStorageConfig]
+        [Hardfork.ImportStateStorageConfig.Cache]
             Name = "HardFork.ImportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -670,8 +678,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportKeysStorageConfig]
-	    [Hardfork.ImportKeysStorageConfig.Cache]
+    [Hardfork.ImportKeysStorageConfig]
+        [Hardfork.ImportKeysStorageConfig.Cache]
             Name = "HardFork.ImportKeysStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -686,7 +694,7 @@
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
