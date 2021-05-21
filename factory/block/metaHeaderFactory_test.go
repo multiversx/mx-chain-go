@@ -15,13 +15,13 @@ func TestNewMetaHeaderFactory_NilHeaderVersionHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewMetaHeaderFactory_OK(t *testing.T) {
-	mhf, err := NewMetaHeaderFactory(&testscommon.HeaderVersionHandlerMock{})
+	mhf, err := NewMetaHeaderFactory(&testscommon.HeaderVersionHandlerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, mhf)
 }
 
 func TestNewMetaHeaderFactory_CreateOK(t *testing.T) {
-	hvh := &testscommon.HeaderVersionHandlerMock{
+	hvh := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
 			switch epoch {
 			case 1:

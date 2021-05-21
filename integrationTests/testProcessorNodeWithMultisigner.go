@@ -437,7 +437,7 @@ func CreateNode(
 }
 
 func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
 		hvh,
