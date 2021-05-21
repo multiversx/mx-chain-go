@@ -157,6 +157,12 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 
 	epochNotifier.CheckEpoch(12)
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(13)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
+
+	epochNotifier.CheckEpoch(20)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
 }
 
 func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) string {

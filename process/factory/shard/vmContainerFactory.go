@@ -157,9 +157,7 @@ func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
 		return
 	}
 
-	if epoch == vmf.ArwenGasManagementRewriteEnableEpoch {
-		vmf.replaceInProcessArwen(epoch)
-	}
+	vmf.ensureInProcessArwenVersion(epoch)
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
@@ -217,7 +215,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version string) (
 	return vmf.createInProcessArwenVM_v1_3()
 }
 
-func (vmf *vmContainerFactory) replaceInProcessArwen(epoch uint32) {
+func (vmf *vmContainerFactory) ensureInProcessArwenVersion(epoch uint32) {
 	version := vmf.getMatchingVersion(epoch)
 	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
 	if err != nil {
