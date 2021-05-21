@@ -2,7 +2,7 @@ package block
 
 import "errors"
 
-// ErrInvalidSoftwareVersion signals that invalid software version was provided
+// ErrInvalidSoftwareVersion signals that an invalid software version was provided
 var ErrInvalidSoftwareVersion = errors.New("invalid software version")
 
 // ErrInvalidVersionOnEpochValues signals that the version element is not accepted because the epoch values are invalid
@@ -14,7 +14,7 @@ var ErrEmptyVersionsByEpochsList = errors.New("empty versions by epochs list")
 // ErrInvalidVersionStringTooLong signals that the version element is not accepted because it contains too large strings
 var ErrInvalidVersionStringTooLong = errors.New("invalid version provided: string too large")
 
-// ErrSoftwareVersionMismatch signals that the software versions mismatch
+// ErrSoftwareVersionMismatch signals a software version mismatch
 var ErrSoftwareVersionMismatch = errors.New("software versions mismatch")
 
 // ErrNilCacher signals that a nil cacher has been provided

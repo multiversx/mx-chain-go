@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
 const wildcard = "*"
 const keySize = 4
 
@@ -29,21 +30,21 @@ func NewHeaderVersionHandler(
 	versionCache storage.Cacher,
 ) (*headerVersionHandler, error) {
 	if check.IfNil(versionCache) {
-		return nil, fmt.Errorf("%w, in NewHeaderVersioningHandler", ErrNilCacher)
+		return nil, fmt.Errorf("%w, in NewHeaderVersionHandler", ErrNilCacher)
 	}
 
 	hvh := &headerVersionHandler{
-		defaultVersion:   defaultVersion,
-		versionCache:     versionCache,
+		defaultVersion: defaultVersion,
+		versionCache:   versionCache,
 	}
 
 	var err error
-	hvh.versions, err = hvh.prepareVersions(versionsByEpochs)
+	err = hvh.checkVersionLength([]byte(defaultVersion))
 	if err != nil {
 		return nil, err
 	}
 
-	err = hvh.checkVersionLength([]byte(defaultVersion))
+	hvh.versions, err = hvh.prepareVersions(versionsByEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (hvh *headerVersionHandler) prepareVersions(versionsByEpochs []config.Versi
 
 // GetVersion returns the version by providing the epoch
 func (hvh *headerVersionHandler) GetVersion(epoch uint32) string {
-	ver := hvh.getMatchingVersion(epoch)
+	ver := hvh.getMatchingVersionAndUpdateCache(epoch)
 	if ver == wildcard {
 		return hvh.defaultVersion
 	}
@@ -91,27 +92,29 @@ func (hvh *headerVersionHandler) GetVersion(epoch uint32) string {
 	return ver
 }
 
-// GetVersion returns the version by providing the epoch
-func (hvh *headerVersionHandler) getMatchingVersion(epoch uint32) string {
-	storedVersion, ok := hvh.getFromCache(epoch)
+// getMatchingVersion returns the version by providing the epoch
+func (hvh *headerVersionHandler) getMatchingVersionAndUpdateCache(epoch uint32) string {
+	version, ok := hvh.getFromCache(epoch)
 	if ok {
-		return storedVersion
+		return version
 	}
 
-	matchingVersion := hvh.versions[len(hvh.versions)-1].Version
+	version = hvh.getVersionFromConfig(epoch)
+	hvh.setInCache(epoch, version)
+
+	return version
+}
+
+func (hvh *headerVersionHandler) getVersionFromConfig(epoch uint32) string {
 	for idx := 0; idx < len(hvh.versions)-1; idx++ {
 		crtVer := hvh.versions[idx]
 		nextVer := hvh.versions[idx+1]
 		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
-			hvh.setInCache(epoch, crtVer.Version)
-
 			return crtVer.Version
 		}
 	}
 
-	hvh.setInCache(epoch, matchingVersion)
-
-	return matchingVersion
+	return hvh.versions[len(hvh.versions)-1].Version
 }
 
 func (hvh *headerVersionHandler) getFromCache(epoch uint32) (string, bool) {
@@ -159,7 +162,7 @@ func (hvh *headerVersionHandler) checkSoftwareVersion(hdr data.HeaderHandler) er
 		return err
 	}
 
-	version := hvh.getMatchingVersion(hdr.GetEpoch())
+	version := hvh.getMatchingVersionAndUpdateCache(hdr.GetEpoch())
 	if version == wildcard {
 		return nil
 	}

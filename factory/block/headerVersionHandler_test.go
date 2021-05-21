@@ -78,11 +78,11 @@ func TestNewHeaderIntegrityVerifierr_InvalidDefaultVersionShouldErr(t *testing.T
 
 	hdrIntVer, err := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
-		defaultVersion,
-		nil,
+		"",
+		&testscommon.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrNilCacher))
+	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
 }
 
 func TestNewHeaderIntegrityVerifier_NilCacherShouldErr(t *testing.T) {
@@ -91,10 +91,10 @@ func TestNewHeaderIntegrityVerifier_NilCacherShouldErr(t *testing.T) {
 	hdrIntVer, err := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		"",
-		&testscommon.CacherStub{},
+		nil,
 	)
 	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
+	require.True(t, errors.Is(err, ErrNilCacher))
 }
 
 func TestNewHeaderIntegrityVerifier_EmptyListShouldErr(t *testing.T) {
@@ -102,7 +102,7 @@ func TestNewHeaderIntegrityVerifier_EmptyListShouldErr(t *testing.T) {
 
 	hdrIntVer, err := NewHeaderVersionHandler(
 		make([]config.VersionByEpochs, 0),
-		"",
+		defaultVersion,
 		&testscommon.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
@@ -119,7 +119,7 @@ func TestNewHeaderIntegrityVerifier_ZerothElementIsNotOnEpochZeroShouldErr(t *te
 				Version:    "",
 			},
 		},
-		"",
+		defaultVersion,
 		&testscommon.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
