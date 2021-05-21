@@ -329,10 +329,11 @@ func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
-		PeerShardResolver: &unknownPeerShardResolver{},
-		Pid:               netMes.p2pHost.ID(),
-		P2pConfig:         p2pConfig,
-		Type:              p2pConfig.Sharding.Type,
+		PeerShardResolver:    &unknownPeerShardResolver{},
+		Pid:                  netMes.p2pHost.ID(),
+		P2pConfig:            p2pConfig,
+		Type:                 p2pConfig.Sharding.Type,
+		PreferredPeersHolder: netMes.peersHolder,
 	}
 
 	var err error
