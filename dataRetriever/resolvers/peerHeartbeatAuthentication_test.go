@@ -18,117 +18,117 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgPeerHeartbeatResolver() resolvers.ArgPeerHeartbeatResolver {
-	return resolvers.ArgPeerHeartbeatResolver{
-		SenderResolver:     &mock.TopicResolverSenderStub{},
-		PeerHeartbeatsPool: testscommon.NewCacherStub(),
-		Marshalizer:        &mock.MarshalizerMock{},
-		AntifloodHandler:   &mock.P2PAntifloodHandlerStub{},
-		Throttler:          &mock.ThrottlerStub{},
-		DataPacker:         &mock.DataPackerStub{},
+func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationResolver {
+	return resolvers.ArgPeerAuthenticationResolver{
+		SenderResolver:         &mock.TopicResolverSenderStub{},
+		PeerAuthenticationPool: testscommon.NewCacherStub(),
+		Marshalizer:            &mock.MarshalizerMock{},
+		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		Throttler:              &mock.ThrottlerStub{},
+		DataPacker:             &mock.DataPackerStub{},
 	}
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilSenderResolverShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilSenderResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilResolverSender, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilPoolShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
-	arg.PeerHeartbeatsPool = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	arg := createMockArgPeerAuthenticationResolver()
+	arg.PeerAuthenticationPool = nil
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
-	assert.Equal(t, dataRetriever.ErrNilPeerHeartbeatPool, err)
+	assert.Equal(t, dataRetriever.ErrNilPeerAuthenticationPool, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilBlockMarshalizerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilBlockMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.Marshalizer = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilAntifloodHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.AntifloodHandler = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilThrottlerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilThrottlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.Throttler = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilThrottler, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_NilDataPackerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_NilDataPackerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.DataPacker = nil
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 	assert.True(t, check.IfNil(res))
 }
 
-func TestNewPeerHeartbeatResolverResolver_OkValsShouldWork(t *testing.T) {
+func TestNewPeerAuthenticationResolverResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
-	res, err := resolvers.NewPeerHeartbeatResolver(arg)
+	arg := createMockArgPeerAuthenticationResolver()
+	res, err := resolvers.NewPeerAuthenticationResolver(arg)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(res))
 }
 
-func TestPeerHeartbeatResolverResolver_RequestDataFromPubKeyArrayMarshalErr(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_RequestDataFromPubKeyArrayMarshalErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.Marshalizer.(*mock.MarshalizerMock).Fail = true
-	mbRes, err := resolvers.NewPeerHeartbeatResolver(arg)
+	mbRes, err := resolvers.NewPeerAuthenticationResolver(arg)
 	assert.Nil(t, err)
 
 	err = mbRes.RequestDataFromPublicKeyArray([][]byte{[]byte("pk1")}, 0)
 	require.NotNil(t, err)
 }
 
-func TestPeerHeartbeatResolverResolver_RequestDataFromPubKeyArray(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_RequestDataFromPubKeyArray(t *testing.T) {
 	t.Parallel()
 
 	called := false
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			called = true
 			return nil
 		},
 	}
-	mbRes, err := resolvers.NewPeerHeartbeatResolver(arg)
+	mbRes, err := resolvers.NewPeerAuthenticationResolver(arg)
 	assert.Nil(t, err)
 
 	err = mbRes.RequestDataFromPublicKeyArray([][]byte{[]byte("pk1")}, 0)
@@ -136,17 +136,17 @@ func TestPeerHeartbeatResolverResolver_RequestDataFromPubKeyArray(t *testing.T) 
 	require.True(t, called)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
 	}
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.PubkeyArrayType, nil), fromConnectedPeerId)
 	assert.True(t, errors.Is(err, expectedErr))
@@ -154,11 +154,11 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedAntifloodErrorsShouldErr(t
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	arg := createMockArgPeerAuthenticationResolver()
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.PubkeyArrayType, nil), fromConnectedPeerId)
 	assert.Equal(t, dataRetriever.ErrNilValue, err)
@@ -166,11 +166,11 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageNilValueShouldErr(t
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatResolver()
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	arg := createMockArgPeerAuthenticationResolver()
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, make([]byte, 0)), fromConnectedPeerId)
 
@@ -179,7 +179,7 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageWrongTypeShouldErr(
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -195,21 +195,21 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolShouldRe
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, pk) {
 			wasResolved = true
-			return &heartbeat.PeerHeartbeat{}, true
+			return &heartbeat.PeerAuthentication{}, true
 		}
 
 		return nil, false
 	}
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
 	}
-	arg.PeerHeartbeatsPool = cache
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	arg.PeerAuthenticationPool = cache
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.PubkeyArrayType, requestedBuff),
@@ -223,7 +223,7 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolShouldRe
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
@@ -245,16 +245,16 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolMarshali
 	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, pk) {
-			return &heartbeat.PeerHeartbeat{}, true
+			return &heartbeat.PeerAuthentication{}, true
 		}
 
 		return nil, false
 	}
 
-	arg := createMockArgPeerHeartbeatResolver()
-	arg.PeerHeartbeatsPool = cache
+	arg := createMockArgPeerAuthenticationResolver()
+	arg.PeerAuthenticationPool = cache
 	arg.Marshalizer = marshalizer
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	err := mbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.PubkeyArrayType, requestedBuff),
@@ -266,7 +266,7 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageFoundInPoolMarshali
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
-func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
+func TestPeerAuthenticationResolverResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -282,15 +282,15 @@ func TestPeerHeartbeatResolverResolver_ProcessReceivedMessageMissingDataShouldNo
 		return nil, false
 	}
 
-	arg := createMockArgPeerHeartbeatResolver()
+	arg := createMockArgPeerAuthenticationResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
 		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
 	}
-	arg.PeerHeartbeatsPool = cache
-	mbRes, _ := resolvers.NewPeerHeartbeatResolver(arg)
+	arg.PeerAuthenticationPool = cache
+	mbRes, _ := resolvers.NewPeerAuthenticationResolver(arg)
 
 	_ = mbRes.ProcessReceivedMessage(
 		createRequestMsg(dataRetriever.PubkeyArrayType, requestedBuff),

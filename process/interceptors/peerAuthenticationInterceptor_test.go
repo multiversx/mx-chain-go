@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgPeerHeartbeatInterceptor() interceptors.ArgPeerHeartbeatInterceptor {
+func createMockArgPeerAuthenticationInterceptor() interceptors.ArgPeerAuthenticationInterceptor {
 	argSingle := interceptors.ArgSingleDataInterceptor{
 		Topic:            "test topic",
 		DataFactory:      &mock.InterceptedDataFactoryStub{},
@@ -30,90 +30,78 @@ func createMockArgPeerHeartbeatInterceptor() interceptors.ArgPeerHeartbeatInterc
 		CurrentPeerId:    "pid",
 	}
 
-	return interceptors.ArgPeerHeartbeatInterceptor{
+	return interceptors.ArgPeerAuthenticationInterceptor{
 		ArgSingleDataInterceptor: argSingle,
 		Marshalizer:              &mock.MarshalizerMock{},
 		ValidatorChecker:         &mock.NodesCoordinatorMock{},
-		ProcessingThrottler:      createMockThrottler(),
-		HeartbeatProcessor:       &mock.PeerHeartbeatProcessorStub{},
+		AuthenticationProcessor:  &mock.PeerAuthenticationProcessorStub{},
 	}
 }
 
-func TestNewPeerHeartbeatInterceptor_NilFactoryShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationInterceptor_NilFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = nil
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	assert.True(t, check.IfNil(interceptor))
 	assert.Equal(t, process.ErrNilInterceptedDataFactory, err)
 }
 
-func TestNewPeerHeartbeatInterceptor_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.Marshalizer = nil
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	assert.True(t, check.IfNil(interceptor))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewPeerHeartbeatInterceptor_NilValidatorCheckerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationInterceptor_NilValidatorCheckerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.ValidatorChecker = nil
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	assert.True(t, check.IfNil(interceptor))
 	assert.Equal(t, process.ErrNilValidatorChecker, err)
 }
 
-func TestNewPeerHeartbeatInterceptor_NilProcessingThrottlerShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationInterceptor_NilHeartbeatProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
-	arg.ProcessingThrottler = nil
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.AuthenticationProcessor = nil
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	assert.True(t, check.IfNil(interceptor))
-	assert.Equal(t, process.ErrNilProcessingThrottler, err)
+	assert.Equal(t, process.ErrNilAuthenticationProcessor, err)
 }
 
-func TestNewPeerHeartbeatInterceptor_NilHeartbeatProcessorShouldErr(t *testing.T) {
+func TestNewPeerAuthenticationInterceptor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
-	arg.HeartbeatProcessor = nil
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
-
-	assert.True(t, check.IfNil(interceptor))
-	assert.Equal(t, process.ErrNilHeartbeatProcessor, err)
-}
-
-func TestNewPeerHeartbeatInterceptor_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgPeerHeartbeatInterceptor()
-	interceptor, err := interceptors.NewPeerHeartbeatInterceptor(arg)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	assert.False(t, check.IfNil(interceptor))
 	assert.Nil(t, err)
 }
 
-func TestPeerHeartbeatInterceptor_ProcessReceivedMessagePreProcessFailShouldErr(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessagePreProcessFailShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.Throttler = &mock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return false
 		},
 	}
-	interceptor, _ := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	msg := &mock.P2PMessageMock{
 		FromField:  []byte("from"),
@@ -127,11 +115,11 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessagePreProcessFailShouldErr(
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 0)
 }
 
-func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAnInterceptedDataShouldErr(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAnInterceptedDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	numBlackListedCalled := 0
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
@@ -144,7 +132,7 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAnInterceptedDataShou
 			numBlackListedCalled++
 		},
 	}
-	interceptor, _ := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
@@ -164,11 +152,11 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAnInterceptedDataShou
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
 }
 
-func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAValidInterceptedDataShouldErr(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidInterceptedDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cause := "intercepted data is not of type process.InterceptedPeerInfo"
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	numBlackListedCalled := 0
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
@@ -181,7 +169,7 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAValidInterceptedData
 			numBlackListedCalled++
 		},
 	}
-	interceptor, _ := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
@@ -202,18 +190,18 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageNotAValidInterceptedData
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
 }
 
-func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForObserversShouldNotProcess(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotProcess(t *testing.T) {
 	t.Parallel()
 
 	processCalled := uint32(0)
-	arg := createMockArgPeerHeartbeatInterceptor()
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
 			return &mock.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
-	arg.HeartbeatProcessor = &mock.PeerHeartbeatProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerHeartbeat) error {
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
 			atomic.AddUint32(&processCalled, 1)
 
 			return nil
@@ -224,13 +212,7 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForObserversSh
 			return nil, 0, fmt.Errorf("provided peer is an observer")
 		},
 	}
-	arg.ProcessingThrottler = &mock.InterceptorThrottlerStub{
-		CanProcessCalled: func() bool {
-			return false //no room for observers
-		},
-	}
-
-	interceptor, _ := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
@@ -245,26 +227,72 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForObserversSh
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
-	require.Nil(t, err)
+	require.Equal(t, process.ErrPeerAuthenticationForObservers, err)
 
-	time.Sleep(time.Second) //allow the processing go routine to start (in case a bug appears in the production code)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
-	checkThrottlerNumStartEndCalls(t, arg.ProcessingThrottler, 0)
 }
 
-func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForValidatorsShouldWork(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *testing.T) {
 	t.Parallel()
 
-	processCalled := uint32(0)
-	arg := createMockArgPeerHeartbeatInterceptor()
+	numBlackListedCalled := 0
+	expectedErr := errors.New("expected error")
+	cause := "peer info processing error"
+	arg := createMockArgPeerAuthenticationInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
 			return &mock.InterceptedPeerHeartbeatStub{}, nil
 		},
 	}
-	arg.HeartbeatProcessor = &mock.PeerHeartbeatProcessorStub{
-		ProcessCalled: func(peerHeartbeat process.InterceptedPeerHeartbeat) error {
+	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+			assert.True(t, strings.Contains(reason, cause))
+			numBlackListedCalled++
+		},
+	}
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+			return expectedErr
+		},
+	}
+	arg.ValidatorChecker = &mock.NodesCoordinatorMock{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
+			return nil, 0, nil
+		},
+	}
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	msg := &mock.P2PMessageMock{
+		FromField:  []byte("from"),
+		DataField:  buffBatch,
+		TopicField: arg.Topic,
+		PeerField:  "",
+	}
+
+	err := interceptor.ProcessReceivedMessage(msg, "")
+	require.Equal(t, expectedErr, err)
+	assert.Equal(t, 2, numBlackListedCalled)
+	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+}
+
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	processCalled := uint32(0)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			return &mock.InterceptedPeerHeartbeatStub{}, nil
+		},
+	}
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
 			atomic.AddUint32(&processCalled, 1)
 
 			return nil
@@ -275,13 +303,8 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForValidatorsS
 			return nil, 0, nil //is a validator
 		},
 	}
-	arg.ProcessingThrottler = &mock.InterceptorThrottlerStub{
-		CanProcessCalled: func() bool {
-			return false //no room for observers
-		},
-	}
 
-	interceptor, _ := interceptors.NewPeerHeartbeatInterceptor(arg)
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
 
 	b := &batch.Batch{
 		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
@@ -298,8 +321,6 @@ func TestPeerHeartbeatInterceptor_ProcessReceivedMessageSystemBusyForValidatorsS
 	err := interceptor.ProcessReceivedMessage(msg, "")
 	require.Nil(t, err)
 
-	time.Sleep(time.Second) //allow the processing go routine to start and finish
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
-	checkThrottlerNumStartEndCalls(t, arg.ProcessingThrottler, 2)
 }

@@ -13,31 +13,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgPeerHeartbeatResolver is the argument structure used to create a new peer heartbeat resolver instance
-type ArgPeerHeartbeatResolver struct {
-	SenderResolver     dataRetriever.TopicResolverSender
-	PeerHeartbeatsPool storage.Cacher
-	Marshalizer        marshal.Marshalizer
-	AntifloodHandler   dataRetriever.P2PAntifloodHandler
-	Throttler          dataRetriever.ResolverThrottler
-	DataPacker         dataRetriever.DataPacker
+// ArgPeerAuthenticationResolver is the argument structure used to create a new peer authentication resolver instance
+type ArgPeerAuthenticationResolver struct {
+	SenderResolver         dataRetriever.TopicResolverSender
+	PeerAuthenticationPool storage.Cacher
+	Marshalizer            marshal.Marshalizer
+	AntifloodHandler       dataRetriever.P2PAntifloodHandler
+	Throttler              dataRetriever.ResolverThrottler
+	DataPacker             dataRetriever.DataPacker
 }
 
-// peerHeartbeatResolver is a wrapper over Resolver that is specialized in resolving peer heartbeat requests
-type peerheartbeatResolver struct {
+// peerAuthenticationResolver is a wrapper over Resolver that is specialized in resolving peer authentication requests
+type peerAuthenticationResolver struct {
 	*baseResolver
 	messageProcessor
-	peerHeartbeatsPool storage.Cacher
-	dataPacker         dataRetriever.DataPacker
+	peerAuthenticationPool storage.Cacher
+	dataPacker             dataRetriever.DataPacker
 }
 
-// NewPeerHeartbeatResolver creates a peer heartbeat resolver
-func NewPeerHeartbeatResolver(arg ArgPeerHeartbeatResolver) (*peerheartbeatResolver, error) {
+// NewPeerAuthenticationResolver creates a peer authentication resolver
+func NewPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) (*peerAuthenticationResolver, error) {
 	if check.IfNil(arg.SenderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(arg.PeerHeartbeatsPool) {
-		return nil, dataRetriever.ErrNilPeerHeartbeatPool
+	if check.IfNil(arg.PeerAuthenticationPool) {
+		return nil, dataRetriever.ErrNilPeerAuthenticationPool
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
@@ -52,12 +52,12 @@ func NewPeerHeartbeatResolver(arg ArgPeerHeartbeatResolver) (*peerheartbeatResol
 		return nil, dataRetriever.ErrNilDataPacker
 	}
 
-	phbResolver := &peerheartbeatResolver{
+	phbResolver := &peerAuthenticationResolver{
 		baseResolver: &baseResolver{
 			TopicResolverSender: arg.SenderResolver,
 		},
-		peerHeartbeatsPool: arg.PeerHeartbeatsPool,
-		dataPacker:         arg.DataPacker,
+		peerAuthenticationPool: arg.PeerAuthenticationPool,
+		dataPacker:             arg.DataPacker,
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,
@@ -71,7 +71,7 @@ func NewPeerHeartbeatResolver(arg ArgPeerHeartbeatResolver) (*peerheartbeatResol
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *peerheartbeatResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -99,8 +99,8 @@ func (res *peerheartbeatResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 	return err
 }
 
-func (res *peerheartbeatResolver) fetchPeerHeartbeatAsByteSlice(pk []byte) ([]byte, error) {
-	value, ok := res.peerHeartbeatsPool.Peek(pk)
+func (res *peerAuthenticationResolver) fetchPeerAuthenticationAsByteSlice(pk []byte) ([]byte, error) {
+	value, ok := res.peerAuthenticationPool.Peek(pk)
 	if ok {
 		return res.marshalizer.Marshal(value)
 	}
@@ -108,7 +108,7 @@ func (res *peerheartbeatResolver) fetchPeerHeartbeatAsByteSlice(pk []byte) ([]by
 	return nil, dataRetriever.ErrNotFound
 }
 
-func (res *peerheartbeatResolver) resolveRequests(mbBuff []byte, pid core.PeerID) error {
+func (res *peerAuthenticationResolver) resolveRequests(mbBuff []byte, pid core.PeerID) error {
 	b := batch.Batch{}
 	err := res.marshalizer.Unmarshal(&b, mbBuff)
 	if err != nil {
@@ -120,10 +120,10 @@ func (res *peerheartbeatResolver) resolveRequests(mbBuff []byte, pid core.PeerID
 	errorsFound := 0
 	dataSlice := make([][]byte, 0, len(pubKeys))
 	for _, pk := range pubKeys {
-		phb, errTemp := res.fetchPeerHeartbeatAsByteSlice(pk)
+		phb, errTemp := res.fetchPeerAuthenticationAsByteSlice(pk)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for public key %s", errTemp, logger.DisplayByteSlice(pk))
-			log.Trace("fetchPeerHeartbeatAsByteSlice missing",
+			log.Trace("fetchPeerAuthenticationAsByteSlice missing",
 				"error", errFetch.Error(),
 				"pk", pk)
 			errorsFound++
@@ -152,9 +152,9 @@ func (res *peerheartbeatResolver) resolveRequests(mbBuff []byte, pid core.PeerID
 	return errFetch
 }
 
-// RequestDataFromPublicKeyArray requests a set of peer heartbeat data from other peers having input the array
+// RequestDataFromPublicKeyArray requests a set of peer authentication data from other peers having input the array
 // of needed public keys
-func (res *peerheartbeatResolver) RequestDataFromPublicKeyArray(publicKeys [][]byte, _ uint32) error {
+func (res *peerAuthenticationResolver) RequestDataFromPublicKeyArray(publicKeys [][]byte, _ uint32) error {
 	b := &batch.Batch{
 		Data: publicKeys,
 	}
@@ -174,6 +174,6 @@ func (res *peerheartbeatResolver) RequestDataFromPublicKeyArray(publicKeys [][]b
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (res *peerheartbeatResolver) IsInterfaceNil() bool {
+func (res *peerAuthenticationResolver) IsInterfaceNil() bool {
 	return res == nil
 }

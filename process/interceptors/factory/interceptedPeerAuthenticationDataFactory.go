@@ -9,16 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
 )
 
-type interceptedPeerHeartbeatDataFactory struct {
+type interceptedPeerAuthenticationDataFactory struct {
 	marshalizer          marshal.Marshalizer
 	peerSignatureHandler crypto.PeerSignatureHandler
 	hasher               hashing.Hasher
 }
 
-// NewInterceptedPeerHeartbeatDataFactory creates an instance of interceptedPeerHeartbeatDataFactory
-func NewInterceptedPeerHeartbeatDataFactory(
+// NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
+func NewInterceptedPeerAuthenticationDataFactory(
 	argument *ArgInterceptedDataFactory,
-) (*interceptedPeerHeartbeatDataFactory, error) {
+) (*interceptedPeerAuthenticationDataFactory, error) {
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -35,7 +35,7 @@ func NewInterceptedPeerHeartbeatDataFactory(
 		return nil, process.ErrNilPeerSignatureHandler
 	}
 
-	return &interceptedPeerHeartbeatDataFactory{
+	return &interceptedPeerAuthenticationDataFactory{
 		marshalizer:          argument.CoreComponents.InternalMarshalizer(),
 		hasher:               argument.CoreComponents.Hasher(),
 		peerSignatureHandler: argument.PeerSignatureHandler,
@@ -43,18 +43,18 @@ func NewInterceptedPeerHeartbeatDataFactory(
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (iphdf *interceptedPeerHeartbeatDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := heartbeat.ArgInterceptedPeerHeartbeat{
+func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		DataBuff:             buff,
-		Marshalizer:          iphdf.marshalizer,
-		PeerSignatureHandler: iphdf.peerSignatureHandler,
-		Hasher:               iphdf.hasher,
+		Marshalizer:          ipadf.marshalizer,
+		PeerSignatureHandler: ipadf.peerSignatureHandler,
+		Hasher:               ipadf.hasher,
 	}
 
-	return heartbeat.NewInterceptedPeerHeartbeat(arg)
+	return heartbeat.NewInterceptedPeerAuthentication(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (iphdf *interceptedPeerHeartbeatDataFactory) IsInterfaceNil() bool {
-	return iphdf == nil
+func (ipadf *interceptedPeerAuthenticationDataFactory) IsInterfaceNil() bool {
+	return ipadf == nil
 }

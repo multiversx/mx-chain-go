@@ -1004,20 +1004,14 @@ var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
 
-// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
-var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
-
 // ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
 var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
 
 // ErrNilValidatorChecker signals that a nil validator checker has been provided
 var ErrNilValidatorChecker = errors.New("nil validator checker")
 
-// ErrNilProcessingThrottler signals that a nil processing throttler has been provided
-var ErrNilProcessingThrottler = errors.New("nil processing throttler")
-
-// ErrNilHeartbeatProcessor signals that a nil heartbeat processor has been provided
-var ErrNilHeartbeatProcessor = errors.New("nil heartbeat processor")
+// ErrNilAuthenticationProcessor signals that a nil authentication processor has been provided
+var ErrNilAuthenticationProcessor = errors.New("nil authentication processor")
 
 // ErrPropertyTooLong signals that a heartbeat property was too long
 var ErrPropertyTooLong = errors.New("property too long")
@@ -1027,3 +1021,8 @@ var ErrPropertyTooShort = errors.New("property too short")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrPeerAuthenticationForObservers signals (to the network messenger) that the current received message containing bulk
+// peer authentication messages should be dropped as an observer public key was received and this wasn't checked by the processors
+// Otherwise, there is a slight change of an attack on a peer that does sync in a previous epoch.
+var ErrPeerAuthenticationForObservers = errors.New("observer key found and not checked, dropping the message")
