@@ -92,7 +92,6 @@ func (hvh *headerVersionHandler) GetVersion(epoch uint32) string {
 	return ver
 }
 
-// getMatchingVersion returns the version by providing the epoch
 func (hvh *headerVersionHandler) getMatchingVersionAndUpdateCache(epoch uint32) string {
 	version, ok := hvh.getFromCache(epoch)
 	if ok {
