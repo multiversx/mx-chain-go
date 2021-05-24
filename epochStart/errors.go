@@ -92,6 +92,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilPubkeyConverter signals that nil address converter was provided
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -107,8 +113,8 @@ var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil
 // ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
@@ -170,15 +176,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
-var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
-
-// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
-var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
-
-// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
-var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
-
 // ErrInvalidWorkingDir signals that an invalid working directory has been provided
 var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
@@ -236,6 +233,9 @@ var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrNilMetablockProcessor signals that a nil metablock processor was provided
+var ErrNilMetablockProcessor = errors.New("nil metablock processor")
+
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
 
@@ -247,9 +247,6 @@ var ErrSystemDelegationCall = errors.New("delegation system sc call returned wit
 
 // ErrExecutingSystemScCode signals that an error occurred while executing system SC code
 var ErrExecutingSystemScCode = errors.New("error executing system SC code")
-
-// ErrNilValue signals that a nil value was retrieved
-var ErrNilValue = errors.New("nil value")
 
 // ErrNilSystemVmInstance signals that a nil system VM instance was provided
 var ErrNilSystemVmInstance = errors.New("nil system VM instance")
@@ -281,8 +278,41 @@ var ErrInvalidSystemSCReturn = errors.New("invalid system sc return")
 // ErrUnStakeExecuteError signals that unstaked returned with error
 var ErrUnStakeExecuteError = errors.New("unstake execution error")
 
-// ErrInvalidNumOfKeysToUnStake signals that invalid number of keys were selected to unstake
-var ErrInvalidNumOfKeysToUnStake = errors.New("invalid number of keys to unstake")
-
 // ErrSystemValidatorSCCall signals that system validator sc call failed
 var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
+
+// ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
+var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
+
+// ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
+var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
+var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")
+
+// ErrInvalidInflationRate signals usage of an invalid inflation rate
+var ErrInvalidInflationRate = errors.New("inflation rate is invalid")
+
+// ErrInvalidAccumulatedFees signals that the accumulated fees are invalid
+var ErrInvalidAccumulatedFees = errors.New("accumulated rewards are invalid")
+
+// ErrInvalidEstimatedProtocolSustainabilityRewards signals that the estimated protocol sustainability rewards are invalid
+var ErrInvalidEstimatedProtocolSustainabilityRewards = errors.New("estimated protocol sustainability rewards are invalid")
+
+// ErrInvalidAmountMintedTokens signals that the amount of minted tokens is invalid
+var ErrInvalidAmountMintedTokens = errors.New("amount of minted tokens is invalid")
+
+// ErrInvalidTotalToDistribute signals that the computed total rewards to be distributed is invalid
+var ErrInvalidTotalToDistribute = errors.New("invalid total to distribute")
+
+// ErrInvalidRewardsPerBlock signals that the computed rewards per block are invalid
+var ErrInvalidRewardsPerBlock = errors.New("invalid rewards per block")
+
+// ErrResetLastUnJailedFromQueue signals that reset unjailed from queue failed
+var ErrResetLastUnJailedFromQueue = errors.New("reset last unjailed from queue failed")
+
+// ErrEmptyESDTOwnerAddress signals that an empty ESDT owner address was provided
+var ErrEmptyESDTOwnerAddress = errors.New("empty ESDT owner address")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")

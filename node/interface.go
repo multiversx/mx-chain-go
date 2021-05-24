@@ -13,14 +13,13 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap() error
+	Bootstrap(numSecondsToWait uint32) error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	HasTopicValidator(name string) bool
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
@@ -34,6 +33,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -47,13 +47,6 @@ type P2PAntifloodHandler interface {
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
-	IsInterfaceNil() bool
-}
-
-// Accumulator defines the interface able to accumulate data and periodically evict them
-type Accumulator interface {
-	AddData(data interface{})
-	OutputChannel() <-chan []interface{}
 	IsInterfaceNil() bool
 }
 

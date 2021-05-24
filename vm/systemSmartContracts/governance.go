@@ -38,9 +38,10 @@ type ArgsNewGovernanceContract struct {
 	Hasher                     hashing.Hasher
 	GovernanceSCAddress        []byte
 	StakingSCAddress           []byte
-	ValidatorSCAddress  []byte
+	ValidatorSCAddress         []byte
 	InitalWhiteListedAddresses [][]byte
 	EpochNotifier              vm.EpochNotifier
+	EpochConfig                config.EpochConfig
 }
 
 type governanceContract struct {
@@ -92,8 +93,9 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
-		enabledEpoch:        activeConfig.EnabledEpoch,
+		enabledEpoch:        args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
+	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
 
 	err := g.validateInitialWhiteListedAddresses(args.InitalWhiteListedAddresses)
 	if err != nil {
@@ -159,7 +161,7 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 		ProposalFee:      g.baseProposalCost,
 	}
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
-	log.LogIfError(err, "marshal error on governance init function")
+	log.LogIfError(err, "function", "governanceContract.init")
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
@@ -1278,7 +1280,7 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (g *governanceContract) EpochConfirmed(epoch uint32) {
+func (g *governanceContract) EpochConfirmed(epoch uint32, _ uint64) {
 	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }

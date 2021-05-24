@@ -18,6 +18,8 @@ type ApiTransactionResult struct {
 	Value                             string                    `json:"value,omitempty"`
 	Receiver                          string                    `json:"receiver,omitempty"`
 	Sender                            string                    `json:"sender,omitempty"`
+	SenderUsername                    []byte                    `json:"senderUsername,omitempty"`
+	ReceiverUsername                  []byte                    `json:"receiverUsername,omitempty"`
 	GasPrice                          uint64                    `json:"gasPrice,omitempty"`
 	GasLimit                          uint64                    `json:"gasLimit,omitempty"`
 	Data                              []byte                    `json:"data,omitempty"`
@@ -79,4 +81,10 @@ type ReceiptApi struct {
 	SndAddr string   `json:"sender"`
 	Data    string   `json:"data,omitempty"`
 	TxHash  string   `json:"txHash"`
+}
+
+// CostResponse is structure used to return the transaction cost in gas units
+type CostResponse struct {
+	GasUnits   uint64 `json:"txGasUnits"`
+	RetMessage string `json:"returnMessage"`
 }

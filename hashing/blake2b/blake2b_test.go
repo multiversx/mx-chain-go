@@ -5,7 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	blake2bLib "golang.org/x/crypto/blake2b"
 )
+
+func TestNewBlake2bWithSizeInvalidSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	h, err := blake2b.NewBlake2bWithSize(-2)
+	require.Nil(t, h)
+	require.Equal(t, blake2b.ErrInvalidHashSize, err)
+}
 
 func TestBlake2b_ComputeWithDifferentHashSizes(t *testing.T) {
 	t.Parallel()
@@ -18,29 +28,46 @@ func TestBlake2b_ComputeWithDifferentHashSizes(t *testing.T) {
 }
 
 func testComputeOk(t *testing.T, input string, size int) {
-	hasher := blake2b.Blake2b{HashSize: size}
+	hasher, err := blake2b.NewBlake2bWithSize(size)
+	require.NoError(t, err)
 	res := hasher.Compute(input)
 	assert.Equal(t, size, len(res))
 }
 
 func TestBlake2b_Empty(t *testing.T) {
 
-	hasher := &blake2b.Blake2b{HashSize: 64}
+	hasher, err := blake2b.NewBlake2bWithSize(64)
+	require.NoError(t, err)
 
 	var nilStr string
-	res_nil := hasher.Compute(nilStr)
-	assert.Equal(t, 64, len(res_nil))
+	resNil := hasher.Compute(nilStr)
+	assert.Equal(t, 64, len(resNil))
 
-	res_empty := hasher.Compute("")
-	assert.Equal(t, 64, len(res_empty))
+	resEmpty := hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, res_empty, res_nil)
+	assert.Equal(t, resEmpty, resNil)
 
 	// force recompute
-	hasher = &blake2b.Blake2b{HashSize: 64}
+	hasher, _ = blake2b.NewBlake2bWithSize(64)
 
-	res_empty = hasher.Compute("")
-	assert.Equal(t, 64, len(res_empty))
+	resEmpty = hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, res_empty, res_nil)
+	resEmpty = hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
+
+	assert.Equal(t, resEmpty, resNil)
+}
+
+func TestBlake2b_Size(t *testing.T) {
+	t.Parallel()
+
+	h1 := blake2b.NewBlake2b()
+	require.Equal(t, blake2bLib.Size256, h1.Size())
+
+	customSize := 37
+	h2, err := blake2b.NewBlake2bWithSize(customSize)
+	require.NoError(t, err)
+	require.Equal(t, customSize, h2.Size())
 }

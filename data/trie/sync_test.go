@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
@@ -14,19 +15,138 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createMockArgument() ArgTrieSyncer {
+	return ArgTrieSyncer{
+		RequestHandler:                 &mock.RequestHandlerStub{},
+		InterceptedNodes:               testscommon.NewCacherMock(),
+		DB:                             mock.NewMemDbMock(),
+		Hasher:                         mock.HasherMock{},
+		Marshalizer:                    &mock.MarshalizerMock{},
+		ShardId:                        0,
+		Topic:                          "topic",
+		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
+		TimeoutBetweenTrieNodesCommits: minTimeoutBetweenNodesCommits,
+		MaxHardCapForMissingNodes:      500,
+	}
+}
+
+func TestNewTrieSyncer_NilRequestHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.RequestHandler = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.Equal(t, err, ErrNilRequestHandler)
+}
+
+func TestNewTrieSyncer_NilInterceptedNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.InterceptedNodes = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.Equal(t, err, data.ErrNilCacher)
+}
+
+func TestNewTrieSyncer_EmptyTopicShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Topic = ""
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.Equal(t, err, ErrInvalidTrieTopic)
+}
+
+func TestNewTrieSyncer_NilTrieStatisticsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TrieSyncStatistics = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.Equal(t, err, ErrNilTrieSyncStatistics)
+}
+
+func TestNewTrieSyncer_NilDatabaseShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.DB = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.True(t, errors.Is(err, ErrNilDatabase))
+}
+
+func TestNewTrieSyncer_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Marshalizer = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.True(t, errors.Is(err, ErrNilMarshalizer))
+}
+
+func TestNewTrieSyncer_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.Hasher = nil
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.True(t, errors.Is(err, ErrNilHasher))
+}
+
+func TestNewTrieSyncer_InvalidTimeoutBetweenTrieNodesCommitsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TimeoutBetweenTrieNodesCommits = time.Duration(0)
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.True(t, errors.Is(err, ErrInvalidTimeout))
+}
+
+func TestNewTrieSyncer_InvalidMaxHardCapForMissingNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.MaxHardCapForMissingNodes = 0
+
+	ts, err := NewTrieSyncer(arg)
+	assert.True(t, check.IfNil(ts))
+	assert.True(t, errors.Is(err, ErrInvalidMaxHardCapForMissingNodes))
+}
+
+func TestNewTrieSyncer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+
+	ts, err := NewTrieSyncer(arg)
+	assert.False(t, check.IfNil(ts))
+	assert.Nil(t, err)
+}
+
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
 	t.Parallel()
 
 	marshalizer, hasher := getTestMarshalizerAndHasher()
-	arg := ArgTrieSyncer{
-		RequestHandler:                 &mock.RequestHandlerStub{},
-		InterceptedNodes:               testscommon.NewCacherMock(),
-		Trie:                           &patriciaMerkleTrie{},
-		ShardId:                        0,
-		Topic:                          "trieNodes",
-		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
-		TimeoutBetweenTrieNodesCommits: time.Second * 10,
-	}
+	arg := createMockArgument()
+	arg.TimeoutBetweenTrieNodesCommits = time.Second * 10
+	arg.MaxHardCapForMissingNodes = 500
+
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
@@ -54,21 +174,8 @@ func TestTrieSync_InterceptedNodeTimedOut(t *testing.T) {
 	t.Parallel()
 
 	timeout := time.Second * 2
-	arg := ArgTrieSyncer{
-		RequestHandler:   &mock.RequestHandlerStub{},
-		InterceptedNodes: testscommon.NewCacherMock(),
-		Trie: &patriciaMerkleTrie{
-			trieStorage: &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return mock.NewMemDbMock()
-				},
-			},
-		},
-		ShardId:                        0,
-		Topic:                          "trieNodes",
-		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
-		TimeoutBetweenTrieNodesCommits: timeout,
-	}
+	arg := createMockArgument()
+	arg.TimeoutBetweenTrieNodesCommits = timeout
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
@@ -94,27 +201,17 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	err = bn.commit(true, 2, 2, db, db)
 	require.Nil(t, err)
 
-	arg := ArgTrieSyncer{
-		RequestHandler: &mock.RequestHandlerStub{
-			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
-				assert.Fail(t, "should have not requested trie nodes")
-			},
+	arg := createMockArgument()
+	arg.RequestHandler = &mock.RequestHandlerStub{
+		RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
+			assert.Fail(t, "should have not requested trie nodes")
 		},
-		InterceptedNodes: testscommon.NewCacherMock(),
-		Trie: &patriciaMerkleTrie{
-			trieStorage: &mock.StorageManagerStub{
-				DatabaseCalled: func() data.DBWriteCacher {
-					return db
-				},
-			},
-			marshalizer: marshalizer,
-			hasher:      hasher,
-		},
-		ShardId:                        0,
-		Topic:                          "trieNodes",
-		TrieSyncStatistics:             statistics.NewTrieSyncStatistics(),
-		TimeoutBetweenTrieNodesCommits: timeout,
 	}
+	arg.DB = db
+	arg.Marshalizer = marshalizer
+	arg.Hasher = hasher
+	arg.TimeoutBetweenTrieNodesCommits = timeout
+
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 

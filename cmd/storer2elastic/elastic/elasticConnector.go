@@ -3,12 +3,12 @@ package elastic
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader/disabled"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -56,7 +56,7 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 }
 
 // Create will create and return a new indexer database handler
-func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
+func (escf *elasticSearchConnectorFactory) Create() (dataprocessor.StorageDataIndexer, error) {
 	indexerFactoryArgs := &factory.ArgsIndexerFactory{
 		Url:                      escf.elasticConfig.URL,
 		IndexerCacheSize:         100,
@@ -68,10 +68,8 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
 		NodesCoordinator:         disabled.NewNodesCoordinator(),
 		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
-		Options: &indexer.Options{
-			UseKibana: false,
-		},
-		EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
+		UseKibana:                false,
+		EnabledIndexes:           []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 	}
 
 	return factory.NewIndexer(indexerFactoryArgs)

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.SubroundHandler = (*Subround)(nil)
@@ -51,6 +50,7 @@ func NewSubround(
 	container ConsensusCoreHandler,
 	chainID []byte,
 	currentPid core.PeerID,
+	appStatusHandler core.AppStatusHandler,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
@@ -58,6 +58,7 @@ func NewSubround(
 		executeStoredMessages,
 		container,
 		chainID,
+		appStatusHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func NewSubround(
 		Job:                          nil,
 		Check:                        nil,
 		Extend:                       nil,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		appStatusHandler:             appStatusHandler,
 		currentPid:                   currentPid,
 	}
 
@@ -91,6 +92,7 @@ func checkNewSubroundParams(
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
 	chainID []byte,
+	appStatusHandler core.AppStatusHandler,
 ) error {
 	err := ValidateConsensusCore(container)
 	if err != nil {
@@ -108,6 +110,9 @@ func checkNewSubroundParams(
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
 	}
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
 
 	return nil
 }
@@ -115,7 +120,7 @@ func checkNewSubroundParams(
 // DoWork method actually does the work of this Subround. First it tries to do the Job of the Subround then it will
 // Check the consensus. If the upper time limit of this Subround is reached, the Extend method will be called before
 // returning. If this method returns true the chronology will advance to the next Subround.
-func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
+func (sr *Subround) DoWork(roundHandler consensus.RoundHandler) bool {
 	if sr.Job == nil || sr.Check == nil {
 		return false
 	}
@@ -123,8 +128,8 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 	// execute stored messages which were received in this new round but before this initialisation
 	go sr.executeStoredMessages()
 
-	startTime := rounder.TimeStamp()
-	maxTime := rounder.TimeDuration() * MaxThresholdPercent / 100
+	startTime := roundHandler.TimeStamp()
+	maxTime := roundHandler.TimeDuration() * MaxThresholdPercent / 100
 
 	sr.Job()
 	if sr.Check() {
@@ -137,7 +142,7 @@ func (sr *Subround) DoWork(rounder consensus.Rounder) bool {
 			if sr.Check() {
 				return true
 			}
-		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
+		case <-time.After(roundHandler.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
 				sr.RoundCanceled = true
 				sr.Extend(sr.current)
@@ -186,16 +191,6 @@ func (sr *Subround) ChainID() []byte {
 // CurrentPid returns the current p2p peer ID
 func (sr *Subround) CurrentPid() core.PeerID {
 	return sr.currentPid
-}
-
-// SetAppStatusHandler method sets appStatusHandler
-func (sr *Subround) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-	sr.appStatusHandler = ash
-
-	return nil
 }
 
 // AppStatusHandler method returns the appStatusHandler instance

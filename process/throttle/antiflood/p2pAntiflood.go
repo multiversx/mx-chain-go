@@ -74,7 +74,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	if lastErrFound != nil {
 		af.recordDebugEvent(
 			fromConnectedPeer,
-			message.Topics(),
+			message.Topic(),
 			1,
 			uint64(len(message.Data())),
 			message.SeqNo(),
@@ -86,7 +86,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	originatorIsBlacklisted := af.blacklistHandler.Has(message.Peer())
 	if originatorIsBlacklisted {
-		af.recordDebugEvent(message.Peer(), message.Topics(), 1, uint64(len(message.Data())), message.SeqNo(), true)
+		af.recordDebugEvent(message.Peer(), message.Topic(), 1, uint64(len(message.Data())), message.SeqNo(), true)
 		return fmt.Errorf("%w for pid %s", process.ErrOriginatorIsBlacklisted, message.Peer().Pretty())
 	}
 
@@ -134,15 +134,15 @@ func (af *p2pAntiflood) SetPeerValidatorMapper(validatorMapper process.PeerValid
 	return nil
 }
 
-func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool) {
-	if len(topics) == 0 {
-		topics = []string{unidentifiedTopic}
+func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool) {
+	if len(topic) == 0 {
+		topic = unidentifiedTopic
 	}
 
 	af.mutDebugger.RLock()
 	defer af.mutDebugger.RUnlock()
 
-	af.debugger.AddData(pid, topics[0], numRejected, sizeRejected, sequence, isBlacklisted)
+	af.debugger.AddData(pid, topic, numRejected, sizeRejected, sequence, isBlacklisted)
 }
 
 func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -189,7 +189,7 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer core.PeerID, topic string
 			"topic", topic,
 		)
 
-		af.recordDebugEvent(peer, []string{topic}, numMessages, totalSize, sequence, af.blacklistHandler.Has(peer))
+		af.recordDebugEvent(peer, topic, numMessages, totalSize, sequence, af.blacklistHandler.Has(peer))
 
 		return fmt.Errorf("%w in p2pAntiflood for connected peer %s",
 			err,
@@ -224,6 +224,7 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 	}
 
 	af.mutDebugger.Lock()
+	log.LogIfError(af.debugger.Close())
 	af.debugger = debugger
 	af.mutDebugger.Unlock()
 
@@ -255,7 +256,6 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 }
 
 // Close will call the close function on all sub components
-// TODO call this after the large components managers will be implemented
 func (af *p2pAntiflood) Close() error {
 	return af.debugger.Close()
 }

@@ -58,6 +58,9 @@ var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 // ErrNilHeadersSubscriber is raised when a valid headers subscriber is expected but nil is provided
 var ErrNilHeadersSubscriber = errors.New("headers subscriber is nil")
 
+// ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is provided
+var ErrNilAlarmScheduler = errors.New("alarm scheduler is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
@@ -91,8 +94,8 @@ var ErrNilParameter = errors.New("parameter is nil")
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
-// ErrNilRounder is raised when a valid rounder is expected but nil used
-var ErrNilRounder = errors.New("rounder is nil")
+// ErrNilRoundHandler is raised when a valid roundHandler is expected but nil used
+var ErrNilRoundHandler = errors.New("roundHandler is nil")
 
 // ErrNilSyncTimer is raised when a valid sync timer is expected but nil used
 var ErrNilSyncTimer = errors.New("sync timer is nil")
@@ -213,3 +216,6 @@ var ErrMessageTypeLimitReached = errors.New("consensus message type limit has be
 
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
+// ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")

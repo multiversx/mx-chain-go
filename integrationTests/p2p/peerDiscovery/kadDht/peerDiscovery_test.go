@@ -22,7 +22,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 
 	//Step 1. Create advertiser
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
@@ -30,7 +30,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	for i := 0; i < numOfPeers; i++ {
 		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 
-		_ = peers[i].Bootstrap()
+		_ = peers[i].Bootstrap(0)
 	}
 
 	//cleanup function that closes all messengers
@@ -77,11 +77,11 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	//Step 1. Create 3 advertisers and connect them together
 	advertisers := make([]p2p.Messenger, numOfAdvertisers)
 	advertisers[0] = integrationTests.CreateMessengerWithKadDht("")
-	_ = advertisers[0].Bootstrap()
+	_ = advertisers[0].Bootstrap(0)
 
 	for idx := 1; idx < numOfAdvertisers; idx++ {
 		advertisers[idx] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[0]))
-		_ = advertisers[idx].Bootstrap()
+		_ = advertisers[idx].Bootstrap(0)
 	}
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
@@ -89,7 +89,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	for i := 0; i < numOfPeers; i++ {
 		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[i%numOfAdvertisers]))
-		_ = peers[i].Bootstrap()
+		_ = peers[i].Bootstrap(0)
 	}
 
 	//cleanup function that closes all messengers
@@ -133,7 +133,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	protocolID1 := "/erd/kad/1.0.0"
 	protocolID2 := "/amony/kad/0.0.0"
@@ -154,7 +154,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 	peers := []p2p.Messenger{peer1, peer2, peer3}
 
 	for _, peer := range peers {
-		_ = peer.Bootstrap()
+		_ = peer.Bootstrap(0)
 	}
 
 	//cleanup function that closes all messengers
@@ -193,14 +193,10 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.SimpleMessageProcessor {
 	processors := make([]*peerDiscovery.SimpleMessageProcessor, 0, len(peers))
 	for _, peer := range peers {
-		if peer.HasTopicValidator(topic) {
-			_ = peer.UnregisterMessageProcessor(topic)
-		}
-
 		proc := &peerDiscovery.SimpleMessageProcessor{}
 		processors = append(processors, proc)
 
-		err := peer.RegisterMessageProcessor(topic, proc)
+		err := peer.RegisterMessageProcessor(topic, "test", proc)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

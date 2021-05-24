@@ -1,31 +1,40 @@
 [BuiltInCost]
-    ChangeOwnerAddress    = 5000000
-    ClaimDeveloperRewards = 5000000
-    SaveUserName          = 5000000
-    SaveKeyValue          = 250000
-    ESDTTransfer          = 250000
-    ESDTBurn              = 250000
+    ChangeOwnerAddress       = 5000000
+    ClaimDeveloperRewards    = 5000000
+    SaveUserName             = 5000000
+    SaveKeyValue             = 250000
+    ESDTTransfer             = 250000
+    ESDTBurn                 = 250000
+    ESDTLocalMint            = 250000
+    ESDTLocalBurn            = 250000
+    ESDTNFTCreate            = 500000
+    ESDTNFTAddQuantity       = 500000
+    ESDTNFTBurn              = 500000
+    ESDTNFTTransfer          = 500000
+    ESDTNFTChangeCreateOwner = 1000000
 
 [MetaChainSystemSCsCost]
-    Stake               = 5000000
-    UnStake             = 5000000
-    UnBond              = 5000000
-    Claim               = 5000000
-    Get                 = 5000000
-    ChangeRewardAddress = 5000000
-    ChangeValidatorKeys = 5000000
-    UnJail              = 5000000
-    ESDTIssue           = 50000000
-    ESDTOperations      = 50000000
-    Proposal            = 5000000
-    Vote                = 500000
-    DelegateVote        = 1000000
-    RevokeVote          = 500000
-    CloseProposal       = 1000000
-    DelegationOps       = 1000000
-    UnstakeTokens       = 5000000
-    UnbondTokens        = 5000000
-    DelegationMgrOps    = 50000000
+    Stake                 = 5000000
+    UnStake               = 5000000
+    UnBond                = 5000000
+    Claim                 = 5000000
+    Get                   = 5000000
+    ChangeRewardAddress   = 5000000
+    ChangeValidatorKeys   = 5000000
+    UnJail                = 5000000
+    ESDTIssue             = 50000000
+    ESDTOperations        = 50000000
+    Proposal              = 5000000
+    Vote                  = 500000
+    DelegateVote          = 1000000
+    RevokeVote            = 500000
+    CloseProposal         = 1000000
+    DelegationOps         = 1000000
+    UnstakeTokens         = 5000000
+    UnbondTokens          = 5000000
+    DelegationMgrOps      = 50000000
+    ValidatorToDelegation = 500000000
+    GetAllNodeStates      = 100000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
@@ -34,6 +43,7 @@
     PersistPerByte    = 10000
     CompilePerByte    = 300
     AoTPreparePerByte = 50
+    GetCode           = 100000
 
 [ElrondAPICost]
     GetSCAddress       = 100

@@ -726,7 +726,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	collapsedTrie, _ := tr.Recreate(rootHash)
 
 	err := collapsedTrie.Delete([]byte("doe"))
@@ -1050,4 +1050,71 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
+}
+
+func TestExtensionNode_getNextHashAndKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Equal(t, collapsedEn.EncodedChild, nextHash)
+	assert.Equal(t, []byte{}, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey(nil)
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
+	t.Parallel()
+
+	var collapsedEn *extensionNode
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_GetNumNodesNilSelfShouldErr(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	numNodes := en.getNumNodes()
+
+	assert.Equal(t, data.NumNodesDTO{}, numNodes)
+}
+
+func TestExtensionNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var en *extensionNode
+	assert.Equal(t, 0, en.sizeInBytes())
+
+	collapsed := []byte("collapsed")
+	key := []byte("key")
+	hash := []byte("hash")
+	en = &extensionNode{
+		CollapsedEn: CollapsedEn{
+			Key:          key,
+			EncodedChild: collapsed,
+		},
+		child: nil,
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }

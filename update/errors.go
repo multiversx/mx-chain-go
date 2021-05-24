@@ -50,6 +50,12 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
+// ErrNilCoreComponents signals that an operation has been attempted with nil core components
+var ErrNilCoreComponents = errors.New("nil core components")
+
+// ErrNilCryptoComponents signals that an operation has been attempted with nil crypto components
+var ErrNilCryptoComponents = errors.New("nil crypto components")
+
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
@@ -127,9 +133,6 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 
 // ErrNilValidityAttester signals that nil validity was provided
 var ErrNilValidityAttester = errors.New("nil validity attester")
-
-// ErrInvalidWaitTime signals that nil provided wait time is invalid
-var ErrInvalidWaitTime = errors.New("invalid wait time")
 
 // ErrNilStorageManager signals that nil storage manager has been provided
 var ErrNilStorageManager = errors.New("nil trie storage manager")
@@ -268,3 +271,9 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 
 // ErrInvalidMiniBlockType signals that an invalid miniBlock type has been provided
 var ErrInvalidMiniBlockType = errors.New("invalid miniBlock type")
+
+// ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
+var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrInvalidNumConcurrentTrieSyncers signals that the number of concurrent trie syncers is invalid
+var ErrInvalidNumConcurrentTrieSyncers = errors.New("invalid num concurrent trie syncers")

@@ -31,9 +31,6 @@ var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrEmptyTopicList signals that a message with empty topic ids has been received
-var ErrEmptyTopicList = errors.New("empty topicIDs")
-
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 
@@ -143,3 +140,12 @@ var ErrUnsupportedMessageVersion = errors.New("unsupported message version")
 
 // ErrNilSyncTimer signals that a nil sync timer was provided
 var ErrNilSyncTimer = errors.New("nil sync timer")
+
+// ErrInvalidSeedersReconnectionInterval signals that an invalid seeders reconnection interval error occurred
+var ErrInvalidSeedersReconnectionInterval = errors.New("invalid seeders reconnection interval")
+
+// ErrMessageProcessorAlreadyDefined signals that a message processor was already defined on the provided topic and identifier
+var ErrMessageProcessorAlreadyDefined = errors.New("message processor already defined")
+
+// ErrMessageProcessorDoesNotExists signals that a message processor does not exist on the provided topic and identifier
+var ErrMessageProcessorDoesNotExists = errors.New("message processor does not exists")

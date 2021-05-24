@@ -1,7 +1,9 @@
 package factory
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -16,11 +18,10 @@ const currentPid = core.PeerID("current pid")
 func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	cfg := config.Config{}
-	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, nil, currentPid)
-	assert.Nil(t, af)
-	assert.Nil(t, pids)
-	assert.Nil(t, pks)
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, nil, currentPid)
+	assert.Nil(t, components)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
 
@@ -33,15 +34,14 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 		},
 	}
 	ash := &mock.AppStatusHandlerMock{}
-	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
-	assert.NotNil(t, af)
-	assert.NotNil(t, pids)
-	assert.NotNil(t, pks)
+	ctx := context.Background()
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
+	assert.NotNil(t, components)
 	assert.Nil(t, err)
 
-	_, ok1 := af.(*disabled.AntiFlood)
-	_, ok2 := pids.(*disabled.PeerBlacklistCacher)
-	_, ok3 := pks.(*disabled.TimeCache)
+	_, ok1 := components.AntiFloodHandler.(*disabled.AntiFlood)
+	_, ok2 := components.BlacklistHandler.(*disabled.PeerBlacklistCacher)
+	_, ok3 := components.PubKeysCacher.(*disabled.TimeCache)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 	assert.True(t, ok3)
@@ -67,12 +67,17 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 		},
 	}
 
-	ash := &mock.AppStatusHandlerMock{}
-	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
+	ash := mock.NewAppStatusHandlerMock()
+	ctx := context.Background()
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
 	assert.Nil(t, err)
-	assert.NotNil(t, af)
-	assert.NotNil(t, pids)
-	assert.NotNil(t, pks)
+	assert.NotNil(t, components.AntiFloodHandler)
+	assert.NotNil(t, components.BlacklistHandler)
+	assert.NotNil(t, components.PubKeysCacher)
+
+	// we need this time sleep as to allow the code coverage tool to deterministically compute the code coverage
+	//on the go routines that are automatically launched
+	time.Sleep(time.Second * 2)
 }
 
 func createFloodPreventerConfig() config.FloodPreventerConfig {

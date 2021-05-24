@@ -7,9 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
@@ -91,7 +91,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_NothingToIndexShoul
 	indexWasCalled := false
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -111,7 +111,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_UnmarshalPeerErrorS
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -132,7 +132,7 @@ func TestRatingsProcessor_IndexRatingsForGenesisMetaBlock_ShouldWork(t *testing.
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -161,7 +161,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testi
 
 	args := getRatingsProcessorArgs()
 	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []*indexer.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}

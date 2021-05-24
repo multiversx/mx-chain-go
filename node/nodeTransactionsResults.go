@@ -8,10 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/node/filters"
 )
 
 func (n *Node) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	resultsHashes, err := n.historyRepository.GetResultsHashesByTxHash(hash, epoch)
+	resultsHashes, err := n.processComponents.HistoryRepository().GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
 		return
 	}
@@ -36,14 +37,14 @@ func (n *Node) putReceiptInTransaction(tx *transaction.ApiTransactionResult, rec
 }
 
 func (n *Node) getReceiptFromStorage(hash []byte, epoch uint32) (*receipt.Receipt, error) {
-	receiptsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	receiptsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
 	receiptBytes, err := receiptsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
 
 	rec := &receipt.Receipt{}
-	err = n.internalMarshalizer.Unmarshal(rec, receiptBytes)
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(rec, receiptBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func (n *Node) getReceiptFromStorage(hash []byte, epoch uint32) (*receipt.Receip
 func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
 	return &transaction.ReceiptApi{
 		Value:   rcpt.Value,
-		SndAddr: n.addressPubkeyConverter.Encode(rcpt.SndAddr),
+		SndAddr: n.coreComponents.AddressPubKeyConverter().Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),
 		TxHash:  hex.EncodeToString(rcpt.TxHash),
 	}
@@ -77,17 +78,20 @@ func (n *Node) putSmartContractResultsInTransaction(
 			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
 		}
 	}
+
+	statusFilters := filters.NewStatusFilters(n.processComponents.ShardCoordinator().SelfId())
+	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 }
 
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
 	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
 
 	scr := &smartContractResult.SmartContractResult{}
-	err = n.internalMarshalizer.Unmarshal(scr, scrBytes)
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(scr, scrBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -112,20 +116,21 @@ func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult
 		ReturnMessage:  string(scr.ReturnMessage),
 	}
 
+	adressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	if len(scr.SndAddr) != 0 {
-		apiSCR.SndAddr = n.addressPubkeyConverter.Encode(scr.SndAddr)
+		apiSCR.SndAddr = adressPubKeyConverter.Encode(scr.SndAddr)
 	}
 
 	if len(scr.RcvAddr) != 0 {
-		apiSCR.RcvAddr = n.addressPubkeyConverter.Encode(scr.RcvAddr)
+		apiSCR.RcvAddr = adressPubKeyConverter.Encode(scr.RcvAddr)
 	}
 
 	if len(scr.RelayerAddr) != 0 {
-		apiSCR.RelayerAddr = n.addressPubkeyConverter.Encode(scr.RelayerAddr)
+		apiSCR.RelayerAddr = adressPubKeyConverter.Encode(scr.RelayerAddr)
 	}
 
 	if len(scr.OriginalSender) != 0 {
-		apiSCR.OriginalSender = n.addressPubkeyConverter.Encode(scr.OriginalSender)
+		apiSCR.OriginalSender = adressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
 	return apiSCR

@@ -3,7 +3,7 @@ package hooks
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"golang.org/x/crypto/ripemd160"
+	"golang.org/x/crypto/ripemd160" //nolint TODO:deprecated
 )
 
 // VMCryptoHook is a wrapper used in vm implementation
@@ -17,12 +17,12 @@ func NewVMCryptoHook() *VMCryptoHook {
 
 // Sha256 returns a sha 256 hash of the input string. Should return in hex format.
 func (vmch *VMCryptoHook) Sha256(data []byte) ([]byte, error) {
-	return sha256.Sha256{}.Compute(string(data)), nil
+	return sha256.NewSha256().Compute(string(data)), nil
 }
 
 // Keccak256 returns a keccak 256 hash of the input string. Should return in hex format.
 func (vmch *VMCryptoHook) Keccak256(data []byte) ([]byte, error) {
-	return keccak.Keccak{}.Compute(string(data)), nil
+	return keccak.NewKeccak().Compute(string(data)), nil
 }
 
 // Ripemd160 is a legacy hash and should not be used for new applications

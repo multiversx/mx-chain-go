@@ -485,7 +485,7 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	root, _ := tr.Root()
+	root, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 
@@ -574,7 +574,7 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	tr.CancelPrune(rootHashes[0], data.NewRoot)
+	tr.GetStorageManager().CancelPrune(rootHashes[0], data.NewRoot)
 	finalizeTrieState(t, 1, tr, rootHashes)
 	finalizeTrieState(t, 2, tr, rootHashes)
 	rollbackTrieState(t, 3, tr, rootHashes)
@@ -584,8 +584,10 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 }
 
 func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	tr.Prune(rootHashes[index-1], data.OldRoot)
-	tr.CancelPrune(rootHashes[index], data.NewRoot)
+	storageManager := tr.GetStorageManager()
+
+	storageManager.Prune(rootHashes[index-1], data.OldRoot)
+	storageManager.CancelPrune(rootHashes[index], data.NewRoot)
 	time.Sleep(pruningDelay)
 
 	_, err := tr.Recreate(rootHashes[index-1])
@@ -593,8 +595,10 @@ func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byt
 }
 
 func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	tr.Prune(rootHashes[index], data.NewRoot)
-	tr.CancelPrune(rootHashes[index-1], data.OldRoot)
+	storageManager := tr.GetStorageManager()
+
+	storageManager.Prune(rootHashes[index], data.NewRoot)
+	storageManager.CancelPrune(rootHashes[index-1], data.OldRoot)
 	time.Sleep(pruningDelay)
 
 	_, err := tr.Recreate(rootHashes[index])
@@ -666,10 +670,10 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 
-	rootHash, _ := tr.Root()
-	tr.TakeSnapshot(rootHash)
+	rootHash, _ := tr.RootHash()
+	tsm.TakeSnapshot(rootHash)
 	time.Sleep(snapshotDelay * 2)
-	tr.Prune(rootHash, data.NewRoot)
+	tsm.Prune(rootHash, data.NewRoot)
 
 	val, err := tsm.db.Get(rootHash)
 	assert.Nil(t, val)
@@ -679,8 +683,8 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	newPmt, _ := newTr.(*patriciaMerkleTrie)
 	newTsm, _ := newPmt.trieStorage.(*trieStorageManager)
 
-	assert.True(t, newTr.Database() != newTsm.snapshots[0])
-	val, err = newTr.Database().Get(rootHash)
+	assert.True(t, tsm.Database() != newTsm.snapshots[0])
+	val, err = tsm.Database().Get(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 }

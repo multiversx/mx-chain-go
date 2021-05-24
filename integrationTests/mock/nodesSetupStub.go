@@ -2,21 +2,26 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/sharding"
 
+// NodesSetupStub -
 type NodesSetupStub struct {
-	InitialNodesInfoForShardCalled       func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	GetStartTimeCalled                   func() int64
-	GetRoundDurationCalled               func() uint64
-	GetChainIdCalled                     func() string
-	GetMinTransactionVersionCalled       func() uint32
-	GetShardConsensusGroupSizeCalled     func() uint32
-	GetMetaConsensusGroupSizeCalled      func() uint32
-	NumberOfShardsCalled                 func() uint32
-	MinNumberOfNodesCalled               func() uint32
-	MinNumberOfShardNodesCalled          func() uint32
-	MinNumberOfMetaNodesCalled           func() uint32
-	GetHysteresisCalled                  func() float32
-	GetAdaptivityCalled                  func() bool
+	InitialNodesInfoForShardCalled            func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled                    func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	GetStartTimeCalled                        func() int64
+	GetRoundDurationCalled                    func() uint64
+	GetChainIdCalled                          func() string
+	GetMinTransactionVersionCalled            func() uint32
+	GetShardConsensusGroupSizeCalled          func() uint32
+	GetMetaConsensusGroupSizeCalled           func() uint32
+	NumberOfShardsCalled                      func() uint32
+	MinNumberOfNodesCalled                    func() uint32
+	MinNumberOfShardNodesCalled               func() uint32
+	MinNumberOfMetaNodesCalled                func() uint32
+	GetHysteresisCalled                       func() float32
+	GetAdaptivityCalled                       func() bool
+	AllInitialNodesCalled                     func() []sharding.GenesisNodeInfoHandler
+	GetShardIDForPubKeyCalled                 func(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShardCalled func(shardId uint32) ([]string, error)
+	InitialNodesPubKeysCalled                 func() map[uint32][]string
 	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
@@ -61,7 +66,7 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	if n.MinNumberOfNodesCalled != nil {
 		return n.MinNumberOfNodesCalled()
 	}
-	return 2
+	return 0
 }
 
 // GetStartTime -
@@ -136,7 +141,41 @@ func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeIn
 	return nil, nil
 }
 
-// MinNumberOfNodesWithHysteresis
+// AllInitialNodes -
+func (n *NodesSetupStub) AllInitialNodes() []sharding.GenesisNodeInfoHandler {
+	if n.AllInitialNodesCalled != nil {
+		return n.AllInitialNodesCalled()
+	}
+	return nil
+}
+
+// GetShardIDForPubKey -
+func (n *NodesSetupStub) GetShardIDForPubKey(pubkey []byte) (uint32, error) {
+	if n.GetShardIDForPubKeyCalled != nil {
+		return n.GetShardIDForPubKeyCalled(pubkey)
+	}
+	return 0, nil
+}
+
+// InitialEligibleNodesPubKeysForShard -
+func (n *NodesSetupStub) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	if n.InitialEligibleNodesPubKeysForShardCalled != nil {
+		return n.InitialEligibleNodesPubKeysForShardCalled(shardId)
+	}
+
+	return []string{"val1", "val2"}, nil
+}
+
+// InitialNodesPubKeys -
+func (n *NodesSetupStub) InitialNodesPubKeys() map[uint32][]string {
+	if n.InitialNodesPubKeysCalled != nil {
+		return n.InitialNodesPubKeysCalled()
+	}
+
+	return map[uint32][]string{0: {"val1", "val2"}}
+}
+
+// MinNumberOfNodesWithHysteresis -
 func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 	if n.MinNumberOfNodesWithHysteresisCalled != nil {
 		return n.MinNumberOfNodesWithHysteresisCalled()

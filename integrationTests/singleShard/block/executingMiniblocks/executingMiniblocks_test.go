@@ -28,27 +28,24 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 4
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	connectableNodes := make([]integrationTests.Connectable, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+		connectableNodes[i] = nodes[i]
 	}
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposer := 0
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -95,28 +92,24 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
+	connectableNodes := make([]integrationTests.Connectable, numOfNodes)
 	for i := 0; i < numOfNodes; i++ {
-		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0, advertiserAddr)
+		nodes[i] = integrationTests.NewTestProcessorNode(maxShards, 0, 0)
+		connectableNodes[i] = nodes[i]
 	}
+
+	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposer := 0
 	proposer := nodes[idxProposer]
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
-
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

@@ -38,17 +38,13 @@ export NODE_NICENESS=10
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
-export NODE_WATCHER=1
+export NODE_WATCHER=0
 
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=60
-
-# Types of keys to generate
-export TX_SIGN_FORMAT="bech32"
-export BLOCK_SIGN_FORMAT="hex"
 
 export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stake
 
@@ -68,6 +64,9 @@ export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# HYSTERESIS defines the hysteresis value for number of nodes in shard
+export HYSTERESIS=0.2
 
 # ALWAYS_NEW_APP_VERSION will set a new version each time the node will be compiled
 export ALWAYS_NEW_APP_VERSION=0
@@ -167,6 +166,9 @@ fi
 # Leave unchanged.
 let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
 export TOTAL_OBSERVERCOUNT=$total_observer_count
+
+# to enable the full archive feature on the observers, please use the --full-archive flag
+export EXTRA_OBSERVERS_FLAGS=""
 
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"

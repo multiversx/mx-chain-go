@@ -182,8 +182,7 @@ func TestBaseRewardsCreator_ProtocolSustainabilityAddressInMetachainShouldErr(t 
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	var err error
-	args.ShardCoordinator, err = sharding.NewMultiShardCoordinator(2, 0)
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
 	// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
 	args.ProtocolSustainabilityAddress = hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
 
@@ -251,11 +250,12 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
 	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	require.Nil(t, err)
 
 	found := false
 	for _, mb := range mbSlice {
 		for _, txHash := range mb.TxHashes {
-			if bytes.Compare(txHash, protRwTxHash) == 0 {
+			if bytes.Equal(txHash, protRwTxHash) {
 				found = true
 			}
 		}
@@ -891,16 +891,16 @@ func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
 	}
 
 	rwInfo := &rewardInfoData{
-		accumulatedFees: big.NewInt(100),
-		address:         "addressRewards",
-		protocolRewards: big.NewInt(1000),
+		accumulatedFees:     big.NewInt(100),
+		address:             "addressRewards",
+		rewardsFromProtocol: big.NewInt(1000),
 	}
 
 	rwTx, rwTxHash, err := rwd.createRewardFromRwdInfo(rwInfo, metaBlk)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.NotNil(t, rwTxHash)
-	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.protocolRewards), rwTx.Value)
+	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.rewardsFromProtocol), rwTx.Value)
 }
 
 func TestBaseRewardsCreator_initializeRewardsMiniBlocks(t *testing.T) {
@@ -918,90 +918,6 @@ func TestBaseRewardsCreator_initializeRewardsMiniBlocks(t *testing.T) {
 		require.Equal(t, block.RewardsBlock, mb.Type)
 		require.Equal(t, 0, len(mb.TxHashes))
 	}
-}
-
-func TestBaseRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	rwd, err := NewBaseRewardsCreator(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	initialProtRewardValue := big.NewInt(1000000)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
-	protRwTx := &rewardTx.RewardTx{
-		Round:   100,
-		Value:   big.NewInt(0).Set(initialProtRewardValue),
-		RcvAddr: protRwAddr,
-		Epoch:   1,
-	}
-
-	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
-	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
-
-	dust := big.NewInt(1000)
-	rwd.adjustProtocolSustainabilityRewards(protRwTx, dust)
-	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
-	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
-}
-
-func TestBaseRewardsCreator_adjustProtocolSustainabilityRewardsNegValueNotAccepted(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	rwd, err := NewBaseRewardsCreator(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	initialProtRewardValue := big.NewInt(10)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
-	protRwTx := &rewardTx.RewardTx{
-		Round:   100,
-		Value:   big.NewInt(0).Set(initialProtRewardValue),
-		RcvAddr: protRwAddr,
-		Epoch:   1,
-	}
-
-	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
-	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
-
-	dust := big.NewInt(-10)
-	rwd.adjustProtocolSustainabilityRewards(protRwTx, dust)
-	require.Zero(t, protRwTx.Value.Cmp(initialProtRewardValue))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
-	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
-}
-
-func TestBaseRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	rwd, err := NewBaseRewardsCreator(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
-	protRwTx := &rewardTx.RewardTx{
-		Round:   100,
-		Value:   big.NewInt(0).Set(initialProtRewardValue),
-		RcvAddr: protRwAddr,
-		Epoch:   1,
-	}
-
-	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
-	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
-
-	dust := big.NewInt(0)
-	rwd.adjustProtocolSustainabilityRewards(protRwTx, dust)
-	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
-	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
 func TestBaseRewardsCreator_finalizeMiniBlocksOrdersTxsAscending(t *testing.T) {
@@ -1201,7 +1117,7 @@ func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
 }
 
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)

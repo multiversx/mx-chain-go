@@ -77,6 +77,9 @@ type OutputTransfer struct {
 	Data []byte
 	// CallType is set if it is a smart contract invocation
 	CallType CallType
+	// SenderAddress is the actual sender for the given output transfer, this is needed when
+	// contract A calls contract B and contract B does the transfers
+	SenderAddress []byte
 }
 
 // LogEntry represents an entry in the contract execution log.
@@ -196,7 +199,7 @@ func (o *OutputAccount) MergeOutputAccounts(outAcc *OutputAccount) {
 		o.BalanceDelta = big.NewInt(0)
 	}
 	if outAcc.BalanceDelta != nil {
-		o.BalanceDelta = outAcc.BalanceDelta
+		o.BalanceDelta.Add(o.BalanceDelta, outAcc.BalanceDelta)
 	}
 	if len(outAcc.Code) > 0 {
 		o.Code = outAcc.Code

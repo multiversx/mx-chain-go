@@ -42,11 +42,16 @@ type node interface {
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
+	getNextHashAndKey([]byte) (bool, []byte, []byte)
+	getNumNodes() data.NumNodesDTO
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
+	sizeInBytes() int
+
+	IsInterfaceNil() bool
 }
 
 type atomicBuffer interface {

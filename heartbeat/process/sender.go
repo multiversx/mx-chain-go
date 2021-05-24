@@ -24,12 +24,14 @@ type ArgHeartbeatSender struct {
 	Topic                string
 	ShardCoordinator     sharding.Coordinator
 	PeerTypeProvider     heartbeat.PeerTypeProviderHandler
+	PeerSubType          core.P2PPeerSubType
 	StatusHandler        core.AppStatusHandler
 	VersionNumber        string
 	NodeDisplayName      string
 	KeyBaseIdentity      string
 	HardforkTrigger      heartbeat.HardforkTrigger
 	CurrentBlockProvider heartbeat.CurrentBlockProvider
+	RedundancyHandler    heartbeat.NodeRedundancyHandler
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
@@ -37,9 +39,12 @@ type Sender struct {
 	peerMessenger        heartbeat.P2PMessenger
 	peerSignatureHandler crypto.PeerSignatureHandler
 	privKey              crypto.PrivateKey
+	publicKey            crypto.PublicKey
+	observerPublicKey    crypto.PublicKey
 	marshalizer          marshal.Marshalizer
 	shardCoordinator     sharding.Coordinator
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	peerSubType          core.P2PPeerSubType
 	statusHandler        core.AppStatusHandler
 	topic                string
 	versionNumber        string
@@ -47,6 +52,7 @@ type Sender struct {
 	keyBaseIdentity      string
 	hardforkTrigger      heartbeat.HardforkTrigger
 	currentBlockProvider heartbeat.CurrentBlockProvider
+	redundancy           heartbeat.NodeRedundancyHandler
 }
 
 // NewSender will create a new sender instance
@@ -58,7 +64,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		return nil, heartbeat.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(arg.PrivKey) {
-		return nil, heartbeat.ErrNilPrivateKey
+		return nil, fmt.Errorf("%w for arg.PrivKey", heartbeat.ErrNilPrivateKey)
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return nil, heartbeat.ErrNilMarshalizer
@@ -78,25 +84,37 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.CurrentBlockProvider) {
 		return nil, heartbeat.ErrNilCurrentBlockProvider
 	}
-	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
+	if check.IfNil(arg.RedundancyHandler) {
+		return nil, heartbeat.ErrNilRedundancyHandler
+	}
+	err := VerifyHeartbeatPropertyLen("application version string", []byte(arg.VersionNumber))
 	if err != nil {
 		return nil, err
+	}
+
+	observerPrivateKey := arg.RedundancyHandler.ObserverPrivateKey()
+	if check.IfNil(observerPrivateKey) {
+		return nil, fmt.Errorf("%w for arg.RedundancyHandler.ObserverPrivateKey()", heartbeat.ErrNilPrivateKey)
 	}
 
 	sender := &Sender{
 		peerMessenger:        arg.PeerMessenger,
 		peerSignatureHandler: arg.PeerSignatureHandler,
 		privKey:              arg.PrivKey,
+		publicKey:            arg.PrivKey.GeneratePublic(),
+		observerPublicKey:    observerPrivateKey.GeneratePublic(),
 		marshalizer:          arg.Marshalizer,
 		topic:                arg.Topic,
 		shardCoordinator:     arg.ShardCoordinator,
 		peerTypeProvider:     arg.PeerTypeProvider,
+		peerSubType:          arg.PeerSubType,
 		statusHandler:        arg.StatusHandler,
 		versionNumber:        arg.VersionNumber,
 		nodeDisplayName:      arg.NodeDisplayName,
 		keyBaseIdentity:      arg.KeyBaseIdentity,
 		hardforkTrigger:      arg.HardforkTrigger,
 		currentBlockProvider: arg.CurrentBlockProvider,
+		redundancy:           arg.RedundancyHandler,
 	}
 
 	return sender, nil
@@ -118,6 +136,7 @@ func (s *Sender) SendHeartbeat() error {
 		Identity:        s.keyBaseIdentity,
 		Pid:             s.peerMessenger.ID().Bytes(),
 		Nonce:           nonce,
+		PeerSubType:     uint32(s.peerSubType),
 	}
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
@@ -134,9 +153,31 @@ func (s *Sender) SendHeartbeat() error {
 		}
 	}
 
-	log.Debug("broadcasting message", "is hardfork triggered", isHardforkTriggered)
+	err := s.finalizeMessageConstruction(hb)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("broadcasting message heartbeat message",
+		"is hardfork triggered", isHardforkTriggered,
+		"hex public key", hb.Pubkey,
+	)
+
+	buffToSend, err := s.marshalizer.Marshal(hb)
+	if err != nil {
+		return err
+	}
+
+	s.peerMessenger.Broadcast(s.topic, buffToSend)
+
+	return nil
+}
+
+func (s *Sender) finalizeMessageConstruction(hb *heartbeatData.Heartbeat) error {
+	sk, pk := s.getCurrentPrivateAndPublicKeys()
+
 	var err error
-	hb.Pubkey, err = s.privKey.GeneratePublic().ToByteArray()
+	hb.Pubkey, err = pk.ToByteArray()
 	if err != nil {
 		return err
 	}
@@ -149,19 +190,23 @@ func (s *Sender) SendHeartbeat() error {
 		trimLengths(hb)
 	}
 
-	hb.Signature, err = s.peerSignatureHandler.GetPeerSignature(s.privKey, hb.Pid)
-	if err != nil {
-		return err
+	hb.Signature, err = s.peerSignatureHandler.GetPeerSignature(sk, hb.Pid)
+
+	return err
+}
+
+func (s *Sender) getCurrentPrivateAndPublicKeys() (crypto.PrivateKey, crypto.PublicKey) {
+	shouldUseOriginalKeys := !s.redundancy.IsRedundancyNode() || (s.redundancy.IsRedundancyNode() && !s.redundancy.IsMainMachineActive())
+	if shouldUseOriginalKeys {
+		return s.privKey, s.publicKey
 	}
 
-	buffToSend, err := s.marshalizer.Marshal(hb)
-	if err != nil {
-		return err
-	}
+	return s.redundancy.ObserverPrivateKey(), s.observerPublicKey
+}
 
-	s.peerMessenger.Broadcast(s.topic, buffToSend)
-
-	return nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Sender) IsInterfaceNil() bool {
+	return s == nil
 }
 
 func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
@@ -174,8 +219,11 @@ func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 		nodeType = string(core.NodeTypeValidator)
 	}
 
+	subType := core.P2PPeerSubType(hb.PeerSubType)
+
 	s.statusHandler.SetStringValue(core.MetricNodeType, nodeType)
 	s.statusHandler.SetStringValue(core.MetricPeerType, result)
+	s.statusHandler.SetStringValue(core.MetricPeerSubType, subType.String())
 }
 
 func (s *Sender) computePeerList(pubkey []byte) string {

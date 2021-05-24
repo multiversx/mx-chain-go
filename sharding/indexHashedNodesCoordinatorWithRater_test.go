@@ -247,7 +247,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	for i := uint64(0); i < numRounds; i++ {
 		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
 		consensusGroup, _ := ihgs.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
@@ -733,7 +733,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 	runtime.ReadMemStats(&m2)
 
 	fmt.Println(m2.HeapAlloc)
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 	//fmt.Print(array[0:100])
 }
 
@@ -741,7 +741,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestHashes(b *testing.B) {
 	nrElementsInList := int64(4000000)
 	nrHashes := 100
 
-	hasher := blake2b.Blake2b{}
+	hasher := blake2b.NewBlake2b()
 
 	randomBits := ""
 

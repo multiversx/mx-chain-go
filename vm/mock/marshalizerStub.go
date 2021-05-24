@@ -16,7 +16,7 @@ func (ms *MarshalizerStub) Unmarshal(obj interface{}, buff []byte) error {
 	return ms.UnmarshalCalled(obj, buff)
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (ms *MarshalizerStub) IsInterfaceNil() bool {
 	return ms == nil
 }

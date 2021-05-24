@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func createMockSliceResolverArg() ArgSliceResolver {
 	return ArgSliceResolver{
 		Messenger:                &mock.MessageHandlerStub{},
 		ResponseTopicName:        "",
-		Storage:                  genericmocks.NewStorerMock("Storage", 0),
+		Storage:                  genericMocks.NewStorerMock("Storage", 0),
 		DataPacker:               &mock.DataPackerStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
@@ -262,4 +262,21 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.Equal(t, 1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
+}
+
+func TestSliceResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockSliceResolverArg()
+	closeCalled := 0
+	arg.Storage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	sr, _ := NewSliceResolver(arg)
+
+	assert.Nil(t, sr.Close())
+	assert.Equal(t, 1, closeCalled)
 }

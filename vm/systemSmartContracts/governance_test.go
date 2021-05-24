@@ -1674,7 +1674,7 @@ func TestGovernanceContract_HardForkProposalInvalidCommitLength(t *testing.T) {
 			return nil
 		},
 	}
-
+	args.EpochConfig.EnableEpochs.GovernanceEnableEpoch = 1
 	gsc, _ := NewGovernanceContract(args)
 
 	callInputArgs := [][]byte{

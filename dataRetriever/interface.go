@@ -41,6 +41,8 @@ func (ut UnitType) String() string {
 		return "StatusMetricsUnit"
 	case ReceiptsUnit:
 		return "ReceiptsUnit"
+	case TrieEpochRootHashUnit:
+		return "TrieEpochRootHashUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
@@ -85,6 +87,8 @@ const (
 	ReceiptsUnit UnitType = 15
 	// ResultsHashesByTxHashUnit is the results hashes by transaction storage unit identifier
 	ResultsHashesByTxHashUnit UnitType = 16
+	// TrieEpochRootHashUnit is the trie epoch <-> root hash storage unit identifier
+	TrieEpochRootHashUnit UnitType = 17
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -109,6 +113,7 @@ type Resolver interface {
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -155,6 +160,7 @@ type ResolversContainer interface {
 	Len() int
 	ResolverKeys() string
 	Iterate(handler func(key string, resolver Resolver) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -186,15 +192,10 @@ type ManualEpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
-type EpochProviderByNonce interface {
-	EpochForNonce(nonce uint64) (uint32, error)
-	IsInterfaceNil() bool
-}
-
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
+	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	ID() core.PeerID
 	IsInterfaceNil() bool
@@ -204,7 +205,7 @@ type MessageHandler interface {
 type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 }
 
 // TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
@@ -212,6 +213,16 @@ type TopicHandler interface {
 type TopicMessageHandler interface {
 	MessageHandler
 	TopicHandler
+}
+
+// Messenger defines which methods a p2p messenger should implement
+type Messenger interface {
+	MessageHandler
+	TopicHandler
+	UnregisterMessageProcessor(topic string, identifier string) error
+	UnregisterAllMessageProcessors() error
+	UnjoinAllTopics() error
+	ConnectedPeers() []core.PeerID
 }
 
 // IntRandomizer interface provides functionality over generating integer numbers
@@ -227,6 +238,7 @@ type StorageType uint8
 type PeerListCreator interface {
 	PeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
+	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -328,6 +340,7 @@ type DataPacker interface {
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNode([]byte) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -360,5 +373,12 @@ type ResolverDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)
+	IsInterfaceNil() bool
+}
+
+// CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
+type CurrentNetworkEpochProviderHandler interface {
+	EpochIsActiveInNetwork(epoch uint32) bool
+	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }

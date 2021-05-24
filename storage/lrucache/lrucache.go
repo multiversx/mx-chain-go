@@ -29,6 +29,24 @@ func NewCache(size int) (*lruCache, error) {
 		return nil, err
 	}
 
+	c := createLRUCache(size, cache)
+
+	return c, nil
+}
+
+// NewCacheWithEviction creates a new sized LRU cache instance with eviction function
+func NewCacheWithEviction(size int, onEvicted func(key interface{}, value interface{})) (*lruCache, error) {
+	cache, err := lru.NewWithEvict(size, onEvicted)
+	if err != nil {
+		return nil, err
+	}
+
+	c := createLRUCache(size, cache)
+
+	return c, nil
+}
+
+func createLRUCache(size int, cache *lru.Cache) *lruCache {
 	c := &lruCache{
 		cache: &simpleLRUCacheAdapter{
 			LRUCacheHandler: cache,
@@ -37,8 +55,7 @@ func NewCache(size int) (*lruCache, error) {
 		mutAddedDataHandlers: sync.RWMutex{},
 		mapDataHandlers:      make(map[string]func(key []byte, value interface{})),
 	}
-
-	return c, nil
+	return c
 }
 
 // NewCacheWithSizeInBytes creates a new sized LRU cache instance
@@ -155,6 +172,11 @@ func (c *lruCache) Keys() [][]byte {
 // Len returns the number of items in the cache.
 func (c *lruCache) Len() int {
 	return c.cache.Len()
+}
+
+// SizeInBytesContained returns the size in bytes of all contained elements
+func (c *lruCache) SizeInBytesContained() uint64 {
+	return c.cache.SizeInBytesContained()
 }
 
 // MaxSize returns the maximum number of items which can be stored in cache.

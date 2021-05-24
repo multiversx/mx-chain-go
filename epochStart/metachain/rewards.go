@@ -26,9 +26,9 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	accumulatedFees *big.Int
-	address         string
-	protocolRewards *big.Int
+	accumulatedFees     *big.Int
+	address             string
+	rewardsFromProtocol *big.Int
 }
 
 // NewRewardsCreator creates a new rewards creator object
@@ -83,7 +83,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
-	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.Epoch, "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
@@ -91,6 +91,26 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	}
 
 	return rc.finalizeMiniBlocks(miniBlocks), nil
+}
+
+func (rc *rewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
+
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Debug("will adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+	}
+
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
+
+	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards - rewardsCreator",
+		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
+		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
+		"value", protocolSustainabilityRwdTx.GetValue().String())
+
+	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
@@ -165,15 +185,15 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					accumulatedFees: big.NewInt(0),
-					protocolRewards: big.NewInt(0),
-					address:         string(validatorInfo.RewardAddress),
+					accumulatedFees:     big.NewInt(0),
+					rewardsFromProtocol: big.NewInt(0),
+					address:             string(validatorInfo.RewardAddress),
 				}
 				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
 			}
 
 			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.AccumulatedFees)
-			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, protocolRewardValue)
+			rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, protocolRewardValue)
 		}
 	}
 

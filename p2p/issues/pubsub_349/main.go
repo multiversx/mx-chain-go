@@ -23,7 +23,7 @@ type messenger struct {
 }
 
 func newMessenger() *messenger {
-	address := fmt.Sprintf("/ip4/0.0.0.0/tcp/0")
+	address := "/ip4/0.0.0.0/tcp/0"
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(createP2PPrivKey()),

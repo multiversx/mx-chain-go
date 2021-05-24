@@ -2,9 +2,11 @@ package syncer
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,32 +17,35 @@ import (
 )
 
 type baseAccountsSyncer struct {
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	trieSyncers          map[string]data.TrieSyncer
-	dataTries            map[string]data.Trie
-	mutex                sync.Mutex
-	trieStorageManager   data.StorageManager
-	requestHandler       trie.RequestHandler
-	timeout              time.Duration
-	shardId              uint32
-	cacher               storage.Cacher
-	rootHash             []byte
-	maxTrieLevelInMemory uint
-	name                 string
+	hasher                    hashing.Hasher
+	marshalizer               marshal.Marshalizer
+	dataTries                 map[string]struct{}
+	mutex                     sync.Mutex
+	trieStorageManager        data.StorageManager
+	requestHandler            trie.RequestHandler
+	timeout                   time.Duration
+	shardId                   uint32
+	cacher                    storage.Cacher
+	rootHash                  []byte
+	maxTrieLevelInMemory      uint
+	name                      string
+	maxHardCapForMissingNodes int
+	trieSyncerVersion         int
 }
 
 const timeBetweenStatisticsPrints = time.Second * 2
 
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	TrieStorageManager   data.StorageManager
-	RequestHandler       trie.RequestHandler
-	Timeout              time.Duration
-	Cacher               storage.Cacher
-	MaxTrieLevelInMemory uint
+	Hasher                    hashing.Hasher
+	Marshalizer               marshal.Marshalizer
+	TrieStorageManager        data.StorageManager
+	RequestHandler            trie.RequestHandler
+	Timeout                   time.Duration
+	Cacher                    storage.Cacher
+	MaxTrieLevelInMemory      uint
+	MaxHardCapForMissingNodes int
+	TrieSyncerVersion         int
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -59,53 +64,50 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher
 	}
+	if args.MaxHardCapForMissingNodes < 1 {
+		return state.ErrInvalidMaxHardCapForMissingNodes
+	}
 
-	return nil
+	return trie.CheckTrieSyncerVersion(args.TrieSyncerVersion)
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ssh data.SyncStatisticsHandler, ctx context.Context) error {
+func (b *baseAccountsSyncer) syncMainTrie(
+	rootHash []byte,
+	trieTopic string,
+	ssh data.SyncStatisticsHandler,
+	ctx context.Context,
+) (data.Trie, error) {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	b.dataTries[string(rootHash)] = dataTrie
+	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
 		RequestHandler:                 b.requestHandler,
 		InterceptedNodes:               b.cacher,
-		Trie:                           dataTrie,
+		DB:                             b.trieStorageManager.Database(),
+		Marshalizer:                    b.marshalizer,
+		Hasher:                         b.hasher,
 		ShardId:                        b.shardId,
 		Topic:                          trieTopic,
 		TrieSyncStatistics:             ssh,
 		TimeoutBetweenTrieNodesCommits: b.timeout,
+		MaxHardCapForMissingNodes:      b.maxHardCapForMissingNodes,
 	}
-	trieSyncer, err := trie.NewTrieSyncer(arg)
+	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	b.trieSyncers[string(rootHash)] = trieSyncer
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
-}
-
-// GetSyncedTries returns the synced map of data trie
-func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	clonedMap := make(map[string]data.Trie, len(b.dataTries))
-	for key, value := range b.dataTries {
-		clonedMap[key] = value
-	}
-
-	return clonedMap
+	return dataTrie.Recreate(rootHash)
 }
 
 func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {
@@ -115,9 +117,41 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 			log.Info("finished trie sync", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
-			log.Info("trie sync in progress", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
+			log.Info("trie sync in progress",
+				"name", b.name,
+				"num received", ssh.NumReceived(),
+				"num missing", ssh.NumMissing(),
+				"intercepted trie nodes cache", fmt.Sprintf("len: %d, size: %s", b.cacher.Len(), core.ConvertBytes(b.cacher.SizeInBytesContained())))
 		}
 	}
+}
+
+// Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
+//TODO remove this function after fixing the hardfork sync state mechanism
+func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	if err != nil {
+		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
+		return make(map[string]data.Trie)
+	}
+
+	var recreatedTrie data.Trie
+	clonedMap := make(map[string]data.Trie, len(b.dataTries))
+	for key := range b.dataTries {
+		recreatedTrie, err = dataTrie.Recreate([]byte(key))
+		if err != nil {
+			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
+				"roothash", []byte(key), "error", err)
+			continue
+		}
+
+		clonedMap[key] = recreatedTrie
+	}
+
+	return clonedMap
 }
 
 // IsInterfaceNil returns true if underlying object is nil

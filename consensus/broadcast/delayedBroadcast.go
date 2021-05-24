@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -32,6 +31,7 @@ type ArgsDelayedBlockBroadcaster struct {
 	ShardCoordinator      sharding.Coordinator
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
+	AlarmScheduler        timersScheduler
 }
 
 type validatorHeaderBroadcastData struct {
@@ -93,6 +93,9 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.HeadersSubscriber) {
 		return nil, spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.AlarmScheduler) {
+		return nil, spos.ErrNilAlarmScheduler
+	}
 
 	cacheHeaders, err := lrucache.NewCache(sizeHeadersCache)
 	if err != nil {
@@ -100,7 +103,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	}
 
 	dbb := &delayedBlockBroadcaster{
-		alarm:                      alarm.NewAlarmScheduler(),
+		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
@@ -589,7 +592,8 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	rootTopic string,
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	for idx := uint32(0); idx < dbb.shardCoordinator.NumberOfShards(); idx++ {
+	shardIDs := dbb.shardIdentifiers()
+	for idx := range shardIDs {
 		// interested only in cross shard data
 		if idx == dbb.shardCoordinator.SelfId() {
 			continue
@@ -604,6 +608,16 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	}
 
 	return nil
+}
+
+func (dbb *delayedBlockBroadcaster) shardIdentifiers() map[uint32]struct{} {
+	shardIdentifiers := make(map[uint32]struct{})
+	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
+		shardIdentifiers[i] = struct{}{}
+	}
+	shardIdentifiers[core.MetachainShardId] = struct{}{}
+
+	return shardIdentifiers
 }
 
 func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byte, header interface{}) {

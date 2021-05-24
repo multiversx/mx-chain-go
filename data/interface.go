@@ -104,6 +104,7 @@ type TransactionHandler interface {
 	GetNonce() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetRcvUserName() []byte
 	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
@@ -113,6 +114,8 @@ type TransactionHandler interface {
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)
 	Size() int
+
+	CheckIntegrity() error
 }
 
 // LogHandler defines the type for a log resulted from executing a transaction or smart contract call
@@ -145,33 +148,37 @@ type EventHandler interface {
 	IsInterfaceNil() bool
 }
 
+// NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
+// trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
+type NumNodesDTO struct {
+	Leaves     int
+	Extensions int
+	Branches   int
+	MaxLevel   int
+}
+
 //Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
-	Root() ([]byte, error)
+	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	Prune(rootHash []byte, identifier TriePruningIdentifier)
-	TakeSnapshot(rootHash []byte)
-	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	GetDirtyHashes() (ModifiedHashes, error)
 	SetNewHashes(ModifiedHashes)
-	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNode([]byte) ([]byte, error)
+	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	IsPruningEnabled() bool
-	EnterPruningBufferingMode()
-	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
+	GetProof(key []byte) ([][]byte, error)
+	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	GetStorageManager() StorageManager
 	IsInterfaceNil() bool
-	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -189,12 +196,12 @@ type DBRemoveCacher interface {
 	Evict([]byte) (ModifiedHashes, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
-	Trie() Trie
 	IsInterfaceNil() bool
 }
 
@@ -211,6 +218,7 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -255,6 +263,7 @@ type SnapshotDbHandler interface {
 	DecreaseNumReferences()
 	IncreaseNumReferences()
 	MarkForRemoval()
+	MarkForDisconnection()
 	SetPath(string)
 }
 

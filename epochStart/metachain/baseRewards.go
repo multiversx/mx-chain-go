@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
+// BaseRewardsCreatorArgs defines the arguments structure needed to create a base rewards creator
 type BaseRewardsCreatorArgs struct {
 	ShardCoordinator              sharding.Coordinator
 	PubkeyConverter               core.PubkeyConverter
@@ -56,13 +56,14 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag
+	flagDelegationSystemSCEnabled      atomic.Flag //nolint
 	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
 	mutRewardsData                     sync.RWMutex
 	rewardsFix1EnableEpoch             uint32
 }
 
+// NewBaseRewardsCreator will create a new base rewards creator instance
 func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, error) {
 	err := checkBaseArgs(args)
 	if err != nil {
@@ -364,7 +365,7 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 ) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.protocolRewards),
+		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.rewardsFromProtocol),
 		RcvAddr: []byte(rwdInfo.address),
 		Epoch:   metaBlock.Epoch,
 	}
@@ -379,7 +380,7 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 		"value", rwdTx.Value.String(),
 		"hash", rwdTxHash,
 		"accumulatedFees", rwdInfo.accumulatedFees,
-		"protocolRewards", rwdInfo.protocolRewards,
+		"rewardsFromProtocol", rwdInfo.rewardsFromProtocol,
 	)
 
 	return rwdTx, rwdTxHash, nil
@@ -414,27 +415,6 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 
 	return nil
-}
-
-func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
-	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
-		log.Error("negative rewards protocol sustainability")
-		protocolSustainabilityRwdTx.Value.SetUint64(0)
-	}
-
-	if dustRewards.Cmp(big.NewInt(0)) < 0 {
-		log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
-		return
-	}
-
-	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
-
-	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards",
-		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
-		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
-		"value", protocolSustainabilityRwdTx.GetValue().String())
-
-	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 }
 
 func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {

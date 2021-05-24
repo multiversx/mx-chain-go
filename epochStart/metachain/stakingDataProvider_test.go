@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,19 +107,6 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 					ReturnCode: vmcommon.Ok,
 				}, nil
 			}
-			if numCall == 4 {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-					ReturnData: [][]byte{[]byte("not a number"), []byte("1")},
-				}, nil
-			}
-			if numCall == 5 {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-					ReturnData: [][]byte{[]byte("1"), []byte("not a number")},
-				}, nil
-			}
-
 			return nil, nil
 		},
 	}, "100000")
@@ -134,37 +122,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpBlsKeys function should have at least two values"))
-
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
-
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "totalStaked string returned is not a number"))
-}
-
-func TestStakingDataProvider_PrepareDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
-	t.Parallel()
-
-	owner := []byte("owner")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
-		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-			if input.Function == "getOwner" {
-				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{owner},
-				}, nil
-			}
-
-			return nil, nil
-		},
-	}, "100000")
-
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpStakedBlsKeys function should have at least three values"))
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) {
@@ -181,7 +139,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
@@ -205,7 +163,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 2, ownerData.numEligible)
@@ -221,7 +179,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
 	err := sdp.loadDataForBlsKey(blsKey)
 	assert.Nil(t, err)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
@@ -264,6 +222,168 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *testing.T) {
+	nbShards := uint32(3)
+	nbEligible := make(map[uint32]uint32)
+	nbWaiting := make(map[uint32]uint32)
+	nbLeaving := make(map[uint32]uint32)
+	nbInactive := make(map[uint32]uint32)
+
+	nbEligible[core.MetachainShardId] = 1
+	nbWaiting[core.MetachainShardId] = 1
+	nbLeaving[core.MetachainShardId] = 0
+	nbInactive[core.MetachainShardId] = 0
+
+	nbEligible[0] = 1
+	nbWaiting[0] = 1
+	nbLeaving[0] = 1
+	nbInactive[0] = 1
+
+	valInfo := createValidatorsInfo(nbShards, nbEligible, nbWaiting, nbLeaving, nbInactive)
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(200))
+	require.NotNil(t, sdp)
+
+	keyOfAddressWaitingShard0 := "addresswaiting00"
+	sdp.cache[keyOfAddressWaitingShard0].blsKeys = append(sdp.cache[keyOfAddressWaitingShard0].blsKeys, []byte("newKey"))
+	sdp.cache[keyOfAddressWaitingShard0].totalStaked = big.NewInt(400)
+
+	for id, val := range sdp.cache {
+		fmt.Printf("id: %s, num bls keys: %d\n", id, len(val.blsKeys))
+	}
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(keysToUnStake))
+	require.Equal(t, 1, len(ownersWithNotEnoughFunds))
+}
+
+func TestStakingDataProvider_GetTotalStakeEligibleNodes(t *testing.T) {
+	t.Parallel()
+
+	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
+	topUpVal := big.NewInt(828743)
+	blsKey := []byte("bls key")
+
+	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
+
+	expectedRes := big.NewInt(37)
+	sdp.totalEligibleStake = expectedRes
+
+	res := sdp.GetTotalStakeEligibleNodes()
+	require.Equal(t, 0, expectedRes.Cmp(res))
+	require.False(t, res == expectedRes, "GetTotalStakeEligibleNodes should have returned a new pointer")
+}
+
+func TestStakingDataProvider_GetTotalTopUpStakeEligibleNodes(t *testing.T) {
+	t.Parallel()
+
+	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
+	topUpVal := big.NewInt(828743)
+	blsKey := []byte("bls key")
+
+	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
+
+	expectedRes := big.NewInt(37)
+	sdp.totalEligibleTopUpStake = expectedRes
+
+	res := sdp.GetTotalTopUpStakeEligibleNodes()
+	require.Equal(t, 0, expectedRes.Cmp(res))
+	require.False(t, res == expectedRes, "GetTotalTopUpStakeEligibleNodes should have returned a new pointer")
+}
+
+func TestStakingDataProvider_GetNodeStakedTopUpOwnerNotInCacheShouldErr(t *testing.T) {
+	t.Parallel()
+
+	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
+	topUpVal := big.NewInt(828743)
+	blsKey := []byte("bls key")
+
+	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
+
+	expectedRes := big.NewInt(37)
+	sdp.totalEligibleTopUpStake = expectedRes
+
+	res, err := sdp.GetNodeStakedTopUp(blsKey)
+	require.Equal(t, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch, err)
+	require.Nil(t, res)
+}
+
+func TestStakingDataProvider_GetNodeStakedTopUpScCallError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected")
+
+	owner := []byte("owner")
+	topUpVal := big.NewInt(828743)
+	basePrice := big.NewInt(100000)
+	stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+	numRunContractCalls := 0
+
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+	sdp.systemVM = &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(_ *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			return nil, expectedErr
+		},
+	}
+
+	res, err := sdp.GetNodeStakedTopUp(owner)
+	require.Equal(t, expectedErr, err)
+	require.Nil(t, res)
+}
+
+func TestStakingDataProvider_GetNodeStakedTopUpShouldWork(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	topUpVal := big.NewInt(828743)
+	basePrice := big.NewInt(100000)
+	stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+	numRunContractCalls := 0
+
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+
+	expectedOwnerStats := &ownerStats{
+		topUpPerNode: big.NewInt(37),
+	}
+	sdp.SetInCache(owner, expectedOwnerStats)
+
+	res, err := sdp.GetNodeStakedTopUp(owner)
+	require.NoError(t, err)
+	require.Equal(t, expectedOwnerStats.topUpPerNode, res)
+}
+
+func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	topUpVal := big.NewInt(828743)
+	basePrice := big.NewInt(100000)
+	stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+	numRunContractCalls := 0
+
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+
+	keys := make(map[uint32][][]byte)
+	keys[0] = append(keys[0], []byte("owner"))
+	err := sdp.PrepareStakingDataForRewards(keys)
+	require.NoError(t, err)
+}
+
+func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	topUpVal := big.NewInt(828743)
+	basePrice := big.NewInt(100000)
+	stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+	numRunContractCalls := 0
+
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+
+	err := sdp.FillValidatorInfo([]byte("owner"))
+	require.NoError(t, err)
+}
+
 func createStakingDataProviderWithMockArgs(
 	t *testing.T,
 	owner []byte,
@@ -280,14 +400,15 @@ func createStakingDataProviderWithMockArgs(
 				assert.Equal(t, vm.StakingSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(hex.EncodeToString(owner))},
+					ReturnData: [][]byte{owner},
 				}, nil
-			case "getTotalStakedTopUpBlsKeys":
-				assert.Equal(t, owner, input.VMInput.CallerAddr)
+			case "getTotalStakedTopUpStakedBlsKeys":
+				assert.Equal(t, 1, len(input.Arguments))
+				assert.Equal(t, owner, input.Arguments[0])
 				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(topUpVal.String()), []byte(stakingVal.String())},
+					ReturnData: [][]byte{topUpVal.Bytes(), stakingVal.Bytes(), big.NewInt(3).Bytes()},
 				}, nil
 
 			}
@@ -301,8 +422,10 @@ func createStakingDataProviderWithMockArgs(
 }
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
-	args, _ := createFullArgumentsForSystemSCProcessing(1000)
-	args.EpochNotifier.CheckEpoch(1000000)
+	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1000000,
+	})
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
@@ -316,6 +439,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput *vmcommon.VMOutput) {
 	for _, outputAccount := range vmOutput.OutputAccounts {
 		account, errLoad := accountsDB.LoadAccount(outputAccount.Address)
+		if errLoad != nil {
+			log.Error(errLoad.Error())
+		}
 		require.Nil(t, errLoad)
 
 		userAccount, _ := account.(state.UserAccountHandler)
@@ -324,6 +450,9 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 		}
 
 		err := accountsDB.SaveAccount(account)
+		if err != nil {
+			assert.Fail(t, err.Error())
+		}
 		require.Nil(t, err)
 	}
 
@@ -332,9 +461,11 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 }
 
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
-	args, _ := createFullArgumentsForSystemSCProcessing(1)
-	args.StakingV2EnableEpoch = 0
-	args.EpochNotifier.CheckEpoch(1)
+	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 1,
+	})
 	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)

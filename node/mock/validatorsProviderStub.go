@@ -15,6 +15,11 @@ func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*state.Valida
 	return nil
 }
 
+// Close -
+func (vp *ValidatorsProviderStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (vp *ValidatorsProviderStub) IsInterfaceNil() bool {
 	return vp == nil

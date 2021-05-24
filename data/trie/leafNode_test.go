@@ -750,3 +750,49 @@ func TestLeafNode_getAllHashes(t *testing.T) {
 	assert.Equal(t, 1, len(hashes))
 	assert.Equal(t, ln.hash, hashes[0])
 }
+
+func TestLeafNode_getNextHashAndKey(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+	proofVerified, nextHash, nextKey := ln.getNextHashAndKey([]byte("dog"))
+
+	assert.True(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestLeafNode_getNextHashAndKeyNilNode(t *testing.T) {
+	t.Parallel()
+
+	var ln *leafNode
+	proofVerified, nextHash, nextKey := ln.getNextHashAndKey([]byte("dog"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestLeafNode_SizeInBytes(t *testing.T) {
+	t.Parallel()
+
+	var ln *leafNode
+	assert.Equal(t, 0, ln.sizeInBytes())
+
+	value := []byte("value")
+	key := []byte("key")
+	hash := []byte("hash")
+	ln = &leafNode{
+		CollapsedLn: CollapsedLn{
+			Key:   key,
+			Value: value,
+		},
+		baseNode: &baseNode{
+			hash:   hash,
+			dirty:  false,
+			marsh:  nil,
+			hasher: nil,
+		},
+	}
+	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+}

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -30,12 +31,13 @@ func init() {
 
 type AccountResponse struct {
 	Account struct {
-		Address  string `json:"address"`
-		Nonce    uint64 `json:"nonce"`
-		Balance  string `json:"balance"`
-		Code     string `json:"code"`
-		CodeHash []byte `json:"codeHash"`
-		RootHash []byte `json:"rootHash"`
+		Address         string `json:"address"`
+		Nonce           uint64 `json:"nonce"`
+		Balance         string `json:"balance"`
+		Code            string `json:"code"`
+		CodeHash        []byte `json:"codeHash"`
+		RootHash        []byte `json:"rootHash"`
+		DeveloperReward string `json:"developerReward"`
 	} `json:"account"`
 }
 
@@ -55,6 +57,23 @@ type esdtTokenData struct {
 	Properties      string `json:"properties"`
 }
 
+type esdtNFTTokenData struct {
+	TokenIdentifier string   `json:"tokenIdentifier"`
+	Balance         string   `json:"balance"`
+	Properties      string   `json:"properties"`
+	Name            string   `json:"name"`
+	Nonce           uint64   `json:"nonce"`
+	Creator         string   `json:"creator"`
+	Royalties       string   `json:"royalties"`
+	Hash            []byte   `json:"hash"`
+	URIs            [][]byte `json:"uris"`
+	Attributes      []byte   `json:"attributes"`
+}
+
+type esdtNFTResponseData struct {
+	esdtNFTTokenData `json:"tokenData"`
+}
+
 type esdtTokenResponseData struct {
 	esdtTokenData `json:"tokenData"`
 }
@@ -65,13 +84,29 @@ type esdtTokenResponse struct {
 	Code  string                `json:"code"`
 }
 
-type esdtTokensResponseData struct {
-	Tokens []string `json:"tokens"`
+type esdtNFTResponse struct {
+	Data  esdtNFTResponseData `json:"data"`
+	Error string              `json:"error"`
+	Code  string              `json:"code"`
 }
 
-type esdtTokensResponse struct {
-	Data  esdtTokensResponseData `json:"data"`
-	Error string                 `json:"error"`
+type esdtTokensCompleteResponseData struct {
+	Tokens map[string]esdtNFTTokenData `json:"esdts"`
+}
+
+type esdtTokensCompleteResponse struct {
+	Data  esdtTokensCompleteResponseData `json:"data"`
+	Error string                         `json:"error"`
+	Code  string
+}
+
+type keyValuePairsResponseData struct {
+	Pairs map[string]string `json:"pairs"`
+}
+
+type keyValuePairsResponse struct {
+	Data  keyValuePairsResponseData `json:"data"`
+	Error string                    `json:"error"`
 	Code  string
 }
 
@@ -408,6 +443,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
+			acc.DeveloperReward = big.NewInt(120)
 
 			return acc, nil
 		},
@@ -431,6 +467,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, accountResponse.Account.Address, reqAddress)
 	assert.Equal(t, accountResponse.Account.Nonce, uint64(1))
 	assert.Equal(t, accountResponse.Account.Balance, "100")
+	assert.Equal(t, accountResponse.Account.DeveloperReward, "120")
 	assert.Empty(t, response.Error)
 }
 
@@ -491,8 +528,8 @@ func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
-			return "", "", expectedErr
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return nil, expectedErr
 		},
 	}
 
@@ -512,11 +549,11 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
-	testValue := "value"
+	testValue := big.NewInt(100).String()
 	testProperties := "frozen"
 	facade := mock.Facade{
-		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
-			return testValue, testProperties, nil
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: []byte(testProperties)}, nil
 		},
 	}
 
@@ -531,6 +568,75 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
 	assert.Equal(t, testProperties, esdtBalanceResponseObj.Data.Properties)
+}
+
+func TestGetESDTNFTData_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/myAddress/nft/newToken/nonce/10", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTNFTData_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtNFTResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTNFTData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue := big.NewInt(100).String()
+	testNonce := uint64(37)
+	testProperties := "frozen"
+	facade := mock.Facade{
+		GetESDTDataCalled: func(_ string, _ string, _ uint64) (*esdt.ESDigitalToken, error) {
+			return &esdt.ESDigitalToken{
+				Value:         big.NewInt(100),
+				Properties:    []byte(testProperties),
+				TokenMetaData: &esdt.MetaData{Nonce: testNonce, Creator: []byte(testAddress)}}, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/nft/newToken/nonce/10", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtNFTResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testValue, esdtResponseObj.Data.Balance)
+	assert.Equal(t, testProperties, esdtResponseObj.Data.Properties)
+	assert.Equal(t, testAddress, esdtResponseObj.Data.Creator)
+	assert.Equal(t, testNonce, esdtResponseObj.Data.Nonce)
 }
 
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
@@ -548,13 +654,13 @@ func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
-func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
+func TestGetFullESDTTokens_NodeFailsShouldError(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
 	expectedErr := errors.New("expected error")
 	facade := mock.Facade{
-		GetAllESDTTokensCalled: func(_ string) ([]string, error) {
+		GetAllESDTTokensCalled: func(_ string) (map[string]*esdt.ESDigitalToken, error) {
 			return nil, expectedErr
 		},
 	}
@@ -565,21 +671,24 @@ func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	usernameResponseObj := usernameResponse{}
-	loadResponse(resp.Body, &usernameResponseObj)
+	esdtTokenResponseObj := esdtTokensCompleteResponse{}
+	loadResponse(resp.Body, &esdtTokenResponseObj)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+	assert.True(t, strings.Contains(esdtTokenResponseObj.Error, expectedErr.Error()))
 }
 
-func TestGetESDTTokens_ShouldWork(t *testing.T) {
+func TestGetFullESDTTokens_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
 	testValue1 := "token1"
 	testValue2 := "token2"
 	facade := mock.Facade{
-		GetAllESDTTokensCalled: func(address string) ([]string, error) {
-			return []string{testValue1, testValue2}, nil
+		GetAllESDTTokensCalled: func(address string) (map[string]*esdt.ESDigitalToken, error) {
+			tokens := make(map[string]*esdt.ESDigitalToken)
+			tokens[testValue1] = &esdt.ESDigitalToken{Value: big.NewInt(10)}
+			tokens[testValue2] = &esdt.ESDigitalToken{Value: big.NewInt(100)}
+			return tokens, nil
 		},
 	}
 
@@ -589,23 +698,109 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	esdtTokenResponseObj := esdtTokensResponse{}
+	esdtTokenResponseObj := esdtTokensCompleteResponse{}
 	loadResponse(resp.Body, &esdtTokenResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
+	assert.Equal(t, 2, len(esdtTokenResponseObj.Data.Tokens))
+}
+
+func TestGetKeyValuePairs_InvalidAppContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetKeyValuePairs_WithEmptyAddressShoudReturnError(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+
+	emptyAddress := ""
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", emptyAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.NotEmpty(t, response)
+	assert.True(t, strings.Contains(response.Error,
+		fmt.Sprintf("%s: %s", apiErrors.ErrGetKeyValuePairs.Error(), apiErrors.ErrEmptyAddress.Error()),
+	))
+}
+
+func TestGetKeyValuePairs_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetKeyValuePairsCalled: func(_ string) (map[string]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestGetKeyValuePairs_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pairs := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+	testAddress := "address"
+	facade := mock.Facade{
+		GetKeyValuePairsCalled: func(_ string) (map[string]string, error) {
+			return pairs, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/keys", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := keyValuePairsResponse{}
+	loadResponse(resp.Body, &response)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, pairs, response.Data.Pairs)
 }
 
 func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"address": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
+					{Name: "/:address/keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
+					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
 				},
 			},
 		},

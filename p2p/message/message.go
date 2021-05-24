@@ -13,7 +13,7 @@ type Message struct {
 	DataField      []byte
 	PayloadField   []byte
 	SeqNoField     []byte
-	TopicsField    []string
+	TopicField     string
 	SignatureField []byte
 	KeyField       []byte
 	PeerField      core.PeerID
@@ -40,9 +40,9 @@ func (m *Message) SeqNo() []byte {
 	return m.SeqNoField
 }
 
-// Topics returns the topic on which the message was sent
-func (m *Message) Topics() []string {
-	return m.TopicsField
+// Topic returns the topic on which the message was sent
+func (m *Message) Topic() string {
+	return m.TopicField
 }
 
 // Signature returns the message signature

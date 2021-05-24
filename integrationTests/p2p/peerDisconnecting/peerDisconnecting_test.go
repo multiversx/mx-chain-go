@@ -18,6 +18,7 @@ func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
 			ProtocolID:                       "/erd/kad/1.0.0",
@@ -35,6 +36,8 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxCrossShardValidators: 40,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxSeeders:              1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 	p2pConfig.Node.ThresholdMinConnectedPeers = 3
@@ -87,9 +90,9 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	_ = netw.LinkAll()
 
 	//Step 3. Call bootstrap on all peers
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	for _, p := range peers {
-		_ = p.Bootstrap()
+		_ = p.Bootstrap(0)
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 

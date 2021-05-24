@@ -11,13 +11,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
-	transferFunc, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{})
+	shardC := &mock.ShardCoordinatorStub{}
+	transferFunc, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{}, shardC)
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 	_, err := transferFunc.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
@@ -46,13 +48,21 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	accSnd := state.NewEmptyUserAccount()
 	_, err = transferFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrNotEnoughGas)
+
+	input.GasProvided = transferFunc.funcGasCost
+	input.RecipientAddr = vm.ESDTSCAddress
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return core.MetachainShardId
+	}
+	_, err = transferFunc.ProcessBuiltinFunction(accSnd, nil, input)
+	assert.Equal(t, err, process.ErrInvalidRcvAddr)
 }
 
 func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -90,7 +100,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -120,7 +130,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -150,7 +160,7 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	accountStub := &mock.AccountsStub{}
 	esdtPauseFunc, _ := NewESDTPauseFunc(accountStub, true)
-	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, esdtPauseFunc)
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, esdtPauseFunc, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
@@ -209,4 +219,47 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 
 	_, err = transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
+}
+
+func TestESDTTransfer_ProcessBuiltInFunctionOnAsyncCallBack(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{}, &mock.ShardCoordinatorStub{})
+	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
+
+	input := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+			CallType:    vmcommon.AsynchronousCallBack,
+		},
+	}
+	key := []byte("key")
+	value := big.NewInt(10).Bytes()
+	input.Arguments = [][]byte{key, value}
+	accSnd, _ := state.NewUserAccount([]byte("snd"))
+	accDst, _ := state.NewUserAccount(vm.ESDTSCAddress)
+
+	esdtKey := append(transferFunc.keyPrefix, key...)
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(100)}
+	marshaledData, _ := marshalizer.Marshal(esdtToken)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+
+	vmOutput, err := transferFunc.ProcessBuiltinFunction(nil, accDst, input)
+	assert.Nil(t, err)
+
+	marshaledData, _ = accDst.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
+	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
+
+	assert.Equal(t, vmOutput.GasRemaining, input.GasProvided)
+
+	vmOutput, err = transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
+	assert.Nil(t, err)
+	vmOutput.GasRemaining = input.GasProvided - transferFunc.funcGasCost
+
+	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
+	assert.True(t, esdtToken.Value.Cmp(big.NewInt(90)) == 0)
 }

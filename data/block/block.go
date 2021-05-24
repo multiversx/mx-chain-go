@@ -11,6 +11,12 @@ import (
 //  necessarily representing a full block body
 type MiniBlockSlice []*MiniBlock
 
+// MiniblockAndHash holds the info related to a miniblock and its hash
+type MiniblockAndHash struct {
+	Miniblock *MiniBlock
+	Hash      []byte
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n

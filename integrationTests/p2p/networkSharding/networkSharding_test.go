@@ -20,6 +20,7 @@ func createDefaultConfig() config.P2PConfig {
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
 			ProtocolID:                       "/erd/kad/1.0.0",
@@ -32,11 +33,13 @@ func createDefaultConfig() config.P2PConfig {
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount:         10,
+		TargetPeerCount:         12,
 		MaxIntraShardValidators: 6,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxSeeders:              1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 
@@ -55,7 +58,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{seedAddress}
@@ -101,7 +104,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	}
 
 	testCounters(t, nodesMap, 1, 1, numShards*2)
-	testUnknownPeers(t, nodesMap)
+	testUnknownSeederPeers(t, nodesMap)
 }
 
 func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
@@ -116,7 +119,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Messenger.Bootstrap()
+			_ = n.Messenger.Bootstrap(0)
 		}
 	}
 }
@@ -183,14 +186,15 @@ func testCounters(
 	}
 }
 
-func testUnknownPeers(
+func testUnknownSeederPeers(
 	t *testing.T,
 	nodesMap map[uint32][]*integrationTests.TestP2PNode,
 ) {
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
 		}
 	}
 }

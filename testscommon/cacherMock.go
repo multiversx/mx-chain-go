@@ -120,6 +120,11 @@ func (cacher *CacherMock) Len() int {
 	return len(cacher.dataMap)
 }
 
+// SizeInBytesContained -
+func (cacher *CacherMock) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // MaxSize -
 func (cacher *CacherMock) MaxSize() int {
 	return 10000

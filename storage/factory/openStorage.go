@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -17,24 +16,16 @@ import (
 // ArgsNewOpenStorageUnits defines the arguments in order to open a set of storage units from disk
 type ArgsNewOpenStorageUnits struct {
 	GeneralConfig             config.Config
-	Marshalizer               marshal.Marshalizer
 	BootstrapDataProvider     BootstrapDataProviderHandler
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
-	WorkingDir                string
-	ChainID                   string
-	DefaultDBPath             string
 	DefaultEpochString        string
 	DefaultShardString        string
 }
 
 type openStorageUnits struct {
 	generalConfig             config.Config
-	marshalizer               marshal.Marshalizer
 	bootstrapDataProvider     BootstrapDataProviderHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
-	workingDir                string
-	chainID                   string
-	defaultDBPath             string
 	defaultEpochString        string
 	defaultShardString        string
 }
@@ -43,10 +34,6 @@ type openStorageUnits struct {
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
 		generalConfig:             args.GeneralConfig,
-		marshalizer:               args.Marshalizer,
-		workingDir:                args.WorkingDir,
-		chainID:                   args.ChainID,
-		defaultDBPath:             args.DefaultDBPath,
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
@@ -112,6 +99,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
+		//TODO: extract this in a parameter and inject it
 		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err

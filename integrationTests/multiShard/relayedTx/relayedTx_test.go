@@ -26,9 +26,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -53,7 +52,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -80,9 +79,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -112,7 +110,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		integrationTests.MinTransactionVersion,
 	)
 
-	transferTokenVMGas := uint64(6960)
+	transferTokenVMGas := uint64(7200)
 	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
 	transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
 
@@ -143,7 +141,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -171,9 +169,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -192,7 +189,11 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
-	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte("RBT")) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte("robertWhyNot")) +
+		"@" + hex.EncodeToString([]byte("RBT")) +
+		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
@@ -200,11 +201,11 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 	time.Sleep(time.Second)
 
-	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
 
 	/////////------ send tx to players
@@ -218,7 +219,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 	time.Sleep(time.Second)
 
@@ -236,7 +237,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	nrRoundsToPropagateMultiShard = int64(20)
@@ -255,41 +256,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	checkPlayerBalances(t, nodes, players)
 }
 
-func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		scQuery := &process.SCQuery{
-			ScAddress:  vm.ESDTSCAddress,
-			FuncName:   "getAllESDTTokens",
-			CallerAddr: vm.ESDTSCAddress,
-			CallValue:  big.NewInt(0),
-			Arguments:  [][]byte{},
-		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
-		if err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok {
-			return nil
-		}
-		if len(vmOutput.ReturnData) == 0 {
-			return nil
-		}
-
-		return vmOutput.ReturnData[0]
-	}
-
-	return nil
-}
-
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer, advertiser := CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}

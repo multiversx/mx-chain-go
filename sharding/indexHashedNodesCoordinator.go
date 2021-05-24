@@ -792,11 +792,7 @@ func isValidator(config *epochNodesConfig, pk []byte) bool {
 	}
 
 	found, _ = searchInMap(config.waitingMap, pk)
-	if found {
-		return true
-	}
-
-	return false
+	return found
 }
 
 func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) {

@@ -1,3 +1,6 @@
+CURRENT_DIRECTORY := $(shell pwd)
+TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled)
+
 build:
 	go build ./...
 
@@ -13,6 +16,9 @@ clean: clean-test
 
 test: clean-test
 	go test ./...
+
+test-v: clean-test
+	go test -v ./...
 
 test-serial: clean-test
 	go test -p 1 ./...
@@ -56,6 +62,10 @@ test-miniblocks-sc-v:
 test-arwen:
 	go test -count=1 -v ./integrationTests/vm/arwen/...
 
+test-coverage:
+	@echo "Running unit tests"
+	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
+
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
 
@@ -77,3 +87,15 @@ endif
 
 cli-docs:
 	cd ./cmd && bash ./CLI.md.sh
+
+lint-install:
+ifeq (,$(wildcard test -f bin/golangci-lint))
+	@echo "Installing golint"
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
+endif
+
+run-lint:
+	@echo "Running golint"
+	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
+
+lint: lint-install run-lint

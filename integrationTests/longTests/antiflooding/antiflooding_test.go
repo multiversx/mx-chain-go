@@ -1,6 +1,7 @@
 package antiflooding
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -12,14 +13,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/stretchr/testify/assert"
 )
 
-var log = logger.GetOrCreate("integrationtests/longtests/antiflood")
+var log = logger.GetOrCreate("integrationtests/longtests/antiflood") //nolint
 
+//nolint
 func createWorkableConfig() config.Config {
 	return config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -78,6 +79,7 @@ func createWorkableConfig() config.Config {
 	}
 }
 
+//nolint
 func createDisabledConfig() config.Config {
 	return config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -111,55 +113,48 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 	}
 }
 
+//nolint
 func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, idxGoodPeers []int) []*messageProcessor {
 	processors := make([]*messageProcessor, 0, len(peers))
+	ctx := context.Background()
 	for i := 0; i < len(peers); i++ {
-		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.PeerBlackListCacher
-		var pkTimeCache process.TimeCacher
+		var antifloodComponents *factory.AntiFloodComponents
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
-				createDisabledConfig(),
-				&mock.AppStatusHandlerStub{},
-				peers[i].ID(),
-			)
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &mock.AppStatusHandlerStub{}, peers[i].ID())
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &mock.AppStatusHandlerStub{}
-			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
-				createWorkableConfig(),
-				statusHandler,
-				peers[i].ID(),
-			)
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID())
 			log.LogIfError(err)
 		}
 
 		pde, _ := blackList.NewPeerDenialEvaluator(
-			blackListHandler,
-			pkTimeCache,
+			antifloodComponents.BlacklistHandler,
+			antifloodComponents.PubKeysCacher,
 			&mock.PeerShardMapperStub{},
 		)
 
 		err = peers[i].SetPeerDenialEvaluator(pde)
 		log.LogIfError(err)
 
-		proc := NewMessageProcessor(antiflood, peers[i])
+		proc := NewMessageProcessor(antifloodComponents.AntiFloodHandler, peers[i])
 		processors = append(processors, proc)
 
 		err = proc.messenger.CreateTopic(topic, true)
 		log.LogIfError(err)
 
-		err = proc.messenger.RegisterMessageProcessor(topic, proc)
+		err = proc.messenger.RegisterMessageProcessor(topic, "test", proc)
 		log.LogIfError(err)
 	}
 
 	return processors
 }
 
+//nolint
 func intInSlice(searchFor int, slice []int) bool {
 	for _, val := range slice {
 		if searchFor == val {
@@ -170,6 +165,7 @@ func intInSlice(searchFor int, slice []int) bool {
 	return false
 }
 
+//nolint
 func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRound int) {
 	header := []string{"idx", "pid", "received", "processed", "received/s", "connections"}
 	data := make([]*display.LineData, 0, len(processors))
@@ -202,6 +198,7 @@ func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRou
 	time.Sleep(timeBetweenPrints)
 }
 
+//nolint
 func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSize int, msgSize int) {
 	lastUpdated := time.Now()
 	m := make(map[core.PeerID]int)

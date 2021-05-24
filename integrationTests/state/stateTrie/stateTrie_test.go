@@ -81,7 +81,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	err := adb.SaveAccount(account)
 	assert.Nil(t, err)
 	assert.NotNil(t, account.GetCodeHash())
-	assert.Equal(t, []byte("Smart contract code"), account.GetCode())
+	assert.Equal(t, []byte("Smart contract code"), adb.GetCode(account.GetCodeHash()))
 
 	fmt.Printf("SC code is at address: %v\n", account.GetCodeHash())
 
@@ -89,7 +89,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
-	assert.Equal(t, account.GetCode(), recoveredAccount.GetCode())
+	assert.Equal(t, adb.GetCode(account.GetCodeHash()), adb.GetCode(recoveredAccount.GetCodeHash()))
 	assert.Equal(t, account.GetCodeHash(), recoveredAccount.GetCodeHash())
 }
 
@@ -137,7 +137,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	wg := sync.WaitGroup{}
@@ -224,7 +224,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	//reloading a new trie to test if data is inside
 	rootHash, err = adb.RootHash()
@@ -261,7 +261,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	value := hasher.Compute("value")
 
 	_ = tr1.Update(key, value)
-	h1, _ := tr1.Root()
+	h1, _ := tr1.RootHash()
 	err := tr1.Commit()
 	assert.Nil(t, err)
 
@@ -278,7 +278,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	trieStore, mu := integrationTests.CreateTrieStorageManager()
+	trieStore, mu := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -312,7 +312,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
@@ -350,7 +350,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	hash, err := adb.Commit()
@@ -424,7 +424,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -501,7 +501,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -581,7 +581,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
@@ -652,7 +652,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -669,12 +669,12 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
@@ -685,12 +685,12 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -731,7 +731,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -748,12 +748,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
@@ -764,12 +764,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -794,12 +794,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2p1)
 
 	//Test 4.1 test that hashes are different
 	assert.NotEqual(t, hrCreated2p1, hrCreated2)
@@ -816,11 +816,11 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err = adb.LoadAccount(adr2)
 	assert.Nil(t, err)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2Rev)
 	assert.Equal(t, hrCommit, hrCreated2Rev)
 	assert.Equal(t, hrRoot2, hrRoot2Rev)
 }
@@ -832,7 +832,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -886,7 +886,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -920,7 +920,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -1091,7 +1091,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -1137,7 +1137,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	tr.Prune(rootHash1, data.OldRoot)
+	trieStorage.Prune(rootHash1, data.OldRoot)
 
 	err := adb.RecreateTrie(rootHash2)
 	assert.Nil(t, err)
@@ -1249,7 +1249,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(state2)
 
 	newRootHash, _ := adb.Commit()
-	tr.Prune(oldRootHash, data.OldRoot)
+	trieStorage.Prune(oldRootHash, data.OldRoot)
 
 	err := adb.RecreateTrie(newRootHash)
 	assert.Nil(t, err)
@@ -1286,10 +1286,10 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	numNodesPerShard := 1
 	numNodesMeta := 1
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
-	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
+	integrationTests.BootstrapDelay()
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -1392,10 +1392,10 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	numNodesPerShard := 1
 	numNodesMeta := 1
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
-	integrationTests.StartP2PBootstrapOnProcessorNodes(nodes)
+	integrationTests.BootstrapDelay()
 	integrationTests.StartSyncingBlocks(nodes)
 
 	round := uint64(0)
@@ -1462,10 +1462,10 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	valMinting := big.NewInt(1000000000)
 	valToTransferPerTx := big.NewInt(2)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders and receivers...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
@@ -1520,6 +1520,84 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
+func TestStatePruningIsBuffered(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	shardNode := nodes[0]
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	sendValue := big.NewInt(5)
+	receiverAddress := []byte("12345678901234567890123456789012")
+	initialVal := big.NewInt(10000000000)
+
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(integrationTests.StepDelay)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	rootHash := shardNode.BlockChain.GetCurrentBlockHeader().GetRootHash()
+	stateTrie := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+
+	numRounds := 10
+	for i := 0; i < numRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
+		time.Sleep(integrationTests.StepDelay)
+
+		tr, err := stateTrie.Recreate(rootHash)
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+
+	numDelayRounds := 10
+	for i := 0; i < numDelayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
+		time.Sleep(integrationTests.StepDelay)
+	}
+
+	tr, err := stateTrie.Recreate(rootHash)
+	assert.Nil(t, tr)
+	assert.NotNil(t, err)
+}
+
 func TestSnapshotOnEpochChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -1530,14 +1608,10 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 		stateCheckpointModulus,
 	)
 
@@ -1555,7 +1629,6 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -1597,11 +1670,16 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 			prunedRootHashes,
 			uint64(stateCheckpointModulus),
 		)
+		time.Sleep(time.Second)
 	}
 
-	numDelayRounds := uint32(6)
+	numDelayRounds := uint32(15)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+		}
 		time.Sleep(integrationTests.StepDelay)
 	}
 
@@ -1699,10 +1777,10 @@ func TestContinuouslyAccountCodeChanges(t *testing.T) {
 	nonce := uint64(0)
 	valMinting := big.NewInt(1000000000)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
@@ -1792,7 +1870,7 @@ func updateCode(
 	codeIndex := rand.Intn(numCodes)
 	code := codeArray[codeIndex]
 
-	oldCode := account.(state.UserAccountHandler).GetCode()
+	oldCode := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(code)
 	_ = AccntState.SaveAccount(account)
 
@@ -1818,7 +1896,7 @@ func removeCode(
 	account state.AccountHandler,
 ) {
 	snapshot := AccntState.JournalLen()
-	code := account.(state.UserAccountHandler).GetCode()
+	code := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(nil)
 	_ = AccntState.SaveAccount(account)
 
@@ -1835,6 +1913,7 @@ func removeCode(
 
 	fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(account.AddressBytes()))
 }
+
 func checkCodeConsistency(
 	t *testing.T,
 	shardNode *integrationTests.TestProcessorNode,
@@ -1871,10 +1950,10 @@ func TestAccountRemoval(t *testing.T) {
 	nonce := uint64(0)
 	valMinting := big.NewInt(1000000000)
 
-	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+	defer integrationTests.CloseProcessorNodes(nodes)
 
 	fmt.Println("Generating private keys for senders...")
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
@@ -1916,7 +1995,7 @@ func TestAccountRemoval(t *testing.T) {
 			if err != nil {
 				continue
 			}
-			code := account.(state.UserAccountHandler).GetCode()
+			code := shardNode.AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 
 			_ = shardNode.AccntState.RemoveAccount(account.AddressBytes())
 

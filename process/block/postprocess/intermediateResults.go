@@ -37,6 +37,7 @@ func NewIntermediateResultsProcessor(
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
+	economicsFee process.FeeHandler,
 ) (*intermediateResultsProcessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -56,6 +57,9 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(currTxs) {
 		return nil, process.ErrNilTxForCurrentBlockHandler
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
 
 	base := &basePostProcessor{
 		hasher:           hasher,
@@ -64,6 +68,7 @@ func NewIntermediateResultsProcessor(
 		store:            store,
 		storageType:      dataRetriever.UnsignedTransactionUnit,
 		mapTxToResult:    make(map[string][]string),
+		economicsFee:     economicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -148,18 +153,17 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		return finalMBs[i].ReceiverShardID < finalMBs[j].ReceiverShardID
 	})
 
+	splitMBs := irp.splitMiniBlocksIfNeeded(finalMBs)
+
 	irp.mutInterResultsForBlock.Unlock()
 
-	return finalMBs
+	return splitMBs
 }
 
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
-	createdMapMbs := make(map[uint32]*block.MiniBlock)
-	for _, mb := range scrMbs {
-		createdMapMbs[mb.ReceiverShardID] = mb
-	}
+	createdMapMbs := createMiniBlocksMap(scrMbs)
 
 	countedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -252,14 +256,9 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 		return nil
 	}
 
-	if scr.Value == nil {
-		return process.ErrNilValue
-	}
-	if scr.Value.Sign() < 0 {
-		return process.ErrNegativeValue
-	}
-	if len(scr.PrevTxHash) == 0 {
-		return process.ErrNilTxHash
+	err := scr.CheckIntegrity()
+	if err != nil {
+		return err
 	}
 
 	if sndShId != irp.shardCoordinator.SelfId() && dstShId != irp.shardCoordinator.SelfId() {

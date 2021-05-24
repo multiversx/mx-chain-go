@@ -117,9 +117,9 @@ func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 
 // Get gets an item (payload) by key
 func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
-	cacheItem, ok := ic.getItem(key)
+	item, ok := ic.getItem(key)
 	if ok {
-		return cacheItem.payload, true
+		return item.payload, true
 	}
 
 	return nil, false
@@ -145,9 +145,9 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd adds an item in the cache
 func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
-	cacheItem := newCacheItem(value, string(key), sizeInBytes)
+	item := newCacheItem(value, string(key), sizeInBytes)
 	chunk := ic.getChunkByKeyWithLock(string(key))
-	has, added = chunk.AddItem(cacheItem)
+	has, added = chunk.AddItem(item)
 	if !has {
 		if added {
 			ic.hospitality.Increment()
@@ -197,6 +197,11 @@ func (ic *ImmunityCache) MaxSize() int {
 // Len is an alias for Count
 func (ic *ImmunityCache) Len() int {
 	return ic.Count()
+}
+
+// SizeInBytesContained returns 0
+func (ic *ImmunityCache) SizeInBytesContained() uint64 {
+	return 0
 }
 
 // Count returns the number of elements within the map

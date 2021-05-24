@@ -1,18 +1,20 @@
 package mock
 
 import (
+	"context"
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(address []byte) (state.AccountHandler, error)
-	LoadAccountCalled        func(address []byte) (state.AccountHandler, error)
+	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(address []byte) error
+	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -20,10 +22,22 @@ type AccountsStub struct {
 	RecreateTrieCalled       func(rootHash []byte) error
 	PruneTrieCalled          func(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	SnapshotStateCalled      func(rootHash []byte)
-	SetStateCheckpointCalled func(rootHash []byte)
+	SnapshotStateCalled      func(rootHash []byte, ctx context.Context)
+	SetStateCheckpointCalled func(rootHash []byte, ctx context.Context)
 	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	GetAllLeavesCalled       func(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
+	GetNumCheckpointsCalled  func() uint32
+	GetTrieCalled            func([]byte) (data.Trie, error)
+}
+
+// GetTrie -
+func (as *AccountsStub) GetTrie(codeHash []byte) (data.Trie, error) {
+	if as.GetTrieCalled != nil {
+		return as.GetTrieCalled(codeHash)
+	}
+
+	return nil, nil
 }
 
 // LoadAccount -
@@ -43,11 +57,16 @@ func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (as *AccountsStub) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(rootHash)
+		return as.GetAllLeavesCalled(rootHash, ctx)
 	}
 	return nil, nil
+}
+
+// GetCode -
+func (as *AccountsStub) GetCode(_ []byte) []byte {
+	return nil
 }
 
 var errNotImplemented = errors.New("not implemented")
@@ -130,16 +149,16 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruning
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, ctx context.Context) {
 	if as.SnapshotStateCalled != nil {
-		as.SnapshotStateCalled(rootHash)
+		as.SnapshotStateCalled(rootHash, ctx)
 	}
 }
 
 // SetStateCheckpoint -
-func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, ctx context.Context) {
 	if as.SetStateCheckpointCalled != nil {
-		as.SetStateCheckpointCalled(rootHash)
+		as.SetStateCheckpointCalled(rootHash, ctx)
 	}
 }
 
@@ -150,6 +169,23 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	}
 
 	return false
+}
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
+	if as.RecreateAllTriesCalled != nil {
+		return as.RecreateAllTriesCalled(rootHash)
+	}
+	return nil, nil
+}
+
+// GetNumCheckpoints -
+func (as *AccountsStub) GetNumCheckpoints() uint32 {
+	if as.GetNumCheckpointsCalled != nil {
+		return as.GetNumCheckpointsCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

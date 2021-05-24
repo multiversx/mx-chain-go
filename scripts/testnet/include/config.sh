@@ -11,9 +11,8 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -tx-sign-key-format $TX_SIGN_FORMAT                   \
-    -block-sign-key-format $BLOCK_SIGN_FORMAT             \
-    -stake-type $GENESIS_STAKE_TYPE
+    -stake-type $GENESIS_STAKE_TYPE \
+    -hysteresis $HYSTERESIS
   popd
 }
 
@@ -56,9 +55,9 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
+  cp $NODEDIR/config/enableEpochs.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
   cp $NODEDIR/config/genesisSmartContracts.json ./node/config
-  cp -r $NODEDIR/config/elasticIndexTemplates ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
   mkdir ./node/config/gasSchedules -p
@@ -85,7 +84,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateJSONValue nodesSetup_edit.json "chainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
 	fi
 
   cp nodesSetup_edit.json nodesSetup.json
@@ -103,7 +103,9 @@ updateNodeConfig() {
 copyProxyConfig() {
   pushd $TESTNETDIR
 
+  cp -r $PROXYDIR/config/apiConfig ./proxy/config/
   cp $PROXYDIR/config/config.toml ./proxy/config/
+  cp -r $PROXYDIR/config/apiConfig ./proxy/config
 
   cp ./node/config/economics.toml ./proxy/config/
   cp ./node/config/external.toml ./proxy/config/
@@ -169,10 +171,10 @@ generateProxyObserverList() {
     for _ in $(seq $SHARD_OBSERVERCOUNT); do
       (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
 
-      echo -n "[[Observers]]" >> config_edit.toml
-      echo -n "   ShardId = $SHARD" >> config_edit.toml
-      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo -n ""$'\n' >> config_edit.toml
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $SHARD" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
 
       (( OBSERVER_INDEX++ ))
     done
@@ -181,10 +183,10 @@ generateProxyObserverList() {
   for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
     (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX ))
 
-      echo -n "[[Observers]]" >> config_edit.toml
-      echo -n "   ShardId = $METASHARD_ID" >> config_edit.toml
-      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo -n ""$'\n' >> config_edit.toml
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
 
       (( OBSERVER_INDEX++ ))
     done

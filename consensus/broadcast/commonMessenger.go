@@ -56,6 +56,7 @@ type CommonMessengerArgs struct {
 	InterceptorsContainer      process.InterceptorsContainer
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
+	AlarmScheduler             core.TimersScheduler
 }
 
 func checkCommonMessengerNilParameters(
@@ -84,6 +85,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
+	}
+	if check.IfNil(args.AlarmScheduler) {
+		return spos.ErrNilAlarmScheduler
 	}
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
@@ -193,8 +197,8 @@ func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 	transactions map[string][][]byte,
 ) (map[uint32][]byte, map[string][][]byte) {
 
-	metaMiniBlocks := make(map[uint32][]byte, 0)
-	metaTransactions := make(map[string][][]byte, 0)
+	metaMiniBlocks := make(map[uint32][]byte)
+	metaTransactions := make(map[string][][]byte)
 
 	for shardID, mbsMarshalized := range miniBlocks {
 		if shardID != core.MetachainShardId {

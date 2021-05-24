@@ -99,7 +99,6 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	maxShards := uint32(1)
 	nodeShardId := uint32(0)
 	txSignPrivKeyShardId := uint32(0)
-	initialNodeAddr := "nodeAddr"
 	valMinting, _ := big.NewInt(0).SetString(mintingValue, 10)
 	valMinting.Mul(valMinting, big.NewInt(5000000))
 
@@ -107,9 +106,9 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		maxShards,
 		nodeShardId,
 		txSignPrivKeyShardId,
-		initialNodeAddr,
 	)
 
+	node.EconomicsData.SetMinGasPrice(10)
 	txHexHash := ""
 
 	err := node.SetAccountNonce(uint64(0))

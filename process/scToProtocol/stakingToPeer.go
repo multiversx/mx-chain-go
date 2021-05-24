@@ -26,34 +26,36 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv       core.PubkeyConverter
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	PeerState        state.AccountsAdapter
-	BaseState        state.AccountsAdapter
-	ArgParser        process.ArgumentsParser
-	CurrTxs          dataRetriever.TransactionCacher
-	RatingsData      process.RatingsInfoHandler
-	StakeEnableEpoch uint32
-	EpochNotifier    process.EpochNotifier
+	PubkeyConv                       core.PubkeyConverter
+	Hasher                           hashing.Hasher
+	Marshalizer                      marshal.Marshalizer
+	PeerState                        state.AccountsAdapter
+	BaseState                        state.AccountsAdapter
+	ArgParser                        process.ArgumentsParser
+	CurrTxs                          dataRetriever.TransactionCacher
+	RatingsData                      process.RatingsInfoHandler
+	StakeEnableEpoch                 uint32
+	ValidatorToDelegationEnableEpoch uint32
+	EpochNotifier                    process.EpochNotifier
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	pubkeyConv  core.PubkeyConverter
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
-	peerState   state.AccountsAdapter
-	baseState   state.AccountsAdapter
-
-	argParser        process.ArgumentsParser
-	currTxs          dataRetriever.TransactionCacher
-	startRating      uint32
-	unJailRating     uint32
-	jailRating       uint32
-	stakeEnableEpoch uint32
-	flagStaking      atomic.Flag
+	pubkeyConv                       core.PubkeyConverter
+	hasher                           hashing.Hasher
+	marshalizer                      marshal.Marshalizer
+	peerState                        state.AccountsAdapter
+	baseState                        state.AccountsAdapter
+	argParser                        process.ArgumentsParser
+	currTxs                          dataRetriever.TransactionCacher
+	startRating                      uint32
+	unJailRating                     uint32
+	jailRating                       uint32
+	stakeEnableEpoch                 uint32
+	flagStaking                      atomic.Flag
+	validatorToDelegationEnableEpoch uint32
+	flagValidatorToDelegation        atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -64,18 +66,20 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:       args.PubkeyConv,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		peerState:        args.PeerState,
-		baseState:        args.BaseState,
-		argParser:        args.ArgParser,
-		currTxs:          args.CurrTxs,
-		startRating:      args.RatingsData.StartRating(),
-		unJailRating:     args.RatingsData.StartRating(),
-		jailRating:       args.RatingsData.MinRating(),
-		stakeEnableEpoch: args.StakeEnableEpoch,
+		pubkeyConv:                       args.PubkeyConv,
+		hasher:                           args.Hasher,
+		marshalizer:                      args.Marshalizer,
+		peerState:                        args.PeerState,
+		baseState:                        args.BaseState,
+		argParser:                        args.ArgParser,
+		currTxs:                          args.CurrTxs,
+		startRating:                      args.RatingsData.StartRating(),
+		unJailRating:                     args.RatingsData.StartRating(),
+		jailRating:                       args.RatingsData.MinRating(),
+		stakeEnableEpoch:                 args.StakeEnableEpoch,
+		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
 	}
+	log.Debug("stakingToPeer: enable epoch for stake", "epoch", st.stakeEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
 
@@ -174,20 +178,28 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		blsPubKey := []byte(key)
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
-		var data []byte
-		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
+		buff := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
-		if len(data) == 0 {
+		var existingAcc state.AccountHandler
+		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
+		shouldDeleteAccount := len(buff) == 0 && !check.IfNil(existingAcc) && err == nil
+		if shouldDeleteAccount {
 			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
 				log.Debug("staking to protocol RemoveAccount", "error", err, "blsPubKey", hex.EncodeToString(blsPubKey))
+				continue
 			}
+			log.Debug("remove account from validator statistics", "blsPubKey", blsPubKey)
 
 			continue
 		}
 
+		if len(buff) == 0 {
+			continue
+		}
+
 		var stakingData systemSmartContracts.StakedDataV2_0
-		err = stp.marshalizer.Unmarshal(&stakingData, data)
+		err = stp.marshalizer.Unmarshal(&stakingData, buff)
 		if err != nil {
 			return err
 		}
@@ -286,6 +298,14 @@ func (stp *stakingToPeer) updatePeerState(
 			account.SetTempRating(stp.unJailRating)
 		}
 		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
+
+		if stp.flagValidatorToDelegation.IsSet() && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+			log.Debug("new reward address", "blsKey", blsPubKey, "rwdAddr", stakingData.RewardAddress)
+			err = account.SetRewardAddress(stakingData.RewardAddress)
+			if err != nil {
+				return err
+			}
+		}
 
 		return stp.peerState.SaveAccount(account)
 	}
@@ -400,9 +420,12 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
+func (stp *stakingToPeer) EpochConfirmed(epoch uint32, _ uint64) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
+
+	stp.flagValidatorToDelegation.Toggle(epoch >= stp.validatorToDelegationEnableEpoch)
+	log.Debug("stakingToPeer: validator to delegation", "enabled", stp.flagValidatorToDelegation.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

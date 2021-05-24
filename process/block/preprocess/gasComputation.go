@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -19,12 +20,17 @@ type gasComputation struct {
 	mutGasConsumed sync.RWMutex
 	gasRefunded    map[string]uint64
 	mutGasRefunded sync.RWMutex
+
+	flagGasComputeV2        atomic.Flag
+	gasComputeV2EnableEpoch uint32
 }
 
 // NewGasComputation creates a new object which computes the gas consumption
 func NewGasComputation(
 	economicsFee process.FeeHandler,
 	txTypeHandler process.TxTypeHandler,
+	epochNotifier process.EpochNotifier,
+	gasComputeV2EnableEpoch uint32,
 ) (*gasComputation, error) {
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -32,13 +38,22 @@ func NewGasComputation(
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
-	return &gasComputation{
-		txTypeHandler: txTypeHandler,
-		economicsFee:  economicsFee,
-		gasConsumed:   make(map[string]uint64),
-		gasRefunded:   make(map[string]uint64),
-	}, nil
+	g := &gasComputation{
+		txTypeHandler:           txTypeHandler,
+		economicsFee:            economicsFee,
+		gasConsumed:             make(map[string]uint64),
+		gasRefunded:             make(map[string]uint64),
+		gasComputeV2EnableEpoch: gasComputeV2EnableEpoch,
+	}
+	log.Debug("gasComputation: enable epoch for sc deploy", "epoch", g.gasComputeV2EnableEpoch)
+
+	epochNotifier.RegisterNotifyHandler(g)
+
+	return g, nil
 }
 
 // Init method resets consumed and refunded gas structures
@@ -170,17 +185,58 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return 0, 0, process.ErrNilTransaction
 	}
 
+	if !gc.flagGasComputeV2.IsSet() {
+		return gc.computeGasConsumedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
+	}
+
+	if txHandler.GetGasLimit() == 0 {
+		return 0, 0, nil
+	}
+
+	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
+	if moveBalanceConsumption > txHandler.GetGasLimit() {
+		log.Warn("ComputeGasConsumedByTx less gasLimit than moveBalance", "gasLimit", txHandler.GetGasLimit(), "moveBalanceGasCost", moveBalanceConsumption)
+		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+	}
+
+	txTypeSndShard, txTypeDstShard := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	isSCCall := txTypeDstShard == process.SCDeployment ||
+		txTypeDstShard == process.SCInvoking ||
+		txTypeDstShard == process.BuiltInFunctionCall
+	if isSCCall {
+		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
+			txTypeSndShard == process.MoveBalance &&
+			txTypeDstShard == process.SCInvoking
+		if isCrossShardSCCall {
+			return moveBalanceConsumption, txHandler.GetGasLimit(), nil
+		}
+
+		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+	}
+
+	if gc.isRelayedTx(txTypeSndShard) {
+		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+	}
+
+	return moveBalanceConsumption, moveBalanceConsumption, nil
+}
+
+func (gc *gasComputation) computeGasConsumedByTxV1(
+	txSenderShardId uint32,
+	txReceiverShardId uint32,
+	txHandler data.TransactionHandler,
+) (uint64, uint64, error) {
 	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	txType := gc.txTypeHandler.ComputeTransactionType(txHandler)
-	isSCCall := txType == process.SCDeployment ||
-		txType == process.SCInvoking ||
-		txType == process.BuiltInFunctionCall ||
+	txTypeInShard, _ := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	isSCCall := txTypeInShard == process.SCDeployment ||
+		txTypeInShard == process.SCInvoking ||
+		txTypeInShard == process.BuiltInFunctionCall ||
 		(core.IsSmartContractAddress(txHandler.GetRcvAddr()) && len(txHandler.GetData()) > 0)
 	if isSCCall {
 		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
 			moveBalanceConsumption < txHandler.GetGasLimit() &&
-			txType != process.BuiltInFunctionCall
+			txTypeInShard != process.BuiltInFunctionCall
 		if isCrossShardSCCall {
 			gasConsumedByTxInSenderShard := moveBalanceConsumption
 			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption
@@ -192,6 +248,16 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	}
 
 	return moveBalanceConsumption, moveBalanceConsumption, nil
+}
+
+func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
+	return txType == process.RelayedTx || txType == process.RelayedTxV2
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (gc *gasComputation) EpochConfirmed(epoch uint32, _ uint64) {
+	gc.flagGasComputeV2.Toggle(epoch >= gc.gasComputeV2EnableEpoch)
+	log.Debug("gasComputation: compute v2", "enabled", gc.flagGasComputeV2.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

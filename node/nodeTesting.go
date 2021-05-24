@@ -19,10 +19,10 @@ import (
 
 const maxGoRoutinesSendMessage = 30
 
-var minTxGasPrice = uint64(10)
+var minTxGasPrice = uint64(100)
 var minTxGasLimit = uint64(1000)
 
-//TODO move this funcs in a new benchmarking/stress-test binary
+//TODO remove this file and adapt integration tests using GenerateAndSendBulkTransactions
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
@@ -62,7 +62,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 	mutErrFound := sync.Mutex{}
 	var errFound error
 
-	dataPacker, err := partitioning.NewSimpleDataPacker(n.internalMarshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
@@ -98,6 +98,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 		}(nonce)
 	}
 
+	// TODO: might think of a way to stop waiting at a signal
 	wg.Wait()
 
 	if errFound != nil {
@@ -113,7 +114,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 	}
 
 	//the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(txsBuff, core.MaxBulkTransactionSize)
 	if err != nil {
@@ -123,7 +124,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
-			err = n.messenger.BroadcastOnChannelBlocking(
+			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
@@ -143,16 +144,16 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	if numOfTxs == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
-	if check.IfNil(n.txSingleSigner) {
+	if check.IfNil(n.cryptoComponents.TxSingleSigner()) {
 		return ErrNilSingleSig
 	}
-	if check.IfNil(n.addressPubkeyConverter) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.shardCoordinator) {
+	if check.IfNil(n.processComponents.ShardCoordinator()) {
 		return ErrNilShardCoordinator
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return ErrNilAccountsAdapter
 	}
 
@@ -165,19 +166,19 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, err
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.Decode(receiverHex)
+	receiverAddress, err := n.coreComponents.AddressPubKeyConverter().Decode(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
 	}
 
-	senderShardId := n.shardCoordinator.ComputeId(senderAddressBytes)
+	senderShardId := n.processComponents.ShardCoordinator().ComputeId(senderAddressBytes)
 
 	newNonce := uint64(0)
-	if senderShardId != n.shardCoordinator.SelfId() {
+	if senderShardId != n.processComponents.ShardCoordinator().SelfId() {
 		return newNonce, senderAddressBytes, receiverAddress, senderShardId, nil
 	}
 
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddressBytes)
+	senderAccount, err := n.stateComponents.AccountsAdapter().GetExistingAccount(senderAddressBytes)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
@@ -201,10 +202,10 @@ func (n *Node) generateAndSignSingleTx(
 	chainID []byte,
 	minTxVersion uint32,
 ) (*transaction.Transaction, []byte, error) {
-	if check.IfNil(n.internalMarshalizer) {
+	if check.IfNil(n.coreComponents.InternalMarshalizer()) {
 		return nil, nil, ErrNilMarshalizer
 	}
-	if check.IfNil(n.txSignMarshalizer) {
+	if check.IfNil(n.coreComponents.TxMarshalizer()) {
 		return nil, nil, ErrNilMarshalizer
 	}
 	if check.IfNil(sk) {
@@ -223,18 +224,18 @@ func (n *Node) generateAndSignSingleTx(
 		Version:  minTxVersion,
 	}
 
-	marshalizedTx, err := tx.GetDataForSigning(n.addressPubkeyConverter, n.txSignMarshalizer)
+	marshalizedTx, err := tx.GetDataForSigning(n.coreComponents.AddressPubKeyConverter(), n.coreComponents.TxMarshalizer())
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.txSingleSigner.Sign(sk, marshalizedTx)
+	sig, err := n.cryptoComponents.TxSingleSigner().Sign(sk, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}
 
 	tx.Signature = sig
-	txBuff, err := n.internalMarshalizer.Marshal(&tx)
+	txBuff, err := n.coreComponents.InternalMarshalizer().Marshal(&tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,7 +258,7 @@ func (n *Node) generateAndSignTxBuffArray(
 		return nil, nil, err
 	}
 
-	signedMarshalizedTx, err := n.internalMarshalizer.Marshal(&batch.Batch{Data: [][]byte{txBuff}})
+	signedMarshalizedTx, err := n.coreComponents.InternalMarshalizer().Marshal(&batch.Batch{Data: [][]byte{txBuff}})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}
@@ -267,25 +268,25 @@ func (n *Node) generateAndSignTxBuffArray(
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
 func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey, chainID []byte, minTxVersion uint32) (*transaction.Transaction, error) {
-	if check.IfNil(n.addressPubkeyConverter) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, ErrNilAccountsAdapter
 	}
 	if check.IfNil(privateKey) {
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.Decode(receiverHex)
+	receiverAddress, err := n.coreComponents.AddressPubKeyConverter().Decode(receiverHex)
 	if err != nil {
 		return nil, errors.New("could not create receiver address from provided param")
 	}
-	senderAddress, err := n.addressPubkeyConverter.Decode(senderHex)
+	senderAddress, err := n.coreComponents.AddressPubKeyConverter().Decode(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	senderAccount, err := n.stateComponents.AccountsAdapter().GetExistingAccount(senderAddress)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}

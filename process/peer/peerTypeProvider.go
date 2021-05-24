@@ -13,8 +13,9 @@ import (
 )
 
 type peerListAndShard struct {
-	pType  core.PeerType
-	pShard uint32
+	pType    core.PeerType
+	pSubType core.P2PPeerSubType
+	pShard   uint32
 }
 
 // PeerTypeProvider handles the computation of a peer type
@@ -72,11 +73,12 @@ func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 	defer ptp.mutCache.RUnlock()
 
 	peerTypeInfos := make([]*state.PeerTypeInfo, 0, len(ptp.cache))
-	for pkString, peerListAndShard := range ptp.cache {
+	for pkString, peerListAndShardVal := range ptp.cache {
 		peerTypeInfos = append(peerTypeInfos, &state.PeerTypeInfo{
-			PublicKey: pkString,
-			PeerType:  string(peerListAndShard.pType),
-			ShardId:   peerListAndShard.pShard,
+			PublicKey:   pkString,
+			PeerType:    string(peerListAndShardVal.pType),
+			PeerSubType: peerListAndShardVal.pSubType,
+			ShardId:     peerListAndShardVal.pShard,
 		})
 	}
 

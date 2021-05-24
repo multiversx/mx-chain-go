@@ -2,18 +2,11 @@ package arwenVM
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -132,7 +125,9 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	durations, err := DeployAndExecuteERC20WithBigInt(1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
 
 	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen/output/cpucalculate.wasm", 8000, "cpuCalculate", nil, 2, gasSchedule)
 
@@ -167,70 +162,13 @@ func runWASMVMBenchmark(
 	numRun int,
 	gasSchedule map[string]map[string]uint64,
 ) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-
-	scCode := arwen.GetSCCode(fileSC)
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     big.NewInt(0),
-		RcvAddr:   vm.CreateEmptyAddress(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      []byte(arwen.CreateDeployTxData(scCode)),
-		Signature: nil,
-	}
-
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
-	defer testContext.Close()
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(tb, err)
-	require.Equal(tb, returnCode, vmcommon.Ok)
-
-	_, err = testContext.Accounts.Commit()
+	result, err := RunTest(fileSC, testingValue, function, arguments, numRun, gasSchedule)
 	require.Nil(tb, err)
 
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(10000000000))
-
-	txData := function
-	for _, arg := range arguments {
-		txData += "@" + hex.EncodeToString(arg)
-	}
-	tx = &transaction.Transaction{
-		Nonce:     aliceNonce,
-		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
-		RcvAddr:   scAddress,
-		SndAddr:   alice,
-		GasPrice:  0,
-		GasLimit:  gasLimit,
-		Data:      []byte(txData),
-		Signature: nil,
-	}
-
-	startTime := time.Now()
-	for i := 0; i < numRun; i++ {
-		tx.Nonce = aliceNonce
-
-		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
-
-		aliceNonce++
-	}
-	log.Info("elapsed time to process", "time", time.Since(startTime), "numRun", numRun)
-	printGasConsumed(testContext, function, gasLimit)
-}
-
-func printGasConsumed(testContext vm.VMTestContext, functionName string, gasLimit uint64) {
-	gasRemaining := testContext.GetGasRemaining()
-	fmt.Printf("%s was executed, consumed %d gas\n", functionName, gasLimit-gasRemaining)
+	log.Info("test completed",
+		"function", result.FunctionName,
+		"consumed gas", result.GasUsed,
+		"time took", result.ExecutionTimeSpan,
+		"numRun", numRun,
+	)
 }

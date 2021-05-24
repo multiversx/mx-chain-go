@@ -1,3 +1,13 @@
+# Logging holds settings related to api requests logging
+[Logging]
+    # LoggingEnabled - if this flag is set to true, then if a requests exceeds a threshold or it is unsuccessful, then
+    # a log will be printed
+    LoggingEnabled = false
+
+    # ThresholdInMicroSeconds represents the maximum duration to consider a request as normal. Above this, if the LoggingEnabled
+    # flag is set to true, then a log will be printed
+    ThresholdInMicroSeconds = 1000
+
  # API routes configuration
 [APIPackages]
 
@@ -36,14 +46,20 @@
         # /address/:address/username will return the username of a given account
         { Name = "/:address/username", Open = true },
 
+        # /address/:address/keys will return all the key-value pairs of a given account
+        { Name = "/:address/keys", Open = true },
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
 
-        # /address/:address/esdt/:tokenName will return data of an esdt token for a given account
-        { Name = "/:address/esdt/:tokenIdentifier", Open = true }
+        # /address/:address/esdt/:tokenIdentifier will return the balance for a given account and esdt tokenID
+        { Name = "/:address/esdt/:tokenIdentifier", Open = true },
+
+        # /address/:address/nft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
+        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true }
 	]
 
 [APIPackages.hardfork]
@@ -62,7 +78,30 @@
 
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
-        { Name = "/config", Open = true }
+        { Name = "/config", Open = true },
+
+        # /network/enable-epochs will return metrics related to activation epochs
+        { Name = "/enable-epochs", Open = true },
+
+        # /network/esdts will return all the issued esdts on the protocol
+        { Name = "/esdts", Open = true },
+
+        # /network/fungible-tokens will return all the issued fungible tokens on the protocol
+        { Name = "/esdt/fungible-tokens", Open = true },
+
+        # /network/semi-fungible-tokens will return all the issued semi fungible tokens on the protocol
+        { Name = "/esdt/semi-fungible-tokens", Open = true },
+
+        # /network/non-fungible-tokens will return all the issued non fungible tokens on the protocol
+        { Name = "/esdt/non-fungible-tokens", Open = true },
+
+        # /network/direct-staked-info will return a list containing direct staked list of addresses
+        # and their staked values
+        {Name = "/direct-staked-info", Open = false},
+
+        # /network/delegated-info will return a list containing delegated list of addresses
+        # and their staked values on the system delegation smart contracts
+        {Name = "/delegated-info", Open = false}
 	]
 
 [APIPackages.log]
@@ -100,7 +139,7 @@
 
         # /transaction/simulate will receive a single transaction in JSON format and will simulate it's execution
         # in order to check that it will be successfully executed when sending it for propagation
-        { Name = "/simulate", Open = false },
+        { Name = "/simulate", Open = true },
 
          # /transaction/send-multiple will receive an array of transactions in JSON format and will propagate through
          # the network those whose fields are valid. It will return the number of valid transactions propagated
@@ -120,4 +159,17 @@
 
 	    # /block/by-hash/:hash will return the block in JSON format based on its hash
 	    { Name = "/by-hash/:hash", Open = true },
+	]
+
+
+[APIPackages.proof]
+	Routes = [
+	    # /proof/root-hash/:roothash/address/:address will compute and return the proof in JSON format
+	    { Name = "/root-hash/:roothash/address/:address", Open = true },
+
+	    # /proof/address/:address will compute and return the proof and root hash in JSON format
+        { Name = "/address/:address", Open = true },
+
+	    # /proof/verify will return the response from Merkle proof verification in JSON format
+	    { Name = "/verify", Open = true },
 	]

@@ -15,35 +15,48 @@ type TrieStub struct {
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
 	RecreateCalled              func(root []byte) (data.Trie, error)
-	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
 	ResetOldHashesCalled        func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
+	GetNumNodesCalled           func() data.NumNodesDTO
 	GetAllHashesCalled          func() ([][]byte, error)
-	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetProofCalled              func(key []byte) ([][]byte, error)
+	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
+	GetStorageManagerCalled     func() data.StorageManager
 }
 
-// EnterPruningBufferingMode -
-func (ts *TrieStub) EnterPruningBufferingMode() {
+// GetStorageManager -
+func (ts *TrieStub) GetStorageManager() data.StorageManager {
+	if ts.GetStorageManagerCalled != nil {
+		return ts.GetStorageManagerCalled()
+	}
+
+	return nil
 }
 
-// ExitPruningBufferingMode -
-func (ts *TrieStub) ExitPruningBufferingMode() {
+// GetProof -
+func (ts *TrieStub) GetProof(key []byte) ([][]byte, error) {
+	if ts.GetProofCalled != nil {
+		return ts.GetProofCalled(key)
+	}
+
+	return nil, nil
+}
+
+// VerifyProof -
+func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+	if ts.VerifyProofCalled != nil {
+		return ts.VerifyProofCalled(key, proof)
+	}
+
+	return false, nil
 }
 
 // ClosePersister -
 func (ts *TrieStub) ClosePersister() error {
 	return nil
-}
-
-// TakeSnapshot -
-func (ts *TrieStub) TakeSnapshot(_ []byte) {
-}
-
-// SetCheckpoint -
-func (ts *TrieStub) SetCheckpoint(_ []byte) {
 }
 
 // GetAllLeavesOnChannel -
@@ -56,11 +69,6 @@ func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (c
 	close(ch)
 
 	return ch, nil
-}
-
-// IsPruningEnabled -
-func (ts *TrieStub) IsPruningEnabled() bool {
-	return false
 }
 
 // Get -
@@ -90,8 +98,8 @@ func (ts *TrieStub) Delete(key []byte) error {
 	return errNotImplemented
 }
 
-// Root -
-func (ts *TrieStub) Root() ([]byte, error) {
+// RootHash -
+func (ts *TrieStub) RootHash() ([]byte, error) {
 	if ts.RootCalled != nil {
 		return ts.RootCalled()
 	}
@@ -127,20 +135,6 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil
 }
 
-// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (ts *TrieStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if ts.CancelPruneCalled != nil {
-		ts.CancelPruneCalled(rootHash, identifier)
-	}
-}
-
-// Prune removes from the database all the old hashes that correspond to the given root hash
-func (ts *TrieStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if ts.PruneCalled != nil {
-		ts.PruneCalled(rootHash, identifier)
-	}
-}
-
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (ts *TrieStub) ResetOldHashes() [][]byte {
 	if ts.ResetOldHashesCalled != nil {
@@ -165,14 +159,6 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 	return nil, 0, nil
 }
 
-// Database -
-func (ts *TrieStub) Database() data.DBWriteCacher {
-	if ts.DatabaseCalled != nil {
-		return ts.DatabaseCalled()
-	}
-	return nil
-}
-
 // GetDirtyHashes -
 func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
 	return nil, nil
@@ -191,7 +177,20 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	return nil, nil
 }
 
-// GetSnapshotDbBatchDelay -
-func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
-	return 0
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
+	}
+
+	return make([]byte, 0), nil
+}
+
+// GetNumNodes -
+func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
+	if ts.GetNumNodesCalled != nil {
+		return ts.GetNumNodesCalled()
+	}
+
+	return data.NumNodesDTO{}
 }

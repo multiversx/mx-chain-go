@@ -16,12 +16,8 @@ import (
 func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 	return ArgsNewOpenStorageUnits{
 		GeneralConfig:             config.Config{},
-		Marshalizer:               &mock.MarshalizerMock{},
 		BootstrapDataProvider:     &mock.BootStrapDataProviderStub{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
-		WorkingDir:                "",
-		ChainID:                   "",
-		DefaultDBPath:             "",
 		DefaultEpochString:        "Epoch",
 		DefaultShardString:        "Shard",
 	}
@@ -95,6 +91,10 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 }
 
 func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	args := createMockArgsOpenStorageUnits()

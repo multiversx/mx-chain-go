@@ -8,6 +8,7 @@ import (
 
 // GenesisNodesSetupHandlerStub -
 type GenesisNodesSetupHandlerStub struct {
+	AllInitialNodesCalled                func() []sharding.GenesisNodeInfoHandler
 	InitialNodesInfoForShardCalled       func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
 	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTimeCalled                   func() int64
@@ -23,6 +24,21 @@ type GenesisNodesSetupHandlerStub struct {
 	NumberOfShardsCalled                 func() uint32
 	MinNumberOfNodesCalled               func() uint32
 	MinNumberOfNodesWithHysteresisCalled func() uint32
+}
+
+// InitialNodesPubKeys -
+func (g *GenesisNodesSetupHandlerStub) InitialNodesPubKeys() map[uint32][]string {
+	panic("implement me")
+}
+
+// GetShardIDForPubKey -
+func (g *GenesisNodesSetupHandlerStub) GetShardIDForPubKey(pubkey []byte) (uint32, error) {
+	panic("implement me")
+}
+
+// InitialEligibleNodesPubKeysForShard -
+func (g *GenesisNodesSetupHandlerStub) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	panic("implement me")
 }
 
 // InitialNodesInfoForShard -
@@ -157,6 +173,14 @@ func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
 		return g.MinNumberOfNodesWithHysteresisCalled()
 	}
 	return g.MinNumberOfNodes()
+}
+
+// AllInitialNodes -
+func (g *GenesisNodesSetupHandlerStub) AllInitialNodes() []sharding.GenesisNodeInfoHandler {
+	if g.AllInitialNodesCalled != nil {
+		return g.AllInitialNodesCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil -

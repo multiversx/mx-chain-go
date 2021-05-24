@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -21,7 +21,7 @@ type ArgBaseBootstrapper struct {
 	PoolsHolder         dataRetriever.PoolsHolder
 	Store               dataRetriever.StorageService
 	ChainHandler        data.ChainHandler
-	Rounder             consensus.Rounder
+	RoundHandler        consensus.RoundHandler
 	BlockProcessor      process.BlockProcessor
 	WaitTime            time.Duration
 	Hasher              hashing.Hasher
@@ -37,7 +37,8 @@ type ArgBaseBootstrapper struct {
 	EpochHandler        dataRetriever.EpochHandler
 	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
-	Indexer             indexer.Indexer
+	AppStatusHandler    core.AppStatusHandler
+	Indexer             process.Indexer
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

@@ -12,10 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -32,7 +31,7 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer      indexer.Indexer
+	ElasticIndexer      StorageDataIndexer
 	DataReplayer        DataReplayerHandler
 	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
@@ -46,7 +45,7 @@ type ArgsDataProcessor struct {
 
 type dataProcessor struct {
 	startTime           time.Time
-	elasticIndexer      indexer.Indexer
+	elasticIndexer      StorageDataIndexer
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
 	ratingConfig        config.RatingsConfig
@@ -179,14 +178,22 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
 	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
 	// not all data was indexed
-	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders, headerHash)
+	args := &indexer.ArgsSaveBlockData{
+		HeaderHash:             headerHash,
+		Body:                   newBody,
+		Header:                 data.Header,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeaders,
+		TransactionsPool:       data.BodyTransactions,
+	}
+	dp.elasticIndexer.SaveBlock(args)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header, headerHash)
 	return nil
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := workItems.RoundInfo{
+	ri := &indexer.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -194,7 +201,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfo([]workItems.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]*indexer.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

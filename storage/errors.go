@@ -40,6 +40,9 @@ var ErrEmptyKey = errors.New("key is empty")
 // ErrInvalidNumberOfPersisters signals that an invalid number of persisters has been provided
 var ErrInvalidNumberOfPersisters = errors.New("invalid number of active persisters")
 
+// ErrInvalidNumberOfOldPersisters signals that an invalid number of old persisters has been provided
+var ErrInvalidNumberOfOldPersisters = errors.New("invalid number of old active persisters")
+
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
 
@@ -120,3 +123,7 @@ var ErrNegativeSizeInBytes = errors.New("negative size in bytes")
 
 // ErrNilTimeCache signals that a nil time cache has been provided
 var ErrNilTimeCache = errors.New("nil time cache")
+
+// ErrNilTxGasHandler signals that a nil tx gas handler was provided
+var ErrNilTxGasHandler = errors.New("nil tx gas handler")
+

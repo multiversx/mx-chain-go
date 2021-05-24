@@ -2,13 +2,13 @@ package mock
 
 // EpochSubscriberHandlerStub -
 type EpochSubscriberHandlerStub struct {
-	EpochConfirmedCalled func(epoch uint32)
+	EpochConfirmedCalled func(epoch uint32, timestamp uint64)
 }
 
 // EpochConfirmed -
-func (eshs *EpochSubscriberHandlerStub) EpochConfirmed(epoch uint32) {
+func (eshs *EpochSubscriberHandlerStub) EpochConfirmed(epoch uint32, timestamp uint64) {
 	if eshs.EpochConfirmedCalled != nil {
-		eshs.EpochConfirmedCalled(epoch)
+		eshs.EpochConfirmedCalled(epoch, timestamp)
 	}
 }
 

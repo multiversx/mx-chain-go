@@ -80,7 +80,7 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
+		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
 	}
@@ -139,7 +139,10 @@ func TestTomlParser(t *testing.T) {
 
 func TestTomlEconomicsParser(t *testing.T) {
 	protocolSustainabilityPercentage := 0.1
-	leaderPercentage := 0.1
+	leaderPercentage1 := 0.1
+	leaderPercentage2 := 0.2
+	epoch0 := uint32(0)
+	epoch1 := uint32(1)
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
@@ -152,10 +155,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:                 leaderPercentage,
-			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
-			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
-			DeveloperPercentage:              developerPercentage,
+			RewardsConfigByEpoch: []EpochRewardSettings{
+				{
+					EpochEnable:                      epoch0,
+					LeaderPercentage:                 leaderPercentage1,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+				{
+					EpochEnable:                      epoch1,
+					LeaderPercentage:                 leaderPercentage2,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+			},
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -168,10 +183,20 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
-	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
-    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
@@ -189,11 +214,15 @@ func TestTomlEconomicsParser(t *testing.T) {
 func TestTomlPreferencesParser(t *testing.T) {
 	nodeDisplayName := "test-name"
 	destinationShardAsObs := "3"
+	identity := "test-identity"
+	redundancyLevel := int64(0)
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
 			NodeDisplayName:            nodeDisplayName,
 			DestinationShardAsObserver: destinationShardAsObs,
+			Identity:                   identity,
+			RedundancyLevel:            redundancyLevel,
 		},
 	}
 
@@ -201,8 +230,9 @@ func TestTomlPreferencesParser(t *testing.T) {
 [Preferences]
 	NodeDisplayName = "` + nodeDisplayName + `"
 	DestinationShardAsObserver = "` + destinationShardAsObs + `"
+	Identity = "` + identity + `"
+	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
 `
-
 	cfg := Preferences{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
@@ -248,7 +278,13 @@ func TestAPIRoutesToml(t *testing.T) {
 	package1 := "testPackage1"
 	route2 := "testRoute2"
 
+	loggingThreshold := 10
+
 	expectedCfg := ApiRoutesConfig{
+		Logging: ApiLoggingConfig{
+			LoggingEnabled:          true,
+			ThresholdInMicroSeconds: loggingThreshold,
+		},
 		APIPackages: map[string]APIPackageConfig{
 			package0: {
 				Routes: []RouteConfig{
@@ -265,6 +301,10 @@ func TestAPIRoutesToml(t *testing.T) {
 	}
 
 	testString := `
+[Logging]
+    LoggingEnabled = true
+    ThresholdInMicroSeconds = 10
+
      # API routes configuration
 [APIPackages]
 

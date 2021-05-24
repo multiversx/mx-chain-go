@@ -31,20 +31,15 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	numMetachainNodes := 0
 	shardId := uint32(5)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -60,7 +55,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 	idxSender := 0
 	shardId = nodes[idxSender].ShardCoordinator.SelfId()
-	balanceValue := big.NewInt(100000)
+	balanceValue := big.NewInt(1000000000)
 	transactionValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
@@ -116,21 +111,16 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	firstSkInShard := uint32(4)
 	shardId := uint32(5)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
-	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
+	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard)
 	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -146,7 +136,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	idxSender := 0
 	shardId = uint32(4)
-	mintingValue := big.NewInt(100000)
+	mintingValue := big.NewInt(1000000000)
 	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
@@ -219,21 +209,16 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	numMetachainNodes := 0
 	firstSkInShard := uint32(4)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
-	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard, integrationTests.GetConnectableAddress(advertiser))
+	nodes[0] = integrationTests.NewTestProcessorNode(uint32(numOfShards), 0, firstSkInShard)
 	integrationTests.CreateAccountForNodes(nodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -265,7 +250,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 
 	idxSender := 0
 	shardId := uint32(4)
-	mintingValue := big.NewInt(100000)
+	mintingValue := big.NewInt(1000000000)
 	txValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
@@ -335,16 +320,12 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
 	maxShards := 2
 	nodesPerShard := 2
 	txGenerated := 10
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -353,6 +334,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 	//shard 0, requesters
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
+	connectableNodes := make([]integrationTests.Connectable, 0)
 	for i := 0; i < nodesPerShard; i++ {
 		dPool := integrationTests.CreateRequesterDataPool(recvTxs, &mutRecvTxs, i, 0)
 
@@ -360,16 +342,16 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 			uint32(maxShards),
 			0,
 			0,
-			integrationTests.GetConnectableAddress(advertiser),
 			dPool,
 		)
 
 		nodes = append(nodes, tn)
+		connectableNodes = append(connectableNodes, tn)
 	}
 
 	senderShardId := uint32(0)
 	recvShardId := uint32(1)
-	balanceValue := big.NewInt(100000)
+	balanceValue := big.NewInt(1000000000)
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(maxShards), senderShardId)
 	dPool, txHashesGenerated, txsSndAddr := integrationTests.CreateResolversDataPool(t, txGenerated, senderShardId, recvShardId, shardCoordinator)
 
@@ -381,15 +363,16 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 			uint32(maxShards),
 			1,
 			1,
-			integrationTests.GetConnectableAddress(advertiser),
 			dPool,
 		)
 
 		atomic.StoreInt32(&tn.CounterTxRecv, int32(txGenerated))
 
 		nodes = append(nodes, tn)
+		connectableNodes = append(connectableNodes, tn)
 	}
 
+	integrationTests.ConnectNodes(connectableNodes)
 	integrationTests.DisplayAndStartNodes(nodes)
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)

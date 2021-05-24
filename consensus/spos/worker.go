@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -40,12 +39,12 @@ type Worker struct {
 	forkDetector            process.ForkDetector
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	syncTimer               ntp.SyncTimer
-	headerSigVerifier       RandSeedVerifier
-	headerIntegrityVerifier HeaderIntegrityVerifier
+	headerSigVerifier       HeaderSigVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
@@ -70,6 +69,7 @@ type Worker struct {
 
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
+	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -83,18 +83,20 @@ type WorkerArgs struct {
 	ForkDetector             process.ForkDetector
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
-	Rounder                  consensus.Rounder
+	RoundHandler             consensus.RoundHandler
 	ShardCoordinator         sharding.Coordinator
 	PeerSignatureHandler     crypto.PeerSignatureHandler
 	SyncTimer                ntp.SyncTimer
-	HeaderSigVerifier        RandSeedVerifier
-	HeaderIntegrityVerifier  HeaderIntegrityVerifier
+	HeaderSigVerifier        HeaderSigVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
+	AppStatusHandler         core.AppStatusHandler
+	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 }
 
 // NewWorker creates a new Worker object
@@ -114,7 +116,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ChainID:              args.ChainID,
 	}
 
-	consensusMessageValidator, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
+	consensusMessageValidatorObj, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -129,19 +131,20 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		forkDetector:             args.ForkDetector,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
-		rounder:                  args.Rounder,
+		roundHandler:             args.RoundHandler,
 		shardCoordinator:         args.ShardCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
 		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
-		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		appStatusHandler:         args.AppStatusHandler,
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
+		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 	}
 
-	wrk.consensusMessageValidator = consensusMessageValidator
+	wrk.consensusMessageValidator = consensusMessageValidatorObj
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
@@ -197,8 +200,8 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.Hasher) {
 		return ErrNilHasher
 	}
-	if check.IfNil(args.Rounder) {
-		return ErrNilRounder
+	if check.IfNil(args.RoundHandler) {
+		return ErrNilRoundHandler
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return ErrNilShardCoordinator
@@ -227,6 +230,12 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
 	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.NodeRedundancyHandler) {
+		return ErrNilNodeRedundancyHandler
+	}
 
 	return nil
 }
@@ -243,7 +252,7 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
-	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.rounder.Index()
+	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
 	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
 	if headerCanNotBeProcessed {
 		return
@@ -296,7 +305,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 			continue
 		}
 
-		if wrk.rounder.Index() > cnsDataList[i].RoundIndex {
+		if wrk.roundHandler.Index() > cnsDataList[i].RoundIndex {
 			continue
 		}
 
@@ -336,6 +345,14 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
 		return err
+	}
+
+	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
+		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(
+			wrk.consensusState.SelfPubKey(),
+			string(cnsMsg.PubKey),
+			message.Peer(),
+		)
 	}
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)
@@ -478,8 +495,8 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 		return
 	}
 
-	sinceRoundStart := time.Since(wrk.rounder.TimeStamp())
-	percent := sinceRoundStart * 100 / wrk.rounder.TimeDuration()
+	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
+	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
 }
 
@@ -624,21 +641,13 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// SetAppStatusHandler sets the status metric handler
-func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-	wrk.appStatusHandler = ash
-
-	return nil
-}
-
 // Close will close the endless running go routine
 func (wrk *Worker) Close() error {
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
 	}
+
+	wrk.cleanChannels()
 
 	return nil
 }
@@ -651,4 +660,24 @@ func (wrk *Worker) ResetConsensusMessages() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
+}
+
+func (wrk *Worker) cleanChannels() {
+	nrReads := core.EmptyChannel(wrk.consensusStateChangedChannel)
+	log.Debug("close worker: emptied channel", "consensusStateChangedChannel nrReads", nrReads)
+
+	nrReads = emptyChannel(wrk.executeMessageChannel)
+	log.Debug("close worker: emptied channel", "executeMessageChannel nrReads", nrReads)
+}
+
+func emptyChannel(ch chan *consensus.Message) int {
+	readsCnt := 0
+	for {
+		select {
+		case <-ch:
+			readsCnt++
+		default:
+			return readsCnt
+		}
+	}
 }

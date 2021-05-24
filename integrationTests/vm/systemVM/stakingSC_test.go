@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -28,14 +28,10 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -47,7 +43,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -56,6 +51,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
+	integrationTests.SaveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -91,6 +87,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
+
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -117,7 +119,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	verifyUnbound(t, nodes)
 }
 
-func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
+func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -128,16 +130,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
@@ -157,7 +155,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -169,8 +166,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
-
 	verifyInitialBalance(t, nodes, initialVal)
+	integrationTests.SaveDelegationManagerConfig(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -219,6 +216,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
+	roundsPerEpoch := uint64(10)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
+	}
+
 	/////////----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
@@ -252,30 +255,23 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+		_, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
 	}
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -285,7 +281,6 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -328,7 +323,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	rewardShardID := nodes[0].ShardCoordinator.ComputeId(rewardAccount.Address)
@@ -343,22 +338,21 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9969963930)
+	expectedValue := big.NewInt(0).SetUint64(9996639300)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
-				break
+				assert.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 			}
 		}
 	}
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9989986920)
+	expectedValue := big.NewInt(0).SetUint64(9998878200)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -366,7 +360,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				assert.Equal(t, sndAcc.GetBalance().String(), expectedValue.String())
 				break
 			}
 		}

@@ -20,10 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -49,18 +49,30 @@ func createMockArgument(
 	trieStorageManagers[factory.PeerAccountTrie] = storageManager
 
 	arg := ArgsGenesisBlockCreator{
-		GenesisTime:              0,
-		StartEpochNum:            0,
-		PubkeyConv:               mock.NewPubkeyConverterMock(32),
-		Blkc:                     &mock.BlockChainStub{},
-		Marshalizer:              &mock.MarshalizerMock{},
-		SignMarshalizer:          &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool:                 testscommon.NewPoolsHolderMock(),
-		TxLogsProcessor:          &mock.TxLogProcessorMock{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		GenesisTime:   0,
+		StartEpochNum: 0,
+		Core: &mock.CoreComponentsMock{
+			IntMarsh:            &mock.MarshalizerMock{},
+			TxMarsh:             &mock.MarshalizerMock{},
+			Hash:                &mock.HasherMock{},
+			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			Chain:               "chainID",
+			MinTxVersion:        1,
+		},
+		Data: &mock.DataComponentsMock{
+			Storage: &mock.ChainStorerMock{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+					return mock.NewStorerMock()
+				},
+			},
+			Blkc:     &mock.BlockChainStub{},
+			DataPool: testscommon.NewPoolsHolderMock(),
+		},
+		InitialNodesSetup:    &mock.InitialNodesSetupHandlerStub{},
+		TxLogsProcessor:      &mock.TxLogProcessorMock{},
+		VirtualMachineConfig: config.VirtualMachineConfig{},
+		HardForkConfig:       config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "5000000000000000000000",
@@ -80,8 +92,6 @@ func createMockArgument(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       1,
-				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -90,26 +100,26 @@ func createMockArgument(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				BaseIssuingCost:    "100",
-				MinCreationDeposit: "100",
-				EnabledEpoch:       0,
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "aabb00",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinStakeAmount: "100",
-				EnabledEpoch:   0,
-				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
 			},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:    nodePrice,
-		GeneralConfig: &config.GeneralSettingsConfig{
-			BuiltInFunctionsEnableEpoch:    0,
-			SCDeployEnableEpoch:            0,
-			RelayedTransactionsEnableEpoch: 0,
-			PenalizedTooMuchGasEnableEpoch: 0,
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				BuiltInFunctionsEnableEpoch:    0,
+				SCDeployEnableEpoch:            0,
+				RelayedTransactionsEnableEpoch: 0,
+				PenalizedTooMuchGasEnableEpoch: 0,
+			},
 		},
 	}
 
@@ -145,31 +155,27 @@ func createMockArgument(
 	gasMap := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
 	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
-	ted := &economics.TestEconomicsData{
-		EconomicsData: &economics.EconomicsData{},
-	}
-
-	ted.SetTotalSupply(entireSupply)
-	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
-	arg.Economics = ted.EconomicsData
-
-	arg.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return mock.NewStorerMock()
+	ted := &economicsmocks.EconomicsHandlerStub{
+		GenesisTotalSupplyCalled: func() *big.Int {
+			return entireSupply
+		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
 		},
 	}
+	arg.Economics = ted
 
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,
 		arg.Economics.GenesisTotalSupply(),
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
 		"testdata/smartcontracts.json",
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
@@ -348,13 +354,23 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	shardIDs := []uint32{0, 1}
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
-	arg := ArgsGenesisBlockCreator{
-		ShardCoordinator: &mock.ShardCoordinatorMock{SelfShardId: 1},
-	}
+	initialNodesSetup := createDummyNodesHandler(scAddressBytes)
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
 
-	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	arg.ShardCoordinator = &mock.ShardCoordinatorMock{SelfShardId: 1}
+	arg.TrieStorageManagers = make(map[string]data.StorageManager)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
+
+	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	assert.True(t, errors.Is(err, trie.ErrNilTrieStorage))
 }
 
@@ -389,8 +405,10 @@ func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
 		initialNodesSetup,
 		big.NewInt(22000),
 	)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
-	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapArgsGenesisBlockCreator))
 	assert.Equal(t, uint32(0), mapArgsGenesisBlockCreator[0].ShardCoordinator.SelfId())
@@ -435,10 +453,37 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 			return &mock.AccountsStub{}
 		},
 	}
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
-	_ = createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	_ = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 
-	err := createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
+	err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapHardForkBlockProcessor))
+}
+
+
+func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {
+	return &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
 }

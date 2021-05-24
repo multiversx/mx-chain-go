@@ -11,7 +11,7 @@ import (
 func TestNewSelectorExpandedListNilWeightsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, err := NewSelectorExpandedList(nil, hasher)
 	require.Equal(t, ErrNilWeights, err)
@@ -33,7 +33,7 @@ func TestNewSelectorExpandedListInvalidWeightShouldErr(t *testing.T) {
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
 	weights[1] = 0
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, err := NewSelectorExpandedList(weights, hasher)
 	require.Equal(t, ErrInvalidWeight, err)
@@ -44,7 +44,7 @@ func TestNewSelectorExpandedListOK(t *testing.T) {
 	t.Parallel()
 
 	weights := createDummyWeights(10, 32, 2, nextWeightArithmeticProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, err := NewSelectorExpandedList(weights, hasher)
 	require.Nil(t, err)
@@ -68,7 +68,7 @@ func TestSelectorExpandedList_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(selector))
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, _ = NewSelectorExpandedList(weights, hasher)
 	require.False(t, check.IfNil(selector))
@@ -78,7 +78,7 @@ func TestSelectorExpandedList_SelectNilRandomessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select(nil, 5)
@@ -91,7 +91,7 @@ func TestSelectorExpandedList_Select0SampleSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select([]byte("random"), 0)
@@ -105,7 +105,7 @@ func TestSelectorExpandedList_SelectSampleSizeGreaterThanSetShouldErr(t *testing
 
 	setSize := uint32(10)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	selector, _ := NewSelectorExpandedList(weights, hasher)
 	indexes, err := selector.Select([]byte("random"), setSize+1)
@@ -119,7 +119,7 @@ func TestSelectorExpandedList_SelectOK(t *testing.T) {
 
 	setSize := uint32(10)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	sampleSize := setSize / 2
 
 	selector, _ := NewSelectorExpandedList(weights, hasher)

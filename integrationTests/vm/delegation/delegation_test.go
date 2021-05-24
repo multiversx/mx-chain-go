@@ -29,40 +29,33 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,
 		numMetachainNodes,
 		numOfShards,
 		shardConsensusGroupSize,
 		metaConsensusGroupSize,
-		integrationTests.GetConnectableAddress(advertiser),
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+		_, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
 	}
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	roundsPerEpoch := uint64(5)
 	for _, node := range nodes {
+		node.InitDelegationManager()
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
@@ -107,12 +100,24 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
+	_, _ = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)
 
 	for i := 0; i < len(balancesAfterClaimRewards); i++ {
 		assert.True(t, balancesAfterClaimRewards[i].Cmp(balancesBeforeClaimRewards[i]) > 0)
 	}
+
+	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
+	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
+}
+
+func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
+	shardIDForAddress := nodes[0].ShardCoordinator.ComputeId(address)
+	nodeInShard := getNodeWithShardID(nodes, shardIDForAddress)
+
+	acc, _ := nodeInShard.AccntState.GetExistingAccount(address)
+	userAcc, _ := acc.(state.UserAccountHandler)
+	return userAcc
 }
 
 func getNodesBalances(nodes []*integrationTests.TestProcessorNode) []*big.Int {

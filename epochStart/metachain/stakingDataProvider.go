@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,11 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-const conversionBase = 10
-
 type ownerStats struct {
 	numEligible        int
-	numStakedNodes     int
+	numStakedNodes     int64
 	topUpValue         *big.Int
 	totalStaked        *big.Int
 	eligibleBaseStake  *big.Int
@@ -94,7 +91,7 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 
 // GetNodeStakedTopUp returns the owner of provided bls key staking stats for the current epoch
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -102,7 +99,7 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 
 	ownerInfo, ok := sdp.cache[owner]
 	if !ok {
-		return nil, errors.New("owner has no eligible nodes in epoch")
+		return nil, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch
 	}
 
 	return ownerInfo.topUpPerNode, nil
@@ -139,7 +136,7 @@ func (sdp *stakingDataProvider) processStakingData() {
 		if owner.numStakedNodes == 0 {
 			ownerStakePerNode.Set(sdp.minNodePrice)
 		} else {
-			ownerStakePerNode.Div(owner.totalStaked, big.NewInt(int64(owner.numStakedNodes)))
+			ownerStakePerNode.Div(owner.totalStaked, big.NewInt(owner.numStakedNodes))
 		}
 
 		ownerEligibleStake := big.NewInt(0).Mul(ownerStakePerNode, ownerEligibleNodes)
@@ -166,15 +163,15 @@ func (sdp *stakingDataProvider) FillValidatorInfo(blsKey []byte) error {
 }
 
 func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*ownerStats, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
-		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
+		log.Debug("error fill owner stats", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
 	}
 
 	ownerData, err := sdp.getValidatorData(owner)
 	if err != nil {
-		log.Debug("error computing rewards for bls key", "step", "get owner data", "key", hex.EncodeToString(blsKey), "error", err)
+		log.Debug("error fill owner stats", "step", "get owner data", "key", hex.EncodeToString(blsKey), "owner", hex.EncodeToString([]byte(owner)), "error", err)
 		return nil, err
 	}
 
@@ -198,7 +195,7 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 	return nil
 }
 
-func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
+func (sdp *stakingDataProvider) getBlsKeyOwner(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.ValidatorSCAddress,
@@ -234,18 +231,19 @@ func (sdp *stakingDataProvider) getValidatorData(validatorAddress string) (*owne
 }
 
 func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress string) (*ownerStats, error) {
-	topUpValue, totalStakedValue, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
+	topUpValue, totalStakedValue, numStakedWaiting, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	ownerBaseNodesStake := big.NewInt(0).Sub(totalStakedValue, topUpValue)
-	numStakedNodes := big.NewInt(0).Div(ownerBaseNodesStake, sdp.minNodePrice).Int64()
 	ownerData := &ownerStats{
-		numEligible:    0,
-		numStakedNodes: int(numStakedNodes),
-		topUpValue:     topUpValue,
-		totalStaked:    totalStakedValue,
+		numEligible:        0,
+		numStakedNodes:     numStakedWaiting.Int64(),
+		topUpValue:         topUpValue,
+		totalStaked:        totalStakedValue,
+		eligibleBaseStake:  big.NewInt(0).Set(sdp.minNodePrice),
+		eligibleTopUpStake: big.NewInt(0),
+		topUpPerNode:       big.NewInt(0),
 	}
 
 	ownerData.blsKeys = make([][]byte, len(blsKeys))
@@ -256,78 +254,68 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 	return ownerData, nil
 }
 
-func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, [][]byte, error) {
-	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, *big.Int, [][]byte, error) {
+	validatorAddressBytes := []byte(validatorAddress)
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  validatorAddressBytes,
+			CallerAddr:  vm.EndOfEpochAddress,
 			CallValue:   big.NewInt(0),
 			GasProvided: math.MaxUint64,
+			Arguments:   [][]byte{validatorAddressBytes},
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
-		Function:      "getTotalStakedTopUpBlsKeys",
+		Function:      "getTotalStakedTopUpStakedBlsKeys",
 	}
 
 	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+		return nil, nil, nil, nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
-	if len(vmOutput.ReturnData) < 2 {
-		return nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least two values", epochStart.ErrExecutingSystemScCode)
+	if len(vmOutput.ReturnData) < 3 {
+		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpStakedBlsKeys function should have at least three values", epochStart.ErrExecutingSystemScCode)
 	}
 
-	topUpValue, ok := big.NewInt(0).SetString(string(vmOutput.ReturnData[0]), conversionBase)
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: topUp string returned is not a number", epochStart.ErrExecutingSystemScCode)
-	}
+	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	totalStakedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
+	numStakedWaiting := big.NewInt(0).SetBytes(vmOutput.ReturnData[2])
 
-	totalStakedValue, ok := big.NewInt(0).SetString(string(vmOutput.ReturnData[1]), conversionBase)
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: totalStaked string returned is not a number", epochStart.ErrExecutingSystemScCode)
-	}
-
-	return topUpValue, totalStakedValue, vmOutput.ReturnData[2:], nil
+	return topUpValue, totalStakedValue, numStakedWaiting, vmOutput.ReturnData[3:], nil
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
-func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error) {
+func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error) {
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
-	ownersWithNotEnoughFunds := make([][]byte, 0)
+	mapOwnersKeys := make(map[string][][]byte)
 	keysToUnStake := make([][]byte, 0)
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for ownerAddress, stakingInfo := range sdp.cache {
-		numRegisteredKeys := int64(len(stakingInfo.blsKeys))
 		maxQualified := big.NewInt(0).Div(stakingInfo.totalStaked, sdp.minNodePrice)
-		if maxQualified.Int64() >= numRegisteredKeys {
+		if maxQualified.Int64() >= stakingInfo.numStakedNodes {
 			continue
 		}
 
-		sortedKeys, totalActive := arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
-		if maxQualified.Int64() >= totalActive {
-			continue
-		}
+		sortedKeys := arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
 
-		numKeysToUnStake := totalActive - maxQualified.Int64()
+		numKeysToUnStake := stakingInfo.numStakedNodes - maxQualified.Int64()
 		selectedKeys := selectKeysToUnStake(sortedKeys, numKeysToUnStake)
-		if int64(len(selectedKeys)) != numKeysToUnStake {
-			return nil, nil, epochStart.ErrInvalidNumOfKeysToUnStake
+		if len(selectedKeys) == 0 {
+			continue
 		}
 
 		keysToUnStake = append(keysToUnStake, selectedKeys...)
-		ownersWithNotEnoughFunds = append(ownersWithNotEnoughFunds, []byte(ownerAddress))
+
+		mapOwnersKeys[ownerAddress] = make([][]byte, len(selectedKeys))
+		copy(mapOwnersKeys[ownerAddress], selectedKeys)
 	}
 
-	return keysToUnStake, ownersWithNotEnoughFunds, nil
+	return keysToUnStake, mapOwnersKeys, nil
 }
 
 func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]string {
@@ -342,7 +330,7 @@ func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map
 }
 
 func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]byte {
-	selectedKeys := make([][]byte, 0, numToSelect)
+	selectedKeys := make([][]byte, 0)
 	newKeys := sortedKeys[string(core.NewList)]
 	if len(newKeys) > 0 {
 		selectedKeys = append(selectedKeys, newKeys...)
@@ -366,26 +354,26 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 		selectedKeys = append(selectedKeys, eligibleKeys...)
 	}
 
-	return selectedKeys[:numToSelect]
+	if int64(len(selectedKeys)) >= numToSelect {
+		return selectedKeys[:numToSelect]
+	}
+
+	return selectedKeys
 }
 
-func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) (map[string][][]byte, int64) {
-	sortedKeys := make(map[string][][]byte, 0)
-	totalActive := int64(0)
+func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {
+	sortedKeys := make(map[string][][]byte)
 	for _, blsKey := range blsKeys {
 		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]
 		if !ok {
+			sortedKeys[string(core.NewList)] = append(sortedKeys[string(core.NewList)], blsKey)
 			continue
 		}
 
 		sortedKeys[blsKeyStatus] = append(sortedKeys[blsKeyStatus], blsKey)
-
-		if blsKeyStatus != string(core.LeavingList) && blsKeyStatus != string(core.InactiveList) {
-			totalActive++
-		}
 	}
 
-	return sortedKeys, totalActive
+	return sortedKeys
 }
 
 // IsInterfaceNil return true if underlying object is nil

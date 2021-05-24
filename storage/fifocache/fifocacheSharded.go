@@ -130,6 +130,11 @@ func (c *FIFOShardedCache) Len() int {
 	return c.cache.Count()
 }
 
+// SizeInBytesContained returns 0
+func (c *FIFOShardedCache) SizeInBytesContained() uint64 {
+	return 0
+}
+
 // MaxSize returns the maximum number of items which can be stored in cache.
 func (c *FIFOShardedCache) MaxSize() int {
 	return c.maxsize

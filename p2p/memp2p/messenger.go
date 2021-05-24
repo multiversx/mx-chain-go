@@ -173,7 +173,7 @@ func (messenger *Messenger) TrimConnections() {
 }
 
 // Bootstrap does nothing, as it is not applicable to the in-memory messenger.
-func (messenger *Messenger) Bootstrap() error {
+func (messenger *Messenger) Bootstrap(_ uint32) error {
 	return nil
 }
 
@@ -203,20 +203,9 @@ func (messenger *Messenger) HasTopic(name string) bool {
 	return found
 }
 
-// HasTopicValidator returns true if this Messenger has declared interest in
-// the given topic and has registered a non-nil validator on that topic.
-// Returns false otherwise.
-func (messenger *Messenger) HasTopicValidator(name string) bool {
-	messenger.topicsMutex.RLock()
-	validator := messenger.topicValidators[name]
-	messenger.topicsMutex.RUnlock()
-
-	return check.IfNil(validator)
-}
-
 // RegisterMessageProcessor sets the provided message processor to be the
 // processor of received messages for the given topic.
-func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+func (messenger *Messenger) RegisterMessageProcessor(topic string, _ string, handler p2p.MessageProcessor) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilValidator
 	}
@@ -240,7 +229,7 @@ func (messenger *Messenger) RegisterMessageProcessor(topic string, handler p2p.M
 
 // UnregisterMessageProcessor unsets the message processor for the given topic
 // (sets it to nil).
-func (messenger *Messenger) UnregisterMessageProcessor(topic string) error {
+func (messenger *Messenger) UnregisterMessageProcessor(topic string, _ string) error {
 	messenger.topicsMutex.Lock()
 	defer messenger.topicsMutex.Unlock()
 
@@ -315,7 +304,7 @@ func (messenger *Messenger) processFromQueue() {
 			continue
 		}
 
-		topic := messageObject.Topics()[0]
+		topic := messageObject.Topic()
 		if topic == "" {
 			continue
 		}

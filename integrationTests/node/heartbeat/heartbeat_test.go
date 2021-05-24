@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
+var stepDelay = time.Second / 10
 var log = logger.GetOrCreate("integrationtests/node")
 
 // TestHeartbeatMonitorWillUpdateAnInactivePeer test what happen if a peer out of 2 stops being responsive on heartbeat status
@@ -34,16 +34,12 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, "nodeName")
+	nodes, senders, pks := prepareNodes(monitor, 3, "nodeName")
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Close()
 		}
@@ -81,9 +77,6 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
 	length := 129
@@ -95,10 +88,9 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	bigNodeName := string(buff)
 
 	monitor := createMonitor(maxUnresposiveTime)
-	nodes, senders, pks := prepareNodes(advertiserAddr, monitor, 3, bigNodeName)
+	nodes, senders, pks := prepareNodes(monitor, 3, bigNodeName)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, n := range nodes {
 			_ = n.Close()
 		}
@@ -122,7 +114,6 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 }
 
 func prepareNodes(
-	advertiserAddr string,
 	monitor *process.Monitor,
 	interactingNodes int,
 	defaultNodeName string,
@@ -135,7 +126,7 @@ func prepareNodes(
 	pks := make([]crypto.PublicKey, 0)
 
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.CreateMessengerWithKadDht(advertiserAddr)
+		nodes[i] = integrationTests.CreateMessengerWithNoDiscovery()
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
@@ -144,10 +135,14 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
+	}
 
-		_ = nodes[i].Bootstrap()
+	for i := 0; i < len(nodes)-1; i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			_ = nodes[i].ConnectToPeer(integrationTests.GetConnectableAddress(nodes[j]))
+		}
 	}
 
 	return nodes, senders, pks
@@ -225,6 +220,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		NodeDisplayName:      nodeName,
 		HardforkTrigger:      &mock.HardforkTriggerStub{},
 		CurrentBlockProvider: &mock.BlockChainMock{},
+		RedundancyHandler:    &mock.RedundancyHandlerStub{},
 	}
 
 	sender, _ := process.NewSender(argSender)
@@ -243,6 +239,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
+			UpdatePeerIdSubTypeCalled:   func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
 		})
 
 	argMonitor := process.ArgHeartbeatMonitor{
@@ -279,6 +276,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

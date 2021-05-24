@@ -71,8 +71,8 @@ var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
 // ErrNilKeyGenerator signals that key generator is nil
 var ErrNilKeyGenerator = errors.New("nil key generator")
 
-// ErrSingleSigner signals that single signer is nil
-var ErrSingleSigner = errors.New("nil single signer")
+// ErrNilSingleSigner signals that the single signer is nil
+var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrIncorrectConfig signals that the config is incorrect
 var ErrIncorrectConfig = errors.New("config incorrect")
@@ -83,11 +83,11 @@ var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")
 // ErrNilStakingSmartContractAddress signals that staking smart contract address is nil
 var ErrNilStakingSmartContractAddress = errors.New("nil staking smart contract address")
 
+// ErrNilEndOfEpochSmartContractAddress signals that the end of epoch smart contract address is nil
+var ErrNilEndOfEpochSmartContractAddress = errors.New("nil end of epoch smart contract address")
+
 // ErrNilArgumentsParser signals that arguments parses is nil
 var ErrNilArgumentsParser = errors.New("nil arguments parser")
-
-// ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
-var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
 // ErrNilValidatorSmartContractAddress signals that validator smart contract address is nil
 var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contract address")
@@ -122,6 +122,9 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
+// ErrInvalidNumberOfDecimals signals that an invalid number of decimals has been provided
+var ErrInvalidNumberOfDecimals = errors.New("invalid number of decimals")
+
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
@@ -155,9 +158,6 @@ var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 // ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
 
-// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
-var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
-
 // ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
 var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
 
@@ -187,6 +187,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
+var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
 
 // ErrNoTickerWithGivenName signals that ticker does not exists with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
@@ -226,6 +229,12 @@ var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract sti
 
 // ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
 var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
+
+// ErrNFTCreateRoleAlreadyExists signals that NFT create role already exists
+var ErrNFTCreateRoleAlreadyExists = errors.New("NFT create role already exists")
+
+// ErrRedelegateValueBelowMinimum signals that the re-delegate added to the remaining value will be below the minimum required
+var ErrRedelegateValueBelowMinimum = errors.New("can not re-delegate as the remaining value will be below the minimum required")
 
 // ErrProposalNotFound signals that the storage is empty for given key
 var ErrProposalNotFound = errors.New("proposal was not found in storage")

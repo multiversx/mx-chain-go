@@ -18,10 +18,11 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 20,
 		NumBytesThreshold:             maxNumBytesUpperBound,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -55,10 +56,10 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		NumBytesThreshold:             numBytesPerTx * 100,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 20,
-		MinGasPriceNanoErd:            100,
 	}
+	txGasHandler, _ := dummyParams()
 
-	cache, err := NewTxCache(config)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -90,10 +91,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountThreshold:                2,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
-		MinGasPriceNanoErd:            100,
 	}
-
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParamsWithGasPrice(100*oneBillion)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -122,31 +122,49 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumBytesThreshold:             1000,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 2,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParamsWithGasPrice(oneBillion)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 128, 100000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 128, 100000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave1"), "dave", uint64(3), 128, 40000000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave2"), "dave", uint64(1), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave3"), "dave", uint64(2), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-chris"), "chris", uint64(1), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-richard"), "richard", uint64(1), 128, 50000, uint64(1.2*oneBillion)))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 128, 100000, 7*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-eve"), "eve", uint64(1), 128, 50000, 4*oneBillion))
 
-	require.Equal(t, uint32(19), cache.getScoreOfSender("alice"))
-	require.Equal(t, uint32(23), cache.getScoreOfSender("bob"))
-	require.Equal(t, uint32(100), cache.getScoreOfSender("carol"))
+	scoreAlice := cache.getScoreOfSender("alice")
+	scoreBob := cache.getScoreOfSender("bob")
+	scoreDave := cache.getScoreOfSender("dave")
+	scoreCarol := cache.getScoreOfSender("carol")
+	scoreEve := cache.getScoreOfSender("eve")
+	scoreChris := cache.getScoreOfSender("chris")
+	scoreRichard := cache.getScoreOfSender("richard")
+
+	require.Equal(t, uint32(23), scoreAlice)
+	require.Equal(t, uint32(23), scoreBob)
+	require.Equal(t, uint32(7), scoreDave)
+	require.Equal(t, uint32(100), scoreCarol)
+	require.Equal(t, uint32(100), scoreEve)
+	require.Equal(t, uint32(33), scoreChris)
+	require.Equal(t, uint32(54), scoreRichard)
 
 	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(4), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
-	// Alice and Bob evicted (lower score). Carol still there.
+	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, uint64(1), cache.CountSenders())
-	require.Equal(t, uint64(1), cache.CountTx())
+	require.Equal(t, uint64(5), cache.CountSenders())
+	require.Equal(t, uint64(5), cache.CountTx())
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
@@ -157,10 +175,10 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 1,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -180,10 +198,10 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		NumSendersToPreemptivelyEvict: 42,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -205,10 +223,10 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 1,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -239,13 +257,13 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
+	txGasHandler, _ := dummyParams()
 	numSenders := 25000
 	numTxsPerSender := 10
 
-	cache, err := NewTxCache(config)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 

@@ -54,7 +54,7 @@ func (s *selectorExpandedList) Select(randSeed []byte, sampleSize uint32) ([]uin
 
 func (s *selectorExpandedList) expandList(weightList []uint32) ([]uint32, error) {
 	minSize := len(weightList)
-	validatorList := make([]uint32, 0, minSize)
+	expandedValidatorList := make([]uint32, 0, minSize)
 
 	for i := 0; i < len(weightList); i++ {
 		if weightList[i] < minWeight {
@@ -62,11 +62,11 @@ func (s *selectorExpandedList) expandList(weightList []uint32) ([]uint32, error)
 		}
 
 		for j := uint32(0); j < weightList[i]; j++ {
-			validatorList = append(validatorList, uint32(i))
+			expandedValidatorList = append(expandedValidatorList, uint32(i))
 		}
 	}
 
-	return validatorList, nil
+	return expandedValidatorList, nil
 }
 
 // IsInterfaceNil returns true if the receiver is nil

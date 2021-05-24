@@ -37,7 +37,6 @@ type InterceptedTransaction struct {
 	argsParser             process.ArgumentsParser
 	txVersionChecker       process.TxVersionCheckerHandler
 	chainID                []byte
-	minTransactionVersion  uint32
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool
@@ -147,6 +146,27 @@ func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Tran
 	return tx, nil
 }
 
+func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transaction.Transaction, error) {
+	if len(args) != 4 {
+		return nil, process.ErrInvalidArguments
+	}
+	tx := &transaction.Transaction{
+		Nonce:     big.NewInt(0).SetBytes(args[1]).Uint64(),
+		Value:     big.NewInt(0),
+		RcvAddr:   args[0],
+		SndAddr:   relayedTx.RcvAddr,
+		GasPrice:  relayedTx.GasPrice,
+		GasLimit:  0, // the user had to sign a transaction with 0 gasLimit - as all gasLimit is coming from the relayer
+		Data:      args[2],
+		ChainID:   relayedTx.ChainID,
+		Version:   relayedTx.Version,
+		Signature: args[3],
+		Options:   relayedTx.Options,
+	}
+
+	return tx, nil
+}
+
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
 func (inTx *InterceptedTransaction) CheckValidity() error {
 	err := inTx.integrity(inTx.tx)
@@ -166,7 +186,48 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		err = inTx.verifyIfRelayedTxV2(inTx.tx)
+		if err != nil {
+			return err
+		}
+
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
+	}
+
+	return nil
+}
+
+func isRelayedTx(funcName string) bool {
+	return core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName
+}
+
+func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return nil
+	}
+	if core.RelayedTransactionV2 != funcName {
+		return nil
+	}
+
+	userTx, err := createRelayedV2(tx, userTxArgs)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.verifySig(userTx)
+	if err != nil {
+		return err
+	}
+
+	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	if err != nil {
+		return nil
+	}
+
+	// recursive relayed transactions are not allowed
+	if isRelayedTx(funcName) {
+		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
 	return nil
@@ -214,7 +275,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	}
 
 	// recursive relayed transactions are not allowed
-	if core.RelayedTransaction == funcName {
+	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
@@ -244,29 +305,20 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if err != nil {
 		return err
 	}
+
+	err = tx.CheckIntegrity()
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(tx.ChainID, inTx.chainID) {
 		return process.ErrInvalidChainID
 	}
-	if tx.Signature == nil {
-		return process.ErrNilSignature
+	if len(tx.RcvAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidRcvAddr
 	}
-	if tx.RcvAddr == nil {
-		return process.ErrNilRcvAddr
-	}
-	if tx.SndAddr == nil {
-		return process.ErrNilSndAddr
-	}
-	if tx.Value == nil {
-		return process.ErrNilValue
-	}
-	if tx.Value.Sign() < 0 {
-		return process.ErrNegativeValue
-	}
-	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
-		return process.ErrInvalidUserNameLength
-	}
-	if len(inTx.tx.SndUserName) > 0 && len(inTx.tx.SndUserName) != inTx.hasher.Size() {
-		return process.ErrInvalidUserNameLength
+	if len(tx.SndAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidSndAddr
 	}
 
 	return inTx.feeHandler.CheckValidityTxValues(tx)

@@ -179,7 +179,7 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundTime)
 
 	facade := mock.Facade{}
-	facade.TpsBenchmarkHandler = func() *statistics.TpsBenchmark {
+	facade.TpsBenchmarkHandler = func() statistics.TPSBenchmark {
 		return benchmark
 	}
 
@@ -551,7 +551,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"node": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/status", Open: true},
 					{Name: "/metrics", Open: true},
 					{Name: "/statistics", Open: true},

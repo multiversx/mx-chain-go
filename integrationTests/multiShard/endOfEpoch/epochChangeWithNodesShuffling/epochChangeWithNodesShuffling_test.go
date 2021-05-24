@@ -20,11 +20,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	consensusGroupSize := 2
 	maxGasLimitPerBlock := uint64(100000)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
 	// create map of shard - testNodeProcessors for metachain and shard chain
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -32,7 +27,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		nbShards,
 		consensusGroupSize,
 		consensusGroupSize,
-		seedAddress,
 	)
 
 	gasPrice := uint64(10)
@@ -42,7 +36,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	mintValue := big.NewInt(1000000)
 
 	defer func() {
-		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
 				_ = n.Messenger.Close()
@@ -78,7 +71,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	for _, nodes := range nodesMap {
