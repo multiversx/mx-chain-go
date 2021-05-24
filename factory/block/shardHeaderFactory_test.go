@@ -15,13 +15,13 @@ func TestNewShardHeaderFactory_NilHeaderVersionHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewShardHeaderFactory_OK(t *testing.T) {
-	shf, err := NewShardHeaderFactory(&testscommon.HeaderVersionHandlerMock{})
+	shf, err := NewShardHeaderFactory(&testscommon.HeaderVersionHandlerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, shf)
 }
 
 func TestNewShardHeaderFactory_CreateOK(t *testing.T) {
-	hvh := &testscommon.HeaderVersionHandlerMock{
+	hvh := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
 			switch epoch {
 			case 1:

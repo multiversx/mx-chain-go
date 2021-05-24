@@ -34,11 +34,11 @@ func (shf *shardHeaderFactory) Create(epoch uint32) data.HeaderHandler {
 			},
 			ScheduledRootHash: nil,
 		}
-	}
-
-	return &block.Header{
-		Epoch:           epoch,
-		SoftwareVersion: []byte(version),
+	default:
+		return &block.Header{
+			Epoch:           epoch,
+			SoftwareVersion: []byte(version),
+		}
 	}
 }
 

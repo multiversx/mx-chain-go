@@ -15,7 +15,7 @@ import (
 func TestNewHeaderIntegrityVerifier_InvalidReferenceChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		nil,
 		hvh,
@@ -38,7 +38,7 @@ func TestNewHeaderIntegrityVerifierr_NilVersionHandlerShouldErr(t *testing.T) {
 func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		hvh,
@@ -53,7 +53,7 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 	hdr := &block.MetaBlock{
 		Reserved: []byte("r"),
 	}
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		hvh,
@@ -65,7 +65,7 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 func TestHeaderIntegrityVerifier_VerifyHdrChainIDAndReferenceChainIDMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		hvh,
@@ -82,7 +82,7 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedChainID := []byte("#chainID")
-	hvh := &testscommon.HeaderVersionHandlerMock{}
+	hvh := &testscommon.HeaderVersionHandlerStub{}
 	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		expectedChainID,
 		hvh,
@@ -98,7 +98,7 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hvh := &testscommon.HeaderVersionHandlerMock{
+	hvh := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
 			return "v1"
 		},

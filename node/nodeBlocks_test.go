@@ -505,7 +505,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
 		NodeRole:             "",
 		ShCoordinator:        shardCoordinator,
-		HdrVersionHandler:    &testscommon.HeaderVersionHandlerMock{},
+		HdrVersionHandler:    &testscommon.HeaderVersionHandlerStub{},
 		VersionedHdrFactory:  versionedHeaderFactory,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}

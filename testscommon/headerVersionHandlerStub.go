@@ -2,15 +2,15 @@ package testscommon
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-// HeaderVersionHandlerMock -
-type HeaderVersionHandlerMock struct {
+// HeaderVersionHandlerStub -
+type HeaderVersionHandlerStub struct {
 	GetVersionCalled     func(epoch uint32) string
 	VerifyCalled         func(hdr data.HeaderHandler) error
 	IsInterfaceNilCalled func() bool
 }
 
 // GetVersion -
-func (hvm *HeaderVersionHandlerMock) GetVersion(epoch uint32) string {
+func (hvm *HeaderVersionHandlerStub) GetVersion(epoch uint32) string {
 	if hvm.GetVersionCalled != nil {
 		return hvm.GetVersionCalled(epoch)
 	}
@@ -18,7 +18,7 @@ func (hvm *HeaderVersionHandlerMock) GetVersion(epoch uint32) string {
 }
 
 // Verify -
-func (hvm *HeaderVersionHandlerMock) Verify(hdr data.HeaderHandler) error {
+func (hvm *HeaderVersionHandlerStub) Verify(hdr data.HeaderHandler) error {
 	if hvm.VerifyCalled != nil {
 		return hvm.VerifyCalled(hdr)
 	}
@@ -26,6 +26,6 @@ func (hvm *HeaderVersionHandlerMock) Verify(hdr data.HeaderHandler) error {
 }
 
 // IsInterfaceNil -
-func (hvm *HeaderVersionHandlerMock) IsInterfaceNil() bool {
+func (hvm *HeaderVersionHandlerStub) IsInterfaceNil() bool {
 	return hvm == nil
 }
