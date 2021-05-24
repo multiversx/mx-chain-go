@@ -1102,15 +1102,15 @@ type ValidatorChecker interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedPeerHeartbeat defines an intercepted peer heartbeat implementation
-type InterceptedPeerHeartbeat interface {
+// InterceptedPeerAuthentication defines an intercepted peer authentication implementation
+type InterceptedPeerAuthentication interface {
 	InterceptedData
 	PublicKey() []byte
 	SetComputedShardID(shardId uint32)
 }
 
-// PeerHeartbeatProcessor is able to process and check the provided intercepted peer heartbeat instance
-type PeerHeartbeatProcessor interface {
-	Process(peerHeartbeat InterceptedPeerHeartbeat) error
+// PeerAuthenticationProcessor is able to process and check the provided intercepted peer authentication instance
+type PeerAuthenticationProcessor interface {
+	Process(peerAuthentication InterceptedPeerAuthentication) error
 	IsInterfaceNil() bool
 }

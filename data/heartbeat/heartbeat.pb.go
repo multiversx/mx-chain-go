@@ -110,27 +110,26 @@ func (m *Heartbeat) GetNonce() uint64 {
 	return 0
 }
 
-// PeerHeartbeat represents the DTO used to pass peer information such as public key, peer id,
-// signature and payload. This message is used to link the peerID with the associated public key
-type PeerHeartbeat struct {
-	Payload   []byte `protobuf:"bytes,1,opt,name=Payload,proto3" json:"Payload,omitempty"`
-	Pubkey    []byte `protobuf:"bytes,2,opt,name=Pubkey,proto3" json:"Pubkey,omitempty"`
-	Signature []byte `protobuf:"bytes,3,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	ShardID   uint32 `protobuf:"varint,4,opt,name=ShardID,proto3" json:"ShardID,omitempty"`
-	Pid       []byte `protobuf:"bytes,5,opt,name=Pid,proto3" json:"Pid,omitempty"`
+// PeerAuthentication represents the DTO used to pass peer authentication information such as public key, peer id and
+// the signature. This message is used to link the peerID with the associated public key
+type PeerAuthentication struct {
+	Pubkey          []byte `protobuf:"bytes,1,opt,name=Pubkey,proto3" json:"Pubkey,omitempty"`
+	Signature       []byte `protobuf:"bytes,2,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	Pid             []byte `protobuf:"bytes,3,opt,name=Pid,proto3" json:"Pid,omitempty"`
+	HardforkPayload []byte `protobuf:"bytes,4,opt,name=HardforkPayload,proto3" json:"HardforkPayload,omitempty"`
 }
 
-func (m *PeerHeartbeat) Reset()      { *m = PeerHeartbeat{} }
-func (*PeerHeartbeat) ProtoMessage() {}
-func (*PeerHeartbeat) Descriptor() ([]byte, []int) {
+func (m *PeerAuthentication) Reset()      { *m = PeerAuthentication{} }
+func (*PeerAuthentication) ProtoMessage() {}
+func (*PeerAuthentication) Descriptor() ([]byte, []int) {
 	return fileDescriptor_3c667767fb9826a9, []int{1}
 }
-func (m *PeerHeartbeat) XXX_Unmarshal(b []byte) error {
+func (m *PeerAuthentication) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *PeerHeartbeat) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *PeerAuthentication) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_PeerHeartbeat.Marshal(b, m, deterministic)
+		return xxx_messageInfo_PeerAuthentication.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -140,82 +139,75 @@ func (m *PeerHeartbeat) XXX_Marshal(b []byte, deterministic bool) ([]byte, error
 		return b[:n], nil
 	}
 }
-func (m *PeerHeartbeat) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PeerHeartbeat.Merge(m, src)
+func (m *PeerAuthentication) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeerAuthentication.Merge(m, src)
 }
-func (m *PeerHeartbeat) XXX_Size() int {
+func (m *PeerAuthentication) XXX_Size() int {
 	return m.Size()
 }
-func (m *PeerHeartbeat) XXX_DiscardUnknown() {
-	xxx_messageInfo_PeerHeartbeat.DiscardUnknown(m)
+func (m *PeerAuthentication) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeerAuthentication.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_PeerHeartbeat proto.InternalMessageInfo
+var xxx_messageInfo_PeerAuthentication proto.InternalMessageInfo
 
-func (m *PeerHeartbeat) GetPayload() []byte {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
-func (m *PeerHeartbeat) GetPubkey() []byte {
+func (m *PeerAuthentication) GetPubkey() []byte {
 	if m != nil {
 		return m.Pubkey
 	}
 	return nil
 }
 
-func (m *PeerHeartbeat) GetSignature() []byte {
+func (m *PeerAuthentication) GetSignature() []byte {
 	if m != nil {
 		return m.Signature
 	}
 	return nil
 }
 
-func (m *PeerHeartbeat) GetShardID() uint32 {
-	if m != nil {
-		return m.ShardID
-	}
-	return 0
-}
-
-func (m *PeerHeartbeat) GetPid() []byte {
+func (m *PeerAuthentication) GetPid() []byte {
 	if m != nil {
 		return m.Pid
 	}
 	return nil
 }
 
+func (m *PeerAuthentication) GetHardforkPayload() []byte {
+	if m != nil {
+		return m.HardforkPayload
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Heartbeat)(nil), "proto.Heartbeat")
-	proto.RegisterType((*PeerHeartbeat)(nil), "proto.PeerHeartbeat")
+	proto.RegisterType((*PeerAuthentication)(nil), "proto.PeerAuthentication")
 }
 
 func init() { proto.RegisterFile("heartbeat.proto", fileDescriptor_3c667767fb9826a9) }
 
 var fileDescriptor_3c667767fb9826a9 = []byte{
-	// 305 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xbf, 0x4a, 0x03, 0x41,
-	0x10, 0xc6, 0x6f, 0xcc, 0x1f, 0xbd, 0xe5, 0x42, 0x64, 0x11, 0x59, 0x44, 0x86, 0x23, 0x58, 0x5c,
-	0x65, 0xe3, 0x03, 0x08, 0x92, 0xc2, 0x34, 0xc7, 0xb1, 0x01, 0x0b, 0xbb, 0x3d, 0x6f, 0x30, 0x87,
-	0xc9, 0x5d, 0xd8, 0x6c, 0x8a, 0xeb, 0xec, 0x6d, 0x7c, 0x0c, 0x5f, 0xc3, 0xce, 0x32, 0x65, 0x4a,
-	0xb3, 0x69, 0x2c, 0xf3, 0x08, 0x92, 0xd5, 0x44, 0x63, 0x65, 0xb5, 0xfb, 0xfb, 0x66, 0x8a, 0xf9,
-	0xf1, 0xb1, 0xf6, 0x80, 0x94, 0x36, 0x29, 0x29, 0x73, 0x3e, 0xd6, 0xa5, 0x29, 0x79, 0xc3, 0x3d,
-	0x9d, 0x57, 0x60, 0xfe, 0xf5, 0x66, 0xc4, 0x05, 0xdb, 0x4f, 0x54, 0x35, 0x2c, 0x55, 0x26, 0x20,
-	0x84, 0x28, 0x90, 0x1b, 0x5c, 0x4f, 0xfa, 0x03, 0xa5, 0xb3, 0x5e, 0x57, 0xec, 0x85, 0x10, 0xb5,
-	0xe4, 0x06, 0xf9, 0x19, 0x6b, 0xdd, 0x90, 0x9e, 0xe4, 0x65, 0x11, 0x4f, 0x47, 0x29, 0x69, 0x51,
-	0x0b, 0x21, 0xf2, 0xe5, 0x6e, 0xc8, 0x23, 0xd6, 0x8e, 0xcb, 0x8c, 0xba, 0xf9, 0x64, 0x3c, 0x54,
-	0x55, 0xac, 0x46, 0x24, 0xea, 0x6e, 0xef, 0x6f, 0xcc, 0x4f, 0xd8, 0x41, 0x2f, 0xa3, 0xc2, 0xe4,
-	0xa6, 0x12, 0x0d, 0xb7, 0xb2, 0x65, 0x7e, 0xc4, 0x1a, 0x71, 0x59, 0xdc, 0x91, 0x68, 0x86, 0x10,
-	0xd5, 0xe5, 0x17, 0x74, 0x9e, 0x80, 0xb5, 0x12, 0x22, 0xfd, 0x1f, 0x8f, 0x63, 0xd6, 0x4c, 0xa6,
-	0xe9, 0x03, 0x55, 0x4e, 0x23, 0x90, 0xdf, 0xc4, 0x4f, 0x99, 0xdf, 0xcf, 0xef, 0x0b, 0x65, 0xa6,
-	0x9a, 0x9c, 0x41, 0x20, 0x7f, 0x82, 0xdf, 0xf6, 0xf5, 0x5d, 0xfb, 0x43, 0x56, 0x4b, 0xf2, 0xcc,
-	0x1d, 0x1a, 0xc8, 0xf5, 0xf7, 0xea, 0x72, 0xb6, 0x40, 0x6f, 0xbe, 0x40, 0x6f, 0xb5, 0x40, 0x78,
-	0xb4, 0x08, 0x2f, 0x16, 0xe1, 0xcd, 0x22, 0xcc, 0x2c, 0xc2, 0xbb, 0x45, 0xf8, 0xb0, 0xe8, 0xad,
-	0x2c, 0xc2, 0xf3, 0x12, 0xbd, 0xd9, 0x12, 0xbd, 0xf9, 0x12, 0xbd, 0x5b, 0x7f, 0xdb, 0x4f, 0xda,
-	0x74, 0xcd, 0x5c, 0x7c, 0x06, 0x00, 0x00, 0xff, 0xff, 0x68, 0xbd, 0xb1, 0xcf, 0xb3, 0x01, 0x00,
-	0x00,
+	// 320 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x91, 0xbf, 0x4e, 0xc3, 0x30,
+	0x18, 0xc4, 0xf3, 0xd1, 0x3f, 0x10, 0xab, 0x55, 0x91, 0x85, 0x90, 0x85, 0xd0, 0xa7, 0xa8, 0x62,
+	0xc8, 0xc4, 0xc2, 0x03, 0x20, 0x50, 0x87, 0x76, 0x89, 0xa2, 0x54, 0x62, 0x60, 0x73, 0x1a, 0x43,
+	0xa3, 0xb6, 0x71, 0xe5, 0x3a, 0x43, 0x36, 0x26, 0x66, 0x1e, 0x83, 0xd7, 0x60, 0x63, 0xec, 0xd8,
+	0x91, 0xba, 0x0b, 0x63, 0x1f, 0x01, 0xc5, 0x34, 0x45, 0x74, 0xb2, 0x7f, 0x77, 0x37, 0xf8, 0x7c,
+	0xa4, 0x33, 0x16, 0x5c, 0xe9, 0x58, 0x70, 0x7d, 0x3d, 0x57, 0x52, 0x4b, 0xda, 0xb0, 0x47, 0xf7,
+	0x03, 0x88, 0xdb, 0xaf, 0x2c, 0xca, 0xc8, 0x71, 0xc8, 0x8b, 0xa9, 0xe4, 0x09, 0x03, 0x0f, 0xfc,
+	0x56, 0x54, 0x61, 0xe9, 0x0c, 0xc7, 0x5c, 0x25, 0x83, 0x1e, 0x3b, 0xf2, 0xc0, 0x6f, 0x47, 0x15,
+	0xd2, 0x2b, 0xd2, 0x7e, 0x10, 0x6a, 0x91, 0xca, 0x2c, 0xc8, 0x67, 0xb1, 0x50, 0xac, 0xe6, 0x81,
+	0xef, 0x46, 0xff, 0x45, 0xea, 0x93, 0x4e, 0x20, 0x13, 0xd1, 0x4b, 0x17, 0xf3, 0x29, 0x2f, 0x02,
+	0x3e, 0x13, 0xac, 0x6e, 0x73, 0x87, 0x32, 0xbd, 0x20, 0x27, 0x83, 0x44, 0x64, 0x3a, 0xd5, 0x05,
+	0x6b, 0xd8, 0xc8, 0x9e, 0xe9, 0x19, 0x69, 0x04, 0x32, 0x1b, 0x09, 0xd6, 0xf4, 0xc0, 0xaf, 0x47,
+	0xbf, 0xd0, 0x7d, 0x05, 0x42, 0x43, 0x21, 0xd4, 0x5d, 0xae, 0xc7, 0x65, 0x70, 0xc4, 0x75, 0x2a,
+	0x33, 0x7a, 0x4e, 0x9a, 0x61, 0x1e, 0x4f, 0x44, 0xb1, 0xeb, 0xb2, 0x23, 0x7a, 0x49, 0xdc, 0x61,
+	0xfa, 0x9c, 0x71, 0x9d, 0x2b, 0x61, 0xcb, 0xb4, 0xa2, 0x3f, 0x81, 0x9e, 0x92, 0x5a, 0x98, 0x26,
+	0xb6, 0x44, 0x2b, 0x2a, 0xaf, 0xe5, 0xd3, 0xfb, 0x5c, 0x25, 0x4f, 0x52, 0x4d, 0xaa, 0xcf, 0xa9,
+	0x5b, 0xf7, 0x50, 0xbe, 0xbf, 0x5d, 0xae, 0xd1, 0x59, 0xad, 0xd1, 0xd9, 0xae, 0x11, 0x5e, 0x0c,
+	0xc2, 0xbb, 0x41, 0xf8, 0x34, 0x08, 0x4b, 0x83, 0xf0, 0x65, 0x10, 0xbe, 0x0d, 0x3a, 0x5b, 0x83,
+	0xf0, 0xb6, 0x41, 0x67, 0xb9, 0x41, 0x67, 0xb5, 0x41, 0xe7, 0xd1, 0xdd, 0x4f, 0x13, 0x37, 0xed,
+	0x28, 0x37, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xc3, 0xeb, 0xc9, 0xb8, 0xae, 0x01, 0x00, 0x00,
 }
 
 func (this *Heartbeat) Equal(that interface{}) bool {
@@ -257,14 +249,14 @@ func (this *Heartbeat) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *PeerHeartbeat) Equal(that interface{}) bool {
+func (this *PeerAuthentication) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*PeerHeartbeat)
+	that1, ok := that.(*PeerAuthentication)
 	if !ok {
-		that2, ok := that.(PeerHeartbeat)
+		that2, ok := that.(PeerAuthentication)
 		if ok {
 			that1 = &that2
 		} else {
@@ -276,19 +268,16 @@ func (this *PeerHeartbeat) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.Payload, that1.Payload) {
-		return false
-	}
 	if !bytes.Equal(this.Pubkey, that1.Pubkey) {
 		return false
 	}
 	if !bytes.Equal(this.Signature, that1.Signature) {
 		return false
 	}
-	if this.ShardID != that1.ShardID {
+	if !bytes.Equal(this.Pid, that1.Pid) {
 		return false
 	}
-	if !bytes.Equal(this.Pid, that1.Pid) {
+	if !bytes.Equal(this.HardforkPayload, that1.HardforkPayload) {
 		return false
 	}
 	return true
@@ -308,17 +297,16 @@ func (this *Heartbeat) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *PeerHeartbeat) GoString() string {
+func (this *PeerAuthentication) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 9)
-	s = append(s, "&heartbeat.PeerHeartbeat{")
-	s = append(s, "Payload: "+fmt.Sprintf("%#v", this.Payload)+",\n")
+	s := make([]string, 0, 8)
+	s = append(s, "&heartbeat.PeerAuthentication{")
 	s = append(s, "Pubkey: "+fmt.Sprintf("%#v", this.Pubkey)+",\n")
 	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
-	s = append(s, "ShardID: "+fmt.Sprintf("%#v", this.ShardID)+",\n")
 	s = append(s, "Pid: "+fmt.Sprintf("%#v", this.Pid)+",\n")
+	s = append(s, "HardforkPayload: "+fmt.Sprintf("%#v", this.HardforkPayload)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -391,7 +379,7 @@ func (m *Heartbeat) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *PeerHeartbeat) Marshal() (dAtA []byte, err error) {
+func (m *PeerAuthentication) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -401,46 +389,41 @@ func (m *PeerHeartbeat) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PeerHeartbeat) MarshalTo(dAtA []byte) (int, error) {
+func (m *PeerAuthentication) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *PeerHeartbeat) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *PeerAuthentication) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if len(m.HardforkPayload) > 0 {
+		i -= len(m.HardforkPayload)
+		copy(dAtA[i:], m.HardforkPayload)
+		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.HardforkPayload)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.Pid) > 0 {
 		i -= len(m.Pid)
 		copy(dAtA[i:], m.Pid)
 		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Pid)))
 		i--
-		dAtA[i] = 0x2a
-	}
-	if m.ShardID != 0 {
-		i = encodeVarintHeartbeat(dAtA, i, uint64(m.ShardID))
-		i--
-		dAtA[i] = 0x20
+		dAtA[i] = 0x1a
 	}
 	if len(m.Signature) > 0 {
 		i -= len(m.Signature)
 		copy(dAtA[i:], m.Signature)
 		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Signature)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x12
 	}
 	if len(m.Pubkey) > 0 {
 		i -= len(m.Pubkey)
 		copy(dAtA[i:], m.Pubkey)
 		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Pubkey)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.Payload) > 0 {
-		i -= len(m.Payload)
-		copy(dAtA[i:], m.Payload)
-		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.Payload)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -489,16 +472,12 @@ func (m *Heartbeat) Size() (n int) {
 	return n
 }
 
-func (m *PeerHeartbeat) Size() (n int) {
+func (m *PeerAuthentication) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Payload)
-	if l > 0 {
-		n += 1 + l + sovHeartbeat(uint64(l))
-	}
 	l = len(m.Pubkey)
 	if l > 0 {
 		n += 1 + l + sovHeartbeat(uint64(l))
@@ -507,10 +486,11 @@ func (m *PeerHeartbeat) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovHeartbeat(uint64(l))
 	}
-	if m.ShardID != 0 {
-		n += 1 + sovHeartbeat(uint64(m.ShardID))
-	}
 	l = len(m.Pid)
+	if l > 0 {
+		n += 1 + l + sovHeartbeat(uint64(l))
+	}
+	l = len(m.HardforkPayload)
 	if l > 0 {
 		n += 1 + l + sovHeartbeat(uint64(l))
 	}
@@ -538,16 +518,15 @@ func (this *Heartbeat) String() string {
 	}, "")
 	return s
 }
-func (this *PeerHeartbeat) String() string {
+func (this *PeerAuthentication) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&PeerHeartbeat{`,
-		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
+	s := strings.Join([]string{`&PeerAuthentication{`,
 		`Pubkey:` + fmt.Sprintf("%v", this.Pubkey) + `,`,
 		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
-		`ShardID:` + fmt.Sprintf("%v", this.ShardID) + `,`,
 		`Pid:` + fmt.Sprintf("%v", this.Pid) + `,`,
+		`HardforkPayload:` + fmt.Sprintf("%v", this.HardforkPayload) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -781,7 +760,7 @@ func (m *Heartbeat) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *PeerHeartbeat) Unmarshal(dAtA []byte) error {
+func (m *PeerAuthentication) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -804,47 +783,13 @@ func (m *PeerHeartbeat) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PeerHeartbeat: wiretype end group for non-group")
+			return fmt.Errorf("proto: PeerAuthentication: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PeerHeartbeat: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: PeerAuthentication: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowHeartbeat
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Payload = append(m.Payload[:0], dAtA[iNdEx:postIndex]...)
-			if m.Payload == nil {
-				m.Payload = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Pubkey", wireType)
 			}
@@ -878,7 +823,7 @@ func (m *PeerHeartbeat) Unmarshal(dAtA []byte) error {
 				m.Pubkey = []byte{}
 			}
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
 			}
@@ -912,26 +857,7 @@ func (m *PeerHeartbeat) Unmarshal(dAtA []byte) error {
 				m.Signature = []byte{}
 			}
 			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ShardID", wireType)
-			}
-			m.ShardID = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowHeartbeat
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.ShardID |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Pid", wireType)
 			}
@@ -963,6 +889,40 @@ func (m *PeerHeartbeat) Unmarshal(dAtA []byte) error {
 			m.Pid = append(m.Pid[:0], dAtA[iNdEx:postIndex]...)
 			if m.Pid == nil {
 				m.Pid = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HardforkPayload", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowHeartbeat
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthHeartbeat
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HardforkPayload = append(m.HardforkPayload[:0], dAtA[iNdEx:postIndex]...)
+			if m.HardforkPayload == nil {
+				m.HardforkPayload = []byte{}
 			}
 			iNdEx = postIndex
 		default:

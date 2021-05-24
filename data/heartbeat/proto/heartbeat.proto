@@ -15,12 +15,11 @@ message Heartbeat {
     uint64  Nonce           = 6;
 }
 
-// PeerHeartbeat represents the DTO used to pass peer information such as public key, peer id,
-// signature and payload. This message is used to link the peerID with the associated public key
-message PeerHeartbeat {
-    bytes   Payload   = 1; //marshalized timestamp or hardfork message
-    bytes   Pubkey    = 2;
-    bytes   Signature = 3;
-    uint32  ShardID   = 4;
-    bytes   Pid       = 5;
+// PeerAuthentication represents the DTO used to pass peer authentication information such as public key, peer id and
+// the signature. This message is used to link the peerID with the associated public key
+message PeerAuthentication {
+    bytes   Pubkey          = 1;
+    bytes   Signature       = 2;
+    bytes   Pid             = 3;
+    bytes   HardforkPayload = 4;
 }
