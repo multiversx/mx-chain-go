@@ -97,7 +97,7 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		_, shardID, err = pai.validatorChecker.GetValidatorWithPublicKey(peerAuth.PublicKey())
 		peerAuth.SetComputedShardID(shardID)
 
-		isObserver := err == nil
+		isObserver := err != nil
 		isSkippableObservers := isObserver && !pai.observersThrottler.CanProcess()
 		if isSkippableObservers {
 			observerMessageIgnored = true
