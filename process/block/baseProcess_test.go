@@ -305,6 +305,7 @@ func createComponentHolderMocks() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockComponentHolders() (
@@ -49,6 +50,7 @@ func createMockComponentHolders() (
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 
 	statusComponents := &mock.StatusComponentsMock{
@@ -57,7 +59,6 @@ func createMockComponentHolders() (
 	}
 
 	return coreComponents, dataComponents, boostrapComponents, statusComponents
-
 }
 
 func createMockMetaArguments(
@@ -77,6 +78,9 @@ func createMockMetaArguments(
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
 	}
@@ -1000,11 +1004,13 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 			return expectedErr
 		},
 	}
-	mp, _ := blproc.NewMetaProcessor(arguments)
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.Nil(t, err)
+	require.NotNil(t, mp)
 
 	hdr := block.MetaBlock{Nonce: 37}
-	err := mp.RevertStateToBlock(&hdr)
-	assert.Equal(t, expectedErr, err)
+	err = mp.RevertStateToBlock(&hdr)
+	require.Equal(t, expectedErr, err)
 }
 
 func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
@@ -2569,7 +2575,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		}
 		cs.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
 			if bytes.Equal(hdrHash1Bytes, key) {
-				return &block.Header{
+				return &block.MetaBlock{
 					PrevHash:         []byte("hash1"),
 					Nonce:            1,
 					Round:            1,
@@ -2615,6 +2621,13 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	coreComponents.Hash = hasher
 	dataComponents.DataPool = dPool
 	dataComponents.BlockChain = blkc
+	bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.MetaBlock{
+				Epoch: 0,
+			}
+		},
+	}
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = txCoordinator
 
@@ -2624,23 +2637,26 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 
 	metaHdr := &block.MetaBlock{Round: round}
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader(round, nonce)
+	headerHandler, err := mp.CreateNewHeader(round, nonce)
+	require.Nil(t, err)
+	require.NotNil(t, headerHandler)
+
 	err = headerHandler.SetRound(uint64(1))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = headerHandler.SetNonce(1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = headerHandler.SetPrevHash(hash)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
-	assert.Nil(t, err)
+	require.Nil(t, err)
 }
 
 func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool(t *testing.T) {
