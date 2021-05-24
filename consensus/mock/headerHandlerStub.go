@@ -318,7 +318,7 @@ func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 }
 
 // SetScheduledRootHash -
-func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error{
+func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error {
 	panic("implement me")
 }
 
@@ -328,6 +328,6 @@ func (hhs *HeaderHandlerStub) ValidateHeaderVersion() error {
 }
 
 // SetAdditionalData sets the additional version-related data
-func(hhs *HeaderHandlerStub) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
+func (hhs *HeaderHandlerStub) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
 	return nil
 }
