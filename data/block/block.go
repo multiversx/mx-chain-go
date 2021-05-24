@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 )
 
 // TODO: add access protection through wrappers
@@ -360,6 +361,15 @@ func (h *Header) SetScheduledRootHash(_ []byte) error {
 	return data.ErrScheduledRootHashNotSupported
 }
 
+// SetEpochStartMetaHash sets the epoch start metaBlock hash
+func (h *Header) SetEpochStartMetaHash(hash []byte) error {
+	if h == nil {
+		return data.ErrNilPointerReceiver
+	}
+	h.EpochStartMetaHash = hash
+	return nil
+}
+
 // ValidateHeaderVersion does extra validation for header version
 func (h *Header) ValidateHeaderVersion() error {
 	// no extra validation for v1 header
@@ -420,4 +430,10 @@ func (mb *MiniBlock) IsScheduledMiniBlock() bool {
 		return false
 	}
 	return len(mb.Reserved) > 0 && mb.Reserved[0] == byte(ScheduledBlock)
+}
+
+// SetAdditionalData sets the additional data for the header
+func (h *Header) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
+	// first header version does not have any additional data
+	return nil
 }

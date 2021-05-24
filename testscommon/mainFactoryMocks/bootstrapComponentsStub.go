@@ -14,6 +14,7 @@ type BootstrapComponentsStub struct {
 	NodeRole             core.NodeType
 	ShCoordinator        sharding.Coordinator
 	HdrVersionHandler    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory  nodeFactory.VersionedHeaderFactory
 	HdrIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
 }
 
@@ -55,6 +56,11 @@ func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator {
 // HeaderVersionHandler -
 func (bcs *BootstrapComponentsStub) HeaderVersionHandler() nodeFactory.HeaderVersionHandler {
 	return bcs.HdrVersionHandler
+}
+
+// VersionedHeaderFactory -
+func (bc *BootstrapComponentsStub) VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory {
+	return bc.VersionedHdrFactory
 }
 
 // HeaderIntegrityVerifier -

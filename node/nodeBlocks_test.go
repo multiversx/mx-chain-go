@@ -7,12 +7,14 @@ import (
 	"testing"
 	"time"
 
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	hdrFactory "github.com/ElrondNetwork/elrond-go/factory/block"
 	mock2 "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
@@ -485,6 +487,15 @@ func getDefaultDataComponents() *factory.DataComponentsMock {
 }
 
 func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
+	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
+
+	shardCoordinator := &mock.ShardCoordinatorMock{}
+	headerVersionHandler := &testscommon.HeaderVersionHandlerMock{}
+	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		versionedHeaderFactory, _ = hdrFactory.NewMetaHeaderFactory(headerVersionHandler)
+	}
+
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
@@ -493,8 +504,9 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
 		NodeRole:             "",
-		ShCoordinator:        &mock.ShardCoordinatorMock{},
+		ShCoordinator:        shardCoordinator,
 		HdrVersionHandler:    &testscommon.HeaderVersionHandlerMock{},
+		VersionedHdrFactory:  versionedHeaderFactory,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

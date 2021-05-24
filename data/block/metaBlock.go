@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 )
 
 // don't break the interface
@@ -486,5 +487,11 @@ func (m *MetaBlock) SetScheduledRootHash(_ []byte) error {
 
 // ValidateHeaderVersion - always valid for initial version
 func (m *MetaBlock) ValidateHeaderVersion() error {
+	return nil
+}
+
+// SetAdditionalData sets the additional version-related data
+func (m *MetaBlock) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
+	// no extra data for the initial version metaBlock header
 	return nil
 }

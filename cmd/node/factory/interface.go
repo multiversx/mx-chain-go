@@ -22,6 +22,13 @@ type HeaderSigVerifierHandler interface {
 	IsInterfaceNil() bool
 }
 
+// HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
+type HeaderIntegrityVerifierHandler interface {
+	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
+	IsInterfaceNil() bool
+}
+
 // HeaderVersionHandler handles the header version
 type HeaderVersionHandler interface {
 	GetVersion(epoch uint32) string
@@ -29,10 +36,9 @@ type HeaderVersionHandler interface {
 	IsInterfaceNil() bool
 }
 
-// HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
-type HeaderIntegrityVerifierHandler interface {
-	Verify(header data.HeaderHandler) error
-	GetVersion(epoch uint32) string
+// VersionedHeaderFactory creates versioned headers
+type VersionedHeaderFactory interface {
+	Create(epoch uint32) data.HeaderHandler
 	IsInterfaceNil() bool
 }
 

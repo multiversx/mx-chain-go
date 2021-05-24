@@ -41,3 +41,8 @@ func (shf *shardHeaderFactory) Create(epoch uint32) data.HeaderHandler {
 		SoftwareVersion: []byte(version),
 	}
 }
+
+// IsInterfaceNil returns true if the interface is nil
+func (shf *shardHeaderFactory) IsInterfaceNil() bool {
+	return shf == nil
+}

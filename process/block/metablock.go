@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -109,6 +110,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		indexer:                      arguments.StatusComponents.ElasticIndexer(),
 		tpsBenchmark:                 arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                 genesisHdr.GetNonce(),
+		versionedHeaderFactory:       arguments.BootstrapComponents.VersionedHeaderFactory(),
 		headerIntegrityVerifier:      arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                  arguments.HistoryRepository,
 		epochNotifier:                arguments.EpochNotifier,
@@ -699,12 +701,6 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
-	err := metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
-	if err != nil {
-		return nil, nil, err
-	}
-
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
@@ -715,7 +711,7 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrAccountStateDirty
 	}
 
-	err = mp.processIfFirstBlockAfterEpochStart()
+	err := mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2179,19 +2175,69 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
-	metaHeader := &block.MetaBlock{
-		Nonce:                  nonce,
-		Round:                  round,
-		AccumulatedFees:        big.NewInt(0),
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		DeveloperFees:          big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
+func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	mp.epochStartTrigger.Update(round, nonce)
+	epoch := mp.epochStartTrigger.Epoch()
+
+	header := mp.versionedHeaderFactory.Create(epoch)
+	metaHeader, ok := header.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	mp.epochStartTrigger.Update(round, nonce)
+	err := metaHeader.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
 
-	return metaHeader
+	err = metaHeader.SetNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHeader.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHeader.SetAccumulatedFeesInEpoch(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHeader.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaHeader.SetDevFeesInEpoch(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.setHeaderVersionData(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return metaHeader, nil
+}
+
+func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler) error {
+	if check.IfNil(metaHeader) {
+		return process.ErrNilHeaderHandler
+	}
+
+	rootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	additionalVersionData := &headerVersionData.AdditionalData{
+		ScheduledRootHash: rootHash,
+	}
+
+	return metaHeader.SetAdditionalData(additionalVersionData)
 }
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
