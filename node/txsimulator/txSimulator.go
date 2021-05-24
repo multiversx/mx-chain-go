@@ -132,12 +132,11 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
-	return &transaction.ApiSmartContractResult{
+	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
 		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
 		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
-		RelayerAddr:    ts.addressPubKeyConverter.Encode(scr.RelayerAddr),
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -148,8 +147,16 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
-		OriginalSender: ts.addressPubKeyConverter.Encode(scr.OriginalSender),
 	}
+
+	if scr.OriginalSender != nil {
+		resScr.OriginalSender = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+	}
+	if scr.RelayerAddr != nil {
+		resScr.RelayerAddr = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+	}
+
+	return resScr
 }
 
 func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {

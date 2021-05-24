@@ -1477,6 +1477,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochNotifier,
 		apiWorkingDir,
 		stateComponents.AccountsAdapterAPI,
+		builtInCostHandler,
 	)
 	if err != nil {
 		return err
@@ -2509,6 +2510,7 @@ func createApiResolver(
 	epochNotifier process.EpochNotifier,
 	workingDir string,
 	accountsAPI state.AccountsAdapter,
+	builtInCostHandler economics.BuiltInFunctionsCostHandler,
 ) (facade.ApiResolver, error) {
 	scQueryService, err := createScQueryService(
 		generalConfig,
@@ -2556,7 +2558,14 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(
+		txTypeHandler,
+		economics,
+		scQueryService,
+		gasScheduleNotifier,
+		builtInCostHandler,
+		shardCoordinator.SelfId(),
+	)
 	if err != nil {
 		return nil, err
 	}

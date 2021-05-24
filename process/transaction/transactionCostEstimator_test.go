@@ -32,7 +32,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -42,17 +42,27 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestTransactionCostEstimator_BuiltInCostHandler(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule, nil, 0)
+
+	require.Nil(t, tce)
+	require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
 }
 
 func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, external.ErrNilSCQueryService, err)
@@ -62,7 +72,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -81,7 +91,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
-	}, &mock.ScQueryStub{}, gasSchedule)
+	}, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -89,7 +99,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
-func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
+func TestComputeTransactionGasLimit_BuiltInFunctionMeta(t *testing.T) {
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	consumedGasUnits := uint64(5000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
@@ -104,12 +114,35 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (uint64, error) {
 			return 1000, nil
 		},
-	}, gasSchedule)
+	}, gasSchedule, &mock.BuiltInCostHandlerStub{}, core.MetachainShardId)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, consumedGasUnits+uint64(1000), cost.GasUnits)
+}
+
+func TestComputeTransactionGasLimit_BuiltInFunctionShard(t *testing.T) {
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
+	consumedGasUnits := uint64(5000)
+	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return consumedGasUnits
+		},
+	}, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{
+		ComputeBuiltInCostCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return 100
+		},
+	}, 0)
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, consumedGasUnits+uint64(100), cost.GasUnits)
 }
 
 func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
@@ -125,7 +158,7 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return gasLimitBaseTx
 		},
-	}, &mock.ScQueryStub{}, gasSchedule)
+	}, &mock.ScQueryStub{}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	tx := &transaction.Transaction{
 		Data: []byte("data"),
@@ -153,7 +186,7 @@ func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 		ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (u uint64, err error) {
 			return consumedGasUnits.Uint64(), nil
 		},
-	}, gasSchedule)
+	}, gasSchedule, &mock.BuiltInCostHandlerStub{}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -173,7 +206,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 		},
 		&mock.FeeHandlerStub{},
 		&mock.ScQueryStub{},
-		gasSchedule,
+		gasSchedule, &mock.BuiltInCostHandlerStub{}, 0,
 	)
 
 	tx := &transaction.Transaction{}

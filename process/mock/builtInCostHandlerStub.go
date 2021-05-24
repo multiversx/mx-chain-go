@@ -6,10 +6,14 @@ import (
 
 // BuiltInCostHandlerStub -
 type BuiltInCostHandlerStub struct {
+	ComputeBuiltInCostCalled func(tx process.TransactionWithFeeHandler) uint64
 }
 
 // ComputeBuiltInCost -
-func (b *BuiltInCostHandlerStub) ComputeBuiltInCost(_ process.TransactionWithFeeHandler) uint64 {
+func (b *BuiltInCostHandlerStub) ComputeBuiltInCost(tx process.TransactionWithFeeHandler) uint64 {
+	if b.ComputeBuiltInCostCalled != nil {
+		return b.ComputeBuiltInCostCalled(tx)
+	}
 	return 1
 }
 

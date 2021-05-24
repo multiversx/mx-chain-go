@@ -8,15 +8,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 )
 
 type transactionCostEstimator struct {
 	txTypeHandler      process.TxTypeHandler
 	feeHandler         process.FeeHandler
 	query              external.SCQueryService
+	builtInCostHandler economics.BuiltInFunctionsCostHandler
+	mutExecution       sync.RWMutex
 	storePerByteCost   uint64
 	compilePerByteCost uint64
-	mutExecution       sync.RWMutex
+	selfShardID        uint32
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
@@ -25,6 +28,8 @@ func NewTransactionCostEstimator(
 	feeHandler process.FeeHandler,
 	query external.SCQueryService,
 	gasSchedule core.GasScheduleNotifier,
+	builtInCostHandler economics.BuiltInFunctionsCostHandler,
+	selfShardID uint32,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -35,6 +40,9 @@ func NewTransactionCostEstimator(
 	if check.IfNil(query) {
 		return nil, external.ErrNilSCQueryService
 	}
+	if check.IfNil(builtInCostHandler) {
+		return nil, process.ErrNilBuiltInFunctionsCostHandler
+	}
 
 	compileCost, storeCost := getOperationCost(gasSchedule.LatestGasSchedule())
 
@@ -44,6 +52,8 @@ func NewTransactionCostEstimator(
 		query:              query,
 		storePerByteCost:   compileCost,
 		compilePerByteCost: storeCost,
+		builtInCostHandler: builtInCostHandler,
+		selfShardID:        selfShardID,
 	}, nil
 }
 
@@ -91,7 +101,8 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.SCInvoking:
 		return tce.computeScCallGasLimit(tx)
 	case process.BuiltInFunctionCall:
-		return tce.computeScCallGasLimit(tx)
+		// TODO Built in functions with SC call not yet supported and also ESDTNFTTransfer
+		return tce.computeBuiltInFunctionGasLimit(tx)
 	case process.RelayedTx:
 		return &transaction.CostResponse{
 			GasUnits:   0,
@@ -110,6 +121,19 @@ func (tce *transactionCostEstimator) computeScDeployGasLimit(tx *transaction.Tra
 
 	return &transaction.CostResponse{
 		GasUnits: baseCost + scDeployCost,
+	}, nil
+}
+
+func (tce *transactionCostEstimator) computeBuiltInFunctionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
+	if tce.selfShardID == core.MetachainShardId {
+		return tce.computeScCallGasLimit(tx)
+	}
+
+	gasUsed := tce.builtInCostHandler.ComputeBuiltInCost(tx)
+	gasUsed += tce.feeHandler.ComputeGasLimit(tx)
+
+	return &transaction.CostResponse{
+		GasUnits: gasUsed,
 	}, nil
 }
 
