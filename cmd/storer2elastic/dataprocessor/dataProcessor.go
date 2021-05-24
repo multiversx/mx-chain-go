@@ -279,6 +279,7 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig update.Genes
 		SelfPublicKey:           []byte("own public key"),
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
+		EpochNotifier:           disabled.NewEpochNotifier(),
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

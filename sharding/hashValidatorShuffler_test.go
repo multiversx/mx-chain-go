@@ -1375,7 +1375,7 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 	waitingPerShard := 400
 	nbShards := 1
 
-	numLeaving := 82
+	numLeaving := 2
 
 	numNodesToShuffle := 80
 

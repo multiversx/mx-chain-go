@@ -468,6 +468,7 @@ func createNodes(
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
 			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
