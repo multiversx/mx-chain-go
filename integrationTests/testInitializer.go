@@ -1143,16 +1143,11 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 // CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
 func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	hvh := &testscommon.HeaderVersionHandlerStub{}
+
 	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				Version:    "*",
-			},
-		},
-		"default",
-		testscommon.NewCacherMock(),
+		hvh,
 	)
 
 	return headerVersioning
