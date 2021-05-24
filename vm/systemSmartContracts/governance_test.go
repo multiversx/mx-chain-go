@@ -47,7 +47,7 @@ func createVMInput(callValue *big.Int, funcName string, callerAddr, recipientAdd
 		VMInput: vmcommon.VMInput{
 			CallValue:  callValue,
 			CallerAddr: callerAddr,
-			Arguments: arguments,
+			Arguments:  arguments,
 		},
 		Function:      funcName,
 		RecipientAddr: recipientAddr,
@@ -406,7 +406,7 @@ func TestGovernanceContract_AccountVoteAddVoteError(t *testing.T) {
 	args := createMockGovernanceArgs()
 	args.Eei = createMockStorer(vm.GovernanceSCAddress, proposalIdentifier, &GeneralProposal{
 		Yes: big.NewInt(0),
-		No: big.NewInt(0),
+		No:  big.NewInt(0),
 	})
 	args.Marshalizer = &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -438,7 +438,7 @@ func TestGovernanceContract_AccountVoteAddSimpleVote(t *testing.T) {
 	args := createMockGovernanceArgs()
 	args.Eei = createMockStorer(vm.GovernanceSCAddress, proposalIdentifier, &GeneralProposal{
 		Yes: big.NewInt(0),
-		No: big.NewInt(0),
+		No:  big.NewInt(0),
 	})
 	gsc, _ := NewGovernanceContract(args)
 	voteArgs := [][]byte{
@@ -502,9 +502,9 @@ func TestGovernanceContract_ValidatorVoteInvalidProposal(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -549,9 +549,9 @@ func TestGovernanceContract_ValidatorVoteInvalidVote(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -596,9 +596,9 @@ func TestGovernanceContract_ValidatorVoteInvalidDelegated(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -644,9 +644,9 @@ func TestGovernanceContract_ValidatorVoteComputePowerError(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -701,9 +701,9 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -728,7 +728,7 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 
 			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
 				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked: true,
+					Staked:     true,
 					StakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
@@ -776,9 +776,9 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -803,7 +803,7 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 
 			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
 				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked: true,
+					Staked:     true,
 					StakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
@@ -855,10 +855,10 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
-		Yes: big.NewInt(0),
+		EndVoteNonce:   15,
+		Yes:            big.NewInt(0),
 	}
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -880,7 +880,7 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 
 			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
 				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked: true,
+					Staked:     true,
 					StakeValue: big.NewInt(100),
 				})
 
@@ -1066,7 +1066,7 @@ func TestGovernanceContract_ClaimFundsNothingToClaim(t *testing.T) {
 
 			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
-					Claimed: false,
+					Claimed:     false,
 					UsedBalance: zero,
 				})
 				return voteSetBytes
@@ -1115,7 +1115,7 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 
 			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
-					Claimed: false,
+					Claimed:     false,
 					UsedBalance: voteValue,
 				})
 				return voteSetBytes
@@ -1543,7 +1543,7 @@ func TestGovernanceContract_HardForkProposalInvalidCallValue(t *testing.T) {
 		[]byte("5"),
 		[]byte("10"),
 	}
-	callInput := createVMInput( big.NewInt(0), "hardFork", callerAddress, vm.GovernanceSCAddress, callInputArgs)
+	callInput := createVMInput(big.NewInt(0), "hardFork", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.OutOfFunds, retCode)
@@ -1674,7 +1674,7 @@ func TestGovernanceContract_HardForkProposalInvalidCommitLength(t *testing.T) {
 			return nil
 		},
 	}
-	args.EpochConfig.EnableEpochs.GovernanceEnableEpoch = 1
+	args.EpochConfig.EnableEpochs.GovernanceEnableEpoch = 0
 	gsc, _ := NewGovernanceContract(args)
 
 	callInputArgs := [][]byte{
@@ -2024,7 +2024,7 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
 				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
-					MinQuorum: big.NewInt(10),
+					MinQuorum:        big.NewInt(10),
 					MinVetoThreshold: big.NewInt(10),
 					MinPassThreshold: big.NewInt(10),
 				})
@@ -2032,8 +2032,8 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes: big.NewInt(10),
-					No: big.NewInt(10),
+					Yes:  big.NewInt(10),
+					No:   big.NewInt(10),
 					Veto: big.NewInt(10),
 				})
 				return whitelistProposalBytes
@@ -2244,9 +2244,9 @@ func TestGovernanceContract_CloseProposalAlreadyClosed(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes: big.NewInt(10),
-					No: big.NewInt(10),
-					Veto: big.NewInt(10),
+					Yes:    big.NewInt(10),
+					No:     big.NewInt(10),
+					Veto:   big.NewInt(10),
 					Closed: true,
 				})
 				return whitelistProposalBytes
@@ -2291,9 +2291,9 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes: big.NewInt(10),
-					No: big.NewInt(10),
-					Veto: big.NewInt(10),
+					Yes:          big.NewInt(10),
+					No:           big.NewInt(10),
+					Veto:         big.NewInt(10),
 					EndVoteNonce: 10,
 				})
 				return whitelistProposalBytes
@@ -2345,8 +2345,8 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Yes: big.NewInt(10),
-					No: big.NewInt(10),
+					Yes:  big.NewInt(10),
+					No:   big.NewInt(10),
 					Veto: big.NewInt(10),
 				})
 				return whitelistProposalBytes
@@ -2396,7 +2396,7 @@ func TestGovernanceContract_GetValidatorVotingPower(t *testing.T) {
 
 			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
 				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked: true,
+					Staked:     true,
 					StakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
@@ -2640,7 +2640,7 @@ func TestGovernanceContract_SaveGeneralProposalUnmarshalErr(t *testing.T) {
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	generalProposal := &GeneralProposal{
 		Yes: big.NewInt(10),
-		No: big.NewInt(0),
+		No:  big.NewInt(0),
 	}
 	args := createMockGovernanceArgs()
 	args.Marshalizer = &mock.MarshalizerStub{
@@ -2664,7 +2664,7 @@ func TestGovernanceContract_SaveGeneralProposal(t *testing.T) {
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	generalProposal := &GeneralProposal{
 		Yes: big.NewInt(10),
-		No: big.NewInt(0),
+		No:  big.NewInt(0),
 	}
 
 	args := createMockGovernanceArgs()
@@ -2729,7 +2729,7 @@ func TestGovernanceContract_GetValidProposalNotStarted(t *testing.T) {
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
 	}
 
@@ -2762,9 +2762,9 @@ func TestGovernanceContract_GetValidProposalVotingFinished(t *testing.T) {
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 
 	args := createMockGovernanceArgs()
@@ -2796,9 +2796,9 @@ func TestGovernanceContract_GetValidProposal(t *testing.T) {
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	generalProposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 
 	args := createMockGovernanceArgs()
@@ -2934,28 +2934,28 @@ func TestGovernanceContract_ApplyVote(t *testing.T) {
 	t.Parallel()
 
 	voteDetails := &VoteDetails{
-		Value: Yes,
-		Power: big.NewInt(10),
+		Value:   Yes,
+		Power:   big.NewInt(10),
 		Balance: big.NewInt(100),
-		Type: Account,
+		Type:    Account,
 	}
 
 	voteSet := &VoteSet{
-		UsedPower: big.NewInt(5),
+		UsedPower:   big.NewInt(5),
 		UsedBalance: big.NewInt(25),
-		TotalYes: big.NewInt(5),
+		TotalYes:    big.NewInt(5),
 		VoteItems: []*VoteDetails{
 			{
-				Value: Yes,
-				Power: big.NewInt(5),
+				Value:   Yes,
+				Power:   big.NewInt(5),
 				Balance: big.NewInt(25),
-				Type: Account,
+				Type:    Account,
 			},
 		},
 	}
 	proposal := &GeneralProposal{
-		Yes: big.NewInt(10),
-		No: big.NewInt(10),
+		Yes:  big.NewInt(10),
+		No:   big.NewInt(10),
 		Veto: big.NewInt(0),
 	}
 
@@ -2992,15 +2992,14 @@ func TestGovernanceContract_SetLock(t *testing.T) {
 	voter := []byte("voter")
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	proposal := &GeneralProposal{
-		GitHubCommit: proposalIdentifier,
+		GitHubCommit:   proposalIdentifier,
 		StartVoteNonce: 10,
-		EndVoteNonce: 15,
+		EndVoteNonce:   15,
 	}
 
 	gsc.setLock(voter, Validator, proposal)
 	require.Equal(t, append([]byte(validatorLockPrefix), voter...), storageKeyCalled)
 	require.Equal(t, big.NewInt(0).SetUint64(19).Bytes(), storageValueCalled)
-
 
 	accPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
 	gsc.setLock(voter, Account, proposal)
@@ -3073,7 +3072,7 @@ func TestComputeEndResults(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, []byte(governanceConfigKey)) {
 				configBytes, _ := args.Marshalizer.Marshal(&GovernanceConfigV2{
-					MinQuorum: big.NewInt(100),
+					MinQuorum:        big.NewInt(100),
 					MinPassThreshold: big.NewInt(51),
 					MinVetoThreshold: big.NewInt(30),
 				})
@@ -3086,8 +3085,8 @@ func TestComputeEndResults(t *testing.T) {
 	gsc, _ := NewGovernanceContract(args)
 
 	didNotPassQuorum := &GeneralProposal{
-		Yes: big.NewInt(50),
-		No: big.NewInt(0),
+		Yes:  big.NewInt(50),
+		No:   big.NewInt(0),
 		Veto: big.NewInt(0),
 	}
 	err := gsc.computeEndResults(didNotPassQuorum)
@@ -3095,8 +3094,8 @@ func TestComputeEndResults(t *testing.T) {
 	require.False(t, didNotPassQuorum.Voted)
 
 	didNotPassVotes := &GeneralProposal{
-		Yes: big.NewInt(50),
-		No: big.NewInt(50),
+		Yes:  big.NewInt(50),
+		No:   big.NewInt(50),
 		Veto: big.NewInt(0),
 	}
 	err = gsc.computeEndResults(didNotPassVotes)
@@ -3104,8 +3103,8 @@ func TestComputeEndResults(t *testing.T) {
 	require.False(t, didNotPassVotes.Voted)
 
 	didNotPassVotes2 := &GeneralProposal{
-		Yes: big.NewInt(50),
-		No: big.NewInt(51),
+		Yes:  big.NewInt(50),
+		No:   big.NewInt(51),
 		Veto: big.NewInt(0),
 	}
 	err = gsc.computeEndResults(didNotPassVotes2)
@@ -3113,8 +3112,8 @@ func TestComputeEndResults(t *testing.T) {
 	require.False(t, didNotPassVotes2.Voted)
 
 	didNotPassVeto := &GeneralProposal{
-		Yes: big.NewInt(51),
-		No: big.NewInt(50),
+		Yes:  big.NewInt(51),
+		No:   big.NewInt(50),
 		Veto: big.NewInt(30),
 	}
 	err = gsc.computeEndResults(didNotPassVeto)
@@ -3122,8 +3121,8 @@ func TestComputeEndResults(t *testing.T) {
 	require.False(t, didNotPassVeto.Voted)
 
 	pass := &GeneralProposal{
-		Yes: big.NewInt(51),
-		No: big.NewInt(50),
+		Yes:  big.NewInt(51),
+		No:   big.NewInt(50),
 		Veto: big.NewInt(29),
 	}
 	err = gsc.computeEndResults(pass)
@@ -3139,7 +3138,7 @@ func createMockStorer(callerAddress []byte, proposalIdentifier []byte, proposal 
 			if isWhiteListKey {
 				whiteList, _ := marshalizer.Marshal(&WhiteListProposal{
 					WhiteListAddress: callerAddress,
-					ProposalStatus: append([]byte(proposalPrefix), callerAddress...),
+					ProposalStatus:   append([]byte(proposalPrefix), callerAddress...),
 				})
 				return whiteList
 			}
@@ -3152,7 +3151,7 @@ func createMockStorer(callerAddress []byte, proposalIdentifier []byte, proposal 
 			}
 
 			isGeneralProposalKey := bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...))
-			if isGeneralProposalKey && proposal != nil{
+			if isGeneralProposalKey && proposal != nil {
 				marshaledProposal, _ := marshalizer.Marshal(proposal)
 
 				return marshaledProposal

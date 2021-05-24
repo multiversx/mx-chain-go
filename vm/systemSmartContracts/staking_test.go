@@ -26,7 +26,6 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 	return ArgsNewStakingSmartContract{
 		Eei:                  &mock.SystemEIStub{},
 		StakingAccessAddr:    []byte("validator"),
-		GovernanceSCAddress:  []byte("governance"),
 		JailAccessAddr:       []byte("jail"),
 		EndOfEpochAccessAddr: []byte("endOfEpoch"),
 		MinNumNodes:          1,

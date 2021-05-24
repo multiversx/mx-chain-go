@@ -158,11 +158,20 @@ func getProcessArgs(
 				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					EnabledEpoch:     10,
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",

@@ -178,7 +178,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
 		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
 		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
-		governanceEnableEpoch:       args.GovernanceV2EnableEpoch,
+		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
 
 	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
@@ -286,6 +286,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		if err != nil {
 			//not a critical error
 			log.Error("error while initializing ESDT", "err", err)
+		}
+	}
+
+	if s.flagGovernanceEnabled.IsSet() {
+		err := s.updateToGovernanceV2()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -517,13 +524,6 @@ func (s *systemSCProcessor) prepareRewardsData(
 	err := s.prepareStakingDataForRewards(eligibleNodesKeys)
 	if err != nil {
 		return err
-	}
-
-	if s.flagGovernanceEnabled.IsSet() {
-		err := s.updateToGovernanceV2()
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
