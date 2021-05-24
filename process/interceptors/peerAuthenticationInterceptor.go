@@ -115,8 +115,9 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		pai.observersThrottler.EndProcessing()
 	}
 	pai.throttler.EndProcessing()
-	if observerMessageIgnored {
-		return process.ErrPeerAuthenticationForObservers
+	shouldNotPropagateMessage := observerMessageIgnored || len(multiDataBuff) > 1
+	if shouldNotPropagateMessage {
+		return process.ErrShouldNotBroadcastMessage
 	}
 
 	return nil

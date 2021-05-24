@@ -1022,8 +1022,6 @@ var ErrPropertyTooShort = errors.New("property too short")
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
 
-// ErrPeerAuthenticationForObservers signals (to the network messenger) that the current received message containing bulk
-// peer authentication messages that should be dropped as an observer public key wasn't checked by the processors
-// Otherwise, there is a slight change of an attack on a peer that does sync in a previous epoch and not able to check all
-// authentication messages.
-var ErrPeerAuthenticationForObservers = errors.New("observer key found and not checked, dropping the message")
+// ErrShouldNotBroadcastMessage signals (to the network messenger) that the current received message contains data
+// formatted in such a way that it should not be broadcast to other peers
+var ErrShouldNotBroadcastMessage = errors.New("should not broadcast message")
