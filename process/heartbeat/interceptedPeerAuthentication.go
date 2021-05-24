@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	minSizeInBytes    = 1
-	maxSizeInBytes    = 128
-	interceptedType   = "intercepted peer heartbeat"
-	publicKeyProperty = "public key"
-	signatureProperty = "signature"
-	peerIdProperty    = "peer id"
+	minSizeInBytes          = 1
+	maxSizeInBytes          = 128
+	interceptedType         = "intercepted peer heartbeat"
+	publicKeyProperty       = "public key"
+	signatureProperty       = "signature"
+	peerIdProperty          = "peer id"
+	hardforkPayloadProperty = "payload"
 )
 
 // ArgInterceptedPeerAuthentication is the argument used in the intercepted peer authentication constructor
@@ -95,9 +96,15 @@ func (ipa *interceptedPeerAuthentication) PeerID() core.PeerID {
 	return core.PeerID(ipa.peerAuthentication.Pid)
 }
 
-// Signature returns the signature done on the Pid field that can be checked against the provided PubKey field
+// Signature returns the signature done on the Pid field (concatenated with the hardforkPayload field) that can be
+//checked against the provided PubKey field
 func (ipa *interceptedPeerAuthentication) Signature() []byte {
 	return ipa.peerAuthentication.Signature
+}
+
+// HardforkPayload returns the optionally hardfork payload data
+func (ipa *interceptedPeerAuthentication) HardforkPayload() []byte {
+	return ipa.peerAuthentication.HardforkPayload
 }
 
 // SetComputedShardID sets the computed shard ID. Concurrency safe.
@@ -107,8 +114,7 @@ func (ipa *interceptedPeerAuthentication) SetComputedShardID(shardId uint32) {
 	ipa.mutComputedShardID.Unlock()
 }
 
-// CheckValidity will check the validity of the received peer heartbeat
-// However, this will not perform the signature validation since that can be an attack vector
+// CheckValidity will check the validity of the received peer heartbeat. This call won't trigger the signature validation.
 func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	err := VerifyHeartbeatProperyLen(publicKeyProperty, ipa.peerAuthentication.Pubkey)
 	if err != nil {
@@ -119,6 +125,10 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		return err
 	}
 	err = VerifyHeartbeatProperyLen(peerIdProperty, ipa.peerId.Bytes())
+	if err != nil {
+		return err
+	}
+	err = VerifyHeartbeatProperyLen(hardforkPayloadProperty, ipa.peerAuthentication.HardforkPayload)
 	if err != nil {
 		return err
 	}

@@ -16,9 +16,10 @@ import (
 
 func createDefaultInterceptedData() *heartbeat.PeerAuthentication {
 	return &heartbeat.PeerAuthentication{
-		Pubkey:    []byte("public key"),
-		Signature: []byte("signature"),
-		Pid:       []byte("peer id"),
+		Pubkey:          []byte("public key"),
+		Signature:       []byte("signature"),
+		Pid:             []byte("peer id"),
+		HardforkPayload: []byte("hardfork payload"),
 	}
 }
 
@@ -105,10 +106,12 @@ func TestInterceptedPeerAuthentication_GettersAndSetters(t *testing.T) {
 	pid := []byte("pid")
 	hash := []byte("hash")
 	sig := []byte("signature")
+	hardforkPayload := []byte("hardfork payload")
 	interceptedData := createDefaultInterceptedData()
 	interceptedData.Pubkey = pkBytes
 	interceptedData.Pid = pid
 	interceptedData.Signature = sig
+	interceptedData.HardforkPayload = hardforkPayload
 	arg := createMockInterceptedPeerAuthenticationArg(interceptedData)
 	arg.Hasher = &mock.HasherStub{
 		ComputeCalled: func(s string) []byte {
@@ -128,6 +131,7 @@ func TestInterceptedPeerAuthentication_GettersAndSetters(t *testing.T) {
 	assert.Equal(t, expectedString, ipa.String())
 	assert.Equal(t, sig, ipa.Signature())
 	assert.Equal(t, pid, ipa.PeerID().Bytes())
+	assert.Equal(t, hardforkPayload, ipa.HardforkPayload())
 }
 
 func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
@@ -156,6 +160,12 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 	ipa, _ = NewInterceptedPeerAuthentication(createMockInterceptedPeerAuthenticationArg(interceptedData))
 	err = ipa.CheckValidity()
 	assert.True(t, errors.Is(err, process.ErrPropertyTooLong) && strings.Contains(err.Error(), peerIdProperty))
+
+	interceptedData = createDefaultInterceptedData()
+	interceptedData.HardforkPayload = bytes.Repeat([]byte{1}, maxSizeInBytes+1)
+	ipa, _ = NewInterceptedPeerAuthentication(createMockInterceptedPeerAuthenticationArg(interceptedData))
+	err = ipa.CheckValidity()
+	assert.True(t, errors.Is(err, process.ErrPropertyTooLong) && strings.Contains(err.Error(), hardforkPayloadProperty))
 
 	interceptedData = createDefaultInterceptedData()
 	ipa, _ = NewInterceptedPeerAuthentication(createMockInterceptedPeerAuthenticationArg(interceptedData))

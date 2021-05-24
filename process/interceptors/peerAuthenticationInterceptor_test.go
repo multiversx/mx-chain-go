@@ -35,6 +35,7 @@ func createMockArgPeerAuthenticationInterceptor() interceptors.ArgPeerAuthentica
 		Marshalizer:              &mock.MarshalizerMock{},
 		ValidatorChecker:         &mock.NodesCoordinatorMock{},
 		AuthenticationProcessor:  &mock.PeerAuthenticationProcessorStub{},
+		ObserversThrottler:       createMockThrottler(),
 	}
 }
 
@@ -82,6 +83,17 @@ func TestNewPeerAuthenticationInterceptor_NilHeartbeatProcessorShouldErr(t *test
 	assert.Equal(t, process.ErrNilAuthenticationProcessor, err)
 }
 
+func TestNewPeerAuthenticationInterceptor_NilObserversThrottlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.ObserversThrottler = nil
+	interceptor, err := interceptors.NewPeerAuthenticationInterceptor(arg)
+
+	assert.True(t, check.IfNil(interceptor))
+	assert.True(t, errors.Is(err, process.ErrNilInterceptorThrottler))
+}
+
 func TestNewPeerAuthenticationInterceptor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -113,6 +125,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessagePreProcessFailShoul
 	err := interceptor.ProcessReceivedMessage(msg, "")
 	assert.Equal(t, process.ErrSystemBusy, err)
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 0)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
 }
 
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAnInterceptedDataShouldErr(t *testing.T) {
@@ -150,6 +163,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAnInterceptedDat
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, 2, numBlackListedCalled)
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
 }
 
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidInterceptedDataShouldErr(t *testing.T) {
@@ -188,9 +202,10 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageNotAValidIntercepte
 	assert.Equal(t, cause, err.Error())
 	assert.Equal(t, 2, numBlackListedCalled)
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
 }
 
-func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotProcess(t *testing.T) {
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldProcess(t *testing.T) {
 	t.Parallel()
 
 	processCalled := uint32(0)
@@ -227,10 +242,60 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotP
 	}
 
 	err := interceptor.ProcessReceivedMessage(msg, "")
+	require.Nil(t, err)
+
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&processCalled))
+	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 2)
+}
+
+func TestPeerAuthenticationInterceptor_ProcessReceivedMessageObserversShouldNotProcess(t *testing.T) {
+	t.Parallel()
+
+	processCalled := uint32(0)
+	arg := createMockArgPeerAuthenticationInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			return &mock.InterceptedPeerHeartbeatStub{}, nil
+		},
+	}
+	arg.AuthenticationProcessor = &mock.PeerAuthenticationProcessorStub{
+		ProcessCalled: func(peerHeartbeat process.InterceptedPeerAuthentication) error {
+			atomic.AddUint32(&processCalled, 1)
+
+			return nil
+		},
+	}
+	arg.ValidatorChecker = &mock.NodesCoordinatorMock{
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
+			return nil, 0, fmt.Errorf("provided peer is an observer")
+		},
+	}
+	arg.ObserversThrottler = &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+	interceptor, _ := interceptors.NewPeerAuthenticationInterceptor(arg)
+
+	b := &batch.Batch{
+		Data: [][]byte{[]byte("buff1"), []byte("buff2")},
+	}
+	buffBatch, _ := arg.Marshalizer.Marshal(b)
+
+	msg := &mock.P2PMessageMock{
+		FromField:  []byte("from"),
+		DataField:  buffBatch,
+		TopicField: arg.Topic,
+		PeerField:  "",
+	}
+
+	err := interceptor.ProcessReceivedMessage(msg, "")
 	require.Equal(t, process.ErrPeerAuthenticationForObservers, err)
 
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 0)
 }
 
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *testing.T) {
@@ -279,6 +344,7 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageProcessError(t *tes
 	require.Equal(t, expectedErr, err)
 	assert.Equal(t, 2, numBlackListedCalled)
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 1)
 }
 
 func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWork(t *testing.T) {
@@ -323,4 +389,5 @@ func TestPeerAuthenticationInterceptor_ProcessReceivedMessageValidatorsShouldWor
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&processCalled))
 	checkThrottlerNumStartEndCalls(t, arg.Throttler, 1)
+	checkThrottlerNumStartEndCalls(t, arg.ObserversThrottler, 2)
 }

@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -17,12 +18,14 @@ type ArgPeerAuthenticationInterceptor struct {
 	Marshalizer             marshal.Marshalizer
 	ValidatorChecker        process.ValidatorChecker
 	AuthenticationProcessor process.PeerAuthenticationProcessor
+	ObserversThrottler      process.InterceptorThrottler
 }
 
 type peerAuthenticationInterceptor struct {
 	*baseDataInterceptor
 	validatorChecker            process.ValidatorChecker
 	peerAuthenticationProcessor process.PeerAuthenticationProcessor
+	observersThrottler          process.InterceptorThrottler
 }
 
 // NewPeerAuthenticationInterceptor hooks a new interceptor for packed multi data containing peer authentication instances
@@ -40,6 +43,9 @@ func NewPeerAuthenticationInterceptor(arg ArgPeerAuthenticationInterceptor) (*pe
 	if check.IfNil(arg.AuthenticationProcessor) {
 		return nil, process.ErrNilAuthenticationProcessor
 	}
+	if check.IfNil(arg.ObserversThrottler) {
+		return nil, fmt.Errorf("%w for the observers throttler", process.ErrNilInterceptorThrottler)
+	}
 
 	interceptor := &peerAuthenticationInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
@@ -54,6 +60,7 @@ func NewPeerAuthenticationInterceptor(arg ArgPeerAuthenticationInterceptor) (*pe
 		},
 		validatorChecker:            arg.ValidatorChecker,
 		peerAuthenticationProcessor: arg.AuthenticationProcessor,
+		observersThrottler:          arg.ObserversThrottler,
 	}
 
 	return interceptor, nil
@@ -67,7 +74,7 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 		return err
 	}
 
-	observerKeyFound := false
+	observerMessageIgnored := false
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = pai.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
@@ -88,22 +95,27 @@ func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.Mes
 
 		var shardID uint32
 		_, shardID, err = pai.validatorChecker.GetValidatorWithPublicKey(peerAuth.PublicKey())
-		isObserver := err != nil
-		if isObserver {
-			observerKeyFound = true
+		peerAuth.SetComputedShardID(shardID)
+
+		isObserver := err == nil
+		isSkippableObservers := isObserver && !pai.observersThrottler.CanProcess()
+		if isSkippableObservers {
+			observerMessageIgnored = true
 			continue
 		}
 
-		peerAuth.SetComputedShardID(shardID)
+		pai.observersThrottler.StartProcessing()
 		errProcess := pai.peerAuthenticationProcessor.Process(peerAuth)
 		if errProcess != nil {
 			pai.throttler.EndProcessing()
+			pai.observersThrottler.EndProcessing()
 			pai.blackListPeers("peer info processing error", errProcess, message.Peer(), fromConnectedPeer)
 			return errProcess
 		}
+		pai.observersThrottler.EndProcessing()
 	}
 	pai.throttler.EndProcessing()
-	if observerKeyFound {
+	if observerMessageIgnored {
 		return process.ErrPeerAuthenticationForObservers
 	}
 
