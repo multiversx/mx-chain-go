@@ -2860,7 +2860,7 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
-	headerVersionHandler := &testscommon.HeaderVersionHandlerMock{}
+	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{}
 	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		versionedHeaderFactory, _ = hdrFactory.NewMetaHeaderFactory(headerVersionHandler)
