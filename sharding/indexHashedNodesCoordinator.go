@@ -526,7 +526,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	ihgs.UpdateEpochFlags(newEpoch)
+	ihgs.updateEpochFlags(newEpoch)
 
 	ihgs.mutNodesConfig.RLock()
 	previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
@@ -740,6 +740,7 @@ func (ihgs *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	waitingMap map[uint32][]Validator,
 	currentValidator *validator,
 	currentValidatorShardId uint32) {
+
 	if !ihgs.flagWaitingListFix.IsSet() {
 		eligibleMap[currentValidatorShardId] = append(eligibleMap[currentValidatorShardId], currentValidator)
 		return
@@ -1155,8 +1156,7 @@ func createValidatorInfoFromBody(
 	return allValidatorInfo, nil
 }
 
-// UpdateEpochFlags sets the flags based on the current epoch
-func (ihgs *indexHashedNodesCoordinator) UpdateEpochFlags(epoch uint32) {
+func (ihgs *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihgs.flagWaitingListFix.Toggle(epoch >= ihgs.waitingListFixEnableEpoch)
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihgs.flagWaitingListFix.IsSet())
 }
