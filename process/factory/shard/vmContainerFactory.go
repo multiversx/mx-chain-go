@@ -2,6 +2,7 @@ package shard
 
 import (
 	"fmt"
+	"io"
 	"sort"
 
 	arwen1_2 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
@@ -40,7 +41,7 @@ type vmContainerFactory struct {
 	ArwenESDTFunctionsEnableEpoch        uint32
 	ArwenGasManagementRewriteEnableEpoch uint32
 	container                            process.VirtualMachinesContainer
-	arwenVersions                        []config.VersionByEpochs
+	arwenVersions                        []config.ArwenVersionByEpoch
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -87,46 +88,55 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		container:                            nil,
 	}
 
-	factory.arwenVersions, err = factory.prepareVersions(args.Config.ArwenVersions)
+	factory.arwenVersions = args.Config.ArwenVersions
+	factory.sortArwenVersions()
+	err = factory.validateArwenVersions()
+	if err != nil {
+		return nil, err
+	}
 
 	return factory, nil
 }
 
-func (vmf *vmContainerFactory) prepareVersions(versionsByEpochs []config.VersionByEpochs) ([]config.VersionByEpochs, error) {
-	if len(versionsByEpochs) == 0 {
-		return nil, ErrEmptyVersionsByEpochsList
+func (vmf *vmContainerFactory) sortArwenVersions() {
+	sort.Slice(vmf.arwenVersions, func(i, j int) bool {
+		return vmf.arwenVersions[i].StartEpoch < vmf.arwenVersions[j].StartEpoch
+	})
+}
+
+func (vmf *vmContainerFactory) validateArwenVersions() error {
+	if len(vmf.arwenVersions) == 0 {
+		return ErrEmptyVersionsByEpochsList
 	}
 
-	sort.Slice(versionsByEpochs, func(i, j int) bool {
-		return versionsByEpochs[i].StartEpoch < versionsByEpochs[j].StartEpoch
-	})
-
 	currentEpoch := uint32(0)
-	for idx, ver := range versionsByEpochs {
+	for idx, ver := range vmf.arwenVersions {
 		if idx == 0 && ver.StartEpoch != 0 {
-			return nil, fmt.Errorf("%w first version should start on epoch 0", ErrInvalidVersionOnEpochValues)
+			return fmt.Errorf("%w first version should start on epoch 0",
+				ErrInvalidVersionOnEpochValues)
 		}
 
 		if idx > 0 && currentEpoch >= ver.StartEpoch {
-			return nil, fmt.Errorf("%w, StartEpoch is greater or equal to next epoch StartEpoch value, version %s",
+			return fmt.Errorf("%w, StartEpoch is greater or equal to next epoch StartEpoch value, version %s",
 				ErrInvalidVersionOnEpochValues, ver.Version)
 		}
 		currentEpoch = ver.StartEpoch
 
 		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
-			return nil, fmt.Errorf("%w for version %s",
+			return fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}
 	}
 
-	return versionsByEpochs, nil
+	return nil
 }
 
 // Create sets up all the needed virtual machine returning a container of all the VMs
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	currVm, err := vmf.createArwenVM()
+	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
+	currVm, err := vmf.createArwenVM(version)
 	if err != nil {
 		return nil, err
 	}
@@ -151,24 +161,106 @@ func (vmf *vmContainerFactory) Close() error {
 	return vmf.blockChainHookImpl.Close()
 }
 
-// EpochConfirmed updates VMs in all created containers depending on the epoch
+// EpochConfirmed updates the VM version in the container, depending on the epoch
 func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
-	if vmf.config.OutOfProcessEnabled {
+	vmf.ensureCorrectArwenVersion(epoch)
+}
+
+func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
+	version := vmf.getMatchingVersion(epoch)
+	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
+	if err != nil {
+		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch)
 		return
 	}
 
-	vmf.ensureInProcessArwenVersion(epoch)
-}
-
-func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	if vmf.config.OutOfProcessEnabled {
-		return vmf.createOutOfProcessArwenVM()
+	if version.Version == currentArwenVM.GetVersion() {
+		return
 	}
 
-	return vmf.createInProcessArwenVM()
+	vmf.closePreviousVM(currentArwenVM)
+	newArwenVM, err := vmf.createArwenVM(version)
+	if err != nil {
+		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
+		return
+	}
+
+	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
 }
 
-func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
+func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
+	if version.OutOfProcessSupported && vmf.config.OutOfProcessEnabled {
+		return vmf.createOutOfProcessArwenVMByVersion(version)
+	}
+
+	return vmf.createInProcessArwenVMByVersion(version)
+}
+
+func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVersionByEpoch {
+	matchingVersion := vmf.arwenVersions[len(vmf.arwenVersions)-1]
+	for idx := 0; idx < len(vmf.arwenVersions)-1; idx++ {
+		crtVer := vmf.arwenVersions[idx]
+		nextVer := vmf.arwenVersions[idx+1]
+		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
+			return crtVer
+		}
+	}
+
+	return matchingVersion
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config, "version", version)
+	switch version.Version {
+	case "v1.2":
+		return vmf.createInProcessArwenVM_v1_2()
+	default:
+		return vmf.createInProcessArwenVM_v1_3()
+	}
+}
+
+func (vmf *vmContainerFactory) createOutOfProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config, "version", version)
+	switch version.Version {
+	case "v1.2":
+		return vmf.createOutOfProcessArwenVM_v1_2()
+	default:
+		return nil, ErrArwenOutOfProcessUnsupported
+	}
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &arwen1_2.VMHostParameters{
+		VMType:                   factory.ArwenVirtualMachine,
+		BlockGasLimit:            vmf.blockGasLimit,
+		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
+		ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
+	}
+	return arwenHost1_2.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVM_v1_3() (vmcommon.VMExecutionHandler, error) {
+	hostParameters := &arwen1_3.VMHostParameters{
+		VMType:                   factory.ArwenVirtualMachine,
+		BlockGasLimit:            vmf.blockGasLimit,
+		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
+		ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
+	}
+	return arwenHost1_3.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
+}
+
+func (vmf *vmContainerFactory) createOutOfProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
@@ -200,84 +292,11 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 	return arwenVM, err
 }
 
-func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
-
-	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
-	return vmf.createInProcessArwenVMByVersion(version)
-}
-
-func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version string) (vmcommon.VMExecutionHandler, error) {
-	if version == "v1.2" {
-		return vmf.createInProcessArwenVM_v1_2()
+func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
+	vmAsCloser, ok := vm.(io.Closer)
+	if ok {
+		vmAsCloser.Close()
 	}
-
-	return vmf.createInProcessArwenVM_v1_3()
-}
-
-func (vmf *vmContainerFactory) ensureInProcessArwenVersion(epoch uint32) {
-	version := vmf.getMatchingVersion(epoch)
-	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
-	if err != nil {
-		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch)
-		return
-	}
-
-	if version == currentArwenVM.GetVersion() {
-		return
-	}
-
-	newArwenVM, err := vmf.createInProcessArwenVMByVersion(version)
-	if err != nil {
-		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
-		return
-	}
-
-	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
-	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
-}
-
-func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) string {
-	matchingVersion := vmf.arwenVersions[len(vmf.arwenVersions)-1].Version
-	for idx := 0; idx < len(vmf.arwenVersions)-1; idx++ {
-		crtVer := vmf.arwenVersions[idx]
-		nextVer := vmf.arwenVersions[idx+1]
-		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
-			return crtVer.Version
-		}
-	}
-
-	return matchingVersion
-}
-
-func (vmf *vmContainerFactory) createInProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen1_2.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		ProtocolBuiltinFunctions: vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
-		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
-		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
-	}
-	return arwenHost1_2.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
-}
-
-func (vmf *vmContainerFactory) createInProcessArwenVM_v1_3() (vmcommon.VMExecutionHandler, error) {
-	hostParameters := &arwen1_3.VMHostParameters{
-		VMType:                   factory.ArwenVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		ProtocolBuiltinFunctions: vmf.builtinFunctions,
-		ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-		ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-		AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
-		DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
-		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
-	}
-	return arwenHost1_3.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl

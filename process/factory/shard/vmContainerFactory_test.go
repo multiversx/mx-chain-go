@@ -115,9 +115,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	vmConfig := config.VirtualMachineConfig{
-		ArwenVersions: []config.VersionByEpochs{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 12, Version: "v1.3"},
+		OutOfProcessEnabled: true,
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
 		},
 	}
 
