@@ -455,20 +455,20 @@ func createNodes(
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: consensusSize,
-			MetaConsensusGroupSize:  1,
-			Marshalizer:             integrationTests.TestMarshalizer,
-			Hasher:                  createHasher(consensusType),
-			Shuffler:                nodeShuffler,
-			EpochStartNotifier:      epochStartRegistrationHandler,
-			BootStorer:              bootStorer,
-			NbShards:                1,
-			EligibleNodes:           eligibleMap,
-			WaitingNodes:            waitingMap,
-			SelfPublicKey:           []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:     consensusCache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			EpochNotifier:           &mock.EpochNotifierStub{},
+			ShardConsensusGroupSize:    consensusSize,
+			MetaConsensusGroupSize:     1,
+			Marshalizer:                integrationTests.TestMarshalizer,
+			Hasher:                     createHasher(consensusType),
+			Shuffler:                   nodeShuffler,
+			EpochStartNotifier:         epochStartRegistrationHandler,
+			BootStorer:                 bootStorer,
+			NbShards:                   1,
+			EligibleNodes:              eligibleMap,
+			WaitingNodes:               waitingMap,
+			SelfPublicKey:              []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:        consensusCache,
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

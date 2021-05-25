@@ -1,7 +1,6 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -158,14 +157,6 @@ type EpochStartActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
-}
-
-// EpochNotifier can notify upon an epoch change and provide the current epoch
-type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
-	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
-	IsInterfaceNil() bool
 }
 
 // GenesisNodesSetupHandler returns the genesis nodes info

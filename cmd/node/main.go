@@ -1140,7 +1140,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		bootstrapParameters,
 		currentEpoch,
-		epochNotifier,
 		generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	)
 	if err != nil {
@@ -1926,7 +1925,6 @@ func createNodesCoordinator(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
 	startEpoch uint32,
-	epochNotifier sharding.EpochNotifier,
 	waitingListFixEnabledEpoch uint32,
 ) (sharding.NodesCoordinator, update.Closer, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
@@ -2039,7 +2037,6 @@ func createNodesCoordinator(
 		ShuffledOutHandler:         shuffledOutHandler,
 		Epoch:                      currentEpoch,
 		StartEpoch:                 startEpoch,
-		EpochNotifier:              epochNotifier,
 		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
 	}
 

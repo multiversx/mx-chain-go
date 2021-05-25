@@ -24,6 +24,5 @@ type ArgNodesCoordinator struct {
 	StartEpoch                 uint32
 	ConsensusGroupCache        Cacher
 	ShuffledOutHandler         ShuffledOutHandler
-	EpochNotifier              EpochNotifier
 	WaitingListFixEnabledEpoch uint32
 }

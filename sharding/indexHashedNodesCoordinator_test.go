@@ -89,20 +89,20 @@ func createArguments() ArgNodesCoordinator {
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("test"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   nbShards,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("test"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	return arguments
 }
@@ -182,17 +182,6 @@ func TestNewIndexHashedNodesCoordinator_NilCacherShouldErr(t *testing.T) {
 	require.Nil(t, ihgs)
 }
 
-func TestNewIndexHashedNodesCoordinator_NilEpochNotifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createArguments()
-	arguments.EpochNotifier = nil
-	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
-
-	require.Equal(t, ErrNilEpochNotifier, err)
-	require.Nil(t, ihgs)
-}
-
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -246,20 +235,20 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 2,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    2,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -302,20 +291,20 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 10,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    10,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 
@@ -372,20 +361,20 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           nodesMap,
-		WaitingNodes:            make(map[uint32][]Validator),
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              nodesMap,
+		WaitingNodes:               make(map[uint32][]Validator),
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 	list2, err := ihgs.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
@@ -428,20 +417,20 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	}
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        cache,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -512,20 +501,20 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	}
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        cache,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -580,19 +569,19 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     cache,
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        cache,
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -639,20 +628,20 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -683,20 +672,20 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		EpochStartNotifier:      epochStartSubscriber,
-		Shuffler:                nodeShuffler,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           nodesMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		EpochStartNotifier:         epochStartSubscriber,
+		Shuffler:                   nodeShuffler,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              nodesMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -729,20 +718,20 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusGroupSize,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		EpochStartNotifier:      epochStartSubscriber,
-		Shuffler:                nodeShuffler,
-		BootStorer:              bootStorer,
-		NbShards:                1,
-		EligibleNodes:           nodesMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    consensusGroupSize,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		EpochStartNotifier:         epochStartSubscriber,
+		Shuffler:                   nodeShuffler,
+		BootStorer:                 bootStorer,
+		NbShards:                   1,
+		EligibleNodes:              nodesMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -865,20 +854,20 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                2,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            make(map[uint32][]Validator),
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   2,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               make(map[uint32][]Validator),
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
@@ -944,21 +933,21 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardZeroId,
-		NbShards:                2,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            make(map[uint32][]Validator),
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		ShardIDAsObserver:          shardZeroId,
+		NbShards:                   2,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               make(map[uint32][]Validator),
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1019,21 +1008,21 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	eligibleMap[shardZeroId] = []Validator{&mock.ValidatorMock{}}
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardZeroId,
-		NbShards:                2,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		ShardIDAsObserver:          shardZeroId,
+		NbShards:                   2,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               waitingMap,
+		SelfPublicKey:              []byte("key"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1244,20 +1233,20 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	bootStorer := mock.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            map[uint32][]Validator{},
-		SelfPublicKey:           []byte("test"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		ShardConsensusGroupSize:    1,
+		MetaConsensusGroupSize:     1,
+		Marshalizer:                &mock.MarshalizerMock{},
+		Hasher:                     &mock.HasherMock{},
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartSubscriber,
+		BootStorer:                 bootStorer,
+		NbShards:                   nbShards,
+		EligibleNodes:              eligibleMap,
+		WaitingNodes:               map[uint32][]Validator{},
+		SelfPublicKey:              []byte("test"),
+		ConsensusGroupCache:        &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
@@ -1723,7 +1712,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 	require.Equal(t, expectedShardForNotFound, newShard)
 }
 
-func TestIndexHashedNodesCoordinator_ShuffleOut_NilConfig(t *testing.T) {
+func TestIndexHashedNodesCoordinator_ShuffleOutNilConfig(t *testing.T) {
 	t.Parallel()
 
 	processCalled := false
@@ -1753,7 +1742,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOut_NilConfig(t *testing.T) {
 	require.Equal(t, expectedShardForNotFound, newShard)
 }
 
-func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPreviousNodesConfig(t *testing.T) {
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPreviousNodesConfig(t *testing.T) {
 	t.Parallel()
 
 	arguments := createArguments()
@@ -1785,7 +1774,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPreviousNodes
 	assert.True(t, errors.Is(err, ErrNilPreviousEpochConfig))
 }
 
-func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *testing.T) {
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNoValidators(t *testing.T) {
 	t.Parallel()
 
 	arguments := createArguments()
@@ -1805,7 +1794,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *
 	assert.True(t, errors.Is(err, ErrMapSizeZero))
 }
 
-func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing.T) {
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListNilPk(t *testing.T) {
 	t.Parallel()
 
 	arguments := createArguments()
@@ -1838,8 +1827,137 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing
 	assert.Equal(t, ErrNilPubKey, err)
 }
 
-func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *testing.T) {
-	t.Skip()
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsWithFix(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+	ihgs.flagWaitingListFix.Set()
+
+	shard0Eligible0 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk0"),
+		List:       string(core.EligibleList),
+		Index:      1,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shard0Eligible1 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk1"),
+		List:       string(core.EligibleList),
+		Index:      2,
+		TempRating: 2,
+		ShardId:    0,
+	}
+	shardmetaEligible0 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pk2"),
+		ShardId:    core.MetachainShardId,
+		List:       string(core.EligibleList),
+		Index:      1,
+		TempRating: 4,
+	}
+	shard0Waiting0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk3"),
+		List:      string(core.WaitingList),
+		Index:     14,
+		ShardId:   0,
+	}
+	shardmetaWaiting0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk4"),
+		ShardId:   core.MetachainShardId,
+		List:      string(core.WaitingList),
+		Index:     15,
+	}
+	shard0New0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk5"),
+		List:      string(core.NewList), Index: 3,
+		ShardId: 0,
+	}
+	shard0Leaving0 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk6"),
+		List:      string(core.LeavingList),
+		ShardId:   0,
+	}
+	shardMetaLeaving1 := &state.ShardValidatorInfo{
+		PublicKey: []byte("pk7"),
+		List:      string(core.LeavingList),
+		Index:     1,
+		ShardId:   core.MetachainShardId,
+	}
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			shard0Eligible0,
+			shard0Eligible1,
+			shardmetaEligible0,
+			shard0Waiting0,
+			shardmetaWaiting0,
+			shard0New0,
+			shard0Leaving0,
+			shardMetaLeaving1,
+		}
+
+	previousConfig := &epochNodesConfig{
+		eligibleMap: map[uint32][]Validator{
+			0: {
+				mock.NewValidatorMock(shard0Eligible0.PublicKey, 0, 0),
+				mock.NewValidatorMock(shard0Eligible1.PublicKey, 0, 0),
+				mock.NewValidatorMock(shard0Leaving0.PublicKey, 0, 0),
+			},
+			core.MetachainShardId: {
+				mock.NewValidatorMock(shardmetaEligible0.PublicKey, 0, 0),
+			},
+		},
+		waitingMap: map[uint32][]Validator{
+			0: {
+				mock.NewValidatorMock(shard0Waiting0.PublicKey, 0, 0),
+			},
+			core.MetachainShardId: {
+				mock.NewValidatorMock(shardmetaWaiting0.PublicKey, 0, 0),
+				mock.NewValidatorMock(shardMetaLeaving1.PublicKey, 0, 0),
+			},
+		},
+	}
+
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(previousConfig, validatorInfos)
+	assert.Nil(t, err)
+
+	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
+
+	verifySizes(t, newNodesConfig)
+	verifyLeavingNodesInEligibleOrWaiting(t, newNodesConfig)
+
+	// maps have the correct validators inside
+	eligibleListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0Eligible0, shard0Eligible1, shard0Leaving0})
+	assert.Equal(t, eligibleListShardZero, newNodesConfig.eligibleMap[0])
+	eligibleListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmetaEligible0})
+	assert.Equal(t, eligibleListMeta, newNodesConfig.eligibleMap[core.MetachainShardId])
+
+	waitingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0Waiting0})
+	assert.Equal(t, waitingListShardZero, newNodesConfig.waitingMap[0])
+	waitingListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmetaWaiting0, shardMetaLeaving1})
+	assert.Equal(t, waitingListMeta, newNodesConfig.waitingMap[core.MetachainShardId])
+
+	leavingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0Leaving0})
+	assert.Equal(t, leavingListShardZero, newNodesConfig.leavingMap[0])
+
+	leavingListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardMetaLeaving1})
+	assert.Equal(t, leavingListMeta, newNodesConfig.leavingMap[core.MetachainShardId])
+
+	newListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0New0})
+	assert.Equal(t, newListShardZero, newNodesConfig.newList)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromListValidatorsNoFix(t *testing.T) {
+	t.Parallel()
 
 	arguments := createArguments()
 	pk := []byte("pk")
@@ -1889,11 +2007,11 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *te
 		List:      string(core.LeavingList),
 		ShardId:   0,
 	}
-	shard0Leaving1 := &state.ShardValidatorInfo{
+	shardMetaLeaving1 := &state.ShardValidatorInfo{
 		PublicKey: []byte("pk7"),
 		List:      string(core.LeavingList),
 		Index:     1,
-		ShardId:   0,
+		ShardId:   core.MetachainShardId,
 	}
 
 	previousConfig := &epochNodesConfig{
@@ -1909,23 +2027,24 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *te
 			shardmetaWaiting0,
 			shard0New0,
 			shard0Leaving0,
-			shard0Leaving1,
+			shardMetaLeaving1,
 		}
 
+	ihgs.flagWaitingListFix.Unset()
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(previousConfig, validatorInfos)
 	assert.Nil(t, err)
 
 	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
 
 	verifySizes(t, newNodesConfig)
-	verifyLeavingNodes(t, newNodesConfig)
+	verifyLeavingNodesInEligible(t, newNodesConfig)
 
 	// maps have the correct validators inside
 	eligibleListShardZero := createValidatorList(ihgs,
-		[]*state.ShardValidatorInfo{shard0Eligible0, shard0Eligible1, shard0Leaving0, shard0Leaving1})
+		[]*state.ShardValidatorInfo{shard0Eligible0, shard0Eligible1, shard0Leaving0})
 	assert.Equal(t, eligibleListShardZero, newNodesConfig.eligibleMap[0])
 	eligibleListMeta := createValidatorList(ihgs,
-		[]*state.ShardValidatorInfo{shardmetaEligible0})
+		[]*state.ShardValidatorInfo{shardmetaEligible0, shardMetaLeaving1})
 	assert.Equal(t, eligibleListMeta, newNodesConfig.eligibleMap[core.MetachainShardId])
 
 	waitingListShardZero := createValidatorList(ihgs,
@@ -1936,9 +2055,12 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *te
 	assert.Equal(t, waitingListMeta, newNodesConfig.waitingMap[core.MetachainShardId])
 
 	leavingListShardZero := createValidatorList(ihgs,
-		[]*state.ShardValidatorInfo{shard0Leaving0, shard0Leaving1})
+		[]*state.ShardValidatorInfo{shard0Leaving0})
 	assert.Equal(t, leavingListShardZero, newNodesConfig.leavingMap[0])
-	assert.Equal(t, 0, len(newNodesConfig.leavingMap[core.MetachainShardId]))
+
+	leavingListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardMetaLeaving1})
+	assert.Equal(t, leavingListMeta, newNodesConfig.leavingMap[core.MetachainShardId])
 
 	newListShardZero := createValidatorList(ihgs,
 		[]*state.ShardValidatorInfo{shard0New0})
@@ -1958,10 +2080,23 @@ func createValidatorList(ihgs *indexHashedNodesCoordinator, shardValidators []*s
 	return validators
 }
 
-func verifyLeavingNodes(t *testing.T, newNodesConfig *epochNodesConfig) {
+func verifyLeavingNodesInEligible(t *testing.T, newNodesConfig *epochNodesConfig) {
 	for leavingShardId, leavingValidators := range newNodesConfig.leavingMap {
 		for _, leavingValidator := range leavingValidators {
 			found, shardId := searchInMap(newNodesConfig.eligibleMap, leavingValidator.PubKey())
+			assert.True(t, found)
+			assert.Equal(t, leavingShardId, shardId)
+		}
+	}
+}
+
+func verifyLeavingNodesInEligibleOrWaiting(t *testing.T, newNodesConfig *epochNodesConfig) {
+	for leavingShardId, leavingValidators := range newNodesConfig.leavingMap {
+		for _, leavingValidator := range leavingValidators {
+			found, shardId := searchInMap(newNodesConfig.eligibleMap, leavingValidator.PubKey())
+			if !found {
+				found, shardId = searchInMap(newNodesConfig.waitingMap, leavingValidator.PubKey())
+			}
 			assert.True(t, found)
 			assert.Equal(t, leavingShardId, shardId)
 		}
@@ -1972,7 +2107,7 @@ func verifySizes(t *testing.T, newNodesConfig *epochNodesConfig) {
 	expectedEligibleSize := 2
 	expectedWaitingSize := 2
 	expectedNewSize := 1
-	expectedLeavingSize := 1
+	expectedLeavingSize := 2
 
 	assert.NotNil(t, newNodesConfig)
 	assert.Equal(t, uint32(expectedEligibleSize-1), newNodesConfig.nbShards)

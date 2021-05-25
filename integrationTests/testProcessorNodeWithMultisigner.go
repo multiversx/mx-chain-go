@@ -487,21 +487,21 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			Shuffler:                nodeShuffler,
-			BootStorer:              bootStorer,
-			EpochStartNotifier:      epochStartSubscriber,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(nbShards),
-			EligibleNodes:           validatorsMapForNodesCoordinator,
-			WaitingNodes:            make(map[uint32][]sharding.Validator),
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     consensusCache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			EpochNotifier:           &mock.EpochNotifierStub{},
+			ShardConsensusGroupSize:    shardConsensusGroupSize,
+			MetaConsensusGroupSize:     metaConsensusGroupSize,
+			Marshalizer:                TestMarshalizer,
+			Hasher:                     TestHasher,
+			Shuffler:                   nodeShuffler,
+			BootStorer:                 bootStorer,
+			EpochStartNotifier:         epochStartSubscriber,
+			ShardIDAsObserver:          shardId,
+			NbShards:                   uint32(nbShards),
+			EligibleNodes:              validatorsMapForNodesCoordinator,
+			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:        consensusCache,
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -583,21 +583,21 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		bootStorer := CreateMemUnit()
 		cache, _ := lrucache.NewCache(10000)
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			Shuffler:                nodeShuffler,
-			EpochStartNotifier:      epochStartSubscriber,
-			BootStorer:              bootStorer,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(nbShards),
-			EligibleNodes:           validatorsMapForNodesCoordinator,
-			WaitingNodes:            waitingMapForNodesCoordinator,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			EpochNotifier:           &mock.EpochNotifierStub{},
+			ShardConsensusGroupSize:    shardConsensusGroupSize,
+			MetaConsensusGroupSize:     metaConsensusGroupSize,
+			Marshalizer:                TestMarshalizer,
+			Hasher:                     TestHasher,
+			Shuffler:                   nodeShuffler,
+			EpochStartNotifier:         epochStartSubscriber,
+			BootStorer:                 bootStorer,
+			ShardIDAsObserver:          shardId,
+			NbShards:                   uint32(nbShards),
+			EligibleNodes:              validatorsMapForNodesCoordinator,
+			WaitingNodes:               waitingMapForNodesCoordinator,
+			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:        cache,
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

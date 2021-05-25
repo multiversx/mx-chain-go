@@ -75,18 +75,18 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			cache, _ := lrucache.NewCache(10000)
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                numShards,
-				EligibleNodes:           validatorsMapForNodesCoordinator,
-				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     cache,
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-				EpochNotifier:           &mock.EpochNotifierStub{},
+				ShardConsensusGroupSize:    shardConsensusGroupSize,
+				MetaConsensusGroupSize:     metaConsensusGroupSize,
+				Marshalizer:                TestMarshalizer,
+				Hasher:                     TestHasher,
+				ShardIDAsObserver:          shardId,
+				NbShards:                   numShards,
+				EligibleNodes:              validatorsMapForNodesCoordinator,
+				WaitingNodes:               waitingMapForNodesCoordinator,
+				SelfPublicKey:              v.PubKeyBytes(),
+				ConsensusGroupCache:        cache,
+				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+				WaitingListFixEnabledEpoch: 0,
 			}
 
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
