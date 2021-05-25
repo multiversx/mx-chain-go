@@ -250,7 +250,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	t.Parallel()
 
 	adapterError := errors.New("account error")
-	peerAdapters := &mock.AccountsStub{
+	peerAdapters := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, adapterError
 		},
@@ -272,7 +272,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t *testing.T) {
 	t.Parallel()
 
-	peerAdapter := &mock.AccountsStub{
+	peerAdapter := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -295,7 +295,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 
 	saveAccountError := errors.New("save account error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &mock.AccountsStub{
+	peerAdapter := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -321,7 +321,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 
 	commitError := errors.New("commit error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &mock.AccountsStub{
+	peerAdapter := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -344,7 +344,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 	t.Parallel()
 
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-	peerAdapter := &mock.AccountsStub{
+	peerAdapter := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return peerAccount, nil
 		},
@@ -1826,8 +1826,8 @@ func getShardHeaderHandler(randSeed []byte) *block.Header {
 	}
 }
 
-func getAccountsMock() *mock.AccountsStub {
-	return &mock.AccountsStub{
+func getAccountsMock() *testscommon.AccountsStub {
+	return &testscommon.AccountsStub{
 		CommitCalled: func() (bytes []byte, e error) {
 			return make([]byte, 0), nil
 		},

@@ -24,7 +24,7 @@ import (
 func createAccountsWrapper() *AccountsWrapper {
 	return &AccountsWrapper{
 		Mutex:           &sync.Mutex{},
-		AccountsAdapter: &mock.AccountsStub{},
+		AccountsAdapter: &testscommon.AccountsStub{},
 	}
 }
 
@@ -117,7 +117,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -158,7 +158,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotRecreateTree(t *tes
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
@@ -181,7 +181,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
 			return nil, nil
 		},
@@ -213,7 +213,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 	})
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
 			return acc, nil
 		},
@@ -248,7 +248,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 	})
 
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
 			return acc, nil
 		},
@@ -323,7 +323,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
-	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
+	arg.Accounts.AccountsAdapter = &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
 			return acc, nil
 		},

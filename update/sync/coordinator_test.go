@@ -116,7 +116,7 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		ActiveAccountsDBs: make(map[state.AccountsDbIdentifier]state.AccountsAdapter),
 	}
 
-	args.ActiveAccountsDBs[state.UserAccountsState] = &mock.AccountsStub{
+	args.ActiveAccountsDBs[state.UserAccountsState] = &testscommon.AccountsStub{
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
 			tries := make(map[string]data.Trie)
 			tries[string(rootHash)] = &testscommon.TrieStub{
@@ -131,7 +131,7 @@ func createSyncTrieState(retErr bool) update.EpochStartTriesSyncHandler {
 		},
 	}
 
-	args.ActiveAccountsDBs[state.PeerAccountsState] = &mock.AccountsStub{
+	args.ActiveAccountsDBs[state.PeerAccountsState] = &testscommon.AccountsStub{
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
 			tries := make(map[string]data.Trie)
 			tries[string(rootHash)] = &testscommon.TrieStub{

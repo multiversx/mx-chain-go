@@ -508,7 +508,7 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		Hasher:                  &mock.HasherMock{},
 		MultiSigner:             mock.NewMultiSigner(),
 		DataPool:                createMetaDataPools(),
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		SingleSigner:            &mock.SignerMock{},
 		BlockSingleSigner:       &mock.SignerMock{},

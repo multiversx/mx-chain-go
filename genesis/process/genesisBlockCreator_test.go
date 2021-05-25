@@ -126,7 +126,7 @@ func createMockArgument(
 	)
 	require.Nil(t, err)
 
-	arg.ValidatorAccounts = &mock.AccountsStub{
+	arg.ValidatorAccounts = &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -433,7 +433,7 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	)
 	arg.importHandler = &updateMock.ImportHandlerStub{
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &mock.AccountsStub{}
+			return &testscommon.AccountsStub{}
 		},
 	}
 

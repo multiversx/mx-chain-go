@@ -833,7 +833,7 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	args.UserAccountsDB = &mock.AccountsStub{
+	args.UserAccountsDB = &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return &mock.UserAccountStub{
 				DataTrieTrackerCalled: func() state.DataTrieTracker {

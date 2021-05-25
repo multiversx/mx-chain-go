@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
@@ -158,7 +159,7 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	accountStub := &mock.AccountsStub{}
+	accountStub := &testscommon.AccountsStub{}
 	esdtPauseFunc, _ := NewESDTPauseFunc(accountStub, true)
 	transferFunc, _ := NewESDTTransferFunc(10, marshalizer, esdtPauseFunc, &mock.ShardCoordinatorStub{})
 	_ = transferFunc.setPayableHandler(&mock.PayableHandlerStub{})
