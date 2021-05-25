@@ -166,7 +166,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
 
 // PreferredPeersHolder returns the preferred peers holder
 // TODO: add it to interface when required in other places (interceptors for example)
-func (mnc *managedNetworkComponents) PreferredPeersHolder() PeersHolderHandler {
+func (mnc *managedNetworkComponents) PreferredPeersHolder() PreferredPeersHolderHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
 

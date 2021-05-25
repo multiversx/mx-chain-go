@@ -7,6 +7,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
@@ -45,8 +46,9 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:     p2pConfig,
+			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:            p2pConfig,
+			PreferredPeersHolder: &mock.PeersHolderStub{},
 		}
 		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node
@@ -112,8 +114,9 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 
 	p2pConfigSeeder := baseP2PConfig
 	argSeeder := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfigSeeder,
+		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfigSeeder,
+		PreferredPeersHolder: &mock.PeersHolderStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap(0)
@@ -123,8 +126,9 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		p2pConfigSeeder = baseP2PConfig
 		p2pConfigSeeder.KadDhtPeerDiscovery.InitialPeerList = []string{integrationTests.GetConnectableAddress(seeders[0])}
 		argSeeder = libp2p.ArgsNetworkMessenger{
-			ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:     p2pConfigSeeder,
+			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:            p2pConfigSeeder,
+			PreferredPeersHolder: &mock.PeersHolderStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

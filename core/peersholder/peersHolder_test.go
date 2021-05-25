@@ -3,82 +3,151 @@ package peersholder
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPeersHolderOperations(t *testing.T) {
+func TestNewPeersHolder(t *testing.T) {
+	ph := NewPeersHolder(nil)
+	require.False(t, check.IfNil(ph))
+}
+
+func TestPeersHolder_PutNotPreferredPeerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	ph := NewPeersHolder()
-	require.False(t, check.IfNil(ph))
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
 
-	pk, pid := "pk", "pid"
-	pk1, pid1 := "pk1", "pid1"
+	ph.Put([]byte("different pub key"), "pid", 1)
 
-	ph.Add(pk, pid)
-	res, ok := ph.GetPeerIDForPublicKey(pk)
-	require.True(t, ok)
-	require.Equal(t, res, pid)
+	_, err := ph.Get()
+	require.Equal(t, core.ErrEmptyPreferredPeersList, err)
+}
 
-	res, ok = ph.GetPublicKeyForPeerID(pid)
-	require.True(t, ok)
-	require.Equal(t, res, pk)
+func TestPeersHolder_PutNewPeerInfoShouldAdd(t *testing.T) {
+	t.Parallel()
 
-	_, ok = ph.GetPublicKeyForPeerID(pid1)
-	require.False(t, ok)
-	_, ok = ph.GetPeerIDForPublicKey(pk1)
-	require.False(t, ok)
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
 
-	ph.Add(pk1, pid1)
+	ph.Put([]byte("peer0"), "pid", 1)
 
-	ok = ph.DeletePublicKey("invalid pk")
-	require.False(t, ok)
+	peers, err := ph.Get()
+	require.NoError(t, err)
+	require.Equal(t, peers[1][0], core.PeerID("pid"))
+}
 
-	ok = ph.DeletePeerID("invalid peer id")
-	require.False(t, ok)
+func TestPeersHolder_PutOldPeerInfoSameShardShouldNotChange(t *testing.T) {
+	t.Parallel()
 
-	ok = ph.DeletePeerID(pid)
-	_, ok = ph.GetPublicKeyForPeerID(pid)
-	require.False(t, ok)
-	_, ok = ph.GetPeerIDForPublicKey(pk)
-	require.False(t, ok)
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
 
-	ok = ph.DeletePublicKey(pk1)
-	_, ok = ph.GetPublicKeyForPeerID(pid1)
-	require.False(t, ok)
-	_, ok = ph.GetPeerIDForPublicKey(pk1)
-	require.False(t, ok)
+	ph.Put([]byte("peer0"), "pid", 1)
+	ph.Put([]byte("peer0"), "pid", 1)
+
+	peers, err := ph.Get()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, 1, len(peers[1]))
+	require.Equal(t, peers[1][0], core.PeerID("pid"))
+}
+
+func TestPeersHolder_PutOldPeerInfoNewShardShouldUpdate(t *testing.T) {
+	t.Parallel()
+
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
+
+	ph.Put([]byte("peer0"), "pid", 0)
+	ph.Put([]byte("peer0"), "pid", 1)
+
+	peers, err := ph.Get()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, 1, len(peers[1]))
+	require.Equal(t, peers[1][0], core.PeerID("pid"))
+}
+
+func TestPeersHolder_RemovePeerIDNotFound(t *testing.T) {
+	t.Parallel()
+
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
+
+	ph.Put([]byte("peer0"), "pid", 3)
+	ph.Remove("new peer id")
+
+	peers, _ := ph.Get()
+	require.Equal(t, 1, len(peers))
+}
+
+func TestPeersHolder_RemovePeerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
+
+	ph.Put([]byte("peer0"), "pid", 3)
+	ph.Remove("pid")
+
+	peers, _ := ph.Get()
+	require.Equal(t, 0, len(peers))
+}
+
+func TestPeersHolder_RemovePeerShouldNotAffectOrder(t *testing.T) {
+	t.Parallel()
+
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1"), []byte("peer2")}
+	ph := NewPeersHolder(prefPeers)
+
+	ph.Put([]byte("peer0"), "pid0", 3)
+	ph.Put([]byte("peer1"), "pid1", 3)
+	ph.Put([]byte("peer2"), "pid2", 3)
+
+	ph.Remove("pid1")
+
+	peers, _ := ph.Get()
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, []core.PeerID{"pid0", "pid2"}, peers[3])
+}
+
+func TestPeersHolder_Clear(t *testing.T) {
+	t.Parallel()
+
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1"), []byte("peer1")}
+	ph := NewPeersHolder(prefPeers)
+
+	ph.Put([]byte("peer0"), "pid0", 0)
+	ph.Put([]byte("peer1"), "pid1", 1)
+	ph.Put([]byte("peer2"), "pid2", 2)
+	ph.Put([]byte("peer2"), "pid2", 1)
 
 	ph.Clear()
 
-	require.Zero(t, ph.Len())
+	peers, _ := ph.Get()
+	require.Zero(t, len(peers))
 }
 
-func TestPeersHolder_ConcurrentSafe(t *testing.T) {
+func TestPeersHolder_RemovePeerShouldNotRemovePubKeyAsPreferred(t *testing.T) {
 	t.Parallel()
 
-	ph := NewPeersHolder()
+	prefPeers := [][]byte{[]byte("peer0"), []byte("peer1"), []byte("peer2")}
+	ph := NewPeersHolder(prefPeers)
 
-	for i := 0; i < 1000; i++ {
-		go func(i int) {
-			modRes := i % 7
-			switch modRes {
-			case 0:
-				ph.Add("pk", "pid")
-			case 1:
-				ph.DeletePeerID("pid")
-			case 2:
-				ph.DeletePublicKey("pk")
-			case 3:
-				ph.GetPeerIDForPublicKey("pk")
-			case 4:
-				ph.GetPublicKeyForPeerID("pid")
-			case 5:
-				ph.Clear()
-			case 6:
-				ph.Len()
-			}
-		}(i)
-	}
+	ph.Put([]byte("peer0"), "pid0", 3)
+	ph.Put([]byte("peer1"), "pid1", 3)
+	ph.Put([]byte("peer2"), "pid2", 3)
+
+	ph.Remove("pid1")
+
+	peers, _ := ph.Get()
+	require.Equal(t, 1, len(peers))
+	require.Equal(t, []core.PeerID{"pid0", "pid2"}, peers[3])
+
+	ph.Lock()
+	val, found := ph.pubKeysToPeerIDs["peer1"]
+	require.True(t, found)
+	require.Nil(t, val)
 }

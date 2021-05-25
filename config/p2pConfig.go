@@ -41,6 +41,5 @@ type ShardingConfig struct {
 
 // PreferredConnectionsConfig will hold the configuration for the preferred connections options
 type PreferredConnectionsConfig struct {
-	Enabled    bool
 	PublicKeys []string
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -18,7 +19,7 @@ const durationStartGoRoutine = time.Second
 func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	lcms, err := NewLibp2pConnectionMonitorSimple(nil, 3, &mock.KadSharderStub{})
+	lcms, err := NewLibp2pConnectionMonitorSimple(nil, 3, &mock.KadSharderStub{}, &mock.PeersHolderStub{})
 
 	assert.Equal(t, p2p.ErrNilReconnecter, err)
 	assert.True(t, check.IfNil(lcms))
@@ -27,16 +28,25 @@ func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing
 func TestNewLibp2pConnectionMonitorSimple_WithNilSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, nil)
+	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, nil, &mock.PeersHolderStub{})
 
 	assert.Equal(t, p2p.ErrNilSharder, err)
+	assert.True(t, check.IfNil(lcms))
+}
+
+func TestNewLibp2pConnectionMonitorSimple_WithNilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{}, nil)
+
+	assert.Equal(t, p2p.ErrNilPreferredPeersHolder, err)
 	assert.True(t, check.IfNil(lcms))
 }
 
 func TestNewLibp2pConnectionMonitorSimple_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{})
+	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{}, &mock.PeersHolderStub{})
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(lcms))
@@ -60,7 +70,12 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 		},
 	}
 
-	lcms, _ := NewLibp2pConnectionMonitorSimple(&rs, 3, &mock.KadSharderStub{})
+	prefPeersHolder := &mock.PeersHolderStub{
+		RemoveCalled: func(peerID core.PeerID) {
+		},
+	}
+
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&rs, 3, &mock.KadSharderStub{}, prefPeersHolder)
 	time.Sleep(durationStartGoRoutine)
 	lcms.Disconnected(&ns, nil)
 
@@ -86,6 +101,7 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 				return evictedPid
 			},
 		},
+		&mock.PeersHolderStub{},
 	)
 
 	lcms.Connected(
@@ -125,7 +141,7 @@ func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 		},
 	}
 
-	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{})
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{}, &mock.PeersHolderStub{})
 
 	lcms.ClosedStream(netw, nil)
 	lcms.Disconnected(netw, nil)
@@ -137,7 +153,7 @@ func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.T) {
 	t.Parallel()
 
-	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{})
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, 3, &mock.KadSharderStub{}, &mock.PeersHolderStub{})
 
 	thr := 10
 	lcms.SetThresholdMinConnectedPeers(thr, &mock.NetworkStub{})
@@ -150,7 +166,7 @@ func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeersNilNetwShoul
 	t.Parallel()
 
 	minConnPeers := uint32(3)
-	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, minConnPeers, &mock.KadSharderStub{})
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, minConnPeers, &mock.KadSharderStub{}, &mock.PeersHolderStub{})
 
 	thr := 10
 	lcms.SetThresholdMinConnectedPeers(thr, nil)

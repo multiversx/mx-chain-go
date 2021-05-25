@@ -1,7 +1,6 @@
 package networksharding
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"math/bits"
@@ -101,9 +100,7 @@ type listsSharder struct {
 	mutSeeders              sync.RWMutex
 	seeders                 []string
 	computeDistance         func(src peer.ID, dest peer.ID) *big.Int
-	preferredPeersEnabled   bool
 	preferredPeersHolder    p2p.PreferredPeersHolderHandler
-	mapPreferredPeers       map[string]struct{}
 }
 
 // NewListsSharder creates a new kad list based kad sharder instance
@@ -151,8 +148,6 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 		maxCrossShardObservers:  int(arg.P2pConfig.Sharding.MaxCrossShardObservers),
 		maxSeeders:              int(arg.P2pConfig.Sharding.MaxSeeders),
 		maxFullHistoryObservers: int(arg.P2pConfig.Sharding.MaxFullHistoryObservers),
-		preferredPeersEnabled:   arg.P2pConfig.PreferredConnections.Enabled,
-		mapPreferredPeers:       computePreferredPeersMap(arg.P2pConfig),
 		preferredPeersHolder:    arg.PreferredPeersHolder,
 	}
 
@@ -259,8 +254,8 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		peerInfo := ls.peerShardResolver.GetPeerInfo(pid)
 		ls.mutResolver.RUnlock()
 
-		ls.addPeerToPreferredIfNeeded(pid, peerInfo)
-		if ls.shouldNotEvictPeer(pid) {
+		ls.preferredPeersHolder.Put(peerInfo.PkBytes, pid, peerInfo.ShardID)
+		if ls.preferredPeersHolder.Contains(pid) {
 			continue
 		}
 
@@ -295,44 +290,6 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 	}
 
 	return peerDistances
-}
-
-func (ls *listsSharder) addPeerToPreferredIfNeeded(peerID core.PeerID, peerInfo core.P2PPeerInfo) {
-	if !ls.preferredPeersEnabled {
-		return
-	}
-
-	// TODO: inject validator pub key converter
-	pubKey := hex.EncodeToString(peerInfo.PkBytes)
-	_, found := ls.mapPreferredPeers[pubKey]
-	if !found {
-		return
-	}
-
-	ls.preferredPeersHolder.Add(pubKey, string(peerID))
-}
-
-func (ls *listsSharder) shouldNotEvictPeer(peerID core.PeerID) bool {
-	if !ls.preferredPeersEnabled {
-		return false
-	}
-
-	_, found := ls.preferredPeersHolder.GetPublicKeyForPeerID(string(peerID))
-
-	return found
-}
-
-func computePreferredPeersMap(p2pConfig config.P2PConfig) map[string]struct{} {
-	if !p2pConfig.PreferredConnections.Enabled {
-		return make(map[string]struct{})
-	}
-
-	mapToReturn := make(map[string]struct{})
-	for _, pubKey := range p2pConfig.PreferredConnections.PublicKeys {
-		mapToReturn[pubKey] = struct{}{}
-	}
-
-	return mapToReturn
 }
 
 func evict(distances sorting.PeerDistances, numKeep int) []peer.ID {

@@ -2,92 +2,176 @@ package peersholder
 
 import (
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
+type peerInfo struct {
+	pid     core.PeerID
+	shardID uint32
+}
+
 type peersHolder struct {
-	pubKeysToPeerIDs map[string]string
+	pubKeysToPeerIDs map[string]*peerInfo
+	peersIDsPerShard map[uint32][]core.PeerID
+	peerIDs          map[core.PeerID]struct{}
 	sync.RWMutex
 }
 
 // NewPeersHolder returns a new instance of peersHolder
-func NewPeersHolder() *peersHolder {
+func NewPeersHolder(preferredPublicKeys [][]byte) *peersHolder {
+	pubKeysToPeerIDs := make(map[string]*peerInfo)
+
+	for _, pubKey := range preferredPublicKeys {
+		pubKeysToPeerIDs[string(pubKey)] = nil
+	}
+
 	return &peersHolder{
-		pubKeysToPeerIDs: make(map[string]string),
+		pubKeysToPeerIDs: pubKeysToPeerIDs,
+		peersIDsPerShard: make(map[uint32][]core.PeerID),
+		peerIDs:          make(map[core.PeerID]struct{}),
 	}
 }
 
-// Add will add a pair of public key and peer ID
-func (ph *peersHolder) Add(publicKey string, peerID string) {
-	ph.Lock()
-	ph.pubKeysToPeerIDs[publicKey] = peerID
-	ph.Unlock()
-}
-
-// GetPeerIDForPublicKey returns the peer ID if it's found for the given public key
-func (ph *peersHolder) GetPeerIDForPublicKey(publicKey string) (string, bool) {
-	ph.RLock()
-	peerID, found := ph.pubKeysToPeerIDs[publicKey]
-	ph.RUnlock()
-
-	return peerID, found
-}
-
-// GetPublicKeyForPeerID returns the public key if it's found for the given peer id
-func (ph *peersHolder) GetPublicKeyForPeerID(peerID string) (string, bool) {
-	// TODO: analyze if implementing a O(1) access to get the key based on the value is needed
-	ph.RLock()
-	for pubKey, pID := range ph.pubKeysToPeerIDs {
-		if peerID == pID {
-			ph.RUnlock()
-			return pubKey, true
-		}
-	}
-	ph.RUnlock()
-
-	return "", false
-}
-
-// DeletePublicKey will remove the entry for the given public key, if found
-func (ph *peersHolder) DeletePublicKey(pubKey string) bool {
+// Put will perform the insert or the upgrade operation if the provided public key is inside the preferred peers list
+func (ph *peersHolder) Put(pubKey []byte, peerID core.PeerID, shardID uint32) {
 	ph.Lock()
 	defer ph.Unlock()
-	_, found := ph.pubKeysToPeerIDs[pubKey]
-	if !found {
-		return false
+
+	pubKeyStr := string(pubKey)
+
+	pInfo, pubKeyExists := ph.pubKeysToPeerIDs[pubKeyStr]
+	if !pubKeyExists {
+		// early exit - the public key is not a preferred peer
+		return
 	}
 
-	delete(ph.pubKeysToPeerIDs, pubKey)
-
-	return true
-}
-
-// DeletePeerID will remove the entry for the given peer id, if found
-func (ph *peersHolder) DeletePeerID(pID string) bool {
-	key, found := ph.GetPublicKeyForPeerID(pID)
-	if !found {
-		return false
+	if pInfo == nil {
+		ph.addPeerInMaps(pubKeyStr, peerID, shardID)
+		return
 	}
 
-	ph.Lock()
-	delete(ph.pubKeysToPeerIDs, key)
-	ph.Unlock()
-
-	return true
+	ph.updatePeerInMaps(pubKeyStr, peerID, shardID)
 }
 
-// Len returns the length of the inner map
-func (ph *peersHolder) Len() int {
+// Get will return a map containing the preferred peer IDs, split by shard ID
+func (ph *peersHolder) Get() (map[uint32][]core.PeerID, error) {
 	ph.RLock()
-	mapLen := len(ph.pubKeysToPeerIDs)
-	ph.RUnlock()
+	defer ph.RUnlock()
 
-	return mapLen
+	if len(ph.peersIDsPerShard) == 0 {
+		return nil, core.ErrEmptyPreferredPeersList
+	}
+
+	return ph.peersIDsPerShard, nil
+}
+
+// Contains returns true if the provided peer id is a preferred connection
+func (ph *peersHolder) Contains(peerID core.PeerID) bool {
+	ph.RLock()
+	defer ph.RUnlock()
+
+	_, found := ph.peerIDs[peerID]
+	return found
+}
+
+// Remove will remove the provided peer ID from the inner members
+func (ph *peersHolder) Remove(peerID core.PeerID) {
+	ph.Lock()
+	defer ph.Unlock()
+
+	delete(ph.peerIDs, peerID)
+
+	shard, index, found := ph.getShardAndIndexForPeer(peerID)
+	if found {
+		ph.removePeerFromMapAtIndex(shard, index)
+	}
+
+	pubKeyForPeerID := ""
+	for pubKey, peerInfo := range ph.pubKeysToPeerIDs {
+		if peerInfo == nil {
+			continue
+		}
+
+		if peerInfo.pid == peerID {
+			pubKeyForPeerID = pubKey
+			break
+		}
+	}
+
+	if len(pubKeyForPeerID) > 0 {
+		// don't remove the entry because all the keys in this map refer to preferred connections and a reconnection might
+		// be done later
+		ph.pubKeysToPeerIDs[pubKeyForPeerID] = nil
+	}
+}
+
+// this function must be called under mutex protection
+func (ph *peersHolder) addPeerInMaps(pubKey string, peerID core.PeerID, shardID uint32) {
+	ph.pubKeysToPeerIDs[pubKey] = &peerInfo{
+		pid:     peerID,
+		shardID: shardID,
+	}
+
+	ph.peersIDsPerShard[shardID] = append(ph.peersIDsPerShard[shardID], peerID)
+
+	ph.peerIDs[peerID] = struct{}{}
+}
+
+// this function must be called under mutex protection
+func (ph *peersHolder) updatePeerInMaps(pubKey string, peerID core.PeerID, shardID uint32) {
+	ph.pubKeysToPeerIDs[pubKey].pid = peerID
+	ph.pubKeysToPeerIDs[pubKey].shardID = shardID
+
+	ph.updatePeerInShardedMap(peerID, shardID)
+
+	ph.peerIDs[peerID] = struct{}{}
+}
+
+// this function must be called under mutex protection
+func (ph *peersHolder) updatePeerInShardedMap(peerID core.PeerID, newShardID uint32) {
+	shardID, index, found := ph.getShardAndIndexForPeer(peerID)
+
+	isDifferentShardID := shardID != newShardID
+	shouldRemoveOldEntry := found && isDifferentShardID
+	shouldAddNewEntry := !found
+
+	if shouldRemoveOldEntry {
+		ph.removePeerFromMapAtIndex(shardID, index)
+		shouldAddNewEntry = true
+	}
+
+	if shouldAddNewEntry {
+		ph.peersIDsPerShard[newShardID] = append(ph.peersIDsPerShard[newShardID], peerID)
+	}
+}
+
+func (ph *peersHolder) removePeerFromMapAtIndex(shardID uint32, index int) {
+	ph.peersIDsPerShard[shardID] = append(ph.peersIDsPerShard[shardID][:index], ph.peersIDsPerShard[shardID][index+1:]...)
+	if len(ph.peersIDsPerShard[shardID]) == 0 {
+		delete(ph.peersIDsPerShard, shardID)
+	}
+}
+
+// this function must be called under mutex protection
+func (ph *peersHolder) getShardAndIndexForPeer(peerID core.PeerID) (uint32, int, bool) {
+	for shardID, peerIDsInShard := range ph.peersIDsPerShard {
+		for idx, peer := range peerIDsInShard {
+			if peer == peerID {
+				return shardID, idx, true
+			}
+		}
+	}
+
+	return 0, 0, false
 }
 
 // Clear will delete all the entries from the inner map
 func (ph *peersHolder) Clear() {
 	ph.Lock()
-	ph.pubKeysToPeerIDs = make(map[string]string)
+	ph.pubKeysToPeerIDs = make(map[string]*peerInfo)
+	ph.peersIDsPerShard = make(map[uint32][]core.PeerID)
+	ph.peerIDs = make(map[core.PeerID]struct{})
 	ph.Unlock()
 }
 

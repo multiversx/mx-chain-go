@@ -68,8 +68,9 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:     p2pConfig,
+			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:            p2pConfig,
+			PreferredPeersHolder: &mock.PeersHolderStub{},
 		}
 		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node

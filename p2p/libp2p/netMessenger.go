@@ -365,6 +365,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    netMes.sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
+		PreferredPeersHolder:       netMes.peersHolder,
 	}
 	var err error
 	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)

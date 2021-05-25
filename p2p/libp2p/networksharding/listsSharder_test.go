@@ -347,15 +347,11 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 		"preferredPeer2",
 	}
 	arg.PreferredPeersHolder = &mock.PeersHolderStub{
-		GetPublicKeyForPeerIDCalled: func(peerID string) (string, bool) {
-			if strings.HasPrefix(peerID, "preferred") {
-				return peerID + "pubKey", true
-			}
-
-			return "", false
+		ContainsCalled: func(peerID core.PeerID) bool {
+			return strings.HasPrefix(string(peerID), "preferred")
 		},
 	}
-	arg.P2pConfig.PreferredConnections.Enabled = true
+
 	ls, _ := NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
@@ -369,7 +365,7 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 	}
 }
 
-func TestListsSharder_ComputeEvictionListShouldAddPreferredPeers(t *testing.T) {
+func TestListsSharder_ComputeEvictionListShouldPutPreferredPeers(t *testing.T) {
 	arg := createMockListSharderArguments()
 	pids := []peer.ID{
 		"preferredPeer0",
@@ -379,17 +375,13 @@ func TestListsSharder_ComputeEvictionListShouldAddPreferredPeers(t *testing.T) {
 		"peer2",
 		"preferredPeer2",
 	}
-	addWasCalled := false
+	putWasCalled := false
 	arg.PreferredPeersHolder = &mock.PeersHolderStub{
-		AddCalled: func(pubKey string, pID string) {
-			addWasCalled = true
+		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
+			putWasCalled = true
 		},
-		GetPublicKeyForPeerIDCalled: func(peerID string) (string, bool) {
-			if strings.HasPrefix(peerID, "preferred") {
-				return peerID + "pubKey", true
-			}
-
-			return "", false
+		ContainsCalled: func(peerID core.PeerID) bool {
+			return strings.Contains(string(peerID), "preferred")
 		},
 	}
 	arg.PeerResolver = &mock.PeerShardResolverStub{
@@ -406,7 +398,6 @@ func TestListsSharder_ComputeEvictionListShouldAddPreferredPeers(t *testing.T) {
 		},
 	}
 	arg.P2pConfig.PreferredConnections = config.PreferredConnectionsConfig{
-		Enabled: true,
 		PublicKeys: []string{
 			hex.EncodeToString([]byte("preferredPeer0")),
 			hex.EncodeToString([]byte("preferredPeer1")),
@@ -420,7 +411,7 @@ func TestListsSharder_ComputeEvictionListShouldAddPreferredPeers(t *testing.T) {
 	})
 
 	evictList := ls.ComputeEvictionList(pids)
-	require.True(t, addWasCalled)
+	require.True(t, putWasCalled)
 	for _, peerID := range evictList {
 		require.False(t, strings.HasPrefix(string(peerID), "preferred"))
 	}
@@ -443,7 +434,16 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		peer.ID(prefP2),
 	}
 
-	arg.PreferredPeersHolder = peersholder.NewPeersHolder()
+	prefP0PkBytes, _ := hex.DecodeString(prefP0 + pubKeyHexSuffix)
+	prefP1PkBytes, _ := hex.DecodeString(prefP1 + pubKeyHexSuffix)
+	prefP2PkBytes, _ := hex.DecodeString(prefP2 + pubKeyHexSuffix)
+	prefPeers := [][]byte{
+		prefP0PkBytes,
+		prefP1PkBytes,
+		prefP2PkBytes,
+	}
+
+	arg.PreferredPeersHolder = peersholder.NewPeersHolder(prefPeers)
 	arg.PeerResolver = &mock.PeerShardResolverStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			if strings.HasPrefix(string(pid), preferredHexPrefix) {
@@ -458,14 +458,6 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 			return core.P2PPeerInfo{}
 		},
 	}
-	arg.P2pConfig.PreferredConnections = config.PreferredConnectionsConfig{
-		Enabled: true,
-		PublicKeys: []string{
-			prefP0 + pubKeyHexSuffix,
-			prefP1 + pubKeyHexSuffix,
-			prefP2 + pubKeyHexSuffix,
-		},
-	}
 	ls, _ := NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
@@ -477,23 +469,25 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 		require.False(t, strings.HasPrefix(string(peerID), preferredHexPrefix))
 	}
 
-	pid, ok := arg.PreferredPeersHolder.GetPeerIDForPublicKey(prefP0 + pubKeyHexSuffix)
-	require.True(t, ok)
-	require.Equal(t, prefP0, pid)
+	found := arg.PreferredPeersHolder.Contains(core.PeerID(prefP0))
+	require.True(t, found)
 
-	pid, ok = arg.PreferredPeersHolder.GetPeerIDForPublicKey(prefP1 + pubKeyHexSuffix)
-	require.True(t, ok)
-	require.Equal(t, prefP1, pid)
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP1))
+	require.True(t, found)
 
-	pid, ok = arg.PreferredPeersHolder.GetPeerIDForPublicKey(prefP2 + pubKeyHexSuffix)
-	require.True(t, ok)
-	require.Equal(t, prefP2, pid)
+	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP2))
+	require.True(t, found)
 
-	pubKey, ok := arg.PreferredPeersHolder.GetPublicKeyForPeerID(prefP2)
-	require.True(t, ok)
-	require.Equal(t, prefP2+pubKeyHexSuffix, pubKey)
-
-	require.Equal(t, 3, arg.PreferredPeersHolder.Len())
+	peers, err := arg.PreferredPeersHolder.Get()
+	require.NoError(t, err)
+	expectedMap := map[uint32][]core.PeerID{
+		0: {
+			core.PeerID(prefP0),
+			core.PeerID(prefP1),
+			core.PeerID(prefP2),
+		},
+	}
+	require.Equal(t, expectedMap, peers)
 }
 
 //------- Has

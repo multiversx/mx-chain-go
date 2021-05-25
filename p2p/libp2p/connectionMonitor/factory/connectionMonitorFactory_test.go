@@ -15,6 +15,7 @@ func createMockArg() ArgsConnectionMonitorFactory {
 	return ArgsConnectionMonitorFactory{
 		Reconnecter:                &mock.ReconnecterStub{},
 		Sharder:                    &mock.SharderStub{},
+		PreferredPeersHolder:       &mock.PeersHolderStub{},
 		ThresholdMinConnectedPeers: 1,
 		TargetCount:                1,
 	}
@@ -40,7 +41,7 @@ func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T)
 
 	assert.False(t, check.IfNil(cm))
 	assert.Nil(t, err)
-	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(nil, 0, nil)
+	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(nil, 0, nil, &mock.PeersHolderStub{})
 	//this works even though cmExpected is nil because it checks only the type
 	assert.IsType(t, cmExpected, cm)
 }
@@ -54,4 +55,15 @@ func TestNewConnectionMonitor_InvalidSharderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(cm))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewConnectionMonitor_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArg()
+	arg.PreferredPeersHolder = nil
+	cm, err := NewConnectionMonitor(arg)
+
+	assert.True(t, check.IfNil(cm))
+	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 }

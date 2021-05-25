@@ -29,6 +29,7 @@ type NetworkComponentsFactoryArgs struct {
 	StatusHandler        core.AppStatusHandler
 	Marshalizer          marshal.Marshalizer
 	Syncer               p2p.SyncTimer
+	PreferredPublicKeys  [][]byte
 	BootstrapWaitSeconds uint32
 }
 
@@ -40,6 +41,7 @@ type networkComponentsFactory struct {
 	listenAddress        string
 	marshalizer          marshal.Marshalizer
 	syncer               p2p.SyncTimer
+	preferredPublicKeys  [][]byte
 	bootstrapWaitSeconds uint32
 }
 
@@ -54,7 +56,7 @@ type networkComponents struct {
 	peerBlackListHandler   process.PeerBlackListCacher
 	antifloodConfig        config.AntifloodConfig
 	peerHonestyHandler     consensus.PeerHonestyHandler
-	peersHolder            PeersHolderHandler
+	peersHolder            PreferredPeersHolderHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -81,12 +83,13 @@ func NewNetworkComponentsFactory(
 		listenAddress:        libp2p.ListenAddrWithIp4AndTcp,
 		syncer:               args.Syncer,
 		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
+		preferredPublicKeys:  args.PreferredPublicKeys,
 	}, nil
 }
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
-	peersHolder := peersholder.NewPeersHolder()
+	peersHolder := peersholder.NewPeersHolder(ncf.preferredPublicKeys)
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:          ncf.marshalizer,
 		ListenAddress:        ncf.listenAddress,

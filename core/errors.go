@@ -100,3 +100,6 @@ var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
 
 // ErrNilTransactionFeeCalculator signals that a nil transaction fee calculator has been provided
 var ErrNilTransactionFeeCalculator = errors.New("nil transaction fee calculator")
+
+// ErrEmptyPreferredPeersLists signals that an empty preferred peers list has been provided
+var ErrEmptyPreferredPeersList = errors.New("empty preferred peers list")

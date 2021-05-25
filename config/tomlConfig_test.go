@@ -392,7 +392,6 @@ func TestP2pConfig(t *testing.T) {
 			Type: shardingType,
 		},
 		PreferredConnections: PreferredConnectionsConfig{
-			Enabled:    true,
 			PublicKeys: []string{prefCon0, prefCon1},
 		},
 	}

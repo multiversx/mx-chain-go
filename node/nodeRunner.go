@@ -1050,6 +1050,10 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.P2pConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	if err != nil {
+		return nil, err
+	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:            *nr.configs.P2pConfig,
@@ -1058,6 +1062,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		StatusHandler:        managedCoreComponents.StatusHandler(),
 		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
 		Syncer:               managedCoreComponents.SyncTimer(),
+		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
@@ -1324,6 +1329,20 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	}
 
 	log.Trace("gops", "enabled", gopsEnabled)
+}
+
+func decodeValidatorPubKeys(p2pConfig config.P2PConfig, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
+	decodedPublicKeys := make([][]byte, 0)
+	for _, pubKey := range p2pConfig.PreferredConnections.PublicKeys {
+		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+		}
+
+		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+	}
+
+	return decodedPublicKeys, nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

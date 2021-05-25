@@ -258,12 +258,10 @@ type Marshalizer interface {
 
 // PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
 type PreferredPeersHolderHandler interface {
-	Add(publicKey string, peerID string)
-	GetPeerIDForPublicKey(publicKey string) (string, bool)
-	GetPublicKeyForPeerID(peerID string) (string, bool)
-	DeletePublicKey(pubKey string) bool
-	DeletePeerID(pID string) bool
-	Len() int
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() (map[uint32][]core.PeerID, error)
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
 	Clear()
 	IsInterfaceNil() bool
 }

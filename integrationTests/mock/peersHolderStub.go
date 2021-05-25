@@ -1,44 +1,46 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/core"
+
 // PeersHolderStub -
 type PeersHolderStub struct {
-	AddCalled                   func(publicKey string, peerID string)
-	GetPeerIDForPublicKeyCalled func(publicKey string) (string, bool)
-	GetPublicKeyForPeerIDCalled func(peerID string) (string, bool)
-	DeletePublicKeyCalled       func(pubKey string) bool
-	DeletePeerIDCalled          func(pID string) bool
-	LenCalled                   func() int
-	ClearCalled                 func()
+	PutCalled      func(publicKey []byte, peerID core.PeerID, shardID uint32)
+	GetCalled      func() (map[uint32][]core.PeerID, error)
+	ContainsCalled func(peerID core.PeerID) bool
+	RemoveCalled   func(peerID core.PeerID)
+	ClearCalled    func()
 }
 
-// Add -
-func (p *PeersHolderStub) Add(publicKey string, peerID string) {
-	p.AddCalled(publicKey, peerID)
+// Put -
+func (p *PeersHolderStub) Put(publicKey []byte, peerID core.PeerID, shardID uint32) {
+	if p.PutCalled != nil {
+		p.PutCalled(publicKey, peerID, shardID)
+	}
 }
 
-// GetPeerIDForPublicKey -
-func (p *PeersHolderStub) GetPeerIDForPublicKey(publicKey string) (string, bool) {
-	return p.GetPeerIDForPublicKeyCalled(publicKey)
+// Get -
+func (p *PeersHolderStub) Get() (map[uint32][]core.PeerID, error) {
+	if p.GetCalled != nil {
+		return p.GetCalled()
+	}
+
+	return map[uint32][]core.PeerID{0: {"peer"}}, nil
 }
 
-// GetPublicKeyForPeerID -
-func (p *PeersHolderStub) GetPublicKeyForPeerID(peerID string) (string, bool) {
-	return p.GetPublicKeyForPeerIDCalled(peerID)
+// Contains -
+func (p *PeersHolderStub) Contains(peerID core.PeerID) bool {
+	if p.ContainsCalled != nil {
+		return p.ContainsCalled(peerID)
+	}
+
+	return false
 }
 
-// DeletePublicKey -
-func (p *PeersHolderStub) DeletePublicKey(pubKey string) bool {
-	return p.DeletePublicKeyCalled(pubKey)
-}
-
-// DeletePeerID -
-func (p *PeersHolderStub) DeletePeerID(pID string) bool {
-	return p.DeletePeerIDCalled(pID)
-}
-
-// Len -
-func (p *PeersHolderStub) Len() int {
-	return p.LenCalled()
+// Remove -
+func (p *PeersHolderStub) Remove(peerID core.PeerID) {
+	if p.RemoveCalled != nil {
+		p.RemoveCalled(peerID)
+	}
 }
 
 // Clear -

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -19,6 +20,7 @@ type libp2pConnectionMonitorSimple struct {
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
 	sharder                    Sharder
+	preferredPeersHolder       p2p.PreferredPeersHolderHandler
 	cancelFunc                 context.CancelFunc
 }
 
@@ -28,12 +30,16 @@ func NewLibp2pConnectionMonitorSimple(
 	reconnecter p2p.Reconnecter,
 	thresholdMinConnectedPeers uint32,
 	sharder Sharder,
+	preferredPeersHolder p2p.PreferredPeersHolderHandler,
 ) (*libp2pConnectionMonitorSimple, error) {
 	if check.IfNil(reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
 	if check.IfNil(sharder) {
 		return nil, p2p.ErrNilSharder
+	}
+	if check.IfNil(preferredPeersHolder) {
+		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -44,6 +50,7 @@ func NewLibp2pConnectionMonitorSimple(
 		thresholdMinConnectedPeers: int(thresholdMinConnectedPeers),
 		sharder:                    sharder,
 		cancelFunc:                 cancelFunc,
+		preferredPeersHolder:       preferredPeersHolder,
 	}
 
 	if reconnecter != nil {
@@ -78,7 +85,11 @@ func (lcms *libp2pConnectionMonitorSimple) Connected(netw network.Network, _ net
 }
 
 // Disconnected is called when a connection closed
-func (lcms *libp2pConnectionMonitorSimple) Disconnected(netw network.Network, _ network.Conn) {
+func (lcms *libp2pConnectionMonitorSimple) Disconnected(netw network.Network, conn network.Conn) {
+	if conn != nil {
+		lcms.preferredPeersHolder.Remove(core.PeerID(conn.ID()))
+	}
+
 	lcms.doReconnectionIfNeeded(netw)
 }
 
