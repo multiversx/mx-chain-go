@@ -6,7 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/pkg/errors"
 )
+
+var errNotImplemented = errors.New("not implemented")
 
 // AccountsStub -
 type AccountsStub struct {

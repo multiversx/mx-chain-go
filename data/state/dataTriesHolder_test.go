@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestNewDataTriesHolder(t *testing.T) {
 func TestDataTriesHolder_PutAndGet(t *testing.T) {
 	t.Parallel()
 
-	tr1 := &mock.TrieStub{}
+	tr1 := &testscommon.TrieStub{}
 
 	dth := state.NewDataTriesHolder()
 	dth.Put([]byte("trie1"), tr1)
@@ -33,9 +33,9 @@ func TestDataTriesHolder_PutAndGet(t *testing.T) {
 func TestDataTriesHolder_GetAll(t *testing.T) {
 	t.Parallel()
 
-	tr1 := &mock.TrieStub{}
-	tr2 := &mock.TrieStub{}
-	tr3 := &mock.TrieStub{}
+	tr1 := &testscommon.TrieStub{}
+	tr2 := &testscommon.TrieStub{}
+	tr3 := &testscommon.TrieStub{}
 
 	dth := state.NewDataTriesHolder()
 	dth.Put([]byte("trie1"), tr1)
@@ -49,7 +49,7 @@ func TestDataTriesHolder_GetAll(t *testing.T) {
 func TestDataTriesHolder_Reset(t *testing.T) {
 	t.Parallel()
 
-	tr1 := &mock.TrieStub{}
+	tr1 := &testscommon.TrieStub{}
 
 	dth := state.NewDataTriesHolder()
 	dth.Put([]byte("trie1"), tr1)
@@ -70,7 +70,7 @@ func TestDataTriesHolder_Concurrency(t *testing.T) {
 
 	for i := 0; i < numTries; i++ {
 		go func(key int) {
-			dth.Put([]byte(strconv.Itoa(key)), &mock.TrieStub{})
+			dth.Put([]byte(strconv.Itoa(key)), &testscommon.TrieStub{})
 			wg.Done()
 		}(i)
 	}

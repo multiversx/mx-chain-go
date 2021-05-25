@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ var fromConnectedPeer = core.PeerID("from connected peer")
 func createMockArgTrieNodeResolver() resolvers.ArgTrieNodeResolver {
 	return resolvers.ArgTrieNodeResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TrieDataGetter:   &mock.TrieStub{},
+		TrieDataGetter:   &testscommon.TrieStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
 		Throttler:        &mock.ThrottlerStub{},
@@ -172,7 +173,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	getSerializedNodesWasCalled := false
 	sendWasCalled := false
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			if bytes.Equal([]byte("node1"), hash) {
 				getSerializedNodesWasCalled = true
@@ -237,7 +238,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 
 	expectedErr := errors.New("expected err")
 	arg := createMockArgTrieNodeResolver()
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -264,7 +265,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodeE
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(_ []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -309,7 +310,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
@@ -365,7 +366,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShou
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {
@@ -422,7 +423,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesShouldWorkWithSubt
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {

@@ -84,8 +84,8 @@ func createStoreForShard() dataRetriever.StorageService {
 
 func createTriesHolderForShard() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
 	return triesHolder
 }
 

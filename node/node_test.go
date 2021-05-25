@@ -228,7 +228,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 
 	accDB := &mock.AccountsStub{}
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -244,6 +244,9 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 				}()
 
 				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
 			},
 		})
 
@@ -369,7 +372,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	suffix := append(esdtKey, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -380,6 +383,9 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 				}()
 
 				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
 			},
 		})
 
@@ -432,7 +438,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder, 2)
 
@@ -451,6 +457,9 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 				wg.Wait()
 
 				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
 			},
 		})
 
@@ -510,7 +519,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -527,6 +536,9 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 				}()
 
 				return ch, nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
 			},
 		})
 
@@ -2105,7 +2117,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		},
 	}
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {
@@ -2240,7 +2252,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		},
 	}
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {
@@ -2335,7 +2347,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		},
 	}
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {
@@ -2428,7 +2440,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		},
 	}
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {
@@ -2555,7 +2567,7 @@ func TestStartConsensus_MetaBootstrapper(t *testing.T) {
 		},
 	}
 
-	tr := &mock.TrieStub{
+	tr := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {

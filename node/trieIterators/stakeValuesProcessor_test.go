@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/require"
@@ -205,7 +206,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -237,9 +238,12 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 
 	expectedErr := errors.New("expected error")
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&testscommon.TrieStub{
 		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 			return nil, expectedErr
+		},
+		RootCalled: func() ([]byte, error) {
+			return nil, nil
 		},
 	})
 
@@ -284,7 +288,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	leafKey5 := "0123456780"
 	leafKey6 := "0123456788"
 	acc, _ := state.NewUserAccount([]byte("newaddress"))
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

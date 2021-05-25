@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +41,7 @@ func TestNewSyncState(t *testing.T) {
 	args.ActiveAccountsDBs[state.UserAccountsState] = &mock.AccountsStub{
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
 			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{}
+			tries[string(rootHash)] = &testscommon.TrieStub{}
 			return tries, nil
 		},
 	}
@@ -48,7 +49,7 @@ func TestNewSyncState(t *testing.T) {
 	args.ActiveAccountsDBs[state.PeerAccountsState] = &mock.AccountsStub{
 		RecreateAllTriesCalled: func(rootHash []byte) (map[string]data.Trie, error) {
 			tries := make(map[string]data.Trie)
-			tries[string(rootHash)] = &mock.TrieStub{}
+			tries[string(rootHash)] = &testscommon.TrieStub{}
 			return tries, nil
 		},
 	}

@@ -818,7 +818,7 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	userAccount, err := state.NewUserAccount([]byte("userAddress"))
 	require.Nil(t, err)
 
-	userAccount.SetDataTrie(&mock.TrieStub{
+	userAccount.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
 				return []byte("delegation"), nil

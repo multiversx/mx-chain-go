@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,7 +124,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 //
 func createValidatorScAccount(address []byte, leaves [][]byte, rootHash []byte) state.UserAccountHandler {
 	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&mock.TrieStub{
+	acc.SetDataTrie(&testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
