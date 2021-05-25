@@ -68,6 +68,7 @@ type Worker struct {
 	poolAdder        PoolAdder
 
 	cancelFunc                func()
+	closingChan               chan struct{}
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 }
@@ -142,6 +143,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
+		closingChan:              make(chan struct{}),
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -556,7 +558,12 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		}
 
 		cnsDtaList[i] = nil
-		wrk.executeMessageChannel <- cnsDta
+		select {
+		case wrk.executeMessageChannel <- cnsDta:
+		case <-wrk.closingChan:
+			log.Debug("worker's executeMessage go routine is stopping...")
+			return
+		}
 	}
 }
 
@@ -647,6 +654,7 @@ func (wrk *Worker) Close() error {
 		wrk.cancelFunc()
 	}
 
+	close(wrk.closingChan)
 	wrk.cleanChannels()
 
 	return nil

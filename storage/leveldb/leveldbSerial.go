@@ -29,6 +29,7 @@ type SerialDB struct {
 	cancel            context.CancelFunc
 	mutClosed         sync.Mutex
 	closed            bool
+	closingChan       chan struct{}
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -68,6 +69,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		dbAccess:          make(chan serialQueryer),
 		cancel:            cancel,
 		closed:            false,
+		closingChan:       make(chan struct{}),
 	}
 
 	dbStore.batch = NewBatch()
@@ -153,7 +155,10 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return nil, err
+	}
 	result := <-ch
 	close(ch)
 
@@ -190,11 +195,23 @@ func (s *SerialDB) Has(key []byte) error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
 	return result
+}
+
+func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
+	select {
+	case s.dbAccess <- req:
+		return nil
+	case <-s.closingChan:
+		return storage.ErrSerialDBIsClosed
+	}
 }
 
 // Init initializes the storage medium and prepares it for usage
@@ -221,7 +238,10 @@ func (s *SerialDB) putBatch() error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
@@ -245,6 +265,7 @@ func (s *SerialDB) Close() error {
 		return nil
 	}
 
+	close(s.closingChan)
 	s.closed = true
 	_ = s.putBatch()
 
