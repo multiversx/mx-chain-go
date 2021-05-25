@@ -693,17 +693,21 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(core.LeavingList):
 			log.Debug("leaving node trie", "pk", validatorInfo.PublicKey)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
-			found, shardId := searchInMap(previousEpochConfig.eligibleMap, currentValidator.PubKey())
-			if found {
-				log.Debug("leaving node trie found in", "list", "eligible", "shardId", shardId)
-				eligibleMap[shardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
-				continue
-			}
-			found, shardId = searchInMap(previousEpochConfig.waitingMap, currentValidator.PubKey())
-			if found {
-				log.Debug("leaving node trie found in", "list", "waiting", "shardId", shardId)
-				waitingMap[shardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
-				continue
+			if !ihgs.flagWaitingListFix.IsSet() {
+				eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
+			} else {
+				found, shardId := searchInMap(previousEpochConfig.eligibleMap, currentValidator.PubKey())
+				if found {
+					log.Debug("leaving node trie found in", "list", "eligible", "shardId", shardId)
+					eligibleMap[shardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
+					continue
+				}
+				found, shardId = searchInMap(previousEpochConfig.waitingMap, currentValidator.PubKey())
+				if found {
+					log.Debug("leaving node trie found in", "list", "waiting", "shardId", shardId)
+					waitingMap[shardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
+					continue
+				}
 			}
 		case string(core.NewList):
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
