@@ -1761,8 +1761,20 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPreviousNodes
 	arguments.SelfPublicKey = pk
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
+	ihgs.flagWaitingListFix.Unset()
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(nil, validatorInfos)
+
+	assert.Nil(t, newNodesConfig)
+	assert.False(t, errors.Is(err, ErrNilPreviousEpochConfig))
+
+	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil, nil)
+
+	assert.Nil(t, newNodesConfig)
+	assert.False(t, errors.Is(err, ErrNilPreviousEpochConfig))
+
+	ihgs.flagWaitingListFix.Set()
+	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil, validatorInfos)
 
 	assert.Nil(t, newNodesConfig)
 	assert.True(t, errors.Is(err, ErrNilPreviousEpochConfig))

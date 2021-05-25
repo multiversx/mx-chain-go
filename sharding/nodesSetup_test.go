@@ -635,7 +635,7 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 }
 
 func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.T) {
-	t.Skip()
+	t.Parallel()
 
 	ns := &NodesSetup{
 		ConsensusGroupSize:          63,

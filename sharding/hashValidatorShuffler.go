@@ -401,29 +401,14 @@ func removeLeavingNodes(
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 	maxNumToRemoveFromWaiting := make(map[uint32]int)
 	for shardId := range eligible {
-		minimumNumberOfNodes := minNodesPerShard
-		if shardId == core.MetachainShardId {
-			minimumNumberOfNodes = minNodesMeta
-		}
-		computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
-		if computedMinNumberOfNodes < 0 {
-			computedMinNumberOfNodes = 0
-		}
+		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
 		maxNumToRemoveFromWaiting[shardId] = computedMinNumberOfNodes
 	}
 
 	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
 
 	for shardId, toRemove := range numToRemove {
-		minimumNumberOfNodes := minNodesPerShard
-		if shardId == core.MetachainShardId {
-			minimumNumberOfNodes = minNodesMeta
-		}
-
-		computedMinNumberOfNodes := len(eligible[shardId]) + len(newWaiting[shardId]) - minimumNumberOfNodes
-		if computedMinNumberOfNodes < 0 {
-			computedMinNumberOfNodes = 0
-		}
+		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
 		if toRemove > computedMinNumberOfNodes {
 			numToRemove[shardId] = computedMinNumberOfNodes
 		}
@@ -431,6 +416,18 @@ func removeLeavingNodes(
 
 	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
 	return newEligible, newWaiting, stillRemainingInLeaving
+}
+
+func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32][]Validator, shardId uint32, minNodesMeta int, minNodesPerShard int) int {
+	minimumNumberOfNodes := minNodesPerShard
+	if shardId == core.MetachainShardId {
+		minimumNumberOfNodes = minNodesMeta
+	}
+	computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
+	if computedMinNumberOfNodes < 0 {
+		computedMinNumberOfNodes = 0
+	}
+	return computedMinNumberOfNodes
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
