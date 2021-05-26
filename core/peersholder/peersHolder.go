@@ -64,15 +64,11 @@ func (ph *peersHolder) Put(pubKey []byte, peerID core.PeerID, shardID uint32) {
 }
 
 // Get will return a map containing the preferred peer IDs, split by shard ID
-func (ph *peersHolder) Get() (map[uint32][]core.PeerID, error) {
+func (ph *peersHolder) Get() map[uint32][]core.PeerID {
 	ph.RLock()
 	defer ph.RUnlock()
 
-	if len(ph.peersIDsPerShard) == 0 {
-		return nil, core.ErrEmptyPreferredPeersList
-	}
-
-	return ph.peersIDsPerShard, nil
+	return ph.peersIDsPerShard
 }
 
 // Contains returns true if the provided peer id is a preferred connection

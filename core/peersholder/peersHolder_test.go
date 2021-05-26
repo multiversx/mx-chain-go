@@ -21,8 +21,8 @@ func TestPeersHolder_PutNotPreferredPeerShouldNotAdd(t *testing.T) {
 
 	ph.Put([]byte("different pub key"), "pid", 1)
 
-	_, err := ph.Get()
-	require.Equal(t, core.ErrEmptyPreferredPeersList, err)
+	peers := ph.Get()
+	require.Zero(t, len(peers))
 }
 
 func TestPeersHolder_PutNewPeerInfoShouldAdd(t *testing.T) {
@@ -33,8 +33,7 @@ func TestPeersHolder_PutNewPeerInfoShouldAdd(t *testing.T) {
 
 	ph.Put([]byte("peer0"), "pid", 1)
 
-	peers, err := ph.Get()
-	require.NoError(t, err)
+	peers := ph.Get()
 	require.Equal(t, peers[1][0], core.PeerID("pid"))
 }
 
@@ -47,8 +46,7 @@ func TestPeersHolder_PutOldPeerInfoSameShardShouldNotChange(t *testing.T) {
 	ph.Put([]byte("peer0"), "pid", 1)
 	ph.Put([]byte("peer0"), "pid", 1)
 
-	peers, err := ph.Get()
-	require.NoError(t, err)
+	peers := ph.Get()
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, 1, len(peers[1]))
 	require.Equal(t, peers[1][0], core.PeerID("pid"))
@@ -63,8 +61,7 @@ func TestPeersHolder_PutOldPeerInfoNewShardShouldUpdate(t *testing.T) {
 	ph.Put([]byte("peer0"), "pid", 0)
 	ph.Put([]byte("peer0"), "pid", 1)
 
-	peers, err := ph.Get()
-	require.NoError(t, err)
+	peers := ph.Get()
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, 1, len(peers[1]))
 	require.Equal(t, peers[1][0], core.PeerID("pid"))
@@ -79,7 +76,7 @@ func TestPeersHolder_RemovePeerIDNotFound(t *testing.T) {
 	ph.Put([]byte("peer0"), "pid", 3)
 	ph.Remove("new peer id")
 
-	peers, _ := ph.Get()
+	peers := ph.Get()
 	require.Equal(t, 1, len(peers))
 }
 
@@ -92,7 +89,7 @@ func TestPeersHolder_RemovePeerShouldWork(t *testing.T) {
 	ph.Put([]byte("peer0"), "pid", 3)
 	ph.Remove("pid")
 
-	peers, _ := ph.Get()
+	peers := ph.Get()
 	require.Equal(t, 0, len(peers))
 }
 
@@ -108,7 +105,7 @@ func TestPeersHolder_RemovePeerShouldNotAffectOrder(t *testing.T) {
 
 	ph.Remove("pid1")
 
-	peers, _ := ph.Get()
+	peers := ph.Get()
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, []core.PeerID{"pid0", "pid2"}, peers[3])
 }
@@ -126,7 +123,7 @@ func TestPeersHolder_Clear(t *testing.T) {
 
 	ph.Clear()
 
-	peers, _ := ph.Get()
+	peers := ph.Get()
 	require.Zero(t, len(peers))
 }
 
@@ -142,7 +139,7 @@ func TestPeersHolder_RemovePeerShouldNotRemovePubKeyAsPreferred(t *testing.T) {
 
 	ph.Remove("pid1")
 
-	peers, _ := ph.Get()
+	peers := ph.Get()
 	require.Equal(t, 1, len(peers))
 	require.Equal(t, []core.PeerID{"pid0", "pid2"}, peers[3])
 

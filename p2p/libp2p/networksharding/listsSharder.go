@@ -254,6 +254,8 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		peerInfo := ls.peerShardResolver.GetPeerInfo(pid)
 		ls.mutResolver.RUnlock()
 
+		// TODO: analyze if moving this `Put` elsewhere would improve the number of interactions with the peersHolder
+		// Right now, there might be issues when a preferred peer disconnects
 		ls.preferredPeersHolder.Put(peerInfo.PkBytes, pid, peerInfo.ShardID)
 		if ls.preferredPeersHolder.Contains(pid) {
 			continue

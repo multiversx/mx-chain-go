@@ -5,7 +5,7 @@ import "github.com/ElrondNetwork/elrond-go/core"
 // PeersHolderStub -
 type PeersHolderStub struct {
 	PutCalled      func(publicKey []byte, peerID core.PeerID, shardID uint32)
-	GetCalled      func() (map[uint32][]core.PeerID, error)
+	GetCalled      func() map[uint32][]core.PeerID
 	ContainsCalled func(peerID core.PeerID) bool
 	RemoveCalled   func(peerID core.PeerID)
 	ClearCalled    func()
@@ -19,12 +19,12 @@ func (p *PeersHolderStub) Put(publicKey []byte, peerID core.PeerID, shardID uint
 }
 
 // Get -
-func (p *PeersHolderStub) Get() (map[uint32][]core.PeerID, error) {
+func (p *PeersHolderStub) Get() map[uint32][]core.PeerID {
 	if p.GetCalled != nil {
 		return p.GetCalled()
 	}
 
-	return map[uint32][]core.PeerID{0: {"peer"}}, nil
+	return map[uint32][]core.PeerID{0: {"peer"}}
 }
 
 // Contains -

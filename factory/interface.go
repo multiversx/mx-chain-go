@@ -68,7 +68,7 @@ type P2PAntifloodHandler interface {
 // PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
 type PreferredPeersHolderHandler interface {
 	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
-	Get() (map[uint32][]core.PeerID, error)
+	Get() map[uint32][]core.PeerID
 	Contains(peerID core.PeerID) bool
 	Remove(peerID core.PeerID)
 	Clear()

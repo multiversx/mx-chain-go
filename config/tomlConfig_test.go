@@ -216,6 +216,8 @@ func TestTomlPreferencesParser(t *testing.T) {
 	destinationShardAsObs := "3"
 	identity := "test-identity"
 	redundancyLevel := int64(0)
+	prefPubKey0 := "preferred pub key 0"
+	prefPubKey1 := "preferred pub key 1"
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
@@ -223,6 +225,7 @@ func TestTomlPreferencesParser(t *testing.T) {
 			DestinationShardAsObserver: destinationShardAsObs,
 			Identity:                   identity,
 			RedundancyLevel:            redundancyLevel,
+			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
 	}
 
@@ -232,6 +235,10 @@ func TestTomlPreferencesParser(t *testing.T) {
 	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 	Identity = "` + identity + `"
 	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
+	PreferredConnections = [
+		"` + prefPubKey0 + `",
+		"` + prefPubKey1 + `"
+	]
 `
 	cfg := Preferences{}
 
@@ -335,8 +342,6 @@ func TestAPIRoutesToml(t *testing.T) {
 func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 	protocolID := "test protocol id"
-	prefCon0 := "123456789"
-	prefCon1 := "qwerty"
 	shardingType := "ListSharder"
 	seed := "test seed"
 	port := "37373-38383"
@@ -371,13 +376,6 @@ func TestP2pConfig(t *testing.T) {
     MaxFullHistoryObservers = 0
     MaxSeeders = 0
     Type = "` + shardingType + `"
-
-[PreferredConnections] 
-	Enabled = true
-	PublicKeys = [
-		"` + prefCon0 + `",
-		"` + prefCon1 + `"
-	]
 `
 	expectedCfg := P2PConfig{
 		Node: NodeConfig{
@@ -390,9 +388,6 @@ func TestP2pConfig(t *testing.T) {
 		},
 		Sharding: ShardingConfig{
 			Type: shardingType,
-		},
-		PreferredConnections: PreferredConnectionsConfig{
-			PublicKeys: []string{prefCon0, prefCon1},
 		},
 	}
 	cfg := P2PConfig{}

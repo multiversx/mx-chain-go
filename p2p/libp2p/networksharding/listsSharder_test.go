@@ -397,13 +397,7 @@ func TestListsSharder_ComputeEvictionListShouldPutPreferredPeers(t *testing.T) {
 			return core.P2PPeerInfo{}
 		},
 	}
-	arg.P2pConfig.PreferredConnections = config.PreferredConnectionsConfig{
-		PublicKeys: []string{
-			hex.EncodeToString([]byte("preferredPeer0")),
-			hex.EncodeToString([]byte("preferredPeer1")),
-			hex.EncodeToString([]byte("preferredPeer2")),
-		},
-	}
+
 	ls, _ := NewListsSharder(arg)
 	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
 	ls.SetSeeders([]string{
@@ -478,8 +472,7 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 	found = arg.PreferredPeersHolder.Contains(core.PeerID(prefP2))
 	require.True(t, found)
 
-	peers, err := arg.PreferredPeersHolder.Get()
-	require.NoError(t, err)
+	peers := arg.PreferredPeersHolder.Get()
 	expectedMap := map[uint32][]core.PeerID{
 		0: {
 			core.PeerID(prefP0),

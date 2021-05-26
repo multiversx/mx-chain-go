@@ -1050,7 +1050,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
-	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.P2pConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, managedCoreComponents.ValidatorPubKeyConverter())
 	if err != nil {
 		return nil, err
 	}
@@ -1331,9 +1331,9 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func decodeValidatorPubKeys(p2pConfig config.P2PConfig, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
+func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
 	decodedPublicKeys := make([][]byte, 0)
-	for _, pubKey := range p2pConfig.PreferredConnections.PublicKeys {
+	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
 		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
