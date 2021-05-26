@@ -650,11 +650,14 @@ func (wrk *Worker) ExecuteStoredMessages() {
 
 // Close will close the endless running go routine
 func (wrk *Worker) Close() error {
+	//calling close on the closingChan should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer close(wrk.closingChan)
+
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
 	}
 
-	close(wrk.closingChan)
 	wrk.cleanChannels()
 
 	return nil

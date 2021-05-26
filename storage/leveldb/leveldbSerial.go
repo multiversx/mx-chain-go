@@ -265,7 +265,10 @@ func (s *SerialDB) Close() error {
 		return nil
 	}
 
-	close(s.closingChan)
+	//calling close on the closingChan should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer close(s.closingChan)
+
 	s.closed = true
 	_ = s.putBatch()
 
