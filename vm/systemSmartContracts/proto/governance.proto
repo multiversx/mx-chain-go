@@ -7,11 +7,6 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-
-enum VoteType {
-    Validator = 0;
-    Account   = 1;
-}
 enum VoteValueType {
     Yes  = 0;
     No   = 1;
@@ -62,8 +57,7 @@ message VoteDetails {
     VoteValueType Value       = 1 [(gogoproto.jsontag) = "Value"];
     bytes         Power       = 2 [(gogoproto.jsontag) = "Power", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes         Balance     = 3 [(gogoproto.jsontag) = "Balance", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    VoteType      Type        = 4 [(gogoproto.jsontag) = "Type"];
-    bytes         DelegatedTo = 5 [(gogoproto.jsontag) = "DelegatedTo"];
+    bytes         DelegatedTo = 4 [(gogoproto.jsontag) = "DelegatedTo"];
 }
 
 message VoteSet {
@@ -72,6 +66,5 @@ message VoteSet {
     bytes    TotalYes              = 3 [(gogoproto.jsontag) = "TotalYes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes    TotalNo               = 4 [(gogoproto.jsontag) = "TotalNo", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes    TotalVeto             = 5 [(gogoproto.jsontag) = "TotalVeto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bool     Claimed               = 6 [(gogoproto.jsontag) = "Claimed"];
-    repeated VoteDetails VoteItems = 7 [(gogoproto.jsontag) = "VoteItems"];
+    repeated VoteDetails VoteItems = 6 [(gogoproto.jsontag) = "VoteItems"];
 }
