@@ -359,7 +359,7 @@ func (d *delegationManager) mergeValidatorToDelegation(
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if returnCode != vmcommon.Ok {
+	if vmOutput.ReturnCode != vmcommon.Ok {
 		return returnCode
 	}
 
