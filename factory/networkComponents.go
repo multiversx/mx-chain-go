@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,6 +29,7 @@ type NetworkComponentsFactoryArgs struct {
 	StatusHandler        core.AppStatusHandler
 	Marshalizer          marshal.Marshalizer
 	Syncer               p2p.SyncTimer
+	PreferredPublicKeys  [][]byte
 	BootstrapWaitSeconds uint32
 }
 
@@ -39,6 +41,7 @@ type networkComponentsFactory struct {
 	listenAddress        string
 	marshalizer          marshal.Marshalizer
 	syncer               p2p.SyncTimer
+	preferredPublicKeys  [][]byte
 	bootstrapWaitSeconds uint32
 }
 
@@ -53,6 +56,7 @@ type networkComponents struct {
 	peerBlackListHandler   process.PeerBlackListCacher
 	antifloodConfig        config.AntifloodConfig
 	peerHonestyHandler     consensus.PeerHonestyHandler
+	peersHolder            PreferredPeersHolderHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -79,16 +83,19 @@ func NewNetworkComponentsFactory(
 		listenAddress:        libp2p.ListenAddrWithIp4AndTcp,
 		syncer:               args.Syncer,
 		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
+		preferredPublicKeys:  args.PreferredPublicKeys,
 	}, nil
 }
 
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
+	peersHolder := peersholder.NewPeersHolder(ncf.preferredPublicKeys)
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:   ncf.marshalizer,
-		ListenAddress: ncf.listenAddress,
-		P2pConfig:     ncf.p2pConfig,
-		SyncTimer:     ncf.syncer,
+		Marshalizer:          ncf.marshalizer,
+		ListenAddress:        ncf.listenAddress,
+		P2pConfig:            ncf.p2pConfig,
+		SyncTimer:            ncf.syncer,
+		PreferredPeersHolder: peersHolder,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)
@@ -166,6 +173,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		pubKeyTimeCacher:       antiFloodComponents.PubKeysCacher,
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		peerHonestyHandler:     peerHonestyHandler,
+		peersHolder:            peersHolder,
 		closeFunc:              cancelFunc,
 	}, nil
 }
