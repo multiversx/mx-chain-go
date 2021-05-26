@@ -298,17 +298,19 @@ func startStorer2Elastic(ctx *cli.Context) error {
 
 	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
-			ElasticIndexer:      elasticIndexer,
-			DataReplayer:        dataReplayer,
-			GenesisNodesSetup:   genesisNodesConfig,
-			Marshalizer:         marshalizer,
-			Hasher:              hasher,
-			ShardCoordinator:    shardCoordinator,
-			TPSBenchmarkUpdater: tpsBenchmarkUpdater,
-			RatingsProcessor:    ratingsProcessor,
-			RatingConfig:        ratingsConfig,
-			StartingEpoch:       uint32(flagsValues.startingEpoch),
+			ElasticIndexer:            elasticIndexer,
+			DataReplayer:              dataReplayer,
+			GenesisNodesSetup:         genesisNodesConfig,
+			Marshalizer:               marshalizer,
+			Hasher:                    hasher,
+			ShardCoordinator:          shardCoordinator,
+			TPSBenchmarkUpdater:       tpsBenchmarkUpdater,
+			RatingsProcessor:          ratingsProcessor,
+			RatingConfig:              ratingsConfig,
+			StartingEpoch:             uint32(flagsValues.startingEpoch),
+			WaitingListFixEnableEpoch: nodeConfig.GeneralSettings.WaitingListFixEnableEpoch,
 		})
+
 	if err != nil {
 		return err
 	}

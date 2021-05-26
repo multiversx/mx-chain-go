@@ -23,6 +23,7 @@ type NodesShufflerArgs struct {
 	ShuffleBetweenShards           bool
 	MaxNodesEnableConfig           []config.MaxNodesChangeConfig
 	BalanceWaitingListsEnableEpoch uint32
+	WaitingListFixEnableEpoch      uint32
 }
 
 type shuffleNodesArg struct {
@@ -38,6 +39,7 @@ type shuffleNodesArg struct {
 	nbShards                uint32
 	maxNodesToSwapPerShard  uint32
 	flagBalanceWaitingLists atomic.Flag
+	flagWaitingListFix      atomic.Flag
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -57,6 +59,8 @@ type randHashShuffler struct {
 	validatorDistributor           ValidatorsDistributor
 	balanceWaitingListsEnableEpoch uint32
 	flagBalanceWaitingLists        atomic.Flag
+	waitingListFixEnableEpoch      uint32
+	flagWaitingListFix             atomic.Flag
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -78,6 +82,7 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		shuffleBetweenShards:           args.ShuffleBetweenShards,
 		availableNodesConfigs:          configs,
 		balanceWaitingListsEnableEpoch: args.BalanceWaitingListsEnableEpoch,
+		waitingListFixEnableEpoch:      args.WaitingListFixEnableEpoch,
 	}
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
@@ -173,6 +178,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
 		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists,
+		flagWaitingListFix:      rhs.flagWaitingListFix,
 	})
 }
 
@@ -246,8 +252,22 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
 	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
 
-	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving)
-	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving)
+	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(
+		eligibleCopy,
+		waitingCopy,
+		numToRemove,
+		remainingUnstakeLeaving,
+		int(arg.nodesMeta),
+		int(arg.nodesPerShard),
+		arg.flagWaitingListFix.IsSet())
+	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(
+		newEligible,
+		newWaiting,
+		numToRemove,
+		remainingAdditionalLeaving,
+		int(arg.nodesMeta),
+		int(arg.nodesPerShard),
+		arg.flagWaitingListFix.IsSet())
 
 	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
@@ -354,14 +374,60 @@ func removeLeavingNodesFromValidatorMaps(
 	waiting map[uint32][]Validator,
 	numToRemove map[uint32]int,
 	leaving []Validator,
+	minNodesMeta int,
+	minNodesPerShard int,
+	waitingFixEnabled bool,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
-	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
-	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
-	return eligible, waiting, stillRemainingInLeaving
+	if !waitingFixEnabled {
+		newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+		newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+		return newEligible, newWaiting, stillRemainingInLeaving
+	}
+
+	return removeLeavingNodes(eligible, waiting, numToRemove, stillRemainingInLeaving, minNodesMeta, minNodesPerShard)
+}
+
+func removeLeavingNodes(
+	eligible map[uint32][]Validator,
+	waiting map[uint32][]Validator,
+	numToRemove map[uint32]int,
+	stillRemainingInLeaving []Validator,
+	minNodesMeta int,
+	minNodesPerShard int,
+) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
+	maxNumToRemoveFromWaiting := make(map[uint32]int)
+	for shardId := range eligible {
+		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
+		maxNumToRemoveFromWaiting[shardId] = computedMinNumberOfNodes
+	}
+
+	newWaiting, stillRemainingInLeaving := removeNodesFromMap(waiting, stillRemainingInLeaving, maxNumToRemoveFromWaiting)
+
+	for shardId, toRemove := range numToRemove {
+		computedMinNumberOfNodes := computeMinNumberOfNodes(eligible, waiting, shardId, minNodesMeta, minNodesPerShard)
+		if toRemove > computedMinNumberOfNodes {
+			numToRemove[shardId] = computedMinNumberOfNodes
+		}
+	}
+
+	newEligible, stillRemainingInLeaving := removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+	return newEligible, newWaiting, stillRemainingInLeaving
+}
+
+func computeMinNumberOfNodes(eligible map[uint32][]Validator, waiting map[uint32][]Validator, shardId uint32, minNodesMeta int, minNodesPerShard int) int {
+	minimumNumberOfNodes := minNodesPerShard
+	if shardId == core.MetachainShardId {
+		minimumNumberOfNodes = minNodesMeta
+	}
+	computedMinNumberOfNodes := len(eligible[shardId]) + len(waiting[shardId]) - minimumNumberOfNodes
+	if computedMinNumberOfNodes < 0 {
+		computedMinNumberOfNodes = 0
+	}
+	return computedMinNumberOfNodes
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
@@ -708,6 +774,8 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 
 	rhs.flagBalanceWaitingLists.Toggle(epoch >= rhs.balanceWaitingListsEnableEpoch)
 	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
+	rhs.flagWaitingListFix.Toggle(epoch >= rhs.waitingListFixEnableEpoch)
+	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {

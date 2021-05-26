@@ -47,20 +47,21 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	}
 	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
-		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
-		Marshalizer:             TestMarshalizer,
-		Hasher:                  arg.hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      arg.epochStartSubscriber,
-		ShardIDAsObserver:       arg.shardId,
-		NbShards:                uint32(arg.nbShards),
-		EligibleNodes:           arg.validatorsMap,
-		WaitingNodes:            arg.waitingMap,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     arg.consensusGroupCache,
-		BootStorer:              arg.bootStorer,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+		ShardConsensusGroupSize:    arg.shardConsensusGroupSize,
+		MetaConsensusGroupSize:     arg.metaConsensusGroupSize,
+		Marshalizer:                TestMarshalizer,
+		Hasher:                     arg.hasher,
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         arg.epochStartSubscriber,
+		ShardIDAsObserver:          arg.shardId,
+		NbShards:                   uint32(arg.nbShards),
+		EligibleNodes:              arg.validatorsMap,
+		WaitingNodes:               arg.waitingMap,
+		SelfPublicKey:              pubKeyBytes,
+		ConsensusGroupCache:        arg.consensusGroupCache,
+		BootStorer:                 arg.bootStorer,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -93,20 +94,21 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	}
 	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
-		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
-		Marshalizer:             TestMarshalizer,
-		Hasher:                  arg.hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      arg.epochStartSubscriber,
-		ShardIDAsObserver:       arg.shardId,
-		NbShards:                uint32(arg.nbShards),
-		EligibleNodes:           arg.validatorsMap,
-		WaitingNodes:            arg.waitingMap,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     arg.consensusGroupCache,
-		BootStorer:              arg.bootStorer,
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+		ShardConsensusGroupSize:    arg.shardConsensusGroupSize,
+		MetaConsensusGroupSize:     arg.metaConsensusGroupSize,
+		Marshalizer:                TestMarshalizer,
+		Hasher:                     arg.hasher,
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         arg.epochStartSubscriber,
+		ShardIDAsObserver:          arg.shardId,
+		NbShards:                   uint32(arg.nbShards),
+		EligibleNodes:              arg.validatorsMap,
+		WaitingNodes:               arg.waitingMap,
+		SelfPublicKey:              pubKeyBytes,
+		ConsensusGroupCache:        arg.consensusGroupCache,
+		BootStorer:                 arg.bootStorer,
+		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+		WaitingListFixEnabledEpoch: 0,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

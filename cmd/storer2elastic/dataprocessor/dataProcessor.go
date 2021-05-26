@@ -31,31 +31,33 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer      StorageDataIndexer
-	DataReplayer        DataReplayerHandler
-	GenesisNodesSetup   update.GenesisNodesSetupHandler
-	ShardCoordinator    sharding.Coordinator
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	RatingsProcessor    RatingProcessorHandler
-	RatingConfig        config.RatingsConfig
-	StartingEpoch       uint32
+	ElasticIndexer            StorageDataIndexer
+	DataReplayer              DataReplayerHandler
+	GenesisNodesSetup         update.GenesisNodesSetupHandler
+	ShardCoordinator          sharding.Coordinator
+	Marshalizer               marshal.Marshalizer
+	Hasher                    hashing.Hasher
+	TPSBenchmarkUpdater       TPSBenchmarkUpdaterHandler
+	RatingsProcessor          RatingProcessorHandler
+	RatingConfig              config.RatingsConfig
+	StartingEpoch             uint32
+	WaitingListFixEnableEpoch uint32
 }
 
 type dataProcessor struct {
-	startTime           time.Time
-	elasticIndexer      StorageDataIndexer
-	dataReplayer        DataReplayerHandler
-	genesisNodesSetup   update.GenesisNodesSetupHandler
-	ratingConfig        config.RatingsConfig
-	shardCoordinator    sharding.Coordinator
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	nodesCoordinators   map[uint32]NodesCoordinator
-	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	ratingsProcessor    RatingProcessorHandler
-	startingEpoch       uint32
+	startTime                  time.Time
+	elasticIndexer             StorageDataIndexer
+	dataReplayer               DataReplayerHandler
+	genesisNodesSetup          update.GenesisNodesSetupHandler
+	ratingConfig               config.RatingsConfig
+	shardCoordinator           sharding.Coordinator
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	nodesCoordinators          map[uint32]NodesCoordinator
+	tpsBenchmarkUpdater        TPSBenchmarkUpdaterHandler
+	ratingsProcessor           RatingProcessorHandler
+	startingEpoch              uint32
+	waitingListFixEnabledEpoch uint32
 }
 
 // NewDataProcessor returns a new instance of dataProcessor
@@ -86,17 +88,18 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	}
 
 	dp := &dataProcessor{
-		elasticIndexer:      args.ElasticIndexer,
-		dataReplayer:        args.DataReplayer,
-		genesisNodesSetup:   args.GenesisNodesSetup,
-		shardCoordinator:    args.ShardCoordinator,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		ratingsProcessor:    args.RatingsProcessor,
-		tpsBenchmarkUpdater: args.TPSBenchmarkUpdater,
-		ratingConfig:        args.RatingConfig,
-		startingEpoch:       args.StartingEpoch,
-		startTime:           time.Now(),
+		elasticIndexer:             args.ElasticIndexer,
+		dataReplayer:               args.DataReplayer,
+		genesisNodesSetup:          args.GenesisNodesSetup,
+		shardCoordinator:           args.ShardCoordinator,
+		marshalizer:                args.Marshalizer,
+		hasher:                     args.Hasher,
+		ratingsProcessor:           args.RatingsProcessor,
+		tpsBenchmarkUpdater:        args.TPSBenchmarkUpdater,
+		ratingConfig:               args.RatingConfig,
+		startingEpoch:              args.StartingEpoch,
+		startTime:                  time.Now(),
+		waitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
 	}
 
 	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
@@ -265,20 +268,21 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig update.Genes
 	memDB := disabled.CreateMemUnit()
 
 	argsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: int(nodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:  int(nodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:             dp.marshalizer,
-		Hasher:                  dp.hasher,
-		Shuffler:                dataProcessorDisabled.NewNodesShuffler(),
-		EpochStartNotifier:      disabled.NewEpochStartNotifier(),
-		BootStorer:              memDB,
-		ShardIDAsObserver:       shardID,
-		NbShards:                nodesConfig.NumberOfShards(),
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           []byte("own public key"),
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
+		ShardConsensusGroupSize:    int(nodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:     int(nodesConfig.GetMetaConsensusGroupSize()),
+		Marshalizer:                dp.marshalizer,
+		Hasher:                     dp.hasher,
+		Shuffler:                   dataProcessorDisabled.NewNodesShuffler(),
+		EpochStartNotifier:         disabled.NewEpochStartNotifier(),
+		BootStorer:                 memDB,
+		ShardIDAsObserver:          shardID,
+		NbShards:                   nodesConfig.NumberOfShards(),
+		EligibleNodes:              eligibleValidators,
+		WaitingNodes:               waitingValidators,
+		SelfPublicKey:              []byte("own public key"),
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
+		WaitingListFixEnabledEpoch: dp.waitingListFixEnabledEpoch,
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
