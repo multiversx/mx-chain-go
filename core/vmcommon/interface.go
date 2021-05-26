@@ -95,6 +95,12 @@ type BlockchainHook interface {
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+
+	// GetSnapshot gets the number of entries in the journal as a snapshot id
+	GetSnapshot() int
+
+	// RevertToSnapshot reverts snaphots up to the specified one
+	RevertToSnapshot(snapshot int) error
 }
 
 // UserAccountHandler defines a user account
