@@ -536,6 +536,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
+	//TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := &epochNodesConfig{}
 	copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
 	copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)

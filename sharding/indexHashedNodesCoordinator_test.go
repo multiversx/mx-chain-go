@@ -655,6 +655,31 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	}
 }
 
+func BenchmarkIndexHashedNodesCoordinator_CopyMaps(b *testing.B) {
+	previousConfig := &epochNodesConfig{}
+
+	eligibleMap := generateValidatorMap(400, 3)
+	waitingMap := generateValidatorMap(400, 3)
+
+	previousConfig.eligibleMap = eligibleMap
+	previousConfig.waitingMap = waitingMap
+
+	testMutex := sync.RWMutex{}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		testMutex.RLock()
+
+		copiedPrevious := &epochNodesConfig{}
+		copiedPrevious.eligibleMap = copyValidatorMap(previousConfig.eligibleMap)
+		copiedPrevious.waitingMap = copyValidatorMap(previousConfig.waitingMap)
+		copiedPrevious.nbShards = previousConfig.nbShards
+
+		testMutex.RUnlock()
+	}
+}
+
 func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
 	shufflerArgs := &NodesShufflerArgs{
