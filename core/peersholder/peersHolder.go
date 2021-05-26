@@ -11,7 +11,8 @@ type peerInfo struct {
 	shardID uint32
 }
 
-type peerIDPosition struct {
+type peerIDData struct {
+	pubKey  string
 	shardID uint32
 	index   int
 }
@@ -19,7 +20,7 @@ type peerIDPosition struct {
 type peersHolder struct {
 	pubKeysToPeerIDs map[string]*peerInfo
 	peersIDsPerShard map[uint32][]core.PeerID
-	peerIDs          map[core.PeerID]*peerIDPosition
+	peerIDs          map[core.PeerID]*peerIDData
 	sync.RWMutex
 }
 
@@ -34,7 +35,7 @@ func NewPeersHolder(preferredPublicKeys [][]byte) *peersHolder {
 	return &peersHolder{
 		pubKeysToPeerIDs: pubKeysToPeerIDs,
 		peersIDsPerShard: make(map[uint32][]core.PeerID),
-		peerIDs:          make(map[core.PeerID]*peerIDPosition),
+		peerIDs:          make(map[core.PeerID]*peerIDData),
 	}
 }
 
@@ -56,7 +57,8 @@ func (ph *peersHolder) Put(pubKey []byte, peerID core.PeerID, shardID uint32) {
 		return
 	}
 
-	if pInfo.shardID == shardID {
+	isOldPeerData := pInfo.shardID == shardID && pInfo.pid == peerID
+	if isOldPeerData {
 		return
 	}
 
@@ -85,7 +87,7 @@ func (ph *peersHolder) Remove(peerID core.PeerID) {
 	ph.Lock()
 	defer ph.Unlock()
 
-	_, found := ph.peerIDs[peerID]
+	pidData, found := ph.peerIDs[peerID]
 	if !found {
 		return
 	}
@@ -93,24 +95,15 @@ func (ph *peersHolder) Remove(peerID core.PeerID) {
 	shard, index, _ := ph.getShardAndIndexForPeer(peerID)
 	ph.removePeerFromMapAtIndex(shard, index)
 
+	pubKey := pidData.pubKey
+
 	delete(ph.peerIDs, peerID)
 
-	pubKeyForPeerID := ""
-	for pubKey, peerInfo := range ph.pubKeysToPeerIDs {
-		if peerInfo == nil {
-			continue
-		}
-
-		if peerInfo.pid == peerID {
-			pubKeyForPeerID = pubKey
-			break
-		}
-	}
-
-	if len(pubKeyForPeerID) > 0 {
+	_, isPreferredPubKey := ph.pubKeysToPeerIDs[pubKey]
+	if isPreferredPubKey {
 		// don't remove the entry because all the keys in this map refer to preferred connections and a reconnection might
 		// be done later
-		ph.pubKeysToPeerIDs[pubKeyForPeerID] = nil
+		ph.pubKeysToPeerIDs[pubKey] = nil
 	}
 }
 
@@ -123,7 +116,8 @@ func (ph *peersHolder) addPeerInMaps(pubKey string, peerID core.PeerID, shardID 
 
 	ph.peersIDsPerShard[shardID] = append(ph.peersIDsPerShard[shardID], peerID)
 
-	ph.peerIDs[peerID] = &peerIDPosition{
+	ph.peerIDs[peerID] = &peerIDData{
+		pubKey:  pubKey,
 		shardID: shardID,
 		index:   len(ph.peersIDsPerShard[shardID]) - 1,
 	}
@@ -136,7 +130,8 @@ func (ph *peersHolder) updatePeerInMaps(pubKey string, peerID core.PeerID, shard
 
 	index, added := ph.updatePeerInShardedMap(peerID, shardID)
 	if added {
-		ph.peerIDs[peerID] = &peerIDPosition{
+		ph.peerIDs[peerID] = &peerIDData{
+			pubKey:  pubKey,
 			shardID: shardID,
 			index:   index,
 		}
@@ -177,7 +172,7 @@ func (ph *peersHolder) Clear() {
 	ph.Lock()
 	ph.pubKeysToPeerIDs = make(map[string]*peerInfo)
 	ph.peersIDsPerShard = make(map[uint32][]core.PeerID)
-	ph.peerIDs = make(map[core.PeerID]*peerIDPosition)
+	ph.peerIDs = make(map[core.PeerID]*peerIDData)
 	ph.Unlock()
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +16,7 @@ func createMockArg() ArgsConnectionMonitorFactory {
 	return ArgsConnectionMonitorFactory{
 		Reconnecter:                &mock.ReconnecterStub{},
 		Sharder:                    &mock.SharderStub{},
-		PreferredPeersHolder:       &mock.PeersHolderStub{},
+		PreferredPeersHolder:       &p2pmocks.PeersHolderStub{},
 		ThresholdMinConnectedPeers: 1,
 		TargetCount:                1,
 	}
@@ -41,7 +42,7 @@ func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T)
 
 	assert.False(t, check.IfNil(cm))
 	assert.Nil(t, err)
-	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(nil, 0, nil, &mock.PeersHolderStub{})
+	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitorSimple(nil, 0, nil, &p2pmocks.PeersHolderStub{})
 	//this works even though cmExpected is nil because it checks only the type
 	assert.IsType(t, cmExpected, cm)
 }

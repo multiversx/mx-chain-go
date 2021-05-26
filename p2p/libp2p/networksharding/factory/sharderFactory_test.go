@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func createMockArg() ArgsSharderFactory {
 		Type:                 "unknown",
 		PeerShardResolver:    &mock.PeerShardResolverStub{},
 		Pid:                  "",
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		P2pConfig: config.P2PConfig{
 			Sharding: config.ShardingConfig{
 				TargetPeerCount:         6,

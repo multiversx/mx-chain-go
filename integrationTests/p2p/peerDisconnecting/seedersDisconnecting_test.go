@@ -7,9 +7,9 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,7 +48,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 		arg := libp2p.ArgsNetworkMessenger{
 			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:            p2pConfig,
-			PreferredPeersHolder: &mock.PeersHolderStub{},
+			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		}
 		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node
@@ -116,7 +116,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 	argSeeder := libp2p.ArgsNetworkMessenger{
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            p2pConfigSeeder,
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
 	_ = seeders[0].Bootstrap(0)
@@ -128,7 +128,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		argSeeder = libp2p.ArgsNetworkMessenger{
 			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 			P2pConfig:            p2pConfigSeeder,
-			PreferredPeersHolder: &mock.PeersHolderStub{},
+			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()

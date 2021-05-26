@@ -57,6 +57,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
@@ -145,7 +146,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            createP2PConfig(initialAddresses),
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -167,7 +168,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            p2pConfig,
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -183,7 +184,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:            p2pConfig,
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)

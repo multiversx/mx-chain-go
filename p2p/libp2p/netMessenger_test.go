@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -86,7 +87,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 			},
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 }
 
@@ -1291,7 +1292,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 			},
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1355,7 +1356,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 			},
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1426,7 +1427,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 			},
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1488,7 +1489,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 			},
 		},
 		SyncTimer:            &libp2p.LocalSyncTimer{},
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)

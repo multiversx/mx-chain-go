@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/peersholder"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +72,7 @@ func createMockListSharderArguments() ArgListsSharder {
 	return ArgListsSharder{
 		PeerResolver:         createStringPeersShardResolver(),
 		SelfPeerId:           crtPid,
-		PreferredPeersHolder: &mock.PeersHolderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		P2pConfig: config.P2PConfig{
 			Sharding: config.ShardingConfig{
 				TargetPeerCount:         minAllowedConnectedPeersListSharder,
@@ -346,7 +347,7 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 		"peer2",
 		"preferredPeer2",
 	}
-	arg.PreferredPeersHolder = &mock.PeersHolderStub{
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
 		ContainsCalled: func(peerID core.PeerID) bool {
 			return strings.HasPrefix(string(peerID), "preferred")
 		},
@@ -376,7 +377,7 @@ func TestListsSharder_ComputeEvictionListShouldPutPreferredPeers(t *testing.T) {
 		"preferredPeer2",
 	}
 	putWasCalled := false
-	arg.PreferredPeersHolder = &mock.PeersHolderStub{
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
 		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
 			putWasCalled = true
 		},
