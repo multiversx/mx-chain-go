@@ -909,6 +909,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShuffleBetweenShards:           true,
 		MaxNodesEnableConfig:           generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 		BalanceWaitingListsEnableEpoch: generalConfig.GeneralSettings.BalanceWaitingListsEnableEpoch,
+		WaitingListFixEnableEpoch:      generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -1139,6 +1140,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		bootstrapParameters,
 		currentEpoch,
+		generalConfig.GeneralSettings.WaitingListFixEnableEpoch,
 	)
 	if err != nil {
 		return err
@@ -1923,6 +1925,7 @@ func createNodesCoordinator(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
 	startEpoch uint32,
+	waitingListFixEnabledEpoch uint32,
 ) (sharding.NodesCoordinator, update.Closer, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -2018,22 +2021,23 @@ func createNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartNotifier,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardIDAsObserver,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      shuffledOutHandler,
-		Epoch:                   currentEpoch,
-		StartEpoch:              startEpoch,
+		ShardConsensusGroupSize:    shardConsensusGroupSize,
+		MetaConsensusGroupSize:     metaConsensusGroupSize,
+		Marshalizer:                marshalizer,
+		Hasher:                     hasher,
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartNotifier,
+		BootStorer:                 bootStorer,
+		ShardIDAsObserver:          shardIDAsObserver,
+		NbShards:                   nbShards,
+		EligibleNodes:              eligibleValidators,
+		WaitingNodes:               waitingValidators,
+		SelfPublicKey:              pubKeyBytes,
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         shuffledOutHandler,
+		Epoch:                      currentEpoch,
+		StartEpoch:                 startEpoch,
+		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
