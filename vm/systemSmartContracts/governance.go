@@ -20,14 +20,20 @@ import (
 const governanceConfigKey = "governanceConfig"
 const hardForkPrefix = "hardFork_"
 const proposalPrefix = "proposal_"
-const accountLockPrefix = "accountLock_"
-const validatorLockPrefix = "validatorLock_"
+const fundsLockPrefix = "foundsLock_"
 const whiteListPrefix = "whiteList_"
 const yesString = "yes"
 const noString = "no"
 const vetoString = "veto"
 const hardForkEpochGracePeriod = 2
 const githubCommitLength = 40
+
+//TODO: whitelist the first address on initV2
+//TODO: is delegation address - decide on how much does it take to get information about user from delegation contract
+//TODO: decide whether we iterate and get all the data from each SC and verify what happened - this is metachain and this data read get into SCRs which is wrong
+//TODO: cleanup temporary read data
+
+//TODO: implement isVoter and isLocked - in order to keep tokens in system
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -37,7 +43,7 @@ type ArgsNewGovernanceContract struct {
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	GovernanceSCAddress        []byte
-	StakingSCAddress           []byte
+	DelegationMgrSCAddress     []byte
 	ValidatorSCAddress         []byte
 	InitalWhiteListedAddresses [][]byte
 	EpochNotifier              vm.EpochNotifier
@@ -50,15 +56,15 @@ type governanceContract struct {
 	baseProposalCost            *big.Int
 	ownerAddress                []byte
 	governanceSCAddress         []byte
-	stakingSCAddress            []byte
-	validatorSCAddress  []byte
+	delegationMgrSCAddress      []byte
+	validatorSCAddress          []byte
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
 	governanceConfig            config.GovernanceSystemSCConfig
 	initialWhiteListedAddresses [][]byte
 	enabledEpoch                uint32
 	flagEnabled                 atomic.Flag
-	mutExecution        sync.RWMutex
+	mutExecution                sync.RWMutex
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -83,17 +89,17 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 
 	g := &governanceContract{
-		eei:                 args.Eei,
-		gasCost:             args.GasCost,
-		baseProposalCost:    baseProposalCost,
-		ownerAddress:        nil,
-		governanceSCAddress: args.GovernanceSCAddress,
-		stakingSCAddress:    args.StakingSCAddress,
-		validatorSCAddress:  args.ValidatorSCAddress,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		governanceConfig:    args.GovernanceConfig,
-		enabledEpoch:        args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
+		eei:                    args.Eei,
+		gasCost:                args.GasCost,
+		baseProposalCost:       baseProposalCost,
+		ownerAddress:           nil,
+		governanceSCAddress:    args.GovernanceSCAddress,
+		delegationMgrSCAddress: args.DelegationMgrSCAddress,
+		validatorSCAddress:     args.ValidatorSCAddress,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
+		governanceConfig:       args.GovernanceConfig,
+		enabledEpoch:           args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
 	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
 
@@ -254,19 +260,39 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 // vote will cast a new vote
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		return g.accountVote(args)
+		g.eei.AddReturnMessage("function is not payable")
+		return vmcommon.UserError
 	}
 	return g.validatorVote(args)
 }
 
-// accountVote casts a vote taking the transaction value as input for the vote power. It receives 2 arguments:
+func (g *governanceContract) getMinValueToVote() (*big.Int, error) {
+	delegationManagement, err := getDelegationManagement(g.eei, g.marshalizer, g.delegationMgrSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	return delegationManagement.MinDelegationAmount, nil
+}
+
+// voteWithFunds casts a vote taking the transaction value as input for the vote power. It receives 2 arguments:
 //  args.Arguments[0] - proposal reference (github commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
-func (g *governanceContract) accountVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
+	}
+
+	minValueToVote, err := g.getMinValueToVote()
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(minValueToVote) < 0 {
+		g.eei.AddReturnMessage("not enough funds to vote")
+		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 2 {
@@ -300,10 +326,10 @@ func (g *governanceContract) accountVote(args *vmcommon.ContractCallInput) vmcom
 	}
 
 	currentVote := &VoteDetails{
-		Value:       voteOption,
-		Power:       votePower,
-		Balance:     args.CallValue,
-		Type:        Account,
+		Value:   voteOption,
+		Power:   votePower,
+		Balance: args.CallValue,
+		Type:    Account,
 	}
 
 	err = g.addNewVote(voterAddress, currentVote, currentVoteSet, proposal)
@@ -320,7 +346,7 @@ func (g *governanceContract) accountVote(args *vmcommon.ContractCallInput) vmcom
 //  args.Arguments[1] - vote option (yes, no, veto)
 //  args.Arguments[2] - vote power used for this vote
 //  args.Arguments[3] (optional) - an address that identifies if the vote was made on behalf of someone else - this
-//   only helps for statistical and view purposes, it does not afftect the logic in any way
+//   only helps for statistical and view purposes, it does not affect the logic in any way
 func (g *governanceContract) validatorVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
 	if err != nil {
@@ -382,7 +408,6 @@ func (g *governanceContract) validatorVote(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
 
 	return vmcommon.Ok
 }
@@ -584,7 +609,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Voted:          false,
-		Votes:         make([][]byte, 0),
+		Votes:          make([][]byte, 0),
 	}
 	marshaledData, err = g.marshalizer.Marshal(hardForkProposal)
 	if err != nil {
@@ -935,7 +960,7 @@ func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteSet, pro
 	return voteData, proposal, nil
 }
 
-// addNewVote applies a new vote on a proposal then saves the new infonrmation into the storage
+// addNewVote applies a new vote on a proposal then saves the new information into the storage
 func (g *governanceContract) addNewVote(voterAddress []byte, currentVote *VoteDetails, currentVoteSet *VoteSet, proposal *GeneralProposal) error {
 	newVoteSet, updatedProposal, err := g.applyVote(currentVote, currentVoteSet, proposal)
 	if err != nil {
@@ -950,7 +975,7 @@ func (g *governanceContract) addNewVote(voterAddress []byte, currentVote *VoteDe
 	return nil
 }
 
-// saveVoteSet first saves the main vote data of the voter, then updates the proposal with the new voteer information
+// saveVoteSet first saves the main vote data of the voter, then updates the proposal with the new voter information
 func (g *governanceContract) saveVoteSet(voter []byte, voteData *VoteSet, proposal *GeneralProposal, voteType VoteType) error {
 	proposalKey := append([]byte(proposalPrefix), proposal.GitHubCommit...)
 	voteItemKey := append(proposalKey, voter...)
@@ -988,11 +1013,8 @@ func (g *governanceContract) storeVoteSet(voter []byte, voteData *VoteSet, propo
 }
 
 // setLock will set a storage key with the nonce until the funds for a specific voter are locked
-func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *GeneralProposal) {
-	prefix := []byte(validatorLockPrefix)
-	if voteType == Account {
-		prefix = append([]byte(accountLockPrefix), proposal.GitHubCommit...)
-	}
+func (g *governanceContract) setLock(voter []byte, proposal *GeneralProposal, proposalReference []byte) {
+	prefix := append([]byte(fundsLockPrefix), proposalReference...)
 	lockKey := append(prefix, voter...)
 
 	proposalDuration := proposal.EndVoteNonce - proposal.StartVoteNonce
@@ -1003,15 +1025,10 @@ func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *
 }
 
 // getLock returns the lock nonce for a voter
-func (g *governanceContract) getLock(voter []byte, voteType VoteType, proposalReferance []byte) uint64 {
-	prefix := []byte(validatorLockPrefix)
-	if voteType == Account {
-		prefix = append([]byte(accountLockPrefix), proposalReferance...)
-	}
+func (g *governanceContract) getLock(voter []byte, proposalReference []byte) uint64 {
+	prefix := append([]byte(fundsLockPrefix), proposalReference...)
 	lockKey := append(prefix, voter...)
-
 	lock := g.eei.GetStorage(lockKey)
-
 	return big.NewInt(0).SetBytes(lock).Uint64()
 }
 
@@ -1086,7 +1103,8 @@ func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
 		return No, nil
 	case vetoString:
 		return Veto, nil
-	default: return 0, fmt.Errorf("%s: %s%s", vm.ErrInvalidArgument, "invalid vote type option: ", vote)
+	default:
+		return 0, fmt.Errorf("%s: %s%s", vm.ErrInvalidArgument, "invalid vote type option: ", vote)
 	}
 }
 
@@ -1111,52 +1129,13 @@ func (g *governanceContract) getOrCreateVoteSet(proposal []byte, voter []byte) (
 // getEmptyVoteSet returns a new  VoteSet instance with it's members initialised with their 0 value
 func (g *governanceContract) getEmptyVoteSet() *VoteSet {
 	return &VoteSet{
-		UsedPower: big.NewInt(0),
+		UsedPower:   big.NewInt(0),
 		UsedBalance: big.NewInt(0),
-		TotalYes: big.NewInt(0),
-		TotalNo: big.NewInt(0),
-		TotalVeto: big.NewInt(0),
-		VoteItems: make([]*VoteDetails, 0),
+		TotalYes:    big.NewInt(0),
+		TotalNo:     big.NewInt(0),
+		TotalVeto:   big.NewInt(0),
+		VoteItems:   make([]*VoteDetails, 0),
 	}
-}
-
-// getTotalStake returns the total stake for a given address. It does not
-//  include values from nodes that were unstaked.
-// TODO: Take into account TopUp value, should discuss how this will work
-//  since unBond for this funds follow a different mechanism
-func (g *governanceContract) getTotalStake(address []byte) (*big.Int, error) {
-	totalStake := big.NewInt(0)
-	marshaledData := g.eei.GetStorageFromAddress(g.validatorSCAddress, address)
-	if len(marshaledData) == 0 {
-		return totalStake, nil
-	}
-
-	validatorData := &ValidatorDataV2{}
-	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
-	if err != nil {
-		return totalStake, err
-	}
-
-	for _, blsKey := range validatorData.BlsPubKeys {
-		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
-		if len(marshaledData) == 0 {
-			continue
-		}
-
-		nodeData := &StakedDataV2_0{}
-		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
-		if err != nil {
-			return big.NewInt(0), err
-		}
-
-		if !nodeData.Staked {
-			continue
-		}
-
-		totalStake.Add(totalStake, nodeData.StakeValue)
-	}
-
-	return totalStake, nil
 }
 
 // computeValidatorVotingPower returns the total voting power of a validator
@@ -1194,11 +1173,11 @@ func (g *governanceContract) validateInitialWhiteListedAddresses(addresses [][]b
 // startEndNonceFromArguments converts the nonce string arguments to uint64
 func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
 	startVoteNonce, err := g.nonceFromBytes(argStart)
-	if err != nil{
+	if err != nil {
 		return 0, 0, err
 	}
 	endVoteNonce, err := g.nonceFromBytes(argEnd)
-	if err != nil{
+	if err != nil {
 		return 0, 0, err
 	}
 
@@ -1272,10 +1251,10 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	}
 
 	return &GovernanceConfigV2{
-		MinQuorum: minQuorum,
+		MinQuorum:        minQuorum,
 		MinPassThreshold: minPass,
 		MinVetoThreshold: minVeto,
-		ProposalFee: proposalFee,
+		ProposalFee:      proposalFee,
 	}, nil
 }
 
