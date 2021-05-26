@@ -243,7 +243,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	vmFactoryConfig := config.VirtualMachineConfig{
 		OutOfProcessEnabled: false,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+		},
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{

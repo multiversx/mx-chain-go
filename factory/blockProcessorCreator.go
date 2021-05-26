@@ -128,6 +128,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockGasLimit:                  pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:                    pcf.gasSchedule,
 		ArgBlockChainHook:              argsHook,
+		EpochNotifier:                  pcf.coreData.EpochNotifier(),
 		DeployEnableEpoch:              pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,

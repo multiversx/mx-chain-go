@@ -319,6 +319,25 @@ func GetGeneralConfig() config.Config {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Execution: config.VirtualMachineConfig{
+				OutOfProcessEnabled: false,
+				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*", OutOfProcessSupported: false},
+				},
+			},
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					OutOfProcessEnabled: false,
+					OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{},
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "*", OutOfProcessSupported: false},
+					},
+				},
+			},
+		},
 	}
 }
 

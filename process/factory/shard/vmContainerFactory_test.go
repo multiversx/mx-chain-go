@@ -84,18 +84,19 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
+		Config:                         makeVMConfig(),
 		BlockGasLimit:                  10000,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  forking.NewGenericEpochNotifier(),
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
 		ArwenESDTFunctionsEnableEpoch:  0,
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
-	assert.NotNil(t, vmf)
-	assert.Nil(t, err)
+	require.NotNil(t, vmf)
+	require.Nil(t, err)
 
 	container, err := vmf.Create()
 	require.Nil(t, err)
@@ -116,24 +117,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
-	vmConfig := config.VirtualMachineConfig{
-		OutOfProcessEnabled: true,
-		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{
-			LogsMarshalizer:     "json",
-			MessagesMarshalizer: "json",
-			MaxLoopTime:         1000,
-		},
-		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
-		},
-	}
-
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         vmConfig,
+		Config:                         makeVMConfig(),
 		BlockGasLimit:                  10000,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		ArgBlockChainHook:              createMockVMAccountsArguments(),
@@ -206,4 +193,20 @@ func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) s
 	require.NotNil(t, vm)
 
 	return vm.GetVersion()
+}
+
+func makeVMConfig() config.VirtualMachineConfig {
+	return config.VirtualMachineConfig{
+		OutOfProcessEnabled: true,
+		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
+		},
+	}
 }

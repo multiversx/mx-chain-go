@@ -847,6 +847,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: false,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				},
 			},
 			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
 			GasSchedule:                    gasSchedule,
@@ -1329,6 +1332,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
 		},
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    gasSchedule,
