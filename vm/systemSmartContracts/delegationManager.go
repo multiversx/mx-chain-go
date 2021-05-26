@@ -359,8 +359,8 @@ func (d *delegationManager) mergeValidatorToDelegation(
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if returnCode != vmcommon.Ok {
-		return returnCode
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
 	}
 
 	txData = deleteWhitelistForMerge
