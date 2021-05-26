@@ -188,7 +188,12 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 		return
 	}
 
-	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	err = vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
+	if err != nil {
+		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
+		return
+	}
+
 	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
 }
 
