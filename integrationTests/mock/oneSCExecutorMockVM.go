@@ -57,6 +57,11 @@ func NewOneSCExecutorMockVM(blockchainHook vmcommon.BlockchainHook, hasher hashi
 	return vm, nil
 }
 
+// GetVersion -
+func (vm *OneSCExecutorMockVM) GetVersion() string {
+	return ""
+}
+
 // RunSmartContractCreate -
 func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
