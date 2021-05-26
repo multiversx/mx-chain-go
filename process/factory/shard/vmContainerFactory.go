@@ -162,7 +162,7 @@ func (vmf *vmContainerFactory) Close() error {
 }
 
 // EpochConfirmed updates the VM version in the container, depending on the epoch
-func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
+func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32, _ uint64) {
 	vmf.ensureCorrectArwenVersion(epoch)
 }
 

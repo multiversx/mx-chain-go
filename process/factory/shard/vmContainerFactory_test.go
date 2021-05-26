@@ -7,6 +7,7 @@ import (
 	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -155,33 +156,39 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(1)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(1))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(6)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(6))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(10)
-	require.Equal(t, "v1.2", getArwenVersion(t, container))
-	require.True(t, isOutOfProcess(t, container))
-
-	epochNotifier.CheckEpoch(11)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(10))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
 	require.True(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(12)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(11))
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.True(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(12))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(13)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(13))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
 
-	epochNotifier.CheckEpoch(20)
+	epochNotifier.CheckEpoch(makeHeaderHandlerStub(20))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
 	require.False(t, isOutOfProcess(t, container))
+}
+
+func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
+	return &testscommon.HeaderHandlerStub{
+		EpochField: epoch,
+	}
 }
 
 func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bool {
