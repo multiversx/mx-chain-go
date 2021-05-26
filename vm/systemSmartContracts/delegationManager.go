@@ -360,7 +360,7 @@ func (d *delegationManager) mergeValidatorToDelegation(
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return returnCode
+		return vmOutput.ReturnCode
 	}
 
 	txData = deleteWhitelistForMerge
