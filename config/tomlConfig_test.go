@@ -156,10 +156,10 @@ func TestTomlParser(t *testing.T) {
 [VirtualMachine]
     [VirtualMachine.Execution]
         OutOfProcessEnabled = false
-            ArwenVersions = [
-                { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-                { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
-            ]
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
@@ -167,8 +167,8 @@ func TestTomlParser(t *testing.T) {
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
         ArwenVersions = [
-                { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-                { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
         ]
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"

@@ -167,19 +167,19 @@ func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
 }
 
 func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
-	version := vmf.getMatchingVersion(epoch)
+	newVersion := vmf.getMatchingVersion(epoch)
 	currentArwenVM, err := vmf.container.Get(factory.ArwenVirtualMachine)
 	if err != nil {
 		logVMContainerFactory.Error("cannot retrieve Arwen VM from container", "epoch", epoch)
 		return
 	}
 
-	if version.Version == currentArwenVM.GetVersion() {
+	if !vmf.shouldReplaceArwenInstance(newVersion, currentArwenVM) {
 		return
 	}
 
 	vmf.closePreviousVM(currentArwenVM)
-	newArwenVM, err := vmf.createArwenVM(version)
+	newArwenVM, err := vmf.createArwenVM(newVersion)
 	if err != nil {
 		logVMContainerFactory.Error("cannot replace Arwen VM", "epoch", epoch)
 		return
@@ -187,6 +187,32 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 
 	vmf.container.Replace(factory.ArwenVirtualMachine, newArwenVM)
 	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
+}
+
+func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
+	newVersion config.ArwenVersionByEpoch,
+	currentVM vmcommon.VMExecutionHandler,
+) bool {
+	differentVersion := newVersion.Version != currentVM.GetVersion()
+	differentProcessSpace := vmf.shouldChangeProcessSpace(newVersion, currentVM)
+
+	return differentVersion || differentProcessSpace
+}
+
+func (vmf *vmContainerFactory) shouldChangeProcessSpace(
+	newVersion config.ArwenVersionByEpoch,
+	currentVM vmcommon.VMExecutionHandler,
+) bool {
+	if !vmf.config.OutOfProcessEnabled {
+		return false
+	}
+
+	return newVersion.OutOfProcessSupported != vmf.isArwenOutOfProcess(currentVM)
+}
+
+func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandler) bool {
+	_, ok := vm.(*ipcNodePart1_2.ArwenDriver)
+	return ok
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	ipcNodePart1_2 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -116,8 +117,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 	vmConfig := config.VirtualMachineConfig{
 		OutOfProcessEnabled: true,
+		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
 		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: true},
 			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
 		},
 	}
@@ -146,24 +153,44 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 		_ = container.Close()
 	}()
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(1)
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(6)
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(10)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.True(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(11)
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.True(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(12)
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(13)
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(20)
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+}
+
+func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bool {
+	vm, err := container.Get(factory.ArwenVirtualMachine)
+	require.Nil(t, err)
+	require.NotNil(t, vm)
+
+	_, ok := vm.(*ipcNodePart1_2.ArwenDriver)
+	return ok
 }
 
 func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) string {
