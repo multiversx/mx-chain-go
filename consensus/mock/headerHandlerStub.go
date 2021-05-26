@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 )
 
 // HeaderHandlerStub -
@@ -281,6 +282,11 @@ func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
 	return nil
 }
 
+// SetEpochStartMetaHash -
+func (h *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+	return nil
+}
+
 // GetShardInfoHandlers -
 func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler {
 	panic("implement me")
@@ -312,11 +318,16 @@ func (hhs *HeaderHandlerStub) SetAccumulatedFeesInEpoch(_ *big.Int) error {
 }
 
 // SetScheduledRootHash -
-func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error{
+func (hhs *HeaderHandlerStub) SetScheduledRootHash(rootHash []byte) error {
 	panic("implement me")
 }
 
 // ValidateHeaderVersion -
 func (hhs *HeaderHandlerStub) ValidateHeaderVersion() error {
+	return nil
+}
+
+// SetAdditionalData sets the additional version-related data
+func (hhs *HeaderHandlerStub) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
 	return nil
 }

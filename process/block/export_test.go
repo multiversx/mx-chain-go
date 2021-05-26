@@ -100,6 +100,7 @@ func NewShardProcessorEmptyWith3shards(
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory:  &testscommon.VersionedHeaderFactoryStub{},
 	}
 	statusComponents := &mock.StatusComponentsMock{
 		Indexer:      &mock.IndexerMock{},

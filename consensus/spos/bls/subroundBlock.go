@@ -284,8 +284,12 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	round := uint64(sr.RoundHandler().Index())
-	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
-	err := hdr.SetPrevHash(prevHash)
+	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hdr.SetPrevHash(prevHash)
 	if err != nil {
 		return nil, err
 	}

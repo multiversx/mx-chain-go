@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -35,7 +35,8 @@ type dataComponentsHolder interface {
 
 type bootstrapComponentsHolder interface {
 	ShardCoordinator() sharding.Coordinator
-	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	VersionedHeaderFactory() nodeFactory.VersionedHeaderFactory
+	HeaderIntegrityVerifier() nodeFactory.HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 

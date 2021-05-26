@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/queue"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -79,6 +80,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		indexer:                      arguments.StatusComponents.ElasticIndexer(),
 		tpsBenchmark:                 arguments.StatusComponents.TpsBenchmark(),
 		genesisNonce:                 genesisHdr.GetNonce(),
+		versionedHeaderFactory:       arguments.BootstrapComponents.VersionedHeaderFactory(),
 		headerIntegrityVerifier:      arguments.BootstrapComponents.HeaderIntegrityVerifier(),
 		historyRepo:                  arguments.HistoryRepository,
 		epochNotifier:                arguments.EpochNotifier,
@@ -693,7 +695,7 @@ func (sp *shardProcessor) CreateBlock(
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}
-	shardHdr, ok := initialHdr.(*block.Header)
+	shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -706,17 +708,14 @@ func (sp *shardProcessor) CreateBlock(
 	if sp.epochStartTrigger.IsEpochStart() {
 		log.Debug("CreateBlock", "IsEpochStart", sp.epochStartTrigger.IsEpochStart(),
 			"epoch start meta header hash", sp.epochStartTrigger.EpochStartMetaHdrHash())
-		shardHdr.EpochStartMetaHash = sp.epochStartTrigger.EpochStartMetaHdrHash()
-	}
-
-	err = shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
-	if err != nil {
-		return nil, nil, err
+		err = shardHdr.SetEpochStartMetaHash(sp.epochStartTrigger.EpochStartMetaHdrHash())
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
-	shardHdr.SoftwareVersion = []byte(sp.headerIntegrityVerifier.GetVersion(shardHdr.Epoch))
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err
@@ -1181,15 +1180,58 @@ func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processe
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
-	header := &block.Header{
-		Nonce:           nonce,
-		Round:           round,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
+func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	epoch := sp.epochStartTrigger.MetaEpoch()
+	header := sp.versionedHeaderFactory.Create(epoch)
+
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return header
+	err := shardHeader.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.setHeaderVersionData(shardHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+func (sp *shardProcessor) setHeaderVersionData(shardHeader data.ShardHeaderHandler) error {
+	if check.IfNil(shardHeader) {
+		return process.ErrNilHeaderHandler
+	}
+
+	rootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	additionalVersionData := &headerVersionData.AdditionalData{
+		ScheduledRootHash: rootHash,
+	}
+
+	return shardHeader.SetAdditionalData(additionalVersionData)
 }
 
 // getHighestHdrForOwnShardFromMetachain calculates the highest shard header notarized by metachain

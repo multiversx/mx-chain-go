@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 )
 
 // TriePruningIdentifier is the type for trie pruning identifiers
@@ -68,7 +69,7 @@ type HeaderHandler interface {
 	SetReceiptsHash(hash []byte) error
 	SetScheduledRootHash(rootHash []byte) error
 	ValidateHeaderVersion() error
-
+	SetAdditionalData(headerVersionData headerVersionData.HeaderAdditionalData) error
 	IsStartOfEpochBlock() bool
 	ShallowClone() HeaderHandler
 	IsInterfaceNil() bool
@@ -79,6 +80,7 @@ type ShardHeaderHandler interface {
 	HeaderHandler
 	GetMetaBlockHashes() [][]byte
 	GetEpochStartMetaHash() []byte
+	SetEpochStartMetaHash(hash []byte) error
 	GetBlockBodyTypeInt32() int32
 	SetMetaBlockHashes(hashes [][]byte) error
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -48,29 +49,31 @@ type hdrInfo struct {
 }
 
 type baseProcessor struct {
-	shardCoordinator             sharding.Coordinator
-	nodesCoordinator             sharding.NodesCoordinator
-	accountsDB                   map[state.AccountsDbIdentifier]state.AccountsAdapter
-	forkDetector                 process.ForkDetector
-	hasher                       hashing.Hasher
-	marshalizer                  marshal.Marshalizer
-	store                        dataRetriever.StorageService
-	uint64Converter              typeConverters.Uint64ByteSliceConverter
-	blockSizeThrottler           process.BlockSizeThrottler
-	epochStartTrigger            process.EpochStartTriggerHandler
-	headerValidator              process.HeaderConstructionValidator
-	blockChainHook               process.BlockChainHookHandler
-	txCoordinator                process.TransactionCoordinator
-	roundHandler                 consensus.RoundHandler
-	bootStorer                   process.BootStorer
-	requestBlockBodyHandler      process.RequestBlockBodyHandler
-	requestHandler               process.RequestHandler
-	blockTracker                 process.BlockTracker
-	dataPool                     dataRetriever.PoolsHolder
-	feeHandler                   process.TransactionFeeHandler
-	blockChain                   data.ChainHandler
-	hdrsForCurrBlock             *hdrForBlock
-	genesisNonce                 uint64
+	shardCoordinator        sharding.Coordinator
+	nodesCoordinator        sharding.NodesCoordinator
+	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	forkDetector            process.ForkDetector
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	store                   dataRetriever.StorageService
+	uint64Converter         typeConverters.Uint64ByteSliceConverter
+	blockSizeThrottler      process.BlockSizeThrottler
+	epochStartTrigger       process.EpochStartTriggerHandler
+	headerValidator         process.HeaderConstructionValidator
+	blockChainHook          process.BlockChainHookHandler
+	txCoordinator           process.TransactionCoordinator
+	roundHandler            consensus.RoundHandler
+	bootStorer              process.BootStorer
+	requestBlockBodyHandler process.RequestBlockBodyHandler
+	requestHandler          process.RequestHandler
+	blockTracker            process.BlockTracker
+	dataPool                dataRetriever.PoolsHolder
+	feeHandler              process.TransactionFeeHandler
+	blockChain              data.ChainHandler
+	hdrsForCurrBlock        *hdrForBlock
+	genesisNonce            uint64
+
+	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 
@@ -450,7 +453,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
-
+	if check.IfNil(arguments.BootstrapComponents.VersionedHeaderFactory()) {
+		return process.ErrNilVersionedHeaderFactory
+	}
 	return nil
 }
 

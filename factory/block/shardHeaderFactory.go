@@ -41,3 +41,8 @@ func (shf *shardHeaderFactory) Create(epoch uint32) data.HeaderHandler {
 		}
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (shf *shardHeaderFactory) IsInterfaceNil() bool {
+	return shf == nil
+}

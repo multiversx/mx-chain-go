@@ -49,6 +49,7 @@ type bootstrapComponents struct {
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
 	headerVersionHandler    factory.HeaderVersionHandler
+	versionedHeaderFactory  factory.VersionedHeaderFactory
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 }
 
@@ -107,6 +108,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	genesisShardCoordinator, nodeType, err := CreateShardCoordinator(
 		bcf.coreComponents.GenesisNodesSetup(),
 		bcf.cryptoComponents.PublicKey(),
@@ -127,7 +129,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		core.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
-	latestStorageDataProvider, err := CreateLatestStorageDataProvider(
+	latestStorageDataProvider, err := createLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
@@ -138,7 +140,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	unitOpener, err := CreateUnitOpener(
+	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		bcf.config,
@@ -207,6 +209,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	versionedHeaderFactory, err := bcf.createHeaderFactory(headerVersionHandler, bootstrapParameters.SelfShardId)
+	if err != nil {
+		return nil, err
+	}
+
 	return &bootstrapComponents{
 		epochStartBootstrapper: epochStartBootstrapper,
 		bootstrapParamsHolder: &bootstrapParams{
@@ -216,7 +223,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		shardCoordinator:        shardCoordinator,
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
+		versionedHeaderFactory:  versionedHeaderFactory,
 	}, nil
+}
+
+func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler factory.HeaderVersionHandler, shardID uint32) (factory.VersionedHeaderFactory, error) {
+	if shardID == core.MetachainShardId {
+		return block.NewMetaHeaderFactory(handler)
+	}
+	return block.NewShardHeaderFactory(handler)
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
@@ -244,13 +259,18 @@ func (bc *bootstrapComponents) HeaderVersionHandler() factory.HeaderVersionHandl
 	return bc.headerVersionHandler
 }
 
+// VersionedHeaderFactory returns the versioned header factory
+func (bc *bootstrapComponents) VersionedHeaderFactory() factory.VersionedHeaderFactory {
+	return bc.versionedHeaderFactory
+}
+
 // HeaderIntegrityVerifier returns the header integrity verifier
 func (bc *bootstrapComponents) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
 
-// CreateLatestStorageDataProvider will create a latest storage data provider handler
-func CreateLatestStorageDataProvider(
+// createLatestStorageDataProvider will create a latest storage data provider handler
+func createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	generalConfig config.Config,
 	parentDir string,
@@ -270,8 +290,8 @@ func CreateLatestStorageDataProvider(
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 
-// CreateUnitOpener will create a new unit opener handler
-func CreateUnitOpener(
+// createUnitOpener will create a new unit opener handler
+func createUnitOpener(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
 	generalConfig config.Config,

@@ -22,7 +22,7 @@ type BlockProcessorStub struct {
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled            func(round uint64, nonce uint64) data.HeaderHandler
+	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
 	RevertIndexedBlockCalled         func(header data.HeaderHandler)
@@ -99,7 +99,7 @@ func (bps *BlockProcessorStub) AddLastNotarizedHdr(shardId uint32, processedHdr 
 }
 
 // CreateNewHeader creates a new header
-func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	return bps.CreateNewHeaderCalled(round, nonce)
 }
 

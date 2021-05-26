@@ -170,7 +170,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
-	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()

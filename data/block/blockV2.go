@@ -4,7 +4,9 @@ package block
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 )
 
 // GetShardID returns the header shardID
@@ -457,6 +459,15 @@ func (hv2 *HeaderV2) SetMetaBlockHashes(hashes [][]byte) error {
 	return hv2.Header.SetMetaBlockHashes(hashes)
 }
 
+// SetEpochStartMetaHash sets the epoch start metaBlock hash
+func (hv2 *HeaderV2) SetEpochStartMetaHash(hash []byte) error {
+	if hv2 == nil {
+		return data.ErrNilPointerReceiver
+	}
+
+	return hv2.Header.SetEpochStartMetaHash(hash)
+}
+
 // SetScheduledRootHash sets the scheduled root hash
 func (hv2 *HeaderV2) SetScheduledRootHash(rootHash []byte) error {
 	if hv2 == nil {
@@ -476,4 +487,12 @@ func (hv2 *HeaderV2) ValidateHeaderVersion() error {
 	}
 
 	return hv2.Header.ValidateHeaderVersion()
+}
+
+// SetAdditionalData sets the additional version related data for the header
+func (hv2 *HeaderV2) SetAdditionalData(headerVersionData headerVersionData.HeaderAdditionalData) error {
+	if check.IfNil(headerVersionData) {
+		return data.ErrNilPointerDereference
+	}
+	return hv2.SetScheduledRootHash(headerVersionData.GetScheduledRootHash())
 }

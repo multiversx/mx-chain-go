@@ -35,3 +35,8 @@ func (mhv *metaHeaderVersionHandler) Create(epoch uint32) data.HeaderHandler {
 		SoftwareVersion: []byte(version),
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mhv *metaHeaderVersionHandler) IsInterfaceNil() bool {
+	return mhv == nil
+}

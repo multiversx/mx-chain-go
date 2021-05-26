@@ -129,9 +129,13 @@ func proposeBlock(node *integrationTests.TestProcessorNode, round uint64, nonce 
 		return remainingTime > 0
 	}
 
-	blockHeader := node.BlockProcessor.CreateNewHeader(round, nonce)
+	blockHeader, err := node.BlockProcessor.CreateNewHeader(round, nonce)
+	if err != nil {
+		log.Error("node.BlockProcessor.CreateNewHeader", "error", err.Error())
+		return nil, nil, nil
+	}
 
-	err := blockHeader.SetShardID(0)
+	err = blockHeader.SetShardID(0)
 	if err != nil {
 		log.Error("blockHeader.SetShardID", "error", err.Error())
 	}
