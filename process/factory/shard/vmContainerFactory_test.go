@@ -64,10 +64,11 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
+		Config:                         makeVMConfig(),
 		BlockGasLimit:                  10000,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  forking.NewGenericEpochNotifier(),
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
