@@ -1,21 +1,17 @@
-package testscommon
+package core
 
 import (
 	"bytes"
 	"runtime"
 	"runtime/pprof"
-
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
 
-var log = logger.GetOrCreate("testscommon")
-
-// LogGoroutinesNumber will print the currently running go routines
-func LogGoroutinesNumber(goRoutinesNumberStart int) {
+// DumpGoRoutinesToLog will print the currently running go routines in the log
+func DumpGoRoutinesToLog(goRoutinesNumberStart int) {
 	buffer := new(bytes.Buffer)
 	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
 	if err != nil {
-		log.Error("could not dump goroutines")
+		log.Error("could not dump goroutines", "error", err)
 	}
 	log.Debug("go routines number",
 		"start", goRoutinesNumberStart,

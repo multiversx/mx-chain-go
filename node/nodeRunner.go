@@ -40,7 +40,6 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/google/gops/agent"
@@ -50,6 +49,8 @@ const (
 	defaultLogsPath = "logs"
 	logFilePrefix   = "elrond-go"
 	maxTimeToClose  = 10 * time.Second
+	// SoftRestartMessage is the custom message used when the node does a soft restart operation
+	SoftRestartMessage = "Shuffled out - soft restart"
 )
 
 // nodeRunner holds the node runner configuration and controls running of a node
@@ -99,7 +100,7 @@ func (nr *nodeRunner) Start() error {
 
 	printEnableEpochs(nr.configs)
 
-	testscommon.LogGoroutinesNumber(0)
+	core.DumpGoRoutinesToLog(0)
 
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
@@ -698,8 +699,8 @@ func waitForSignal(
 	}
 
 	if reshuffled {
-		log.Info("=============================Shuffled out - soft restart==================================")
-		testscommon.LogGoroutinesNumber(goRoutinesNumberStart)
+		log.Info("=============================" + SoftRestartMessage + "==================================")
+		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
 	} else {
 		return fmt.Errorf("not reshuffled, closing")
 	}

@@ -1690,5 +1690,5 @@ func TestNetworkMessenger_Bootstrap(t *testing.T) {
 	time.Sleep(time.Second * 5)
 
 	goRoutinesNumberStart := runtime.NumGoroutine()
-	testscommon.LogGoroutinesNumber(goRoutinesNumberStart)
+	core.DumpGoRoutinesToLog(goRoutinesNumberStart)
 }

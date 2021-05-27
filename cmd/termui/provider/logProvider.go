@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/gorilla/websocket"
 )
 
@@ -128,7 +129,7 @@ func writeMessage(presenter PresenterHandler, message []byte, chanNodeIsStarting
 	if strings.Contains(string(message), "/node/status") {
 		return
 	}
-	if strings.Contains(string(message), "Shuffled out - soft restart") {
+	if strings.Contains(string(message), node.SoftRestartMessage) {
 		chanNodeIsStarting <- struct{}{}
 	}
 
