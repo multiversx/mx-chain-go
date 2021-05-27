@@ -381,6 +381,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
 			Marshalizer:      e.marshalizer,
+			PathManager:      e.pathManager,
 		},
 	)
 	if err != nil {

@@ -196,3 +196,6 @@ var ErrNilGracefullyCloseChannel = errors.New("nil gracefully close channel")
 
 // ErrNilSmartContractsPool signals that a nil smart contracts pool has been provided
 var ErrNilSmartContractsPool = errors.New("nil smart contracts pool")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")

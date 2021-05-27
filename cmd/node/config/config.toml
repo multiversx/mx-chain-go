@@ -445,7 +445,6 @@
     Type = "LRU"
 
 [TrieSyncStorage]
-    UseTmpAsFilePath = true
     Capacity = 300000
     SizeInBytes = 104857600 #100MB
     [TrieSyncStorage.DB]
@@ -454,6 +453,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [Antiflood]
     Enabled = true

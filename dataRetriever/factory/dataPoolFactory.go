@@ -3,6 +3,10 @@ package factory
 import (
 	"io/ioutil"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,6 +33,7 @@ type ArgsDataPool struct {
 	EconomicsData    process.EconomicsDataHandler
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
+	PathManager      storage.PathManagerHandler
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -43,6 +48,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManager) {
+		return nil, dataRetriever.ErrNilPathManager
 	}
 
 	mainConfig := args.Config
@@ -99,9 +107,10 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
+	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
 	argDB := storageUnit.ArgDB{
 		DBType:            dbCfg.Type,
-		Path:              dbCfg.FilePath,
+		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
 		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
 		MaxBatchSize:      dbCfg.MaxBatchSize,
 		MaxOpenFiles:      dbCfg.MaxOpenFiles,

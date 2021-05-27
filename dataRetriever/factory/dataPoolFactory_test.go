@@ -36,6 +36,12 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	require.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
+
+	args = getGoodArgs()
+	args.PathManager = nil
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.Equal(t, dataRetriever.ErrNilPathManager, err)
 }
 
 func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
@@ -101,5 +107,6 @@ func getGoodArgs() ArgsDataPool {
 		EconomicsData:    testEconomics,
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
+		PathManager:      &mock.PathManagerStub{},
 	}
 }
