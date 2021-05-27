@@ -237,7 +237,7 @@ type ConnectedPeersInfo struct {
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	IsInterfaceNil() bool
 }
 

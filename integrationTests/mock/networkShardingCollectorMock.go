@@ -31,23 +31,21 @@ func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 }
 
 // UpdatePeerIdPublicKey -
-func (nscm *networkShardingCollectorMock) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
+func (nscm *networkShardingCollectorMock) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
 	nscm.mutPeerIdPkMap.Lock()
 	nscm.peerIdPkMap[pid] = pk
 	nscm.mutPeerIdPkMap.Unlock()
-}
 
-// UpdatePublicKeyShardId -
-func (nscm *networkShardingCollectorMock) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
+	if shardID == core.UnknownShardID {
+		return
+	}
+
 	nscm.mutFallbackPkShardMap.Lock()
-	nscm.fallbackPkShardMap[string(pk)] = shardId
+	nscm.fallbackPkShardMap[string(pk)] = shardID
 	nscm.mutFallbackPkShardMap.Unlock()
-}
 
-// UpdatePeerIdShardId -
-func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	nscm.mutFallbackPidShardMap.Lock()
-	nscm.fallbackPidShardMap[string(pid)] = shardId
+	nscm.fallbackPidShardMap[string(pid)] = shardID
 	nscm.mutFallbackPidShardMap.Unlock()
 }
 

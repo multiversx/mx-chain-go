@@ -225,10 +225,28 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map
+// UpdatePeerIDInfo updates the public keys and the shard ID for the peer IDin the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack
-func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
+func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
+	psm.updatePeerIDPublicKey(pid, pk)
+
+	if shardID == core.UnknownShardID {
+		return
+	}
+	psm.updatePublicKeyShardId(pk, shardID)
+	psm.updatePeerIdShardId(pid, shardID)
+}
+
+func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
+	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
+}
+
+func (psm *PeerShardMapper) updatePeerIdShardId(pid core.PeerID, shardId uint32) {
+	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
+}
+
+func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) {
 	//mutUpdatePeerIdPublicKey is used as to consider this function a critical section
 	psm.mutUpdatePeerIdPublicKey.Lock()
 	defer psm.mutUpdatePeerIdPublicKey.Unlock()
@@ -299,16 +317,6 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) {
 	}
 
 	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.size())
-}
-
-// UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
-func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
-}
-
-// UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
-func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
-	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
 // UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes

@@ -439,9 +439,6 @@ const (
 	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
-	//MetricMaxNodesChange
-	MetricMaxNodesChange = "erd_max_nodes_change_enable_epoch"
-
 	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
 	MetricBlockGasAndFreeRecheckEnableEpoch = "erd_block_gas_and_fee_recheck_enable_epoch"
 
@@ -780,3 +777,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
+
+// UnknownShardID is a constant to be used when the shard ID of a node is unknown
+const UnknownShardID = MetachainShardId - 1
