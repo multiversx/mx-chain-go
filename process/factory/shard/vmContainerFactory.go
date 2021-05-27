@@ -201,10 +201,11 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 	newVersion config.ArwenVersionByEpoch,
 	currentVM vmcommon.VMExecutionHandler,
 ) bool {
+	specificVersionRequired := newVersion.Version != "*"
 	differentVersion := newVersion.Version != currentVM.GetVersion()
 	differentProcessSpace := vmf.shouldChangeProcessSpace(newVersion, currentVM)
 
-	return differentVersion || differentProcessSpace
+	return (specificVersionRequired && differentVersion) || differentProcessSpace
 }
 
 func (vmf *vmContainerFactory) shouldChangeProcessSpace(
@@ -295,8 +296,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVM_v1_3() (vmcommon.VMExecuti
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM_v1_2() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
-
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
 	logsMarshalizer := ipcMarshaling1_2.ParseKind(outOfProcessConfig.LogsMarshalizer)
 	messagesMarshalizer := ipcMarshaling1_2.ParseKind(outOfProcessConfig.MessagesMarshalizer)
