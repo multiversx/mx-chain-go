@@ -246,6 +246,7 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		EpochConfig:            *scf.epochConfig,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)

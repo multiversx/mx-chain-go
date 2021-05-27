@@ -42,6 +42,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
 	}
 }
 
