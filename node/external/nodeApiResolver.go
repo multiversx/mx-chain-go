@@ -75,7 +75,6 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 }
 
 // Close closes all underlying components
-//TODO(iulian) add tests
 func (nar *nodeApiResolver) Close() error {
 	return nar.scQueryService.Close()
 }

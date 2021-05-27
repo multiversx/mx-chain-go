@@ -69,7 +69,6 @@ func (sqsd *scQueryServiceDispatcher) getNewIndex() int {
 }
 
 // Close closes all underlying components
-//TODO(iulian) add tests
 func (sqsd *scQueryServiceDispatcher) Close() error {
 	sqsd.mutList.RLock()
 	defer sqsd.mutList.RUnlock()

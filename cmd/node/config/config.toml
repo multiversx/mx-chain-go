@@ -591,8 +591,8 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
-    MaxStateTrieLevelInMemory = 3 #TODO test this
-    MaxPeerTrieLevelInMemory = 3 #TODO test this
+    MaxStateTrieLevelInMemory = 5
+    MaxPeerTrieLevelInMemory = 5
     UserStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
     PeerStatePruningQueueSize = 0 # setting 0 means no buffering, so pruning is done for the block before final
 

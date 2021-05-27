@@ -173,7 +173,6 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 }
 
 // Close closes all underlying components
-//TODO(iulian) add tests
 func (service *SCQueryService) Close() error {
 	return service.vmContainer.Close()
 }
