@@ -192,6 +192,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		MinDeposit:               scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
 		DelegationMgrEnableEpoch: scf.epochConfig.EnableEpochs.DelegationManagerEnableEpoch,
 		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
+		GovernanceSCAddress:      vm.GovernanceSCAddress,
 		EpochConfig:              *scf.epochConfig,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
@@ -217,16 +218,16 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                 scf.systemEI,
-		GasCost:             scf.gasCost,
-		GovernanceConfig:    scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:         scf.marshalizer,
-		Hasher:              scf.hasher,
-		GovernanceSCAddress: vm.GovernanceSCAddress,
-		StakingSCAddress:    vm.StakingSCAddress,
-		ValidatorSCAddress:  vm.ValidatorSCAddress,
-		EpochNotifier:       scf.epochNotifier,
-		EpochConfig:         *scf.epochConfig,
+		Eei:                    scf.systemEI,
+		GasCost:                scf.gasCost,
+		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:            scf.marshalizer,
+		Hasher:                 scf.hasher,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		EpochNotifier:          scf.epochNotifier,
+		EpochConfig:            *scf.epochConfig,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

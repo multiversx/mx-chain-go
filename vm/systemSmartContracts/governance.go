@@ -23,6 +23,7 @@ const hardForkPrefix = "hardFork_"
 const proposalPrefix = "proposal_"
 const fundsLockPrefix = "foundsLock_"
 const whiteListPrefix = "whiteList_"
+const stakeLockPrefix = "stakeLock_"
 const yesString = "yes"
 const noString = "no"
 const vetoString = "veto"
@@ -30,7 +31,6 @@ const hardForkEpochGracePeriod = 2
 const githubCommitLength = 40
 
 //TODO: whitelist the first address on initV2
-//TODO: implement isVoter and isLocked - in order to keep tokens in system
 //TODO: use gas everywhere
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
@@ -84,6 +84,16 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	baseProposalCost, okConvert := big.NewInt(0).SetString(activeConfig.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
+	}
+
+	if len(args.ValidatorSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.DelegationMgrSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 
 	g := &governanceContract{
@@ -319,7 +329,33 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	g.lockStake(voterAddress, proposal.EndVoteNonce)
+
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) lockStake(address []byte, endNonce uint64) {
+	stakeLockKey := append([]byte(stakeLockPrefix), address...)
+	lastData := g.eei.GetStorage(stakeLockKey)
+	lastEndNonce := uint64(0)
+	if len(lastData) > 0 {
+		lastEndNonce = big.NewInt(0).SetBytes(lastData).Uint64()
+	}
+
+	if lastEndNonce < endNonce {
+		g.eei.SetStorage(stakeLockKey, big.NewInt(0).SetUint64(endNonce).Bytes())
+	}
+}
+
+func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bool {
+	stakeLockKey := append([]byte(stakeLockPrefix), address...)
+	lastData := eei.GetStorageFromAddress(governanceAddress, stakeLockKey)
+	if len(lastData) == 0 {
+		return false
+	}
+
+	lastEndNonce := big.NewInt(0).SetBytes(lastData).Uint64()
+	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
 // delegateVote casts a vote from a validator run by WASM SC and delegates it to some. This function receives 4 parameters:
@@ -389,6 +425,7 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	g.lockStake(voterAddress, proposal.EndVoteNonce)
 
 	return vmcommon.Ok
 }

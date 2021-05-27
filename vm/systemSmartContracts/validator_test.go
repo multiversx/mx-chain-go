@@ -51,6 +51,7 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 		EpochNotifier:            &mock.EpochNotifierStub{},
 		MinDeposit:               "0",
 		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
+		GovernanceSCAddress:      vm.GovernanceSCAddress,
 		DelegationMgrEnableEpoch: 100000,
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
@@ -273,6 +274,17 @@ func TestNewStakingValidatorSmartContract_EmptyDelegationManagerAddress(t *testi
 
 	arguments := createMockArgumentsForValidatorSC()
 	arguments.DelegationMgrSCAddress = make([]byte, 0)
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidAddress))
+}
+
+func TestNewStakingValidatorSmartContract_EmptyGovernanceAddress(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.GovernanceSCAddress = make([]byte, 0)
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
