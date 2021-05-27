@@ -1213,7 +1213,7 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 	}
 
 	localID := pcf.network.NetworkMessenger().ID()
-	networkShardingCollector.UpdatePeerIdShardId(localID, pcf.bootstrapComponents.ShardCoordinator().SelfId())
+	networkShardingCollector.UpdatePeerIDInfo(localID, pcf.crypto.PublicKeyBytes(), pcf.bootstrapComponents.ShardCoordinator().SelfId())
 
 	err = pcf.network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
 	if err != nil {

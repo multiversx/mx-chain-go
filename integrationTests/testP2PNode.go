@@ -92,7 +92,7 @@ func NewTestP2PNode(
 
 	tP2pNode.Messenger = CreateMessengerFromConfig(p2pConfig)
 	localId := tP2pNode.Messenger.ID()
-	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
+	tP2pNode.NetworkShardingUpdater.UpdatePeerIDInfo(localId, []byte(""), shardCoordinator.SelfId())
 
 	err = tP2pNode.Messenger.SetPeerShardResolver(tP2pNode.NetworkShardingUpdater)
 	if err != nil {
