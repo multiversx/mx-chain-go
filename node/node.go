@@ -202,7 +202,7 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
-	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
@@ -243,8 +243,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
-		if !ok {
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !okGet {
 			continue
 		}
 
@@ -265,7 +265,7 @@ func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.U
 		return nil, false
 	}
 
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
 	if err != nil {
 		log.Warn("cannot unmarshal esdt data", "err", err)
 		return nil, false
@@ -377,7 +377,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 }
 
 func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
-	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
@@ -413,8 +413,8 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 			continue
 		}
 
-		esdtToken, ok := n.getEsdtDataFromLeaf(leaf, userAccount)
-		if !ok {
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !okGet {
 			continue
 		}
 
@@ -428,7 +428,7 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
 func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
-	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
 		return nil, ErrInvalidESDTRole
 	}
 
-	addressBytes, err := n.addressPubkeyConverter.Decode(address)
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
 		return nil, err
 	}

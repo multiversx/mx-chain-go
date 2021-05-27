@@ -308,7 +308,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			RatingsProcessor:          ratingsProcessor,
 			RatingConfig:              ratingsConfig,
 			StartingEpoch:             uint32(flagsValues.startingEpoch),
-			WaitingListFixEnableEpoch: nodeConfig.GeneralSettings.WaitingListFixEnableEpoch,
+			WaitingListFixEnableEpoch: 0, //TODO(next PR): remove the storer2elastic app
 		})
 
 	if err != nil {

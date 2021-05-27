@@ -261,6 +261,7 @@ func createScQueryElement(
 			ChanceComputer:      args.coreComponents.Rater(),
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
 			EpochConfig:         args.epochConfig,
+			ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {

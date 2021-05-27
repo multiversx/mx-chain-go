@@ -63,7 +63,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 				StakingV2EnableEpoch: 10,
 			},
 		},
-		ShardCoordinator:         &mock.ShardCoordinatorStub{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 
 	return args
@@ -3103,7 +3103,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	nodesToRunBytes := big.NewInt(1).Bytes()
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
-	args.ValidatorToDelegationEnableEpoch = 1000
+	args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch = 1000
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -3141,7 +3141,7 @@ func TestValidatorStakingSC_ChangeRewardAddressWithExtraChecks(t *testing.T) {
 	nodesToRunBytes := big.NewInt(1).Bytes()
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSCWithRealAddresses()
-	args.ValidatorToDelegationEnableEpoch = 0
+	args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch = 0
 	args.ValidatorSCAddress = vm.ValidatorSCAddress
 	args.ShardCoordinator = &mock.ShardCoordinatorStub{
 		ComputeIdCalled: func(address []byte) uint32 {

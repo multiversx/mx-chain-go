@@ -606,11 +606,15 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			return &block.Header{}
 		},
 	}
-
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	value, err := n.GetAllIssuedESDTs(core.FungibleESDT)
@@ -674,17 +678,25 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
-		node.WithAccountsAdapterAPI(accDB),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
-		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
-		}}),
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity)
@@ -736,17 +748,25 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
-		node.WithAccountsAdapterAPI(accDB),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
-		node.WithBlockChain(&mock.BlockChainMock{GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
-		}}),
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes))
