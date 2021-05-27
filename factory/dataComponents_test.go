@@ -128,7 +128,7 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 		EconomicsData:      testEconomics,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
-		PathManager:        &mock.PathManagerStub{},
+		PathManager:        &testscommon.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
 	}

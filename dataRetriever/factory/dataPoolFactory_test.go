@@ -107,6 +107,6 @@ func getGoodArgs() ArgsDataPool {
 		EconomicsData:    testEconomics,
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
-		PathManager:      &mock.PathManagerStub{},
+		PathManager:      &testscommon.PathManagerStub{},
 	}
 }

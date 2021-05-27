@@ -6,7 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	stats "github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 
 	resourceMonitor := stats.NewResourceMonitor()
 
-	statistics := resourceMonitor.GenerateStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	statistics := resourceMonitor.GenerateStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
 
 	assert.NotNil(t, statistics)
 }
@@ -40,5 +40,5 @@ func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {
 
 	resourceMonitor := stats.NewResourceMonitor()
 
-	resourceMonitor.SaveStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	resourceMonitor.SaveStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
 }

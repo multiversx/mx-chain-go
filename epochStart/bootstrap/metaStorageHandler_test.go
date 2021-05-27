@@ -18,7 +18,7 @@ import (
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	gCfg := config.Config{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -35,7 +35,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 
 	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -52,7 +52,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 
 	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -78,7 +78,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 
 	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -110,7 +110,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 
 	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -133,7 +133,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 
 	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}

@@ -73,7 +73,7 @@ func getTriesArgs() factory.TriesComponentsFactoryArgs {
 	return factory.TriesComponentsFactoryArgs{
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &mock.HasherMock{},
-		PathManager:      &mock.PathManagerStub{},
+		PathManager:      &testscommon.PathManagerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		Config:           testscommon.GetGeneralConfig(),
 	}
