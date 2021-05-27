@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,7 @@ import (
 func TestEsdtNFTCreateRoleTransfer_Constructor(t *testing.T) {
 	t.Parallel()
 
-	e, err := NewESDTNFTCreateRoleTransfer(nil, &mock.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
+	e, err := NewESDTNFTCreateRoleTransfer(nil, &testscommon.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
 	assert.Nil(t, e)
 	assert.Equal(t, err, process.ErrNilMarshalizer)
 
@@ -29,11 +30,11 @@ func TestEsdtNFTCreateRoleTransfer_Constructor(t *testing.T) {
 	assert.Nil(t, e)
 	assert.Equal(t, err, process.ErrNilAccountsAdapter)
 
-	e, err = NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &mock.AccountsStub{}, nil)
+	e, err = NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &testscommon.AccountsStub{}, nil)
 	assert.Nil(t, e)
 	assert.Equal(t, err, process.ErrNilShardCoordinator)
 
-	e, err = NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &mock.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
+	e, err = NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &testscommon.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
 	assert.Nil(t, err)
 	assert.NotNil(t, e)
 	assert.False(t, e.IsInterfaceNil())
@@ -44,7 +45,7 @@ func TestEsdtNFTCreateRoleTransfer_Constructor(t *testing.T) {
 func TestESDTNFTCreateRoleTransfer_ProcessWithErrors(t *testing.T) {
 	t.Parallel()
 
-	e, err := NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &mock.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
+	e, err := NewESDTNFTCreateRoleTransfer(&mock.MarshalizerMock{}, &testscommon.AccountsStub{}, mock.NewMultiShardsCoordinatorMock(2))
 	assert.Nil(t, err)
 	assert.NotNil(t, e)
 

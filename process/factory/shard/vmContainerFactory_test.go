@@ -19,7 +19,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &mock.AccountsStub{
+		Accounts: &testscommon.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},

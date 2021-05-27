@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,7 @@ func TestNewPeerAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&mock.TrieStub{},
+		&testscommon.TrieStub{},
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
@@ -42,7 +43,7 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&mock.TrieStub{},
+		&testscommon.TrieStub{},
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
@@ -56,7 +57,7 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&mock.TrieStub{},
+		&testscommon.TrieStub{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
@@ -70,7 +71,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetStorageManagerCalled: func() data.StorageManager {
 				return &mock.StorageManagerStub{
 					DatabaseCalled: func() data.DBWriteCacher {

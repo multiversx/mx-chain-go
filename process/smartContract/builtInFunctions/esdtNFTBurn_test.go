@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -251,7 +252,7 @@ func TestEsdtNFTBurnFunc_ProcessBuiltinFunctionMetaDataMissing(t *testing.T) {
 	esdtDataBytes, _ := marshalizer.Marshal(esdtData)
 	tailLength := 28 // len(esdtKey) + "identifier"
 	esdtDataBytes = append(esdtDataBytes, make([]byte, tailLength)...)
-	userAcc.SetDataTrie(&mock.TrieStub{
+	userAcc.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return esdtDataBytes, nil
 		},
@@ -294,7 +295,7 @@ func TestEsdtNFTBurnFunc_ProcessBuiltinFunctionInvalidBurnQuantity(t *testing.T)
 	esdtDataBytes, _ := marshalizer.Marshal(esdtData)
 	tailLength := 28 // len(esdtKey) + "identifier"
 	esdtDataBytes = append(esdtDataBytes, make([]byte, tailLength)...)
-	userAcc.SetDataTrie(&mock.TrieStub{
+	userAcc.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return esdtDataBytes, nil
 		},
@@ -339,7 +340,7 @@ func TestEsdtNFTBurnFunc_ProcessBuiltinFunctionShouldErrOnSaveBecauseTokenIsPaus
 	esdtDataBytes, _ := marshalizer.Marshal(esdtData)
 	tailLength := 28 // len(esdtKey) + "identifier"
 	esdtDataBytes = append(esdtDataBytes, make([]byte, tailLength)...)
-	userAcc.SetDataTrie(&mock.TrieStub{
+	userAcc.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return esdtDataBytes, nil
 		},
@@ -387,7 +388,7 @@ func TestEsdtNFTBurnFunc_ProcessBuiltinFunctionShouldWork(t *testing.T) {
 	tokenKey := append([]byte(key), nonce.Bytes()...)
 	tailLength := len(tokenKey) + len("identifier")
 	esdtDataBytes = append(esdtDataBytes, make([]byte, tailLength)...)
-	userAcc.SetDataTrie(&mock.TrieStub{
+	userAcc.SetDataTrie(&testscommon.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return esdtDataBytes, nil
 		},

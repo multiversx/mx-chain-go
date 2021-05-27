@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,8 +52,8 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
-		AccountsState: &mock.AccountsStub{},
-		PeerState:     &mock.AccountsStub{},
+		AccountsState: &testscommon.AccountsStub{},
+		PeerState:     &testscommon.AccountsStub{},
 	}
 }
 

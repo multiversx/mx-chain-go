@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
 	acnt, _ := state.NewUserAccount(core.SystemAccountAddress)
-	pauseFunc, _ := NewESDTPauseFunc(&mock.AccountsStub{
+	pauseFunc, _ := NewESDTPauseFunc(&testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return acnt, nil
 		},
@@ -64,7 +64,7 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 	pauseKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(key))
 	assert.True(t, pauseFunc.IsPaused(pauseKey))
 
-	esdtPauseFalse, _ := NewESDTPauseFunc(&mock.AccountsStub{
+	esdtPauseFalse, _ := NewESDTPauseFunc(&testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return acnt, nil
 		},

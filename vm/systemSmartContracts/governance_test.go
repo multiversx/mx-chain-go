@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/require"
@@ -524,7 +525,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		atArgParser,
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
 	args := createMockGovernanceArgs()

@@ -21,7 +21,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &mock.AccountsStub{
+		Accounts: &testscommon.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
@@ -79,7 +79,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
@@ -179,7 +179,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxServiceFee: 100,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 	}

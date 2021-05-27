@@ -43,11 +43,11 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 
 //------- NewShardProcessor
 
-func initAccountsMock() *mock.AccountsStub {
+func initAccountsMock() *testscommon.AccountsStub {
 	rootHashCalled := func() ([]byte, error) {
 		return []byte("rootHash"), nil
 	}
-	return &mock.AccountsStub{
+	return &testscommon.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
 }
@@ -309,7 +309,7 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 
 	body := &block.Body{}
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -350,7 +350,7 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 	}
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -415,7 +415,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		return []byte("rootHash"), nil
 	}
 
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -488,7 +488,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -644,7 +644,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tpm := &mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
 	store := &mock.ChainStorerMock{}
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -801,7 +801,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -887,7 +887,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -966,7 +966,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	}
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1047,7 +1047,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1191,7 +1191,7 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	arguments.DataPool = tdp
 	arguments.Hasher = hasher
 	arguments.Marshalizer = marshalizer
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1252,7 +1252,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	}
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
 	arguments.BlockChain = blkc
@@ -1330,7 +1330,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 		},
 	}
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
@@ -1485,7 +1485,7 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	rootHash := []byte("root hash to be tested")
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -1529,7 +1529,7 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	putCalledNr := uint32(0)
 	rootHash := []byte("root hash to be tested")
 	marshalizer := &mock.MarshalizerMock{}
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
@@ -1608,7 +1608,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	putCalledNr := uint32(0)
 	errPersister := errors.New("failure")
 	rootHash := []byte("root hash to be tested")
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -1720,7 +1720,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 	hdr.MiniBlockHeaders = mbHdrs
 
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
@@ -1825,7 +1825,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	mbHdrs = append(mbHdrs, mbHdr)
 	hdr.MiniBlockHeaders = mbHdrs
 
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
 			return rootHash, nil
 		},
@@ -1920,7 +1920,7 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -1942,7 +1942,7 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *test
 	revToSnapshot := func(snapshot int) error { return nil }
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RootHashCalled:         rootHashfunc,
 		RevertToSnapshotCalled: revToSnapshot,
@@ -1969,7 +1969,7 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	}
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		JournalLenCalled: journalLen,
 		RootHashCalled:   rootHashfunc,
 	}
@@ -2178,7 +2178,7 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 	}
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		RevertToSnapshotCalled: revToSnapshot,
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -2721,7 +2721,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	accntAdapter := &mock.AccountsStub{
+	accntAdapter := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
@@ -4148,7 +4148,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	arguments.ShardCoordinator = shardC
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.StateCheckpointModulus = 2
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},

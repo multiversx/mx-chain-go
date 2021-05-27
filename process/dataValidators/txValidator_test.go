@@ -11,11 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
-func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
-	accDB := &mock.AccountsStub{}
+func getAccAdapter(nonce uint64, balance *big.Int) *testscommon.AccountsStub {
+	accDB := &testscommon.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		acc.Nonce = nonce
@@ -262,7 +263,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	accDB := &mock.AccountsStub{}
+	accDB := &testscommon.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
@@ -287,7 +288,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	accDB := &mock.AccountsStub{}
+	accDB := &testscommon.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
@@ -325,7 +326,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	accDB := &mock.AccountsStub{}
+	accDB := &testscommon.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return state.NewPeerAccount(address)
 	}

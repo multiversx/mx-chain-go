@@ -549,7 +549,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},

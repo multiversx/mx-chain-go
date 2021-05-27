@@ -77,8 +77,8 @@ func createStoreForMeta() dataRetriever.StorageService {
 
 func createTriesHolderForMeta() state.TriesHolder {
 	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &mock.TrieStub{})
-	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &mock.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.UserAccountTrie), &testscommon.TrieStub{})
+	triesHolder.Put([]byte(triesFactory.PeerAccountTrie), &testscommon.TrieStub{})
 	return triesHolder
 }
 
