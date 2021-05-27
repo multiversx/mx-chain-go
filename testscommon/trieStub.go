@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"context"
@@ -21,13 +21,12 @@ type TrieStub struct {
 	ResetOldHashesCalled        func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
-	GetSerializedNodeCalled     func(hash []byte) ([]byte, error)
-	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashesCalled          func() ([][]byte, error)
-	ClosePersisterCalled        func() error
+	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetProofCalled              func(key []byte) ([][]byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() data.StorageManager
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
 	GetNumNodesCalled           func() data.NumNodesDTO
 }
 
@@ -58,12 +57,20 @@ func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
 	return false, nil
 }
 
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	if ts.ClosePersisterCalled != nil {
-		return ts.ClosePersisterCalled()
+// GetAllLeavesOnChannel -
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
+	if ts.GetAllLeavesOnChannelCalled != nil {
+		return ts.GetAllLeavesOnChannelCalled(rootHash)
 	}
 
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch, nil
+}
+
+// ClosePersister -
+func (ts *TrieStub) ClosePersister() error {
 	return nil
 }
 
@@ -105,7 +112,7 @@ func (ts *TrieStub) RootHash() ([]byte, error) {
 
 // Commit -
 func (ts *TrieStub) Commit() error {
-	if ts != nil {
+	if ts.CommitCalled != nil {
 		return ts.CommitCalled()
 	}
 
@@ -124,18 +131,6 @@ func (ts *TrieStub) Recreate(root []byte) (data.Trie, error) {
 // String -
 func (ts *TrieStub) String() string {
 	return "stub trie"
-}
-
-// GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
-	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(rootHash)
-	}
-
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	return ch, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -167,14 +162,6 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 	return nil, 0, nil
 }
 
-// GetSerializedNode -
-func (ts *TrieStub) GetSerializedNode(hash []byte) ([]byte, error) {
-	if ts.GetSerializedNodeCalled != nil {
-		return ts.GetSerializedNodeCalled(hash)
-	}
-	return make([]byte, 0), nil
-}
-
 // GetDirtyHashes -
 func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
 	return nil, nil
@@ -188,6 +175,15 @@ func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
 func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	if ts.GetAllHashesCalled != nil {
 		return ts.GetAllHashesCalled()
+	}
+
+	return nil, nil
+}
+
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
 	}
 
 	return nil, nil

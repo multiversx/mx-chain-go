@@ -167,7 +167,7 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	accounts := &mock.AccountsStub{}
+	accounts := &testscommon.AccountsStub{}
 
 	opt := WithAccountsAdapter(accounts)
 	err := opt(node)
@@ -193,7 +193,7 @@ func TestWithAccountsAdapterAPI_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	accounts := &mock.AccountsStub{}
+	accounts := &testscommon.AccountsStub{}
 
 	opt := WithAccountsAdapterAPI(accounts)
 	err := opt(node)

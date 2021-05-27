@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func createNftTransferWithStubArguments() *esdtNFTTransfer {
 		0,
 		&mock.MarshalizerStub{},
 		&mock.PauseHandlerStub{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
 		process.BaseOperationCost{},
 	)
@@ -171,7 +172,7 @@ func TestNewESDTNFTTransferFunc_NilArgumentsShouldErr(t *testing.T) {
 		0,
 		nil,
 		&mock.PauseHandlerStub{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
 		process.BaseOperationCost{},
 	)
@@ -182,7 +183,7 @@ func TestNewESDTNFTTransferFunc_NilArgumentsShouldErr(t *testing.T) {
 		0,
 		&mock.MarshalizerStub{},
 		nil,
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
 		process.BaseOperationCost{},
 	)
@@ -204,7 +205,7 @@ func TestNewESDTNFTTransferFunc_NilArgumentsShouldErr(t *testing.T) {
 		0,
 		&mock.MarshalizerStub{},
 		&mock.PauseHandlerStub{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		nil,
 		process.BaseOperationCost{},
 	)
@@ -219,7 +220,7 @@ func TestNewESDTNFTTransferFunc(t *testing.T) {
 		0,
 		&mock.MarshalizerStub{},
 		&mock.PauseHandlerStub{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.ShardCoordinatorStub{},
 		process.BaseOperationCost{},
 	)

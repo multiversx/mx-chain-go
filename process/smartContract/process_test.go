@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		ArgsParser:  &mock.ArgumentParserMock{},
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
-		AccountsDB: &mock.AccountsStub{
+		AccountsDB: &testscommon.AccountsStub{
 			RevertToSnapshotCalled: func(snapshot int) error {
 				return nil
 			},
@@ -427,7 +428,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		return nil, parseError
 	}
 
-	arguments.AccountsDB = &mock.AccountsStub{
+	arguments.AccountsDB = &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
@@ -458,7 +459,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+	arguments.AccountsDB = &testscommon.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
@@ -499,7 +500,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+	arguments.AccountsDB = &testscommon.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
@@ -533,7 +534,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+	arguments.AccountsDB = &testscommon.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
@@ -568,7 +569,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+	arguments.AccountsDB = &testscommon.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
 		return nil
 	}}
 	arguments.VmContainer = vmContainer
@@ -629,7 +630,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	accountState := &mock.AccountsStub{
+	accountState := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
@@ -679,7 +680,7 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	accountState := &mock.AccountsStub{
+	accountState := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
@@ -854,7 +855,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeSaveAccountsFails(t *testing
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.AccountsDB = &mock.AccountsStub{
+	arguments.AccountsDB = &testscommon.AccountsStub{
 		SaveAccountCalled: func(account state.AccountHandler) error {
 			return expectedError
 		},
@@ -1035,7 +1036,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 
 	vm := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1136,7 +1137,7 @@ func TestScProcessor_DeploySmartContractVmOutputProcessDeleteAccountsFails(t *te
 	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
 		return vmExecutor, nil
 	}
-	accountsDb := &mock.AccountsStub{
+	accountsDb := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
@@ -1175,7 +1176,7 @@ func TestScProcessor_DeploySmartContractReloadAccountFails(t *testing.T) {
 
 	vm := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1219,7 +1220,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 			return expectedError
 		},
 	}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments.AccountsDB = accntState
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -1254,7 +1255,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 			return expectedError
 		},
 	}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments.AccountsDB = accntState
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -1281,7 +1282,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 
 	vm := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1451,7 +1452,7 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
 		return vmExecutor, nil
 	}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1498,7 +1499,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVmOutputError(t *testing.T) 
 	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
 		return vmExecutor, nil
 	}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1535,7 +1536,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 
 	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1568,7 +1569,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 
 	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1870,7 +1871,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	vm := &mock.VMContainerMock{}
 	argParser := &mock.ArgumentParserMock{}
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1899,7 +1900,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
@@ -1928,7 +1929,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
@@ -1960,7 +1961,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
@@ -1992,7 +1993,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
@@ -2025,7 +2026,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	removeCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
@@ -2061,7 +2062,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	removeCalled := 0
 	accountsDB.RemoveAccountCalled = func(address []byte) error {
 		removeCalled++
@@ -2097,7 +2098,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	removeCalled := 0
 	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
@@ -2417,7 +2418,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	acntSrc, _, tx := createAccountsAndTransaction()
 
-	accntState := &mock.AccountsStub{}
+	accntState := &testscommon.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accntState
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2442,7 +2443,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
@@ -2501,7 +2502,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
@@ -2538,7 +2539,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
 	testAccounts, _ := state.NewUserAccount([]byte("address"))
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, err error) {
 			return testAccounts, nil
 		},
@@ -2585,7 +2586,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	t.Parallel()
 
 	testAccounts, _ := state.NewUserAccount([]byte("address"))
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, err error) {
 			return testAccounts, nil
 		},
@@ -2655,7 +2656,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
@@ -2673,7 +2674,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 
 	accError := errors.New("account get error")
 	called := false
-	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+	accountsDB := &testscommon.AccountsStub{LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 		called = true
 		return nil, accError
 	}}
@@ -2693,7 +2694,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{}
+	accountsDB := &testscommon.AccountsStub{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
@@ -2713,7 +2714,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
@@ -2735,7 +2736,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	t.Parallel()
 
 	userAcc, _ := state.NewUserAccount([]byte("recv address"))
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			if bytes.Equal(address, userAcc.Address) {
 				return userAcc, nil
@@ -2788,7 +2789,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -2817,7 +2818,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	t.Parallel()
 
 	putCodeCalled := 0
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -2852,7 +2853,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	t.Parallel()
 
 	saveAccountCalled := 0
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -2894,7 +2895,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -2934,7 +2935,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	scAddress := []byte("000000000001234567890123456789012")
 	dstScAddress, _ := state.NewUserAccount(scAddress)
 	dstScAddress.SetCode([]byte("code"))
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			if bytes.Equal(scAddress, address) {
 				return dstScAddress, nil
@@ -2996,7 +2997,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	scAddress := []byte("000000000001234567890123456789012")
 	dstScAddress, _ := state.NewUserAccount(scAddress)
 	dstScAddress.SetCode([]byte("code"))
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			if bytes.Equal(scAddress, address) {
 				return dstScAddress, nil
@@ -3067,7 +3068,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	relayedAddress := []byte("211111111111234567890123456789012")
 	relayedAcc, _ := state.NewUserAccount(relayedAddress)
 
-	accountsDB := &mock.AccountsStub{
+	accountsDB := &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			if bytes.Equal(scAddress, address) {
 				return dstScAddress, nil
@@ -3431,7 +3432,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.AccountsDB = &mock.AccountsStub{
+	arguments.AccountsDB = &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
@@ -3520,7 +3521,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.Nil(t, err)
 
 			arguments.ShardCoordinator = shardCoordinator
-			arguments.AccountsDB = &mock.AccountsStub{
+			arguments.AccountsDB = &testscommon.AccountsStub{
 				RevertToSnapshotCalled: func(snapshot int) error {
 					return nil
 				},
@@ -3599,7 +3600,7 @@ func TestScProcessor_ProcessIfErrorRevertAccountFails(t *testing.T) {
 	t.Parallel()
 	expectedError := errors.New("expected error")
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{
+	arguments.AccountsDB = &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return expectedError
 		},
@@ -3628,7 +3629,7 @@ func TestScProcessor_ProcessIfErrorAsyncCallBack(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.AccountsDB = &mock.AccountsStub{
+	arguments.AccountsDB = &testscommon.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return dstAccount, nil
 		},

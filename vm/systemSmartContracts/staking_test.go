@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
@@ -115,7 +116,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
@@ -139,7 +140,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 
 func TestStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -165,7 +166,7 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 			return nil, state.ErrAccNotFound
 		},
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -269,7 +270,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -342,7 +343,7 @@ func TestStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -375,7 +376,7 @@ func TestStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -418,7 +419,7 @@ func TestStakingSC_ExecuteUnStakeShouldErrorNotEnoughNodes(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -470,7 +471,7 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 	}
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockStakingScArguments()
@@ -572,7 +573,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + 1
 		},
-	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
@@ -616,7 +617,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{
+		&testscommon.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 				return peerAccount, nil
 			}},
@@ -662,7 +663,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 		CurrentNonceCalled: func() uint64 {
 			return unstakedNonce + unBondPeriod + 1
 		},
-	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
 	eei.SetStorage([]byte(ownerKey), scAddress)
@@ -789,7 +790,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 
 	smartcontractAddress := "smartcontractAddress"
 	eei.SetSCAddress([]byte(smartcontractAddress))
@@ -859,7 +860,7 @@ func TestStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 	stakeValue := big.NewInt(100)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.Eei = eei
@@ -877,7 +878,7 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.Eei = eei
@@ -892,7 +893,7 @@ func TestStakingSc_ExecuteNilArgs(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
@@ -917,7 +918,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -956,7 +957,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1004,7 +1005,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	}
 
 	jailAccessAddr := []byte("jailAccessAddr")
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1056,7 +1057,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1122,7 +1123,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1247,7 +1248,7 @@ func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1335,7 +1336,7 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1393,7 +1394,7 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	accountsStub := &mock.AccountsStub{}
+	accountsStub := &testscommon.AccountsStub{}
 	raterStub := &mock.RaterMock{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, accountsStub, raterStub)
 	eei.SetSCAddress([]byte("addr"))
@@ -1446,7 +1447,7 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	accountsStub := &mock.AccountsStub{}
+	accountsStub := &testscommon.AccountsStub{}
 	raterStub := &mock.RaterMock{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, accountsStub, raterStub)
 	eei.SetSCAddress([]byte("addr"))
@@ -1492,7 +1493,7 @@ func TestStakingSc_updateConfigMinNodesOK(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1550,7 +1551,7 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1609,7 +1610,7 @@ func TestStakingSC_SetOwnersOnAddressesNotEnabledShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1631,7 +1632,7 @@ func TestStakingSC_SetOwnersOnAddressesWrongCallerShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1653,7 +1654,7 @@ func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1676,7 +1677,7 @@ func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1713,7 +1714,7 @@ func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1734,7 +1735,7 @@ func TestStakingSC_GetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1756,7 +1757,7 @@ func TestStakingSC_GetOwnerWrongCallerShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1778,7 +1779,7 @@ func TestStakingSC_GetOwnerWrongArgumentsShouldErr(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1800,7 +1801,7 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
 		return nil, nil
 	}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1835,7 +1836,7 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := vm.ValidatorSCAddress
@@ -1948,7 +1949,7 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1979,7 +1980,7 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -2039,7 +2040,7 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")

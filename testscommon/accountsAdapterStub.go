@@ -1,8 +1,7 @@
-package mock
+package testscommon
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -11,11 +10,10 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
-	AddJournalEntryCalled    func(je state.JournalEntry)
-	GetExistingAccountCalled func(address []byte) (state.AccountHandler, error)
-	LoadAccountCalled        func(address []byte) (state.AccountHandler, error)
+	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(address []byte) error
+	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -53,7 +51,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, errNotImplemented
+	return nil, nil
 }
 
 // SaveAccount -
@@ -72,15 +70,6 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan c
 	return nil, nil
 }
 
-var errNotImplemented = errors.New("not implemented")
-
-// AddJournalEntry -
-func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	if as.AddJournalEntryCalled != nil {
-		as.AddJournalEntryCalled(je)
-	}
-}
-
 // Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {
 	if as.CommitCalled != nil {
@@ -91,9 +80,9 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 }
 
 // GetExistingAccount -
-func (as *AccountsStub) GetExistingAccount(address []byte) (state.AccountHandler, error) {
+func (as *AccountsStub) GetExistingAccount(addressContainer []byte) (state.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
-		return as.GetExistingAccountCalled(address)
+		return as.GetExistingAccountCalled(addressContainer)
 	}
 
 	return nil, errNotImplemented
@@ -109,9 +98,9 @@ func (as *AccountsStub) JournalLen() int {
 }
 
 // RemoveAccount -
-func (as *AccountsStub) RemoveAccount(address []byte) error {
+func (as *AccountsStub) RemoveAccount(addressContainer []byte) error {
 	if as.RemoveAccountCalled != nil {
-		return as.RemoveAccountCalled(address)
+		return as.RemoveAccountCalled(addressContainer)
 	}
 
 	return errNotImplemented
@@ -146,9 +135,7 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 
 // PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if as.PruneTrieCalled != nil {
-		as.PruneTrieCalled(rootHash, identifier)
-	}
+	as.PruneTrieCalled(rootHash, identifier)
 }
 
 // CancelPrune -

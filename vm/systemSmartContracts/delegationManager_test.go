@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
@@ -196,7 +197,7 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -218,7 +219,7 @@ func TestDelegationManagerSystemSC_ExecuteInvalidFunction(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -239,7 +240,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -275,7 +276,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -366,7 +367,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(
@@ -439,7 +440,7 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -472,7 +473,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -510,7 +511,7 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -535,7 +536,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -580,7 +581,7 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -614,7 +615,7 @@ func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -679,7 +680,7 @@ func TestDelegationManager_GetContractConfigErrors(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
@@ -707,7 +708,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
