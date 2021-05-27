@@ -37,11 +37,17 @@ var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 // ErrGetESDTNFTData signals an error in getting esdt nft data for given address, tokenID and nonce
 var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 
-// ErrEmptyAddress signals an empty address was provided
+// ErrEmptyAddress signals that an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
-// ErrEmptyKey signals an empty key was provided
+// ErrEmptyKey signals an that empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
+
+// ErrEmptyTokenIdentifier signals that an empty token identifier was provided
+var ErrEmptyTokenIdentifier = errors.New("token identifier is empty")
+
+// ErrEmptyRole signals that an empty role was provided
+var ErrEmptyRole = errors.New("role is empty")
 
 // ErrNonceInvalid signals that nonce is invalid
 var ErrNonceInvalid = errors.New("nonce is invalid")

@@ -456,3 +456,49 @@ func BenchmarkGetApproximatePercentageOfValue(b *testing.B) {
 		core.GetApproximatePercentageOfValue(preparedBigInts[n%nbPrepared], preparedFractionals[n%nbPrepared])
 	}
 }
+
+func TestIsValidESDTRole(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input  string
+		output bool
+	}{
+		{
+			input:  core.ESDTRoleLocalMint,
+			output: true,
+		},
+		{
+			input:  core.ESDTRoleLocalBurn,
+			output: true,
+		},
+		{
+			input:  core.ESDTRoleNFTCreate,
+			output: true,
+		},
+		{
+			input:  core.ESDTRoleNFTAddQuantity,
+			output: true,
+		},
+		{
+			input:  core.ESDTRoleNFTBurn,
+			output: true,
+		},
+		{
+			input:  "esdtRoleLocalMint",
+			output: false,
+		},
+		{
+			input:  "",
+			output: false,
+		},
+		{
+			input:  "invalid role",
+			output: false,
+		},
+	}
+
+	for _, tt := range tests {
+		require.Equal(t, tt.output, core.IsValidESDTRole(tt.input))
+	}
+}

@@ -111,6 +111,7 @@ type epochStartBootstrap struct {
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
+	waitingListFixEnableEpoch uint32
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -185,6 +186,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
+		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
@@ -656,16 +658,18 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           e.dataPool,
-		Marshalizer:        e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     e.requestHandler,
-		ChanceComputer:     e.rater,
-		GenesisNodesConfig: e.genesisNodesConfig,
-		NodeShuffler:       e.nodeShuffler,
-		Hasher:             e.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
+		DataPool:                  e.dataPool,
+		Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:            e.requestHandler,
+		ChanceComputer:            e.rater,
+		GenesisNodesConfig:        e.genesisNodesConfig,
+		NodeShuffler:              e.nodeShuffler,
+		Hasher:                    e.coreComponentsHolder.Hasher(),
+		PubKey:                    pubKey,
+		ShardIdAsObserver:         shardId,
+		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
 	}
+
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return err
