@@ -55,6 +55,7 @@ type SystemEI interface {
 	StatusFromValidatorStatistics(blsKey []byte) string
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
+	CleanStorageUpdates()
 
 	IsInterfaceNil() bool
 }

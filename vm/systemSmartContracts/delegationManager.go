@@ -224,7 +224,7 @@ func (d *delegationManager) deployNewContract(
 		return vmcommon.UserError
 	}
 
-	delegationList, err := d.getDelegationContractList()
+	delegationList, err := getDelegationContractList(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -446,7 +446,7 @@ func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
-	contractList, err := d.getDelegationContractList()
+	contractList, err := getDelegationContractList(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -526,14 +526,18 @@ func (d *delegationManager) saveDelegationManagementData(managementData *Delegat
 	return nil
 }
 
-func (d *delegationManager) getDelegationContractList() (*DelegationContractList, error) {
-	marshaledData := d.eei.GetStorage([]byte(delegationContractsList))
+func getDelegationContractList(
+	eei vm.SystemEI,
+	marshalizer marshal.Marshalizer,
+	delegationMgrAddress []byte,
+) (*DelegationContractList, error) {
+	marshaledData := eei.GetStorageFromAddress(delegationMgrAddress, []byte(delegationContractsList))
 	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
 	}
 
 	contractList := &DelegationContractList{}
-	err := d.marshalizer.Unmarshal(contractList, marshaledData)
+	err := marshalizer.Unmarshal(contractList, marshaledData)
 	if err != nil {
 		return nil, err
 	}

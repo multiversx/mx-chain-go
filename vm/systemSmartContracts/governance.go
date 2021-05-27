@@ -30,11 +30,7 @@ const hardForkEpochGracePeriod = 2
 const githubCommitLength = 40
 
 //TODO: whitelist the first address on initV2
-//TODO: is delegation address - decide on how much does it take to get information about user from delegation contract
-//TODO: decide whether we iterate and get all the data from each SC and verify what happened - this is metachain and this data read get into SCRs which is wrong
-//TODO: cleanup temporary read data
 //TODO: implement isVoter and isLocked - in order to keep tokens in system
-//TODO: add personal lock for those voting with funds
 //TODO: use gas everywhere
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
@@ -276,7 +272,6 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-
 	if len(args.Arguments) != 2 {
 		g.eei.AddReturnMessage("invalid number of arguments, expected 3 or 4")
 		return vmcommon.FunctionWrongSignature
@@ -295,12 +290,76 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	votePower := big.NewInt(0).SetBytes(args.Arguments[2])
-	delegatedTo, err := g.getDelegatedToAddress(args)
+	currentVoteSet, err := g.getOrCreateVoteSet(append(proposalToVote, voterAddress...))
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.ExecutionFailed
+	}
+	if len(currentVoteSet.VoteItems) > 0 {
+		g.eei.AddReturnMessage("vote only once")
+		return vmcommon.UserError
+	}
+
+	totalVotingPower, err := g.computeVotingPowerFromTotalStake(voterAddress)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	// clean all the read storage
+	g.eei.CleanStorageUpdates()
+
+	currentVote := &VoteDetails{
+		Value:   voteOption,
+		Power:   totalVotingPower,
+		Balance: big.NewInt(0),
+	}
+	err = g.addNewVote(voterAddress, currentVote, currentVoteSet, proposal)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+// delegateVote casts a vote from a validator run by WASM SC and delegates it to some. This function receives 4 parameters:
+//  args.Arguments[0] - proposal reference (github commit)
+//  args.Arguments[1] - vote option (yes, no, veto)
+//  args.Arguments[2] - delegatedTo
+//  args.Arguments[3] - balance to vote
+func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 4 {
+		g.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("function is not payable")
+		return vmcommon.UserError
+	}
+	if !core.IsSmartContractAddress(args.CallerAddr) {
+		g.eei.AddReturnMessage("only SC can call this")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[3]) != len(args.CallerAddr) {
+		g.eei.AddReturnMessage("invalid delegator address")
+		return vmcommon.UserError
+	}
+
+	voterAddress := args.CallerAddr
+	proposalToVote := args.Arguments[0]
+	proposal, err := g.getValidProposal(proposalToVote)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	voteOption, err := g.castVoteType(string(args.Arguments[1]))
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	votePower := big.NewInt(0).SetBytes(args.Arguments[2])
+	delegatedTo := args.Arguments[3]
 
 	currentVote := &VoteDetails{
 		Value:       voteOption,
@@ -320,7 +379,7 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.ExecutionFailed
 	}
-	if totalVotingPower.Cmp(big.NewInt(0).Add(votePower, currentVoteSet.UsedPower)) == -1 {
+	if totalVotingPower.Cmp(big.NewInt(0).Add(votePower, currentVoteSet.UsedPower)) < 0 {
 		g.eei.AddReturnMessage("not enough voting power to cast this vote")
 		return vmcommon.UserError
 	}
@@ -331,15 +390,6 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	return vmcommon.Ok
-}
-
-// delegateVote casts a vote from a validator run by WASM SC and delegates it to some. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference (github commit)
-//  args.Arguments[1] - vote option (yes, no, veto)
-//  args.Arguments[2] - delegatedTo
-//  args.Arguments[3] - balance to vote
-func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
@@ -1071,18 +1121,6 @@ func (g *governanceContract) computeAccountLeveledPower(value *big.Int, voteData
 	return big.NewInt(0).Sub(newAccountPower, previousAccountPower), nil
 }
 
-// getDelegatedToAddress looks into the arguments passed and returns the optional delegatedTo address
-func (g *governanceContract) getDelegatedToAddress(args *vmcommon.ContractCallInput) ([]byte, error) {
-	if len(args.Arguments) < 4 {
-		return make([]byte, 0), nil
-	}
-	if len(args.Arguments[3]) != len(args.CallerAddr) {
-		return nil, fmt.Errorf("%s: %s", vm.ErrInvalidArgument, "invalid delegator address length")
-	}
-
-	return args.Arguments[3], nil
-}
-
 // isValidVoteString checks if a certain string represents a valid vote string
 func (g *governanceContract) isValidVoteString(vote string) bool {
 	switch vote {
@@ -1149,6 +1187,65 @@ func (g *governanceContract) computeValidatorVotingPower(validatorAddress []byte
 	}
 
 	return votingPower, nil
+}
+
+// function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
+//TODO: benchmark this, the other solution is to receive in the arguments which delegation contracts should be checked
+// and consume gas for each delegation contract to be checked
+func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*big.Int, error) {
+	totalStake, err := g.getTotalStake(address)
+	if err != nil && err != vm.ErrEmptyStorage {
+		return nil, fmt.Errorf("could not return total stake for the provided address, thus cannot compute voting power")
+	}
+	if totalStake == nil {
+		totalStake = big.NewInt(0)
+	}
+
+	dContractList, err := getDelegationContractList(g.eei, g.marshalizer, g.delegationMgrSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	activeDelegated := big.NewInt(0)
+	for _, contract := range dContractList.Addresses {
+		activeDelegated, err = g.getActiveFundForDelegator(contract, address)
+		if err != nil {
+			return nil, err
+		}
+
+		totalStake.Add(totalStake, activeDelegated)
+	}
+
+	return totalStake, nil
+}
+
+func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {
+	dData := &DelegatorData{
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	}
+	marshaledData := g.eei.GetStorageFromAddress(delegationAddress, address)
+	if len(marshaledData) == 0 {
+		return big.NewInt(0), nil
+	}
+
+	err := g.marshalizer.Unmarshal(dData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(dData.ActiveFund) == 0 {
+		return big.NewInt(0), nil
+	}
+
+	marshaledData = g.eei.GetStorageFromAddress(delegationAddress, dData.ActiveFund)
+	activeFund := &Fund{Value: big.NewInt(0)}
+	err = g.marshalizer.Unmarshal(activeFund, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return activeFund.Value, nil
 }
 
 func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, error) {
