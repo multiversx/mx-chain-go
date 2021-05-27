@@ -1572,10 +1572,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
-		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
 		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StateTriesConfig.CheckpointRoundsModulus", math.MaxUint32,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
 			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
@@ -1583,7 +1582,7 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
-		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StateTriesConfig.CheckpointRoundsModulus = math.MaxUint32
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
 		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
