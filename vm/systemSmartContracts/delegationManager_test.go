@@ -749,7 +749,7 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(
@@ -796,7 +796,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(
@@ -840,7 +840,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(
@@ -919,7 +919,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *te
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(
@@ -994,7 +994,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataWithJailedNod
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(

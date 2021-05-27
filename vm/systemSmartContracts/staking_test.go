@@ -2076,7 +2076,7 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 		return nil, nil
 	}
 
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &testscommon.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
