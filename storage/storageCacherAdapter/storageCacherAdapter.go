@@ -191,7 +191,6 @@ func (c *storageCacherAdapter) Remove(key []byte) {
 
 	removed := c.cacher.Remove(string(key))
 	if removed {
-		c.numValuesInStorage--
 		return
 	}
 
