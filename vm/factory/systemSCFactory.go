@@ -217,17 +217,23 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
+	configChangeAddres, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+	}
+
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                    scf.systemEI,
-		GasCost:                scf.gasCost,
-		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:            scf.marshalizer,
-		Hasher:                 scf.hasher,
-		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		EpochNotifier:          scf.epochNotifier,
-		EpochConfig:            *scf.epochConfig,
+		Eei:                        scf.systemEI,
+		GasCost:                    scf.gasCost,
+		GovernanceConfig:           scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:                scf.marshalizer,
+		Hasher:                     scf.hasher,
+		GovernanceSCAddress:        vm.GovernanceSCAddress,
+		DelegationMgrSCAddress:     vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:         vm.ValidatorSCAddress,
+		EpochNotifier:              scf.epochNotifier,
+		EpochConfig:                *scf.epochConfig,
+		InitalWhiteListedAddresses: [][]byte{configChangeAddres},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

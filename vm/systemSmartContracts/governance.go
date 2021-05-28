@@ -30,9 +30,6 @@ const vetoString = "veto"
 const hardForkEpochGracePeriod = 2
 const githubCommitLength = 40
 
-//TODO: whitelist the first address on initV2
-//TODO: use gas everywhere
-
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
 	Eei                        vm.SystemEI
@@ -189,7 +186,7 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, vm.GovernanceSCAddress) {
+	if !bytes.Equal(args.CallerAddr, g.governanceSCAddress) {
 		log.Error("invalid caller to switch to V2 config")
 		return vmcommon.UserError
 	}
@@ -209,6 +206,13 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
 	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
+
+	for _, address := range g.initialWhiteListedAddresses {
+		returnCode := g.whiteListAtGovernanceGenesis(address)
+		if returnCode != vmcommon.Ok {
+			return returnCode
+		}
+	}
 
 	return vmcommon.Ok
 }
@@ -372,6 +376,11 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("function is not payable")
 		return vmcommon.UserError
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.DelegateVote)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 	if !core.IsSmartContractAddress(args.CallerAddr) {
 		g.eei.AddReturnMessage("only SC can call this")
 		return vmcommon.UserError
@@ -454,7 +463,10 @@ func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-
+	if len(args.Arguments) != 2 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 2")
+		return vmcommon.FunctionWrongSignature
+	}
 	minValueToVote, err := g.getMinValueToVote()
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
@@ -463,11 +475,6 @@ func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmc
 	if args.CallValue.Cmp(minValueToVote) < 0 {
 		g.eei.AddReturnMessage("not enough funds to vote")
 		return vmcommon.UserError
-	}
-
-	if len(args.Arguments) != 2 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 2")
-		return vmcommon.FunctionWrongSignature
 	}
 
 	voterAddress := args.CallerAddr
@@ -539,6 +546,11 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 		g.eei.AddReturnMessage("invalid callValue, should be 0")
 		return vmcommon.UserError
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Claim)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 
 	if len(args.Arguments) != 1 {
 		g.eei.AddReturnMessage("invalid number of arguments, expected 1")
@@ -577,10 +589,6 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 
 // whiteListProposal will create a new proposal to white list an address
 func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if currentNonce == 0 {
-		return g.whiteListAtGenesis(args)
-	}
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
 		g.eei.AddReturnMessage("invalid callValue, needs exactly " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
@@ -840,6 +848,8 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
+	g.deleteAllVotes(generalProposal)
+
 	err = g.saveGeneralProposal(proposal, generalProposal)
 	if err != nil {
 		g.eei.AddReturnMessage("saveGeneralProposal error" + err.Error())
@@ -847,6 +857,14 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	return vmcommon.Ok
+}
+
+//TODO: the problem is that voteKey has to be short - as these kind of lists can't be longer than 1MB
+func (g *governanceContract) deleteAllVotes(proposal *GeneralProposal) {
+	for _, address := range proposal.Votes {
+		voteKey := getVoteItemKey(proposal.GitHubCommit, address)
+		g.eei.SetStorage(voteKey, nil)
+	}
 }
 
 // getConfig returns the curent system smart contract configuration
@@ -867,6 +885,11 @@ func (g *governanceContract) getValidatorVotingPower(args *vmcommon.ContractCall
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 1 {
 		g.eei.AddReturnMessage("function accepts only one argument, the validator address")
@@ -898,6 +921,11 @@ func (g *governanceContract) getBalanceVotingPower(args *vmcommon.ContractCallIn
 	if len(args.Arguments) != 1 {
 		g.eei.AddReturnMessage("function accepts only one argument, the balance for computing the power")
 		return vmcommon.FunctionWrongSignature
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
 	}
 
 	balance := big.NewInt(0).SetBytes(args.Arguments[0])
@@ -999,27 +1027,15 @@ func (g *governanceContract) isWhiteListed(address []byte) bool {
 	return generalProposal.Voted
 }
 
-func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(zero) != 0 {
-		log.Warn("whiteList at genesis should be without callValue")
-		return vmcommon.UserError
-	}
-	if g.isWhiteListed(args.CallerAddr) {
-		log.Warn("address is already whiteListed")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) != 0 {
-		log.Warn("excepted argument number is 0")
-		return vmcommon.UserError
-	}
-	if g.proposalExists(args.CallerAddr) {
+func (g *governanceContract) whiteListAtGovernanceGenesis(address []byte) vmcommon.ReturnCode {
+	if g.proposalExists(address) {
 		log.Warn("proposal with this key already exists")
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(proposalPrefix), args.CallerAddr...)
+	key := append([]byte(proposalPrefix), address...)
 	whiteListAcc := &WhiteListProposal{
-		WhiteListAddress: args.CallerAddr,
+		WhiteListAddress: address,
 		ProposalStatus:   key,
 	}
 
@@ -1029,9 +1045,9 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 		return vmcommon.UserError
 	}
 
-	key = append([]byte(whiteListPrefix), args.CallerAddr...)
+	key = append([]byte(whiteListPrefix), address...)
 	generalProposal := &GeneralProposal{
-		IssuerAddress:  args.CallerAddr,
+		IssuerAddress:  address,
 		GitHubCommit:   []byte("genesis"),
 		StartVoteNonce: 0,
 		EndVoteNonce:   0,
@@ -1048,7 +1064,7 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 	}
 	g.eei.SetStorage(key, marshaledData)
 
-	err = g.saveGeneralProposal(args.CallerAddr, generalProposal)
+	err = g.saveGeneralProposal(address, generalProposal)
 	if err != nil {
 		log.Warn("save general proposal ", "err", err)
 		return vmcommon.UserError
@@ -1096,19 +1112,22 @@ func (g *governanceContract) addNewVote(voterAddress []byte, currentVote *VoteDe
 		return err
 	}
 
-	proposalKey := append([]byte(proposalPrefix), proposal.GitHubCommit...)
-	voteItemKey := append(proposalKey, voterAddress...)
-	if !g.proposalContainsVoter(proposal, voteItemKey) {
-		proposal.Votes = append(proposal.Votes, voteItemKey)
+	if !g.proposalContainsVoter(proposal, voterAddress) {
+		proposal.Votes = append(proposal.Votes, voterAddress)
 	}
 
 	return g.saveGeneralProposal(proposal.GitHubCommit, proposal)
 }
 
+func getVoteItemKey(reference []byte, address []byte) []byte {
+	proposalKey := append([]byte(proposalPrefix), reference...)
+	voteItemKey := append(proposalKey, address...)
+	return voteItemKey
+}
+
 // saveVoteSet first saves the main vote data of the voter, then updates the proposal with the new voter information
 func (g *governanceContract) saveVoteSet(voter []byte, voteData *VoteSet, proposal *GeneralProposal) error {
-	proposalKey := append([]byte(proposalPrefix), proposal.GitHubCommit...)
-	voteItemKey := append(proposalKey, voter...)
+	voteItemKey := getVoteItemKey(proposal.GitHubCommit, voter)
 
 	marshaledVoteItem, err := g.marshalizer.Marshal(voteData)
 	if err != nil {
@@ -1309,7 +1328,7 @@ func (g *governanceContract) validateInitialWhiteListedAddresses(addresses [][]b
 	}
 
 	for _, addr := range addresses {
-		if len(addr) != len(g.ownerAddress) {
+		if len(addr) != len(g.governanceSCAddress) {
 			return fmt.Errorf("invalid address length for %s", string(addr))
 		}
 	}

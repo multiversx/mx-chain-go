@@ -238,3 +238,6 @@ var ErrRedelegateValueBelowMinimum = errors.New("can not re-delegate as the rema
 
 // ErrProposalNotFound signals that the storage is empty for given key
 var ErrProposalNotFound = errors.New("proposal was not found in storage")
+
+// ErrInvalidNumOfInitialWhiteListedAddress signals that 0 initial whiteListed addresses were provided to the governance contract
+var ErrInvalidNumOfInitialWhiteListedAddress = errors.New("0 initial whiteListed addresses provided to the governance contract")
