@@ -191,7 +191,7 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	err = messenger.Bootstrap(0)
+	err = messenger.Bootstrap()
 	if err != nil {
 		return err
 	}

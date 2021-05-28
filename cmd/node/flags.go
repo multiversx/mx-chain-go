@@ -180,11 +180,11 @@ var (
 		Value: "",
 	}
 
-	//useLogView is used when termui interface is not needed.
+	//useLogView is a deprecated flag, but kept for backwards compatibility
 	useLogView = cli.BoolFlag{
 		Name: "use-log-view",
-		Usage: "Boolean option for enabling the simple node's interface. If set, the node will not enable the " +
-			"user-friendly terminal view of the node.",
+		Usage: "Deprecated flag. This flag's value is not used anymore as the only way the node starts now is within " +
+			"log view, but because the majority of the nodes starting scripts have this flag, it was not removed.",
 	}
 
 	// validatorKeyPemFile defines a flag for the path to the validator key used in block signing

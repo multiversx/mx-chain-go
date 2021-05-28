@@ -10,7 +10,10 @@ import (
 const metricNotAvailable = "N/A"
 
 func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
-	val, ok := psh.presenterMetrics.Load(metric)
+	psh.mutPresenterMap.RLock()
+	defer psh.mutPresenterMap.RUnlock()
+
+	val, ok := psh.presenterMetrics[metric]
 	if !ok {
 		return 0
 	}
@@ -24,7 +27,10 @@ func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
 }
 
 func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
-	val, ok := psh.presenterMetrics.Load(metric)
+	psh.mutPresenterMap.RLock()
+	defer psh.mutPresenterMap.RUnlock()
+
+	val, ok := psh.presenterMetrics[metric]
 	if !ok {
 		return metricNotAvailable
 	}
