@@ -97,26 +97,20 @@ export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SN
 # Recommended. Tmux needs to be installed.
 export USETMUX=1
 
-# Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
-# info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=1
-
 # Log level for the logger in the Node.
 export LOGLEVEL="*:INFO"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then
-  NODETERMUI=0
   LOGLEVEL="*:DEBUG,api:INFO"
 fi
 
 if [ "$TESTNETMODE" == "trace" ]; then
-  NODETERMUI=0
   LOGLEVEL="*:TRACE"
 fi
 
 ########################################################################
-# Proxy configuration (WARNING: elrond-proxy-go is a private repository)
+# Proxy configuration
 
 # Path to elrond-proxy-go, branch: master. Default: near elrond-go.
 export PROXYDIR="$(dirname $ELRONDDIR)/elrond-proxy-go/cmd/proxy"

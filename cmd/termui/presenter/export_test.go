@@ -3,7 +3,10 @@ package presenter
 import "errors"
 
 func (psh *PresenterStatusHandler) GetPresenterMetricByKey(key string) (interface{}, error) {
-	value, ok := psh.presenterMetrics.Load(key)
+	psh.mutPresenterMap.RLock()
+	defer psh.mutPresenterMap.RUnlock()
+
+	value, ok := psh.presenterMetrics[key]
 	if ok {
 		return value, nil
 	}

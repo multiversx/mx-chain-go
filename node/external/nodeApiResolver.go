@@ -76,7 +76,7 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // Close closes all underlying components
 func (nar *nodeApiResolver) Close() error {
-	return nil
+	return nar.scQueryService.Close()
 }
 
 // GetTotalStakedValue will return total staked value
