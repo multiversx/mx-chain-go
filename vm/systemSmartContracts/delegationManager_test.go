@@ -245,6 +245,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager(core.SCDeployInitFunctionName, [][]byte{})
 	vmInput.CallValue = big.NewInt(15)
 
@@ -263,7 +264,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	assert.Equal(t, dm.maxFee, dManagementData.MaxServiceFee)
 	assert.Equal(t, dm.minCreationDeposit, dManagementData.MinDeposit)
 
-	dContractList, _ := dm.getDelegationContractList()
+	dContractList, _ := getDelegationContractList(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress)
 	assert.Equal(t, 1, len(dContractList.Addresses))
 }
 
@@ -377,12 +378,14 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(20))
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: make([][]byte, 0)})
 	_ = dm.saveDelegationManagementData(&DelegationManagement{
-		MinDeposit:  big.NewInt(10),
-		LastAddress: vm.FirstDelegationSCAddress,
+		MinDeposit:          big.NewInt(10),
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinDelegationAmount: big.NewInt(1),
 	})
 	vmInput.CallValue = big.NewInt(20)
 
@@ -394,7 +397,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	expectedAddress := createNewAddress(vm.FirstDelegationSCAddress)
 	assert.Equal(t, expectedAddress, dManagement.LastAddress)
 
-	dList, _ := dm.getDelegationContractList()
+	dList, _ := getDelegationContractList(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress)
 	assert.Equal(t, 1, len(dList.Addresses))
 	assert.Equal(t, expectedAddress, dList.Addresses[0])
 
@@ -446,6 +449,7 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("getAllContractAddresses", [][]byte{})
 
 	output := dm.Execute(vmInput)

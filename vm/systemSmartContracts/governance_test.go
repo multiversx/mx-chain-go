@@ -33,12 +33,12 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 				MinVetoThreshold: "50",
 			},
 		},
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              &mock.HasherMock{},
-		GovernanceSCAddress: []byte("governanceSC"),
-		StakingSCAddress:    []byte("stakingSC"),
-		ValidatorSCAddress:  []byte("validatorgSC"),
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		EpochNotifier:          &mock.EpochNotifierStub{},
 	}
 }
 
@@ -720,19 +720,11 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
 			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
 				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
-					BlsPubKeys: mockValidatorBlsKeys,
+					BlsPubKeys:      mockValidatorBlsKeys,
+					TotalStakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
 				return auctionBytes
-			}
-
-			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
-				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked:     true,
-					StakeValue: big.NewInt(0).SetBytes(votePower),
-				})
-
-				return stakeDataBytes
 			}
 
 			return nil
@@ -795,19 +787,11 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
 			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
 				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
-					BlsPubKeys: mockValidatorBlsKeys,
+					BlsPubKeys:      mockValidatorBlsKeys,
+					TotalStakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
 				return auctionBytes
-			}
-
-			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
-				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked:     true,
-					StakeValue: big.NewInt(0).SetBytes(votePower),
-				})
-
-				return stakeDataBytes
 			}
 
 			return nil
@@ -872,19 +856,11 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
 			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
 				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
-					BlsPubKeys: mockValidatorBlsKeys,
+					BlsPubKeys:      mockValidatorBlsKeys,
+					TotalStakeValue: big.NewInt(100),
 				})
 
 				return auctionBytes
-			}
-
-			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
-				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked:     true,
-					StakeValue: big.NewInt(100),
-				})
-
-				return stakeDataBytes
 			}
 
 			return nil
@@ -974,7 +950,7 @@ func TestGovernanceContract_ClaimFundsStillLocked(t *testing.T) {
 			returnMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
-			expectedKeyPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
+			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
 				return big.NewInt(10).Bytes()
 			}
@@ -1013,16 +989,9 @@ func TestGovernanceContract_ClaimFundsAlreadyClaimed(t *testing.T) {
 			returnMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
-			expectedKeyPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
+			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
 				return big.NewInt(10).Bytes()
-			}
-
-			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
-				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
-					Claimed: true,
-				})
-				return voteSetBytes
 			}
 
 			return nil
@@ -1059,14 +1028,13 @@ func TestGovernanceContract_ClaimFundsNothingToClaim(t *testing.T) {
 			returnMessage = msg
 		},
 		GetStorageCalled: func(key []byte) []byte {
-			expectedKeyPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
+			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
 				return big.NewInt(10).Bytes()
 			}
 
 			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
-					Claimed:     false,
 					UsedBalance: zero,
 				})
 				return voteSetBytes
@@ -1108,14 +1076,13 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
-			expectedKeyPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
+			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
 				return big.NewInt(10).Bytes()
 			}
 
 			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
-					Claimed:     false,
 					UsedBalance: voteValue,
 				})
 				return voteSetBytes
@@ -2388,19 +2355,11 @@ func TestGovernanceContract_GetValidatorVotingPower(t *testing.T) {
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
 			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
 				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
-					BlsPubKeys: mockValidatorBlsKeys,
+					BlsPubKeys:      mockValidatorBlsKeys,
+					TotalStakeValue: big.NewInt(0).SetBytes(votePower),
 				})
 
 				return auctionBytes
-			}
-
-			if bytes.Equal(address, args.StakingSCAddress) && bytes.Equal(key, mockBlsKey) {
-				stakeDataBytes, _ := args.Marshalizer.Marshal(&StakedDataV2_0{
-					Staked:     true,
-					StakeValue: big.NewInt(0).SetBytes(votePower),
-				})
-
-				return stakeDataBytes
 			}
 
 			return nil
@@ -2937,7 +2896,6 @@ func TestGovernanceContract_ApplyVote(t *testing.T) {
 		Value:   Yes,
 		Power:   big.NewInt(10),
 		Balance: big.NewInt(100),
-		Type:    Account,
 	}
 
 	voteSet := &VoteSet{
@@ -2949,7 +2907,6 @@ func TestGovernanceContract_ApplyVote(t *testing.T) {
 				Value:   Yes,
 				Power:   big.NewInt(5),
 				Balance: big.NewInt(25),
-				Type:    Account,
 			},
 		},
 	}
@@ -2966,70 +2923,6 @@ func TestGovernanceContract_ApplyVote(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(20), generalProposalResponse.Yes)
 	require.Equal(t, big.NewInt(15), voteSetResponse.TotalYes)
-}
-
-func TestGovernanceContract_SetLock(t *testing.T) {
-	t.Parallel()
-	args := createMockGovernanceArgs()
-
-	storageKeyCalled := make([]byte, 0)
-	storageValueCalled := make([]byte, 0)
-	args.Eei = &mock.SystemEIStub{
-		SetStorageCalled: func(key []byte, value []byte) {
-			storageKeyCalled = key
-			storageValueCalled = value
-		},
-		BlockChainHookCalled: func() vm.BlockchainHook {
-			return &mock.BlockChainHookStub{
-				CurrentNonceCalled: func() uint64 {
-					return 14
-				},
-			}
-		},
-	}
-	gsc, _ := NewGovernanceContract(args)
-
-	voter := []byte("voter")
-	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
-	proposal := &GeneralProposal{
-		GitHubCommit:   proposalIdentifier,
-		StartVoteNonce: 10,
-		EndVoteNonce:   15,
-	}
-
-	gsc.setLock(voter, Validator, proposal)
-	require.Equal(t, append([]byte(validatorLockPrefix), voter...), storageKeyCalled)
-	require.Equal(t, big.NewInt(0).SetUint64(19).Bytes(), storageValueCalled)
-
-	accPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
-	gsc.setLock(voter, Account, proposal)
-	require.Equal(t, append(accPrefix, voter...), storageKeyCalled)
-	require.Equal(t, big.NewInt(0).SetUint64(19).Bytes(), storageValueCalled)
-}
-
-func TestGovernanceContract_GetLock(t *testing.T) {
-	t.Parallel()
-	args := createMockGovernanceArgs()
-
-	voter := []byte("voter")
-	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
-	lockValue := uint64(10)
-	storageKeyCalled := make([]byte, 0)
-	args.Eei = &mock.SystemEIStub{
-		GetStorageCalled: func(key []byte) []byte {
-			storageKeyCalled = key
-			return big.NewInt(0).SetUint64(lockValue).Bytes()
-		},
-	}
-	gsc, _ := NewGovernanceContract(args)
-	lockReturned := gsc.getLock(voter, Validator, proposalIdentifier)
-	require.Equal(t, append([]byte(validatorLockPrefix), voter...), storageKeyCalled)
-	require.Equal(t, lockValue, lockReturned)
-
-	accPrefix := append([]byte(accountLockPrefix), proposalIdentifier...)
-	lockReturned = gsc.getLock(voter, Account, proposalIdentifier)
-	require.Equal(t, append(accPrefix, voter...), storageKeyCalled)
-	require.Equal(t, lockValue, lockReturned)
 }
 
 func TestGovernanceContract_ComputeAccountLeveledPower(t *testing.T) {
