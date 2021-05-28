@@ -231,7 +231,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
 	psm.updatePeerIDPublicKey(pid, pk)
 
-	if shardID == core.UnknownShardID {
+	if shardID == core.AllShardId {
 		return
 	}
 	psm.updatePublicKeyShardId(pk, shardID)

@@ -777,6 +777,3 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
-
-// UnknownShardID is a constant to be used when the shard ID of a node is unknown
-const UnknownShardID = MetachainShardId - 1

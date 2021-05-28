@@ -36,7 +36,7 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIDInfo(pid core.PeerID, pk [
 	nscm.peerIdPkMap[pid] = pk
 	nscm.mutPeerIdPkMap.Unlock()
 
-	if shardID == core.UnknownShardID {
+	if shardID == core.AllShardId {
 		return
 	}
 

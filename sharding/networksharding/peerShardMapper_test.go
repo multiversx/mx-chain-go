@@ -130,7 +130,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyMorePidsThanAllowedShouldTrim(t *t
 	pids := make([]core.PeerID, networksharding.MaxNumPidsPerPk+1)
 	for i := 0; i < networksharding.MaxNumPidsPerPk+1; i++ {
 		pids[i] = core.PeerID(fmt.Sprintf("pid %d", i))
-		psm.UpdatePeerIDInfo(pids[i], pk, core.UnknownShardID)
+		psm.UpdatePeerIDInfo(pids[i], pk, core.AllShardId)
 	}
 
 	for i := 0; i < networksharding.MaxNumPidsPerPk+1; i++ {
@@ -161,7 +161,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldUpdatePkForExistentPid(t *te
 	psm.UpdatePeerIDInfo(newPid, pk1, 0)
 
 	for i := 0; i < networksharding.MaxNumPidsPerPk; i++ {
-		psm.UpdatePeerIDInfo(pids[i], pk2, core.UnknownShardID)
+		psm.UpdatePeerIDInfo(pids[i], pk2, core.AllShardId)
 	}
 
 	for i := 0; i < networksharding.MaxNumPidsPerPk; i++ {
@@ -183,7 +183,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyWrongTypePkInPeerIdPkShouldRemove(
 	wrongTypePk := uint64(7)
 	psm.PeerIdPk().Put([]byte(pid1), wrongTypePk, 8)
 
-	psm.UpdatePeerIDInfo(pid1, pk1, core.UnknownShardID)
+	psm.UpdatePeerIDInfo(pid1, pk1, core.AllShardId)
 
 	pkRecovered := psm.GetPkFromPidPk(pid1)
 	assert.Equal(t, pk1, pkRecovered)
@@ -201,7 +201,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyShouldWorkConcurrently(t *testing.
 	wg.Add(numUpdates)
 	for i := 0; i < numUpdates; i++ {
 		go func() {
-			psm.UpdatePeerIDInfo(pid, pk, core.UnknownShardID)
+			psm.UpdatePeerIDInfo(pid, pk, core.AllShardId)
 			wg.Done()
 		}()
 	}
@@ -283,7 +283,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 	}
 	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
-	psm.UpdatePeerIDInfo(pid, pk, core.UnknownShardID)
+	psm.UpdatePeerIDInfo(pid, pk, core.AllShardId)
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
@@ -352,7 +352,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 	}
 	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
-	psm.UpdatePeerIDInfo(pid, pk, core.UnknownShardID)
+	psm.UpdatePeerIDInfo(pid, pk, core.AllShardId)
 	wrongTypeShardId := "shard 4"
 	psm.FallbackPkShard().Put(pk, wrongTypeShardId, len(wrongTypeShardId))
 
@@ -404,7 +404,7 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 	}
 	psm, _ := networksharding.NewPeerShardMapper(arg)
 	pid := core.PeerID("dummy peer ID")
-	psm.UpdatePeerIDInfo(pid, pk, core.UnknownShardID)
+	psm.UpdatePeerIDInfo(pid, pk, core.AllShardId)
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
