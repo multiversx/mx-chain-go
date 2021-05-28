@@ -951,7 +951,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -990,7 +990,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
-		StakingDataProvider: stakingSCprovider,
+		StakingDataProvider:     stakingSCprovider,
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {

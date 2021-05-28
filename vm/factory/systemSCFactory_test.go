@@ -61,7 +61,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "10",
 				MinStakeAmount:      "10",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
