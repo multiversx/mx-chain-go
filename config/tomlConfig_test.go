@@ -101,6 +101,7 @@ func TestTomlParser(t *testing.T) {
 			ShuffleOut: ShuffleOutDebugConfig{
 				CallGCWhenShuffleOut:    true,
 				ExtraPrintsOnShuffleOut: true,
+				DoProfileOnShuffleOut:   true,
 			},
 		},
 	}
@@ -164,6 +165,7 @@ func TestTomlParser(t *testing.T) {
     [Debug.ShuffleOut]
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 `
 	cfg := Config{}
 

@@ -176,22 +176,30 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 func (nr *nodeRunner) shuffleOutStatsAndGC() {
 	debugConfig := nr.configs.GeneralConfig.Debug.ShuffleOut
 
+	extraMessage := ""
+	if debugConfig.CallGCWhenShuffleOut {
+		extraMessage = " before running GC"
+	}
 	if debugConfig.ExtraPrintsOnShuffleOut {
-		log.Debug("node statistics before running GC", statistics.GetRuntimeStatistics()...)
+		log.Debug("node statistics"+extraMessage, statistics.GetRuntimeStatistics()...)
 	}
 	if debugConfig.CallGCWhenShuffleOut {
+		log.Debug("running runtime.GC()")
 		runtime.GC()
 	}
-	if !debugConfig.ExtraPrintsOnShuffleOut {
-		return
+	shouldPrintAnotherNodeStatistics := debugConfig.CallGCWhenShuffleOut && debugConfig.ExtraPrintsOnShuffleOut
+	if shouldPrintAnotherNodeStatistics {
+		log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 	}
-	log.Debug("node statistics after running GC", statistics.GetRuntimeStatistics()...)
 
-	parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-	err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
-	log.LogIfError(err)
+	if debugConfig.DoProfileOnShuffleOut {
+		log.Debug("running profile job")
+		parentPath := filepath.Join(nr.configs.FlagsConfig.WorkingDir, nr.configs.GeneralConfig.Health.FolderPath)
+		var stats runtime.MemStats
+		runtime.ReadMemStats(&stats)
+		err := health.WriteMemoryUseInfo(stats, time.Now(), parentPath, "softrestart")
+		log.LogIfError(err)
+	}
 }
 
 func (nr *nodeRunner) executeOneComponentCreationCycle(

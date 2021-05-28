@@ -427,6 +427,7 @@ type AntifloodDebugConfig struct {
 type ShuffleOutDebugConfig struct {
 	CallGCWhenShuffleOut    bool
 	ExtraPrintsOnShuffleOut bool
+	DoProfileOnShuffleOut   bool
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

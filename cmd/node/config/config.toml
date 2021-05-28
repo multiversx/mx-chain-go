@@ -698,6 +698,7 @@
     [Debug.ShuffleOut]
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
