@@ -83,6 +83,8 @@ func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
 		Config:           &dcf.config,
 		EconomicsData:    dcf.economicsData,
 		ShardCoordinator: dcf.shardCoordinator,
+		Marshalizer:      dcf.core.InternalMarshalizer,
+		PathManager:      dcf.pathManager,
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {

@@ -124,3 +124,5 @@ var ErrNilTimeCache = errors.New("nil time cache")
 // ErrNilTxGasHandler signals that a nil tx gas handler was provided
 var ErrNilTxGasHandler = errors.New("nil tx gas handler")
 
+// ErrNilStoredDataFactory signals that a nil stored data factory has been provided
+var ErrNilStoredDataFactory = errors.New("nil stored data factory")

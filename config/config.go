@@ -24,6 +24,7 @@ type DBConfig struct {
 	BatchDelaySeconds int
 	MaxBatchSize      int
 	MaxOpenFiles      int
+	UseTmpAsFilePath  bool
 }
 
 // BloomFilterConfig will map the bloom filter configuration
@@ -37,6 +38,13 @@ type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
 	Bloom BloomFilterConfig
+}
+
+// TrieSyncStorageConfig will map trie sync storage configuration
+type TrieSyncStorageConfig struct {
+	DB          DBConfig
+	Capacity    uint32
+	SizeInBytes uint64
 }
 
 // PubkeyConfig will map the public key configuration
@@ -126,10 +134,10 @@ type Config struct {
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -238,6 +246,7 @@ type GeneralSettingsConfig struct {
 	ReturnDataToLastTransferEnableEpoch    uint32
 	ArwenESDTFunctionsEnableEpoch          uint32
 	SenderInOutTransferEnableEpoch         uint32
+	SaveJailedAlwaysEnableEpoch            uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

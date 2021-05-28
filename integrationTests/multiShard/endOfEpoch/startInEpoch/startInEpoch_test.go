@@ -194,7 +194,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &mock.PathManagerStub{},
+		PathManager:                &testscommon.PathManagerStub{},
 		WorkingDir:                 "test_directory",
 		DefaultDBPath:              "test_db",
 		DefaultEpochString:         "test_epoch",
@@ -224,7 +224,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
 		shardC,
-		&mock.PathManagerStub{},
+		&testscommon.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
 		0)
 	assert.NoError(t, err)

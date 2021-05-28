@@ -1,4 +1,4 @@
-package testscommon
+package mock
 
 import (
 	"sync"
