@@ -11,6 +11,11 @@ import (
 )
 
 func TestDNS_Register(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
 	expectedDNSAddress := []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 180, 108, 178, 102, 195, 67, 184, 127, 204, 159, 104, 123, 190, 33, 224, 91, 255, 244, 118, 95, 24, 217}
 
 	var empty struct{}

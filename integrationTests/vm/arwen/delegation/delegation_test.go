@@ -29,6 +29,11 @@ var NewBalanceBig = arwen.NewBalanceBig
 var RequireAlmostEquals = arwen.RequireAlmostEquals
 
 func TestDelegation_Upgrade(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
@@ -57,6 +62,11 @@ func TestDelegation_Upgrade(t *testing.T) {
 }
 
 func TestDelegation_Claims(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
