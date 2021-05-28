@@ -325,7 +325,7 @@ func TestGovernanceContract_AccountVoteNotEnoughGas(t *testing.T) {
 		},
 	}
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), make([][]byte, 0))
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), make([][]byte, 0))
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.OutOfGas, retCode)
 }
@@ -342,7 +342,7 @@ func TestGovernanceContract_AccountVoteInvalidNumOfArguments(t *testing.T) {
 		[]byte("1"),
 		[]byte("10"),
 	}
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
 }
@@ -358,7 +358,7 @@ func TestGovernanceContract_AccountVoteProposalNotFound(t *testing.T) {
 		proposalIdentifier,
 		[]byte("1"),
 	}
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }
@@ -375,7 +375,7 @@ func TestGovernanceContract_AccountVoteInvalidVoteType(t *testing.T) {
 		proposalIdentifier,
 		[]byte("1"),
 	}
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }
@@ -392,7 +392,7 @@ func TestGovernanceContract_AccountVoteInvalidCallValue(t *testing.T) {
 		proposalIdentifier,
 		[]byte("yes"),
 	}
-	callInput := createVMInput(big.NewInt(-500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(-500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }
@@ -425,7 +425,7 @@ func TestGovernanceContract_AccountVoteAddVoteError(t *testing.T) {
 		proposalIdentifier,
 		[]byte("yes"),
 	}
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 }
@@ -441,13 +441,18 @@ func TestGovernanceContract_AccountVoteAddSimpleVote(t *testing.T) {
 		No:  big.NewInt(0),
 	})
 	gsc, _ := NewGovernanceContract(args)
+	setDelegationManagementData(gsc)
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
 	}
-	callInput := createVMInput(big.NewInt(500), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(500), "voteWithFunds", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func setDelegationManagementData(gsc *governanceContract) {
+	_ = saveDelegationManagementData(gsc.eei, gsc.marshalizer, gsc.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(10)})
 }
 
 func TestGovernanceContract_ValidatorVoteNotEnoughGas(t *testing.T) {
@@ -3048,6 +3053,16 @@ func createMockStorer(callerAddress []byte, proposalIdentifier []byte, proposal 
 				marshaledProposal, _ := marshalizer.Marshal(proposal)
 
 				return marshaledProposal
+			}
+
+			return nil
+		},
+		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
+			marshalizer := &mock.MarshalizerMock{}
+			if bytes.Equal(address, vm.DelegationManagerSCAddress) && bytes.Equal(key, []byte(delegationManagementKey)) {
+				dManagementData := &DelegationManagement{MinDelegationAmount: big.NewInt(10)}
+				marshaledData, _ := marshalizer.Marshal(dManagementData)
+				return marshaledData
 			}
 
 			return nil

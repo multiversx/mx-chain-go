@@ -169,7 +169,7 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 		MinDeposit:          d.minCreationDeposit,
 		MinDelegationAmount: d.minDelegationAmount,
 	}
-	err := d.saveDelegationManagementData(managementData)
+	err := saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, managementData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -249,7 +249,7 @@ func (d *delegationManager) deployNewContract(
 	currentStorage = append(currentStorage, newAddress...)
 
 	d.eei.SetStorage(args.CallerAddr, currentStorage)
-	err = d.saveDelegationManagementData(delegationManagement)
+	err = saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -403,7 +403,7 @@ func (d *delegationManager) changeMinDeposit(args *vmcommon.ContractCallInput) v
 		return vmcommon.UserError
 	}
 	delegationManagement.MinDeposit = minDeposit
-	err = d.saveDelegationManagementData(delegationManagement)
+	err = saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -431,7 +431,7 @@ func (d *delegationManager) changeMinDelegationAmount(args *vmcommon.ContractCal
 		return vmcommon.UserError
 	}
 	delegationManagement.MinDelegationAmount = minDelegationAmount
-	err = d.saveDelegationManagementData(delegationManagement)
+	err = saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -516,13 +516,18 @@ func (d *delegationManager) getDelegationManagementData() (*DelegationManagement
 	return managementData, nil
 }
 
-func (d *delegationManager) saveDelegationManagementData(managementData *DelegationManagement) error {
-	marshaledData, err := d.marshalizer.Marshal(managementData)
+func saveDelegationManagementData(
+	eei vm.SystemEI,
+	marshalizer marshal.Marshalizer,
+	delegationMgrAddress []byte,
+	managementData *DelegationManagement,
+) error {
+	marshaledData, err := marshalizer.Marshal(managementData)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationManagementKey), marshaledData)
+	eei.SetStorageForAddress(delegationMgrAddress, []byte(delegationManagementKey), marshaledData)
 	return nil
 }
 
