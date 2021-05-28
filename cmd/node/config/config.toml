@@ -695,6 +695,9 @@
         Enabled = true
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
 
 [Health]
     IntervalVerifyMemoryInSeconds = 5
