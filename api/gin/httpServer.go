@@ -38,7 +38,7 @@ func (h *httpServer) Start() {
 	}
 }
 
-// Stop will handle the stopping of the gin web server
+// Close will handle the stopping of the gin web server
 func (h *httpServer) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

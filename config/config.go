@@ -393,6 +393,7 @@ type DbLookupExtensionsConfig struct {
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
+	ShuffleOut          ShuffleOutDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -421,6 +422,13 @@ type AntifloodDebugConfig struct {
 	Enabled                    bool
 	CacheSize                  int
 	IntervalAutoPrintInSeconds int
+}
+
+// ShuffleOutDebugConfig will hold the shuffle out debug configuration
+type ShuffleOutDebugConfig struct {
+	CallGCWhenShuffleOut    bool
+	ExtraPrintsOnShuffleOut bool
+	DoProfileOnShuffleOut   bool
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

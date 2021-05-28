@@ -8,15 +8,6 @@ var ErrHandlersSliceIsNil = errors.New("no AppStatusHandler provided")
 // ErrNilHandlerInSlice will be returned when one of the handlers passed to the Facade is nil
 var ErrNilHandlerInSlice = errors.New("nil AppStatusHandler")
 
-// ErrNilPresenterInterface will be returned when a nil PresenterInterface is passed as parameter
-var ErrNilPresenterInterface = errors.New("nil presenter interface")
-
-// ErrNilGrid will be returned when a nil grid is returned
-var ErrNilGrid = errors.New("nil grid")
-
-// ErrInvalidRefreshTimeInMilliseconds signals that an invalid time in milliseconds was provided
-var ErrInvalidRefreshTimeInMilliseconds = errors.New("invalid refresh time in milliseconds")
-
 // ErrNilAppStatusHandler signals that a nil status handler has been provided
 var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 
@@ -28,6 +19,3 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
-
-// ErrNilTermUIStartChannel signals that a nil TermUI start channel has been provided
-var ErrNilTermUIStartChannel = errors.New("nil TermUI start channel")

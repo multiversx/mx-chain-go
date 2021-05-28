@@ -157,11 +157,11 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 // Close closes the synchronization loop
 func (boot *MetaBootstrap) Close() error {
-	if !check.IfNil(boot.baseBootstrap) {
-		log.LogIfError(boot.baseBootstrap.Close())
+	if check.IfNil(boot.baseBootstrap) {
+		return nil
 	}
-	boot.cancelFunc()
-	return nil
+
+	return boot.baseBootstrap.Close()
 }
 
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool

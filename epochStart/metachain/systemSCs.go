@@ -183,7 +183,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
 	log.Debug("systemSC: enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
 	log.Debug("systemSC: enable epoch for ESDT", "epoch", s.esdtEnableEpoch)
-	log.Debug("systemSC: enable epoch for correct num nodes to stake", "epoch", s.correctLastUnJailEpoch)
+	log.Debug("systemSC: enable epoch for correct last unjailed", "epoch", s.correctLastUnJailEpoch)
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -1448,7 +1448,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
 
 	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
-	log.Debug("systemSCProcessor: correct num nodes to stake", "enabled", s.flagCorrectNumNodesToStake.IsSet())
+	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
 	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
