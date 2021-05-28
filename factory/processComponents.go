@@ -455,7 +455,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
 	if !ok {

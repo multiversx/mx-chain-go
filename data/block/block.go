@@ -437,3 +437,8 @@ func (h *Header) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) err
 	// first header version does not have any additional data
 	return nil
 }
+
+// HasScheduledSupport returns true if the header version supports scheduled data
+func (h *Header) HasScheduledSupport() bool {
+	return false
+}

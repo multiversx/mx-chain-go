@@ -42,6 +42,7 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
+	scheduledExecutionMilliseconds := 10
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -96,7 +97,8 @@ func TestTomlParser(t *testing.T) {
 			Type: multiSigHasherType,
 		},
 		Consensus: ConsensusConfig{
-			Type: consensusType,
+			ScheduledExecutionMilliseconds: uint32(scheduledExecutionMilliseconds),
+			Type:                           consensusType,
 		},
 	}
 
@@ -149,6 +151,7 @@ func TestTomlParser(t *testing.T) {
 	Type = "` + multiSigHasherType + `"
 
 [Consensus]
+	ScheduledExecutionMilliseconds = ` + strconv.Itoa(scheduledExecutionMilliseconds) + `
 	Type = "` + consensusType + `"
 
 `

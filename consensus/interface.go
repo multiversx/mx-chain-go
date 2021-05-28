@@ -139,3 +139,10 @@ type NodeRedundancyHandler interface {
 	ObserverPrivateKey() crypto.PrivateKey
 	IsInterfaceNil() bool
 }
+
+// ScheduledProcessor encapsulates the scheduled processor functionality required by consensus module
+type ScheduledProcessor interface {
+	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler)
+	IsProcessedOK() bool
+	IsInterfaceNil() bool
+}

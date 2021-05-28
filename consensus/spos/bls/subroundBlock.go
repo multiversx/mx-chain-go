@@ -92,10 +92,12 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	sentWithSuccess := sr.sendBlock(body, header)
+	sentWithSuccess := sr.sendBlock(header, body)
 	if !sentWithSuccess {
 		return false
 	}
+
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body)
 
 	err = sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
@@ -106,7 +108,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 	return true
 }
 
-func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler) bool {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -120,7 +122,7 @@ func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHand
 	}
 
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendBlockBodyAndHeader(body, header, marshalizedBody, marshalizedHeader)
+		return sr.sendBlockBodyAndHeader(header, body, marshalizedBody, marshalizedHeader)
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
@@ -160,8 +162,8 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 
 // sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
 func (sr *subroundBlock) sendBlockBodyAndHeader(
-	bodyHandler data.BodyHandler,
 	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
 ) bool {
@@ -550,6 +552,8 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 			"error", err.Error())
 		return false
 	}
+
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.Header, sr.Body)
 
 	return true
 }

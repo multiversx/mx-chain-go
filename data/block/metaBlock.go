@@ -376,7 +376,7 @@ func (m *MetaBlock) ShallowClone() data.HeaderHandler {
 	return &metaBlockCopy
 }
 
-// GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
+// GetMiniBlockHeaderHandlers returns the miniBlock headers as an array of miniBlock header handlers
 func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	if m == nil {
 		return nil
@@ -390,6 +390,11 @@ func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	}
 
 	return mbHeaderHandlers
+}
+
+// HasScheduledSupport sets the miniBlock headers from the given miniBlock header handlers
+func (m *MetaBlock) HasScheduledSupport() bool {
+	return false
 }
 
 // SetMiniBlockHeaderHandlers sets the miniBlock headers from the given miniBlock header handlers

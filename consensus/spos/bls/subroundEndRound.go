@@ -188,6 +188,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	ok := sr.ConsensusCoreHandler.ScheduledProcessor().IsProcessedOK()
+	if !ok {
+		return false
+	}
+
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {

@@ -331,3 +331,8 @@ func (hhs *HeaderHandlerStub) ValidateHeaderVersion() error {
 func (hhs *HeaderHandlerStub) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
 	return nil
 }
+
+// HasScheduledSupport -
+func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
+	return false
+}

@@ -1000,3 +1000,6 @@ var ErrNilVersionedHeaderFactory = errors.New("nil versioned header factory")
 
 // ErrNilIntermediateProcessor signals that intermediate processors is nil
 var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")
+
+// ErrNilSyncTimer signals that the sync timer is nil
+var ErrNilSyncTimer = errors.New("sync timer is nil")

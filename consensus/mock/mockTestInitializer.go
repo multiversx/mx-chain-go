@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 )
 
 // InitChronologyHandlerMock -
@@ -135,6 +136,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	headerSigVerifier := &HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
+	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -158,6 +160,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
 		nodeRedundancyHandler:   nodeRedundancyHandler,
+		scheduledProcessor:      scheduledProcessor,
 	}
 
 	return container

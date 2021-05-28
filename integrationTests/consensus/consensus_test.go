@@ -7,12 +7,14 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
+	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,6 +104,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 		consensusArgs := factory.ConsensusComponentsFactoryArgs{
 			Config: config.Config{
 				Consensus: config.ConsensusConfig{
+					ScheduledExecutionMilliseconds: 10,
 					Type: blsConsensusType,
 				},
 				ValidatorPubkeyConverter: config.PubkeyConfig{
@@ -119,6 +122,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			ProcessComponents:   n.node.GetProcessComponents(),
 			StateComponents:     n.node.GetStateComponents(),
 			StatusComponents:    statusComponents,
+			ScheduledProcessor:  &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:      n.node.IsInImportMode(),
 		}
 
@@ -223,6 +227,7 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	runFullConsensusTest(t, blsConsensusType)
 }
 
