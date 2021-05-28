@@ -57,8 +57,17 @@ func TestNode_GetTransactionFromPool(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
+	require.Equal(t, uint32(1), actualA.SourceShard)
+	require.Equal(t, uint32(2), actualA.DestinationShard)
+
 	require.Equal(t, txB.Nonce, actualB.Nonce)
+	require.Equal(t, uint32(2), actualB.SourceShard)
+	require.Equal(t, uint32(1), actualB.DestinationShard)
+
 	require.Equal(t, txC.Nonce, actualC.Nonce)
+	require.Equal(t, uint32(1), actualC.SourceShard)
+	require.Equal(t, uint32(1), actualC.DestinationShard)
+
 	require.Equal(t, transaction.TxStatusPending, actualA.Status)
 	require.Equal(t, transaction.TxStatusPending, actualB.Status)
 	require.Equal(t, transaction.TxStatusPending, actualC.Status)

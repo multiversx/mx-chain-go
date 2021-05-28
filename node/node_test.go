@@ -606,11 +606,15 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			return &block.Header{}
 		},
 	}
-
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	value, err := n.GetAllIssuedESDTs(core.FungibleESDT)
@@ -631,6 +635,144 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	value, err = n.GetAllIssuedESDTs("")
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(value))
+}
+
+func TestNode_GetESDTsWithRole(t *testing.T) {
+	addrBytes := []byte("newaddress")
+	acc, _ := state.NewUserAccount(addrBytes)
+	esdtToken := []byte("TCK-RANDOM")
+
+	specialRoles := []*systemSmartContracts.ESDTRoles{
+		{
+			Address: addrBytes,
+			Roles:   [][]byte{[]byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleLocalMint)},
+		},
+	}
+
+	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT), SpecialRoles: specialRoles}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+	)
+
+	tokenResult, err := n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTAddQuantity)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(tokenResult))
+	require.Equal(t, string(esdtToken), tokenResult[0])
+
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleLocalMint)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(tokenResult))
+	require.Equal(t, string(esdtToken), tokenResult[0])
+
+	tokenResult, err = n.GetESDTsWithRole(hex.EncodeToString(addrBytes), core.ESDTRoleNFTCreate)
+	require.NoError(t, err)
+	require.Len(t, tokenResult, 0)
+}
+
+func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+	addrBytes := []byte("newaddress")
+	acc, _ := state.NewUserAccount(addrBytes)
+	esdtToken := []byte("TCK-RANDOM")
+
+	esdtData := &systemSmartContracts.ESDTData{TokenName: []byte("fungible"), TokenType: []byte(core.SemiFungibleESDT), OwnerAddress: addrBytes}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtToken, marshalledData)
+
+	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtToken, append(marshalledData, esdtSuffix...))
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	coreComponents := getDefaultCoreComponents()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.AccountsAPI = accDB
+	stateComponents.Accounts = accDB
+	dataComponents := getDefaultDataComponents()
+	dataComponents.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: core.MetachainShardId,
+	}
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+	)
+
+	tokenResult, err := n.GetNFTTokenIDsRegisteredByAddress(hex.EncodeToString(addrBytes))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(tokenResult))
+	require.Equal(t, string(esdtToken), tokenResult[0])
 }
 
 //------- GenerateTransaction

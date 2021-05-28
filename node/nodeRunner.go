@@ -151,6 +151,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
+	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -267,6 +268,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.ShardCoordinator().SelfId(),
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	)
 	if err != nil {
 		return true, err

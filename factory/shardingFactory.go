@@ -100,6 +100,7 @@ func CreateNodesCoordinator(
 	currentShardID uint32,
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
+	waitingListFixEnabledEpoch uint32,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 	if err != nil {
@@ -166,22 +167,23 @@ func CreateNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartNotifier,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardIDAsObserver,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      shuffledOutHandler,
-		Epoch:                   currentEpoch,
-		StartEpoch:              startEpoch,
+		ShardConsensusGroupSize:    shardConsensusGroupSize,
+		MetaConsensusGroupSize:     metaConsensusGroupSize,
+		Marshalizer:                marshalizer,
+		Hasher:                     hasher,
+		Shuffler:                   nodeShuffler,
+		EpochStartNotifier:         epochStartNotifier,
+		BootStorer:                 bootStorer,
+		ShardIDAsObserver:          shardIDAsObserver,
+		NbShards:                   nbShards,
+		EligibleNodes:              eligibleValidators,
+		WaitingNodes:               waitingValidators,
+		SelfPublicKey:              pubKeyBytes,
+		ConsensusGroupCache:        consensusGroupCache,
+		ShuffledOutHandler:         shuffledOutHandler,
+		Epoch:                      currentEpoch,
+		StartEpoch:                 startEpoch,
+		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

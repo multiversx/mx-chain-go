@@ -229,7 +229,7 @@ func registerShardsInformation(
 		numOfShards := uint64(coordinator.NumberOfShards())
 
 		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetachain, numOfShards)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
