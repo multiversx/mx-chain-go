@@ -62,7 +62,7 @@ test-miniblocks-sc-v:
 test-arwen:
 	go test -count=1 -v ./integrationTests/vm/arwen/...
 
-test-coverage:
+test-coverage: arwen
 	@echo "Running unit tests"
 	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
