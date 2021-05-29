@@ -1,10 +1,11 @@
 package transaction
 
 import (
-	"math/big"
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -60,64 +61,27 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
-	consumedGasUnits := uint64(5000)
+	consumedGasUnits := uint64(4000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return consumedGasUnits
-		},
-	}, &mock.TransactionSimulatorStub{})
+	}, &mock.FeeHandlerStub{},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{
+					VMOutput: &vmcommon.VMOutput{
+						ReturnCode:   vmcommon.Ok,
+						GasRemaining: math.MaxUint64 - consumedGasUnits,
+					},
+				}, nil
+			},
+		})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits+uint64(1000), cost.GasUnits)
-}
-
-func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
-	t.Parallel()
-
-	gasLimitBaseTx := uint64(500)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCDeployment, process.SCDeployment
-		},
-	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimitBaseTx
-		},
-	}, &mock.TransactionSimulatorStub{})
-
-	tx := &transaction.Transaction{
-		Data: []byte("data"),
-	}
-	cost, err := tce.ComputeTransactionGasLimit(tx)
-	require.Nil(t, err)
-	require.Equal(t, gasLimitBaseTx+uint64(16), cost.GasUnits)
-}
-
-func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
-	t.Parallel()
-
-	gasLimitBaseTx := uint64(500)
-	consumedGasUnits := big.NewInt(1000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
-		},
-	}, &mock.FeeHandlerStub{
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimitBaseTx
-		},
-	}, &mock.TransactionSimulatorStub{})
-
-	tx := &transaction.Transaction{}
-	cost, err := tce.ComputeTransactionGasLimit(tx)
-	require.Nil(t, err)
-	require.Equal(t, consumedGasUnits.Uint64()+gasLimitBaseTx, cost.GasUnits)
+	require.Equal(t, consumedGasUnits, cost.GasUnits)
 }
 
 func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {

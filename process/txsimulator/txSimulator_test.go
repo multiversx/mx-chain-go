@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/stretchr/testify/require"
 )
 
@@ -131,5 +132,8 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		IntermediateProcContainer: &mock.IntermProcessorContainerStub{},
 		AddressPubKeyConverter:    &mock.PubkeyConverterMock{},
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
+		VMOutputCacher:            txcache.NewDisabledCache(),
+		Marshalizer:               &mock.MarshalizerMock{},
+		Hasher:                    &mock.HasherMock{},
 	}
 }

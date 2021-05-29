@@ -60,7 +60,7 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
 			GasUnits:   0,
-			RetMessage: "not implemented for relayed transactions",
+			RetMessage: "cannot compute cost of the relayed transaction",
 		}, nil
 	default:
 		return &transaction.CostResponse{
@@ -72,7 +72,7 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 
 func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	if tx.GasLimit == 0 {
-		tx.GasLimit = math.MaxUint64 - 1
+		tx.GasLimit = math.MaxUint64
 	}
 	if tx.GasPrice == 0 {
 		tx.GasPrice = tce.feeHandler.MinGasPrice()
