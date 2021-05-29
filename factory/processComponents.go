@@ -444,6 +444,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		AddressPubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		VMOutputCacher:         vmOutputCacher,
+		Hasher:                 pcf.coreData.Hasher(),
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
 	blockProcessor, err := pcf.newBlockProcessor(
