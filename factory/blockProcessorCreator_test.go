@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +37,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{},
+		&txsimulator.ArgsTxSimulator{
+			VMOutputCacher: txcache.NewDisabledCache(),
+		},
 	)
 
 	require.NoError(t, err)
@@ -136,7 +139,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{},
+		&txsimulator.ArgsTxSimulator{
+			VMOutputCacher: txcache.NewDisabledCache(),
+		},
 	)
 
 	require.NoError(t, err)

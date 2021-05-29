@@ -557,6 +557,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -889,7 +890,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-
+	scProcArgs.BypassChecks = true
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
@@ -897,7 +898,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	txProcArgs.ScProcessor = scProcessor
 
 	txProcArgs.Accounts = readOnlyAccountsDB
-
+	txProcArgs.BypassChecks = true
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
 		return err
@@ -946,6 +947,8 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
+	scProcArgs.BypassChecks = true
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
@@ -969,6 +972,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		EpochNotifier:    pcf.epochNotifier,
 	}
 
+	argsNewMetaTx.BypassChecks = true
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
 	if err != nil {
 		return err
