@@ -69,7 +69,6 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	firstScAddress, _ := utils.DoDeployNoChecks(t, testContext, pathToContract)
 
 	args := [][]byte{[]byte(hex.EncodeToString(firstScAddress))}
-	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	pathToContract = "testdata/second/output/async.wasm"
 	secondSCAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
