@@ -21,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -95,6 +97,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		BuiltInFunctions:     builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
+		VMOutputCacher:       txcache.NewDisabledCache(),
 	}
 }
 
@@ -1456,6 +1459,10 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
+	arguments.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
+		Type:     storageUnit.LRUCache,
+		Capacity: 10000,
+	})
 
 	sc, _ := NewSmartContractProcessor(arguments)
 

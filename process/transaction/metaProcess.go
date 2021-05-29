@@ -35,6 +35,7 @@ type ArgsNewMetaTxProcessor struct {
 	EconomicsFee     process.FeeHandler
 	ESDTEnableEpoch  uint32
 	EpochNotifier    process.EpochNotifier
+	BypassChecks     bool
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -71,8 +72,9 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:             args.Marshalizer,
 		scProcessor:             args.ScProcessor,
 		flagPenalizedTooMuchGas: atomic.Flag{},
+		bypassChecks:            args.BypassChecks,
 	}
-	//backwards compatibility
+	// backwards compatibility
 	baseTxProcess.flagPenalizedTooMuchGas.Unset()
 
 	txProc := &metaTxProcessor{

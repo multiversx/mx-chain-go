@@ -149,7 +149,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, tpn.SCQueryService, gasScheduleNotifier)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, nil)
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{
@@ -186,10 +186,10 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argSimulator := txsimulator.ArgsTxSimulator{
-		TransactionProcessor:       tpn.TxProcessor,
-		IntermmediateProcContainer: tpn.InterimProcContainer,
-		AddressPubKeyConverter:     TestAddressPubkeyConverter,
-		ShardCoordinator:           tpn.ShardCoordinator,
+		TransactionProcessor:      tpn.TxProcessor,
+		IntermediateProcContainer: tpn.InterimProcContainer,
+		AddressPubKeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:          tpn.ShardCoordinator,
 	}
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)

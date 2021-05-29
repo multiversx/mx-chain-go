@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -243,6 +244,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -886,6 +888,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
@@ -900,7 +903,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	return nil
 }
@@ -939,6 +942,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		return err
 	}
 	scProcArgs.BadTxForwarder = badTxInterim
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
@@ -970,7 +974,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	return nil
 }

@@ -44,7 +44,7 @@ func TestNewTransactionSimulator(t *testing.T) {
 			name: "NilIntermProcessorContainer",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
-				args.IntermmediateProcContainer = nil
+				args.IntermediateProcContainer = nil
 				return args
 			},
 			exError: ErrNilIntermediateProcessorContainer,
@@ -96,7 +96,7 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 	}
 
 	args := getTxSimulatorArgs()
-	args.IntermmediateProcContainer = &mock.IntermProcessorContainerStub{
+	args.IntermediateProcContainer = &mock.IntermProcessorContainerStub{
 		GetCalled: func(key block.Type) (process.IntermediateTransactionHandler, error) {
 			return &mock.IntermediateTransactionHandlerStub{
 				GetAllCurrentFinishedTxsCalled: func() map[string]data.TransactionHandler {
@@ -127,9 +127,9 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 
 func getTxSimulatorArgs() ArgsTxSimulator {
 	return ArgsTxSimulator{
-		TransactionProcessor:       &mock.TxProcessorStub{},
-		IntermmediateProcContainer: &mock.IntermProcessorContainerStub{},
-		AddressPubKeyConverter:     &mock.PubkeyConverterMock{},
-		ShardCoordinator:           mock.NewMultiShardsCoordinatorMock(2),
+		TransactionProcessor:      &mock.TxProcessorStub{},
+		IntermediateProcContainer: &mock.IntermProcessorContainerStub{},
+		AddressPubKeyConverter:    &mock.PubkeyConverterMock{},
+		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 	}
 }

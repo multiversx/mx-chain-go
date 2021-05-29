@@ -73,6 +73,7 @@ type ArgsNewTxProcessor struct {
 	PenalizedTooMuchGasEnableEpoch uint32
 	MetaProtectionEnableEpoch      uint32
 	EpochNotifier                  process.EpochNotifier
+	BypassChecks                   bool
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -131,6 +132,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		scProcessor:      args.ScProcessor,
+		bypassChecks:     args.BypassChecks,
 	}
 
 	txProc := &txProcessor{

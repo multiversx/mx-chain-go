@@ -52,6 +52,7 @@ type SimulationResults struct {
 	ScResults  map[string]*ApiSmartContractResult `json:"scResults,omitempty"`
 	Receipts   map[string]*ReceiptApi             `json:"receipts,omitempty"`
 	Hash       string                             `json:"hash,omitempty"`
+	VMOutput   *vmcommon.VMOutput                 `json:"-"`
 }
 
 // ApiSmartContractResult represents a smart contract result with changed fields' types in order to make it friendly for API's json
