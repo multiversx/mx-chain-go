@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
@@ -94,6 +95,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		return &transaction.CostResponse{
 			GasUnits:   0,
 			RetMessage: "no vm output",
+			Scrs:       res.ScResults,
 		}, nil
 
 	}
@@ -102,12 +104,14 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		return &transaction.CostResponse{
 			GasUnits:   tx.GasLimit - res.VMOutput.GasRemaining,
 			RetMessage: "",
+			Scrs:       res.ScResults,
 		}, nil
 	}
 
 	return &transaction.CostResponse{
 		GasUnits:   0,
-		RetMessage: res.VMOutput.ReturnMessage,
+		RetMessage: fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
+		Scrs:       res.ScResults,
 	}, nil
 }
 
