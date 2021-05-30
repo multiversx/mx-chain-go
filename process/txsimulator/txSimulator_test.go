@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/stretchr/testify/require"
 )
@@ -51,6 +53,42 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilIntermediateProcessorContainer,
 		},
 		{
+			name: "NilPubkeyConverter",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.AddressPubKeyConverter = nil
+				return args
+			},
+			exError: ErrNilPubkeyConverter,
+		},
+		{
+			name: "NilHasher",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.Hasher = nil
+				return args
+			},
+			exError: ErrNilHasher,
+		},
+		{
+			name: "NilMarshalizer",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.Marshalizer = nil
+				return args
+			},
+			exError: ErrNilMarshalizer,
+		},
+		{
+			name: "NilVMOutputCacher",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.VMOutputCacher = nil
+				return args
+			},
+			exError: ErrNilCacher,
+		},
+		{
 			name: "Ok",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
@@ -86,17 +124,64 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	require.Equal(t, expErr.Error(), results.FailReason)
 }
 
+func TestTransactionSimulator_getVMOutputComputeHashFails(t *testing.T) {
+	t.Parallel()
+
+	args := getTxSimulatorArgs()
+	args.Marshalizer = &mock.MarshalizerMock{
+		Fail: true,
+	}
+	ts, _ := NewTransactionSimulator(args)
+	require.False(t, ts.IsInterfaceNil())
+
+	_, ok := ts.getVMOutputOfTx(nil)
+	require.False(t, ok)
+}
+
+func TestTransactionSimulator_getVMOutput(t *testing.T) {
+	t.Parallel()
+
+	args := getTxSimulatorArgs()
+	args.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
+		Type:     storageUnit.LRUCache,
+		Capacity: 100,
+	})
+
+	ts, _ := NewTransactionSimulator(args)
+	require.False(t, ts.IsInterfaceNil())
+
+	// cannot find vm output in cacher
+	_, ok := ts.getVMOutputOfTx(&transaction.Transaction{})
+	require.False(t, ok)
+
+	// wrong data in cacher
+	tx := &transaction.Transaction{}
+	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
+	args.VMOutputCacher.Put(txHash, 1, 0)
+	_, ok = ts.getVMOutputOfTx(tx)
+	require.False(t, ok)
+}
+
 func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T) {
 	t.Parallel()
 
 	expectedSCr := map[string]data.TransactionHandler{
-		"keySCr": &smartContractResult.SmartContractResult{RcvAddr: []byte("rcvr")},
+		"keySCr": &smartContractResult.SmartContractResult{
+			RcvAddr:        []byte("rcvr"),
+			RelayerAddr:    []byte("relayer"),
+			OriginalSender: []byte("original"),
+		},
 	}
 	expectedReceipts := map[string]data.TransactionHandler{
 		"keyReceipt": &receipt.Receipt{SndAddr: []byte("sndr")},
 	}
 
 	args := getTxSimulatorArgs()
+	args.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
+		Type:     storageUnit.LRUCache,
+		Capacity: 100,
+	})
+
 	args.IntermediateProcContainer = &mock.IntermProcessorContainerStub{
 		GetCalled: func(key block.Type) (process.IntermediateTransactionHandler, error) {
 			return &mock.IntermediateTransactionHandlerStub{
@@ -112,7 +197,11 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 	}
 	ts, _ := NewTransactionSimulator(args)
 
-	results, err := ts.ProcessTx(&transaction.Transaction{Nonce: 37})
+	tx := &transaction.Transaction{Nonce: 37}
+	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
+	args.VMOutputCacher.Put(txHash, &vmcommon.VMOutput{}, 0)
+
+	results, err := ts.ProcessTx(tx)
 	require.NoError(t, err)
 	require.Equal(
 		t,
