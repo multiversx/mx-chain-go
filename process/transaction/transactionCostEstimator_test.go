@@ -1,7 +1,9 @@
 package transaction
 
 import (
+	"errors"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -10,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,6 +32,15 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil)
+
+	require.Nil(t, tce)
+	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
 }
 
 func TestTransactionCostEstimator_Ok(t *testing.T) {
@@ -82,6 +94,65 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, consumedGasUnits, cost.GasUnits)
+}
+
+func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
+	localErr := errors.New("local err")
+	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return nil, localErr
+			},
+		})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, localErr.Error(), cost.RetMessage)
+}
+
+func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
+	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{}, nil
+			},
+		})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.Equal(t, process.ErrNilVMOutput.Error(), cost.RetMessage)
+}
+
+func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
+	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		},
+	}, &mock.FeeHandlerStub{},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+				return &transaction.SimulationResults{
+					VMOutput: &vmcommon.VMOutput{
+						ReturnCode: vmcommon.UserError,
+					},
+				}, nil
+			},
+		})
+
+	tx := &transaction.Transaction{}
+	cost, err := tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.True(t, strings.Contains(cost.RetMessage, vmcommon.UserError.String()))
 }
 
 func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {

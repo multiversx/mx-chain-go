@@ -94,7 +94,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	if res.VMOutput == nil {
 		return &transaction.CostResponse{
 			GasUnits:   0,
-			RetMessage: "no vm output",
+			RetMessage: process.ErrNilVMOutput.Error(),
 			Scrs:       res.ScResults,
 		}, nil
 
