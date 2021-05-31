@@ -481,6 +481,10 @@ func (hv2 *HeaderV2) SetScheduledRootHash(rootHash []byte) error {
 
 // ValidateHeaderVersion does extra validation for header version
 func (hv2 *HeaderV2) ValidateHeaderVersion() error {
+	if hv2 == nil {
+		return data.ErrNilPointerReceiver
+	}
+
 	// the header needs to have a not nil & not empty scheduled root hash
 	if len(hv2.ScheduledRootHash) == 0 {
 		return data.ErrNilScheduledRootHash
@@ -491,6 +495,10 @@ func (hv2 *HeaderV2) ValidateHeaderVersion() error {
 
 // SetAdditionalData sets the additional version related data for the header
 func (hv2 *HeaderV2) SetAdditionalData(headerVersionData headerVersionData.HeaderAdditionalData) error {
+	if hv2 == nil {
+		return data.ErrNilPointerReceiver
+	}
+
 	if check.IfNil(headerVersionData) {
 		return data.ErrNilPointerDereference
 	}

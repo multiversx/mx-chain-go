@@ -139,6 +139,22 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
+func TestNewBlockProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = &testscommon.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return nil
+		},
+	}
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+	assert.Nil(t, sp)
+}
+
 func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -4601,10 +4617,10 @@ func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
 
 	arguments := CreateMockArgumentsMultiShard(cc, dc, boostrapComponents, sc)
 
-	mp, err := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 
-	h, err := mp.CreateNewHeader(1, 1)
+	h, err := sp.CreateNewHeader(1, 1)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, h)
 }
@@ -4643,10 +4659,10 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 		},
 	}
 
-	mp, err := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 
-	h, err := mp.CreateNewHeader(round, epoch)
+	h, err := sp.CreateNewHeader(round, epoch)
 	assert.Nil(t, err)
 	assert.IsType(t, &block.HeaderV2{}, h)
 	assert.Equal(t, round, h.GetRound())
