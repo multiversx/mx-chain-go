@@ -58,6 +58,12 @@ func (c *capacityLRU) Purge() {
 
 // AddSized adds a value to the cache.  Returns true if an eviction occurred.
 func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
+	c.addSized(key, value, sizeInBytes)
+
+	return c.evictIfNeeded()
+}
+
+func (c *capacityLRU) addSized(key interface{}, value interface{}, sizeInBytes int64) {
 	if sizeInBytes < 0 {
 		log.Error("size LRU cache add error",
 			"key", fmt.Sprintf("%v", key),
@@ -65,7 +71,7 @@ func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
 			"error", storage.ErrNegativeSizeInBytes,
 		)
 
-		return false
+		return
 	}
 
 	c.lock.Lock()
@@ -77,8 +83,29 @@ func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
 	} else {
 		c.addNew(key, value, sizeInBytes)
 	}
+}
 
-	return c.evictIfNeeded()
+// AddSizedAndReturnEvicted adds the given key-value pair to the cache, and returns the evicted values
+func (c *capacityLRU) AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{} {
+	c.addSized(key, value, sizeInBytes)
+
+	evictedValues := make(map[interface{}]interface{})
+	for c.shouldEvict() {
+		evicted := c.evictList.Back()
+		if evicted == nil {
+			continue
+		}
+
+		c.removeElement(evicted)
+		evictedEntry, ok := evicted.Value.(*entry)
+		if !ok {
+			continue
+		}
+
+		evictedValues[evictedEntry.key] = evictedEntry.value
+	}
+
+	return evictedValues
 }
 
 func (c *capacityLRU) addNew(key interface{}, value interface{}, sizeInBytes int64) {
@@ -262,4 +289,9 @@ func (c *capacityLRU) evictIfNeeded() bool {
 	}
 
 	return evicted
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (c *capacityLRU) IsInterfaceNil() bool {
+	return c == nil
 }

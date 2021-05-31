@@ -128,7 +128,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		BlockKeyGen:                &mock.KeyGenMock{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
-		PathManager:                &mock.PathManagerStub{},
+		PathManager:                &testscommon.PathManagerStub{},
 		WorkingDir:                 "test_directory",
 		DefaultDBPath:              "test_db",
 		DefaultEpochString:         "test_epoch",

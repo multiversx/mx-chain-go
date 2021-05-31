@@ -27,4 +27,5 @@ type DBConfig struct {
 	BatchDelaySeconds int    `toml:"batchDelaySeconds"`
 	MaxBatchSize      int    `toml:"maxBatchSize"`
 	MaxOpenFiles      int    `toml:"maxOpenFiles"`
+	UseTmpAsFilePath  bool   `toml:"useTmpAsFilePath"`
 }

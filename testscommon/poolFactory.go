@@ -1,12 +1,18 @@
 package testscommon
 
 import (
+	"io/ioutil"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
+	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
@@ -69,8 +75,28 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, err := storageUnit.NewCache(cacherConfig)
-	panicIfError("CreatePoolsHolder", err)
+	cacher, err := capacity.NewCapacityLRU(10, 10000)
+	panicIfError("Create trieSync cacher", err)
+
+	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	cfg := storageUnit.ArgDB{
+		Path:              tempDir,
+		DBType:            storageUnit.LvlDBSerial,
+		BatchDelaySeconds: 4,
+		MaxBatchSize:      10000,
+		MaxOpenFiles:      10,
+	}
+	persister, err := storageUnit.NewDB(cfg)
+	panicIfError("Create trieSync DB", err)
+	tnf := trieNodeFactory.NewTrieNodeFactory()
+
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(
+		cacher,
+		persister,
+		tnf,
+		&marshal.GogoProtoMarshalizer{},
+	)
+	panicIfError("Create AdaptedTrieNodesStorage", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
@@ -86,7 +112,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		headersPool,
 		txBlockBody,
 		peerChangeBlockBody,
-		trieNodes,
+		adaptedTrieNodesStorage,
 		currentTx,
 		smartContracts,
 	)

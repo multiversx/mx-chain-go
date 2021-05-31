@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,7 +113,7 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		PathManager:      &mock.PathManagerStub{},
+		PathManager:      &testscommon.PathManagerStub{},
 		Core:             getCoreComponents(),
 		Tries:            getTriesComponents(),
 	}

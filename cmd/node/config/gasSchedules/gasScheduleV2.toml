@@ -14,24 +14,25 @@
     ESDTNFTChangeCreateOwner = 1000000
 
 [MetaChainSystemSCsCost]
-    Stake               = 5000000
-    UnStake             = 5000000
-    UnBond              = 5000000
-    Claim               = 5000000
-    Get                 = 5000000
-    ChangeRewardAddress = 5000000
-    ChangeValidatorKeys = 5000000
-    UnJail              = 5000000
-    DelegationOps       = 1000000
-    DelegationMgrOps    = 50000000
-    ESDTIssue           = 50000000
-    ESDTOperations      = 50000000
-    Proposal            = 5000000
-    Vote                = 500000
-    DelegateVote        = 1000000
-    RevokeVote          = 500000
-    CloseProposal       = 1000000
-    GetAllNodeStates    = 20000000
+    Stake                 = 5000000
+    UnStake               = 5000000
+    UnBond                = 5000000
+    Claim                 = 5000000
+    Get                   = 5000000
+    ChangeRewardAddress   = 5000000
+    ChangeValidatorKeys   = 5000000
+    UnJail                = 5000000
+    DelegationOps         = 1000000
+    DelegationMgrOps      = 50000000
+    ValidatorToDelegation = 500000000
+    ESDTIssue             = 50000000
+    ESDTOperations        = 50000000
+    Proposal              = 5000000
+    Vote                  = 500000
+    DelegateVote          = 1000000
+    RevokeVote            = 500000
+    CloseProposal         = 1000000
+    GetAllNodeStates      = 20000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
