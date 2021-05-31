@@ -158,7 +158,7 @@ func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingWithError(
 	sp.StartScheduledProcessing(header, body)
 	require.Equal(t, inProgress, sp.getStatus())
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	require.True(t, processScheduledCalled)
 	require.Equal(t, processingError, sp.getStatus())
 }
@@ -186,7 +186,7 @@ func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingOK(t *test
 	sp.StartScheduledProcessing(header, body)
 	require.Equal(t, inProgress, sp.getStatus())
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	require.True(t, processScheduledCalled)
 	require.Equal(t, processingOK, sp.getStatus())
 }
