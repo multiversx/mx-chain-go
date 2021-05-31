@@ -231,17 +231,17 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                        scf.systemEI,
-		GasCost:                    scf.gasCost,
-		GovernanceConfig:           scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:                scf.marshalizer,
-		Hasher:                     scf.hasher,
-		GovernanceSCAddress:        vm.GovernanceSCAddress,
-		DelegationMgrSCAddress:     vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:         vm.ValidatorSCAddress,
-		EpochNotifier:              scf.epochNotifier,
-		EpochConfig:                *scf.epochConfig,
-		InitalWhiteListedAddresses: [][]byte{configChangeAddres},
+		Eei:                         scf.systemEI,
+		GasCost:                     scf.gasCost,
+		GovernanceConfig:            scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:                 scf.marshalizer,
+		Hasher:                      scf.hasher,
+		GovernanceSCAddress:         vm.GovernanceSCAddress,
+		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:          vm.ValidatorSCAddress,
+		EpochNotifier:               scf.epochNotifier,
+		EpochConfig:                 *scf.epochConfig,
+		InitialWhiteListedAddresses: [][]byte{configChangeAddres},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

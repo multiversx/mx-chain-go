@@ -138,7 +138,7 @@ var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
 var ErrEmptyStorage = errors.New("storage is nil for given key")
 
 // ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
-var ErrVotedForAnExpiredProposal = errors.New("voting is over for this proposal")
+var ErrVotedForAnExpiredProposal = errors.New("voting period is over for this proposal")
 
 // ErrVotingNotStartedForProposal signals that voting was done for a proposal that not begins yet
 var ErrVotingNotStartedForProposal = errors.New("voting has not yet started for this proposal")

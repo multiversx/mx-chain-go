@@ -15,7 +15,7 @@ enum VoteValueType {
 
 message GeneralProposal {
     bytes  IssuerAddress  = 1 [(gogoproto.jsontag) = "IssuerAddress"];
-    bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
+    bytes  CommitHash     = 2 [(gogoproto.jsontag) = "CommitHash"];
     uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
     uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
     bytes  Yes            = 5 [(gogoproto.jsontag) = "Yes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];

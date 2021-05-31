@@ -28,21 +28,21 @@ const yesString = "yes"
 const noString = "no"
 const vetoString = "veto"
 const hardForkEpochGracePeriod = 2
-const githubCommitLength = 40
+const commitHashLength = 40
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
-	Eei                        vm.SystemEI
-	GasCost                    vm.GasCost
-	GovernanceConfig           config.GovernanceSystemSCConfig
-	Marshalizer                marshal.Marshalizer
-	Hasher                     hashing.Hasher
-	GovernanceSCAddress        []byte
-	DelegationMgrSCAddress     []byte
-	ValidatorSCAddress         []byte
-	InitalWhiteListedAddresses [][]byte
-	EpochNotifier              vm.EpochNotifier
-	EpochConfig                config.EpochConfig
+	Eei                         vm.SystemEI
+	GasCost                     vm.GasCost
+	GovernanceConfig            config.GovernanceSystemSCConfig
+	Marshalizer                 marshal.Marshalizer
+	Hasher                      hashing.Hasher
+	GovernanceSCAddress         []byte
+	DelegationMgrSCAddress      []byte
+	ValidatorSCAddress          []byte
+	InitialWhiteListedAddresses [][]byte
+	EpochNotifier               vm.EpochNotifier
+	EpochConfig                 config.EpochConfig
 }
 
 type governanceContract struct {
@@ -108,11 +108,11 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 	log.Debug("governance: enable epoch for governance", "epoch", g.enabledEpoch)
 
-	err := g.validateInitialWhiteListedAddresses(args.InitalWhiteListedAddresses)
+	err := g.validateInitialWhiteListedAddresses(args.InitialWhiteListedAddresses)
 	if err != nil {
 		return nil, err
 	}
-	g.initialWhiteListedAddresses = args.InitalWhiteListedAddresses
+	g.initialWhiteListedAddresses = args.InitialWhiteListedAddresses
 
 	args.EpochNotifier.RegisterNotifyHandler(g)
 
@@ -236,25 +236,25 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		g.eei.AddReturnMessage("called address is not whiteListed")
 		return vmcommon.UserError
 	}
-	gitHubCommit := args.Arguments[0]
-	if len(gitHubCommit) != githubCommitLength {
-		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+	commitHash := args.Arguments[0]
+	if len(commitHash) != commitHashLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", commitHashLength))
 		return vmcommon.UserError
 	}
-	if g.proposalExists(gitHubCommit) {
+	if g.proposalExists(commitHash) {
 		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
 	}
 
 	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
 	if err != nil {
-		g.eei.AddReturnMessage("invalid start/end vote nonce" + err.Error())
+		g.eei.AddReturnMessage("invalid start/end vote nonce " + err.Error())
 		return vmcommon.UserError
 	}
 
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
-		GitHubCommit:   gitHubCommit,
+		CommitHash:     commitHash,
 		StartVoteNonce: startVoteNonce,
 		EndVoteNonce:   endVoteNonce,
 		Yes:            big.NewInt(0),
@@ -263,10 +263,10 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		Voted:          false,
 		Votes:          make([][]byte, 0),
 	}
-	err = g.saveGeneralProposal(gitHubCommit, generalProposal)
+	err = g.saveGeneralProposal(commitHash, generalProposal)
 	if err != nil {
 		log.Warn("saveGeneralProposal", "err", err)
-		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
+		g.eei.AddReturnMessage("saveGeneralProposal " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -287,7 +287,7 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 2 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 3 or 4")
+		g.eei.AddReturnMessage("invalid number of arguments, expected 2")
 		return vmcommon.FunctionWrongSignature
 	}
 
@@ -530,7 +530,7 @@ func (g *governanceContract) voteWithFunds(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	err = g.saveGeneralProposal(proposal.GitHubCommit, proposal)
+	err = g.saveGeneralProposal(proposal.CommitHash, proposal)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -610,8 +610,8 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		g.eei.AddReturnMessage("address is already whitelisted")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != githubCommitLength {
-		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+	if len(args.Arguments[0]) != commitHashLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", commitHashLength))
 		return vmcommon.UserError
 	}
 
@@ -630,7 +630,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	key = append([]byte(whiteListPrefix), args.CallerAddr...)
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
-		GitHubCommit:   args.Arguments[0],
+		CommitHash:     args.Arguments[0],
 		StartVoteNonce: startVoteNonce,
 		EndVoteNonce:   endVoteNonce,
 		Yes:            big.NewInt(0),
@@ -642,7 +642,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 
 	marshaledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
-		g.eei.AddReturnMessage("marshall error " + err.Error())
+		g.eei.AddReturnMessage("marshal error " + err.Error())
 		return vmcommon.UserError
 	}
 	g.eei.SetStorage(key, marshaledData)
@@ -675,17 +675,17 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		g.eei.AddReturnMessage("called address is not whiteListed")
 		return vmcommon.UserError
 	}
-	gitHubCommit := args.Arguments[2]
-	if len(gitHubCommit) != githubCommitLength {
-		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+	commitHash := args.Arguments[2]
+	if len(commitHash) != commitHashLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", commitHashLength))
 		return vmcommon.UserError
 	}
-	if g.proposalExists(gitHubCommit) {
+	if g.proposalExists(commitHash) {
 		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(hardForkPrefix), gitHubCommit...)
+	key := append([]byte(hardForkPrefix), commitHash...)
 	marshaledData := g.eei.GetStorage(key)
 	if len(marshaledData) != 0 {
 		g.eei.AddReturnMessage("hardFork proposal already exists")
@@ -711,17 +711,17 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
-	key = append([]byte(proposalPrefix), gitHubCommit...)
+	key = append([]byte(proposalPrefix), commitHash...)
 	hardForkProposal := &HardForkProposal{
 		EpochToHardFork:    epochToHardFork,
 		NewSoftwareVersion: args.Arguments[1],
 		ProposalStatus:     key,
 	}
 
-	key = append([]byte(hardForkPrefix), gitHubCommit...)
+	key = append([]byte(hardForkPrefix), commitHash...)
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
-		GitHubCommit:   gitHubCommit,
+		CommitHash:     commitHash,
 		StartVoteNonce: startVoteNonce,
 		EndVoteNonce:   endVoteNonce,
 		Yes:            big.NewInt(0),
@@ -862,7 +862,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 //TODO: the problem is that voteKey has to be short - as these kind of lists can't be longer than 1MB
 func (g *governanceContract) deleteAllVotes(proposal *GeneralProposal) {
 	for _, address := range proposal.Votes {
-		voteKey := getVoteItemKey(proposal.GitHubCommit, address)
+		voteKey := getVoteItemKey(proposal.CommitHash, address)
 		g.eei.SetStorage(voteKey, nil)
 	}
 }
@@ -1048,7 +1048,7 @@ func (g *governanceContract) whiteListAtGovernanceGenesis(address []byte) vmcomm
 	key = append([]byte(whiteListPrefix), address...)
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  address,
-		GitHubCommit:   []byte("genesis"),
+		CommitHash:     []byte("genesis"),
 		StartVoteNonce: 0,
 		EndVoteNonce:   0,
 		Yes:            minQuorum,
@@ -1116,7 +1116,7 @@ func (g *governanceContract) addNewVote(voterAddress []byte, currentVote *VoteDe
 		proposal.Votes = append(proposal.Votes, voterAddress)
 	}
 
-	return g.saveGeneralProposal(proposal.GitHubCommit, proposal)
+	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
 func getVoteItemKey(reference []byte, address []byte) []byte {
@@ -1127,7 +1127,7 @@ func getVoteItemKey(reference []byte, address []byte) []byte {
 
 // saveVoteSet first saves the main vote data of the voter, then updates the proposal with the new voter information
 func (g *governanceContract) saveVoteSet(voter []byte, voteData *VoteSet, proposal *GeneralProposal) error {
-	voteItemKey := getVoteItemKey(proposal.GitHubCommit, voter)
+	voteItemKey := getVoteItemKey(proposal.CommitHash, voter)
 
 	marshaledVoteItem, err := g.marshalizer.Marshal(voteData)
 	if err != nil {
@@ -1160,7 +1160,7 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 }
 
 // computeAccountLeveledPower takes a value and some voter data and returns the voting power of that value in
-//  the following way: the power of all votes combined has to be sqrt(sum(allAccountVotes)). So, the new
+//  the following way: the power of all votes combined has to be sqrt(sum(allVoteWithFundss)). So, the new
 //  vote will have a smaller power depending on how much existed previously
 func (g *governanceContract) computeAccountLeveledPower(value *big.Int, voteData *VoteSet) (*big.Int, error) {
 	previousAccountPower, err := g.computeVotingPower(voteData.UsedBalance)
@@ -1324,7 +1324,7 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 func (g *governanceContract) validateInitialWhiteListedAddresses(addresses [][]byte) error {
 	if len(addresses) == 0 {
 		log.Debug("0 initial whiteListed addresses provided to the governance contract")
-		return nil
+		return vm.ErrInvalidNumOfInitialWhiteListedAddress
 	}
 
 	for _, addr := range addresses {
