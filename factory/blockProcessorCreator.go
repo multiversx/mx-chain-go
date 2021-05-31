@@ -457,6 +457,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ChanceComputer:      pcf.coreData.Rater(),
 		EpochNotifier:       pcf.coreData.EpochNotifier(),
 		EpochConfig:         &pcf.epochConfig,
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVMContainer)
 	if err != nil {
