@@ -1,8 +1,12 @@
-package state
+package pruningBuffer
 
 import (
 	"sync"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 )
+
+var log = logger.GetOrCreate("state/pruningBuffer")
 
 type pruningBuffer struct {
 	mutOp  sync.RWMutex
@@ -10,14 +14,16 @@ type pruningBuffer struct {
 	size   uint32
 }
 
-func newPruningBuffer(pruningBufferLen uint32) *pruningBuffer {
+// NewPruningBuffer creates a new instance of pruning buffer
+func NewPruningBuffer(pruningBufferLen uint32) *pruningBuffer {
 	return &pruningBuffer{
 		buffer: make([][]byte, 0),
 		size:   pruningBufferLen,
 	}
 }
 
-func (pb *pruningBuffer) add(rootHash []byte) {
+// Add appends a new byteArray to the buffer if there is any space left
+func (pb *pruningBuffer) Add(rootHash []byte) {
 	pb.mutOp.Lock()
 	defer pb.mutOp.Unlock()
 
@@ -30,7 +36,8 @@ func (pb *pruningBuffer) add(rootHash []byte) {
 	log.Trace("pruning buffer add", "rootHash", rootHash)
 }
 
-func (pb *pruningBuffer) removeAll() [][]byte {
+// RemoveAll empties the buffer and returns all the contained byteArrays
+func (pb *pruningBuffer) RemoveAll() [][]byte {
 	pb.mutOp.Lock()
 	defer pb.mutOp.Unlock()
 
@@ -43,7 +50,8 @@ func (pb *pruningBuffer) removeAll() [][]byte {
 	return buffer
 }
 
-func (pb *pruningBuffer) len() int {
+// Len returns the number of elements from the buffer
+func (pb *pruningBuffer) Len() int {
 	pb.mutOp.RLock()
 	defer pb.mutOp.RUnlock()
 

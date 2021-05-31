@@ -1,4 +1,4 @@
-package state
+package pruningBuffer
 
 import (
 	"testing"
@@ -7,15 +7,15 @@ import (
 )
 
 func defaultPruningBuffer() *pruningBuffer {
-	sb := newPruningBuffer(100)
-	sb.add([]byte("0"))
-	sb.add([]byte("1"))
+	sb := NewPruningBuffer(100)
+	sb.Add([]byte("0"))
+	sb.Add([]byte("1"))
 
 	return sb
 }
 
 func TestPruningBuffer_NewPruningBuffer(t *testing.T) {
-	assert.NotNil(t, newPruningBuffer(100))
+	assert.NotNil(t, NewPruningBuffer(100))
 }
 
 func TestSnapshotsBuffer_Add(t *testing.T) {
@@ -27,13 +27,13 @@ func TestSnapshotsBuffer_Add(t *testing.T) {
 func TestSnapshotBuffer_Len(t *testing.T) {
 	sb := defaultPruningBuffer()
 
-	assert.Equal(t, 2, sb.len())
+	assert.Equal(t, 2, sb.Len())
 }
 
 func TestSnapshotsBuffer_RemoveAll(t *testing.T) {
 	sb := defaultPruningBuffer()
 
-	buffer := sb.removeAll()
+	buffer := sb.RemoveAll()
 	assert.Equal(t, []byte("0"), buffer[0])
 	assert.Equal(t, []byte("1"), buffer[1])
 

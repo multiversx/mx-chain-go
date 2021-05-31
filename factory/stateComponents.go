@@ -5,17 +5,17 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 //TODO: merge this with data components
@@ -97,13 +97,20 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.UserAccountTrie))
+	storagePruning, err := storagePruningManager.NewStoragePruningManager(
+		trieEvictionWaitingList,
+		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsAdapter, err := state.NewAccountsDB(
 		merkleTrie,
 		scf.core.Hasher,
 		scf.core.InternalMarshalizer,
 		accountFactory,
-		trieEvictionWaitingList,
-		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+		storagePruning,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
@@ -114,8 +121,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		scf.core.Hasher,
 		scf.core.InternalMarshalizer,
 		accountFactory,
-		trieEvictionWaitingList,
-		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+		storagePruning,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())

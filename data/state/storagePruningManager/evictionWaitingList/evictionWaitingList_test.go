@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -289,5 +290,5 @@ func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 
 	present, err := ewl.ShouldKeepHash("hash0", 1)
 	assert.False(t, present)
-	assert.Equal(t, ErrInvalidKey, err)
+	assert.Equal(t, state.ErrInvalidKey, err)
 }

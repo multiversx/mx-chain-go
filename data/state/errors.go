@@ -121,3 +121,9 @@ var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
 
 // ErrInvalidIdentifier signals that the root hash has an  invalid identifier
 var ErrInvalidIdentifier = errors.New("invalid identifier")
+
+// ErrNilStoragePruningManager signals that a nil storagePruningManager was provided
+var ErrNilStoragePruningManager = errors.New("nil storagePruningManager")
+
+// ErrInvalidKey is raised when the given key is invalid
+var ErrInvalidKey = errors.New("invalid key")

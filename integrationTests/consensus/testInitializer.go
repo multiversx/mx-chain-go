@@ -22,8 +22,9 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -173,6 +174,10 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
+	storagePruning, _ := storagePruningManager.NewStoragePruningManager(
+		ewl,
+		generalCfg.PruningBufferLen,
+	)
 	adb, _ := state.NewAccountsDB(
 		tr,
 		sha256.Sha256{},
@@ -182,8 +187,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 				return state.NewUserAccount(address)
 			},
 		},
-		ewl,
-		generalCfg.PruningBufferLen,
+		storagePruning,
 	)
 	return adb
 }

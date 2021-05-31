@@ -7,11 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("trie")
+var log = logger.GetOrCreate("state/evictionWaitingList")
 
 // evictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
@@ -130,7 +131,7 @@ func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier data.Trie
 
 	for key := range ewl.cache {
 		if len(key) == 0 {
-			return false, ErrInvalidKey
+			return false, state.ErrInvalidKey
 		}
 
 		lastByte := key[len(key)-1]

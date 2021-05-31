@@ -10,8 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -96,7 +97,8 @@ func createESDTNFTCreateRoleTransferComponent(t *testing.T) *esdtNFTCreateRoleTr
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(1, 0)
 	trieStoreManager := createTrieStorageManager(createMemUnit(), marshalizer, hasher)
 	tr, _ := trie.NewTrie(trieStoreManager, marshalizer, hasher, 6)
-	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), ewl, 10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
 
 	e, err := NewESDTNFTCreateRoleTransfer(marshalizer, accounts, shardCoordinator)
 	assert.Nil(t, err)

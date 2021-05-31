@@ -17,8 +17,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -85,7 +86,8 @@ func createNftTransferWithMockArguments(shardID uint32, numShards uint32, pauseH
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(numShards, shardID)
 	trieStoreManager := createTrieStorageManager(createMemUnit(), marshalizer, hasher)
 	tr, _ := trie.NewTrie(trieStoreManager, marshalizer, hasher, 6)
-	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), ewl, 10)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
 
 	nftTransfer, _ := NewESDTNFTTransferFunc(
 		1,

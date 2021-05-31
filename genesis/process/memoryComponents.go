@@ -3,8 +3,8 @@ package process
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -27,8 +27,7 @@ func createAccountAdapter(
 		hasher,
 		marshalizer,
 		accountFactory,
-		evictionWaitingList.NewInactiveEvictionWaitingList(),
-		0,
+		storagePruningManager.NewInactiveStoragePruningManager(),
 	)
 	if err != nil {
 		return nil, err
