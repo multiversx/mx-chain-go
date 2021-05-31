@@ -202,6 +202,7 @@ type NetworkComponentsHolder interface {
 	PubKeyCacher() process.TimeCacher
 	PeerBlackListHandler() process.PeerBlackListCacher
 	PeerHonestyHandler() PeerHonestyHandler
+	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 

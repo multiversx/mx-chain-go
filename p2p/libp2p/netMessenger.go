@@ -438,6 +438,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
 			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
+			"preferred peers histogram", netMes.mapHistogram(peersInfo.NumPreferredPeersOnShard),
 		)
 
 		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
@@ -1138,15 +1139,16 @@ func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEva
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.p2pHost.Network().Peers()
 	connPeerInfo := &p2p.ConnectedPeersInfo{
-		UnknownPeers:         make([]string, 0),
-		Seeders:              make([]string, 0),
-		IntraShardValidators: make(map[uint32][]string),
-		IntraShardObservers:  make(map[uint32][]string),
-		CrossShardValidators: make(map[uint32][]string),
-		CrossShardObservers:  make(map[uint32][]string),
-		FullHistoryObservers: make(map[uint32][]string),
-		NumObserversOnShard:  make(map[uint32]int),
-		NumValidatorsOnShard: make(map[uint32]int),
+		UnknownPeers:             make([]string, 0),
+		Seeders:                  make([]string, 0),
+		IntraShardValidators:     make(map[uint32][]string),
+		IntraShardObservers:      make(map[uint32][]string),
+		CrossShardValidators:     make(map[uint32][]string),
+		CrossShardObservers:      make(map[uint32][]string),
+		FullHistoryObservers:     make(map[uint32][]string),
+		NumObserversOnShard:      make(map[uint32]int),
+		NumValidatorsOnShard:     make(map[uint32]int),
+		NumPreferredPeersOnShard: make(map[uint32]int),
 	}
 
 	netMes.mutPeerResolver.RLock()
@@ -1195,6 +1197,10 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 
 			connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
 			connPeerInfo.NumIntraShardObservers++
+		}
+
+		if netMes.peersHolder.Contains(pid) {
+			connPeerInfo.NumPreferredPeersOnShard[peerInfo.ShardID]++
 		}
 	}
 

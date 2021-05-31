@@ -40,9 +40,10 @@ type PeerShardMapper struct {
 	peerIdSubTypeCache       storage.Cacher
 	mutUpdatePeerIdPublicKey sync.Mutex
 
-	mutEpoch         sync.RWMutex
-	epoch            uint32
-	nodesCoordinator sharding.NodesCoordinator
+	mutEpoch             sync.RWMutex
+	epoch                uint32
+	nodesCoordinator     sharding.NodesCoordinator
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // ArgPeerShardMapper is the initialization structure for the PeerShardMapper implementation
@@ -51,6 +52,7 @@ type ArgPeerShardMapper struct {
 	FallbackPkShardCache  storage.Cacher
 	FallbackPidShardCache storage.Cacher
 	NodesCoordinator      sharding.NodesCoordinator
+	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
 	StartEpoch            uint32
 }
 
@@ -68,6 +70,9 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 	}
 	if check.IfNil(arg.FallbackPidShardCache) {
 		return nil, fmt.Errorf("%w for FallbackPidShardCache", sharding.ErrNilCacher)
+	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
 	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
@@ -89,6 +94,7 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		fallbackPidShardCache: arg.FallbackPidShardCache,
 		peerIdSubTypeCache:    peerIdSubTypeCache,
 		nodesCoordinator:      arg.NodesCoordinator,
+		preferredPeersHolder:  arg.PreferredPeersHolder,
 		epoch:                 arg.StartEpoch,
 	}, nil
 }
@@ -236,6 +242,7 @@ func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID
 	}
 	psm.updatePublicKeyShardId(pk, shardID)
 	psm.updatePeerIdShardId(pid, shardID)
+	psm.preferredPeersHolder.Put(pk, pid, shardID)
 }
 
 func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {

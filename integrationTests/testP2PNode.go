@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -83,6 +84,7 @@ func NewTestP2PNode(
 		FallbackPkShardCache:  pkShardId,
 		FallbackPidShardCache: pidShardId,
 		NodesCoordinator:      coordinator,
+		PreferredPeersHolder:  &p2pmocks.PeersHolderStub{},
 		StartEpoch:            startInEpoch,
 	}
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
