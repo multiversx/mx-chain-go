@@ -20,7 +20,7 @@ func EmptyChannel(ch chan bool) int {
 
 // UniqueIdentifier returns a unique string identifier of 32 bytes
 func UniqueIdentifier() string {
-	buff := make([]byte, 32)
+	buff := make([]byte, 56756)
 	_, _ = rand.Read(buff)
 	return string(buff)
 }
