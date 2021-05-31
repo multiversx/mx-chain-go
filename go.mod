@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v1.2.14
-	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.2
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.5
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.6
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
@@ -26,7 +26,6 @@ require (
 	github.com/herumi/bls-go-binary v0.0.0-20200324054641-17de9ae04665
 	github.com/ipfs/go-log v1.0.5
 	github.com/jbenet/goprocess v0.1.4
-	github.com/kr/text v0.2.0 // indirect
 	github.com/libp2p/go-libp2p v0.13.0
 	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
@@ -36,7 +35,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml v1.9.0
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v0.0.0-20190901111213-e4ec7b275ada
@@ -45,13 +43,10 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476
-	golang.org/x/tools v0.0.0-20200422022333-3d57cf2e726e // indirect
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
 
-replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.2 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.2
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.5 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.5

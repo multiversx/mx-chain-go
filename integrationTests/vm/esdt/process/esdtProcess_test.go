@@ -1478,6 +1478,9 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 }
 
 func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *testing.T) {
+	// TODO add missing required WASM binaries
+	t.Skip("accidentally missing required WASM binaries")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

@@ -30,7 +30,7 @@ test-short-v:
 	go test -short -v -count=1 ./...
 
 test-race:
-	go test -short -race -count=1 ./...
+	go test -short -race -v ./...
 
 test-memp2p-v:
 	go test -v -count=1 ./p2p/memp2p
@@ -62,7 +62,7 @@ test-miniblocks-sc-v:
 test-arwen:
 	go test -count=1 -v ./integrationTests/vm/arwen/...
 
-test-coverage:
+test-coverage: arwen
 	@echo "Running unit tests"
 	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 

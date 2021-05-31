@@ -129,7 +129,7 @@ func (builder *txDataBuilder) TransferESDT(token string, value int64) *txDataBui
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
 }
 
-//TrasnferNFTESDT
+//TransferNFTESDT appends to the data string all the elements required to request an ESDT NFT transfer.
 func (builder *txDataBuilder) TransferESDTNFT(token string, nonce int, value int64) *txDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTNFTTransfer).Str(token).Int(nonce).Int64(value)
 }
