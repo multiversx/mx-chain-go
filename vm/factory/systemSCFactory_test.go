@@ -65,6 +65,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
+<<<<<<< HEAD
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               1,
@@ -73,6 +74,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
+=======
+		ShardCoordinator:       &mock.ShardCoordinatorStub{},
+>>>>>>> master
 	}
 }
 
@@ -84,7 +88,7 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
 }
 
 func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {
@@ -95,7 +99,7 @@ func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilMessageSignVerifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
 }
 
 func TestNewSystemSCFactory_NilNodesConfigProvider(t *testing.T) {
@@ -106,7 +110,7 @@ func TestNewSystemSCFactory_NilNodesConfigProvider(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilNodesConfigProvider, err)
+	assert.True(t, errors.Is(err, vm.ErrNilNodesConfigProvider))
 }
 
 func TestNewSystemSCFactory_NilMarshalizer(t *testing.T) {
@@ -117,7 +121,7 @@ func TestNewSystemSCFactory_NilMarshalizer(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilMarshalizer, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMarshalizer))
 }
 
 func TestNewSystemSCFactory_NilHasher(t *testing.T) {
@@ -128,7 +132,7 @@ func TestNewSystemSCFactory_NilHasher(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilHasher, err)
+	assert.True(t, errors.Is(err, vm.ErrNilHasher))
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
@@ -139,7 +143,7 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilEconomicsData, err)
+	assert.True(t, errors.Is(err, vm.ErrNilEconomicsData))
 }
 
 func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
@@ -150,7 +154,7 @@ func TestNewSystemSCFactory_NilSystemScConfig(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilSystemSCConfig, err)
+	assert.True(t, errors.Is(err, vm.ErrNilSystemSCConfig))
 }
 
 func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
@@ -161,7 +165,7 @@ func TestNewSystemSCFactory_NilEpochNotifier(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
@@ -172,7 +176,18 @@ func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)
-	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
+	assert.True(t, errors.Is(err, vm.ErrNilAddressPubKeyConverter))
+}
+
+func TestNewSystemSCFactory_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.ShardCoordinator = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.True(t, check.IfNil(scFactory))
+	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {

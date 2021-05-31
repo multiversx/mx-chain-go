@@ -14,8 +14,73 @@
    # ChainID identifies the blockChain
    ChainID = "undefined"
 
+<<<<<<< HEAD
    # MinTransactionVersion represents the minimum transaction version accepted
    MinTransactionVersion = 1
+=======
+   # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+   BuiltInFunctionsEnableEpoch = 1
+
+   # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+   RelayedTransactionsEnableEpoch = 1
+
+   # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+   PenalizedTooMuchGasEnableEpoch = 0
+
+   # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+   SwitchJailWaitingEnableEpoch = 0
+
+   # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+   BelowSignedThresholdEnableEpoch = 0
+
+   # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
+   # also (minimum) hysteresis nodes for the minimum number of nodes
+   SwitchHysteresisForMinNodesEnableEpoch = 1
+
+   # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+   # signed with the hash of transaction
+   TransactionSignedWithTxHashEnableEpoch = 1
+
+   # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+   MetaProtectionEnableEpoch = 1
+
+   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+   AheadOfTimeGasUsageEnableEpoch = 1
+
+   # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+   GasPriceModifierEnableEpoch = 1
+
+   # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+   RepairCallbackEnableEpoch = 1
+
+   # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+   BlockGasAndFeesReCheckEnableEpoch = 1
+
+   # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
+   ReturnDataToLastTransferEnableEpoch = 2
+
+   # ArwenESDTFunctionsEnableEpoch represents the epoch when the new ESDT functions are enabled in arwen
+   ArwenESDTFunctionsEnableEpoch = 2
+
+   # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
+   SenderInOutTransferEnableEpoch = 2
+
+   # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
+   BalanceWaitingListsEnableEpoch = 2
+
+   # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
+   SaveJailedAlwaysEnableEpoch = 3
+
+   # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
+   WaitingListFixEnableEpoch = 3
+
+   # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
+   # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
+   MaxNodesChangeEnableEpoch = [
+        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
+        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+   ]
+>>>>>>> master
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"

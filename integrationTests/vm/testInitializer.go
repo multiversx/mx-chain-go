@@ -510,10 +510,15 @@ func CreateVMAndBlockchainHookMeta(
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+<<<<<<< HEAD
 		EpochConfig:         createEpochConfig(),
 	}
 	argVmContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
 	vmFactory, err := metachain.NewVMContainerFactory(argVmContainer)
+=======
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+	})
+>>>>>>> master
 	if err != nil {
 		log.LogIfError(err)
 	}

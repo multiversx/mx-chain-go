@@ -223,6 +223,7 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
+<<<<<<< HEAD
 	StatusPollingIntervalSec int
 	MaxComputableRounds      uint64
 	StartInEpochEnabled      bool
@@ -230,6 +231,33 @@ type GeneralSettingsConfig struct {
 	MinTransactionVersion    uint32
 	GenesisString            string
 	GenesisMaxNumberOfShards uint32
+=======
+	StatusPollingIntervalSec               int
+	MaxComputableRounds                    uint64
+	StartInEpochEnabled                    bool
+	SCDeployEnableEpoch                    uint32
+	BuiltInFunctionsEnableEpoch            uint32
+	RelayedTransactionsEnableEpoch         uint32
+	PenalizedTooMuchGasEnableEpoch         uint32
+	SwitchJailWaitingEnableEpoch           uint32
+	SwitchHysteresisForMinNodesEnableEpoch uint32
+	BelowSignedThresholdEnableEpoch        uint32
+	TransactionSignedWithTxHashEnableEpoch uint32
+	MetaProtectionEnableEpoch              uint32
+	AheadOfTimeGasUsageEnableEpoch         uint32
+	GasPriceModifierEnableEpoch            uint32
+	RepairCallbackEnableEpoch              uint32
+	BalanceWaitingListsEnableEpoch         uint32
+	WaitingListFixEnableEpoch              uint32
+	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
+	GenesisString                          string
+	GenesisMaxNumberOfShards               uint32
+	BlockGasAndFeesReCheckEnableEpoch      uint32
+	ReturnDataToLastTransferEnableEpoch    uint32
+	ArwenESDTFunctionsEnableEpoch          uint32
+	SenderInOutTransferEnableEpoch         uint32
+	SaveJailedAlwaysEnableEpoch            uint32
+>>>>>>> master
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

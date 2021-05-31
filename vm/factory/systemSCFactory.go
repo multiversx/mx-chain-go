@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
@@ -28,7 +29,11 @@ type systemSCFactory struct {
 	epochNotifier          vm.EpochNotifier
 	systemSCsContainer     vm.SystemSCContainer
 	addressPubKeyConverter core.PubkeyConverter
+<<<<<<< HEAD
 	epochConfig            *config.EpochConfig
+=======
+	shardCoordinator       sharding.Coordinator
+>>>>>>> master
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -43,37 +48,44 @@ type ArgsNewSystemSCFactory struct {
 	SystemSCConfig         *config.SystemSmartContractsConfig
 	EpochNotifier          vm.EpochNotifier
 	AddressPubKeyConverter core.PubkeyConverter
+<<<<<<< HEAD
 	EpochConfig            *config.EpochConfig
+=======
+	ShardCoordinator       sharding.Coordinator
+>>>>>>> master
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
 func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.SystemEI) {
-		return nil, vm.ErrNilSystemEnvironmentInterface
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilSystemEnvironmentInterface)
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
-		return nil, vm.ErrNilNodesConfigProvider
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilNodesConfigProvider)
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, vm.ErrNilMarshalizer
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilMarshalizer)
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, vm.ErrNilHasher
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilHasher)
 	}
 	if check.IfNil(args.Economics) {
-		return nil, vm.ErrNilEconomicsData
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEconomicsData)
 	}
 	if args.SystemSCConfig == nil {
-		return nil, vm.ErrNilSystemSCConfig
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilSystemSCConfig)
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEpochNotifier)
 	}
 	if check.IfNil(args.AddressPubKeyConverter) {
-		return nil, vm.ErrNilAddressPubKeyConverter
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilAddressPubKeyConverter)
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilShardCoordinator)
 	}
 
 	scf := &systemSCFactory{
@@ -86,7 +98,11 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		economics:              args.Economics,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
+<<<<<<< HEAD
 		epochConfig:            args.EpochConfig,
+=======
+		shardCoordinator:       args.ShardCoordinator,
+>>>>>>> master
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -179,6 +195,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsValidatorSmartContract{
+<<<<<<< HEAD
 		Eei:                      scf.systemEI,
 		SigVerifier:              scf.sigVerifier,
 		StakingSCConfig:          scf.systemSCConfig.StakingSystemSCConfig,
@@ -193,6 +210,23 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		DelegationMgrEnableEpoch: scf.epochConfig.EnableEpochs.DelegationManagerEnableEpoch,
 		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
 		EpochConfig:              *scf.epochConfig,
+=======
+		Eei:                              scf.systemEI,
+		SigVerifier:                      scf.sigVerifier,
+		StakingSCConfig:                  scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:                 vm.StakingSCAddress,
+		EndOfEpochAddress:                vm.EndOfEpochAddress,
+		ValidatorSCAddress:               vm.ValidatorSCAddress,
+		GasCost:                          scf.gasCost,
+		Marshalizer:                      scf.marshalizer,
+		GenesisTotalSupply:               scf.economics.GenesisTotalSupply(),
+		EpochNotifier:                    scf.epochNotifier,
+		MinDeposit:                       scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
+		DelegationMgrEnableEpoch:         scf.systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
+		DelegationMgrSCAddress:           vm.DelegationManagerSCAddress,
+		ValidatorToDelegationEnableEpoch: scf.systemSCConfig.DelegationManagerSystemSCConfig.ValidatorToDelegationEnableEpoch,
+		ShardCoordinator:                 scf.shardCoordinator,
+>>>>>>> master
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err

@@ -960,6 +960,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ValidatorAccountsDB: peerAccountsDB,
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		EpochNotifier:       epochNotifier,
+<<<<<<< HEAD
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               stakingV2EnableEpoch,
@@ -968,6 +969,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
+=======
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+>>>>>>> master
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 

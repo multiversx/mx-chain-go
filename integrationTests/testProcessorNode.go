@@ -832,6 +832,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ValidatorAccountsDB: tpn.PeerState,
 			ChanceComputer:      tpn.NodesCoordinator,
 			EpochNotifier:       tpn.EpochNotifier,
+<<<<<<< HEAD
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					StakingV2EnableEpoch:               0,
@@ -840,6 +841,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					DelegationManagerEnableEpoch:       0,
 				},
 			},
+=======
+			ShardCoordinator:    tpn.ShardCoordinator,
+>>>>>>> master
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1570,6 +1574,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ValidatorAccountsDB: tpn.PeerState,
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       tpn.EpochNotifier,
+<<<<<<< HEAD
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
 				StakingV2EnableEpoch:               0,
@@ -1578,6 +1583,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
+=======
+		ShardCoordinator:    tpn.ShardCoordinator,
+>>>>>>> master
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
