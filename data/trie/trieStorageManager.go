@@ -415,6 +415,9 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 
 // IsPruningBlocked returns true if there is any pruningBlockingOperation in progress
 func (tsm *trieStorageManager) IsPruningBlocked() bool {
+	tsm.storageOperationMutex.RLock()
+	defer tsm.storageOperationMutex.RUnlock()
+
 	return tsm.pruningBlockingOps != 0
 }
 
