@@ -312,7 +312,7 @@ func (h *Header) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHea
 	if h == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if mbHeaderHandlers == nil {
+	if len(mbHeaderHandlers) == 0 {
 		h.MiniBlockHeaders = nil
 		return nil
 	}
