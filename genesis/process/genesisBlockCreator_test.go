@@ -69,10 +69,14 @@ func createMockArgument(
 			Blkc:     &mock.BlockChainStub{},
 			DataPool: testscommon.NewPoolsHolderMock(),
 		},
-		InitialNodesSetup:    &mock.InitialNodesSetupHandlerStub{},
-		TxLogsProcessor:      &mock.TxLogProcessorMock{},
-		VirtualMachineConfig: config.VirtualMachineConfig{},
-		HardForkConfig:       config.HardforkConfig{},
+		InitialNodesSetup: &mock.InitialNodesSetupHandlerStub{},
+		TxLogsProcessor:   &mock.TxLogProcessorMock{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "5000000000000000000000",
@@ -461,7 +465,6 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapHardForkBlockProcessor))
 }
-
 
 func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {
 	return &mock.InitialNodesHandlerStub{

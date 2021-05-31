@@ -846,12 +846,16 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	} else {
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config: config.VirtualMachineConfig{
-				OutOfProcessEnabled: true,
+				OutOfProcessEnabled: false,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				},
 			},
 			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
 			GasSchedule:                    gasSchedule,
 			ArgBlockChainHook:              argsHook,
+			EpochNotifier:                  tpn.EpochNotifier,
 			DeployEnableEpoch:              0,
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
@@ -1329,10 +1333,14 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
 		},
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    gasSchedule,
 		ArgBlockChainHook:              argsHook,
+		EpochNotifier:                  tpn.EpochNotifier,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,

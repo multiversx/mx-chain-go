@@ -78,6 +78,7 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
+	EpochNotifier     process.EpochNotifier
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
@@ -120,6 +121,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
+	context.EpochNotifier = &mock.EpochNotifierStub{}
 
 	context.initAccounts()
 
@@ -188,7 +190,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  context.EpochNotifier,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -241,7 +243,10 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	vmFactoryConfig := config.VirtualMachineConfig{
 		OutOfProcessEnabled: false,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+		},
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -249,6 +254,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		BlockGasLimit:                  maxGasLimit,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		ArgBlockChainHook:              args,
+		EpochNotifier:                  context.EpochNotifier,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,

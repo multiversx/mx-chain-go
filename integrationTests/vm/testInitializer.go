@@ -424,10 +424,14 @@ func CreateVMAndBlockchainHook(
 		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: outOfProcess,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
 		},
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(actualGasSchedule),
 		ArgBlockChainHook:              args,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,

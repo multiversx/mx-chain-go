@@ -538,19 +538,23 @@ func CreateFullGenesisBlocks(
 	dataComponents.BlockChain = blkc
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		Core:                 coreComponents,
-		Data:                 dataComponents,
-		GenesisTime:          0,
-		StartEpochNum:        0,
-		Accounts:             accounts,
-		InitialNodesSetup:    nodesSetup,
-		Economics:            economics,
-		ShardCoordinator:     shardCoordinator,
-		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig: config.VirtualMachineConfig{},
-		TrieStorageManagers:  trieStorageManagers,
+		Core:              coreComponents,
+		Data:              dataComponents,
+		GenesisTime:       0,
+		StartEpochNum:     0,
+		Accounts:          accounts,
+		InitialNodesSetup: nodesSetup,
+		Economics:         economics,
+		ShardCoordinator:  shardCoordinator,
+		ValidatorAccounts: validatorAccounts,
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -644,19 +648,23 @@ func CreateGenesisMetaBlock(
 	dataComponents.BlockChain = blkc
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		Core:                 coreComponents,
-		Data:                 dataComponents,
-		GenesisTime:          0,
-		Accounts:             accounts,
-		TrieStorageManagers:  trieStorageManagers,
-		InitialNodesSetup:    nodesSetup,
-		ShardCoordinator:     shardCoordinator,
-		Economics:            economics,
-		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig: config.VirtualMachineConfig{},
-		HardForkConfig:       config.HardforkConfig{},
+		Core:                coreComponents,
+		Data:                dataComponents,
+		GenesisTime:         0,
+		Accounts:            accounts,
+		TrieStorageManagers: trieStorageManagers,
+		InitialNodesSetup:   nodesSetup,
+		ShardCoordinator:    shardCoordinator,
+		Economics:           economics,
+		ValidatorAccounts:   validatorAccounts,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",

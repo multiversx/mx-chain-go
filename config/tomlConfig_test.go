@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -37,6 +38,19 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
+
+	vmConfig := VirtualMachineConfig{
+		OutOfProcessEnabled: false,
+		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3", OutOfProcessSupported: true},
+			{StartEpoch: 88, Version: "v1.2", OutOfProcessSupported: false},
+		},
+	}
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -70,8 +84,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -83,25 +101,11 @@ func TestTomlParser(t *testing.T) {
 		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
-		Debug: DebugConfig{
-			InterceptorResolver: InterceptorResolverDebugConfig{
-				Enabled:                    true,
-				EnablePrint:                true,
-				CacheSize:                  10000,
-				IntervalAutoPrintInSeconds: 20,
-				NumRequestsThreshold:       9,
-				NumResolveFailureThreshold: 3,
-				DebugLineExpiration:        10,
-			},
-			Antiflood: AntifloodDebugConfig{
-				Enabled:                    true,
-				CacheSize:                  10000,
-				IntervalAutoPrintInSeconds: 20,
-			},
-			ShuffleOut: ShuffleOutDebugConfig{
-				CallGCWhenShuffleOut:    true,
-				ExtraPrintsOnShuffleOut: true,
-				DoProfileOnShuffleOut:   true,
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
 			},
 		},
 	}
@@ -149,30 +153,35 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
-[Debug]
-    [Debug.InterceptorResolver]
-        Enabled = true
-        CacheSize = 10000
-        EnablePrint	= true
-        IntervalAutoPrintInSeconds = 20
-        NumRequestsThreshold = 9
-        NumResolveFailureThreshold = 3
-        DebugLineExpiration = 10
-    [Debug.Antiflood]
-        Enabled = true
-        CacheSize = 10000
-        IntervalAutoPrintInSeconds = 20
-    [Debug.ShuffleOut]
-        CallGCWhenShuffleOut = true
-        ExtraPrintsOnShuffleOut = true
-        DoProfileOnShuffleOut = true
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = false
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+
 `
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
