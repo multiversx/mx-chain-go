@@ -287,6 +287,8 @@ func TestVmContext_CleanStorage(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
+	vmCtx.CleanCache()
+	vmCtx.storageUpdate["address"] = make(map[string][]byte)
 	vmCtx.storageUpdate["address"]["key"] = []byte("someData")
 	vmCtx.CleanStorageUpdates()
 	assert.Equal(t, 0, len(vmCtx.storageUpdate))

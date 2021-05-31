@@ -1033,7 +1033,7 @@ func TestGovernanceContract_ValidatorVote(t *testing.T) {
 				return auctionBytes
 			}
 			if bytes.Equal(address, vm.DelegationManagerSCAddress) && bytes.Equal(key, []byte(delegationContractsList)) {
-				contractList := &DelegationContractList{}
+				contractList := &DelegationContractList{Addresses: [][]byte{vm.FirstDelegationSCAddress}}
 				marshaledData, _ := args.Marshalizer.Marshal(contractList)
 				return marshaledData
 			}
