@@ -104,6 +104,12 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 				Type:            "hex",
 				SignatureLength: 0,
 			},
+			EvictionWaitingList: config.EvictionWaitingListConfig{
+				Size: 100,
+				DB: config.DBConfig{
+					Type: "MemoryDB",
+				},
+			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		PathManager:      &mock.PathManagerStub{},

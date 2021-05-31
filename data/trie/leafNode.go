@@ -327,7 +327,7 @@ func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 		return nil
 	}
 
-	hashes[hex.EncodeToString(ln.getHash())] = struct{}{}
+	hashes[string(ln.getHash())] = struct{}{}
 	return nil
 }
 

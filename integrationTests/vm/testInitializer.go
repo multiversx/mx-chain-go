@@ -171,12 +171,11 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,
 		},
-		ewl,
 		generalCfg,
 	)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
+	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{}, ewl, generalCfg.PruningBufferLen)
 
 	return adb
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -498,7 +497,7 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	assert.Equal(t, 0, len(tr.oldRoot))
 }
 
-func TestTrieResetOldHashes(t *testing.T) {
+func TestTrieGetObsoleteHashes(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -510,24 +509,8 @@ func TestTrieResetOldHashes(t *testing.T) {
 	assert.NotEqual(t, 0, len(tr.oldRoot))
 
 	expectedHashes := tr.oldHashes
-	hashes := tr.ResetOldHashes()
+	hashes := tr.GetObsoleteHashes()
 	assert.Equal(t, expectedHashes, hashes)
-	assert.Equal(t, 0, len(tr.oldHashes))
-	assert.Equal(t, 0, len(tr.oldRoot))
-}
-
-func TestTrieAddHashesToOldHashes(t *testing.T) {
-	t.Parallel()
-
-	hashes := [][]byte{[]byte("one"), []byte("two"), []byte("three")}
-	tr := initTrie()
-	_ = tr.Commit()
-
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
-
-	expectedHLength := len(tr.oldHashes) + len(hashes)
-	tr.AppendToOldHashes(hashes)
-	assert.Equal(t, expectedHLength, len(tr.oldHashes))
 }
 
 func TestNode_getDirtyHashes(t *testing.T) {
@@ -542,67 +525,6 @@ func TestNode_getDirtyHashes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, hashes)
 	assert.Equal(t, 6, len(hashes))
-}
-
-func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
-	t.Parallel()
-
-	testVals := []struct {
-		key   []byte
-		value []byte
-	}{
-		{[]byte("doe"), []byte("reindeer")},
-		{[]byte("dog"), []byte("puppy")},
-		{[]byte("dogglesworth"), []byte("cat")},
-		{[]byte("horse"), []byte("stallion")},
-	}
-
-	tr, _, _ := newEmptyTrie()
-
-	rootHashes := make([][]byte, 0)
-	for _, testVal := range testVals {
-		_ = tr.Update(testVal.key, testVal.value)
-
-		newHashes, _ := tr.GetDirtyHashes()
-		tr.SetNewHashes(newHashes)
-		_ = tr.Commit()
-		rootHashes = append(rootHashes, tr.root.getHash())
-	}
-
-	for i := 0; i < len(rootHashes); i++ {
-		_, err := tr.Recreate(rootHashes[i])
-		assert.Nil(t, err)
-	}
-
-	tr.GetStorageManager().CancelPrune(rootHashes[0], data.NewRoot)
-	finalizeTrieState(t, 1, tr, rootHashes)
-	finalizeTrieState(t, 2, tr, rootHashes)
-	rollbackTrieState(t, 3, tr, rootHashes)
-
-	_, err := tr.Recreate(rootHashes[2])
-	assert.Nil(t, err)
-}
-
-func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	storageManager := tr.GetStorageManager()
-
-	storageManager.Prune(rootHashes[index-1], data.OldRoot)
-	storageManager.CancelPrune(rootHashes[index], data.NewRoot)
-	time.Sleep(pruningDelay)
-
-	_, err := tr.Recreate(rootHashes[index-1])
-	assert.NotNil(t, err)
-}
-
-func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	storageManager := tr.GetStorageManager()
-
-	storageManager.Prune(rootHashes[index], data.NewRoot)
-	storageManager.CancelPrune(rootHashes[index-1], data.OldRoot)
-	time.Sleep(pruningDelay)
-
-	_, err := tr.Recreate(rootHashes[index])
-	assert.NotNil(t, err)
 }
 
 func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
@@ -631,49 +553,20 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	assert.Equal(t, []byte("cat"), leaves["ddog"])
 }
 
-func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {
-	map1 := map[string]struct{}{
-		"hash1": {},
-		"hash2": {},
-		"hash3": {},
-		"hash4": {},
-	}
-
-	map2 := map[string]struct{}{
-		"hash1": {},
-		"hash4": {},
-		"hash5": {},
-		"hash6": {},
-	}
-
-	removeDuplicatedKeys(map1, map2)
-
-	_, ok := map1["hash1"]
-	assert.False(t, ok)
-	_, ok = map1["hash4"]
-	assert.False(t, ok)
-
-	_, ok = map2["hash1"]
-	assert.False(t, ok)
-	_, ok = map2["hash4"]
-	assert.False(t, ok)
-}
-
 func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T) {
 	t.Parallel()
 
-	tr, tsm, _ := newEmptyTrie()
+	tr, tsm := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
 	_ = tr.Update([]byte("doe"), []byte("doe"))
 	_ = tr.Update([]byte("ddog"), []byte("ddog"))
-	newHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
 	tsm.TakeSnapshot(rootHash)
 	time.Sleep(snapshotDelay * 2)
-	tsm.Prune(rootHash, data.NewRoot)
+	err := tsm.db.Remove(rootHash)
+	assert.Nil(t, err)
 
 	val, err := tsm.db.Get(rootHash)
 	assert.Nil(t, val)
@@ -689,7 +582,7 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	assert.NotNil(t, val)
 }
 
-func TestPatriciaMerkleTrie_newHashesAndOldHashesAreResetAfterEveryCommit(t *testing.T) {
+func TestPatriciaMerkleTrie_oldRootAndoldHashesAreResetAfterEveryCommit(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -697,11 +590,9 @@ func TestPatriciaMerkleTrie_newHashesAndOldHashesAreResetAfterEveryCommit(t *tes
 
 	_ = tr.Update([]byte("doe"), []byte("deer"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	newHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(newHashes)
 
 	err := tr.Commit()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(tr.oldHashes))
-	assert.Equal(t, 0, len(tr.newHashes))
+	assert.Equal(t, 0, len(tr.oldRoot))
 }

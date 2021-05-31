@@ -530,7 +530,7 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	if err != nil {
 		return err
 	}
-	hashes[hex.EncodeToString(en.getHash())] = struct{}{}
+	hashes[string(en.getHash())] = struct{}{}
 
 	return nil
 }

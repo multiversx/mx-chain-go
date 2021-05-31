@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
+	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -2126,7 +2127,14 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 			}
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	accountDb, _ := state.NewAccountsDB(
+		tr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		&dataMock.EvictionWaitingList{},
+		5,
+	)
 
 	n, _ := node.NewNode(
 		node.WithBlockChain(chainHandler),
@@ -2261,7 +2269,14 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			}
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	accountDb, _ := state.NewAccountsDB(
+		tr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		&dataMock.EvictionWaitingList{},
+		5,
+	)
 
 	localErr := errors.New("err")
 	n, _ := node.NewNode(
@@ -2356,7 +2371,14 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			}
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	accountDb, _ := state.NewAccountsDB(
+		tr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		&dataMock.EvictionWaitingList{},
+		5,
+	)
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{
@@ -2449,7 +2471,14 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 			}
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	accountDb, _ := state.NewAccountsDB(
+		tr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		&dataMock.EvictionWaitingList{},
+		5,
+	)
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{
@@ -2576,7 +2605,14 @@ func TestStartConsensus_MetaBootstrapper(t *testing.T) {
 			}
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	accountDb, _ := state.NewAccountsDB(
+		tr,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		&dataMock.EvictionWaitingList{},
+		5,
+	)
 
 	shardC := mock.NewMultiShardsCoordinatorMock(2)
 	shardC.ComputeIdCalled = func(_ []byte) uint32 {

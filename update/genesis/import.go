@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -391,7 +392,14 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
-			accountsDB, errCreate := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
+			accountsDB, errCreate := state.NewAccountsDB(
+				currentTrie,
+				si.hasher,
+				si.marshalizer,
+				accountFactory,
+				evictionWaitingList.NewInactiveEvictionWaitingList(),
+				0,
+			)
 			if errCreate != nil {
 				return nil, nil, errCreate
 			}
@@ -405,7 +413,14 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		return accountsDB, currentTrie, nil
 	}
 
-	accountsDB, err = state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
+	accountsDB, err = state.NewAccountsDB(
+		currentTrie,
+		si.hasher,
+		si.marshalizer,
+		accountFactory,
+		evictionWaitingList.NewInactiveEvictionWaitingList(),
+		0,
+	)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err
 }

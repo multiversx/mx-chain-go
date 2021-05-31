@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"testing"
 
+	dataMock "github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -830,7 +833,8 @@ func createAccountsDB(
 	trieStorageManager data.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, 5)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(10, dataMock.NewMemDbMock(), marshalizer)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, ewl, 10)
 	return adb
 }
 

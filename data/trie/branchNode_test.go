@@ -43,11 +43,9 @@ func getBnAndCollapsedBn(marshalizer marshal.Marshalizer, hasher hashing.Hasher)
 	return bn, collapsedBn
 }
 
-func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWaitingList) {
+func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 	db := memorydb.New()
 	marsh, hsh := getTestMarshalizerAndHasher()
-	evictionWaitListSize := uint(100)
-	evictionWaitList, _ := mock.NewEvictionWaitingList(evictionWaitListSize, mock.NewMemDbMock(), marsh)
 
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
@@ -65,7 +63,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 		MaxSnapshots:       2,
 	}
 
-	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList, generalCfg)
+	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, generalCfg)
 	tr := &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
 		marshalizer:          marsh,
@@ -75,11 +73,11 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 		maxTrieLevelInMemory: 5,
 	}
 
-	return tr, trieStorage, evictionWaitList
+	return tr, trieStorage
 }
 
 func initTrie() *patriciaMerkleTrie {
-	tr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
@@ -185,8 +183,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshalizerAndHasher()
-	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
-	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
+	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{})
+	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{})
 	maxTrieLevelInMemory := uint(5)
 
 	tr1, _ := NewTrie(trieStorage1, marsh, hsh, maxTrieLevelInMemory)
@@ -927,8 +925,8 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
-	expectedTr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
+	expectedTr, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("dog"), []byte("dog"))
 	_ = expectedTr.Update([]byte("doll"), []byte("doll"))
@@ -946,8 +944,8 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
-	expectedTr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
+	expectedTr, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
 	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -965,8 +963,8 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
-	expectedTr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
+	expectedTr, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
 	_ = expectedTr.Update([]byte("dogglesworth"), []byte("cat"))
@@ -984,8 +982,8 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
-	expectedTr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
+	expectedTr, _ := newEmptyTrie()
 
 	_ = expectedTr.Update([]byte("doe"), []byte("reindeer"))
 	_ = expectedTr.Update([]byte("dog"), []byte("puppy"))
@@ -1086,7 +1084,7 @@ func getCollapsedBn(t *testing.T, n node) *branchNode {
 func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("aaa"), []byte("aaa"))
 	_ = tr.Update([]byte("nnn"), []byte("nnn"))
 	_ = tr.Update([]byte("zzz"), []byte("zzz"))

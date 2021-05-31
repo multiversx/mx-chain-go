@@ -797,7 +797,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	t.Parallel()
 
 	marsh, hasher := getTestMarshalizerAndHasher()
-	tr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.root.setRootHash()

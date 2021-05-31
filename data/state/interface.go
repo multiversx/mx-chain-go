@@ -184,3 +184,9 @@ type AccountsDBImporter interface {
 	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }
+
+type atomicBuffer interface {
+	add(rootHash []byte)
+	removeAll() [][]byte
+	len() int
+}

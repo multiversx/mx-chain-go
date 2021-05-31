@@ -2,6 +2,12 @@ package factory
 
 import (
 	"fmt"
+	"path"
+	"path/filepath"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -67,14 +73,50 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		return nil, fmt.Errorf("%w for ValidatorPubkeyConverter: %s", ErrPubKeyConverterCreation, err.Error())
 	}
 
+	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
+	trieStorageCfg := scf.config.AccountsTrieStorage
+	trieStoragePath, _ := path.Split(scf.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+
+	evictionWaitingListCfg := scf.config.EvictionWaitingList
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(evictionWaitingListCfg.DB.Type),
+		Path:              filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
+		BatchDelaySeconds: evictionWaitingListCfg.DB.BatchDelaySeconds,
+		MaxBatchSize:      evictionWaitingListCfg.DB.MaxBatchSize,
+		MaxOpenFiles:      evictionWaitingListCfg.DB.MaxOpenFiles,
+	}
+	evictionDb, err := storageUnit.NewDB(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, scf.core.InternalMarshalizer)
+	if err != nil {
+		return nil, err
+	}
+
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.UserAccountTrie))
-	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	accountsAdapter, err := state.NewAccountsDB(
+		merkleTrie,
+		scf.core.Hasher,
+		scf.core.InternalMarshalizer,
+		accountFactory,
+		trieEvictionWaitingList,
+		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterAPI, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	accountsAdapterAPI, err := state.NewAccountsDB(
+		merkleTrie,
+		scf.core.Hasher,
+		scf.core.InternalMarshalizer,
+		accountFactory,
+		trieEvictionWaitingList,
+		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())
 	}

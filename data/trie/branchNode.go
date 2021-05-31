@@ -664,7 +664,7 @@ func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 		}
 	}
 
-	hashes[hex.EncodeToString(bn.getHash())] = struct{}{}
+	hashes[string(bn.getHash())] = struct{}{}
 	return nil
 }
 

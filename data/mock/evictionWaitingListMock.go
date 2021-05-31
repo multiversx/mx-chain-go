@@ -22,23 +22,13 @@ type EvictionWaitingList struct {
 }
 
 // NewEvictionWaitingList creates a new instance of evictionWaitingList
-func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal.Marshalizer) (*EvictionWaitingList, error) {
-	if size < 1 {
-		return nil, data.ErrInvalidCacheSize
-	}
-	if db == nil || db.IsInterfaceNil() {
-		return nil, data.ErrNilDatabase
-	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
-		return nil, data.ErrNilMarshalizer
-	}
-
+func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal.Marshalizer) *EvictionWaitingList {
 	return &EvictionWaitingList{
 		Cache:       make(map[string]data.ModifiedHashes),
 		CacheSize:   size,
 		Db:          db,
 		Marshalizer: marshalizer,
-	}, nil
+	}
 }
 
 // Put stores the given hashes in the eviction waiting list, in the position given by the root hash

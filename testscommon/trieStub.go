@@ -18,7 +18,7 @@ type TrieStub struct {
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
 	RecreateCalled              func(root []byte) (data.Trie, error)
-	ResetOldHashesCalled        func() [][]byte
+	GetObsoleteHashesCalled     func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
@@ -28,6 +28,7 @@ type TrieStub struct {
 	GetStorageManagerCalled     func() data.StorageManager
 	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
 	GetNumNodesCalled           func() data.NumNodesDTO
+	GetOldRootCalled            func() []byte
 }
 
 // GetStorageManager -
@@ -138,20 +139,13 @@ func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil
 }
 
-// ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
-func (ts *TrieStub) ResetOldHashes() [][]byte {
-	if ts.ResetOldHashesCalled != nil {
-		return ts.ResetOldHashesCalled()
+// GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
+func (ts *TrieStub) GetObsoleteHashes() [][]byte {
+	if ts.GetObsoleteHashesCalled != nil {
+		return ts.GetObsoleteHashesCalled()
 	}
 
 	return nil
-}
-
-// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
-func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
-	if ts.AppendToOldHashesCalled != nil {
-		ts.AppendToOldHashesCalled(hashes)
-	}
 }
 
 // GetSerializedNodes -
@@ -196,4 +190,13 @@ func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
 	}
 
 	return data.NumNodesDTO{}
+}
+
+// GetOldRoot -
+func (ts *TrieStub) GetOldRoot() []byte {
+	if ts.GetOldRootCalled != nil {
+		return ts.GetOldRootCalled()
+	}
+
+	return nil
 }

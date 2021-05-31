@@ -18,6 +18,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
+type pruningOperation byte
+
+const (
+	cancelPrune pruningOperation = 0
+	prune       pruningOperation = 1
+)
+
 var numCheckpointsKey = []byte("state checkpoint")
 
 type loadingMeasurements struct {
@@ -57,11 +64,12 @@ func (lm *loadingMeasurements) resetAndPrint() {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
-	mainTrie       data.Trie
-	hasher         hashing.Hasher
-	marshalizer    marshal.Marshalizer
-	accountFactory AccountFactory
-
+	mainTrie               data.Trie
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
+	accountFactory         AccountFactory
+	dbEvictionWaitingList  data.DBRemoveCacher
+	pruningBuffer          atomicBuffer
 	obsoleteDataTrieHashes map[string][][]byte
 
 	lastRootHash []byte
@@ -82,6 +90,8 @@ func NewAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
+	ewl data.DBRemoveCacher,
+	pruningBufferLen uint32,
 ) (*AccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -95,6 +105,9 @@ func NewAccountsDB(
 	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
 	}
+	if check.IfNil(ewl) {
+		return nil, ErrNilEvictionWaitingList
+	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &AccountsDB{
@@ -102,6 +115,8 @@ func NewAccountsDB(
 		hasher:                 hasher,
 		marshalizer:            marshalizer,
 		accountFactory:         accountFactory,
+		dbEvictionWaitingList:  ewl,
+		pruningBuffer:          newPruningBuffer(pruningBufferLen),
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
@@ -732,60 +747,126 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	oldHashes := make([][]byte, 0)
+	oldHashes := make(data.ModifiedHashes)
 	newHashes := make(data.ModifiedHashes)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
-		oldTrieHashes := dataTries[i].ResetOldHashes()
-		newTrieHashes, err := dataTries[i].GetDirtyHashes()
+		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
 			return nil, err
-		}
-
-		err = dataTries[i].Commit()
-		if err != nil {
-			return nil, err
-		}
-
-		oldHashes = append(oldHashes, oldTrieHashes...)
-		for hash := range newTrieHashes {
-			newHashes[hash] = struct{}{}
 		}
 	}
 	adb.dataTries.Reset()
 
-	newTrieHashes, err := adb.mainTrie.GetDirtyHashes()
-	if err != nil {
-		return nil, err
-	}
-	for hash := range newTrieHashes {
-		newHashes[hash] = struct{}{}
-	}
-
-	for _, hashes := range adb.obsoleteDataTrieHashes {
-		oldHashes = append(oldHashes, hashes...)
-	}
+	oldRoot := adb.mainTrie.GetOldRoot()
 
 	//Step 2. commit main trie
-	adb.mainTrie.SetNewHashes(newHashes)
-	adb.mainTrie.AppendToOldHashes(oldHashes)
-	err = adb.mainTrie.Commit()
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
 
-	root, err := adb.mainTrie.RootHash()
+	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
-	adb.lastRootHash = root
+
+	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		for _, hashes := range adb.obsoleteDataTrieHashes {
+			for i := range hashes {
+				oldHashes[string(hashes[i])] = struct{}{}
+			}
+		}
+
+		err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	adb.lastRootHash = newRoot
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
-	log.Trace("accountsDB.Commit ended", "root hash", root)
+	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
-	return root, nil
+	return newRoot, nil
+}
+
+func (adb *AccountsDB) markForEviction(
+	oldRoot []byte,
+	newRoot []byte,
+	oldHashes data.ModifiedHashes,
+	newHashes data.ModifiedHashes,
+) error {
+	if bytes.Equal(newRoot, oldRoot) {
+		log.Trace("old root and new root are identical", "rootHash", newRoot)
+		return nil
+	}
+
+	log.Trace("trie hashes sizes", "newHashes", len(newHashes), "oldHashes", len(oldHashes))
+	removeDuplicatedKeys(oldHashes, newHashes)
+
+	if len(newHashes) > 0 && len(newRoot) > 0 {
+		newRoot = append(newRoot, byte(data.NewRoot))
+		err := adb.dbEvictionWaitingList.Put(newRoot, newHashes)
+		if err != nil {
+			return err
+		}
+
+		logMapWithTrace("MarkForEviction newHashes", "hash", newHashes)
+	}
+
+	if len(oldHashes) > 0 && len(oldRoot) > 0 {
+		oldRoot = append(oldRoot, byte(data.OldRoot))
+		err := adb.dbEvictionWaitingList.Put(oldRoot, oldHashes)
+		if err != nil {
+			return err
+		}
+
+		logMapWithTrace("MarkForEviction oldHashes", "hash", oldHashes)
+	}
+	return nil
+}
+
+func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]struct{}) {
+	for key := range oldHashes {
+		_, ok := newHashes[key]
+		if ok {
+			delete(oldHashes, key)
+			delete(newHashes, key)
+			log.Trace("found in newHashes and oldHashes", "hash", key)
+		}
+	}
+}
+
+func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashes) {
+	if log.GetLevel() == logger.LogTrace {
+		for key := range hashes {
+			log.Trace(message, paramName, key)
+		}
+	}
+}
+
+func (adb *AccountsDB) commitTrie(tr data.Trie, oldHashes data.ModifiedHashes, newHashes data.ModifiedHashes) error {
+	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		oldTrieHashes := tr.GetObsoleteHashes()
+		newTrieHashes, err := tr.GetDirtyHashes()
+		if err != nil {
+			return err
+		}
+
+		for _, hash := range oldTrieHashes {
+			oldHashes[string(hash)] = struct{}{}
+		}
+
+		for hash := range newTrieHashes {
+			newHashes[hash] = struct{}{}
+		}
+	}
+
+	return tr.Commit()
 }
 
 // RootHash returns the main trie's root hash
@@ -890,7 +971,100 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIde
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.mainTrie.GetStorageManager().Prune(rootHash, identifier)
+	rootHash = append(rootHash, byte(identifier))
+
+	if adb.mainTrie.GetStorageManager().IsPruningBlocked() {
+		if identifier == data.NewRoot {
+			adb.cancelPrune(rootHash)
+			return
+		}
+
+		rootHash = append(rootHash, byte(prune))
+		adb.pruningBuffer.add(rootHash)
+
+		return
+	}
+
+	oldHashes := adb.pruningBuffer.removeAll()
+	adb.resolveBufferedHashes(oldHashes)
+	adb.prune(rootHash)
+}
+
+func (adb *AccountsDB) cancelPrune(rootHash []byte) {
+	log.Trace("trie storage manager cancel prune", "root", rootHash)
+	_, _ = adb.dbEvictionWaitingList.Evict(rootHash)
+}
+
+func (adb *AccountsDB) resolveBufferedHashes(oldHashes [][]byte) {
+	for _, rootHash := range oldHashes {
+		lastBytePos := len(rootHash) - 1
+		if lastBytePos < 0 {
+			continue
+		}
+
+		pruneOperation := pruningOperation(rootHash[lastBytePos])
+		rootHash = rootHash[:lastBytePos]
+
+		switch pruneOperation {
+		case prune:
+			adb.prune(rootHash)
+		case cancelPrune:
+			adb.cancelPrune(rootHash)
+		default:
+			log.Error("invalid pruning operation", "operation id", pruneOperation)
+		}
+	}
+}
+
+func (adb *AccountsDB) prune(rootHash []byte) {
+	log.Trace("trie storage manager prune", "root", rootHash)
+
+	err := adb.removeFromDb(rootHash)
+	if err != nil {
+		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
+	}
+}
+
+func (adb *AccountsDB) removeFromDb(rootHash []byte) error {
+	hashes, err := adb.dbEvictionWaitingList.Evict(rootHash)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("trie removeFromDb", "rootHash", rootHash)
+
+	lastBytePos := len(rootHash) - 1
+	if lastBytePos < 0 {
+		return ErrInvalidIdentifier
+	}
+	identifier := data.TriePruningIdentifier(rootHash[lastBytePos])
+
+	sw := core.NewStopWatch()
+	sw.Start("removeFromDb")
+	defer func() {
+		sw.Stop("removeFromDb")
+		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
+	}()
+
+	for key := range hashes {
+		shouldKeepHash, err := adb.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
+		if err != nil {
+			return err
+		}
+		if shouldKeepHash {
+			continue
+		}
+
+		hash := []byte(key)
+
+		log.Trace("remove hash from trie db", "hash", hex.EncodeToString(hash))
+		err = adb.mainTrie.GetStorageManager().Database().Remove(hash)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CancelPrune clears the trie's evictionWaitingList
@@ -900,7 +1074,16 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.mainTrie.GetStorageManager().CancelPrune(rootHash, identifier)
+	rootHash = append(rootHash, byte(identifier))
+
+	if adb.mainTrie.GetStorageManager().IsPruningBlocked() || adb.pruningBuffer.len() != 0 {
+		rootHash = append(rootHash, byte(cancelPrune))
+		adb.pruningBuffer.add(rootHash)
+
+		return
+	}
+
+	adb.cancelPrune(rootHash)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

@@ -13,9 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,9 +37,10 @@ func createNftCreateWithStubArguments() *esdtNFTCreate {
 func createNftCreateWithMockArguments(pauseHandler process.ESDTPauseHandler) (*esdtNFTCreate, state.AccountsAdapter) {
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshalizer)
 	trieStoreManager := createTrieStorageManager(createMemUnit(), marshalizer, hasher)
 	tr, _ := trie.NewTrie(trieStoreManager, marshalizer, hasher, 6)
-	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator())
+	accounts, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), ewl, 10)
 
 	nftCreate, _ := NewESDTNFTCreateFunc(
 		0,

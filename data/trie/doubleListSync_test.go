@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -36,7 +35,6 @@ func createMemUnit() storage.Storer {
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func createTrieStorageManager(store storage.Storer) (data.StorageManager, storage.Storer) {
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marshalizer)
 	tempDir, _ := ioutil.TempDir("", "trie")
 	cfg := config.DBConfig{
 		FilePath:          tempDir,
@@ -50,7 +48,7 @@ func createTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	tsm, _ := NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
+	tsm, _ := NewTrieStorageManager(store, marshalizer, hasher, cfg, generalCfg)
 
 	return tsm, store
 }

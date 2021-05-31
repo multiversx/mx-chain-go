@@ -166,10 +166,9 @@ type Trie interface {
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	ResetOldHashes() [][]byte
-	AppendToOldHashes([][]byte)
+	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
-	SetNewHashes(ModifiedHashes)
+	GetOldRoot() []byte
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
@@ -210,11 +209,9 @@ type StorageManager interface {
 	Database() DBWriteCacher
 	TakeSnapshot([]byte)
 	SetCheckpoint([]byte)
-	Prune([]byte, TriePruningIdentifier)
-	CancelPrune([]byte, TriePruningIdentifier)
-	MarkForEviction([]byte, ModifiedHashes) error
 	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
+	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int

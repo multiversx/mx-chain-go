@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -13,13 +14,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -27,12 +28,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type pruningOperation byte
+
+const (
+	cancelPrune          pruningOperation = 0
+	prune                pruningOperation = 1
+	trieDbOperationDelay                  = time.Second
+)
+
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
-	accnt, _ := state.NewAccountsDB(trie, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address), nil
+	accnt, _ := state.NewAccountsDB(
+		trie,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
 		},
-	})
+		mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), &mock.MarshalizerMock{}),
+		5,
+	)
 	return accnt
 }
 
@@ -49,6 +65,31 @@ func generateAddressAccountAccountsDB(trie data.Trie) ([]byte, *mock.AccountWrap
 	return adr, account, adb
 }
 
+func getDefaultTrieAndAccountsDb() (data.Trie, *state.AccountsDB) {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	db := mock.NewMemDbMock()
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	trieStorage, _ := trie.NewTrieStorageManager(
+		db,
+		marshalizer,
+		hsh,
+		config.DBConfig{
+			Type: "MemoryDB",
+		},
+		generalCfg,
+	)
+	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), ewl, generalCfg.PruningBufferLen)
+
+	return tr, adb
+}
+
 //------- NewAccountsDB
 
 func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
@@ -59,6 +100,8 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -73,6 +116,8 @@ func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -87,6 +132,8 @@ func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -101,10 +148,28 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilAccountFactory, err)
+}
+
+func TestNewAccountsDB_WithNilEvictionWaitingListShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb, err := state.NewAccountsDB(
+		&testscommon.TrieStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		nil,
+		5,
+	)
+
+	assert.True(t, check.IfNil(adb))
+	assert.Equal(t, state.ErrNilEvictionWaitingList, err)
 }
 
 func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
@@ -123,6 +188,8 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.Nil(t, err)
@@ -153,6 +220,8 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
@@ -187,6 +256,8 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		&mock.EvictionWaitingList{},
+		5,
 	)
 
 	for i := 0; i < numCheckpoints; i++ {
@@ -356,11 +427,18 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address), nil
+	adb, _ := state.NewAccountsDB(
+		mockTrie,
+		&mock.HasherMock{},
+		marshalizer,
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
 		},
-	})
+		&mock.EvictionWaitingList{},
+		5,
+	)
 
 	marshalizer.Fail = true
 
@@ -637,11 +715,18 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 		return buff, nil
 	}
 
-	adb, _ := state.NewAccountsDB(trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address), nil
+	adb, _ := state.NewAccountsDB(
+		trieMock,
+		&mock.HasherMock{},
+		&marshalizer,
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
 		},
-	})
+		&mock.EvictionWaitingList{},
+		5,
+	)
 
 	//Step 3. call get, should return a copy of DbAccount, recover an Account object
 	recoveredAccount, err := adb.GetAccount(adr)
@@ -725,11 +810,18 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 		},
 	}
 
-	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return mock.NewAccountWrapMock(address), nil
+	adb, _ := state.NewAccountsDB(
+		&trieStub,
+		&mock.HasherMock{},
+		&marshalizer,
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return mock.NewAccountWrapMock(address), nil
+			},
 		},
-	})
+		&mock.EvictionWaitingList{},
+		5,
+	)
 
 	//just search a hash. Any hash will do
 	account.SetCodeHash(adr)
@@ -1017,49 +1109,6 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 
 }
 
-func TestAccountsDB_CancelPrune(t *testing.T) {
-	t.Parallel()
-
-	cancelPruneWasCalled := false
-	trieStub := &testscommon.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
-					cancelPruneWasCalled = true
-				},
-				DatabaseCalled: func() data.DBWriteCacher {
-					return mock.NewMemDbMock()
-				},
-			}
-		},
-	}
-	adb := generateAccountDBFromTrie(trieStub)
-	adb.CancelPrune([]byte("roothash"), data.OldRoot)
-
-	assert.True(t, cancelPruneWasCalled)
-}
-
-func TestAccountsDB_PruneTrie(t *testing.T) {
-	t.Parallel()
-
-	pruneTrieWasCalled := atomic.Flag{}
-	trieStub := &testscommon.TrieStub{
-		GetStorageManagerCalled: func() data.StorageManager {
-			return &mock.StorageManagerStub{
-				PruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
-					pruneTrieWasCalled.Set()
-				},
-				DatabaseCalled: func() data.DBWriteCacher {
-					return mock.NewMemDbMock()
-				},
-			}
-		},
-	}
-	adb := generateAccountDBFromTrie(trieStub)
-	adb.PruneTrie([]byte("roothash"), data.OldRoot)
-	assert.True(t, pruneTrieWasCalled.IsSet())
-}
-
 func TestAccountsDB_SnapshotState(t *testing.T) {
 	t.Parallel()
 
@@ -1165,7 +1214,7 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory, &mock.EvictionWaitingList{}, 5)
 
 	acc, _ := adb.LoadAccount(make([]byte, 32))
 	acc.(state.UserAccountHandler).SetCode([]byte("code"))
@@ -1189,7 +1238,7 @@ func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory, &mock.EvictionWaitingList{}, 5)
 
 	err := adb.RevertToSnapshot(0)
 	assert.Nil(t, err)
@@ -1208,7 +1257,7 @@ func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory, &mock.EvictionWaitingList{}, 5)
 
 	address := make([]byte, 32)
 	key := []byte("key")
@@ -1294,7 +1343,7 @@ func getTestAccountsDbAndTrie(marshalizer marshal.Marshalizer, hsh hashing.Hashe
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory, &mock.EvictionWaitingList{}, 5)
 
 	return adb, tr
 }
@@ -1583,11 +1632,11 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	db := mock.NewMemDbMock()
-	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, config.TrieStorageManagerConfig{})
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), ewl, 5)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1653,10 +1702,10 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	hsh := mock.HasherMock{}
 	db := mock.NewMemDbMock()
 
-	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), ewl, 5)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1684,16 +1733,334 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	assert.Equal(t, 5, len(oldHashes))
 }
 
+func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	_ = tr.Commit()
+
+	rootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dog"), []byte("doee"))
+	oldHashes := tr.GetObsoleteHashes()
+	assert.Equal(t, 4, len(oldHashes))
+	_, err := adb.Commit()
+	assert.Nil(t, err)
+
+	adb.CancelPrune(rootHash, data.NewRoot)
+	adb.PruneTrie(rootHash, data.OldRoot)
+	time.Sleep(trieDbOperationDelay)
+
+	for i := range oldHashes {
+		encNode, err := tr.GetStorageManager().Database().Get(oldHashes[i])
+		assert.Nil(t, encNode)
+		assert.NotNil(t, err)
+	}
+}
+
+func TestAccountsDB_PruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_, _ = adb.Commit()
+	rootHash, _ := tr.RootHash()
+
+	trieStorage := tr.GetStorageManager()
+	trieStorage.TakeSnapshot(rootHash)
+	time.Sleep(trieDbOperationDelay)
+	adb.PruneTrie(rootHash, data.NewRoot)
+	time.Sleep(trieDbOperationDelay)
+
+	val, err := trieStorage.Database().Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	snapshotDb := trieStorage.GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, snapshotDb)
+
+	val, err = snapshotDb.Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+}
+
+func TestAccountsDB_TriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningBuffer(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	trieStorage := tr.GetStorageManager()
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	oldRootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_, _ = adb.Commit()
+	newRootHash, _ := tr.RootHash()
+
+	trieStorage.EnterPruningBufferingMode()
+	adb.PruneTrie(oldRootHash, data.OldRoot)
+	adb.CancelPrune(newRootHash, data.NewRoot)
+	trieStorage.ExitPruningBufferingMode()
+
+	assert.Equal(t, 2, adb.GetPruningBufferLen())
+}
+
+func TestAccountsDB_TriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	trieStorage := tr.GetStorageManager()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	oldRootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_, _ = adb.Commit()
+	newRootHash, _ := tr.RootHash()
+
+	trieStorage.EnterPruningBufferingMode()
+	adb.CancelPrune(oldRootHash, data.OldRoot)
+	adb.PruneTrie(newRootHash, data.NewRoot)
+	trieStorage.ExitPruningBufferingMode()
+
+	assert.Equal(t, 1, adb.GetPruningBufferLen())
+}
+
+func TestAccountsDB_TriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	trieStorage := tr.GetStorageManager()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	oldRootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_, _ = adb.Commit()
+	newRootHash, _ := tr.RootHash()
+
+	trieStorage.EnterPruningBufferingMode()
+	adb.PruneTrie(oldRootHash, data.OldRoot)
+	adb.CancelPrune(newRootHash, data.NewRoot)
+	trieStorage.ExitPruningBufferingMode()
+	assert.Equal(t, 2, adb.GetPruningBufferLen())
+
+	adb.PruneTrie(oldRootHash, data.NewRoot)
+	assert.Equal(t, 0, adb.GetPruningBufferLen())
+}
+
+func TestAccountsDB_TrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	trieStorage := tr.GetStorageManager()
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	oldRootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_, _ = adb.Commit()
+	newRootHash, _ := tr.RootHash()
+
+	trieStorage.EnterPruningBufferingMode()
+	adb.PruneTrie(oldRootHash, data.OldRoot)
+	adb.CancelPrune(newRootHash, data.NewRoot)
+	trieStorage.ExitPruningBufferingMode()
+	assert.Equal(t, 2, adb.GetPruningBufferLen())
+
+	adb.CancelPrune(oldRootHash, data.NewRoot)
+	assert.Equal(t, 3, adb.GetPruningBufferLen())
+}
+
+func TestAccountsDB_TriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	trieStorage := tr.GetStorageManager()
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	oldRootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_, _ = adb.Commit()
+	newRootHash, _ := tr.RootHash()
+
+	trieStorage.EnterPruningBufferingMode()
+	adb.PruneTrie(oldRootHash, data.OldRoot)
+	adb.CancelPrune(newRootHash, data.NewRoot)
+	trieStorage.ExitPruningBufferingMode()
+
+	adb.CancelPrune(oldRootHash, data.NewRoot)
+
+	bufferedHashes := adb.RemoveAllPruningBufferData()
+
+	expectedHash := append(oldRootHash, byte(data.OldRoot))
+	assert.Equal(t, append(expectedHash, byte(prune)), bufferedHashes[0])
+
+	expectedHash = append(newRootHash, byte(data.NewRoot))
+	assert.Equal(t, append(expectedHash, byte(cancelPrune)), bufferedHashes[1])
+
+	expectedHash = append(oldRootHash, byte(data.NewRoot))
+	assert.Equal(t, append(expectedHash, byte(cancelPrune)), bufferedHashes[2])
+}
+
+func TestAccountsDB_PruningAndPruningCancellingOnTrieRollback(t *testing.T) {
+	t.Parallel()
+
+	testVals := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("doe"), []byte("reindeer")},
+		{[]byte("dog"), []byte("puppy")},
+		{[]byte("dogglesworth"), []byte("cat")},
+		{[]byte("horse"), []byte("stallion")},
+	}
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	rootHashes := make([][]byte, 0)
+	for _, testVal := range testVals {
+		_ = tr.Update(testVal.key, testVal.value)
+		_, _ = adb.Commit()
+
+		rootHash, _ := tr.RootHash()
+		rootHashes = append(rootHashes, rootHash)
+	}
+
+	for i := 0; i < len(rootHashes); i++ {
+		_, err := tr.Recreate(rootHashes[i])
+		assert.Nil(t, err)
+	}
+
+	adb.CancelPrune(rootHashes[0], data.NewRoot)
+	finalizeTrieState(t, 1, tr, adb, rootHashes)
+	finalizeTrieState(t, 2, tr, adb, rootHashes)
+	rollbackTrieState(t, 3, tr, adb, rootHashes)
+
+	_, err := tr.Recreate(rootHashes[2])
+	assert.Nil(t, err)
+}
+
+func finalizeTrieState(t *testing.T, index int, tr data.Trie, adb state.AccountsAdapter, rootHashes [][]byte) {
+	adb.PruneTrie(rootHashes[index-1], data.OldRoot)
+	adb.CancelPrune(rootHashes[index], data.NewRoot)
+	time.Sleep(trieDbOperationDelay)
+
+	_, err := tr.Recreate(rootHashes[index-1])
+	assert.NotNil(t, err)
+}
+
+func rollbackTrieState(t *testing.T, index int, tr data.Trie, adb state.AccountsAdapter, rootHashes [][]byte) {
+	adb.PruneTrie(rootHashes[index], data.NewRoot)
+	adb.CancelPrune(rootHashes[index-1], data.OldRoot)
+	time.Sleep(trieDbOperationDelay)
+
+	_, err := tr.Recreate(rootHashes[index])
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	_, _ = adb.Commit()
+	rootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_, _ = adb.Commit()
+	adb.CancelPrune(rootHash, data.NewRoot)
+
+	adb.CancelPrune(rootHash, data.OldRoot)
+	adb.PruneTrie(rootHash, data.OldRoot)
+
+	newTr, err := tr.Recreate(rootHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, newTr)
+}
+
+func TestPatriciaMerkleTrie_Prune(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_, _ = adb.Commit()
+	rootHash, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("dog"), []byte("value of dog"))
+	_, _ = adb.Commit()
+
+	adb.CancelPrune(rootHash, data.NewRoot)
+	adb.PruneTrie(rootHash, data.OldRoot)
+
+	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
+	val, err := tr.GetStorageManager().Database().Get(rootHash)
+	assert.Nil(t, val)
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {
+	map1 := map[string]struct{}{
+		"hash1": {},
+		"hash2": {},
+		"hash3": {},
+		"hash4": {},
+	}
+
+	map2 := map[string]struct{}{
+		"hash1": {},
+		"hash4": {},
+		"hash5": {},
+		"hash6": {},
+	}
+
+	state.RemoveDuplicatedKeys(map1, map2)
+
+	_, ok := map1["hash1"]
+	assert.False(t, ok)
+	_, ok = map1["hash4"]
+	assert.False(t, ok)
+
+	_, ok = map2["hash1"]
+	assert.False(t, ok)
+	_, ok = map2["hash4"]
+	assert.False(t, ok)
+}
+
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := mock.HasherMock{}
 	db := mock.NewMemDbMock()
 
-	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, config.DBConfig{}, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator())
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), ewl, 5)
 
 	address := make([]byte, 32)
 	acc, err := adb.LoadAccount(address)
