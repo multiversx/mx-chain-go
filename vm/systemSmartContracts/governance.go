@@ -560,7 +560,7 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 	endNonce := g.getEndNonceForProposal(args.Arguments[0])
 	currentNonce := g.eei.BlockChainHook().CurrentNonce()
 
-	if endNonce < currentNonce {
+	if endNonce > currentNonce {
 		g.eei.AddReturnMessage("your funds are still locked")
 		return vmcommon.UserError
 	}

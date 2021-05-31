@@ -455,34 +455,18 @@ func setDelegationManagementData(gsc *governanceContract) {
 	_ = saveDelegationManagementData(gsc.eei, gsc.marshalizer, gsc.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(10)})
 }
 
-func TestGovernanceContract_ValidatorVoteNotEnoughGas(t *testing.T) {
+func TestGovernanceContract_VoteWithBadArgs(t *testing.T) {
 	t.Parallel()
 
-	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	args := createMockGovernanceArgs()
-	voteArgs := [][]byte{
-		proposalIdentifier,
-		[]byte("yes"),
-	}
+
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(0), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
+	callInput := createVMInput(big.NewInt(0), "vote", vm.GovernanceSCAddress, []byte("addr1"), [][]byte{[]byte("bad args")})
 	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
-
-	voteArgs = [][]byte{
-		proposalIdentifier,
-		[]byte("yes"),
-		[]byte("third"),
-		[]byte("fourth"),
-		[]byte("fifth"),
-	}
-
-	callInput = createVMInput(big.NewInt(0), "vote", vm.GovernanceSCAddress, []byte("addr1"), voteArgs)
-	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.FunctionWrongSignature, retCode)
 }
 
-func TestGovernanceContract_ValidatorVoteNotEnoughArguments(t *testing.T) {
+func TestGovernanceContract_ValidatorVoteNotEnoughGas(t *testing.T) {
 	t.Parallel()
 
 	args := createMockGovernanceArgs()
@@ -534,7 +518,6 @@ func TestGovernanceContract_ValidatorVoteInvalidProposal(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		[]byte("third"),
 	}
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -581,7 +564,6 @@ func TestGovernanceContract_ValidatorVoteInvalidVote(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("wrong vote"),
-		[]byte("third"),
 	}
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -594,8 +576,8 @@ func TestGovernanceContract_ValidatorVoteInvalidDelegated(t *testing.T) {
 	t.Parallel()
 
 	returnMessage := ""
-	errInvalidVoteSubstr := "invalid delegator address length"
-	callerAddress := []byte("address")
+	errInvalidVoteSubstr := "invalid delegator address"
+	callerAddress := vm.FirstDelegationSCAddress
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 
 	args := createMockGovernanceArgs()
@@ -628,11 +610,12 @@ func TestGovernanceContract_ValidatorVoteInvalidDelegated(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		[]byte("third"),
-		[]byte("fourth"),
+		[]byte("delegatedToWrongAddress"),
+		big.NewInt(1000).Bytes(),
 	}
+
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, returnMessage, errInvalidVoteSubstr)
@@ -679,7 +662,6 @@ func TestGovernanceContract_ValidatorVoteComputePowerError(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		[]byte("third"),
 	}
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -745,7 +727,6 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		votePower,
 	}
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -753,7 +734,7 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 }
 
-func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
+func TestGovernanceContract_DelegateVoteVoteNotEnoughPower(t *testing.T) {
 	t.Parallel()
 
 	mockBlsKey := []byte("bls key")
@@ -766,7 +747,7 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 		mockBlsKey,
 	}
 
-	callerAddress := []byte("address")
+	callerAddress := vm.FirstDelegationSCAddress
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	votePower := big.NewInt(100).Bytes()
 
@@ -798,6 +779,11 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 
 				return auctionBytes
 			}
+			if bytes.Equal(address, vm.DelegationManagerSCAddress) && bytes.Equal(key, []byte(delegationContractsList)) {
+				contractList := &DelegationContractList{}
+				marshaledData, _ := args.Marshalizer.Marshal(contractList)
+				return marshaledData
+			}
 
 			return nil
 		},
@@ -809,13 +795,16 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 			}
 		},
 	}
+
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		votePower,
+		big.NewInt(100000).Bytes(),
+		callerAddress,
 	}
 	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+
+	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Contains(t, returnMessage, errInvalidVoteSubstr)
@@ -834,7 +823,7 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 
 	callerAddress := []byte("address")
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
-	votePower := big.NewInt(10)
+	votePower := big.NewInt(100)
 	proposalKey := append([]byte(proposalPrefix), proposalIdentifier...)
 	voteItemKey := append(proposalKey, callerAddress...)
 
@@ -867,6 +856,11 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 
 				return auctionBytes
 			}
+			if bytes.Equal(address, vm.DelegationManagerSCAddress) && bytes.Equal(key, []byte(delegationContractsList)) {
+				contractList := &DelegationContractList{}
+				marshaledData, _ := args.Marshalizer.Marshal(contractList)
+				return marshaledData
+			}
 
 			return nil
 		},
@@ -891,7 +885,6 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 	voteArgs := [][]byte{
 		proposalIdentifier,
 		[]byte("yes"),
-		votePower.Bytes(),
 	}
 	gsc, _ := NewGovernanceContract(args)
 	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
@@ -957,7 +950,14 @@ func TestGovernanceContract_ClaimFundsStillLocked(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
-				return big.NewInt(10).Bytes()
+				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
+					UsedBalance: big.NewInt(100),
+				})
+				return voteSetBytes
+			}
+			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
+				proposalByes, _ := args.Marshalizer.Marshal(&GeneralProposal{EndVoteNonce: 100})
+				return proposalByes
 			}
 
 			return nil
@@ -966,45 +966,6 @@ func TestGovernanceContract_ClaimFundsStillLocked(t *testing.T) {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 11
-				},
-			}
-		},
-	}
-	claimArgs := [][]byte{
-		proposalIdentifier,
-	}
-
-	gsc, _ := NewGovernanceContract(args)
-	callInput := createVMInput(zero, "claimFunds", callerAddress, vm.GovernanceSCAddress, claimArgs)
-	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.Contains(t, returnMessage, expectedErrorSubstr)
-}
-
-func TestGovernanceContract_ClaimFundsAlreadyClaimed(t *testing.T) {
-	t.Parallel()
-
-	returnMessage := ""
-	expectedErrorSubstr := "you already claimed back your funds"
-	callerAddress := []byte("address")
-	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
-	args := createMockGovernanceArgs()
-	args.Eei = &mock.SystemEIStub{
-		AddReturnMessageCalled: func(msg string) {
-			returnMessage = msg
-		},
-		GetStorageCalled: func(key []byte) []byte {
-			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
-			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
-				return big.NewInt(10).Bytes()
-			}
-
-			return nil
-		},
-		BlockChainHookCalled: func() vm.BlockchainHook {
-			return &mock.BlockChainHookStub{
-				CurrentNonceCalled: func() uint64 {
-					return 9
 				},
 			}
 		},
@@ -1035,10 +996,6 @@ func TestGovernanceContract_ClaimFundsNothingToClaim(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
-				return big.NewInt(10).Bytes()
-			}
-
-			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
 					UsedBalance: zero,
 				})
@@ -1050,7 +1007,7 @@ func TestGovernanceContract_ClaimFundsNothingToClaim(t *testing.T) {
 		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
-					return 9
+					return 11
 				},
 			}
 		},
@@ -1083,14 +1040,14 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			expectedKeyPrefix := append([]byte(fundsLockPrefix), proposalIdentifier...)
 			if bytes.Equal(key, append(expectedKeyPrefix, callerAddress...)) {
-				return big.NewInt(10).Bytes()
-			}
-
-			if bytes.Equal(key, append(proposalIdentifier, callerAddress...)) {
 				voteSetBytes, _ := args.Marshalizer.Marshal(&VoteSet{
 					UsedBalance: voteValue,
 				})
 				return voteSetBytes
+			}
+			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
+				proposalByes, _ := args.Marshalizer.Marshal(&GeneralProposal{EndVoteNonce: 100})
+				return proposalByes
 			}
 
 			return nil
@@ -1098,7 +1055,7 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
-					return 9
+					return 101
 				},
 			}
 		},
@@ -2352,7 +2309,6 @@ func TestGovernanceContract_GetValidatorVotingPower(t *testing.T) {
 	}
 
 	callerAddress := []byte("address")
-	votePower := big.NewInt(100).Bytes()
 
 	args := createMockGovernanceArgs()
 
@@ -2361,7 +2317,7 @@ func TestGovernanceContract_GetValidatorVotingPower(t *testing.T) {
 			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
 				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
 					BlsPubKeys:      mockValidatorBlsKeys,
-					TotalStakeValue: big.NewInt(0).SetBytes(votePower),
+					TotalStakeValue: big.NewInt(100),
 				})
 
 				return auctionBytes
@@ -2380,7 +2336,7 @@ func TestGovernanceContract_GetValidatorVotingPower(t *testing.T) {
 	callInput := createVMInput(big.NewInt(0), "getValidatorVotingPower", callerAddress, vm.GovernanceSCAddress, callInputArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-	require.Equal(t, big.NewInt(20).Bytes(), votingPowerResult)
+	require.Equal(t, big.NewInt(10).Bytes(), votingPowerResult)
 }
 
 func TestGovernanceContract_GetValidatorVotingPowerWrongCallValue(t *testing.T) {
