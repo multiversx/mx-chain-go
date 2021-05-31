@@ -63,28 +63,140 @@ func TestNewScheduledProcessor_NilBlockProcessorOK(t *testing.T) {
 	require.NotNil(t, sp)
 }
 
-func TestScheduledProcessor_IsStatusOK(t *testing.T) {
+func TestScheduledProcessor_IsProcessedOKEarlyExit(t *testing.T) {
 	t.Parallel()
 
+	called := false
 	args := ScheduledProcessorArgs{
-		SyncTimer:                  &mock.SyncTimerMock{},
+		SyncTimer: &mock.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				called = true
+				return time.Now()
+			},
+		},
 		Processor:                  &mock.BlockProcessorMock{},
-		ProcessingTimeMilliSeconds: 10,
+		ProcessingTimeMilliSeconds: 100,
 	}
 
 	sp, err := NewScheduledProcessor(args)
-
 	require.Nil(t, err)
+
 	require.False(t, sp.IsProcessedOK())
+	require.False(t, called)
 
 	sp.setStatus(processingOK)
 	require.True(t, sp.IsProcessedOK())
+	require.False(t, called)
 
 	sp.setStatus(processingError)
 	require.False(t, sp.IsProcessedOK())
+	require.False(t, called)
+}
+
+func defaultScheduledProcessorArgs() ScheduledProcessorArgs {
+	return ScheduledProcessorArgs{
+		SyncTimer: &mock.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				return time.Now()
+			},
+		},
+		Processor:                  &mock.BlockProcessorMock{},
+		ProcessingTimeMilliSeconds: 100,
+	}
+}
+
+func TestScheduledProcessor_IsProcessedInProgressNegativeRemainingTime(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
 
 	sp.setStatus(inProgress)
 	require.False(t, sp.IsProcessedOK())
+}
+
+func TestScheduledProcessor_IsProcessedInProgressStartingInFuture(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
+
+	sp.setStatus(inProgress)
+	startTime := time.Now()
+	sp.startTime = startTime.Add(10 * time.Millisecond)
+	require.False(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	require.Less(t, endTime.Sub(startTime), time.Millisecond)
+}
+
+func TestScheduledProcessor_IsProcessedInProgressEarlyCompletion(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
+
+	sp.setStatus(inProgress)
+	sp.startTime = time.Now()
+	go func() {
+		time.Sleep(10*time.Millisecond)
+		sp.setStatus(processingOK)
+	}()
+	require.True(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	timeSpent := endTime.Sub(sp.startTime)
+	require.Less(t, timeSpent, sp.processingTime)
+}
+
+func TestScheduledProcessor_IsProcessedInProgressEarlyCompletionWithError(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
+
+	sp.setStatus(inProgress)
+	sp.startTime = time.Now()
+	go func() {
+		time.Sleep(10*time.Millisecond)
+		sp.setStatus(processingError)
+	}()
+	require.False(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	timeSpent := endTime.Sub(sp.startTime)
+	require.Less(t, timeSpent, sp.processingTime)
+}
+
+func TestScheduledProcessor_IsProcessedInProgressAlreadyStartedNoCompletion(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
+
+	sp.setStatus(inProgress)
+	startTime := time.Now()
+	sp.startTime = startTime.Add(-10 * time.Millisecond)
+	require.False(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	require.Less(t, endTime.Sub(startTime), sp.processingTime)
+	require.Greater(t, endTime.Sub(startTime), sp.processingTime-10*time.Millisecond)
+}
+
+func TestScheduledProcessor_IsProcessedInProgressTimeout(t *testing.T) {
+	t.Parallel()
+
+	args := defaultScheduledProcessorArgs()
+	sp, err := NewScheduledProcessor(args)
+	require.Nil(t, err)
+
+	sp.setStatus(inProgress)
+	sp.startTime = time.Now()
+	require.False(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	require.Greater(t, endTime.Sub(sp.startTime), sp.processingTime)
 }
 
 func TestScheduledProcessor_StatusGetterAndSetter(t *testing.T) {

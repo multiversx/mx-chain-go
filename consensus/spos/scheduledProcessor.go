@@ -23,6 +23,8 @@ const (
 	inProgressString           = "processing in progress"
 	processingOKString         = "processing OK"
 	unexpectedString           = "processing OK"
+
+	processingCheckStep = 1 * time.Millisecond
 )
 
 // String returns human readable processing status
@@ -53,7 +55,8 @@ type scheduledProcessor struct {
 	processingTime time.Duration
 	processor      process.ScheduledBlockProcessor
 
-	status processingStatus
+	startTime time.Time
+	status    processingStatus
 	sync.RWMutex
 
 	oneInstance sync.RWMutex
@@ -76,9 +79,42 @@ func NewScheduledProcessor(args ScheduledProcessorArgs) (*scheduledProcessor, er
 	}, nil
 }
 
+func (sp *scheduledProcessor) computeRemainingProcessingTime() time.Duration {
+	currTime := sp.syncTimer.CurrentTime()
+
+	sp.RLock()
+	elapsedTime := currTime.Sub(sp.startTime)
+	sp.RUnlock()
+
+	if elapsedTime < 0 {
+		return 0
+	}
+
+	remainingTime := sp.processingTime - elapsedTime
+	if remainingTime < 0 {
+		return 0
+	}
+
+	return remainingTime
+}
+
 // IsProcessedOK returns true if the scheduled processing was finalized without error
+// Function is blocking until the allotted time for processing is finished
 func (sp *scheduledProcessor) IsProcessedOK() bool {
 	status := sp.getStatus()
+
+loop:
+	for status == inProgress {
+		remainingExecutionTime := sp.computeRemainingProcessingTime()
+		select {
+		case <-time.After(remainingExecutionTime):
+			status = sp.getStatus()
+			break loop
+		case <-time.After(processingCheckStep):
+			status = sp.getStatus()
+		}
+	}
+
 	processedOK := processingOK == status
 	log.Debug("scheduledProcessor.IsProcessedOK", "status", status.String())
 	return processedOK
@@ -124,10 +160,20 @@ func (sp *scheduledProcessor) setStatus(status processingStatus) {
 	sp.status = status
 }
 
+func (sp *scheduledProcessor) getStartTime() time.Time {
+	sp.RLock()
+	defer sp.RUnlock()
+
+	return sp.startTime
+}
+
 func (sp *scheduledProcessor) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
-	startTime := sp.syncTimer.CurrentTime()
+	sp.Lock()
+	sp.startTime = sp.syncTimer.CurrentTime()
+	sp.Unlock()
+
 	haveTime := func() time.Duration {
-		return sp.processingTime - sp.syncTimer.CurrentTime().Sub(startTime)
+		return sp.computeRemainingProcessingTime()
 	}
 
 	return sp.processor.ProcessScheduledBlock(header, body, haveTime)
