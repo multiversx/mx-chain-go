@@ -119,10 +119,7 @@ type BlockchainHook interface {
 	IsPayable(address []byte) (bool, error)
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
-<<<<<<< HEAD
 	Close() error
-=======
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
->>>>>>> d8046dcd2... added get/restore snapshot methods to blockchain hook
 }

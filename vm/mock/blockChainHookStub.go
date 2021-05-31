@@ -31,12 +31,9 @@ type BlockChainHookStub struct {
 	IsPayableCalled               func(address []byte) (bool, error)
 	NumberOfShardsCalled          func() uint32
 	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
-<<<<<<< HEAD
 	CloseCalled                   func() error
-=======
 	GetSnapshotCalled             func() int
 	RevertToSnapshotCalled        func(snapshot int) error
->>>>>>> d8046dcd2... added get/restore snapshot methods to blockchain hook
 }
 
 // AccountExists -
