@@ -114,6 +114,13 @@ func TestScheduledProcessor_IsProcessedInProgressNegativeRemainingTime(t *testin
 
 	sp.setStatus(inProgress)
 	require.False(t, sp.IsProcessedOK())
+
+	startTime := time.Now()
+	sp.startTime = startTime.Add(-200*time.Millisecond)
+	require.False(t, sp.IsProcessedOK())
+	endTime := time.Now()
+	timeSpent := endTime.Sub(startTime)
+	require.Less(t, timeSpent, sp.processingTime)
 }
 
 func TestScheduledProcessor_IsProcessedInProgressStartingInFuture(t *testing.T) {

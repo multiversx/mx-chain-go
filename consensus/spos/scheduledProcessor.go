@@ -24,7 +24,7 @@ const (
 	processingOKString         = "processing OK"
 	unexpectedString           = "processing OK"
 
-	processingCheckStep = 1 * time.Millisecond
+	processingCheckStep = 10 * time.Millisecond
 )
 
 // String returns human readable processing status
@@ -90,12 +90,7 @@ func (sp *scheduledProcessor) computeRemainingProcessingTime() time.Duration {
 		return 0
 	}
 
-	remainingTime := sp.processingTime - elapsedTime
-	if remainingTime < 0 {
-		return 0
-	}
-
-	return remainingTime
+	return sp.processingTime - elapsedTime
 }
 
 // IsProcessedOK returns true if the scheduled processing was finalized without error
@@ -115,7 +110,7 @@ loop:
 		}
 	}
 
-	processedOK := processingOK == status
+	processedOK := status == processingOK
 	log.Debug("scheduledProcessor.IsProcessedOK", "status", status.String())
 	return processedOK
 }
