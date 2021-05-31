@@ -1,7 +1,10 @@
 package health
 
 import (
+	"fmt"
+	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,4 +52,27 @@ func TestMemoryUsageRecord_IsMoreImportantThan(t *testing.T) {
 
 	// Different type of record
 	require.False(t, a.isMoreImportantThan(newDummyRecord(12345)))
+}
+
+func TestWriteMemoryUseInfo(t *testing.T) {
+	timestamp, err := time.Parse("20060102150405", "20210430120137")
+	require.Nil(t, err)
+
+	memStats := runtime.MemStats{HeapInuse: 1984 * core.MegabyteSize}
+	identifier := "identifier"
+	parentDirectory := "."
+
+	size := core.ConvertBytes(memStats.HeapInuse)
+	size = strings.ReplaceAll(size, " ", "_")
+	size = strings.ReplaceAll(size, ".", "_")
+	expectedFilename := fmt.Sprintf("%s/mem__%s__%s__%s.pprof", parentDirectory, identifier,
+		timestamp.Format("20060102150405"), size)
+
+	err = WriteMemoryUseInfo(memStats, timestamp, parentDirectory, identifier)
+	require.Nil(t, err)
+	require.FileExists(t, expectedFilename)
+
+	err = os.Remove(expectedFilename)
+	require.Nil(t, err)
+	require.NoFileExists(t, expectedFilename)
 }

@@ -120,10 +120,5 @@ assembleCommand_startValidatorNode() {
     node_command="nice -n $NODE_NICENESS $node_command"
   fi
 
-  if [ $NODETERMUI -eq 0 ]
-  then
-    node_command="$node_command -use-log-view"
-  fi
-
   echo $node_command
 }

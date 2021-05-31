@@ -431,3 +431,24 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 	_, err := target.ComputeScCallGasLimit(tx)
 	require.Equal(t, errors.New(message), err)
 }
+
+func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			CloseCalled: func() error {
+				closeCalled = true
+				return nil
+			},
+		},
+		&mock.FeeHandlerStub{},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
+	)
+
+	err := target.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
+}
