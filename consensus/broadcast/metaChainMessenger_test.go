@@ -155,7 +155,7 @@ func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {

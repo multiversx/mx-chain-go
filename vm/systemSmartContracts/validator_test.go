@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -25,13 +26,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
+func createMockArgumentsForValidatorSCWithSystemScAddresses(
+	validatorScAddress []byte,
+	stakingScAddress []byte,
+	endOfEpochAddress []byte,
+) ArgsValidatorSmartContract {
 	args := ArgsValidatorSmartContract{
 		Eei:                &mock.SystemEIStub{},
 		SigVerifier:        &mock.MessageSignVerifierMock{},
-		ValidatorSCAddress: []byte("validator"),
-		StakingSCAddress:   []byte("staking"),
-		EndOfEpochAddress:  []byte("endOfEpoch"),
+		ValidatorSCAddress: validatorScAddress,
+		StakingSCAddress:   stakingScAddress,
+		EndOfEpochAddress:  endOfEpochAddress,
 		StakingSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "1000",
 			UnJailValue:                          "10",
@@ -59,12 +64,29 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 				StakingV2EnableEpoch: 10,
 			},
 		},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 
 	return args
 }
 
-func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint64) ValidatorDataV2 {
+func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
+	return createMockArgumentsForValidatorSCWithSystemScAddresses(
+		[]byte("validator"),
+		[]byte("staking"),
+		[]byte("endOfEpoch"),
+	)
+}
+
+func createMockArgumentsForValidatorSCWithRealAddresses() ArgsValidatorSmartContract {
+	return createMockArgumentsForValidatorSCWithSystemScAddresses(
+		vm.ValidatorSCAddress,
+		vm.StakingSCAddress,
+		vm.EndOfEpochAddress,
+	)
+}
+
+func createAValidatorData(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint64) ValidatorDataV2 {
 	data := ValidatorDataV2{
 		RewardAddress:   []byte("addr"),
 		RegisterNonce:   0,
@@ -177,7 +199,7 @@ func TestNewStakingValidatorSmartContract_NilSystemEnvironmentInterface(t *testi
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
 }
 
 func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *testing.T) {
@@ -188,7 +210,7 @@ func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *test
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilStakingSmartContractAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrNilStakingSmartContractAddress))
 }
 
 func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *testing.T) {
@@ -199,7 +221,7 @@ func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *te
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilValidatorSmartContractAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrNilValidatorSmartContractAddress))
 }
 
 func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
@@ -210,7 +232,7 @@ func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilMessageSignVerifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
 }
 
 func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
@@ -221,7 +243,7 @@ func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilMarshalizer, err)
+	assert.True(t, errors.Is(err, vm.ErrNilMarshalizer))
 }
 
 func TestNewStakingValidatorSmartContract_InvalidGenesisTotalSupply(t *testing.T) {
@@ -255,7 +277,7 @@ func TestNewStakingValidatorSmartContract_NilEpochNotifier(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilEpochNotifier, err)
+	assert.True(t, errors.Is(err, vm.ErrNilEpochNotifier))
 }
 
 func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
@@ -266,7 +288,7 @@ func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrInvalidEndOfEpochAccessAddress, err)
+	assert.True(t, errors.Is(err, vm.ErrInvalidEndOfEpochAccessAddress))
 }
 
 func TestNewStakingValidatorSmartContract_EmptyDelegationManagerAddress(t *testing.T) {
@@ -291,11 +313,22 @@ func TestNewStakingValidatorSmartContract_EmptyGovernanceAddress(t *testing.T) {
 	require.True(t, errors.Is(err, vm.ErrInvalidAddress))
 }
 
+func TestNewStakingValidatorSmartContract_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.ShardCoordinator = nil
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.True(t, check.IfNil(asc))
+	require.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
+}
+
 func TestStakingValidatorSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateVmContractCallInput()
-	validatorData := createABid(25000000, 2, 12500000)
+	validatorData := createAValidatorData(25000000, 2, 12500000)
 	validatorDataBytes, _ := json.Marshal(&validatorData)
 
 	eei := &mock.SystemEIStub{}
@@ -328,7 +361,7 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 	t.Parallel()
 
 	arguments := CreateVmContractCallInput()
-	validatorData := createABid(25000000, 2, 12500000)
+	validatorData := createAValidatorData(25000000, 2, 12500000)
 	validatorDataBytes, _ := json.Marshal(&validatorData)
 
 	key1 := []byte("Key1")
@@ -366,7 +399,7 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 	assert.Equal(t, vmcommon.Ok, errCode)
 }
 
-func TestStakingAuctionSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
+func TestStakingValidatorSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateVmContractCallInput()
@@ -512,7 +545,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateVmContractCallInput()
-	validatorData := createABid(25000000, 2, 12500000)
+	validatorData := createAValidatorData(25000000, 2, 12500000)
 	validatorDataBytes, _ := json.Marshal(&validatorData)
 
 	stakedData := StakedDataV2_0{
@@ -1418,13 +1451,13 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndReStake(t *test
 	assert.True(t, stakedData.Staked)
 }
 
-func TestStakingValidatorSC_ExecuteUnBound(t *testing.T) {
+func TestStakingValidatorSC_ExecuteUnBond(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateVmContractCallInput()
 	totalStake := uint64(25000000)
 
-	validatorData := createABid(totalStake, 2, 12500000)
+	validatorData := createAValidatorData(totalStake, 2, 12500000)
 	validatorDataBytes, _ := json.Marshal(&validatorData)
 
 	stakedData := StakedDataV2_0{
@@ -2273,7 +2306,7 @@ func TestValidatorStakingSC_ExecuteUnStake(t *testing.T) {
 	assert.Equal(t, expectedRegistrationData, registrationData)
 }
 
-func TestValidatorStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
+func TestValidatorStakingSC_ExecuteUnBondUnmarshalErr(t *testing.T) {
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
@@ -2293,7 +2326,7 @@ func TestValidatorStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestValidatorStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
+func TestValidatorStakingSC_ExecuteUnBondValidatorNotUnStakeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
@@ -3078,18 +3111,22 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	stakerAddress := []byte("stakerA")
 	stakerPubKey := []byte("stakerP")
 	minStakeValue := big.NewInt(1000)
-	unboundPeriod := uint64(10)
+	unbondPeriod := uint64(10)
 	nodesToRunBytes := big.NewInt(1).Bytes()
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForValidatorSC()
-	args.Eei = createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch = 1000
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
 
 	sc, _ := NewValidatorSmartContract(args)
 
 	//change reward address should error nil arguments
 	changeRewardAddress(t, sc, stakerAddress, nil, vmcommon.UserError)
 	// change reward address should error wrong address
+	eei.returnMessage = ""
 	changeRewardAddress(t, sc, stakerAddress, []byte("wrongAddress"), vmcommon.UserError)
+	assert.Equal(t, "wrong reward address", eei.returnMessage)
 	// change reward address should error because address is not belongs to any validator
 	newRewardAddr := []byte("newAddr11")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
@@ -3101,6 +3138,50 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	changeRewardAddress(t, sc, stakerAddress, stakerAddress, vmcommon.UserError)
 	// change reward address should work
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.Ok)
+}
+
+func TestValidatorStakingSC_ChangeRewardAddressWithExtraChecks(t *testing.T) {
+	t.Parallel()
+
+	currentShard := uint32(0)
+
+	receiverAddr := bytes.Repeat([]byte{2}, len(vm.JailingAddress))
+	stakerAddress := bytes.Repeat([]byte{1}, len(vm.JailingAddress))
+	stakerPubKey := []byte("stakerP")
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	nodesToRunBytes := big.NewInt(1).Bytes()
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForValidatorSCWithRealAddresses()
+	args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch = 0
+	args.ValidatorSCAddress = vm.ValidatorSCAddress
+	args.ShardCoordinator = &mock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return currentShard
+		},
+	}
+	eei := createVmContextWithStakingScWithRealAddresses(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
+	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
+
+	eei.returnMessage = ""
+	changeRewardAddress(t, sc, stakerAddress, vm.JailingAddress, vmcommon.UserError)
+	expectedErr := fmt.Errorf("%w when trying to set the jailing address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
+
+	eei.returnMessage = ""
+	changeRewardAddress(t, sc, stakerAddress, vm.EndOfEpochAddress, vmcommon.UserError)
+	expectedErr = fmt.Errorf("%w when trying to set the end-of-epoch reserved address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
+
+	eei.returnMessage = ""
+	currentShard = core.MetachainShardId
+	changeRewardAddress(t, sc, stakerAddress, bytes.Repeat([]byte{8}, len(vm.JailingAddress)), vmcommon.UserError)
+	expectedErr = fmt.Errorf("%w when trying to set a metachain address", vm.ErrWrongRewardAddress)
+	assert.Equal(t, expectedErr.Error(), eei.returnMessage)
 }
 
 func TestStakingValidatorSC_UnstakeTokensNotEnabledShouldError(t *testing.T) {
@@ -4503,7 +4584,7 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 
 	eeiFinishedValues := make([][]byte, 0)
 	arguments := CreateVmContractCallInput()
-	validatorData := createABid(25000000, 2, 12500000)
+	validatorData := createAValidatorData(25000000, 2, 12500000)
 	validatorData.UnstakedInfo = append(validatorData.UnstakedInfo,
 		&UnstakedValue{
 			UnstakedEpoch: 6,
@@ -4688,6 +4769,20 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 	eei.returnMessage = ""
 	_, returnCode := sc.getAndValidateRegistrationData(addr)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
+
+	validatorData := &ValidatorDataV2{
+		RewardAddress: []byte("a"),
+		UnstakedInfo:  []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
+		TotalUnstaked: big.NewInt(10),
+		TotalSlashed:  big.NewInt(10),
+		BlsPubKeys:    [][]byte{[]byte("first key"), []byte("second key")},
+	}
+	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(addr, marshaledData)
+	eei.returnMessage = ""
+	_, returnCode = sc.getAndValidateRegistrationData(addr)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "reward address mismatch")
 
 	eei.SetStorage(addr, []byte("randomValue"))
@@ -4696,13 +4791,14 @@ func TestStakingValidatorSC_getAndValidateRegistrationDataErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid character 'r' looking for beginning of value")
 
-	validatorData := &ValidatorDataV2{
+	validatorData = &ValidatorDataV2{
 		RewardAddress: addr,
 		UnstakedInfo:  []*UnstakedValue{{UnstakedValue: big.NewInt(10)}},
 		TotalUnstaked: big.NewInt(10),
 		TotalSlashed:  big.NewInt(10),
+		BlsPubKeys:    [][]byte{[]byte("first key"), []byte("second key")},
 	}
-	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(addr, marshaledData)
 	eei.returnMessage = ""
 	_, returnCode = sc.getAndValidateRegistrationData(addr)
@@ -4767,10 +4863,10 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
 
 	validatorData := &ValidatorDataV2{
-		RewardAddress:   randomAddress,
+		RewardAddress:   []byte("not a valid address"),
 		TotalSlashed:    big.NewInt(0),
 		TotalUnstaked:   big.NewInt(0),
 		TotalStakeValue: big.NewInt(0),
@@ -4778,6 +4874,21 @@ func TestStakingValidatorSC_ChangeOwnerOfValidatorData(t *testing.T) {
 		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
 	}
 	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData = &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(randomAddress, marshaledData)
 
 	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
@@ -4849,10 +4960,10 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+	assert.Equal(t, eei.returnMessage, "address does not contain any staked nodes")
 
 	validatorData := &ValidatorDataV2{
-		RewardAddress:   randomAddress,
+		RewardAddress:   []byte("not a valid address"),
 		TotalSlashed:    big.NewInt(0),
 		TotalUnstaked:   big.NewInt(0),
 		TotalStakeValue: big.NewInt(0),
@@ -4860,6 +4971,22 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
 	}
 	marshaledData, _ := sc.marshalizer.Marshal(validatorData)
+	eei.SetStorage(randomAddress, marshaledData)
+
+	eei.returnMessage = ""
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, eei.returnMessage, "reward address mismatch")
+
+	validatorData = &ValidatorDataV2{
+		RewardAddress:   randomAddress,
+		TotalSlashed:    big.NewInt(0),
+		TotalUnstaked:   big.NewInt(0),
+		TotalStakeValue: big.NewInt(0),
+		NumRegistered:   3,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirddKey")},
+	}
+	marshaledData, _ = sc.marshalizer.Marshal(validatorData)
 	eei.SetStorage(randomAddress, marshaledData)
 
 	eei.SetStorage(vm.FirstDelegationSCAddress, []byte("something"))
@@ -4925,6 +5052,24 @@ func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blo
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
+	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
+	argsStaking.Eei = eei
+	argsStaking.StakingSCConfig.UnBondPeriod = unboundPeriod
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSc, nil
+	}})
+
+	return eei
+}
+
+func createVmContextWithStakingScWithRealAddresses(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArgumentsWithRealSystemScAddresses()
 	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = unboundPeriod

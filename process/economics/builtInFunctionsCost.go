@@ -58,7 +58,7 @@ func (bc *builtInFunctionsCost) initSpecialBuiltInFunctionCostMap() {
 		core.BuiltInFunctionESDTBurn:              {},
 		core.BuiltInFunctionESDTLocalBurn:         {},
 		core.BuiltInFunctionESDTLocalMint:         {},
-		core.ESDTRoleNFTAddQuantity:               {},
+		core.BuiltInFunctionESDTNFTAddQuantity:    {},
 		core.BuiltInFunctionESDTNFTBurn:           {},
 		core.BuiltInFunctionESDTNFTCreate:         {},
 	}
@@ -98,7 +98,7 @@ func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx process.TransactionWithFee
 		return bc.gasConfig.BuiltInCost.ESDTLocalBurn
 	case core.BuiltInFunctionESDTLocalMint:
 		return bc.gasConfig.BuiltInCost.ESDTLocalMint
-	case core.ESDTRoleNFTAddQuantity:
+	case core.BuiltInFunctionESDTNFTAddQuantity:
 		return bc.gasConfig.BuiltInCost.ESDTNFTAddQuantity
 	case core.BuiltInFunctionESDTNFTBurn:
 		return bc.gasConfig.BuiltInCost.ESDTNFTBurn

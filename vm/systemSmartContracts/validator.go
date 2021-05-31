@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -60,6 +61,7 @@ type validatorSC struct {
 	flagValidatorToDelegation        atomic.Flag
 	enableUnbondTokensV2Epoch        uint32
 	flagUnbondTokensV2               atomic.Flag
+	shardCoordinator                 sharding.Coordinator
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -79,6 +81,7 @@ type ArgsValidatorSmartContract struct {
 	GovernanceSCAddress      []byte
 	DelegationMgrEnableEpoch uint32
 	EpochConfig              config.EpochConfig
+	ShardCoordinator         sharding.Coordinator
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -86,31 +89,34 @@ func NewValidatorSmartContract(
 	args ArgsValidatorSmartContract,
 ) (*validatorSC, error) {
 	if check.IfNil(args.Eei) {
-		return nil, vm.ErrNilSystemEnvironmentInterface
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilSystemEnvironmentInterface)
 	}
 	if len(args.StakingSCAddress) == 0 {
-		return nil, vm.ErrNilStakingSmartContractAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilStakingSmartContractAddress)
 	}
 	if len(args.ValidatorSCAddress) == 0 {
-		return nil, vm.ErrNilValidatorSmartContractAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilValidatorSmartContractAddress)
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, vm.ErrNilMarshalizer
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilMarshalizer)
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilMessageSignVerifier)
 	}
 	if args.GenesisTotalSupply == nil || args.GenesisTotalSupply.Cmp(zero) <= 0 {
-		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
+		return nil, fmt.Errorf("%w, value is %v in validatorSC", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
 	}
 	if check.IfNil(args.EpochNotifier) {
-		return nil, vm.ErrNilEpochNotifier
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilEpochNotifier)
 	}
 	if len(args.EndOfEpochAddress) < 1 {
-		return nil, vm.ErrInvalidEndOfEpochAccessAddress
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidEndOfEpochAccessAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for delegation sc address in validatorSC", vm.ErrInvalidAddress)
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilShardCoordinator)
 	}
 	if len(args.GovernanceSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
@@ -168,6 +174,7 @@ func NewValidatorSmartContract(
 		governanceSCAddress:              args.GovernanceSCAddress,
 		enableUnbondTokensV2Epoch:        args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		shardCoordinator:                 args.ShardCoordinator,
 	}
 	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
 	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
@@ -414,7 +421,7 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) != v.walletAddressLen {
-		v.eei.AddReturnMessage("wrong reward address")
+		v.eei.AddReturnMessage(vm.ErrWrongRewardAddress.Error())
 		return vmcommon.UserError
 	}
 
@@ -429,6 +436,11 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 	}
 	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
 		v.eei.AddReturnMessage("new reward address is equal with the old reward address")
+		return vmcommon.UserError
+	}
+	err = v.extraChecksForChangeRewardAddress(args.Arguments[0])
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -461,6 +473,25 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 	}
 
 	return vmcommon.Ok
+}
+
+func (v *validatorSC) extraChecksForChangeRewardAddress(newAddress []byte) error {
+	if !v.flagValidatorToDelegation.IsSet() {
+		return nil
+	}
+
+	if bytes.Equal(newAddress, vm.JailingAddress) {
+		return fmt.Errorf("%w when trying to set the jailing address", vm.ErrWrongRewardAddress)
+	}
+	if bytes.Equal(newAddress, vm.EndOfEpochAddress) {
+		return fmt.Errorf("%w when trying to set the end-of-epoch reserved address", vm.ErrWrongRewardAddress)
+	}
+	shardID := v.shardCoordinator.ComputeId(newAddress)
+	if shardID == core.MetachainShardId {
+		return fmt.Errorf("%w when trying to set a metachain address", vm.ErrWrongRewardAddress)
+	}
+
+	return nil
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1966,6 +1997,10 @@ func (v *validatorSC) getAndValidateRegistrationData(address []byte) (*Validator
 	oldValidatorData, err := v.getOrCreateRegistrationData(address)
 	if err != nil {
 		v.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if len(oldValidatorData.BlsPubKeys) == 0 {
+		v.eei.AddReturnMessage("address does not contain any staked nodes")
 		return nil, vmcommon.UserError
 	}
 	if !bytes.Equal(oldValidatorData.RewardAddress, address) {

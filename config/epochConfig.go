@@ -44,6 +44,7 @@ type EnableEpochs struct {
 	SaveJailedAlwaysEnableEpoch            uint32
 	ValidatorToDelegationEnableEpoch       uint32
 	ReDelegateBelowMinCheckEnableEpoch     uint32
+	WaitingListFixEnableEpoch              uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

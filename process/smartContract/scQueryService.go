@@ -172,6 +172,11 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	return gasLimit, nil
 }
 
+// Close closes all underlying components
+func (service *SCQueryService) Close() error {
+	return service.vmContainer.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (service *SCQueryService) IsInterfaceNil() bool {
 	return service == nil
