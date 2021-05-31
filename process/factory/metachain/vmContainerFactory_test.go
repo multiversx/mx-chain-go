@@ -88,7 +88,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				StakeEnableEpoch:     0,
 			},
 		},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -309,6 +309,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -344,7 +345,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

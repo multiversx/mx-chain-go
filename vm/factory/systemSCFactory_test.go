@@ -40,6 +40,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -74,7 +75,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
-		ShardCoordinator:       &mock.ShardCoordinatorStub{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -246,6 +247,19 @@ func TestSystemSCFactory_CreateWithBadDelegationManagerConfigChangeAddressShould
 
 	arguments := createMockNewSystemScFactoryArgs()
 	arguments.SystemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress = "not a hex string"
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	container, err := scFactory.Create()
+
+	assert.True(t, check.IfNil(container))
+	assert.True(t, errors.Is(err, vm.ErrInvalidAddress))
+}
+
+func TestSystemSCFactory_CreateWithFirstWhiteListAddressShouldError(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.SystemSCConfig.GovernanceSystemSCConfig.FirstWhitelistedAddress = "not a hex string"
 	scFactory, _ := NewSystemSCFactory(arguments)
 
 	container, err := scFactory.Create()

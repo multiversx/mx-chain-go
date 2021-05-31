@@ -448,6 +448,7 @@ func hardForkImport(
 						MinPassThreshold: "50",
 						MinVetoThreshold: "50",
 					},
+					FirstWhitelistedAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",

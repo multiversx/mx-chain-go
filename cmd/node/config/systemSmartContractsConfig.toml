@@ -28,7 +28,7 @@
         MinQuorum          = "500000000000" # VotePower of 10*sqrt(NodePrice)
         MinPassThreshold   = "251000000000"
         MinVetoThreshold   = "249000000000"
-        EnabledEpoch       = 2
+    FirstWhitelistedAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
 
 [DelegationManagerSystemSCConfig]
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD

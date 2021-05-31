@@ -808,11 +808,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					},
 					Active: config.GovernanceSystemSCConfigActive{
 						ProposalCost:     "500",
-						EnabledEpoch:     10,
 						MinQuorum:        "50",
 						MinPassThreshold: "50",
 						MinVetoThreshold: "50",
 					},
+					FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -849,7 +849,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					DelegationManagerEnableEpoch:       0,
 				},
 			},
-			ShardCoordinator:    tpn.ShardCoordinator,
+			ShardCoordinator: tpn.ShardCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1545,6 +1545,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1581,7 +1582,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
-		ShardCoordinator:    tpn.ShardCoordinator,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 

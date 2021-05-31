@@ -934,6 +934,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -969,7 +970,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 

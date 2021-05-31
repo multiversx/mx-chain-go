@@ -556,11 +556,11 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			},
 			Active: config.GovernanceSystemSCConfigActive{
 				ProposalCost:     "500",
-				EnabledEpoch:     10,
 				MinQuorum:        "50",
 				MinPassThreshold: "50",
 				MinVetoThreshold: "50",
 			},
+			FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",

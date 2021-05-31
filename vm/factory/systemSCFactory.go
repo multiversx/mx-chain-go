@@ -225,9 +225,9 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
-	configChangeAddres, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.DelegationManagerSystemSCConfig.ConfigChangeAddress)
+	firstWhitelistAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.FirstWhitelistedAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for DelegationManagerSystemSCConfig.ConfigChangeAddress in systemSCFactory", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.FirstWhitelistedAddress in systemSCFactory", vm.ErrInvalidAddress)
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
@@ -241,7 +241,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		ValidatorSCAddress:          vm.ValidatorSCAddress,
 		EpochNotifier:               scf.epochNotifier,
 		EpochConfig:                 *scf.epochConfig,
-		InitialWhiteListedAddresses: [][]byte{configChangeAddres},
+		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

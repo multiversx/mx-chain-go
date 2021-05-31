@@ -48,13 +48,13 @@ type GovernanceSystemSCConfigActive struct {
 	MinQuorum        string
 	MinPassThreshold string
 	MinVetoThreshold string
-	EnabledEpoch     uint32
 }
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	V1     GovernanceSystemSCConfigV1
-	Active GovernanceSystemSCConfigActive
+	V1                      GovernanceSystemSCConfigV1
+	Active                  GovernanceSystemSCConfigActive
+	FirstWhitelistedAddress string
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract

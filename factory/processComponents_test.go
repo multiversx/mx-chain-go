@@ -167,11 +167,11 @@ func getProcessArgs(
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					EnabledEpoch:     10,
 					MinQuorum:        "50",
 					MinPassThreshold: "50",
 					MinVetoThreshold: "50",
 				},
+				FirstWhitelistedAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
