@@ -18,10 +18,6 @@ type wrappableError struct {
 	errsWithLocation []errorWithLocation
 }
 
-func (werr *wrappableError) getTopErrorWithLocation() errorWithLocation {
-	return werr.errsWithLocation[len(werr.errsWithLocation)-1]
-}
-
 // WrapError constructs a WrappableError from an error
 func WrapError(err error) WrappableError {
 	errAsWrappable, ok := err.(WrappableError)
