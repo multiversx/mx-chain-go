@@ -168,6 +168,10 @@ func TestOptimizedKadDhtDiscoverer_BootstrapErrorsShouldKeepRetrying(t *testing.
 }
 
 func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	arg := createTestArgument()
@@ -180,7 +184,7 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
 			atomic.AddUint32(&connectCalled, 1)
 
-			if atomic.LoadUint32(&connectCalled) < uint32(5) {
+			if atomic.LoadUint32(&connectCalled) < uint32(1) {
 				return expectedErr
 			}
 
@@ -205,11 +209,12 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	)
 
 	err := okdd.Bootstrap()
+	time.Sleep(time.Second)
 	okdd.ReconnectToNetwork(context.Background())
-	time.Sleep(time.Millisecond * 500) //the value is chosen as such as to avoid edgecases on select statement
+	time.Sleep(time.Millisecond * 500) //the value is chosen as such as to avoid edge cases on select statement
 	cancelFunc()
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&bootstrapCalled))
-	assert.Equal(t, uint32(6), atomic.LoadUint32(&connectCalled))
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&connectCalled))
 }
