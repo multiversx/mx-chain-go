@@ -18,7 +18,7 @@ import (
 )
 
 const pruningDelay = time.Second / 2
-const snapshotDelay = time.Second / 2
+const snapshotDelay = time.Second
 
 func TestNewTrieStorageManagerNilDb(t *testing.T) {
 	t.Parallel()

@@ -4786,7 +4786,7 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
-	assert.Equal(t, eei.returnMessage, "can be called by owner only")
+	assert.Equal(t, eei.returnMessage, "can be called by owner or the delegation manager")
 
 	vmInput.CallerAddr = []byte("address0")
 	vmInput.GasProvided = 0
@@ -4882,4 +4882,63 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	assert.Equal(t, 0, len(d.eei.GetStorage([]byte(whitelistedAddress))))
+
+	d.eei.SetStorage([]byte(whitelistedAddress), []byte("address"))
+	vmInput.Arguments = [][]byte{}
+	vmInput.CallerAddr = vm.DelegationManagerSCAddress
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.Equal(t, 0, len(d.eei.GetStorage([]byte(whitelistedAddress))))
+}
+
+func TestDelegation_GetWhitelistForMerge(t *testing.T) {
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}}
+
+	_ = eei.SetSystemSCContainer(systemSCContainerStub)
+
+	args.Eei = eei
+	args.DelegationSCConfig.MaxServiceFee = 10000
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
+
+	vmInput := getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
+
+	d.flagValidatorToDelegation.Unset()
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.Equal(t, eei.returnMessage, "getWhitelistForMerge"+" is an unknown function")
+
+	d.flagValidatorToDelegation.Set()
+
+	addr := []byte("address1")
+	vmInput = getDefaultVmInputForFunc("whitelistForMerge", [][]byte{addr})
+	vmInput.CallValue = big.NewInt(0)
+	vmInput.CallerAddr = []byte("address0")
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	vmInput = getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
+	returnCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	require.Equal(t, 1, len(eei.output))
+	assert.Equal(t, addr, eei.output[0])
 }

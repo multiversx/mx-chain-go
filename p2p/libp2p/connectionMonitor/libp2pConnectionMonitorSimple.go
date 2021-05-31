@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -14,6 +15,7 @@ import (
 // DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often
 // when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
 var DurationBetweenReconnectAttempts = time.Second * 5
+var log = logger.GetOrCreate("p2p/libp2p/connectionmonitor")
 
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
@@ -106,6 +108,10 @@ func (lcms *libp2pConnectionMonitorSimple) OpenedStream(network.Network, network
 func (lcms *libp2pConnectionMonitorSimple) ClosedStream(network.Network, network.Stream) {}
 
 func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
+	defer func() {
+		log.Debug("closing the connection monitor main loop")
+	}()
+
 	for {
 		select {
 		case <-lcms.chDoReconnect:
@@ -114,7 +120,11 @@ func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
 		}
 		lcms.reconnecter.ReconnectToNetwork(ctx)
 
-		time.Sleep(DurationBetweenReconnectAttempts)
+		select {
+		case <-time.After(DurationBetweenReconnectAttempts):
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
