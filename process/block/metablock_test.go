@@ -2820,3 +2820,87 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 }
+
+func TestMetaProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
+	cc, dc, _, sc := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
+	}
+
+	arguments := createMockMetaArguments(cc, dc, boostrapComponents, sc)
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := mp.CreateNewHeader(1, 1)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, h)
+}
+
+func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root")
+	round := uint64(7)
+	nonce := uint64(8)
+	epoch := uint32(5)
+
+	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
+	}
+
+	boostrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.MetaBlock{
+				Epoch: epoch,
+			}
+		},
+	}
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return epoch
+		},
+	}
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := mp.CreateNewHeader(round, nonce)
+	assert.Nil(t, err)
+	assert.IsType(t, &block.MetaBlock{}, h)
+	assert.Equal(t, epoch, h.GetEpoch())
+	assert.Equal(t, round, h.GetRound())
+	assert.Equal(t, nonce, h.GetNonce())
+
+	zeroInt := big.NewInt(0)
+	metaHeader := h.(*block.MetaBlock)
+	assert.Equal(t, zeroInt, metaHeader.AccumulatedFeesInEpoch)
+	assert.Equal(t, zeroInt, metaHeader.AccumulatedFees)
+	assert.Equal(t, zeroInt, metaHeader.DeveloperFees)
+	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
+}

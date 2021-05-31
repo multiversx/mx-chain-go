@@ -423,7 +423,7 @@ func (hv2 *HeaderV2) GetBlockBodyTypeInt32() int32 {
 	return hv2.Header.GetBlockBodyTypeInt32()
 }
 
-// GetMiniBlockHeadersHandlers returns the miniBlock headers as an array of miniBlock header handlers
+// GetMiniBlockHeaderHandlers returns the miniBlock headers as an array of miniBlock header handlers
 func (hv2 *HeaderV2) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	if hv2 == nil {
 		return nil

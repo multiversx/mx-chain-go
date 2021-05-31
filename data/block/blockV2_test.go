@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 	"github.com/stretchr/testify/require"
 )
 
@@ -669,4 +670,35 @@ func TestHeaderV2_ValidateHeaderVersion(t *testing.T) {
 	hv2.ScheduledRootHash = make([]byte, 32)
 	err = hv2.ValidateHeaderVersion()
 	require.Nil(t, err)
+}
+
+func TestHeaderV2_SetAdditionalDataNilAdditionalDataShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardBlock := &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: nil,
+	}
+
+	err := shardBlock.SetAdditionalData(nil)
+
+	require.NotNil(t, err)
+	require.Equal(t, data.ErrNilPointerDereference, err)
+}
+
+func TestHeaderV2_SetAdditionalDataShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardBlock := &block.HeaderV2{
+		Header:            &block.Header{},
+		ScheduledRootHash: nil,
+	}
+
+	scRootHash := []byte("scheduledRootHash")
+	err := shardBlock.SetAdditionalData(&headerVersionData.AdditionalData{
+		ScheduledRootHash: scRootHash,
+	})
+
+	require.Nil(t, err)
+	require.Equal(t, scRootHash, shardBlock.ScheduledRootHash)
 }
