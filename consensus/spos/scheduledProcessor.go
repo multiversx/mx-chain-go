@@ -17,21 +17,27 @@ const (
 	processingError      processingStatus = 1
 	inProgress           processingStatus = 2
 	processingOK         processingStatus = 3
+
+	processingNotStartedString = "processing not started"
+	processingErrorString      = "processing error"
+	inProgressString           = "processing in progress"
+	processingOKString         = "processing OK"
+	unexpectedString           = "processing OK"
 )
 
 // String returns human readable processing status
 func (ps processingStatus) String() string {
 	switch ps {
 	case processingNotStarted:
-		return "processing not started"
+		return processingNotStartedString
 	case processingError:
-		return "processing error"
+		return processingErrorString
 	case inProgress:
-		return "processing in progress"
+		return inProgressString
 	case processingOK:
-		return "processing OK"
+		return processingOKString
 	default:
-		return "unexpected processing status"
+		return unexpectedString
 	}
 }
 
@@ -106,7 +112,7 @@ func (sp *scheduledProcessor) StartScheduledProcessing(header data.HeaderHandler
 
 func (sp *scheduledProcessor) getStatus() processingStatus {
 	sp.RLock()
-	defer sp.RLock()
+	defer sp.RUnlock()
 
 	return sp.status
 }
