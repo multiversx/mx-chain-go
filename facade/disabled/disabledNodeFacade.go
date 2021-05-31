@@ -101,6 +101,16 @@ func (nf *disabledNodeFacade) GetAllESDTTokens(_ string) (map[string]*esdt.ESDig
 	return nil, errNodeStarting
 }
 
+// GetNFTTokenIDsRegisteredByAddress returns nil and error
+func (nf *disabledNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string) ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetESDTsWithRole returns nil and error
+func (nf *disabledNodeFacade) GetESDTsWithRole(_ string, _ string) ([]string, error) {
+	return nil, errNodeStarting
+}
+
 // CreateTransaction return nil and error
 func (nf *disabledNodeFacade) CreateTransaction(
 	_ uint64,

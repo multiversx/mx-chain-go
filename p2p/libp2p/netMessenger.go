@@ -276,6 +276,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 			select {
 			case <-time.After(durationBetweenSends):
 			case <-netMes.ctx.Done():
+				log.Debug("closing networkMessenger's send from channel load balancer go routine")
 				return
 			}
 
@@ -387,7 +388,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 			select {
 			case <-time.After(durationCheckConnections):
 			case <-netMes.ctx.Done():
-				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				log.Debug("peer monitoring go routine is stopping...")
 				return
 			}
 		}
@@ -417,6 +418,7 @@ func (netMes *networkMessenger) printLogsStats() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.printLogsStats go routine")
 			return
 		case <-time.After(timeBetweenPeerPrints):
 		}
@@ -481,6 +483,7 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.checkExternalLoggers go routine")
 			return
 		case <-time.After(timeBetweenExternalLoggersCheck):
 		}
@@ -601,11 +604,10 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+func (netMes *networkMessenger) Bootstrap() error {
 	err := netMes.peerDiscoverer.Bootstrap()
 	if err == nil {
-		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
-		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+		log.Info("started the network discovery process...")
 	}
 	return err
 }

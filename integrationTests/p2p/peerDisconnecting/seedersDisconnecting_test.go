@@ -74,7 +74,7 @@ func TestSeedersDisconnectionWith2AdvertiserAnd3Peers(t *testing.T) {
 
 	//Step 3. Call bootstrap on all peers
 	for _, p := range peers {
-		_ = p.Bootstrap(0)
+		_ = p.Bootstrap()
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(append(seeders, peers...), integrationTests.P2pBootstrapDelay)
 
@@ -119,7 +119,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 	seeders[0], _ = libp2p.NewMockMessenger(argSeeder, netw)
-	_ = seeders[0].Bootstrap(0)
+	_ = seeders[0].Bootstrap()
 	seedersAddresses[0] = integrationTests.GetConnectableAddress(seeders[0])
 
 	for i := 1; i < numSeeders; i++ {
@@ -132,7 +132,7 @@ func createBootstrappedSeeders(baseP2PConfig config.P2PConfig, numSeeders int, n
 		}
 		seeders[i], _ = libp2p.NewMockMessenger(argSeeder, netw)
 		_ = netw.LinkAll()
-		_ = seeders[i].Bootstrap(0)
+		_ = seeders[i].Bootstrap()
 		seedersAddresses[i] = integrationTests.GetConnectableAddress(seeders[i])
 	}
 

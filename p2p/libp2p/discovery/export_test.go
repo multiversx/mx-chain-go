@@ -54,7 +54,6 @@ func NewOptimizedKadDhtDiscovererWithInitFunc(
 		chanInit:                    make(chan struct{}),
 		errChanInit:                 make(chan error),
 		chanConnectToSeeders:        make(chan struct{}),
-		chanDoneConnectToSeeders:    make(chan struct{}),
 	}
 
 	okdd.createKadDhtHandler = createFunc
