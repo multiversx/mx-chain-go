@@ -25,8 +25,8 @@ func UniqueIdentifier() string {
 	return string(buff)
 }
 
-// DoesFileExist returns true if the file at the given path exists
-func DoesFileExist(path string) bool {
+// FileExists returns true if the file at the given path exists
+func FileExists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	}
