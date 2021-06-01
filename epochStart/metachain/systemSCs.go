@@ -188,6 +188,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	log.Debug("systemSC: enable epoch for ESDT", "epoch", s.esdtEnableEpoch)
 	log.Debug("systemSC: enable epoch for correct last unjailed", "epoch", s.correctLastUnJailEpoch)
 	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
+	log.Debug("systemSC: governanceV2", "epoch", s.governanceEnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -1493,5 +1494,5 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
 
 	s.flagGovernanceEnabled.Toggle(epoch == s.governanceEnableEpoch)
-	log.Debug("systemProcessor: governanceV2", "enabled", epoch >= s.governanceEnableEpoch)
+	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
 }

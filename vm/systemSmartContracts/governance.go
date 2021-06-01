@@ -1080,15 +1080,12 @@ func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteSet, pro
 	case Yes:
 		voteData.TotalYes.Add(voteData.TotalYes, vote.Power)
 		proposal.Yes.Add(proposal.Yes, vote.Power)
-		break
 	case No:
 		voteData.TotalNo.Add(voteData.TotalNo, vote.Power)
 		proposal.No.Add(proposal.No, vote.Power)
-		break
 	case Veto:
 		voteData.TotalVeto.Add(voteData.TotalVeto, vote.Power)
 		proposal.Veto.Add(proposal.Veto, vote.Power)
-		break
 	default:
 		return nil, nil, fmt.Errorf("%s: %s", vm.ErrInvalidArgument, "invalid vote type")
 	}
@@ -1262,7 +1259,7 @@ func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*
 		return nil, err
 	}
 
-	activeDelegated := big.NewInt(0)
+	var activeDelegated *big.Int
 	for _, contract := range dContractList.Addresses {
 		activeDelegated, err = g.getActiveFundForDelegator(contract, address)
 		if err != nil {
