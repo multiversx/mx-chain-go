@@ -22,7 +22,7 @@ const (
 	processingErrorString      = "processing error"
 	inProgressString           = "processing in progress"
 	processingOKString         = "processing OK"
-	unexpectedString           = "processing OK"
+	unexpectedString           = "unexpected"
 
 	processingCheckStep = 10 * time.Millisecond
 )
@@ -70,7 +70,7 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 	if check.IfNil(args.Processor) {
 		return nil, process.ErrNilBlockProcessor
 	}
-	if args.ProcessingTimeMilliSeconds < 1{
+	if args.ProcessingTimeMilliSeconds < 1 {
 		return nil, process.ErrInvalidProcessingTime
 	}
 
@@ -96,7 +96,7 @@ func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Durat
 	return sp.processingTime - elapsedTime
 }
 
-func (sp *scheduledProcessorWrapper) waitForProcessingResult () processingStatus {
+func (sp *scheduledProcessorWrapper) waitForProcessingResult() processingStatus {
 	status := sp.getStatus()
 	for status == inProgress {
 		remainingExecutionTime := sp.computeRemainingProcessingTime()
