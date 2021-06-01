@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -66,11 +67,11 @@ func TestNewScheduledProcessor_NilBlockProcessorOK(t *testing.T) {
 func TestScheduledProcessor_IsProcessedOKEarlyExit(t *testing.T) {
 	t.Parallel()
 
-	called := false
+	called := atomic.Flag{}
 	args := ScheduledProcessorArgs{
 		SyncTimer: &mock.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
-				called = true
+				called.Set()
 				return time.Now()
 			},
 		},
@@ -82,15 +83,15 @@ func TestScheduledProcessor_IsProcessedOKEarlyExit(t *testing.T) {
 	require.Nil(t, err)
 
 	require.False(t, sp.IsProcessedOK())
-	require.False(t, called)
+	require.False(t, called.IsSet())
 
 	sp.setStatus(processingOK)
 	require.True(t, sp.IsProcessedOK())
-	require.False(t, called)
+	require.False(t, called.IsSet())
 
 	sp.setStatus(processingError)
 	require.False(t, sp.IsProcessedOK())
-	require.False(t, called)
+	require.False(t, called.IsSet())
 }
 
 func defaultScheduledProcessorArgs() ScheduledProcessorArgs {
@@ -231,12 +232,12 @@ func TestScheduledProcessor_StatusGetterAndSetter(t *testing.T) {
 func TestScheduledProcessor_StartScheduledProcessingHeaderV1ProcessingOK(t *testing.T) {
 	t.Parallel()
 
-	processScheduledCalled := false
+	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorArgs{
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled = true
+				processScheduledCalled.Set()
 				return nil
 			},
 		},
@@ -250,19 +251,19 @@ func TestScheduledProcessor_StartScheduledProcessingHeaderV1ProcessingOK(t *test
 	body := &block.Body{}
 	sp.StartScheduledProcessing(header, body)
 	time.Sleep(10 * time.Millisecond)
-	require.False(t, processScheduledCalled)
+	require.False(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingOK, sp.getStatus())
 }
 
 func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingWithError(t *testing.T) {
 	t.Parallel()
 
-	processScheduledCalled := false
+	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorArgs{
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled = true
+				processScheduledCalled.Set()
 				return errors.New("processing error")
 			},
 		},
@@ -278,19 +279,19 @@ func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingWithError(
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
-	require.True(t, processScheduledCalled)
+	require.True(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingError, sp.getStatus())
 }
 
 func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingOK(t *testing.T) {
 	t.Parallel()
 
-	processScheduledCalled := false
+	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorArgs{
 		SyncTimer: &mock.SyncTimerMock{},
 		Processor: &mock.BlockProcessorMock{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-				processScheduledCalled = true
+				processScheduledCalled.Set()
 				return nil
 			},
 		},
@@ -306,6 +307,6 @@ func TestScheduledProcessor_StartScheduledProcessingHeaderV2ProcessingOK(t *test
 	require.Equal(t, inProgress, sp.getStatus())
 
 	time.Sleep(100 * time.Millisecond)
-	require.True(t, processScheduledCalled)
+	require.True(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingOK, sp.getStatus())
 }
