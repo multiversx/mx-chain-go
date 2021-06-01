@@ -767,8 +767,8 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	numNodes, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !okConvert || numNodes.Cmp(zero) < 0 {
+	proposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !okConvert || proposalFee.Cmp(zero) < 0 {
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -797,6 +797,7 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	scConfig.MinQuorum = minQuorum
 	scConfig.MinVetoThreshold = minVeto
 	scConfig.MinPassThreshold = minPass
+	scConfig.ProposalFee = proposalFee
 
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
 	if err != nil {
