@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -412,7 +411,7 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := sha256.NewSha256().Compute(string(newRandomBase))
+	newRandom := e.hasher.Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
 
 	tickerPrefix := append(ticker, []byte(tickerSeparator)...)
@@ -420,10 +419,10 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 
 	one := big.NewInt(1)
 	for i := 0; i < numOfRetriesForIdentifier; i++ {
-		encoded := hex.EncodeToString(newRandomAsBigInt.Bytes())
-		newIdentifier := append(tickerPrefix, []byte(encoded)...)
-		data := e.eei.GetStorage(newIdentifier)
-		if len(data) == 0 {
+		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
+		newIdentifier := append(tickerPrefix, encoded...)
+		buff := e.eei.GetStorage(newIdentifier)
+		if len(buff) == 0 {
 			return newIdentifier, nil
 		}
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
@@ -1494,7 +1493,7 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (e *esdt) EpochConfirmed(epoch uint32) {
+func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }

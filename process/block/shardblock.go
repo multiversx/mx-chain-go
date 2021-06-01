@@ -136,7 +136,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
+	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -714,7 +714,7 @@ func (sp *shardProcessor) CreateBlock(
 		}
 	}
 
-	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
+	sp.epochNotifier.CheckEpoch(shardHdr)
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {

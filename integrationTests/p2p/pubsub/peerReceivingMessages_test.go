@@ -75,7 +75,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 			continue
 		}
 
-		err = peers[idx].RegisterMessageProcessor(testTopic, &messageProcessorStub{
+		err = peers[idx].RegisterMessageProcessor(testTopic, "test", &messageProcessorStub{
 			ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
 				time.Sleep(time.Second)
 
@@ -99,12 +99,12 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	}
 
 	//Step 4. Call bootstrap on all peers
-	err := advertiser.Bootstrap(0)
+	err := advertiser.Bootstrap()
 	if err != nil {
 		fmt.Println("Bootstrap failed:", err.Error())
 	}
 	for _, p := range peers {
-		err = p.Bootstrap(0)
+		err = p.Bootstrap()
 		if err != nil {
 			fmt.Printf("Bootstrap() for peer id %s failed:%s\n", p.ID(), err.Error())
 		}
@@ -177,7 +177,7 @@ func createTopicsAndMockInterceptors(peers []p2p.Messenger, topic string) ([]*me
 		}
 
 		interceptors[idx] = newMessageProcessor()
-		err = p.RegisterMessageProcessor(topic, interceptors[idx])
+		err = p.RegisterMessageProcessor(topic, "test", interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}

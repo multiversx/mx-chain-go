@@ -71,6 +71,7 @@ type ArgEnableEpoch struct {
 	DeployEnableEpoch              uint32
 	MetaProtectionEnableEpoch      uint32
 	RelayedTxEnableEpoch           uint32
+	UnbondTokensV2EnableEpoch      uint32
 }
 
 // VMTestContext -
@@ -227,10 +228,15 @@ func createEconomicsData(penalizedTooMuchGasEnableEpoch uint32) (process.Economi
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				TopUpGradientPoint:            "100000",
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+						TopUpGradientPoint:               "100000",
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -287,6 +293,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -447,6 +454,7 @@ func CreateVMAndBlockchainHookMeta(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 	shardCoordinator sharding.Coordinator,
+	arg ArgEnableEpoch,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
@@ -486,7 +494,7 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
-	vmFactory, err := metachain.NewVMContainerFactory(metachain.ArgsNewVMContainerFactory{
+	argVmContainer := metachain.ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   args,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
@@ -499,7 +507,10 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig:         createEpochConfig(),
-	})
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
+	}
+	argVmContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
+	vmFactory, err := metachain.NewVMContainerFactory(argVmContainer)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -518,7 +529,7 @@ func CreateVMAndBlockchainHookMeta(
 func createEpochConfig() *config.EpochConfig {
 	return &config.EpochConfig{
 		EnableEpochs: config.EnableEpochs{
-			StakingV2Epoch:                     0,
+			StakingV2EnableEpoch:               0,
 			StakeEnableEpoch:                   0,
 			DoubleKeyProtectionEnableEpoch:     0,
 			ESDTEnableEpoch:                    0,
@@ -582,6 +593,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -1024,7 +1036,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 	var vmContainer process.VirtualMachinesContainer
 	var blockchainHook *hooks.BlockChainHookImpl
 	if selfShardID == core.MetachainShardId {
-		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator)
+		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, argEnableEpoch)
 	} else {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
 	}

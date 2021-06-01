@@ -5,11 +5,14 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 const minPollingDuration = time.Second
+
+var log = logger.GetOrCreate("core/appStatusPolling")
 
 // AppStatusPolling will update an AppStatusHandler by polling components at a predefined interval
 type AppStatusPolling struct {
@@ -50,6 +53,7 @@ func (asp *AppStatusPolling) Poll(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				log.Debug("closing AppStatusPolling.Poll go routine")
 				return
 			case <-time.After(asp.pollingDuration):
 			}

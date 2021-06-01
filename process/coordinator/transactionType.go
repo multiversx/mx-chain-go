@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -15,18 +16,22 @@ import (
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
 
 type txTypeHandler struct {
-	pubkeyConv       core.PubkeyConverter
-	shardCoordinator sharding.Coordinator
-	builtInFuncNames map[string]struct{}
-	argumentParser   process.CallArgumentsParser
+	pubkeyConv             core.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
+	builtInFuncNames       map[string]struct{}
+	argumentParser         process.CallArgumentsParser
+	flagRelayedTxV2        atomic.Flag
+	relayedTxV2EnableEpoch uint32
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	PubkeyConverter  core.PubkeyConverter
-	ShardCoordinator sharding.Coordinator
-	BuiltInFuncNames map[string]struct{}
-	ArgumentParser   process.CallArgumentsParser
+	PubkeyConverter        core.PubkeyConverter
+	ShardCoordinator       sharding.Coordinator
+	BuiltInFuncNames       map[string]struct{}
+	ArgumentParser         process.CallArgumentsParser
+	RelayedTxV2EnableEpoch uint32
+	EpochNotifier          process.EpochNotifier
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -45,13 +50,20 @@ func NewTxTypeHandler(
 	if args.BuiltInFuncNames == nil {
 		return nil, process.ErrNilBuiltInFunction
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	tc := &txTypeHandler{
-		pubkeyConv:       args.PubkeyConverter,
-		shardCoordinator: args.ShardCoordinator,
-		argumentParser:   args.ArgumentParser,
-		builtInFuncNames: args.BuiltInFuncNames,
+		pubkeyConv:             args.PubkeyConverter,
+		shardCoordinator:       args.ShardCoordinator,
+		argumentParser:         args.ArgumentParser,
+		builtInFuncNames:       args.BuiltInFuncNames,
+		relayedTxV2EnableEpoch: args.RelayedTxV2EnableEpoch,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(tc)
+	log.Debug("txTypeHandler: enable epoch for relayed transactions v2", "epoch", args.RelayedTxV2EnableEpoch)
 
 	return tc, nil
 }
@@ -93,8 +105,12 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, process.MoveBalance
 	}
 
-	if tth.isRelayedTransaction(funcName) {
+	if tth.isRelayedTransactionV1(funcName) {
 		return process.RelayedTx, process.RelayedTx
+	}
+
+	if tth.isRelayedTransactionV2(funcName) {
+		return process.RelayedTxV2, process.RelayedTxV2
 	}
 
 	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
@@ -158,8 +174,15 @@ func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
 	return ok
 }
 
-func (tth *txTypeHandler) isRelayedTransaction(functionName string) bool {
+func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {
 	return functionName == core.RelayedTransaction
+}
+
+func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
+	if !tth.flagRelayedTxV2.IsSet() {
+		return false
+	}
+	return functionName == core.RelayedTransactionV2
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
@@ -184,6 +207,12 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 	}
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (tth *txTypeHandler) EpochConfirmed(epoch uint32, _ uint64) {
+	tth.flagRelayedTxV2.Toggle(epoch >= tth.relayedTxV2EnableEpoch)
+	log.Debug("txTypeHandler: relayed transactions v2", "enabled", tth.flagRelayedTxV2.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

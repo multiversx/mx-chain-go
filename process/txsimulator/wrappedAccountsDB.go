@@ -109,6 +109,11 @@ func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte, _ context.Context) (map[
 	return nil, nil
 }
 
+// GetTrie will return an error which indicates that this operation is not supported
+func (w *readOnlyAccountsDB) GetTrie(_ []byte) (data.Trie, error) {
+	return nil, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (w *readOnlyAccountsDB) IsInterfaceNil() bool {
 	return w == nil

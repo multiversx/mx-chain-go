@@ -485,7 +485,7 @@ func hardForkImport(
 					SCDeployEnableEpoch:                0,
 					RelayedTransactionsEnableEpoch:     0,
 					PenalizedTooMuchGasEnableEpoch:     0,
-					StakingV2Epoch:                     1000000,
+					StakingV2EnableEpoch:               1000000,
 					StakeEnableEpoch:                   0,
 					DelegationManagerEnableEpoch:       0,
 					DelegationSmartContractEnableEpoch: 0,

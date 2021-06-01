@@ -139,6 +139,7 @@ func (pd *p2pDebugger) continuouslyPrintStatistics(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Debug("p2p debugger continuouslyPrintStatistics go routine is stopping...")
 			return
 		case <-time.After(printInterval):
 		}

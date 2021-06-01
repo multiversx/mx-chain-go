@@ -48,6 +48,7 @@ type NetworkShardingUpdater interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
 
@@ -59,6 +60,8 @@ type Facade interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 	GetCode(account state.UserAccountHandler) []byte
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
+	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
+	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetBlockByHash(hash string, withTxs bool) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*dataApi.Block, error)

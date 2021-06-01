@@ -103,10 +103,19 @@ func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAgrs()
+	closeCalled := false
+	args.SCQueryService = &mock.SCQueryServiceStub{
+		CloseCalled: func() error {
+			closeCalled = true
+
+			return nil
+		},
+	}
 	nar, _ := external.NewNodeApiResolver(args)
 
 	err := nar.Close()
 	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

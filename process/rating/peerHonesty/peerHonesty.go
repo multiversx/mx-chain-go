@@ -130,6 +130,7 @@ func (pph *p2pPeerHonesty) executeDecayContinuously(ctx context.Context, handler
 		case <-time.After(pph.updateIntervalForDecay):
 			handler()
 		case <-ctx.Done():
+			log.Debug("closing p2pPeerHonesty.executeDecayContinuously go routine")
 			return
 		}
 	}

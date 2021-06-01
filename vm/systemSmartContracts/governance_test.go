@@ -475,7 +475,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 					},
 				}
 
-				validatorDataBytes, _ := json.Marshal(validatorData)
+				validatorDataBytes, _ = json.Marshal(validatorData)
 				return validatorDataBytes
 			}
 			generalProposal := &GeneralProposal{

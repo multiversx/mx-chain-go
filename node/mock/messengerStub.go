@@ -11,15 +11,19 @@ type MessengerStub struct {
 	CloseCalled                      func() error
 	CreateTopicCalled                func(name string, createChannelForTopic bool) error
 	HasTopicCalled                   func(name string) bool
-	HasTopicValidatorCalled          func(name string) bool
 	BroadcastOnChannelCalled         func(channel string, topic string, buff []byte)
 	BroadcastCalled                  func(topic string, buff []byte)
-	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled   func(topic string, identifier string, handler p2p.MessageProcessor) error
 	BootstrapCalled                  func() error
 	PeerAddressesCalled              func(pid core.PeerID) []string
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
 	PeersCalled                      func() []core.PeerID
+}
+
+// ConnectedFullHistoryPeersOnTopic -
+func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return make([]core.PeerID, 0)
 }
 
 // ID -
@@ -32,9 +36,9 @@ func (ms *MessengerStub) ID() core.PeerID {
 }
 
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if ms.RegisterMessageProcessorCalled != nil {
-		return ms.RegisterMessageProcessorCalled(topic, handler)
+		return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
 	}
 	return nil
 }
@@ -67,22 +71,13 @@ func (ms *MessengerStub) HasTopic(name string) bool {
 	return false
 }
 
-// HasTopicValidator -
-func (ms *MessengerStub) HasTopicValidator(name string) bool {
-	if ms.HasTopicValidatorCalled != nil {
-		return ms.HasTopicValidatorCalled(name)
-	}
-
-	return false
-}
-
 // BroadcastOnChannel -
 func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	ms.BroadcastOnChannelCalled(channel, topic, buff)
 }
 
 // Bootstrap -
-func (ms *MessengerStub) Bootstrap(_ uint32) error {
+func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
 }
 
@@ -125,7 +120,7 @@ func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil
 }
 
-// IsConnected
+// IsConnected -
 func (ms *MessengerStub) IsConnected(_ core.PeerID) bool {
 	return false
 }
@@ -151,7 +146,7 @@ func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(_ string) error {
+func (ms *MessengerStub) UnregisterMessageProcessor(_ string, _ string) error {
 	return nil
 }
 

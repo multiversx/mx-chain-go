@@ -31,12 +31,13 @@ func init() {
 
 type AccountResponse struct {
 	Account struct {
-		Address  string `json:"address"`
-		Nonce    uint64 `json:"nonce"`
-		Balance  string `json:"balance"`
-		Code     string `json:"code"`
-		CodeHash []byte `json:"codeHash"`
-		RootHash []byte `json:"rootHash"`
+		Address         string `json:"address"`
+		Nonce           uint64 `json:"nonce"`
+		Balance         string `json:"balance"`
+		Code            string `json:"code"`
+		CodeHash        []byte `json:"codeHash"`
+		RootHash        []byte `json:"rootHash"`
+		DeveloperReward string `json:"developerReward"`
 	} `json:"account"`
 }
 
@@ -75,6 +76,16 @@ type esdtNFTResponseData struct {
 
 type esdtTokenResponseData struct {
 	esdtTokenData `json:"tokenData"`
+}
+
+type esdtsWithRoleResponseData struct {
+	Tokens []string `json:"tokens"`
+}
+
+type esdtsWithRoleResponse struct {
+	Data  esdtsWithRoleResponseData `json:"data"`
+	Error string                    `json:"error"`
+	Code  string                    `json:"code"`
 }
 
 type esdtTokenResponse struct {
@@ -442,6 +453,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
+			acc.DeveloperReward = big.NewInt(120)
 
 			return acc, nil
 		},
@@ -465,6 +477,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, accountResponse.Account.Address, reqAddress)
 	assert.Equal(t, accountResponse.Account.Nonce, uint64(1))
 	assert.Equal(t, accountResponse.Account.Balance, "100")
+	assert.Equal(t, accountResponse.Account.DeveloperReward, "120")
 	assert.Empty(t, response.Error)
 }
 
@@ -636,6 +649,151 @@ func TestGetESDTNFTData_ShouldWork(t *testing.T) {
 	assert.Equal(t, testNonce, esdtResponseObj.Data.Nonce)
 }
 
+func TestGetESDTTokensWithRole_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/myAddress/esdts-with-role/ESDTRoleNFTCreate", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTTokensWithRole_InvalidRoleShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTsWithRoleCalled: func(_ string, _ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/invalid", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.True(t, strings.Contains(esdtResponseObj.Error, "invalid role"))
+}
+
+func TestGetESDTTokensWithRole_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTsWithRoleCalled: func(_ string, _ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/ESDTRoleNFTCreate", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTTokensWithRole_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
+	facade := mock.Facade{
+		GetESDTsWithRoleCalled: func(address string, role string) ([]string, error) {
+			return expectedTokens, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdts-with-role/ESDTRoleNFTCreate", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
+}
+
+func TestGetNFTTokenIDsRegisteredByAddress_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/myAddress/registered-nfts", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetNFTTokenIDsRegisteredByAddress_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetNFTTokenIDsRegisteredByAddressCalled: func(_ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(esdtResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedTokens := []string{"ABC-0o9i8u", "XYZ-r5y7i9"}
+	facade := mock.Facade{
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
+			return expectedTokens, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/registered-nfts", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtResponseObj := esdtsWithRoleResponse{}
+	loadResponse(resp.Body, &esdtResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedTokens, esdtResponseObj.Data.Tokens)
+}
+
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -798,6 +956,8 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
 					{Name: "/:address/nft/:tokenIdentifier/nonce/:nonce", Open: true},
+					{Name: "/:address/esdts-with-role/:role", Open: true},
+					{Name: "/:address/registered-nfts", Open: true},
 				},
 			},
 		},

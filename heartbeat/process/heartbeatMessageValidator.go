@@ -10,32 +10,32 @@ import (
 const maxSizeInBytes = 128
 
 func verifyLengths(heartbeat *data.Heartbeat) error {
-	err := VerifyHeartbeatProperyLen("Pubkey", heartbeat.Pubkey)
+	err := VerifyHeartbeatPropertyLen("Pubkey", heartbeat.Pubkey)
 	if err != nil {
 		return err
 	}
 
-	err = VerifyHeartbeatProperyLen("Payload", heartbeat.Payload)
+	err = VerifyHeartbeatPropertyLen("Payload", heartbeat.Payload)
 	if err != nil {
 		return err
 	}
 
-	err = VerifyHeartbeatProperyLen("NodeDisplayName", []byte(heartbeat.NodeDisplayName))
+	err = VerifyHeartbeatPropertyLen("NodeDisplayName", []byte(heartbeat.NodeDisplayName))
 	if err != nil {
 		return err
 	}
 
-	err = VerifyHeartbeatProperyLen("Identity", []byte(heartbeat.Identity))
+	err = VerifyHeartbeatPropertyLen("Identity", []byte(heartbeat.Identity))
 	if err != nil {
 		return err
 	}
 
-	err = VerifyHeartbeatProperyLen("VersionNumber", []byte(heartbeat.VersionNumber))
+	err = VerifyHeartbeatPropertyLen("VersionNumber", []byte(heartbeat.VersionNumber))
 	if err != nil {
 		return err
 	}
 
-	err = VerifyHeartbeatProperyLen("Signature", heartbeat.Signature)
+	err = VerifyHeartbeatPropertyLen("Signature", heartbeat.Signature)
 	if err != nil {
 		return err
 	}
@@ -43,8 +43,8 @@ func verifyLengths(heartbeat *data.Heartbeat) error {
 	return nil
 }
 
-// VerifyHeartbeatProperyLen returns an error if the provided value is longer than accepted by the network
-func VerifyHeartbeatProperyLen(property string, value []byte) error {
+// VerifyHeartbeatPropertyLen returns an error if the provided value is longer than accepted by the network
+func VerifyHeartbeatPropertyLen(property string, value []byte) error {
 	if len(value) > maxSizeInBytes {
 		return fmt.Errorf("%w for %s", heartbeat.ErrPropertyTooLong, property)
 	}

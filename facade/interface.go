@@ -30,10 +30,16 @@ type NodeHandler interface {
 	GetKeyValuePairs(address string) (map[string]string, error)
 
 	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
-	GetAllIssuedESDTs() ([]string, error)
+	GetAllIssuedESDTs(tokenType string) ([]string, error)
 
 	// GetESDTData returns the esdt data from a given account, given key and given nonce
 	GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigitalToken, error)
+
+	// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
+
+	// GetESDTsWithRole returns the token identifiers where the specified address has the given role
+	GetESDTsWithRole(address string, role string) ([]string, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
