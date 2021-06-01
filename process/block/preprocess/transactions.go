@@ -1363,7 +1363,7 @@ func (txs *transactions) GetAllCurrentUsedTxs() map[string]data.TransactionHandl
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (txs *transactions) EpochConfirmed(epoch uint32) {
+func (txs *transactions) EpochConfirmed(epoch uint32, _ uint64) {
 	txs.flagScheduledMiniBlocks.Toggle(epoch > txs.scheduledMiniBlocksEnableEpoch)
 	log.Debug("transactions: scheduled mini blocks", "enabled", txs.flagScheduledMiniBlocks.IsSet())
 }

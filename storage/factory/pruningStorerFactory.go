@@ -71,17 +71,17 @@ func NewStorageServiceFactory(
 
 // CreateForShard will return the storage service which contains all storers needed for a shard
 func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService, error) {
-	var headerUnit *pruning.PruningStorer
-	var peerBlockUnit *pruning.PruningStorer
-	var miniBlockUnit *pruning.PruningStorer
-	var txUnit *pruning.PruningStorer
-	var metachainHeaderUnit *pruning.PruningStorer
-	var unsignedTxUnit *pruning.PruningStorer
-	var rewardTxUnit *pruning.PruningStorer
-	var bootstrapUnit *pruning.PruningStorer
-	var txLogsUnit *pruning.PruningStorer
-	var receiptsUnit *pruning.PruningStorer
-	var scheduledSCRsUnit *pruning.PruningStorer
+	var headerUnit storage.Storer
+	var peerBlockUnit storage.Storer
+	var miniBlockUnit storage.Storer
+	var txUnit storage.Storer
+	var metachainHeaderUnit storage.Storer
+	var unsignedTxUnit storage.Storer
+	var rewardTxUnit storage.Storer
+	var bootstrapUnit storage.Storer
+	var txLogsUnit storage.Storer
+	var receiptsUnit storage.Storer
+	var scheduledSCRsUnit storage.Storer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -260,16 +260,16 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 // CreateForMeta will return the storage service which contains all storers needed for metachain
 func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService, error) {
-	var metaBlockUnit *pruning.PruningStorer
-	var headerUnit *pruning.PruningStorer
-	var txUnit *pruning.PruningStorer
-	var miniBlockUnit *pruning.PruningStorer
-	var unsignedTxUnit *pruning.PruningStorer
-	var rewardTxUnit *pruning.PruningStorer
-	var bootstrapUnit *pruning.PruningStorer
-	var txLogsUnit *pruning.PruningStorer
-	var receiptsUnit *pruning.PruningStorer
-	var scheduledSCRsUnit *pruning.PruningStorer
+	var metaBlockUnit storage.Storer
+	var headerUnit storage.Storer
+	var txUnit storage.Storer
+	var miniBlockUnit storage.Storer
+	var unsignedTxUnit storage.Storer
+	var rewardTxUnit storage.Storer
+	var bootstrapUnit storage.Storer
+	var txLogsUnit storage.Storer
+	var receiptsUnit storage.Storer
+	var scheduledSCRsUnit storage.Storer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
