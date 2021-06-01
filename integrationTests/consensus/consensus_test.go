@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -105,7 +104,7 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			Config: config.Config{
 				Consensus: config.ConsensusConfig{
 					ScheduledExecutionMilliseconds: 10,
-					Type: blsConsensusType,
+					Type:                           blsConsensusType,
 				},
 				ValidatorPubkeyConverter: config.PubkeyConfig{
 					Length:          96,
@@ -227,7 +226,6 @@ func TestConsensusBLSFullTest(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
 	runFullConsensusTest(t, blsConsensusType)
 }
 

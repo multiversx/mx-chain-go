@@ -1021,3 +1021,6 @@ var ErrNilIntermediateProcessor = errors.New("intermediate processor is nil")
 
 // ErrNilSyncTimer signals that the sync timer is nil
 var ErrNilSyncTimer = errors.New("sync timer is nil")
+
+// ErrInvalidProcessingTime signals an invalid processing time
+var ErrInvalidProcessingTime = errors.New("processing time is invalid")

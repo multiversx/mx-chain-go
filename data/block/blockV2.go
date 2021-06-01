@@ -468,7 +468,7 @@ func (hv2 *HeaderV2) SetEpochStartMetaHash(hash []byte) error {
 	return hv2.Header.SetEpochStartMetaHash(hash)
 }
 
-// HasScheduledSupport returns true if the header version supports scheduled data
+// HasScheduledSupport returns true as the second block version does support scheduled data
 func (hv2 *HeaderV2) HasScheduledSupport() bool {
 	return true
 }

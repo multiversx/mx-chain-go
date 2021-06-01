@@ -392,7 +392,7 @@ func (m *MetaBlock) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
 	return mbHeaderHandlers
 }
 
-// HasScheduledSupport sets the miniBlock headers from the given miniBlock header handlers
+// HasScheduledSupport returns false as the initial metaBlock version does not support scheduled data
 func (m *MetaBlock) HasScheduledSupport() bool {
 	return false
 }

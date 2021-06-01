@@ -43,14 +43,14 @@ func (ps processingStatus) String() string {
 	}
 }
 
-// ScheduledProcessorArgs holds the arguments required to instantiate the pipelineExecution
-type ScheduledProcessorArgs struct {
+// ScheduledProcessorWrapperArgs holds the arguments required to instantiate the pipelineExecution
+type ScheduledProcessorWrapperArgs struct {
 	SyncTimer                  ntp.SyncTimer
 	Processor                  process.ScheduledBlockProcessor
 	ProcessingTimeMilliSeconds uint32
 }
 
-type scheduledProcessor struct {
+type scheduledProcessorWrapper struct {
 	syncTimer      ntp.SyncTimer
 	processingTime time.Duration
 	processor      process.ScheduledBlockProcessor
@@ -62,16 +62,19 @@ type scheduledProcessor struct {
 	oneInstance sync.RWMutex
 }
 
-// NewScheduledProcessor creates a new processor for scheduled transactions
-func NewScheduledProcessor(args ScheduledProcessorArgs) (*scheduledProcessor, error) {
+// NewScheduledProcessorWrapper creates a new processor for scheduled transactions
+func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*scheduledProcessorWrapper, error) {
 	if check.IfNil(args.SyncTimer) {
 		return nil, process.ErrNilSyncTimer
 	}
 	if check.IfNil(args.Processor) {
 		return nil, process.ErrNilBlockProcessor
 	}
+	if args.ProcessingTimeMilliSeconds < 1{
+		return nil, process.ErrInvalidProcessingTime
+	}
 
-	return &scheduledProcessor{
+	return &scheduledProcessorWrapper{
 		syncTimer:      args.SyncTimer,
 		processingTime: time.Duration(args.ProcessingTimeMilliSeconds) * time.Millisecond,
 		processor:      args.Processor,
@@ -79,7 +82,7 @@ func NewScheduledProcessor(args ScheduledProcessorArgs) (*scheduledProcessor, er
 	}, nil
 }
 
-func (sp *scheduledProcessor) computeRemainingProcessingTime() time.Duration {
+func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Duration {
 	currTime := sp.syncTimer.CurrentTime()
 
 	sp.RLock()
@@ -93,76 +96,81 @@ func (sp *scheduledProcessor) computeRemainingProcessingTime() time.Duration {
 	return sp.processingTime - elapsedTime
 }
 
-// IsProcessedOK returns true if the scheduled processing was finalized without error
-// Function is blocking until the allotted time for processing is finished
-func (sp *scheduledProcessor) IsProcessedOK() bool {
+func (sp *scheduledProcessorWrapper) waitForProcessingResult () processingStatus {
 	status := sp.getStatus()
-
-loop:
 	for status == inProgress {
 		remainingExecutionTime := sp.computeRemainingProcessingTime()
 		select {
 		case <-time.After(remainingExecutionTime):
 			status = sp.getStatus()
-			break loop
+			return status
 		case <-time.After(processingCheckStep):
 			status = sp.getStatus()
 		}
 	}
 
+	return status
+}
+
+// IsProcessedOK returns true if the scheduled processing was finalized without error
+// Function is blocking until the allotted time for processing is finished
+func (sp *scheduledProcessorWrapper) IsProcessedOK() bool {
+	status := sp.waitForProcessingResult()
+
 	processedOK := status == processingOK
-	log.Debug("scheduledProcessor.IsProcessedOK", "status", status.String())
+	log.Debug("scheduledProcessorWrapper.IsProcessedOK", "status", status.String())
 	return processedOK
 }
 
 // StartScheduledProcessing starts the scheduled processing
-func (sp *scheduledProcessor) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler) {
+func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler) {
 	if !header.HasScheduledSupport() {
 		log.Debug("scheduled processing not supported")
 		sp.setStatus(processingOK)
 		return
 	}
 
-	log.Debug("scheduledProcessor.StartScheduledProcessing - scheduled processing has been started")
-	sp.setStatus(inProgress)
-
 	sp.oneInstance.Lock()
+
+	sp.setStatus(inProgress)
+	log.Debug("scheduledProcessorWrapper.StartScheduledProcessing - scheduled processing has been started")
+
 	go func() {
 		defer sp.oneInstance.Unlock()
 		errSchExec := sp.processScheduledMiniBlocks(header, body)
 		if errSchExec != nil {
-			log.Error("scheduledProcessor.processScheduledMiniBlocks",
+			log.Error("scheduledProcessorWrapper.processScheduledMiniBlocks",
 				"err", errSchExec.Error())
 			sp.setStatus(processingError)
 			return
 		}
-		log.Debug("scheduledProcessor.StartScheduledProcessing - scheduled processing has finished OK")
+		log.Debug("scheduledProcessorWrapper.StartScheduledProcessing - scheduled processing has finished OK")
 		sp.setStatus(processingOK)
 	}()
 }
 
-func (sp *scheduledProcessor) getStatus() processingStatus {
+func (sp *scheduledProcessorWrapper) getStatus() processingStatus {
 	sp.RLock()
 	defer sp.RUnlock()
 
 	return sp.status
 }
 
-func (sp *scheduledProcessor) setStatus(status processingStatus) {
+func (sp *scheduledProcessorWrapper) setStatus(status processingStatus) {
 	sp.Lock()
 	defer sp.Unlock()
 
 	sp.status = status
 }
 
-func (sp *scheduledProcessor) getStartTime() time.Time {
+func (sp *scheduledProcessorWrapper) getStartTime() time.Time {
 	sp.RLock()
 	defer sp.RUnlock()
 
 	return sp.startTime
 }
 
-func (sp *scheduledProcessor) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
+func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.HeaderHandler, body data.BodyHandler) error {
 	sp.Lock()
 	sp.startTime = sp.syncTimer.CurrentTime()
 	sp.Unlock()
@@ -175,6 +183,6 @@ func (sp *scheduledProcessor) processScheduledMiniBlocks(header data.HeaderHandl
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sp *scheduledProcessor) IsInterfaceNil() bool {
+func (sp *scheduledProcessorWrapper) IsInterfaceNil() bool {
 	return sp == nil
 }

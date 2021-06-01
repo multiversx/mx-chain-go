@@ -381,12 +381,12 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		processComponents.NodesCoordinator(),
 	)
 
-	args := spos.ScheduledProcessorArgs{
+	args := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                  coreComponents.SyncTimer(),
 		Processor:                  processComponents.BlockProcessor(),
 		ProcessingTimeMilliSeconds: 10,
 	}
-	scheduledProcessor, _ := spos.NewScheduledProcessor(args)
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return factory.ConsensusComponentsFactoryArgs{
 		Config:              testscommon.GetGeneralConfig(),
