@@ -139,6 +139,22 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 	assert.Nil(t, sp)
 }
 
+func TestNewBlockProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = &testscommon.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return nil
+		},
+	}
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, err := blproc.NewShardProcessor(arguments)
+
+	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+	assert.Nil(t, sp)
+}
+
 func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -4582,4 +4598,79 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 
 	expectedAddedNonces := []uint64{6, 7}
 	assert.Equal(t, expectedAddedNonces, addedNonces)
+}
+
+func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
+	t.Parallel()
+
+	cc, dc, _, sc := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.MetaBlock{}
+			},
+		},
+	}
+
+	arguments := CreateMockArgumentsMultiShard(cc, dc, boostrapComponents, sc)
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := sp.CreateNewHeader(1, 1)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, h)
+}
+
+func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
+	t.Parallel()
+
+	rootHash := []byte("root")
+	round := uint64(7)
+	epoch := uint64(5)
+
+	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()
+
+	boostrapComponents := &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		},
+	}
+
+	boostrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.HeaderV2{
+				Header: &block.Header{},
+			}
+		},
+	}
+
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, err)
+
+	h, err := sp.CreateNewHeader(round, epoch)
+	assert.Nil(t, err)
+	assert.IsType(t, &block.HeaderV2{}, h)
+	assert.Equal(t, round, h.GetRound())
+
+	headerV2 := h.(*block.HeaderV2)
+	assert.Equal(t, rootHash, headerV2.ScheduledRootHash)
+
+	zeroInt := big.NewInt(0)
+	assert.Equal(t, zeroInt, headerV2.GetDeveloperFees())
+	assert.Equal(t, zeroInt, headerV2.GetAccumulatedFees())
 }
