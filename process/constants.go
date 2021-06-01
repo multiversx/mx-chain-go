@@ -30,6 +30,8 @@ const (
 	BuiltInFunctionCall
 	// RelayedTx defines ID of a transaction of type relayed
 	RelayedTx
+	// RelayedTxV2 defines the ID of a slim relayed transaction version
+	RelayedTxV2
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type
@@ -116,7 +118,7 @@ const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 const MaxRoundsToKeepUnprocessedTransactions = 100
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
-const MaxHeadersToWhitelistInAdvance = 20
+const MaxHeadersToWhitelistInAdvance = 300
 
 // MaxGasFeeHigherFactorAccepted defines the maximum higher factor of gas fee put inside a transaction compared with
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and

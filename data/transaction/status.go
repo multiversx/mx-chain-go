@@ -5,6 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -33,83 +34,128 @@ func (tx TxStatus) String() string {
 	return string(tx)
 }
 
-// StatusComputer computes a transaction status
-type StatusComputer struct {
-	MiniblockType            block.Type
-	IsMiniblockFinalized     bool
-	SourceShard              uint32
-	DestinationShard         uint32
-	Receiver                 []byte
-	TransactionData          []byte
-	SelfShard                uint32
-	HeaderNonce              uint64
-	HeaderHash               []byte
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	Store                    dataRetriever.StorageService
+// statusComputer computes a transaction status
+type statusComputer struct {
+	selfShardID              uint32
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	store                    dataRetriever.StorageService
+}
+
+// Create a new instance of statusComputer
+func NewStatusComputer(
+	selfShardID uint32,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	store dataRetriever.StorageService,
+) (*statusComputer, error) {
+	if check.IfNil(uint64ByteSliceConverter) {
+		return nil, ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(store) {
+		return nil, ErrNiStorageService
+	}
+
+	statusComputer := &statusComputer{
+		selfShardID:              selfShardID,
+		uint64ByteSliceConverter: uint64ByteSliceConverter,
+		store:                    store,
+	}
+
+	return statusComputer, nil
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
-func (sc *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus {
-	if sc.isMiniblockInvalid() {
-		return TxStatusInvalid
-	}
-	if sc.IsMiniblockFinalized || sc.isDestinationMe() || sc.isContractDeploy() {
-		return TxStatusSuccess
+func (sc *statusComputer) ComputeStatusWhenInStorageKnowingMiniblock(
+	miniblockType block.Type,
+	tx *ApiTransactionResult,
+) (TxStatus, error) {
+
+	if tx == nil {
+		return "", ErrNilApiTransactionResult
 	}
 
-	return TxStatusPending
+	if sc.isMiniblockInvalid(miniblockType) {
+		return TxStatusInvalid, nil
+	}
+
+	receiver := tx.Tx.GetRcvAddr()
+	isMiniblockFinalized := tx.NotarizedAtDestinationInMetaNonce > 0
+	isSuccess := isMiniblockFinalized || sc.isDestinationMe(tx.DestinationShard) || sc.isContractDeploy(receiver, tx.Data)
+	if isSuccess {
+		return TxStatusSuccess, nil
+	}
+
+	return TxStatusPending, nil
 }
 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
 // Limitation: in this case, since we do not know the miniblock type, we cannot know if a transaction is actually, "invalid".
 // However, when "dblookupext" indexing is enabled, this function is not used.
-func (sc *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
-	if sc.isDestinationMe() || sc.isContractDeploy() {
-		return TxStatusSuccess
+func (sc *statusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock(
+	destinationShard uint32,
+	tx *ApiTransactionResult,
+) (TxStatus, error) {
+	if tx == nil {
+		return "", ErrNilApiTransactionResult
+	}
+
+	receiver := tx.Tx.GetRcvAddr()
+	isSuccess := sc.isDestinationMe(destinationShard) || sc.isContractDeploy(receiver, tx.Data)
+	if isSuccess {
+		return TxStatusSuccess, nil
 	}
 
 	// At least partially executed (since in source's storage)
-	return TxStatusPending
+	return TxStatusPending, nil
 }
 
-func (sc *StatusComputer) isMiniblockInvalid() bool {
-	return sc.MiniblockType == block.InvalidBlock
+func (sc *statusComputer) isMiniblockInvalid(miniblockType block.Type) bool {
+	return miniblockType == block.InvalidBlock
 }
 
-func (sc *StatusComputer) isDestinationMe() bool {
-	return sc.SelfShard == sc.DestinationShard
+func (sc *statusComputer) isDestinationMe(destinationShard uint32) bool {
+	return sc.selfShardID == destinationShard
 }
 
-func (sc *StatusComputer) isContractDeploy() bool {
-	return core.IsEmptyAddress(sc.Receiver) && len(sc.TransactionData) > 0
+func (sc *statusComputer) isContractDeploy(receiver []byte, transactionData []byte) bool {
+	return core.IsEmptyAddress(receiver) && len(transactionData) > 0
 }
 
 // SetStatusIfIsRewardReverted will compute and set status for a reverted reward transaction
-func (sc *StatusComputer) SetStatusIfIsRewardReverted(tx *ApiTransactionResult) bool {
-	if sc.MiniblockType != block.RewardsBlock {
-		return false
+func (sc *statusComputer) SetStatusIfIsRewardReverted(
+	tx *ApiTransactionResult,
+	miniblockType block.Type,
+	headerNonce uint64,
+	headerHash []byte,
+) (bool, error) {
+
+	if tx == nil {
+		return false, ErrNilApiTransactionResult
+	}
+
+	if miniblockType != block.RewardsBlock {
+		return false, nil
 	}
 
 	var storerUnit dataRetriever.UnitType
 
-	selfShardID := sc.SelfShard
+	selfShardID := sc.selfShardID
 	if selfShardID == core.MetachainShardId {
 		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
 	} else {
 		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(selfShardID)
 	}
 
-	nonceToByteSlice := sc.Uint64ByteSliceConverter.ToByteSlice(sc.HeaderNonce)
-	headerHash, err := sc.Store.Get(storerUnit, nonceToByteSlice)
+	nonceToByteSlice := sc.uint64ByteSliceConverter.ToByteSlice(headerNonce)
+	headerHashFromStorage, err := sc.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
 		log.Warn("cannot get header hash by nonce", "error", err.Error())
-		return false
+		return false, nil
 	}
 
-	if bytes.Equal(headerHash, sc.HeaderHash) {
-		return false
+	if bytes.Equal(headerHashFromStorage, headerHash) {
+		return false, nil
 	}
 
 	tx.Status = TxStatusRewardReverted
-	return true
+	return true, nil
 }

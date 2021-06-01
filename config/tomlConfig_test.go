@@ -98,6 +98,27 @@ func TestTomlParser(t *testing.T) {
 		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
+		Debug: DebugConfig{
+			InterceptorResolver: InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       9,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        10,
+			},
+			Antiflood: AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+			},
+			ShuffleOut: ShuffleOutDebugConfig{
+				CallGCWhenShuffleOut:    true,
+				ExtraPrintsOnShuffleOut: true,
+				DoProfileOnShuffleOut:   true,
+			},
+		},
 	}
 
 	testString := `
@@ -151,6 +172,23 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 `
 	cfg := Config{}
 
@@ -162,7 +200,10 @@ func TestTomlParser(t *testing.T) {
 
 func TestTomlEconomicsParser(t *testing.T) {
 	protocolSustainabilityPercentage := 0.1
-	leaderPercentage := 0.1
+	leaderPercentage1 := 0.1
+	leaderPercentage2 := 0.2
+	epoch0 := uint32(0)
+	epoch1 := uint32(1)
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
@@ -175,10 +216,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:                 leaderPercentage,
-			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
-			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
-			DeveloperPercentage:              developerPercentage,
+			RewardsConfigByEpoch: []EpochRewardSettings{
+				{
+					EpochEnable:                      epoch0,
+					LeaderPercentage:                 leaderPercentage1,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+				{
+					EpochEnable:                      epoch1,
+					LeaderPercentage:                 leaderPercentage2,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+			},
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -191,10 +244,20 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
-	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
-    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
@@ -276,7 +339,13 @@ func TestAPIRoutesToml(t *testing.T) {
 	package1 := "testPackage1"
 	route2 := "testRoute2"
 
+	loggingThreshold := 10
+
 	expectedCfg := ApiRoutesConfig{
+		Logging: ApiLoggingConfig{
+			LoggingEnabled:          true,
+			ThresholdInMicroSeconds: loggingThreshold,
+		},
 		APIPackages: map[string]APIPackageConfig{
 			package0: {
 				Routes: []RouteConfig{
@@ -293,6 +362,10 @@ func TestAPIRoutesToml(t *testing.T) {
 	}
 
 	testString := `
+[Logging]
+    LoggingEnabled = true
+    ThresholdInMicroSeconds = 10
+
      # API routes configuration
 [APIPackages]
 

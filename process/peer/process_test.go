@@ -59,11 +59,16 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				ProtocolSustainabilityPercentage: 0.1,
-				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-				TopUpFactor:                      0.25,
-				TopUpGradientPoint:               "300000000000000000000",
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.1,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000",
@@ -2159,7 +2164,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	updateArgumentsWithNeeded(arguments)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics.EpochConfirmed(10)
+	validatorStatistics.EpochConfirmed(10, 0)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

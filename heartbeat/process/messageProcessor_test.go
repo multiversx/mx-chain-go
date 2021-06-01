@@ -228,6 +228,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 
 	updatePubKeyWasCalled := false
 	updatePidShardIdCalled := false
+	updatePidSubTypeCalled := false
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{Signer: &mock.SinglesignMock{}},
 		marshalizer,
@@ -237,6 +238,9 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 			},
 			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				updatePidShardIdCalled = true
+			},
+			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+				updatePidSubTypeCalled = true
 			},
 		},
 	)
@@ -258,6 +262,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	assert.NotNil(t, ret)
 	assert.True(t, updatePubKeyWasCalled)
 	assert.True(t, updatePidShardIdCalled)
+	assert.True(t, updatePidSubTypeCalled)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {

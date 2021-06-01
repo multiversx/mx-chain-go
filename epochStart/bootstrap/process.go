@@ -111,6 +111,7 @@ type epochStartBootstrap struct {
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
+	waitingListFixEnableEpoch uint32
 
 	// gathered data
 	epochStartMeta     data.MetaHeaderHandler
@@ -185,6 +186,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		numConcurrentTrieSyncers:   args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes:  args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
 		trieSyncerVersion:          args.GeneralConfig.TrieSync.TrieSyncerVersion,
+		waitingListFixEnableEpoch:  args.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	}
 
 	log.Debug("process: enable epoch for transaction signed with tx hash", "epoch", epochStartProvider.enableSignTxWithHashEpoch)
@@ -656,16 +658,18 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:           e.dataPool,
-		Marshalizer:        e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:     e.requestHandler,
-		ChanceComputer:     e.rater,
-		GenesisNodesConfig: e.genesisNodesConfig,
-		NodeShuffler:       e.nodeShuffler,
-		Hasher:             e.coreComponentsHolder.Hasher(),
-		PubKey:             pubKey,
-		ShardIdAsObserver:  shardId,
+		DataPool:                  e.dataPool,
+		Marshalizer:               e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:            e.requestHandler,
+		ChanceComputer:            e.rater,
+		GenesisNodesConfig:        e.genesisNodesConfig,
+		NodeShuffler:              e.nodeShuffler,
+		Hasher:                    e.coreComponentsHolder.Hasher(),
+		PubKey:                    pubKey,
+		ShardIdAsObserver:         shardId,
+		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
 	}
+
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return err
@@ -961,18 +965,20 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           e.shardCoordinator,
-		Messenger:                  e.messenger,
-		Store:                      storageService,
-		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                  e.dataPool,
-		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs: 10,
-		DataPacker:                 dataPacker,
-		TriesContainer:             e.trieContainer,
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:     disabled.NewAntiFloodHandler(),
+		ShardCoordinator:            e.shardCoordinator,
+		Messenger:                   e.messenger,
+		Store:                       storageService,
+		Marshalizer:                 e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                   e.dataPool,
+		Uint64ByteSliceConverter:    uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:  10,
+		DataPacker:                  dataPacker,
+		TriesContainer:              e.trieContainer,
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

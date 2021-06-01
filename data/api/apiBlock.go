@@ -24,12 +24,26 @@ type Block struct {
 	AccumulatedFeesInEpoch string            `json:"accumulatedFeesInEpoch,omitempty"`
 	DeveloperFeesInEpoch   string            `json:"developerFeesInEpoch,omitempty"`
 	Status                 string            `json:"status,omitempty"`
+	EpochStartInfo         *EpochStartInfo   `json:"epochStartInfo,omitempty"`
+}
+
+// EpochStartInfo is a structure that holds information about epoch start meta block
+type EpochStartInfo struct {
+	TotalSupply                      string `json:"totalSupply"`
+	TotalToDistribute                string `json:"totalToDistribute"`
+	TotalNewlyMinted                 string `json:"totalNewlyMinted"`
+	RewardsPerBlock                  string `json:"rewardsPerBlock"`
+	RewardsForProtocolSustainability string `json:"rewardsForProtocolSustainability"`
+	NodePrice                        string `json:"nodePrice"`
+	PrevEpochStartRound              uint64 `json:"prevEpochStartRound"`
+	PrevEpochStartHash               string `json:"prevEpochStartHash"`
 }
 
 // NotarizedBlock represents a notarized block
 type NotarizedBlock struct {
 	Hash  string `json:"hash"`
 	Nonce uint64 `json:"nonce"`
+	Round uint64 `json:"round"`
 	Shard uint32 `json:"shard"`
 }
 
@@ -44,16 +58,16 @@ type MiniBlock struct {
 
 // StakeValues is the structure that contains the total staked value and the total top up value
 type StakeValues struct {
-	TotalStaked *big.Int
-	TopUp       *big.Int
+	BaseStaked *big.Int
+	TopUp      *big.Int
 }
 
 // DirectStakedValue holds the total staked value for an address
 type DirectStakedValue struct {
-	Address string `json:"address"`
-	Staked  string `json:"staked"`
-	TopUp   string `json:"topUp"`
-	Total   string `json:"total"`
+	Address    string `json:"address"`
+	BaseStaked string `json:"baseStaked"`
+	TopUp      string `json:"topUp"`
+	Total      string `json:"total"`
 }
 
 // DelegatedValue holds the value and the delegation system SC address

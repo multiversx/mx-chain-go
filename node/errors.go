@@ -133,8 +133,17 @@ var ErrNodeCloseFailed = errors.New("node closing failed ")
 // ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
 var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")
 
+// ErrNilStatusComputer signals that user account has a nil data trie
+var ErrNilStatusComputer = errors.New("nil transaction status computer")
+
 // ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilBlockHeader signals that current block header is nil
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrInvalidESDTRole signals that an invalid ESDT role has been provided
+var ErrInvalidESDTRole = errors.New("invalid ESDT role")
+
+// ErrMetachainOnlyEndpoint signals that an endpoint was called, but it is only available for metachain nodes
+var ErrMetachainOnlyEndpoint = errors.New("the endpoint is only available on metachain nodes")

@@ -107,6 +107,7 @@ func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
 		UpdatePeerIdPublicKeyCalled:  func(pid core.PeerID, pk []byte) {},
 		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
 		UpdatePeerIdShardIdCalled:    func(pid core.PeerID, shardId uint32) {},
+		UpdatePeerIdSubTypeCalled:    func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
 	}
 }
 
@@ -916,7 +917,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return spos.ErrInvalidChainID
 					},
@@ -960,7 +961,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},
@@ -1013,7 +1014,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				return &mock.HeaderHandlerStub{
+				return &testscommon.HeaderHandlerStub{
 					CheckChainIDCalled: func(reference []byte) error {
 						return nil
 					},

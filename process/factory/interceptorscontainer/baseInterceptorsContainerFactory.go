@@ -138,7 +138,7 @@ func (bicf *baseInterceptorsContainerFactory) createTopicAndAssignHandler(
 		return nil, err
 	}
 
-	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, bicf.messenger.RegisterMessageProcessor(topic, core.DefaultInterceptorsIdentifier, interceptor)
 }
 
 //------- Tx interceptors

@@ -3244,11 +3244,11 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 
 	sc.penalizedTooMuchGasEnableEpoch = 1
 
-	sc.EpochConfirmed(0)
+	sc.EpochConfirmed(0, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
 
-	sc.EpochConfirmed(1)
+	sc.EpochConfirmed(1, 0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
@@ -3445,7 +3445,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.NotNil(t, sc)
 
 	// activate staking V2
-	sc.EpochConfirmed(10)
+	sc.EpochConfirmed(10, 0)
 
 	tx := &transaction.Transaction{
 		RcvAddr:  scAccountAddress,
@@ -3534,7 +3534,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.NotNil(t, sc)
 
 			// activate staking V2
-			sc.EpochConfirmed(10)
+			sc.EpochConfirmed(10, 0)
 
 			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
@@ -3712,7 +3712,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
-	sc.EpochConfirmed(100)
+	sc.EpochConfirmed(100, 0)
 
 	tx := &transaction.Transaction{
 		SndAddr: []byte("snd"),
@@ -3737,12 +3737,16 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				Denomination: 18,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				DeveloperPercentage:              0.3,
-				ProtocolSustainabilityPercentage: 0.1,
-				ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
-				TopUpGradientPoint:               "3000000000000000000000000",
-				TopUpFactor:                      0.25,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.3,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "1500000000",
@@ -3787,9 +3791,9 @@ func computeExpectedResults(
 	expectedTotalFee.Add(expectedTotalFee, builtInFee)
 	var expectedDevFees *big.Int
 	if stakingV2Enabled {
-		expectedDevFees = core.GetIntTrimmedPercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+		expectedDevFees = core.GetIntTrimmedPercentageOfValue(processFee, args.Economics.RewardsSettings.RewardsConfigByEpoch[0].DeveloperPercentage)
 	} else {
-		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.RewardsConfigByEpoch[0].DeveloperPercentage)
 	}
 	return expectedTotalFee, expectedDevFees
 }

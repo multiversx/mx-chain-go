@@ -17,11 +17,12 @@ func createMockArg() ArgsSharderFactory {
 		Type:                    "unknown",
 		PeerShardResolver:       &mock.PeerShardResolverStub{},
 		Pid:                     "",
-		MaxConnectionCount:      5,
+		MaxConnectionCount:      6,
 		MaxIntraShardValidators: 1,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxFullHistoryObservers: 1,
 	}
 }
 

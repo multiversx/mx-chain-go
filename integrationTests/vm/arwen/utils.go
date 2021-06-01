@@ -167,12 +167,16 @@ func (context *TestContext) initFeeHandlers() {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				DeveloperPercentage:              0.0,
-				ProtocolSustainabilityPercentage: 0,
-				ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
-				TopUpGradientPoint:               "1000000",
-				TopUpFactor:                      0,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.0,
+						ProtocolSustainabilityPercentage: 0,
+						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+						TopUpGradientPoint:               "1000000",
+						TopUpFactor:                      0,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -266,6 +270,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: context.BlockchainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
