@@ -18,6 +18,7 @@ func TestWrapError(t *testing.T) {
 	assert.Equal(t, nil, we.GetLastError())
 	assert.True(t, strings.Contains(we.Error(), "/core/errors/wrappedErrors_test.go"))
 	assert.True(t, strings.Contains(we.Error(), nilPlaceholder))
+	fmt.Println(we.Error())
 
 	definedError := errors.New("defined errors")
 	we = WrapError(definedError)
@@ -54,6 +55,7 @@ func TestWrappableError_WrapWithMessage(t *testing.T) {
 	assert.True(t, strings.Contains(we.Error(), "/core/errors/wrappedErrors_test.go"))
 	assert.True(t, strings.Contains(we.Error(), nilPlaceholder))
 	assert.True(t, strings.Contains(we.Error(), msg))
+	fmt.Println(we.Error())
 }
 
 func TestWrappableError_WrapWithStackTrace(t *testing.T) {
@@ -67,6 +69,7 @@ func TestWrappableError_WrapWithStackTrace(t *testing.T) {
 	assert.True(t, strings.Contains(we.Error(), path))
 	assert.True(t, strings.Contains(we.Error(), nilPlaceholder))
 	assert.False(t, strings.LastIndex(we.Error(), path) == strings.Index(we.Error(), path)) //found the path more than once
+	fmt.Println(we.Error())
 }
 
 func TestWrappableError_Is(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-const skipLevels = 3
+const skipStackLevels = 2
 const nilPlaceholder = "<nil>"
 
 type errorWithLocation struct {
@@ -25,23 +25,23 @@ func WrapError(err error) WrappableError {
 		return errAsWrappable
 	}
 	return &wrappableError{
-		errsWithLocation: []errorWithLocation{createErrorWithLocation(err, 2)},
+		errsWithLocation: []errorWithLocation{createErrorWithLocation(err, skipStackLevels)},
 	}
 }
 
 // WrapWithMessage wraps the target error with a new one, created using the input message
 func (werr *wrappableError) WrapWithMessage(errMessage string) WrappableError {
-	return werr.wrapWithErrorWithSkipLevels(errors.New(errMessage), skipLevels)
+	return werr.wrapWithErrorWithSkipLevels(errors.New(errMessage), skipStackLevels+1)
 }
 
 // WrapWithStackTrace wraps the target error with a new one, without any message only a stack frame trace
 func (werr *wrappableError) WrapWithStackTrace() WrappableError {
-	return werr.wrapWithErrorWithSkipLevels(errors.New(""), skipLevels)
+	return werr.wrapWithErrorWithSkipLevels(errors.New(""), skipStackLevels+1)
 }
 
 // WrapWithError wraps the target error with the provided one
 func (werr *wrappableError) WrapWithError(err error) WrappableError {
-	return werr.wrapWithErrorWithSkipLevels(err, skipLevels)
+	return werr.wrapWithErrorWithSkipLevels(err, skipStackLevels+1)
 }
 
 // GetBaseError gets the core error
@@ -90,7 +90,10 @@ func (werr *wrappableError) Error() string {
 		if errMsg != "" {
 			suffix = " [" + errMsg + "]"
 		}
-		strErr += "\n\t" + errWithLocation.location + suffix
+		strErr += "\t" + errWithLocation.location + suffix
+		if idxErr < len(errorSlice)-1 {
+			strErr += "\n"
+		}
 	}
 	return strErr
 }
