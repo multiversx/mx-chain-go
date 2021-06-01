@@ -8,10 +8,11 @@ import (
 
 type snapshotDb struct {
 	data.DBWriteCacher
-	numReferences   uint32
-	shouldBeRemoved bool
-	path            string
-	mutex           sync.RWMutex
+	numReferences        uint32
+	shouldBeRemoved      bool
+	shouldBeDisconnected bool
+	path                 string
+	mutex                sync.RWMutex
 }
 
 // DecreaseNumReferences decreases the num references counter
@@ -25,6 +26,14 @@ func (s *snapshotDb) DecreaseNumReferences() {
 
 	if s.numReferences == 0 && s.shouldBeRemoved {
 		removeSnapshot(s.DBWriteCacher, s.path)
+		return
+	}
+	if s.numReferences == 0 && s.shouldBeDisconnected {
+		err := disconnectSnapshot(s.DBWriteCacher)
+		if err != nil {
+			log.Error("snapshotDb: disconnectSnapshot", "error", err.Error())
+		}
+		return
 	}
 }
 
@@ -42,6 +51,14 @@ func (s *snapshotDb) MarkForRemoval() {
 	defer s.mutex.Unlock()
 
 	s.shouldBeRemoved = true
+}
+
+// MarkForDisconnection marks the current db for disconnection. When the numReferences buffer reaches 0, the db will be disconnected
+func (s *snapshotDb) MarkForDisconnection() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.shouldBeDisconnected = true
 }
 
 // SetPath sets the db path

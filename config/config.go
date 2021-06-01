@@ -177,6 +177,7 @@ type Config struct {
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
+	Resolvers             ResolverConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -186,10 +187,12 @@ type LogsConfig struct {
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled             bool
-	CleanOldEpochsData  bool
-	NumEpochsToKeep     uint64
-	NumActivePersisters uint64
+	Enabled                        bool
+	CleanOldEpochsData             bool
+	NumEpochsToKeep                uint64
+	NumActivePersisters            uint64
+	FullArchive                    bool
+	FullArchiveNumActivePersisters uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -253,6 +256,7 @@ type TrieStorageManagerConfig struct {
 	PruningBufferLen   uint32
 	SnapshotsBufferLen uint32
 	MaxSnapshots       uint32
+	KeepSnapshots      bool
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -390,6 +394,7 @@ type DbLookupExtensionsConfig struct {
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
+	ShuffleOut          ShuffleOutDebugConfig
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration
@@ -420,9 +425,23 @@ type AntifloodDebugConfig struct {
 	IntervalAutoPrintInSeconds int
 }
 
+// ShuffleOutDebugConfig will hold the shuffle out debug configuration
+type ShuffleOutDebugConfig struct {
+	CallGCWhenShuffleOut    bool
+	ExtraPrintsOnShuffleOut bool
+	DoProfileOnShuffleOut   bool
+}
+
 // ApiRoutesConfig holds the configuration related to Rest API routes
 type ApiRoutesConfig struct {
+	Logging     ApiLoggingConfig
 	APIPackages map[string]APIPackageConfig
+}
+
+// ApiLoggingConfig holds the configuration related to API requests logging
+type ApiLoggingConfig struct {
+	LoggingEnabled          bool
+	ThresholdInMicroSeconds int
 }
 
 // APIPackageConfig holds the configuration for the routes of each package
@@ -489,4 +508,11 @@ type TrieSyncConfig struct {
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
+}
+
+// ResolverConfig represents the config options to be used when setting up the resolver instances
+type ResolverConfig struct {
+	NumCrossShardPeers  uint32
+	NumIntraShardPeers  uint32
+	NumFullHistoryPeers uint32
 }

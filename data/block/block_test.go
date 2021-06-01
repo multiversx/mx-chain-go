@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -405,4 +406,14 @@ func TestHeader_ValidateHeaderVersion(t *testing.T) {
 	header := &block.Header{}
 	err := header.ValidateHeaderVersion()
 	require.Nil(t, err)
+}
+
+func TestHeader_SetAdditionalDataShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	var shardBlock *block.Header
+
+	//goland:noinspection ALL
+	err := shardBlock.SetAdditionalData(&headerVersionData.AdditionalData{})
+	assert.Nil(t, err)
 }

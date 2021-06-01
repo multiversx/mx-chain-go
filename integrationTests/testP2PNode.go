@@ -300,7 +300,7 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 		return
 	}
 
-	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, processor)
+	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, "test", processor)
 	if err != nil {
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return
@@ -328,21 +328,22 @@ func CreateNodesWithTestP2PNodes(
 	cache, _ := storageUnit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(numShards),
-			EligibleNodes:           validatorsForNodesCoordinator,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     cache,
-			Shuffler:                &mock.NodeShufflerMock{},
-			BootStorer:              CreateMemUnit(),
-			WaitingNodes:            make(map[uint32][]sharding.Validator),
-			Epoch:                   0,
-			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ShardConsensusGroupSize:    shardConsensusGroupSize,
+			MetaConsensusGroupSize:     metaConsensusGroupSize,
+			Marshalizer:                TestMarshalizer,
+			Hasher:                     TestHasher,
+			ShardIDAsObserver:          shardId,
+			NbShards:                   uint32(numShards),
+			EligibleNodes:              validatorsForNodesCoordinator,
+			SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:        cache,
+			Shuffler:                   &mock.NodeShufflerMock{},
+			BootStorer:                 CreateMemUnit(),
+			WaitingNodes:               make(map[uint32][]sharding.Validator),
+			Epoch:                      0,
+			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -369,21 +370,22 @@ func CreateNodesWithTestP2PNodes(
 			}
 
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                uint32(numShards),
-				EligibleNodes:           validatorsForNodesCoordinator,
-				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:     cache,
-				Shuffler:                &mock.NodeShufflerMock{},
-				BootStorer:              CreateMemUnit(),
-				WaitingNodes:            make(map[uint32][]sharding.Validator),
-				Epoch:                   0,
-				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ShardConsensusGroupSize:    shardConsensusGroupSize,
+				MetaConsensusGroupSize:     metaConsensusGroupSize,
+				Marshalizer:                TestMarshalizer,
+				Hasher:                     TestHasher,
+				ShardIDAsObserver:          shardId,
+				NbShards:                   uint32(numShards),
+				EligibleNodes:              validatorsForNodesCoordinator,
+				SelfPublicKey:              []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:        cache,
+				Shuffler:                   &mock.NodeShufflerMock{},
+				BootStorer:                 CreateMemUnit(),
+				WaitingNodes:               make(map[uint32][]sharding.Validator),
+				Epoch:                      0,
+				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+				WaitingListFixEnabledEpoch: 0,
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
@@ -415,7 +417,7 @@ func createCryptoPair() TestKeyPair {
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk/Sed"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -434,12 +436,13 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
 						peerInfo.NumIntraShardValidators,
 						peerInfo.NumCrossShardValidators,
 						peerInfo.NumIntraShardObservers,
 						peerInfo.NumCrossShardObservers,
+						peerInfo.NumFullHistoryObservers,
 						len(peerInfo.UnknownPeers),
 						len(peerInfo.Seeders),
 					),

@@ -404,6 +404,7 @@ type SnapshotDbHandler interface {
 	DecreaseNumReferences()
 	IncreaseNumReferences()
 	MarkForRemoval()
+	MarkForDisconnection()
 	SetPath(string)
 }
 

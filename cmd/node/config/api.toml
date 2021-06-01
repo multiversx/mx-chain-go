@@ -1,3 +1,13 @@
+# Logging holds settings related to api requests logging
+[Logging]
+    # LoggingEnabled - if this flag is set to true, then if a requests exceeds a threshold or it is unsuccessful, then
+    # a log will be printed
+    LoggingEnabled = false
+
+    # ThresholdInMicroSeconds represents the maximum duration to consider a request as normal. Above this, if the LoggingEnabled
+    # flag is set to true, then a log will be printed
+    ThresholdInMicroSeconds = 1000
+
  # API routes configuration
 [APIPackages]
 
@@ -49,7 +59,13 @@
         { Name = "/:address/esdt/:tokenIdentifier", Open = true },
 
         # /address/:address/nft/:tokenIdentifier/nonce/:nonce will return data of an nft esdt token for a given account, tokenID and nonce
-        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true }
+        { Name = "/:address/nft/:tokenIdentifier/nonce/:nonce", Open = true },
+
+        # /address/:address/esdts-with-role/:role will return the token identifiers with the given role for an address
+        { Name = "/:address/esdts-with-role/:role", Open = true },
+
+        # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
+        { Name = "/:address/registered-nfts", Open = true }
 	]
 
 [APIPackages.hardfork]
@@ -70,8 +86,20 @@
         # consensus group size and so on)
         { Name = "/config", Open = true },
 
+        # /network/enable-epochs will return metrics related to activation epochs
+        { Name = "/enable-epochs", Open = true },
+
         # /network/esdts will return all the issued esdts on the protocol
         { Name = "/esdts", Open = true },
+
+        # /network/fungible-tokens will return all the issued fungible tokens on the protocol
+        { Name = "/esdt/fungible-tokens", Open = true },
+
+        # /network/semi-fungible-tokens will return all the issued semi fungible tokens on the protocol
+        { Name = "/esdt/semi-fungible-tokens", Open = true },
+
+        # /network/non-fungible-tokens will return all the issued non fungible tokens on the protocol
+        { Name = "/esdt/non-fungible-tokens", Open = true },
 
         # /network/direct-staked-info will return a list containing direct staked list of addresses
         # and their staked values
@@ -137,4 +165,17 @@
 
 	    # /block/by-hash/:hash will return the block in JSON format based on its hash
 	    { Name = "/by-hash/:hash", Open = true },
+	]
+
+
+[APIPackages.proof]
+	Routes = [
+	    # /proof/root-hash/:roothash/address/:address will compute and return the proof in JSON format
+	    { Name = "/root-hash/:roothash/address/:address", Open = true },
+
+	    # /proof/address/:address will compute and return the proof and root hash in JSON format
+        { Name = "/address/:address", Open = true },
+
+	    # /proof/verify will return the response from Merkle proof verification in JSON format
+	    { Name = "/verify", Open = true },
 	]

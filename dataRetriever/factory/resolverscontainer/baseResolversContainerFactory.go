@@ -19,25 +19,26 @@ import (
 const EmptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
 
-//TODO extract these in config
-const numCrossShardPeers = 2
-const numIntraShardPeers = 1
-
 type baseResolversContainerFactory struct {
-	container                dataRetriever.ResolversContainer
-	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.PoolsHolder
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	intRandomizer            dataRetriever.IntRandomizer
-	dataPacker               dataRetriever.DataPacker
-	triesContainer           state.TriesHolder
-	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
-	throttler                dataRetriever.ResolverThrottler
-	intraShardTopic          string
+	container                   dataRetriever.ResolversContainer
+	shardCoordinator            sharding.Coordinator
+	messenger                   dataRetriever.TopicMessageHandler
+	store                       dataRetriever.StorageService
+	marshalizer                 marshal.Marshalizer
+	dataPools                   dataRetriever.PoolsHolder
+	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	intRandomizer               dataRetriever.IntRandomizer
+	dataPacker                  dataRetriever.DataPacker
+	triesContainer              state.TriesHolder
+	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	throttler                   dataRetriever.ResolverThrottler
+	intraShardTopic             string
+	isFullHistoryNode           bool
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
+	numCrossShardPeers          int
+	numIntraShardPeers          int
+	numFullHistoryPeers         int
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -73,6 +74,18 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.throttler) {
 		return dataRetriever.ErrNilThrottler
+	}
+	if check.IfNil(brcf.currentNetworkEpochProvider) {
+		return dataRetriever.ErrNilCurrentNetworkEpochProvider
+	}
+	if brcf.numCrossShardPeers <= 0 {
+		return fmt.Errorf("%w for numCrossShardPeers", dataRetriever.ErrInvalidValue)
+	}
+	if brcf.numIntraShardPeers <= 0 {
+		return fmt.Errorf("%w for numIntraShardPeers", dataRetriever.ErrInvalidValue)
+	}
+	if brcf.numFullHistoryPeers <= 0 {
+		return fmt.Errorf("%w for numFullHistoryPeers", dataRetriever.ErrInvalidValue)
 	}
 
 	return nil
@@ -132,20 +145,21 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	}
 
 	arg := resolvers.ArgTxResolver{
-		SenderResolver:   resolverSender,
-		TxPool:           dataPool,
-		TxStorage:        txStorer,
-		Marshalizer:      brcf.marshalizer,
-		DataPacker:       brcf.dataPacker,
-		AntifloodHandler: brcf.inputAntifloodHandler,
-		Throttler:        brcf.throttler,
+		SenderResolver:    resolverSender,
+		TxPool:            dataPool,
+		TxStorage:         txStorer,
+		Marshalizer:       brcf.marshalizer,
+		DataPacker:        brcf.dataPacker,
+		AntifloodHandler:  brcf.inputAntifloodHandler,
+		Throttler:         brcf.throttler,
+		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewTxResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -204,20 +218,21 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 	}
 
 	arg := resolvers.ArgMiniblockResolver{
-		SenderResolver:   resolverSender,
-		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
-		MiniBlockStorage: miniBlocksStorer,
-		Marshalizer:      brcf.marshalizer,
-		AntifloodHandler: brcf.inputAntifloodHandler,
-		Throttler:        brcf.throttler,
-		DataPacker:       brcf.dataPacker,
+		SenderResolver:    resolverSender,
+		MiniBlockPool:     brcf.dataPools.MiniBlocks(),
+		MiniBlockStorage:  miniBlocksStorer,
+		Marshalizer:       brcf.marshalizer,
+		AntifloodHandler:  brcf.inputAntifloodHandler,
+		Throttler:         brcf.throttler,
+		DataPacker:        brcf.dataPacker,
+		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
 	txBlkResolver, err := resolvers.NewMiniblockResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), txBlkResolver)
+	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), core.DefaultResolversIdentifier, txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +245,8 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	excludedTopic string,
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
-	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId, numCrossShardPeers, numIntraShardPeers)
+	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
+		brcf.numCrossShardPeers, brcf.numIntraShardPeers, brcf.numFullHistoryPeers, brcf.currentNetworkEpochProvider)
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
@@ -239,6 +255,8 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	targetShardId uint32,
 	numCrossShard int,
 	numIntraShard int,
+	numFullHistory int,
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.TopicResolverSender, error) {
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
@@ -247,15 +265,17 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:          brcf.messenger,
-		TopicName:          topic,
-		PeerListCreator:    peerListCreator,
-		Marshalizer:        brcf.marshalizer,
-		Randomizer:         brcf.intRandomizer,
-		TargetShardId:      targetShardId,
-		OutputAntiflooder:  brcf.outputAntifloodHandler,
-		NumCrossShardPeers: numCrossShard,
-		NumIntraShardPeers: numIntraShard,
+		Messenger:                   brcf.messenger,
+		TopicName:                   topic,
+		PeerListCreator:             peerListCreator,
+		Marshalizer:                 brcf.marshalizer,
+		Randomizer:                  brcf.intRandomizer,
+		TargetShardId:               targetShardId,
+		OutputAntiflooder:           brcf.outputAntifloodHandler,
+		NumCrossShardPeers:          numCrossShard,
+		NumIntraShardPeers:          numIntraShard,
+		NumFullHistoryPeers:         numFullHistory,
+		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
@@ -272,6 +292,8 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	trieId string,
 	numCrossShard int,
 	numIntraShard int,
+	numFullHistory int,
+	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.Resolver, error) {
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
 		topic,
@@ -279,6 +301,8 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		defaultTargetShardID,
 		numCrossShard,
 		numIntraShard,
+		numFullHistory,
+		currentNetworkEpochProviderHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -297,7 +321,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

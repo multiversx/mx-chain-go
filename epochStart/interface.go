@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -194,5 +195,13 @@ type RewardsCreator interface {
 	SaveTxBlockToStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
 	DeleteTxsFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }

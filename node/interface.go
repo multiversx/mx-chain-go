@@ -13,14 +13,13 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap(numSecondsToWait uint32) error
+	Bootstrap() error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	HasTopicValidator(name string) bool
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
@@ -34,6 +33,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }

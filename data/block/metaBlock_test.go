@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/headerVersionData"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -372,5 +373,15 @@ func TestMetaBlock_ValidateHeaderVersion(t *testing.T) {
 
 	metaHdr := &block.MetaBlock{}
 	err := metaHdr.ValidateHeaderVersion()
+	require.Nil(t, err)
+}
+
+func TestMetaBlock_SetAdditionalDataShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	var metaBlock *block.MetaBlock
+
+	//goland:noinspection ALL
+	err := metaBlock.SetAdditionalData(&headerVersionData.AdditionalData{})
 	require.Nil(t, err)
 }

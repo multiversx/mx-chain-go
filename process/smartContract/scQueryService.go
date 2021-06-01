@@ -72,7 +72,7 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
@@ -170,6 +170,11 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	gasLimit := moveBalanceGasLimit + gasConsumedExecution
 
 	return gasLimit, nil
+}
+
+// Close closes all underlying components
+func (service *SCQueryService) Close() error {
+	return service.vmContainer.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

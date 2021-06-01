@@ -37,11 +37,17 @@ var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 // ErrGetESDTNFTData signals an error in getting esdt nft data for given address, tokenID and nonce
 var ErrGetESDTNFTData = errors.New("get esdt nft data for account error")
 
-// ErrEmptyAddress signals an empty address was provided
+// ErrEmptyAddress signals that an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 
-// ErrEmptyKey signals an empty key was provided
+// ErrEmptyKey signals an that empty key was provided
 var ErrEmptyKey = errors.New("key is empty")
+
+// ErrEmptyTokenIdentifier signals that an empty token identifier was provided
+var ErrEmptyTokenIdentifier = errors.New("token identifier is empty")
+
+// ErrEmptyRole signals that an empty role was provided
+var ErrEmptyRole = errors.New("role is empty")
 
 // ErrNonceInvalid signals that nonce is invalid
 var ErrNonceInvalid = errors.New("nonce is invalid")
@@ -52,10 +58,10 @@ var ErrValidation = errors.New("validation error")
 // ErrTxGenerationFailed signals an error generating a transaction
 var ErrTxGenerationFailed = errors.New("transaction generation failed")
 
-// ErrValidationEmptyTxHash signals an empty tx hash was provided
+// ErrValidationEmptyTxHash signals that an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
-// ErrInvalidBlockNonce signals an invalid block nonce was provided
+// ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
 // ErrInvalidQueryParameter signals and invalid query parameter was provided
@@ -78,6 +84,18 @@ var ErrGetPidInfo = errors.New("error getting peer id info")
 
 // ErrTooManyRequests signals that too many requests were simultaneously received
 var ErrTooManyRequests = errors.New("too many requests")
+
+// ErrValidationEmptyRootHash signals that an empty root hash was provided
+var ErrValidationEmptyRootHash = errors.New("rootHash is empty")
+
+// ErrValidationEmptyAddress signals that an empty address was provided
+var ErrValidationEmptyAddress = errors.New("address is empty")
+
+// ErrGetProof signals an error happening when trying to compute a Merkle proof
+var ErrGetProof = errors.New("getting proof failed")
+
+// ErrVerifyProof signals an error happening when trying to verify a Merkle proof
+var ErrVerifyProof = errors.New("verifying proof failed")
 
 // ErrNilHttpServer signals that a nil http server has been provided
 var ErrNilHttpServer = errors.New("nil http server")

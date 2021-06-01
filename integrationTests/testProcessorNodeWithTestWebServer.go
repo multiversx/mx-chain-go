@@ -85,6 +85,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 		ApiRoutesConfig: createTestApiConfig(),
 		AccountsState:   tpn.AccntState,
 		PeerState:       tpn.PeerState,
+		Blockchain:      tpn.BlockChain,
 	}
 }
 
@@ -143,6 +144,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)

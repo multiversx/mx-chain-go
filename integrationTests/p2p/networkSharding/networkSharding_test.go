@@ -33,12 +33,13 @@ func createDefaultConfig() config.P2PConfig {
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount:         11,
+		TargetPeerCount:         12,
 		MaxIntraShardValidators: 6,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 
@@ -57,7 +58,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap(0)
+	_ = advertiser.Bootstrap()
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{seedAddress}
@@ -118,7 +119,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Messenger.Bootstrap(0)
+			_ = n.Messenger.Bootstrap()
 		}
 	}
 }
