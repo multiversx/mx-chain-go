@@ -1201,11 +1201,11 @@ func (pcf *processComponentsFactory) newForkDetector(
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
 func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*networksharding.PeerShardMapper, error) {
-
 	networkShardingCollector, err := createNetworkShardingCollector(
 		&pcf.config,
 		pcf.nodesCoordinator,
 		pcf.coreData.EpochStartNotifierWithConfirm(),
+		pcf.network.PreferredPeersHolderHandler(),
 		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	if err != nil {
@@ -1232,6 +1232,7 @@ func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	preferredPeersHolder PreferredPeersHolderHandler,
 	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
@@ -1258,6 +1259,7 @@ func createNetworkShardingCollector(
 		FallbackPkShardCache:  cachePkShardID,
 		FallbackPidShardCache: cachePidShardID,
 		NodesCoordinator:      nodesCoordinator,
+		PreferredPeersHolder:  preferredPeersHolder,
 		StartEpoch:            epochStart,
 	}
 	psm, err := networksharding.NewPeerShardMapper(arg)

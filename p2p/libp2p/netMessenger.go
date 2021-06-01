@@ -84,25 +84,25 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	//TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor         ConnectionMonitor
-	connMonitorWrapper  p2p.ConnectionMonitorWrapper
-	peerDiscoverer      p2p.PeerDiscoverer
-	sharder             p2p.Sharder
-	peerShardResolver   p2p.PeerShardResolver
-	mutPeerResolver     sync.RWMutex
-	mutTopics           sync.RWMutex
-	processors          map[string]*topicProcessors
-	topics              map[string]*pubsub.Topic
-	subscriptions       map[string]*pubsub.Subscription
-	outgoingPLB         p2p.ChannelLoadBalancer
-	poc                 *peersOnChannel
-	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
-	ip                  *identityProvider
-	connectionsMetric   *metrics.Connections
-	debugger            p2p.Debugger
-	marshalizer         p2p.Marshalizer
-	syncTimer           p2p.SyncTimer
-	peersHolder         p2p.PreferredPeersHolderHandler
+	connMonitor          ConnectionMonitor
+	connMonitorWrapper   p2p.ConnectionMonitorWrapper
+	peerDiscoverer       p2p.PeerDiscoverer
+	sharder              p2p.Sharder
+	peerShardResolver    p2p.PeerShardResolver
+	mutPeerResolver      sync.RWMutex
+	mutTopics            sync.RWMutex
+	processors           map[string]*topicProcessors
+	topics               map[string]*pubsub.Topic
+	subscriptions        map[string]*pubsub.Subscription
+	outgoingPLB          p2p.ChannelLoadBalancer
+	poc                  *peersOnChannel
+	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
+	ip                   *identityProvider
+	connectionsMetric    *metrics.Connections
+	debugger             p2p.Debugger
+	marshalizer          p2p.Marshalizer
+	syncTimer            p2p.SyncTimer
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -199,17 +199,17 @@ func createMessenger(
 ) (*networkMessenger, error) {
 	var err error
 	netMes := networkMessenger{
-		ctx:               ctx,
-		cancelFunc:        cancelFunc,
-		p2pHost:           NewConnectableHost(p2pHost),
-		processors:        make(map[string]*topicProcessors),
-		topics:            make(map[string]*pubsub.Topic),
-		subscriptions:     make(map[string]*pubsub.Subscription),
-		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerShardResolver: &unknownPeerShardResolver{},
-		marshalizer:       args.Marshalizer,
-		syncTimer:         args.SyncTimer,
-		peersHolder:       args.PreferredPeersHolder,
+		ctx:                  ctx,
+		cancelFunc:           cancelFunc,
+		p2pHost:              NewConnectableHost(p2pHost),
+		processors:           make(map[string]*topicProcessors),
+		topics:               make(map[string]*pubsub.Topic),
+		subscriptions:        make(map[string]*pubsub.Subscription),
+		outgoingPLB:          loadBalancer.NewOutgoingChannelLoadBalancer(),
+		peerShardResolver:    &unknownPeerShardResolver{},
+		marshalizer:          args.Marshalizer,
+		syncTimer:            args.SyncTimer,
+		preferredPeersHolder: args.PreferredPeersHolder,
 	}
 	netMes.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pHost.ID()))
 
@@ -334,7 +334,7 @@ func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error 
 		Pid:                  netMes.p2pHost.ID(),
 		P2pConfig:            p2pConfig,
 		Type:                 p2pConfig.Sharding.Type,
-		PreferredPeersHolder: netMes.peersHolder,
+		PreferredPeersHolder: netMes.preferredPeersHolder,
 	}
 
 	var err error
@@ -366,7 +366,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    netMes.sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
-		PreferredPeersHolder:       netMes.peersHolder,
+		PreferredPeersHolder:       netMes.preferredPeersHolder,
 	}
 	var err error
 	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)
@@ -440,6 +440,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
 			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
+			"preferred peers histogram", netMes.mapHistogram(peersInfo.NumPreferredPeersOnShard),
 		)
 
 		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
@@ -1140,15 +1141,16 @@ func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEva
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.p2pHost.Network().Peers()
 	connPeerInfo := &p2p.ConnectedPeersInfo{
-		UnknownPeers:         make([]string, 0),
-		Seeders:              make([]string, 0),
-		IntraShardValidators: make(map[uint32][]string),
-		IntraShardObservers:  make(map[uint32][]string),
-		CrossShardValidators: make(map[uint32][]string),
-		CrossShardObservers:  make(map[uint32][]string),
-		FullHistoryObservers: make(map[uint32][]string),
-		NumObserversOnShard:  make(map[uint32]int),
-		NumValidatorsOnShard: make(map[uint32]int),
+		UnknownPeers:             make([]string, 0),
+		Seeders:                  make([]string, 0),
+		IntraShardValidators:     make(map[uint32][]string),
+		IntraShardObservers:      make(map[uint32][]string),
+		CrossShardValidators:     make(map[uint32][]string),
+		CrossShardObservers:      make(map[uint32][]string),
+		FullHistoryObservers:     make(map[uint32][]string),
+		NumObserversOnShard:      make(map[uint32]int),
+		NumValidatorsOnShard:     make(map[uint32]int),
+		NumPreferredPeersOnShard: make(map[uint32]int),
 	}
 
 	netMes.mutPeerResolver.RLock()
@@ -1197,6 +1199,10 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 
 			connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
 			connPeerInfo.NumIntraShardObservers++
+		}
+
+		if netMes.preferredPeersHolder.Contains(pid) {
+			connPeerInfo.NumPreferredPeersOnShard[peerInfo.ShardID]++
 		}
 	}
 

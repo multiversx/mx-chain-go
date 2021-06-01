@@ -366,52 +366,6 @@ func TestListsSharder_ComputeEvictionListShouldNotContainPreferredPeers(t *testi
 	}
 }
 
-func TestListsSharder_ComputeEvictionListShouldPutPreferredPeers(t *testing.T) {
-	arg := createMockListSharderArguments()
-	pids := []peer.ID{
-		"preferredPeer0",
-		"peer0",
-		"peer1",
-		"preferredPeer1",
-		"peer2",
-		"preferredPeer2",
-	}
-	putWasCalled := false
-	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
-		PutCalled: func(publicKey []byte, peerID core.PeerID, shardID uint32) {
-			putWasCalled = true
-		},
-		ContainsCalled: func(peerID core.PeerID) bool {
-			return strings.Contains(string(peerID), "preferred")
-		},
-	}
-	arg.PeerResolver = &mock.PeerShardResolverStub{
-		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-			if strings.HasPrefix(string(pid), "preferred") {
-				return core.P2PPeerInfo{
-					PeerType:    0,
-					PeerSubType: 0,
-					ShardID:     0,
-					PkBytes:     []byte(pid),
-				}
-			}
-			return core.P2PPeerInfo{}
-		},
-	}
-
-	ls, _ := NewListsSharder(arg)
-	seeder := peer.ID(fmt.Sprintf("%d %s", crossShardId, seederMarker))
-	ls.SetSeeders([]string{
-		"ip6/" + seeder.Pretty(),
-	})
-
-	evictList := ls.ComputeEvictionList(pids)
-	require.True(t, putWasCalled)
-	for _, peerID := range evictList {
-		require.False(t, strings.HasPrefix(string(peerID), "preferred"))
-	}
-}
-
 func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testing.T) {
 	arg := createMockListSharderArguments()
 
@@ -439,6 +393,11 @@ func TestListsSharder_ComputeEvictionListWithRealPreferredPeersHandler(t *testin
 	}
 
 	arg.PreferredPeersHolder = peersholder.NewPeersHolder(prefPeers)
+	for _, prefPk := range prefPeers {
+		pid := strings.Replace(hex.EncodeToString(prefPk), pubKeyHexSuffix, "", 1)
+		arg.PreferredPeersHolder.Put(prefPk, core.PeerID(pid), 0)
+	}
+
 	arg.PeerResolver = &mock.PeerShardResolverStub{
 		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 			if strings.HasPrefix(string(pid), preferredHexPrefix) {
