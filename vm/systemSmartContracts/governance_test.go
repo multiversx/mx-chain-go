@@ -308,7 +308,7 @@ func TestGovernanceContract_ProposalInvalidReferenceLength(t *testing.T) {
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			whitelistProposal, proposalOk := obj.(*GeneralProposal)
 			if proposalOk {
-				whitelistProposal.Voted = true
+				whitelistProposal.Passed = true
 			}
 			return nil
 		},
@@ -996,7 +996,7 @@ func TestGovernanceContract_ValidatorVote(t *testing.T) {
 
 	callerAddress := []byte("address")
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
-	votePower := big.NewInt(100)
+	votePower := big.NewInt(10)
 	proposalKey := append([]byte(proposalPrefix), proposalIdentifier...)
 	voteItemKey := append(proposalKey, callerAddress...)
 
@@ -1595,7 +1595,7 @@ func TestGovernanceContract_WhiteListAlreadyWhitelisted(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				proposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return proposalBytes
 			}
@@ -1714,7 +1714,7 @@ func TestGovernanceContract_HardForkProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -1885,7 +1885,7 @@ func TestGovernanceContract_HardForkProposalInvalidCommitLength(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -1930,7 +1930,7 @@ func TestGovernanceContract_HardForkProposalProposalAlreadyExists(t *testing.T) 
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -1978,7 +1978,7 @@ func TestGovernanceContract_HardForkProposalInvalidNonce(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2237,7 +2237,7 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2343,7 +2343,7 @@ func TestGovernanceContract_CloseProposalWrongArgumentsLength(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2378,7 +2378,7 @@ func TestGovernanceContract_CloseProposalNotEnoughGas(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2419,7 +2419,7 @@ func TestGovernanceContract_CloseProposalGetProposalErr(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2457,7 +2457,7 @@ func TestGovernanceContract_CloseProposalAlreadyClosed(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2504,7 +2504,7 @@ func TestGovernanceContract_CloseProposalVoteNotfinished(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -2558,7 +2558,7 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 			}
 			if bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...)) {
 				whitelistProposalBytes, _ := args.Marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whitelistProposalBytes
 			}
@@ -3070,7 +3070,7 @@ func TestGovernanceContract_IsWhitelistedProposalNotVoted(t *testing.T) {
 
 	address := []byte("address")
 	generalProposal := &GeneralProposal{
-		Voted: false,
+		Passed: false,
 	}
 
 	args := createMockGovernanceArgs()
@@ -3099,7 +3099,7 @@ func TestGovernanceContract_IsWhitelistedProposalVoted(t *testing.T) {
 
 	address := []byte("address")
 	generalProposal := &GeneralProposal{
-		Voted: true,
+		Passed: true,
 	}
 
 	args := createMockGovernanceArgs()
@@ -3235,7 +3235,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err := gsc.computeEndResults(didNotPassQuorum)
 	require.Nil(t, err)
-	require.False(t, didNotPassQuorum.Voted)
+	require.False(t, didNotPassQuorum.Passed)
 
 	didNotPassVotes := &GeneralProposal{
 		Yes:  big.NewInt(50),
@@ -3244,7 +3244,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(didNotPassVotes)
 	require.Nil(t, err)
-	require.False(t, didNotPassVotes.Voted)
+	require.False(t, didNotPassVotes.Passed)
 
 	didNotPassVotes2 := &GeneralProposal{
 		Yes:  big.NewInt(50),
@@ -3253,7 +3253,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(didNotPassVotes2)
 	require.Nil(t, err)
-	require.False(t, didNotPassVotes2.Voted)
+	require.False(t, didNotPassVotes2.Passed)
 
 	didNotPassVeto := &GeneralProposal{
 		Yes:  big.NewInt(51),
@@ -3262,7 +3262,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(didNotPassVeto)
 	require.Nil(t, err)
-	require.False(t, didNotPassVeto.Voted)
+	require.False(t, didNotPassVeto.Passed)
 
 	pass := &GeneralProposal{
 		Yes:  big.NewInt(51),
@@ -3271,7 +3271,7 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	err = gsc.computeEndResults(pass)
 	require.Nil(t, err)
-	require.True(t, pass.Voted)
+	require.True(t, pass.Passed)
 }
 
 func createMockStorer(callerAddress []byte, proposalIdentifier []byte, proposal *GeneralProposal) *mock.SystemEIStub {
@@ -3289,7 +3289,7 @@ func createMockStorer(callerAddress []byte, proposalIdentifier []byte, proposal 
 			isWhiteListProposalKey := bytes.Equal(key, append([]byte(proposalPrefix), callerAddress...))
 			if isWhiteListProposalKey {
 				whiteList, _ := marshalizer.Marshal(&GeneralProposal{
-					Voted: true,
+					Passed: true,
 				})
 				return whiteList
 			}

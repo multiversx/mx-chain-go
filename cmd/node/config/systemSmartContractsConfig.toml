@@ -26,7 +26,7 @@
         MinVetoThreshold   = 50
     [GovernanceSystemSCConfig.Active]
         ProposalCost       = "5000000000000000000" #5 eGLD
-        MinQuorum          = "500000000000" # VotePower of 10*sqrt(NodePrice)
+        MinQuorum          = "500000000000" # MinQuorum is equal to 10*sqrt(NodePrice)
         MinPassThreshold   = "251000000000"
         MinVetoThreshold   = "249000000000"
 

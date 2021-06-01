@@ -95,7 +95,7 @@ var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contra
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
-// ErrInvalidGovernanceSCAddress signals that invalid staking access address was provided
+// ErrInvalidGovernanceSCAddress signals that invalid governance address was provided
 var ErrInvalidGovernanceSCAddress = errors.New("invalid governance smart contract address")
 
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided

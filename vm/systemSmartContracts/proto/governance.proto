@@ -21,7 +21,7 @@ message GeneralProposal {
     bytes  Yes            = 5 [(gogoproto.jsontag) = "Yes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes  No             = 6 [(gogoproto.jsontag) = "No", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes  Veto           = 7 [(gogoproto.jsontag) = "Veto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bool   Voted          = 8 [(gogoproto.jsontag) = "Voted"];
+    bool   Passed         = 8 [(gogoproto.jsontag) = "Passed"];
     repeated bytes Votes  = 9 [(gogoproto.jsontag) = "Votes"];
     bytes  TopReference   = 10 [(gogoproto.jsontag) = "TopReference"];
     bool   Closed         = 11 [(gogoproto.jsontag) = "Closed"];

@@ -84,7 +84,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 
 	if len(args.ValidatorSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
@@ -260,7 +260,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
-		Voted:          false,
+		Passed:         false,
 		Votes:          make([][]byte, 0),
 	}
 	err = g.saveGeneralProposal(commitHash, generalProposal)
@@ -362,7 +362,7 @@ func isStakeLocked(eei vm.SystemEI, governanceAddress []byte, address []byte) bo
 	return eei.BlockChainHook().CurrentNonce() < lastEndNonce
 }
 
-// delegateVote casts a vote from a validator run by WASM SC and delegates it to some. This function receives 4 parameters:
+// delegateVote casts a vote from a validator run by WASM SC and delegates it to some one else. This function receives 4 parameters:
 //  args.Arguments[0] - proposal reference (github commit)
 //  args.Arguments[1] - vote option (yes, no, veto)
 //  args.Arguments[2] - delegatedTo
@@ -403,7 +403,11 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	votePower := big.NewInt(0).SetBytes(args.Arguments[2])
+	votePower, err := g.computeVotingPower(big.NewInt(0).SetBytes(args.Arguments[2]))
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 	delegatedTo := args.Arguments[3]
 
 	currentVote := &VoteDetails{
@@ -636,7 +640,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
-		Voted:          false,
+		Passed:         false,
 		Votes:          make([][]byte, 0),
 	}
 
@@ -727,7 +731,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		Yes:            big.NewInt(0),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
-		Voted:          false,
+		Passed:         false,
 		Votes:          make([][]byte, 0),
 	}
 	marshaledData, err = g.marshalizer.Marshal(hardForkProposal)
@@ -1024,7 +1028,7 @@ func (g *governanceContract) isWhiteListed(address []byte) bool {
 		return false
 	}
 
-	return generalProposal.Voted
+	return generalProposal.Passed
 }
 
 func (g *governanceContract) whiteListAtGovernanceGenesis(address []byte) vmcommon.ReturnCode {
@@ -1054,7 +1058,7 @@ func (g *governanceContract) whiteListAtGovernanceGenesis(address []byte) vmcomm
 		Yes:            minQuorum,
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
-		Voted:          true,
+		Passed:         true,
 		Votes:          make([][]byte, 0),
 	}
 	marshaledData, err := g.marshalizer.Marshal(whiteListAcc)
@@ -1157,7 +1161,7 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 }
 
 // computeAccountLeveledPower takes a value and some voter data and returns the voting power of that value in
-//  the following way: the power of all votes combined has to be sqrt(sum(allVoteWithFundss)). So, the new
+//  the following way: the power of all votes combined has to be sqrt(sum(allVoteWithFunds)). So, the new
 //  vote will have a smaller power depending on how much existed previously
 func (g *governanceContract) computeAccountLeveledPower(value *big.Int, voteData *VoteSet) (*big.Int, error) {
 	previousAccountPower, err := g.computeVotingPower(voteData.UsedBalance)
@@ -1198,7 +1202,7 @@ func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
 	}
 }
 
-// getOrCreateVoteSet returns the vote data from storage for a goven proposer/validator pair.
+// getOrCreateVoteSet returns the vote data from storage for a given proposer/validator pair.
 //  If no vote data exists, it returns a new instance of VoteSet
 func (g *governanceContract) getOrCreateVoteSet(key []byte) (*VoteSet, error) {
 	marshaledData := g.eei.GetStorage(key)
@@ -1269,7 +1273,12 @@ func (g *governanceContract) computeVotingPowerFromTotalStake(address []byte) (*
 		totalStake.Add(totalStake, activeDelegated)
 	}
 
-	return totalStake, nil
+	votingPower, err := g.computeVotingPower(totalStake)
+	if err != nil {
+		return nil, err
+	}
+
+	return votingPower, nil
 }
 
 func (g *governanceContract) getActiveFundForDelegator(delegationAddress []byte, address []byte) (*big.Int, error) {
@@ -1376,21 +1385,21 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	totalVotes.Add(totalVotes, proposal.Veto)
 
 	if totalVotes.Cmp(baseConfig.MinQuorum) == -1 {
-		proposal.Voted = false
+		proposal.Passed = false
 		return nil
 	}
 
 	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
-		proposal.Voted = false
+		proposal.Passed = false
 		return nil
 	}
 
 	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) == 1 {
-		proposal.Voted = true
+		proposal.Passed = true
 		return nil
 	}
 
-	proposal.Voted = false
+	proposal.Passed = false
 	return nil
 }
 
