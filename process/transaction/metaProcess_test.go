@@ -111,6 +111,15 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txProc)
 }
 
+func TestNewMetaTxProcessor_ShouldCheckBalanceAlwaysTrue(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNewMetaTxArgs()
+	txProc, _ := txproc.NewMetaTxProcessor(args)
+
+	assert.True(t, txProc.ShouldCheckBalance())
+}
+
 //------- ProcessTransaction
 
 func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {

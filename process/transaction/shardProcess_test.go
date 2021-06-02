@@ -269,6 +269,15 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txProc)
 }
 
+func TestNewTxProcessor_ShouldCheckBalanceAlwaysTrue(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	txProc, _ := txproc.NewTxProcessor(args)
+
+	assert.True(t, txProc.ShouldCheckBalance())
+}
+
 //------- getAccounts
 
 func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {

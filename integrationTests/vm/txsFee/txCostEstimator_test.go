@@ -72,7 +72,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	pathToContract = "testdata/second/output/async.wasm"
 	secondSCAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
-	tx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, 0, 0, []byte("doSomething"))
+	tx := vm.CreateTransaction(1, big.NewInt(0), senderAddr, secondSCAddress, 0, 0, []byte("doSomething"))
 	resWithCost, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, uint64(747), resWithCost.GasUnits)

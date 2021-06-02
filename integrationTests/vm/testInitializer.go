@@ -750,8 +750,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
-	argsNewSCProcessor.BypassChecks = true
-	scProcessorTxSim, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	scProcessorTxSim, err := smartContract.NewSmartContractProcessorSimulate(argsNewSCProcessor)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
@@ -759,7 +758,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	argsNewTxProcessor.Accounts = readOnlyAccountsDB
 
-	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessorSimulate(argsNewTxProcessor)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}

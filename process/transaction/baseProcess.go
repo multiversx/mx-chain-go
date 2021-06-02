@@ -17,14 +17,15 @@ import (
 )
 
 type baseTxProcessor struct {
-	accounts                state.AccountsAdapter
-	shardCoordinator        sharding.Coordinator
-	pubkeyConv              core.PubkeyConverter
-	economicsFee            process.FeeHandler
-	hasher                  hashing.Hasher
-	marshalizer             marshal.Marshalizer
-	scProcessor             process.SmartContractProcessor
-	flagPenalizedTooMuchGas atomic.Flag
+	accounts                  state.AccountsAdapter
+	shardCoordinator          sharding.Coordinator
+	pubkeyConv                core.PubkeyConverter
+	economicsFee              process.FeeHandler
+	hasher                    hashing.Hasher
+	marshalizer               marshal.Marshalizer
+	scProcessor               process.SmartContractProcessor
+	flagPenalizedTooMuchGas   atomic.Flag
+	shouldCheckBalanceHandler func() bool
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -148,6 +149,10 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
+	}
+
+	if !txProc.shouldCheckBalanceHandler() {
+		return nil
 	}
 
 	if stAcc.GetBalance().Cmp(txFee) < 0 {

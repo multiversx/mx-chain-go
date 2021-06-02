@@ -74,9 +74,9 @@ type scProcessor struct {
 	builtInGasCosts map[string]uint64
 	mutGasLock      sync.RWMutex
 
-	txLogsProcessor process.TransactionLogProcessor
-	vmOutputCacher  storage.Cacher
-	bypassChecks    bool
+	txLogsProcessor   process.TransactionLogProcessor
+	vmOutputCacher    storage.Cacher
+	shouldCheckValues func() bool
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -108,7 +108,6 @@ type ArgsNewSmartContractProcessor struct {
 	EpochNotifier                       process.EpochNotifier
 	IsGenesisProcessing                 bool
 	VMOutputCacher                      storage.Cacher
-	BypassChecks                        bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -199,7 +198,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 		vmOutputCacher:                      args.VMOutputCacher,
-		bypassChecks:                        args.BypassChecks,
+		shouldCheckValues: func() bool {
+			return true
+		},
 	}
 
 	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
@@ -1468,6 +1469,10 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return err
 	}
 
+	if !sc.shouldCheckValues() {
+		return nil
+	}
+
 	cost := sc.economicsFee.ComputeTxFee(tx)
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
 		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
@@ -1579,8 +1584,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	// this flag is needed for the transaction simulator in order can calculate the cost of a transaction
-	if sc.bypassChecks {
+	if !sc.shouldCheckValues() {
 		return
 	}
 

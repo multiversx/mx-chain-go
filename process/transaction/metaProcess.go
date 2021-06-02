@@ -71,6 +71,9 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:             args.Marshalizer,
 		scProcessor:             args.ScProcessor,
 		flagPenalizedTooMuchGas: atomic.Flag{},
+		shouldCheckBalanceHandler: func() bool {
+			return true
+		},
 	}
 	// backwards compatibility
 	baseTxProcess.flagPenalizedTooMuchGas.Unset()
