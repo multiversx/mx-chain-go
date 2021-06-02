@@ -43,7 +43,7 @@ func NewArwenBenchmark(arg ArgArwenBenchmark) *arwenBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (ab *arwenBenchmark) Run() (time.Duration, error) {
-	if !core.DoesFileExist(ab.scFilename) {
+	if !core.FileExists(ab.scFilename) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, ab.scFilename)
 	}
 

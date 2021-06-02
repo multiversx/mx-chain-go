@@ -767,7 +767,7 @@ func (nr *nodeRunner) getNodesFileName() (string, error) {
 	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
 	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
 		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
-		if !core.DoesFileExist(exportFolderNodesSetupPath) {
+		if !core.FileExists(exportFolderNodesSetupPath) {
 			return "", fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
 		}
 

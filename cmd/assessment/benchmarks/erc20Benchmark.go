@@ -38,7 +38,7 @@ func NewErc20Benchmark(arg ArgErc20Benchmark) *erc20Benchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (eb *erc20Benchmark) Run() (time.Duration, error) {
-	if !core.DoesFileExist(eb.scFilename) {
+	if !core.FileExists(eb.scFilename) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, eb.scFilename)
 	}
 
