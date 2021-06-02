@@ -557,6 +557,7 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
 					MinQuorum:        "50",
@@ -578,8 +579,9 @@ func CreateFullGenesisBlocks(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				MinCreationDeposit: "100",
-				MinStakeAmount:     "100",
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
