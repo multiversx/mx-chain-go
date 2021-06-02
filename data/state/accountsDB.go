@@ -763,17 +763,9 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		return nil, err
 	}
 
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		for _, hashes := range adb.obsoleteDataTrieHashes {
-			for i := range hashes {
-				oldHashes[string(hashes[i])] = struct{}{}
-			}
-		}
-
-		err = adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
-		if err != nil {
-			return nil, err
-		}
+	err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+	if err != nil {
+		return nil, err
 	}
 
 	adb.lastRootHash = newRoot
@@ -782,6 +774,25 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
 	return newRoot, nil
+}
+
+func (adb *AccountsDB) markForEviction(
+	oldRoot []byte,
+	newRoot []byte,
+	oldHashes data.ModifiedHashes,
+	newHashes data.ModifiedHashes,
+) error {
+	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		return nil
+	}
+
+	for _, hashes := range adb.obsoleteDataTrieHashes {
+		for _, hash := range hashes {
+			oldHashes[string(hash)] = struct{}{}
+		}
+	}
+
+	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
 }
 
 func (adb *AccountsDB) commitTrie(tr data.Trie, oldHashes data.ModifiedHashes, newHashes data.ModifiedHashes) error {

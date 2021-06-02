@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -397,7 +397,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				si.hasher,
 				si.marshalizer,
 				accountFactory,
-				storagePruningManager.NewInactiveStoragePruningManager(),
+				disabled.NewDisabledStoragePruningManager(),
 			)
 			if errCreate != nil {
 				return nil, nil, errCreate
@@ -417,7 +417,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		si.hasher,
 		si.marshalizer,
 		accountFactory,
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err

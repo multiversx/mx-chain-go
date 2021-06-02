@@ -29,7 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -2132,7 +2132,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	n, _ := node.NewNode(
@@ -2273,7 +2273,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	localErr := errors.New("err")
@@ -2374,7 +2374,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	n, _ := node.NewNode(
@@ -2473,7 +2473,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	n, _ := node.NewNode(
@@ -2606,7 +2606,7 @@ func TestStartConsensus_MetaBootstrapper(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	shardC := mock.NewMultiShardsCoordinatorMock(2)

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -40,7 +41,7 @@ func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 	return accnt
 }
@@ -94,7 +95,7 @@ func TestNewAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -109,7 +110,7 @@ func TestNewAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -124,7 +125,7 @@ func TestNewAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -139,7 +140,7 @@ func TestNewAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -177,7 +178,7 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.Nil(t, err)
@@ -208,7 +209,7 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
@@ -243,7 +244,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	for i := 0; i < numCheckpoints; i++ {
@@ -422,7 +423,7 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	marshalizer.Fail = true
@@ -709,7 +710,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	//Step 3. call get, should return a copy of DbAccount, recover an Account object
@@ -803,7 +804,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 				return mock.NewAccountWrapMock(address), nil
 			},
 		},
-		storagePruningManager.NewInactiveStoragePruningManager(),
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	//just search a hash. Any hash will do
@@ -1799,7 +1800,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 
 	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, config.DBConfig{}, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
-	spm := storagePruningManager.NewInactiveStoragePruningManager()
+	spm := disabled.NewDisabledStoragePruningManager()
 	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
 
 	address := make([]byte, 32)
