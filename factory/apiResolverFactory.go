@@ -273,6 +273,7 @@ func createScQueryElement(
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:                    args.gasScheduleNotifier,
 			ArgBlockChainHook:              argsHook,
+			EpochNotifier:                  args.coreComponents.EpochNotifier(),
 			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
