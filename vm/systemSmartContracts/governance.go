@@ -742,7 +742,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 	}
 	g.eei.SetStorage(key, marshaledData)
 
-	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	err = g.saveGeneralProposal(commitHash, generalProposal)
 	if err != nil {
 		log.Warn("save general proposal", "error", err)
 		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
