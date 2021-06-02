@@ -11,7 +11,7 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
-//HeadersPoolConfig will map the headers cache configuration
+// HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
 	NumElementsToRemoveOnEviction int
@@ -54,7 +54,7 @@ type TypeConfig struct {
 // MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
 	Type string
-	//TODO check if we still need this
+	// TODO check if we still need this
 	SizeCheckDelta uint32
 }
 
@@ -176,6 +176,7 @@ type Config struct {
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
+	VMOutputCacher        CacheConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system

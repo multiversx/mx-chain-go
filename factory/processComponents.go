@@ -431,11 +431,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	// TODO where to store the size of the cache
-	vmOutputCacher, err := storageUnit.NewCache(storageUnit.CacheConfig{
-		Type:     storageUnit.LRUCache,
-		Capacity: 10000,
-	})
+	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
+	vmOutputCacher, err := storageUnit.NewCache(vmOutputCacherConfig)
 	if err != nil {
 		return nil, err
 	}

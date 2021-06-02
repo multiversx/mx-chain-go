@@ -86,7 +86,7 @@ type ReceiptApi struct {
 
 // CostResponse is structure used to return the transaction cost in gas units
 type CostResponse struct {
-	GasUnits   uint64                             `json:"txGasUnits"`
-	RetMessage string                             `json:"returnMessage"`
-	Scrs       map[string]*ApiSmartContractResult `json:"smartContractResults"`
+	GasUnits             uint64                             `json:"txGasUnits"`
+	ReturnMessage        string                             `json:"returnMessage"`
+	SmartContractResults map[string]*ApiSmartContractResult `json:"smartContractResults"`
 }

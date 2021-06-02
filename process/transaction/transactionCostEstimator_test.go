@@ -127,7 +127,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, localErr.Error(), cost.RetMessage)
+	require.Equal(t, localErr.Error(), cost.ReturnMessage)
 }
 
 func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
@@ -149,7 +149,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, process.ErrNilVMOutput.Error(), cost.RetMessage)
+	require.Equal(t, process.ErrNilVMOutput.Error(), cost.ReturnMessage)
 }
 
 func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
@@ -175,7 +175,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.True(t, strings.Contains(cost.RetMessage, vmcommon.UserError.String()))
+	require.True(t, strings.Contains(cost.ReturnMessage, vmcommon.UserError.String()))
 }
 
 func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
@@ -194,5 +194,5 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, "cannot compute cost of the relayed transaction", cost.RetMessage)
+	require.Equal(t, "cannot compute cost of the relayed transaction", cost.ReturnMessage)
 }

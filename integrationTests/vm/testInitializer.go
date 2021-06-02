@@ -387,8 +387,8 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	return vm
 }
 
-// CreateVMAndBlockchainHook -
-func CreateVMAndBlockchainHook(
+// CreateVMAndBlockchainHookAndDataPool -
+func CreateVMAndBlockchainHookAndDataPool(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 	outOfProcess bool,
@@ -836,7 +836,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, false, oneShardCoordinator)
 	txProcessor, testScProcessor, scForwarder, _, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
@@ -865,7 +865,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 func CreatePreparedTxProcessorWithVMs(argEnableEpoch ArgEnableEpoch) (*VMTestContext, error) {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, nil, false, oneShardCoordinator)
 	txProcessor, scProcessor, scForwarder, economicsData, txCostHandler, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
@@ -905,7 +905,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHook(accounts, gasSchedule, outOfProcess, oneShardCoordinator)
+	vmContainer, blockchainHook, pool := CreateVMAndBlockchainHookAndDataPool(accounts, gasSchedule, outOfProcess, oneShardCoordinator)
 	txProcessor, scProcessor, scForwarder, _, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
@@ -1041,7 +1041,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 
 // GetVmOutput -
 func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *vmcommon.VMOutput {
-	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHook(accnts, gasSchedule, false, oneShardCoordinator)
+	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(accnts, gasSchedule, false, oneShardCoordinator)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -1070,7 +1070,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 
 // ComputeGasLimit -
 func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTestContext, tx *dataTx.Transaction) uint64 {
-	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHook(testContext.Accounts, gasSchedule, false, oneShardCoordinator)
+	vmContainer, blockChainHook, _ := CreateVMAndBlockchainHookAndDataPool(testContext.Accounts, gasSchedule, false, oneShardCoordinator)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -1157,7 +1157,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, argEnableEpo
 	if selfShardID == core.MetachainShardId {
 		vmContainer, blockchainHook = CreateVMAndBlockchainHookMeta(accounts, nil, shardCoordinator, argEnableEpoch)
 	} else {
-		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
+		vmContainer, blockchainHook, _ = CreateVMAndBlockchainHookAndDataPool(accounts, nil, false, shardCoordinator)
 	}
 
 	txProcessor, scProcessor, scrForwarder, economicsData, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(

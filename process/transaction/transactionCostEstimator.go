@@ -60,13 +60,13 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.RelayedTx, process.RelayedTxV2:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: "cannot compute cost of the relayed transaction",
+			GasUnits:      0,
+			ReturnMessage: "cannot compute cost of the relayed transaction",
 		}, nil
 	default:
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: process.ErrWrongTransaction.Error(),
+			GasUnits:      0,
+			ReturnMessage: process.ErrWrongTransaction.Error(),
 		}, nil
 	}
 }
@@ -77,47 +77,47 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	res, err := tce.txSimulator.ProcessTx(tx)
 	if err != nil {
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: err.Error(),
+			GasUnits:      0,
+			ReturnMessage: err.Error(),
 		}, nil
 	}
 
 	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
 	if isMoveBalanceOk {
 		return &transaction.CostResponse{
-			GasUnits:   tce.feeHandler.ComputeGasLimit(tx),
-			RetMessage: "",
+			GasUnits:      tce.feeHandler.ComputeGasLimit(tx),
+			ReturnMessage: "",
 		}, nil
 
 	}
 
 	if res.FailReason != "" {
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: res.FailReason,
+			GasUnits:      0,
+			ReturnMessage: res.FailReason,
 		}, nil
 	}
 
 	if res.VMOutput == nil {
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: process.ErrNilVMOutput.Error(),
-			Scrs:       nil,
+			GasUnits:             0,
+			ReturnMessage:        process.ErrNilVMOutput.Error(),
+			SmartContractResults: nil,
 		}, nil
 	}
 
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
 		return &transaction.CostResponse{
-			GasUnits:   tx.GasLimit - res.VMOutput.GasRemaining,
-			RetMessage: "",
-			Scrs:       res.ScResults,
+			GasUnits:             tx.GasLimit - res.VMOutput.GasRemaining,
+			ReturnMessage:        "",
+			SmartContractResults: res.ScResults,
 		}, nil
 	}
 
 	return &transaction.CostResponse{
-		GasUnits:   0,
-		RetMessage: fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
-		Scrs:       res.ScResults,
+		GasUnits:             0,
+		ReturnMessage:        fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
+		SmartContractResults: res.ScResults,
 	}, nil
 }
 
