@@ -870,6 +870,7 @@ func (g *governanceContract) deleteAllVotes(proposal *GeneralProposal) {
 		voteKey := getVoteItemKey(proposal.CommitHash, address)
 		g.eei.SetStorage(voteKey, nil)
 	}
+	proposal.Votes = make([][]byte, 0)
 }
 
 // getConfig returns the curent system smart contract configuration
