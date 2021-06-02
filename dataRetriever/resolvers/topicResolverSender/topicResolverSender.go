@@ -134,7 +134,6 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		numSentIntra = trs.sendOnTopic(fullHistoryPeers, topicToSendRequest, buff, trs.numFullHistoryPeers, "full history peer")
 	}
 
-
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
 	if numSentCross+numSentIntra == 0 {
@@ -172,6 +171,8 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 
 	indexes := createIndexList(len(peerList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
+
+	// TODO: prepend a preferred peer from <trs.targetShardID> shard
 
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
