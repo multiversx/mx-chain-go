@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -153,7 +154,11 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txCostHandler, err := transaction.NewTransactionCostEstimator(
 		txTypeHandler,
 		tpn.EconomicsData,
-		&mock.TransactionSimulatorStub{},
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*dataTransaction.SimulationResults, error) {
+				return &dataTransaction.SimulationResults{}, nil
+			},
+		},
 		tpn.ShardCoordinator.SelfId(),
 	)
 	log.LogIfError(err)
