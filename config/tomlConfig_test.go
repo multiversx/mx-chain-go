@@ -130,6 +130,7 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 	}
+	cfgExpected.VirtualMachine.Querying.OutOfProcessEnabled = true
 
 	testString := `
 [MiniBlocksStorage]
@@ -187,6 +188,7 @@ func TestTomlParser(t *testing.T) {
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
+        OutOfProcessEnabled = true
         ArwenVersions = [
             { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
             { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
