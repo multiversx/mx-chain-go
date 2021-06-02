@@ -150,7 +150,12 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, &mock.TransactionSimulatorStub{})
+	txCostHandler, err := transaction.NewTransactionCostEstimator(
+		txTypeHandler,
+		tpn.EconomicsData,
+		&mock.TransactionSimulatorStub{},
+		tpn.ShardCoordinator.SelfId(),
+	)
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{

@@ -898,7 +898,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	txProcArgs.ScProcessor = scProcessor
 
 	txProcArgs.Accounts = readOnlyAccountsDB
-	txProcArgs.BypassChecks = true
+
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
 		return err
@@ -972,7 +972,6 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		EpochNotifier:    pcf.epochNotifier,
 	}
 
-	argsNewMetaTx.BypassChecks = true
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
 	if err != nil {
 		return err

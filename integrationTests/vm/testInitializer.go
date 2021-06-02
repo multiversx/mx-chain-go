@@ -759,7 +759,6 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	argsNewTxProcessor.Accounts = readOnlyAccountsDB
 
-	argsNewTxProcessor.BypassChecks = true
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -776,6 +775,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		txTypeHandler,
 		economicsData,
 		txSimulator,
+		shardCoordinator.SelfId(),
 	)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err

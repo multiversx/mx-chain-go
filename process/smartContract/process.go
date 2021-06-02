@@ -1457,10 +1457,6 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 
 // taking money from sender, as VM might not have access to him because of state sharding
 func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	if sc.bypassChecks {
-		return nil
-	}
-
 	if check.IfNil(acntSnd) {
 		// transaction was already processed at sender shard
 		return nil
@@ -1571,10 +1567,6 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	gasProvided uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
-	if sc.bypassChecks {
-		return
-	}
-
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
 		return
 	}
@@ -1584,6 +1576,11 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 
 	isTooMuchProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
 	if !isTooMuchProvided {
+		return
+	}
+
+	// this flag is needed for the transaction simulator in order can calculate the cost of a transaction
+	if sc.bypassChecks {
 		return
 	}
 

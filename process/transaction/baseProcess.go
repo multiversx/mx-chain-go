@@ -25,7 +25,6 @@ type baseTxProcessor struct {
 	marshalizer             marshal.Marshalizer
 	scProcessor             process.SmartContractProcessor
 	flagPenalizedTooMuchGas atomic.Flag
-	bypassChecks            bool
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -115,10 +114,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	if txProc.bypassChecks {
-		return nil
-	}
-
 	err := txProc.checkUserNames(tx, acntSnd, acntDst)
 	if err != nil {
 		return err

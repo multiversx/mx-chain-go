@@ -19,7 +19,7 @@ import (
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{})
+	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -28,7 +28,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{})
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -37,7 +37,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, 0)
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
@@ -46,7 +46,7 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{})
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, 0)
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -61,10 +61,17 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return process.MoveBalance, process.MoveBalance
 		},
 	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return consumedGasUnits
 		},
-	}, &mock.TransactionSimulatorStub{})
+	}, &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+			return &transaction.SimulationResults{}, nil
+		},
+	}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -78,17 +85,21 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
 		&mock.TransactionSimulatorStub{
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return &transaction.SimulationResults{
 					VMOutput: &vmcommon.VMOutput{
 						ReturnCode:   vmcommon.Ok,
-						GasRemaining: math.MaxUint64 - consumedGasUnits,
+						GasRemaining: math.MaxUint64 - 1 - consumedGasUnits,
 					},
 				}, nil
 			},
-		})
+		}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -102,12 +113,16 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
 		&mock.TransactionSimulatorStub{
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return nil, localErr
 			},
-		})
+		}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -120,12 +135,16 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
 		&mock.TransactionSimulatorStub{
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return &transaction.SimulationResults{}, nil
 			},
-		})
+		}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -138,7 +157,11 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
-	}, &mock.FeeHandlerStub{},
+	}, &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return math.MaxUint64
+		},
+	},
 		&mock.TransactionSimulatorStub{
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return &transaction.SimulationResults{
@@ -147,7 +170,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 					},
 				}, nil
 			},
-		})
+		}, 0)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -165,7 +188,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 			},
 		},
 		&mock.FeeHandlerStub{},
-		&mock.TransactionSimulatorStub{},
+		&mock.TransactionSimulatorStub{}, 0,
 	)
 
 	tx := &transaction.Transaction{}

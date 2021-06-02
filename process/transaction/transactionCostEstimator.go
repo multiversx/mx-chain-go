@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -13,11 +12,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 )
 
+const dummySignature = "01010101"
+
 type transactionCostEstimator struct {
 	txTypeHandler process.TxTypeHandler
 	feeHandler    process.FeeHandler
-	mutExecution  sync.RWMutex
 	txSimulator   facade.TransactionSimulatorProcessor
+	mutExecution  sync.RWMutex
+	selfShardID   uint32
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
@@ -25,6 +27,7 @@ func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
 	txSimulator facade.TransactionSimulatorProcessor,
+	selfShardID uint32,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -40,6 +43,7 @@ func NewTransactionCostEstimator(
 		txTypeHandler: txTypeHandler,
 		feeHandler:    feeHandler,
 		txSimulator:   txSimulator,
+		selfShardID:   selfShardID,
 	}, nil
 }
 
@@ -51,12 +55,8 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	txType, _ := tce.txTypeHandler.ComputeTransactionType(tx)
 
 	switch txType {
-	case process.MoveBalance:
-		return &transaction.CostResponse{
-			GasUnits: tce.feeHandler.ComputeGasLimit(tx),
-		}, nil
-	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall:
-		return tce.simulateTransactionCost(tx)
+	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
+		return tce.simulateTransactionCost(tx, txType)
 	case process.RelayedTx, process.RelayedTxV2:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
@@ -71,17 +71,8 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	}
 }
 
-func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	if tx.GasLimit == 0 {
-		tx.GasLimit = math.MaxUint64
-	}
-	if tx.GasPrice == 0 {
-		tx.GasPrice = tce.feeHandler.MinGasPrice()
-	}
-
-	if len(tx.Signature) == 0 {
-		tx.Signature = []byte("01010101")
-	}
+func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
+	tce.addMissingFieldsIfNeeded(tx)
 
 	res, err := tce.txSimulator.ProcessTx(tx)
 	if err != nil {
@@ -91,13 +82,28 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		}, nil
 	}
 
+	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
+	if isMoveBalanceOk {
+		return &transaction.CostResponse{
+			GasUnits:   tce.feeHandler.ComputeGasLimit(tx),
+			RetMessage: "",
+		}, nil
+
+	}
+
+	if res.FailReason != "" {
+		return &transaction.CostResponse{
+			GasUnits:   0,
+			RetMessage: res.FailReason,
+		}, nil
+	}
+
 	if res.VMOutput == nil {
 		return &transaction.CostResponse{
 			GasUnits:   0,
 			RetMessage: process.ErrNilVMOutput.Error(),
-			Scrs:       res.ScResults,
+			Scrs:       nil,
 		}, nil
-
 	}
 
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
@@ -113,6 +119,19 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 		RetMessage: fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
 		Scrs:       res.ScResults,
 	}, nil
+}
+
+func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) {
+	if tx.GasLimit == 0 {
+		tx.GasLimit = tce.feeHandler.MaxGasLimitPerBlock(tce.selfShardID) - 1
+	}
+	if tx.GasPrice == 0 {
+		tx.GasPrice = tce.feeHandler.MinGasPrice()
+	}
+
+	if len(tx.Signature) == 0 {
+		tx.Signature = []byte(dummySignature)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
