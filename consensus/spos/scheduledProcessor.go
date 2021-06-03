@@ -84,31 +84,8 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 		processingTime: time.Duration(args.ProcessingTimeMilliSeconds) * time.Millisecond,
 		processor:      args.Processor,
 		status:         processingNotStarted,
-		stopExecution:  make(chan struct{}),
+		stopExecution:  make(chan struct{}, 1),
 	}, nil
-}
-
-func (sp *scheduledProcessorWrapper) computeRemainingProcessingTimeStoppable() time.Duration {
-	select {
-	case <-sp.stopExecution:
-		return 0
-	default:
-		return sp.computeRemainingProcessingTime()
-	}
-}
-
-func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Duration {
-	currTime := sp.syncTimer.CurrentTime()
-
-	sp.RLock()
-	elapsedTime := currTime.Sub(sp.startTime)
-	sp.RUnlock()
-
-	if elapsedTime < 0 {
-		return 0
-	}
-
-	return sp.processingTime - elapsedTime
 }
 
 // ForceStopScheduledExecutionBlocking forces the execution to stop
@@ -126,6 +103,7 @@ func (sp *scheduledProcessorWrapper) ForceStopScheduledExecutionBlocking() {
 		}
 	}
 	sp.setStatus(stopped)
+	sp.emptyStopChannel()
 }
 
 func (sp *scheduledProcessorWrapper) waitForProcessingResultWithTimeout() processingStatus {
@@ -181,6 +159,44 @@ func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.Header
 	}()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (sp *scheduledProcessorWrapper) IsInterfaceNil() bool {
+	return sp == nil
+}
+
+func (sp *scheduledProcessorWrapper) emptyStopChannel() {
+	for {
+		select {
+		case <-sp.stopExecution:
+		default:
+			return
+		}
+	}
+}
+
+func (sp *scheduledProcessorWrapper) computeRemainingProcessingTimeStoppable() time.Duration {
+	select {
+	case <-sp.stopExecution:
+		return 0
+	default:
+		return sp.computeRemainingProcessingTime()
+	}
+}
+
+func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Duration {
+	currTime := sp.syncTimer.CurrentTime()
+
+	sp.RLock()
+	elapsedTime := currTime.Sub(sp.startTime)
+	sp.RUnlock()
+
+	if elapsedTime < 0 {
+		return 0
+	}
+
+	return sp.processingTime - elapsedTime
+}
+
 func (sp *scheduledProcessorWrapper) getStatus() processingStatus {
 	sp.RLock()
 	defer sp.RUnlock()
@@ -212,9 +228,4 @@ func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.Head
 	}
 
 	return sp.processor.ProcessScheduledBlock(header, body, haveTime)
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (sp *scheduledProcessorWrapper) IsInterfaceNil() bool {
-	return sp == nil
 }
