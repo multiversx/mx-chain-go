@@ -181,8 +181,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	defer sr.ScheduledProcessor().ForceStopScheduledExecutionBlocking()
-
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
@@ -312,7 +310,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
-	defer sr.ScheduledProcessor().ForceStopScheduledExecutionBlocking()
 
 	if sr.RoundCanceled {
 		return false

@@ -178,6 +178,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
 		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
 		Bootstrapper:             cc.bootstrapper,
 		BroadcastMessenger:       cc.broadcastMessenger,
 		ConsensusState:           consensusState,
