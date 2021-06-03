@@ -911,9 +911,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
 
-func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *testing.T) {
-	maxDelegationCap := []byte{250}
-	serviceFee := []byte{10}
+func createTestEEIAndDelegationFormMergeValidator() (*delegationManager, *vmContext) {
 	args := createMockArgumentsForDelegationManager()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -929,50 +927,144 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *te
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.ValidatorToDelegation = 100
 	d, _ := NewDelegationManagerSystemSC(args)
-	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
+	return d, eei
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidFunctionCall(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	eei.returnMessage = ""
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
 	d.flagValidatorToDelegation.Unset()
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
+}
 
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidNumArgs(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
 	d.flagValidatorToDelegation.Set()
 
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
 	eei.returnMessage = ""
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallValue.SetUint64(0)
 	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
 	eei.gasRemaining = vmInput.GasProvided
 
-	returnCode = d.Execute(vmInput)
+	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidArgument(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
 
 	eei.returnMessage = ""
-	vmInput.Arguments = [][]byte{[]byte("somearg")}
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{[]byte("somearg")})
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
 	eei.gasRemaining = vmInput.GasProvided
-	returnCode = d.Execute(vmInput)
+
+	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid argument, wanted an address")
+}
 
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListNotWhitelisted(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
 	eei.returnMessage = ""
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
 	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
 	eei.gasRemaining = vmInput.GasProvided
-	returnCode = d.Execute(vmInput)
+
+	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "address is not whitelisted for merge")
+}
 
-	eei.returnMessage = ""
-	eei.gasRemaining = vmInput.GasProvided
-
-	d.eei.SetStorageForAddress(vmInput.CallerAddr, []byte(whitelistedAddress), vmInput.CallerAddr)
-
-	eei.returnMessage = ""
-	eei.gasRemaining = vmInput.GasProvided
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListMissingSmartContract(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	vmInput := prepareVmInputContextAndDelegationManager(d, eei)
 	eei.SetStorage(vmInput.CallerAddr, vmInput.CallerAddr)
-	returnCode = d.Execute(vmInput)
+
+	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, vm.ErrUnknownSystemSmartContract.Error())
+}
+
+func prepareVmInputContextAndDelegationManager(d *delegationManager, eei *vmContext) *vmcommon.ContractCallInput {
+	eei.returnMessage = ""
+	d.flagValidatorToDelegation.Set()
+	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", make([][]byte, 0))
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	vmInput.CallValue.SetUint64(0)
+	vmInput.GasProvided = d.gasCost.MetaChainSystemSCsCost.ValidatorToDelegation
+	eei.gasRemaining = vmInput.GasProvided
+	d.eei.SetStorageForAddress(vmInput.CallerAddr, []byte(whitelistedAddress), vmInput.CallerAddr)
+
+	return vmInput
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListMergeFailShouldErr(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	vmInput := prepareVmInputContextAndDelegationManager(d, eei)
+
+	deleteWhiteListCalled := false
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						if args.Function == deleteWhitelistForMerge {
+							deleteWhiteListCalled = true
+						}
+						if args.Function == mergeValidatorDataToDelegation {
+							return vmcommon.UserError
+						}
+
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.False(t, deleteWhiteListCalled)
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListDeleteWhitelistFailShouldErr(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	vmInput := prepareVmInputContextAndDelegationManager(d, eei)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						if args.Function == deleteWhitelistForMerge {
+							return vmcommon.UserError
+						}
+
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	returnCode := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+}
+
+func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListShouldWork(t *testing.T) {
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	vmInput := prepareVmInputContextAndDelegationManager(d, eei)
 
 	deleteWhiteListCalled := false
 	_ = eei.SetSystemSCContainer(
@@ -988,10 +1080,8 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteList(t *te
 					},
 				}, nil
 			}})
-	eei.returnMessage = ""
-	eei.gasRemaining = vmInput.GasProvided
 
-	returnCode = d.Execute(vmInput)
+	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 	assert.True(t, deleteWhiteListCalled)
 }
