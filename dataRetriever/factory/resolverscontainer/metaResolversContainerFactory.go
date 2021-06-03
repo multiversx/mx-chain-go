@@ -131,15 +131,15 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
-	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+	for idx := uint32(0); idx < shardC.NumberOfShards(); idx++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(idx)
 		resolver, err := mrcf.createTrieNodesResolver(
 			identifierTrieNodes,
 			triesFactory.UserAccountTrie,
 			mrcf.numCrossShardPeers,
 			mrcf.numIntraShardPeers,
 			mrcf.numFullHistoryPeers,
-			i,
+			idx,
 			mrcf.currentNetworkEpochProvider,
 		)
 		if err != nil {
