@@ -1150,7 +1150,7 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
-	sc.vmOutputCacher.Put(txHash, vmcommon.VMOutput{
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
 		ReturnCode:    vmcommon.SimulateFailed,
 		ReturnMessage: string(returnMessage),
 	}, 0)
