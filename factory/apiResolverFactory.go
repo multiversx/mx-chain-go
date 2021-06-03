@@ -116,7 +116,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
 		args.ProcessComponents.TransactionSimulatorProcessor(),
-		args.ProcessComponents.ShardCoordinator().SelfId(),
+		args.StateComponents.AccountsAdapter(),
+		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err

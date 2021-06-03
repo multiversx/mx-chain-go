@@ -131,9 +131,6 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		scProcessor:      args.ScProcessor,
-		shouldCheckBalanceHandler: func() bool {
-			return true
-		},
 	}
 
 	txProc := &txProcessor{

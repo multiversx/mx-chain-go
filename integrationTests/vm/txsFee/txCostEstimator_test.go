@@ -40,7 +40,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
-	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(1000000000))
 
 	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), 0, 0, []byte(arwen.CreateDeployTxData(scCode)))

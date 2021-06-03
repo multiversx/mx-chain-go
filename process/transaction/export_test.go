@@ -64,14 +64,6 @@ func (txProc *txProcessor) ProcessMoveBalanceCostRelayedUserTx(
 	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc)
 }
 
-func (txProc *metaTxProcessor) ShouldCheckBalance() bool {
-	return txProc.shouldCheckBalanceHandler()
-}
-
-func (txProc *txProcessor) ShouldCheckBalance() bool {
-	return txProc.shouldCheckBalanceHandler()
-}
-
 func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 	userTx *transaction.Transaction,
 	relayerAdr []byte,

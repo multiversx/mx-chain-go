@@ -347,15 +347,6 @@ func TestNewSmartContractProcessor(t *testing.T) {
 	require.False(t, sc.IsInterfaceNil())
 }
 
-func TestNewSmartContractProcessor_shouldCheckValuesAlwaysTrue(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	require.True(t, sc.shouldCheckValues())
-}
-
 func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 

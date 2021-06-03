@@ -36,6 +36,9 @@ const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 // TODO: Move to vm-common.
 const upgradeFunctionName = "upgradeContract"
 
+// TooMuchGasProvidedMessage is the message for the too much gas provided error
+const TooMuchGasProvidedMessage = "too much gas provided"
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
@@ -74,9 +77,8 @@ type scProcessor struct {
 	builtInGasCosts map[string]uint64
 	mutGasLock      sync.RWMutex
 
-	txLogsProcessor   process.TransactionLogProcessor
-	vmOutputCacher    storage.Cacher
-	shouldCheckValues func() bool
+	txLogsProcessor process.TransactionLogProcessor
+	vmOutputCacher  storage.Cacher
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -198,9 +200,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 		vmOutputCacher:                      args.VMOutputCacher,
-		shouldCheckValues: func() bool {
-			return true
-		},
 	}
 
 	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
@@ -1458,10 +1457,6 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return err
 	}
 
-	if !sc.shouldCheckValues() {
-		return nil
-	}
-
 	cost := sc.economicsFee.ComputeTxFee(tx)
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
 		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
@@ -1573,10 +1568,6 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	if !sc.shouldCheckValues() {
-		return
-	}
-
 	gasUsed := gasProvided - vmOutput.GasRemaining
 	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
@@ -1600,8 +1591,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
-	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
-		gasUsed, vmOutput.GasRemaining)
+	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
 }
 

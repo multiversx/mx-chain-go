@@ -890,7 +890,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-	scProcessor, err := smartContract.NewSmartContractProcessorSimulate(scProcArgs)
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
 	}
@@ -898,7 +898,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 
 	txProcArgs.Accounts = readOnlyAccountsDB
 
-	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessorSimulate(txProcArgs)
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
 		return err
 	}
@@ -947,7 +947,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
 	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
-	scProcessor, err := smartContract.NewSmartContractProcessorSimulate(scProcArgs)
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
 	}
@@ -970,7 +970,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		EpochNotifier:    pcf.epochNotifier,
 	}
 
-	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessorSimulate(argsNewMetaTx)
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
 	if err != nil {
 		return err
 	}

@@ -159,7 +159,8 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 				return &dataTransaction.SimulationResults{}, nil
 			},
 		},
-		tpn.ShardCoordinator.SelfId(),
+		tpn.AccntState,
+		tpn.ShardCoordinator,
 	)
 	log.LogIfError(err)
 

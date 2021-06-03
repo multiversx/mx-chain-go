@@ -19,7 +19,7 @@ import (
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, 0)
+	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -28,7 +28,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, 0)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -37,7 +37,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, 0)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
@@ -46,7 +46,7 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, 0)
+	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -71,7 +71,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 			return &transaction.SimulationResults{}, nil
 		},
-	}, 0)
+	}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -99,7 +99,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 					},
 				}, nil
 			},
-		}, 0)
+		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -122,7 +122,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return nil, localErr
 			},
-		}, 0)
+		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -144,7 +144,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return &transaction.SimulationResults{}, nil
 			},
-		}, 0)
+		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -170,7 +170,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 					},
 				}, nil
 			},
-		}, 0)
+		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -188,11 +188,18 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 			},
 		},
 		&mock.FeeHandlerStub{},
-		&mock.TransactionSimulatorStub{}, 0,
+		&mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{},
 	)
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
 	require.Equal(t, "cannot compute cost of the relayed transaction", cost.ReturnMessage)
+}
+func TestExtractGasNeededFromMessage(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = 500000000"))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage(""))
+	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas remained = wrong"))
 }

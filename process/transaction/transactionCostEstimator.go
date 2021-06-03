@@ -2,24 +2,31 @@ package transaction
 
 import (
 	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 const dummySignature = "01010101"
 
 type transactionCostEstimator struct {
-	txTypeHandler process.TxTypeHandler
-	feeHandler    process.FeeHandler
-	txSimulator   facade.TransactionSimulatorProcessor
-	mutExecution  sync.RWMutex
-	selfShardID   uint32
+	accounts         state.AccountsAdapter
+	shardCoordinator sharding.Coordinator
+	txTypeHandler    process.TxTypeHandler
+	feeHandler       process.FeeHandler
+	txSimulator      facade.TransactionSimulatorProcessor
+	mutExecution     sync.RWMutex
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
@@ -27,7 +34,8 @@ func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
 	txSimulator facade.TransactionSimulatorProcessor,
-	selfShardID uint32,
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -38,12 +46,19 @@ func NewTransactionCostEstimator(
 	if check.IfNil(txSimulator) {
 		return nil, txsimulator.ErrNilTxSimulatorProcessor
 	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
 
 	return &transactionCostEstimator{
-		txTypeHandler: txTypeHandler,
-		feeHandler:    feeHandler,
-		txSimulator:   txSimulator,
-		selfShardID:   selfShardID,
+		txTypeHandler:    txTypeHandler,
+		feeHandler:       feeHandler,
+		txSimulator:      txSimulator,
+		accounts:         accounts,
+		shardCoordinator: shardCoordinator,
 	}, nil
 }
 
@@ -108,7 +123,7 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 
 	if res.VMOutput.ReturnCode == vmcommon.Ok {
 		return &transaction.CostResponse{
-			GasUnits:             tx.GasLimit - res.VMOutput.GasRemaining,
+			GasUnits:             computeGasUnitsBasedOnVMOutput(tx, res.VMOutput),
 			ReturnMessage:        "",
 			SmartContractResults: res.ScResults,
 		}, nil
@@ -121,9 +136,32 @@ func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Tra
 	}, nil
 }
 
+func computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
+	isTooMuchGasProvided := strings.Contains(vmOutput.ReturnMessage, smartContract.TooMuchGasProvidedMessage)
+	if !isTooMuchGasProvided {
+		return tx.GasLimit - vmOutput.GasRemaining
+	}
+
+	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage)
+}
+
+func extractGasRemainedFromMessage(message string) uint64 {
+	splitMessage := strings.Split(message, "gas remained = ")
+	if len(splitMessage) < 2 {
+		return 0
+	}
+
+	gasValue, err := strconv.ParseUint(splitMessage[1], 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return gasValue
+}
+
 func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) {
 	if tx.GasLimit == 0 {
-		tx.GasLimit = tce.feeHandler.MaxGasLimitPerBlock(tce.selfShardID) - 1
+		tx.GasLimit = tce.getTxGasLimit(tx.SndAddr)
 	}
 	if tx.GasPrice == 0 {
 		tx.GasPrice = tce.feeHandler.MinGasPrice()
@@ -132,6 +170,37 @@ func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Tr
 	if len(tx.Signature) == 0 {
 		tx.Signature = []byte(dummySignature)
 	}
+}
+
+func (tce *transactionCostEstimator) getTxGasLimit(txSender []byte) (gasLimit uint64) {
+	selfShardID := tce.shardCoordinator.SelfId()
+	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
+
+	gasLimit = maxGasLimitPerBlock
+
+	senderShardID := tce.shardCoordinator.ComputeId(txSender)
+	if tce.shardCoordinator.SelfId() != senderShardID {
+		return
+	}
+
+	accountHandler, err := tce.accounts.LoadAccount(txSender)
+	if err != nil || accountHandler == nil {
+		return
+	}
+
+	accountSender, ok := accountHandler.(state.UserAccountHandler)
+	if !ok {
+		return
+	}
+
+	maxGasLimitPerBlockBig := big.NewInt(0).SetUint64(maxGasLimitPerBlock)
+	accountSenderBalance := accountSender.GetBalance()
+	if accountSenderBalance.Cmp(maxGasLimitPerBlockBig) < 0 {
+		gasLimit = accountSenderBalance.Uint64()
+		return
+	}
+
+	return
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
