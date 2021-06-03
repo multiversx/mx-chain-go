@@ -97,10 +97,8 @@ func (sp *scheduledProcessorWrapper) ForceStopScheduledExecutionBlocking() {
 
 	sp.stopExecution <- struct{}{}
 	for status == inProgress {
-		select {
-		case <-time.After(processingCheckStep):
-			status = sp.getStatus()
-		}
+		time.Sleep(processingCheckStep)
+		status = sp.getStatus()
 	}
 	sp.setStatus(stopped)
 	sp.emptyStopChannel()
