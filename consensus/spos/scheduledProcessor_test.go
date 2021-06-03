@@ -20,6 +20,7 @@ func TestProcessingStatus_String(t *testing.T) {
 	require.Equal(t, processingErrorString, processingError.String())
 	require.Equal(t, inProgressString, inProgress.String())
 	require.Equal(t, processingOKString, processingOK.String())
+	require.Equal(t, stoppedString, stopped.String())
 }
 
 func TestNewScheduledProcessorWrapper_NilSyncTimerShouldErr(t *testing.T) {

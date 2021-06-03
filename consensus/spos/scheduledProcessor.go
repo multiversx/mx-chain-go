@@ -88,6 +88,15 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 	}, nil
 }
 
+func (sp *scheduledProcessorWrapper) computeRemainingProcessingTimeStoppable() time.Duration {
+	select {
+	case <-sp.stopExecution:
+		return 0
+	default:
+		return sp.computeRemainingProcessingTime()
+	}
+}
+
 func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Duration {
 	currTime := sp.syncTimer.CurrentTime()
 
@@ -117,15 +126,6 @@ func (sp *scheduledProcessorWrapper) ForceStopScheduledExecutionBlocking() {
 		}
 	}
 	sp.setStatus(stopped)
-}
-
-func (sp *scheduledProcessorWrapper) computeRemainingProcessingTimeStoppable() time.Duration {
-	select {
-	case <-sp.stopExecution:
-		return 0
-	default:
-		return sp.computeRemainingProcessingTime()
-	}
 }
 
 func (sp *scheduledProcessorWrapper) waitForProcessingResultWithTimeout() processingStatus {

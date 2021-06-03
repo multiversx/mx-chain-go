@@ -144,7 +144,7 @@ type NodeRedundancyHandler interface {
 // ScheduledProcessor encapsulates the scheduled processor functionality required by consensus module
 type ScheduledProcessor interface {
 	StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler)
-	//ForceStopScheduledExecutionBlocking()
+	ForceStopScheduledExecutionBlocking()
 	IsProcessedOKWithTimeout() bool
 	IsInterfaceNil() bool
 }
