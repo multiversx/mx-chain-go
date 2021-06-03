@@ -188,7 +188,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	ok := sr.ConsensusCoreHandler.ScheduledProcessor().IsProcessedOK()
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	if !ok {
 		return false
 	}
@@ -347,6 +347,11 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	if sr.isOutOfTime() {
+		return false
+	}
+
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	if !ok {
 		return false
 	}
 

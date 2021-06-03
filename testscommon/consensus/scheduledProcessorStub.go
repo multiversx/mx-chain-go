@@ -15,8 +15,12 @@ func (sps *ScheduledProcessorStub) StartScheduledProcessing(header data.HeaderHa
 	}
 }
 
-// IsProcessedOK -
-func (sps *ScheduledProcessorStub) IsProcessedOK() bool {
+// ForceStopScheduledExecutionBlocking -
+func (sps *ScheduledProcessorStub) ForceStopScheduledExecutionBlocking() {
+}
+
+// IsProcessedOKWithTimeout -
+func (sps *ScheduledProcessorStub) IsProcessedOKWithTimeout() bool {
 	if sps.IsProcessedOKCalled != nil {
 		return sps.IsProcessedOKCalled()
 	}

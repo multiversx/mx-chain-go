@@ -17,11 +17,13 @@ const (
 	processingError      processingStatus = 1
 	inProgress           processingStatus = 2
 	processingOK         processingStatus = 3
+	stopped              processingStatus = 4
 
 	processingNotStartedString = "processing not started"
 	processingErrorString      = "processing error"
 	inProgressString           = "processing in progress"
 	processingOKString         = "processing OK"
+	stoppedString              = "processing stopped"
 	unexpectedString           = "unexpected"
 
 	processingCheckStep = 10 * time.Millisecond
@@ -38,6 +40,8 @@ func (ps processingStatus) String() string {
 		return inProgressString
 	case processingOK:
 		return processingOKString
+	case stopped:
+		return stoppedString
 	default:
 		return unexpectedString
 	}
@@ -54,12 +58,13 @@ type scheduledProcessorWrapper struct {
 	syncTimer      ntp.SyncTimer
 	processingTime time.Duration
 	processor      process.ScheduledBlockProcessor
+	startTime      time.Time
 
-	startTime time.Time
-	status    processingStatus
+	status processingStatus
 	sync.RWMutex
 
-	oneInstance sync.RWMutex
+	stopExecution chan struct{}
+	oneInstance   sync.RWMutex
 }
 
 // NewScheduledProcessorWrapper creates a new processor for scheduled transactions
@@ -79,6 +84,7 @@ func NewScheduledProcessorWrapper(args ScheduledProcessorWrapperArgs) (*schedule
 		processingTime: time.Duration(args.ProcessingTimeMilliSeconds) * time.Millisecond,
 		processor:      args.Processor,
 		status:         processingNotStarted,
+		stopExecution:  make(chan struct{}),
 	}, nil
 }
 
@@ -96,7 +102,33 @@ func (sp *scheduledProcessorWrapper) computeRemainingProcessingTime() time.Durat
 	return sp.processingTime - elapsedTime
 }
 
-func (sp *scheduledProcessorWrapper) waitForProcessingResult() processingStatus {
+// ForceStopScheduledExecutionBlocking forces the execution to stop
+func (sp *scheduledProcessorWrapper) ForceStopScheduledExecutionBlocking() {
+	status := sp.getStatus()
+	if status != inProgress {
+		return
+	}
+
+	sp.stopExecution <- struct{}{}
+	for status == inProgress {
+		select {
+		case <-time.After(processingCheckStep):
+			status = sp.getStatus()
+		}
+	}
+	sp.setStatus(stopped)
+}
+
+func (sp *scheduledProcessorWrapper) computeRemainingProcessingTimeStoppable() time.Duration {
+	select {
+	case <-sp.stopExecution:
+		return 0
+	default:
+		return sp.computeRemainingProcessingTime()
+	}
+}
+
+func (sp *scheduledProcessorWrapper) waitForProcessingResultWithTimeout() processingStatus {
 	status := sp.getStatus()
 	for status == inProgress {
 		remainingExecutionTime := sp.computeRemainingProcessingTime()
@@ -112,13 +144,13 @@ func (sp *scheduledProcessorWrapper) waitForProcessingResult() processingStatus 
 	return status
 }
 
-// IsProcessedOK returns true if the scheduled processing was finalized without error
+// IsProcessedOKWithTimeout returns true if the scheduled processing was finalized without error
 // Function is blocking until the allotted time for processing is finished
-func (sp *scheduledProcessorWrapper) IsProcessedOK() bool {
-	status := sp.waitForProcessingResult()
+func (sp *scheduledProcessorWrapper) IsProcessedOKWithTimeout() bool {
+	status := sp.waitForProcessingResultWithTimeout()
 
 	processedOK := status == processingOK
-	log.Debug("scheduledProcessorWrapper.IsProcessedOK", "status", status.String())
+	log.Debug("scheduledProcessorWrapper.IsProcessedOKWithTimeout", "status", status.String())
 	return processedOK
 }
 
@@ -176,7 +208,7 @@ func (sp *scheduledProcessorWrapper) processScheduledMiniBlocks(header data.Head
 	sp.Unlock()
 
 	haveTime := func() time.Duration {
-		return sp.computeRemainingProcessingTime()
+		return sp.computeRemainingProcessingTimeStoppable()
 	}
 
 	return sp.processor.ProcessScheduledBlock(header, body, haveTime)

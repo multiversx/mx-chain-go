@@ -122,7 +122,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendBlockBodyAndHeader(header, body, marshalizedBody, marshalizedHeader)
+		return sr.sendHeaderAndBlockBody(header, body, marshalizedBody, marshalizedHeader)
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
@@ -160,8 +160,8 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 	return finalHeader, blockBody, nil
 }
 
-// sendBlockBodyAndHeader method sends the proposed block body and header in the subround Block
-func (sr *subroundBlock) sendBlockBodyAndHeader(
+// sendHeaderAndBlockBody method sends the proposed header and block body in the subround Block
+func (sr *subroundBlock) sendHeaderAndBlockBody(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	marshalizedBody []byte,
@@ -187,7 +187,7 @@ func (sr *subroundBlock) sendBlockBodyAndHeader(
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("sendBlockBodyAndHeader.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("sendHeaderAndBlockBody.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 

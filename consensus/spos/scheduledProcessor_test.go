@@ -82,15 +82,15 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 	sp, err := NewScheduledProcessorWrapper(args)
 	require.Nil(t, err)
 
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	require.False(t, called.IsSet())
 
 	sp.setStatus(processingOK)
-	require.True(t, sp.IsProcessedOK())
+	require.True(t, sp.IsProcessedOKWithTimeout())
 	require.False(t, called.IsSet())
 
 	sp.setStatus(processingError)
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	require.False(t, called.IsSet())
 }
 
@@ -114,11 +114,11 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressNegativeRemainingTime(t 
 	require.Nil(t, err)
 
 	sp.setStatus(inProgress)
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 
 	startTime := time.Now()
-	sp.startTime = startTime.Add(-200*time.Millisecond)
-	require.False(t, sp.IsProcessedOK())
+	sp.startTime = startTime.Add(-200 * time.Millisecond)
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(startTime)
 	require.Less(t, timeSpent, sp.processingTime)
@@ -134,7 +134,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressStartingInFuture(t *test
 	sp.setStatus(inProgress)
 	startTime := time.Now()
 	sp.startTime = startTime.Add(10 * time.Millisecond)
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	require.Less(t, endTime.Sub(startTime), time.Millisecond)
 }
@@ -149,10 +149,10 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletion(t *testi
 	sp.setStatus(inProgress)
 	sp.startTime = time.Now()
 	go func() {
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		sp.setStatus(processingOK)
 	}()
-	require.True(t, sp.IsProcessedOK())
+	require.True(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(sp.startTime)
 	require.Less(t, timeSpent, sp.processingTime)
@@ -168,10 +168,10 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressEarlyCompletionWithError
 	sp.setStatus(inProgress)
 	sp.startTime = time.Now()
 	go func() {
-		time.Sleep(10*time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		sp.setStatus(processingError)
 	}()
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	timeSpent := endTime.Sub(sp.startTime)
 	require.Less(t, timeSpent, sp.processingTime)
@@ -187,7 +187,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressAlreadyStartedNoCompleti
 	sp.setStatus(inProgress)
 	startTime := time.Now()
 	sp.startTime = startTime.Add(-10 * time.Millisecond)
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	require.Less(t, endTime.Sub(startTime), sp.processingTime)
 	require.Greater(t, endTime.Sub(startTime), sp.processingTime-10*time.Millisecond)
@@ -202,7 +202,7 @@ func TestScheduledProcessorWrapper_IsProcessedInProgressTimeout(t *testing.T) {
 
 	sp.setStatus(inProgress)
 	sp.startTime = time.Now()
-	require.False(t, sp.IsProcessedOK())
+	require.False(t, sp.IsProcessedOKWithTimeout())
 	endTime := time.Now()
 	require.Greater(t, endTime.Sub(sp.startTime), sp.processingTime)
 }
@@ -309,4 +309,79 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 	time.Sleep(100 * time.Millisecond)
 	require.True(t, processScheduledCalled.IsSet())
 	require.Equal(t, processingOK, sp.getStatus())
+}
+
+func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(t *testing.T) {
+	t.Parallel()
+
+	processScheduledCalled := atomic.Flag{}
+
+	args := ScheduledProcessorWrapperArgs{
+		SyncTimer: &mock.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				return time.Now()
+			},
+		},
+		Processor: &mock.BlockProcessorMock{
+			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				processScheduledCalled.Set()
+				for {
+					<-time.After(time.Millisecond)
+					remainingTime := haveTime()
+					if remainingTime == 0 {
+						return errors.New("timeout")
+					}
+				}
+			},
+		},
+		ProcessingTimeMilliSeconds: 10,
+	}
+
+	spw, err := NewScheduledProcessorWrapper(args)
+	require.Nil(t, err)
+
+	hdr := &block.HeaderV2{}
+	blkBody := &block.Body{}
+	spw.StartScheduledProcessing(hdr, blkBody)
+	time.Sleep(time.Second)
+	startTime := time.Now()
+	spw.ForceStopScheduledExecutionBlocking()
+	endTime := time.Now()
+	status := spw.getStatus()
+	require.True(t, processScheduledCalled.IsSet())
+	require.Equal(t, stopped, status, status.String())
+	require.Less(t, 10 * time.Millisecond, endTime.Sub(startTime))
+}
+
+func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfterProcessingEnded(t *testing.T) {
+	t.Parallel()
+
+	processScheduledCalled := atomic.Flag{}
+	args := ScheduledProcessorWrapperArgs{
+		SyncTimer: &mock.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				return time.Now()
+			},
+		},
+		Processor: &mock.BlockProcessorMock{
+			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				processScheduledCalled.Set()
+				<-time.After(time.Millisecond)
+				return nil
+			},
+		},
+		ProcessingTimeMilliSeconds: 10,
+	}
+
+	spw, err := NewScheduledProcessorWrapper(args)
+	require.Nil(t, err)
+
+	hdr := &block.HeaderV2{}
+	blkBody := &block.Body{}
+	spw.StartScheduledProcessing(hdr, blkBody)
+	time.Sleep(2 * time.Millisecond)
+	spw.ForceStopScheduledExecutionBlocking()
+	status := spw.getStatus()
+	require.True(t, processScheduledCalled.IsSet())
+	require.Equal(t, processingOK, status, status.String())
 }
