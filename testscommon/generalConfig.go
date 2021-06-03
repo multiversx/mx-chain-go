@@ -319,6 +319,11 @@ func GetGeneralConfig() config.Config {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
+		},
 	}
 }
 

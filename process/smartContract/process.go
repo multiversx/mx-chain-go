@@ -324,13 +324,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	var vmOutput *vmcommon.VMOutput
-
-	defer func() {
-		sc.vmOutputCacher.Put(txHash, vmOutput, 0)
-	}()
-
-	vmOutput, err = sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
 	if err != nil {
 		return returnCode, err
 	}
@@ -429,6 +423,8 @@ func (sc *scProcessor) finishSCExecution(
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return vmcommon.Ok, nil
 }
@@ -774,10 +770,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	var vmOutput *vmcommon.VMOutput
-	defer func() {
-		sc.vmOutputCacher.HasOrAdd(txHash, vmOutput, 0)
-	}()
-
 	vmOutput, err = sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
@@ -821,11 +813,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, snapshot)
-
-	defer func() {
-		sc.vmOutputCacher.Put(txHash, newVMOutput, 0)
-	}()
-
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
@@ -1163,6 +1150,11 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
+	sc.vmOutputCacher.Put(txHash, vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+	}, 0)
+
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
@@ -1348,11 +1340,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
-
-	defer func() {
-		sc.vmOutputCacher.Put(txHash, vmOutput, 0)
-	}()
-
 	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
@@ -1420,6 +1407,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return 0, nil
 }
