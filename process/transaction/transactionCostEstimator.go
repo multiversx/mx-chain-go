@@ -195,7 +195,7 @@ func (tce *transactionCostEstimator) getTxGasLimit(txSender []byte) (gasLimit ui
 
 	maxGasLimitPerBlockBig := big.NewInt(0).SetUint64(maxGasLimitPerBlock)
 	accountSenderBalance := accountSender.GetBalance()
-	if accountSenderBalance.Cmp(maxGasLimitPerBlockBig) < 0 {
+	if accountSenderBalance.Cmp(maxGasLimitPerBlockBig) < 0 && accountSenderBalance.Uint64() != 0 {
 		gasLimit = accountSenderBalance.Uint64()
 		return
 	}
