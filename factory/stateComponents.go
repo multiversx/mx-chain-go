@@ -73,6 +73,28 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		return nil, fmt.Errorf("%w for ValidatorPubkeyConverter: %s", ErrPubKeyConverterCreation, err.Error())
 	}
 
+	accountsAdapter, accountsAdapterAPI, err := scf.createAccountsAdapters()
+	if err != nil {
+		return nil, err
+	}
+
+	accountFactory := factoryState.NewPeerAccountCreator()
+	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
+	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StateComponents{
+		PeerAccounts:             peerAdapter,
+		AddressPubkeyConverter:   processPubkeyConverter,
+		ValidatorPubkeyConverter: validatorPubkeyConverter,
+		AccountsAdapter:          accountsAdapter,
+		AccountsAdapterAPI:       accountsAdapterAPI,
+	}, nil
+}
+
+func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
 	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
 	trieStorageCfg := scf.config.AccountsTrieStorage
 	trieStoragePath, _ := path.Split(scf.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
@@ -87,12 +109,12 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 	}
 	evictionDb, err := storageUnit.NewDB(arg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, scf.core.InternalMarshalizer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	accountFactory := factoryState.NewAccountCreator()
@@ -102,7 +124,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		scf.config.TrieStorageManagerConfig.PruningBufferLen,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	accountsAdapter, err := state.NewAccountsDB(
@@ -113,7 +135,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		storagePruning,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountsAdapterAPI, err := state.NewAccountsDB(
@@ -124,21 +146,8 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		storagePruning,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
-	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return &StateComponents{
-		PeerAccounts:             peerAdapter,
-		AddressPubkeyConverter:   processPubkeyConverter,
-		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		AccountsAdapter:          accountsAdapter,
-		AccountsAdapterAPI:       accountsAdapterAPI,
-	}, nil
+	return accountsAdapter, accountsAdapterAPI, nil
 }
