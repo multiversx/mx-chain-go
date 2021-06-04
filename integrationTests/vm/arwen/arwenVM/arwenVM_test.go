@@ -310,6 +310,8 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
 			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
 			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
 		},
 	}
@@ -326,14 +328,10 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 	err = runERC20TransactionSet(testContext)
 	require.Nil(t, err)
 
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(0))
-	_ = runERC20TransactionSet(testContext)
-
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(1))
-	_ = runERC20TransactionSet(testContext)
-
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(4))
-	_ = runERC20TransactionSet(testContext)
+	for _, versionConfig := range vmConfig.ArwenVersions {
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
+		_ = runERC20TransactionSet(testContext)
+	}
 }
 
 func runERC20TransactionSet(testContext *vm.VMTestContext) error {
