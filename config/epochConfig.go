@@ -37,7 +37,6 @@ type EnableEpochs struct {
 	CorrectLastUnjailedEnableEpoch         uint32
 	BalanceWaitingListsEnableEpoch         uint32
 	ReturnDataToLastTransferEnableEpoch    uint32
-	ArwenESDTFunctionsEnableEpoch          uint32
 	SenderInOutTransferEnableEpoch         uint32
 	RelayedTransactionsV2EnableEpoch       uint32
 	UnbondTokensV2EnableEpoch              uint32

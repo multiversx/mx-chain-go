@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	syncGo "sync"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -84,6 +85,7 @@ func NewTestSyncNode(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &syncGo.RWMutex{},
 	}
 
 	kg := &mock.KeyGenMock{}

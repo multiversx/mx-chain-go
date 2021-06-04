@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -82,6 +83,7 @@ type TestContext struct {
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
+	ArwenChangeLocker process.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -122,6 +124,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
 
@@ -258,7 +261,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              context.ArwenChangeLocker,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -303,10 +306,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker: context.ArwenChangeLocker,
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

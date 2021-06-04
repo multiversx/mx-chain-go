@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"sync"
 
 	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
@@ -26,40 +25,35 @@ import (
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
-// GlobalVMFactoryRWLock ensures that no VMs are initialized while VMQueries are running.
-var GlobalVMFactoryRWLock = &sync.RWMutex{}
-
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
-	config                               config.VirtualMachineConfig
-	blockChainHookImpl                   *hooks.BlockChainHookImpl
-	cryptoHook                           vmcommon.CryptoHook
-	blockGasLimit                        uint64
-	gasSchedule                          core.GasScheduleNotifier
-	builtinFunctions                     vmcommon.FunctionNames
-	epochNotifier                        process.EpochNotifier
-	deployEnableEpoch                    uint32
-	aheadOfTimeGasUsageEnableEpoch       uint32
-	arwenV3EnableEpoch                   uint32
-	ArwenESDTFunctionsEnableEpoch        uint32
-	ArwenGasManagementRewriteEnableEpoch uint32
-	container                            process.VirtualMachinesContainer
-	arwenVersions                        []config.ArwenVersionByEpoch
+	config                         config.VirtualMachineConfig
+	blockChainHookImpl             *hooks.BlockChainHookImpl
+	cryptoHook                     vmcommon.CryptoHook
+	blockGasLimit                  uint64
+	gasSchedule                    core.GasScheduleNotifier
+	builtinFunctions               vmcommon.FunctionNames
+	epochNotifier                  process.EpochNotifier
+	deployEnableEpoch              uint32
+	aheadOfTimeGasUsageEnableEpoch uint32
+	arwenV3EnableEpoch             uint32
+	container                      process.VirtualMachinesContainer
+	arwenVersions                  []config.ArwenVersionByEpoch
+	arwenChangeLocker              process.Locker
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
 type ArgVMContainerFactory struct {
-	Config                               config.VirtualMachineConfig
-	BlockGasLimit                        uint64
-	GasSchedule                          core.GasScheduleNotifier
-	ArgBlockChainHook                    hooks.ArgBlockChainHook
-	EpochNotifier                        process.EpochNotifier
-	DeployEnableEpoch                    uint32
-	AheadOfTimeGasUsageEnableEpoch       uint32
-	ArwenV3EnableEpoch                   uint32
-	ArwenESDTFunctionsEnableEpoch        uint32
-	ArwenGasManagementRewriteEnableEpoch uint32
+	Config                         config.VirtualMachineConfig
+	BlockGasLimit                  uint64
+	GasSchedule                    core.GasScheduleNotifier
+	ArgBlockChainHook              hooks.ArgBlockChainHook
+	EpochNotifier                  process.EpochNotifier
+	DeployEnableEpoch              uint32
+	AheadOfTimeGasUsageEnableEpoch uint32
+	ArwenV3EnableEpoch             uint32
+	ArwenChangeLocker              process.Locker
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -69,6 +63,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
+	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, process.ErrNilLocker
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
@@ -80,19 +77,18 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
 	vmf := &vmContainerFactory{
-		config:                               args.Config,
-		blockChainHookImpl:                   blockChainHookImpl,
-		cryptoHook:                           cryptoHook,
-		blockGasLimit:                        args.BlockGasLimit,
-		gasSchedule:                          args.GasSchedule,
-		builtinFunctions:                     builtinFunctions,
-		epochNotifier:                        args.EpochNotifier,
-		deployEnableEpoch:                    args.DeployEnableEpoch,
-		aheadOfTimeGasUsageEnableEpoch:       args.AheadOfTimeGasUsageEnableEpoch,
-		arwenV3EnableEpoch:                   args.ArwenV3EnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:        args.ArwenESDTFunctionsEnableEpoch,
-		ArwenGasManagementRewriteEnableEpoch: args.ArwenGasManagementRewriteEnableEpoch,
-		container:                            nil,
+		config:                         args.Config,
+		blockChainHookImpl:             blockChainHookImpl,
+		cryptoHook:                     cryptoHook,
+		blockGasLimit:                  args.BlockGasLimit,
+		gasSchedule:                    args.GasSchedule,
+		builtinFunctions:               builtinFunctions,
+		epochNotifier:                  args.EpochNotifier,
+		deployEnableEpoch:              args.DeployEnableEpoch,
+		aheadOfTimeGasUsageEnableEpoch: args.AheadOfTimeGasUsageEnableEpoch,
+		arwenV3EnableEpoch:             args.ArwenV3EnableEpoch,
+		container:                      nil,
+		arwenChangeLocker:              args.ArwenChangeLocker,
 	}
 
 	vmf.arwenVersions = args.Config.ArwenVersions
@@ -142,8 +138,8 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
-	GlobalVMFactoryRWLock.Lock()
-	defer GlobalVMFactoryRWLock.Unlock()
+	vmf.arwenChangeLocker.Lock()
+	defer vmf.arwenChangeLocker.Unlock()
 
 	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
 	currentVM, err := vmf.createArwenVM(version)
@@ -188,8 +184,8 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 		return
 	}
 
-	GlobalVMFactoryRWLock.Lock()
-	defer GlobalVMFactoryRWLock.Unlock()
+	vmf.arwenChangeLocker.Lock()
+	defer vmf.arwenChangeLocker.Unlock()
 
 	vmf.closePreviousVM(currentArwenVM)
 	newArwenVM, err := vmf.createArwenVM(newVersion)
