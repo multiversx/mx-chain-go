@@ -336,6 +336,8 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
 		_ = runERC20TransactionSet(testContext)
 	}
+
+	_ = runERC20TransactionSet(testContext)
 }
 
 func runERC20TransactionSet(testContext *vm.VMTestContext) error {
