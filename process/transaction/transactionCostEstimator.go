@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"fmt"
-	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -148,11 +147,13 @@ func computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcom
 func extractGasRemainedFromMessage(message string) uint64 {
 	splitMessage := strings.Split(message, "gas remained = ")
 	if len(splitMessage) < 2 {
+		log.Warn("extractGasRemainedFromMessage", "error", "cannot split message")
 		return 0
 	}
 
 	gasValue, err := strconv.ParseUint(splitMessage[1], 10, 64)
 	if err != nil {
+		log.Warn("extractGasRemainedFromMessage", "error", err.Error())
 		return 0
 	}
 
@@ -161,7 +162,7 @@ func extractGasRemainedFromMessage(message string) uint64 {
 
 func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) {
 	if tx.GasLimit == 0 {
-		tx.GasLimit = tce.getTxGasLimit(tx.SndAddr)
+		tx.GasLimit = tce.getTxGasLimit(tx)
 	}
 	if tx.GasPrice == 0 {
 		tx.GasPrice = tce.feeHandler.MinGasPrice()
@@ -172,18 +173,18 @@ func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Tr
 	}
 }
 
-func (tce *transactionCostEstimator) getTxGasLimit(txSender []byte) (gasLimit uint64) {
+func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (gasLimit uint64) {
 	selfShardID := tce.shardCoordinator.SelfId()
 	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
 
 	gasLimit = maxGasLimitPerBlock
 
-	senderShardID := tce.shardCoordinator.ComputeId(txSender)
+	senderShardID := tce.shardCoordinator.ComputeId(tx.SndAddr)
 	if tce.shardCoordinator.SelfId() != senderShardID {
 		return
 	}
 
-	accountHandler, err := tce.accounts.LoadAccount(txSender)
+	accountHandler, err := tce.accounts.LoadAccount(tx.SndAddr)
 	if err != nil || accountHandler == nil {
 		return
 	}
@@ -193,9 +194,10 @@ func (tce *transactionCostEstimator) getTxGasLimit(txSender []byte) (gasLimit ui
 		return
 	}
 
-	maxGasLimitPerBlockBig := big.NewInt(0).SetUint64(maxGasLimitPerBlock)
 	accountSenderBalance := accountSender.GetBalance()
-	if accountSenderBalance.Cmp(maxGasLimitPerBlockBig) < 0 && accountSenderBalance.Uint64() != 0 {
+	tx.GasLimit = maxGasLimitPerBlock
+	txFee := tce.feeHandler.ComputeTxFee(tx)
+	if accountSenderBalance.Cmp(txFee) < 0 && accountSenderBalance.Uint64() != 0 {
 		gasLimit = accountSenderBalance.Uint64()
 		return
 	}

@@ -74,5 +74,5 @@ const (
 	UpgradeFailed ReturnCode = 11
 
 	// SimulateFailed is returned when the simulation of a smart contract transaction has failed
-	SimulateFailed ReturnCode = 99
+	SimulateFailed ReturnCode = 12
 )
