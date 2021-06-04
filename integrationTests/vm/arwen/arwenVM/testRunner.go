@@ -187,31 +187,20 @@ func DeployAndExecuteERC20WithBigInt(
 		return nil, fmt.Errorf("return code on init is not Ok, but %s", returnCode.String())
 	}
 
-	benchmarks := make([]time.Duration, 0, numRun)
-	for batch := 0; batch < numRun; batch++ {
-		start := time.Now()
-
-		for i := 0; i < numTransferInBatch; i++ {
-			tx = vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
-
-			returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
-			if err != nil {
-				return nil, err
-			}
-			if returnCode != vmcommon.Ok {
-				return nil, fmt.Errorf("return code on transfer erc20 token is not Ok, but %s", returnCode.String())
-			}
-			aliceNonce++
-		}
-
-		benchmarks = append(benchmarks, time.Since(start))
-
-		_, err = testContext.Accounts.Commit()
-		if err != nil {
-			return nil, err
-		}
-
-		testContext.CreateBlockStarted()
+	benchmarks, err := runERC20TransactionsWithBenchmarks(
+		testContext,
+		numRun,
+		numTransferInBatch,
+		alice,
+		bob,
+		aliceNonce,
+		initAlice,
+		scAddress,
+		functionName,
+		transferOnCalls,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
@@ -227,6 +216,183 @@ func DeployAndExecuteERC20WithBigInt(
 	}
 
 	return benchmarks, nil
+}
+
+func setupERC20Test(
+	testContext *vm.VMTestContext,
+	contractCodeFile string,
+) error {
+	var err error
+
+	largeNumber := big.NewInt(1000000000000000)
+
+	testContext.ContractOwner.Address = []byte("12345678901234567890123456789011")
+	testContext.ContractOwner.Nonce = 11
+	testContext.ContractOwner.Balance = largeNumber
+	testContext.CreateAccount(&testContext.ContractOwner)
+
+	testContext.Contract.Address, err = testContext.BlockchainHook.NewAddress(
+		testContext.ContractOwner.Address,
+		testContext.ContractOwner.Nonce,
+		factory.ArwenVirtualMachine,
+	)
+	if err != nil {
+		return err
+	}
+
+	scCode := arwen.GetSCCode(contractCodeFile)
+	initialSupply := "00" + hex.EncodeToString(largeNumber.Bytes())
+	gasPrice := uint64(1)
+	tx := vm.CreateDeployTx(
+		testContext.ContractOwner.Address,
+		testContext.ContractOwner.Nonce,
+		big.NewInt(0),
+		gasPrice,
+		300_000_000,
+		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
+	)
+
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return err
+	}
+	if testContext.GetLatestError() != nil {
+		return testContext.GetLatestError()
+	}
+
+	testContext.ContractOwner.Nonce++
+
+	initialAccountBalance := big.NewInt(0).Mul(largeNumber, largeNumber)
+	testContext.Alice.Address = []byte("12345678901234567890123456789111")
+	testContext.Alice.Nonce = 0
+	testContext.Alice.Balance = big.NewInt(0).Set(initialAccountBalance)
+	testContext.CreateAccount(&testContext.Alice)
+
+	testContext.Bob.Address = []byte("12345678901234567890123456789222")
+	testContext.Bob.Nonce = 0
+	testContext.Bob.Balance = big.NewInt(0).Set(initialAccountBalance)
+	testContext.CreateAccount(&testContext.Bob)
+
+	testContext.Alice.TokenBalance = big.NewInt(100000)
+	tx = testContext.CreateTransferTokenTx(
+		&testContext.ContractOwner,
+		&testContext.Alice,
+		testContext.Alice.TokenBalance,
+		"transferToken",
+	)
+
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return err
+	}
+	if returnCode != vmcommon.Ok {
+		return fmt.Errorf("return code on init is not Ok, but %s", returnCode.String())
+	}
+
+	return nil
+}
+
+func runERC20TransactionsWithBenchmarks(
+	testContext *vm.VMTestContext,
+	numRun int,
+	numTransferInBatch int,
+	alice []byte,
+	bob []byte,
+	aliceNonce uint64,
+	aliceInitialBalance *big.Int,
+	scAddress []byte,
+	functionName string,
+	transferOnCalls *big.Int,
+) ([]time.Duration, error) {
+
+	benchmarks := make([]time.Duration, 0, numRun)
+	for batch := 0; batch < numRun; batch++ {
+		start := time.Now()
+
+		for i := 0; i < numTransferInBatch; i++ {
+			tx := vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
+
+			returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+			if err != nil {
+				return nil, err
+			}
+			if returnCode != vmcommon.Ok {
+				return nil, fmt.Errorf("return code on transfer erc20 token is not Ok, but %s", returnCode.String())
+			}
+			aliceNonce++
+		}
+
+		benchmarks = append(benchmarks, time.Since(start))
+
+		_, err := testContext.Accounts.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		testContext.CreateBlockStarted()
+	}
+
+	testContext.Alice.Nonce = aliceNonce
+
+	return benchmarks, nil
+}
+
+func runERC20TransactionsWithBenchmarksInVMTestContext(
+	testContext *vm.VMTestContext,
+	numRun int,
+	numTransferInBatch int,
+	functionName string,
+	transferOnCalls *big.Int,
+) ([]time.Duration, error) {
+	benchmarks, err := runERC20TransactionsWithBenchmarks(
+		testContext,
+		numRun,
+		numTransferInBatch,
+		testContext.Alice.Address,
+		testContext.Bob.Address,
+		testContext.Alice.Nonce,
+		testContext.Alice.TokenBalance,
+		testContext.Contract.Address,
+		functionName,
+		transferOnCalls,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// err = validateERC20TransactionsInVMTestContext(
+	// 	testContext,
+	// 	numRun,
+	// 	numTransferInBatch,
+	// 	transferOnCalls,
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	return benchmarks, nil
+}
+
+func validateERC20TransactionsInVMTestContext(
+	testContext *vm.VMTestContext,
+	numRun int,
+	numTransferInBatch int,
+	transferOnCalls *big.Int,
+) error {
+	initAlice := testContext.Alice.TokenBalance
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
+	valueFromSc := testContext.GetIntValueFromSC("balanceOf", testContext.Alice.Address).Uint64()
+	if finalAlice.Uint64() != valueFromSc {
+		return fmt.Errorf("alice balance mismatch: computed %d, got %d", finalAlice.Uint64(), valueFromSc)
+	}
+
+	finalBob := big.NewInt(int64(numRun*numTransferInBatch) * transferOnCalls.Int64())
+	valueFromSc = testContext.GetIntValueFromSC("balanceOf", testContext.Bob.Address).Uint64()
+	if finalBob.Uint64() != valueFromSc {
+		return fmt.Errorf("bob balance mismatch: computed %d, got %d", finalBob.Uint64(), valueFromSc)
+	}
+
+	return nil
 }
 
 func generateRandomByteArray(size int) []byte {

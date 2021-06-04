@@ -326,6 +326,9 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM_v1_2() (vmcommon.VMExec
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
+	vmf.blockChainHookImpl.ClearCompiledCodes()
+	logVMContainerFactory.Debug("AOT compilation cache cleared")
+
 	vmAsCloser, ok := vm.(io.Closer)
 	if ok {
 		vmAsCloser.Close()

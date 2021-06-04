@@ -47,6 +47,24 @@ func (builder *txDataBuilder) ToBytes() []byte {
 	return []byte(builder.ToString())
 }
 
+// GetLast returns the currently last element.
+func (builder *txDataBuilder) GetLast() string {
+	if len(builder.elements) == 0 {
+		return ""
+	}
+
+	return builder.elements[len(builder.elements)-1]
+}
+
+// SetLast replaces the last element with the provided one.
+func (builder *txDataBuilder) SetLast(element string) {
+	if len(builder.elements) == 0 {
+		builder.elements = []string{element}
+	}
+
+	builder.elements[len(builder.elements)-1] = element
+}
+
 // Func sets the function to be invoked by the data string.
 func (builder *txDataBuilder) Func(function string) *txDataBuilder {
 	builder.function = function

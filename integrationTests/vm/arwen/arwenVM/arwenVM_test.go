@@ -12,6 +12,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
@@ -29,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -297,6 +299,59 @@ func TestWASMMetering(t *testing.T) {
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
 	require.Equal(t, 1905, int(consumedGasValue))
+}
+
+func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
+	logger.SetLogLevel("*:NONE,vmContainerFactory:DEBUG,arwen:DEBUG")
+
+	vmConfig := &config.VirtualMachineConfig{
+		OutOfProcessEnabled: true,
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
+		},
+	}
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
+		vm.ArgEnableEpoch{},
+		vmConfig,
+		gasSchedule,
+	)
+	require.Nil(t, err)
+	setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(0))
+	_ = runERC20TransactionSet(testContext)
+
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(1))
+	_ = runERC20TransactionSet(testContext)
+
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(4))
+	_ = runERC20TransactionSet(testContext)
+}
+
+func runERC20TransactionSet(testContext *vm.VMTestContext) error {
+	_, err := runERC20TransactionsWithBenchmarksInVMTestContext(
+		testContext,
+		1,
+		1000,
+		"transferToken",
+		big.NewInt(5),
+	)
+
+	return err
+}
+
+func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
+	return &testscommon.HeaderHandlerStub{
+		EpochField: epoch,
+	}
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
