@@ -312,7 +312,11 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
 			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
 			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 4, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 6, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 7, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 8, Version: "v1.3", OutOfProcessSupported: false},
 		},
 	}
 
