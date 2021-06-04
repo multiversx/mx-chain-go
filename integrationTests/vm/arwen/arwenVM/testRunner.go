@@ -1,4 +1,4 @@
-package arwenVM
+package arwenvm
 
 import (
 	"crypto/rand"
@@ -360,15 +360,15 @@ func runERC20TransactionsWithBenchmarksInVMTestContext(
 		return nil, err
 	}
 
-	// err = validateERC20TransactionsInVMTestContext(
-	// 	testContext,
-	// 	numRun,
-	// 	numTransferInBatch,
-	// 	transferOnCalls,
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = validateERC20TransactionsInVMTestContext(
+		testContext,
+		numRun,
+		numTransferInBatch,
+		transferOnCalls,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	return benchmarks, nil
 }

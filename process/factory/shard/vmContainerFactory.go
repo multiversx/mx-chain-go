@@ -26,6 +26,7 @@ import (
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
+// GlobalVMFactoryRWLock ensures that no VMs are initialized while VMQueries are running.
 var GlobalVMFactoryRWLock = &sync.RWMutex{}
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
@@ -145,13 +146,13 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	defer GlobalVMFactoryRWLock.Unlock()
 
 	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
-	currVm, err := vmf.createArwenVM(version)
+	currentVM, err := vmf.createArwenVM(version)
 	if err != nil {
 		return nil, err
 	}
-	vmf.gasSchedule.RegisterNotifyHandler(currVm)
+	vmf.gasSchedule.RegisterNotifyHandler(currentVM)
 
-	err = container.Add(factory.ArwenVirtualMachine, currVm)
+	err = container.Add(factory.ArwenVirtualMachine, currentVM)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,7 @@
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
 
-package arwenVM
+package arwenvm
 
 import (
 	"encoding/hex"
@@ -334,10 +334,12 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 
 	for _, versionConfig := range vmConfig.ArwenVersions {
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
-		_ = runERC20TransactionSet(testContext)
+		err = runERC20TransactionSet(testContext)
+		log.LogIfError(err, "ERC20 validation error", "err", err)
 	}
 
-	_ = runERC20TransactionSet(testContext)
+	err = runERC20TransactionSet(testContext)
+	log.LogIfError(err, "ERC20 validation error", "err", err)
 }
 
 func runERC20TransactionSet(testContext *vm.VMTestContext) error {

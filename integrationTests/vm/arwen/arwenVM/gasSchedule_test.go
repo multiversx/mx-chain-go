@@ -2,7 +2,7 @@
 
 // TODO remove build condition above to allow -race -short, after Arwen fix
 
-package arwenVM
+package arwenvm
 
 import (
 	"crypto/rand"
