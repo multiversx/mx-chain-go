@@ -19,9 +19,6 @@ var ErrNilPrivateKey = errors.New("private key is nil")
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
-// ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
-var ErrNilSingleSigner = errors.New("singleSigner is nil")
-
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
@@ -219,3 +216,6 @@ var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 
 // ErrNilNodeRedundancyHandler signals that provided node redundancy handler is nil
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilScheduledProcessor signals that the provided scheduled processor is nil
+var ErrNilScheduledProcessor = errors.New("nil scheduled processor")

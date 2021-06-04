@@ -110,7 +110,7 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 	mapAllIntermediateTxsBeforeScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 
 	for _, txHandler := range ste.scheduledTxs {
-		if haveTime() < 0 {
+		if haveTime() <= 0 {
 			return process.ErrTimeIsOut
 		}
 

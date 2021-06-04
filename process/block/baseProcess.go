@@ -1164,6 +1164,26 @@ func (bp *baseProcessor) RevertAccountState(_ data.HeaderHandler) {
 	}
 }
 
+// GetAccountsDBSnapshot returns the account snapshot
+func (bp *baseProcessor) GetAccountsDBSnapshot() map[state.AccountsDbIdentifier]int {
+	snapshots := make(map[state.AccountsDbIdentifier]int)
+	for key := range bp.accountsDB {
+		snapshots[key] = bp.accountsDB[key].JournalLen()
+	}
+
+	return snapshots
+}
+
+// RevertAccountsDBToSnapshot reverts the accountsDB to the given snapshot
+func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.AccountsDbIdentifier]int) {
+	for key := range bp.accountsDB {
+		err := bp.accountsDB[key].RevertToSnapshot(accountsSnapshot[key])
+		if err != nil {
+			log.Debug("RevertAccountsDBToSnapshot", "error", err.Error())
+		}
+	}
+}
+
 func (bp *baseProcessor) commitAll() error {
 	for key := range bp.accountsDB {
 		_, err := bp.accountsDB[key].Commit()
@@ -1400,6 +1420,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(header data.HeaderHandler, _ data
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
+		// TODO: check if possible to revert only the scheduled
 		bp.RevertAccountState(header)
 	}
 

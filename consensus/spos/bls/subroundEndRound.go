@@ -188,6 +188,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	if !ok {
+		return false
+	}
+
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
 	if err != nil {
@@ -342,6 +347,11 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	if sr.isOutOfTime() {
+		return false
+	}
+
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	if !ok {
 		return false
 	}
 

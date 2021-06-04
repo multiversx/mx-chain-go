@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
@@ -614,6 +615,17 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 
+	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                  coreComponents.SyncTimer(),
+		Processor:                  processComponents.BlockProcessor(),
+		ProcessingTimeMilliSeconds: nr.configs.GeneralConfig.Consensus.ScheduledExecutionMilliseconds,
+	}
+
+	scheduledProcessor, err := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 		Config:              *nr.configs.GeneralConfig,
 		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
@@ -625,6 +637,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ProcessComponents:   processComponents,
 		StateComponents:     stateComponents,
 		StatusComponents:    statusComponents,
+		ScheduledProcessor:  scheduledProcessor,
 		IsInImportMode:      nr.configs.ImportDbConfig.IsImportDBMode,
 	}
 

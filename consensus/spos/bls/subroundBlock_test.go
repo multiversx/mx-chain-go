@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
@@ -86,6 +87,15 @@ func initSubroundBlock(
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, appStatusHandler)
 	srBlock, _ := defaultSubroundBlockFromSubround(sr)
 	return srBlock
+}
+
+func createConsensusContainers() []*mock.ConsensusCoreMock {
+	consensusContainers := make([]*mock.ConsensusCoreMock, 0)
+	container := mock.InitConsensusCore()
+	consensusContainers = append(consensusContainers, container)
+	container = mock.InitConsensusCoreHeaderV2()
+	consensusContainers = append(consensusContainers, container)
+	return consensusContainers
 }
 
 func initSubroundBlockWithBlockProcessor(
@@ -499,31 +509,33 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
-	sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
-	hdr := &block.Header{}
-	blkBody := &block.Body{
-		MiniBlocks: []*block.MiniBlock{},
+
+	consensusContainers := createConsensusContainers()
+	for _, container := range consensusContainers {
+		sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
+		hdr, _ := container.BlockProcessor().CreateNewHeader(1, 1)
+		hdr, blkBody, _ := container.BlockProcessor().CreateBlock(hdr, func() bool { return true })
+
+		blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
+		cnsMsg := consensus.NewConsensusMessage(
+			nil,
+			nil,
+			blkBodyStr,
+			nil,
+			[]byte(sr.ConsensusGroup()[0]),
+			[]byte("sig"),
+			int(bls.MtBlockBody),
+			0,
+			chainID,
+			nil,
+			nil,
+			nil,
+			currentPid,
+		)
+		sr.Header = hdr
+		sr.Body = blkBody
+		assert.True(t, sr.ProcessReceivedBlock(cnsMsg))
 	}
-	blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkBodyStr,
-		nil,
-		[]byte(sr.ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	sr.Header = hdr
-	sr.Body = blkBody
-	assert.True(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
@@ -691,62 +703,73 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 			return []byte("genesis header hash")
 		},
 	}
-	container := mock.InitConsensusCore()
-	sr := *initSubroundBlock(blockChain, container, &mock.AppStatusHandlerStub{})
-	_ = sr.BlockChain().SetCurrentBlockHeader(nil)
-	header, _ := sr.CreateHeader()
-	header, body, _ := sr.CreateBlock(header)
-	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
-	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
-	_ = sr.SendBlockBody(body, marshalizedBody)
-	_ = sr.SendBlockHeader(header, marshalizedHeader)
 
-	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
-	expectedHeader := &block.Header{
-		Round:            uint64(sr.RoundHandler().Index()),
-		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
-		RootHash:         []byte{},
-		Nonce:            uint64(1),
-		PrevHash:         sr.BlockChain().GetGenesisHeaderHash(),
-		PrevRandSeed:     sr.BlockChain().GetGenesisHeader().GetRandSeed(),
-		RandSeed:         newRand,
-		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
-		ChainID:          chainID,
+	consensusContainers := createConsensusContainers()
+	for _, container := range consensusContainers {
+		sr := *initSubroundBlock(blockChain, container, &mock.AppStatusHandlerStub{})
+		_ = sr.BlockChain().SetCurrentBlockHeader(nil)
+		header, _ := sr.CreateHeader()
+		header, body, _ := sr.CreateBlock(header)
+		marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+		marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+		_ = sr.SendBlockBody(body, marshalizedBody)
+		_ = sr.SendBlockHeader(header, marshalizedHeader)
+
+		oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
+		newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
+		expectedHeader, _ := container.BlockProcessor().CreateNewHeader(uint64(sr.RoundHandler().Index()), uint64(1))
+		err := expectedHeader.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+		require.Nil(t, err)
+		err = expectedHeader.SetRootHash([]byte{})
+		require.Nil(t, err)
+		err = expectedHeader.SetPrevHash(sr.BlockChain().GetGenesisHeaderHash())
+		require.Nil(t, err)
+		err = expectedHeader.SetPrevRandSeed(sr.BlockChain().GetGenesisHeader().GetRandSeed())
+		require.Nil(t, err)
+		err = expectedHeader.SetRandSeed(newRand)
+		require.Nil(t, err)
+		err = expectedHeader.SetMiniBlockHeaderHandlers(header.GetMiniBlockHeaderHandlers())
+		require.Nil(t, err)
+		err = expectedHeader.SetChainID(chainID)
+		require.Nil(t, err)
+		require.Equal(t, expectedHeader, header)
 	}
-
-	assert.Equal(t, expectedHeader, header)
 }
 
 func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
-	container := mock.InitConsensusCore()
-	sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
-	_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
-		Nonce: 1,
-	})
+	consensusContainers := createConsensusContainers()
+	for _, container := range consensusContainers {
+		sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
+		_ = sr.BlockChain().SetCurrentBlockHeader(&block.Header{
+			Nonce: 1,
+		})
 
-	header, _ := sr.CreateHeader()
-	header, body, _ := sr.CreateBlock(header)
-	marshalizedBody, _ := sr.Marshalizer().Marshal(body)
-	marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
-	_ = sr.SendBlockBody(body, marshalizedBody)
-	_ = sr.SendBlockHeader(header, marshalizedHeader)
+		header, _ := sr.CreateHeader()
+		header, body, _ := sr.CreateBlock(header)
+		marshalizedBody, _ := sr.Marshalizer().Marshal(body)
+		marshalizedHeader, _ := sr.Marshalizer().Marshal(header)
+		_ = sr.SendBlockBody(body, marshalizedBody)
+		_ = sr.SendBlockHeader(header, marshalizedHeader)
 
-	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
-	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
-
-	expectedHeader := &block.Header{
-		Round:            uint64(sr.RoundHandler().Index()),
-		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
-		RootHash:         []byte{},
-		Nonce:            sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1,
-		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
-		RandSeed:         newRand,
-		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
-		ChainID:          chainID,
+		oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
+		newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
+		expectedHeader, _ := container.BlockProcessor().CreateNewHeader(
+			uint64(sr.RoundHandler().Index()),
+			sr.BlockChain().GetCurrentBlockHeader().GetNonce()+1)
+		err := expectedHeader.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+		require.Nil(t, err)
+		err = expectedHeader.SetRootHash([]byte{})
+		require.Nil(t, err)
+		err = expectedHeader.SetPrevHash(sr.BlockChain().GetCurrentBlockHeaderHash())
+		require.Nil(t, err)
+		err = expectedHeader.SetRandSeed(newRand)
+		require.Nil(t, err)
+		err = expectedHeader.SetMiniBlockHeaderHandlers(header.GetMiniBlockHeaderHandlers())
+		require.Nil(t, err)
+		err = expectedHeader.SetChainID(chainID)
+		require.Nil(t, err)
+		require.Equal(t, expectedHeader, header)
 	}
-
-	assert.Equal(t, expectedHeader, header)
 }
 
 func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {

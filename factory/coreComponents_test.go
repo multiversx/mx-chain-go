@@ -306,6 +306,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				SignatureLength: 48,
 			},
 			Consensus: config.ConsensusConfig{
+				ScheduledExecutionMilliseconds: 10,
 				Type: "bls",
 			},
 			ValidatorStatistics: config.ValidatorStatisticsConfig{

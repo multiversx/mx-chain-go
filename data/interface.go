@@ -47,6 +47,7 @@ type HeaderHandler interface {
 	GetOrderedCrossMiniblocksWithDst(destId uint32) []*MiniBlockInfo
 	GetMiniBlockHeadersHashes() [][]byte
 	GetMiniBlockHeaderHandlers() []MiniBlockHeaderHandler
+	HasScheduledSupport() bool
 
 	SetAccumulatedFees(value *big.Int) error
 	SetDeveloperFees(value *big.Int) error

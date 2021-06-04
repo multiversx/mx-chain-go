@@ -457,3 +457,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilScheduledTxsExecutionHandler signals that a nil scheduled transactions execution handler was provided
 var ErrNilScheduledTxsExecutionHandler = errors.New("nil scheduled transactions execution handler")
+
+// ErrNilScheduledProcessor signals that a nil scheduled processor was provided
+var ErrNilScheduledProcessor = errors.New("nil scheduled processor")

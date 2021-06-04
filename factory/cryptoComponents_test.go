@@ -387,7 +387,10 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 	args := factory.CryptoComponentsFactoryArgs{
 		Config: config.Config{
 			GeneralSettings: config.GeneralSettingsConfig{ChainID: "undefined"},
-			Consensus:       config.ConsensusConfig{Type: "bls"},
+			Consensus:       config.ConsensusConfig{
+				ScheduledExecutionMilliseconds: 10,
+				Type: "bls",
+			},
 			MultisigHasher:  config.TypeConfig{Type: "blake2b"},
 			PublicKeyPIDSignature: config.CacheConfig{
 				Capacity: 1000,

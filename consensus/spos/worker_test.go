@@ -72,11 +72,19 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := testscommon.NewCacherMock()
 
+	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                  syncTimerMock,
+		Processor:                  blockProcessor,
+		ProcessingTimeMilliSeconds: 10,
+	}
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
+
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
 		BlockChain:               blockchainMock,
 		BlockProcessor:           blockProcessor,
+		ScheduledProcessor:       scheduledProcessor,
 		Bootstrapper:             bootstrapperMock,
 		BroadcastMessenger:       broadcastMessengerMock,
 		ConsensusState:           consensusState,

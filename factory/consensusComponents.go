@@ -30,6 +30,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ProcessComponents   ProcessComponentsHolder
 	StateComponents     StateComponentsHolder
 	StatusComponents    StatusComponentsHolder
+	ScheduledProcessor  consensus.ScheduledProcessor
 	IsInImportMode      bool
 }
 
@@ -44,6 +45,7 @@ type consensusComponentsFactory struct {
 	processComponents   ProcessComponentsHolder
 	stateComponents     StateComponentsHolder
 	statusComponents    StatusComponentsHolder
+	scheduledProcessor  consensus.ScheduledProcessor
 	isInImportMode      bool
 }
 
@@ -83,6 +85,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.HardforkTrigger) {
 		return nil, errors.ErrNilHardforkTrigger
 	}
+	if check.IfNil(args.ScheduledProcessor) {
+		return nil, errors.ErrNilScheduledProcessor
+	}
 
 	return &consensusComponentsFactory{
 		config:              args.Config,
@@ -95,6 +100,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		processComponents:   args.ProcessComponents,
 		stateComponents:     args.StateComponents,
 		statusComponents:    args.StatusComponents,
+		scheduledProcessor:  args.ScheduledProcessor,
 		isInImportMode:      args.IsInImportMode,
 	}, nil
 }
@@ -172,6 +178,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
 		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
 		Bootstrapper:             cc.bootstrapper,
 		BroadcastMessenger:       cc.broadcastMessenger,
 		ConsensusState:           consensusState,
@@ -233,6 +240,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
 		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 		NodeRedundancyHandler:         ccf.processComponents.NodeRedundancyHandler(),
+		ScheduledProcessor:            ccf.scheduledProcessor,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

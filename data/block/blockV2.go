@@ -468,6 +468,11 @@ func (hv2 *HeaderV2) SetEpochStartMetaHash(hash []byte) error {
 	return hv2.Header.SetEpochStartMetaHash(hash)
 }
 
+// HasScheduledSupport returns true as the second block version does support scheduled data
+func (hv2 *HeaderV2) HasScheduledSupport() bool {
+	return true
+}
+
 // SetScheduledRootHash sets the scheduled root hash
 func (hv2 *HeaderV2) SetScheduledRootHash(rootHash []byte) error {
 	if hv2 == nil {

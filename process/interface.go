@@ -245,6 +245,12 @@ type BlockProcessor interface {
 	Close() error
 }
 
+// ScheduledBlockProcessor is the interface for the scheduled miniBlocks execution part of the block processor
+type ScheduledBlockProcessor interface {
+	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	IsInterfaceNil() bool
+}
+
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)

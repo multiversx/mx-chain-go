@@ -312,7 +312,7 @@ func (h *Header) SetMiniBlockHeaderHandlers(mbHeaderHandlers []data.MiniBlockHea
 	if h == nil {
 		return data.ErrNilPointerReceiver
 	}
-	if mbHeaderHandlers == nil {
+	if len(mbHeaderHandlers) == 0 {
 		h.MiniBlockHeaders = nil
 		return nil
 	}
@@ -436,4 +436,9 @@ func (mb *MiniBlock) IsScheduledMiniBlock() bool {
 func (h *Header) SetAdditionalData(_ headerVersionData.HeaderAdditionalData) error {
 	// first header version does not have any additional data
 	return nil
+}
+
+// HasScheduledSupport returns false as the first block version does not support scheduled data
+func (h *Header) HasScheduledSupport() bool {
+	return false
 }
