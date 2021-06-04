@@ -448,7 +448,7 @@ const (
 	//MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
 	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
