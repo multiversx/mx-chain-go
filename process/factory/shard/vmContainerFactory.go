@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"sync"
 
 	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
@@ -24,6 +25,8 @@ import (
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
+
+var GlobalVMFactoryRWLock = &sync.RWMutex{}
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
@@ -138,6 +141,9 @@ func (vmf *vmContainerFactory) validateArwenVersions() error {
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
+	GlobalVMFactoryRWLock.Lock()
+	defer GlobalVMFactoryRWLock.Unlock()
+
 	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
 	currVm, err := vmf.createArwenVM(version)
 	if err != nil {
@@ -180,6 +186,9 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 	if !vmf.shouldReplaceArwenInstance(newVersion, currentArwenVM) {
 		return
 	}
+
+	GlobalVMFactoryRWLock.Lock()
+	defer GlobalVMFactoryRWLock.Unlock()
 
 	vmf.closePreviousVM(currentArwenVM)
 	newArwenVM, err := vmf.createArwenVM(newVersion)

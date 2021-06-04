@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -349,11 +350,14 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
+	shard.GlobalVMFactoryRWLock.RLock()
+
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
+		shard.GlobalVMFactoryRWLock.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
@@ -361,6 +365,7 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	shard.GlobalVMFactoryRWLock.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1335,13 +1340,16 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
+	shard.GlobalVMFactoryRWLock.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		shard.GlobalVMFactoryRWLock.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	shard.GlobalVMFactoryRWLock.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
