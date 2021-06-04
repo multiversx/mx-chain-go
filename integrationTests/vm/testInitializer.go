@@ -547,11 +547,20 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
 		},
 		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-			ProposalCost:     "5000000000000000000",
-			NumNodes:         500,
-			MinQuorum:        400,
-			MinPassThreshold: 300,
-			MinVetoThreshold: 50,
+			V1: config.GovernanceSystemSCConfigV1{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
+			Active: config.GovernanceSystemSCConfigActive{
+				ProposalCost:     "500",
+				MinQuorum:        "50",
+				MinPassThreshold: "50",
+				MinVetoThreshold: "50",
+			},
+			FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 		},
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "2500000000000000000000",

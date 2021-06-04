@@ -55,6 +55,7 @@ type validatorSC struct {
 	endOfEpochAddress                []byte
 	enableDelegationMgrEpoch         uint32
 	delegationMgrSCAddress           []byte
+	governanceSCAddress              []byte
 	flagDelegationMgr                atomic.Flag
 	validatorToDelegationEnableEpoch uint32
 	flagValidatorToDelegation        atomic.Flag
@@ -77,6 +78,7 @@ type ArgsValidatorSmartContract struct {
 	EndOfEpochAddress        []byte
 	MinDeposit               string
 	DelegationMgrSCAddress   []byte
+	GovernanceSCAddress      []byte
 	DelegationMgrEnableEpoch uint32
 	EpochConfig              config.EpochConfig
 	ShardCoordinator         sharding.Coordinator
@@ -115,6 +117,9 @@ func NewValidatorSmartContract(
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilShardCoordinator)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 
 	baseConfig := ValidatorConfig{
@@ -166,6 +171,7 @@ func NewValidatorSmartContract(
 		minDeposit:                       minDeposit,
 		enableDelegationMgrEpoch:         args.DelegationMgrEnableEpoch,
 		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		governanceSCAddress:              args.GovernanceSCAddress,
 		enableUnbondTokensV2Epoch:        args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
 		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		shardCoordinator:                 args.ShardCoordinator,
@@ -1238,6 +1244,11 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
+		v.eei.AddReturnMessage("stake is locked for voting")
+		return vmcommon.UserError
+	}
+
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
@@ -1550,6 +1561,10 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 	if len(args.Arguments) != 1 {
 		v.eei.AddReturnMessage("should have specified one argument containing the unstake value")
+		return vmcommon.UserError
+	}
+	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
+		v.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 

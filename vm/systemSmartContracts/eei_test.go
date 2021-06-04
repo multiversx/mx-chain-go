@@ -276,3 +276,20 @@ func TestVmContext_IsValidator(t *testing.T) {
 		assert.Equal(t, tio.expectedResult, vmCtx.IsValidator(blsKey))
 	}
 }
+
+func TestVmContext_CleanStorage(t *testing.T) {
+	t.Parallel()
+
+	vmCtx, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	vmCtx.CleanCache()
+	vmCtx.storageUpdate["address"] = make(map[string][]byte)
+	vmCtx.storageUpdate["address"]["key"] = []byte("someData")
+	vmCtx.CleanStorageUpdates()
+	assert.Equal(t, 0, len(vmCtx.storageUpdate))
+}
