@@ -246,7 +246,7 @@ func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.ArwenVers
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config, "version", version)
+	logVMContainerFactory.Debug("createInProcessArwenVM", "version", version)
 	switch version.Version {
 	case "v1.2":
 		return vmf.createInProcessArwenVM_v1_2()
@@ -256,7 +256,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config, "version", version)
+	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "version", version)
 	switch version.Version {
 	case "v1.2":
 		return vmf.createOutOfProcessArwenVM_v1_2()
