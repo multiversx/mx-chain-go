@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenVM"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 )
 
 // ArgErc20Benchmark is the erc20 type benchmark argument used in constructor
@@ -42,7 +42,7 @@ func (eb *erc20Benchmark) Run() (time.Duration, error) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, eb.scFilename)
 	}
 
-	result, err := arwenVM.DeployAndExecuteERC20WithBigInt(
+	result, err := arwenvm.DeployAndExecuteERC20WithBigInt(
 		eb.numRuns,
 		eb.numTransfersPerRun,
 		createTestGasMap(),
