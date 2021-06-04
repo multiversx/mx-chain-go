@@ -274,6 +274,8 @@ func setupERC20Test(
 	testContext.CreateAccount(&testContext.Bob)
 
 	testContext.Alice.TokenBalance = big.NewInt(100000)
+	testContext.Bob.TokenBalance = big.NewInt(0)
+
 	tx = testContext.CreateTransferTokenTx(
 		&testContext.ContractOwner,
 		&testContext.Alice,
@@ -381,16 +383,20 @@ func validateERC20TransactionsInVMTestContext(
 ) error {
 	initAlice := testContext.Alice.TokenBalance
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
-	valueFromSc := testContext.GetIntValueFromSC("balanceOf", testContext.Alice.Address).Uint64()
-	if finalAlice.Uint64() != valueFromSc {
-		return fmt.Errorf("alice balance mismatch: computed %d, got %d", finalAlice.Uint64(), valueFromSc)
+	valueFromScAlice := testContext.GetIntValueFromSC("balanceOf", testContext.Alice.Address)
+	if finalAlice.Uint64() != valueFromScAlice.Uint64() {
+		return fmt.Errorf("alice balance mismatch: computed %d, got %d", finalAlice.Uint64(), valueFromScAlice.Uint64())
 	}
 
-	finalBob := big.NewInt(int64(numRun*numTransferInBatch) * transferOnCalls.Int64())
-	valueFromSc = testContext.GetIntValueFromSC("balanceOf", testContext.Bob.Address).Uint64()
-	if finalBob.Uint64() != valueFromSc {
-		return fmt.Errorf("bob balance mismatch: computed %d, got %d", finalBob.Uint64(), valueFromSc)
+	initBob := testContext.Bob.TokenBalance
+	finalBob := big.NewInt(0).Add(initBob, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
+	valueFromScBob := testContext.GetIntValueFromSC("balanceOf", testContext.Bob.Address)
+	if finalBob.Uint64() != valueFromScBob.Uint64() {
+		return fmt.Errorf("bob balance mismatch: computed %d, got %d", finalBob.Uint64(), valueFromScBob.Uint64())
 	}
+
+	testContext.Alice.TokenBalance = valueFromScAlice
+	testContext.Bob.TokenBalance = valueFromScBob
 
 	return nil
 }

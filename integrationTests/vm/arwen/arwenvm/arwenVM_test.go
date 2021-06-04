@@ -302,8 +302,6 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
-	_ = logger.SetLogLevel("*:ERROR,vmContainerFactory:DEBUG,arwen:DEBUG")
-
 	vmConfig := &config.VirtualMachineConfig{
 		OutOfProcessEnabled: true,
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
@@ -338,11 +336,11 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 	for _, versionConfig := range vmConfig.ArwenVersions {
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
 		err = runERC20TransactionSet(testContext)
-		log.LogIfError(err, "ERC20 validation error", "err", err)
+		require.Nil(t, err)
 	}
 
 	err = runERC20TransactionSet(testContext)
-	log.LogIfError(err, "ERC20 validation error", "err", err)
+	require.Nil(t, err)
 }
 
 func runERC20TransactionSet(testContext *vm.VMTestContext) error {
