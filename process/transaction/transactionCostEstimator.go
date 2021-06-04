@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"sync"
@@ -86,7 +87,10 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 }
 
 func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
-	tce.addMissingFieldsIfNeeded(tx)
+	err := tce.addMissingFieldsIfNeeded(tx)
+	if err != nil {
+		return nil, err
+	}
 
 	res, err := tce.txSimulator.ProcessTx(tx)
 	if err != nil {
@@ -147,7 +151,7 @@ func computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcom
 func extractGasRemainedFromMessage(message string) uint64 {
 	splitMessage := strings.Split(message, "gas remained = ")
 	if len(splitMessage) < 2 {
-		log.Warn("extractGasRemainedFromMessage", "error", "cannot split message")
+		log.Warn("extractGasRemainedFromMessage", "error", "cannot split message", "message", message)
 		return 0
 	}
 
@@ -160,20 +164,24 @@ func extractGasRemainedFromMessage(message string) uint64 {
 	return gasValue
 }
 
-func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) {
-	if tx.GasLimit == 0 {
-		tx.GasLimit = tce.getTxGasLimit(tx)
-	}
+func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) error {
+	var err error
 	if tx.GasPrice == 0 {
 		tx.GasPrice = tce.feeHandler.MinGasPrice()
+	}
+
+	if tx.GasLimit == 0 {
+		tx.GasLimit, err = tce.getTxGasLimit(tx)
 	}
 
 	if len(tx.Signature) == 0 {
 		tx.Signature = []byte(dummySignature)
 	}
+
+	return err
 }
 
-func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (gasLimit uint64) {
+func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (gasLimit uint64, err error) {
 	selfShardID := tce.shardCoordinator.SelfId()
 	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
 
@@ -186,6 +194,7 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 
 	accountHandler, err := tce.accounts.LoadAccount(tx.SndAddr)
 	if err != nil || accountHandler == nil {
+		err = process.ErrInsufficientFunds
 		return
 	}
 
@@ -197,9 +206,8 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 	accountSenderBalance := accountSender.GetBalance()
 	tx.GasLimit = maxGasLimitPerBlock
 	txFee := tce.feeHandler.ComputeTxFee(tx)
-	if accountSenderBalance.Cmp(txFee) < 0 && accountSenderBalance.Uint64() != 0 {
-		gasLimit = accountSenderBalance.Uint64()
-		return
+	if txFee.Cmp(accountSenderBalance) > 0 && big.NewInt(0).Cmp(accountSenderBalance) != 0 {
+		return tce.feeHandler.ComputeGasLimitBasedOnBalance(tx, accountSenderBalance)
 	}
 
 	return

@@ -3,12 +3,14 @@ package transaction
 import (
 	"errors"
 	"math"
+	"math/big"
 	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -71,7 +73,11 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 		ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 			return &transaction.SimulationResults{}, nil
 		},
-	}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	}, &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+		},
+	}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -99,7 +105,11 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 					},
 				}, nil
 			},
-		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+		}, &mock.AccountsStub{
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -122,7 +132,11 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return nil, localErr
 			},
-		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+		}, &mock.AccountsStub{
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -144,7 +158,11 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 			ProcessTxCalled: func(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 				return &transaction.SimulationResults{}, nil
 			},
-		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+		}, &mock.AccountsStub{
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
@@ -170,7 +188,11 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 					},
 				}, nil
 			},
-		}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+		}, &mock.AccountsStub{
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
+			},
+		}, &mock.ShardCoordinatorStub{})
 
 	tx := &transaction.Transaction{}
 	cost, err := tce.ComputeTransactionGasLimit(tx)
