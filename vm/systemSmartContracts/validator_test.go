@@ -56,6 +56,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 		EpochNotifier:            &mock.EpochNotifierStub{},
 		MinDeposit:               "0",
 		DelegationMgrSCAddress:   vm.DelegationManagerSCAddress,
+		GovernanceSCAddress:      vm.GovernanceSCAddress,
 		DelegationMgrEnableEpoch: 100000,
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
@@ -295,6 +296,17 @@ func TestNewStakingValidatorSmartContract_EmptyDelegationManagerAddress(t *testi
 
 	arguments := createMockArgumentsForValidatorSC()
 	arguments.DelegationMgrSCAddress = make([]byte, 0)
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidAddress))
+}
+
+func TestNewStakingValidatorSmartContract_EmptyGovernanceAddress(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.GovernanceSCAddress = make([]byte, 0)
 
 	asc, err := NewValidatorSmartContract(arguments)
 	require.Nil(t, asc)
@@ -3361,6 +3373,47 @@ func TestStakingValidatorSC_UnstakeAllTokensWithActiveNodesShouldError(t *testin
 	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "cannot unStake tokens, the validator would remain without min deposit, nodes are still active"))
+}
+
+func TestStakingValidatorSC_UnstakeTokensWithLockedFundsShouldError(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startEpoch := uint32(56)
+	epoch := startEpoch
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			epoch++
+			return epoch
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo:    nil,
+			TotalUnstaked:   nil,
+		},
+	)
+
+	stakeLockKey := append([]byte(stakeLockPrefix), caller...)
+	eei.SetStorageForAddress(sc.governanceSCAddress, stakeLockKey, big.NewInt(0).SetUint64(10000).Bytes())
+	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{big.NewInt(1).Bytes()}, zero, vmcommon.UserError)
+	assert.Equal(t, eei.returnMessage, "stake is locked for voting")
 }
 
 func TestStakingValidatorSC_UnstakeTokensShouldWork(t *testing.T) {
