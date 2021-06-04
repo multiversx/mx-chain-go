@@ -302,16 +302,13 @@ func TestWASMMetering(t *testing.T) {
 }
 
 func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
-	logger.SetLogLevel("*:NONE,vmContainerFactory:DEBUG,arwen:DEBUG")
+	_ = logger.SetLogLevel("*:ERROR,vmContainerFactory:DEBUG,arwen:DEBUG")
 
 	vmConfig := &config.VirtualMachineConfig{
 		OutOfProcessEnabled: true,
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
 			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
 		},
 	}
@@ -323,7 +320,7 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		gasSchedule,
 	)
 	require.Nil(t, err)
-	setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
+	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
 
 	err = runERC20TransactionSet(testContext)
 	require.Nil(t, err)
