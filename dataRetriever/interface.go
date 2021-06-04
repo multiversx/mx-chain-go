@@ -382,3 +382,10 @@ type CurrentNetworkEpochProviderHandler interface {
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	IsInterfaceNil() bool
+}

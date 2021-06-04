@@ -919,6 +919,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
+		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -953,6 +954,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
+		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1134,6 +1136,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1174,6 +1177,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 

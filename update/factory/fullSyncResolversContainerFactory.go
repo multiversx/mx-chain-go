@@ -177,6 +177,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		NumIntraShardPeers:          numIntraShardPeers,
 		NumFullHistoryPeers:         numFullHistoryPeers,
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

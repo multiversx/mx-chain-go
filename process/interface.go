@@ -973,6 +973,13 @@ type InterceptedDebugger interface {
 	IsInterfaceNil() bool
 }
 
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	IsInterfaceNil() bool
+}
+
 // AntifloodDebugger defines an interface for debugging the antiflood behavior
 type AntifloodDebugger interface {
 	AddData(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool)

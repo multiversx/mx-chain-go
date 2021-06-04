@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -12,7 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var defaultHashes = [][]byte{[]byte("hash")}
@@ -30,6 +33,11 @@ func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSend
 		NumCrossShardPeers:          2,
 		NumFullHistoryPeers:         3,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{
+			GetCalled: func() map[uint32][]core.PeerID {
+				return map[uint32][]core.PeerID{}
+			},
+		},
 	}
 }
 
@@ -99,6 +107,17 @@ func TestNewTopicResolverSender_NilCurrentNetworkEpochProviderShouldErr(t *testi
 
 	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
+}
+
+func TestNewTopicResolverSender_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.PreferredPeersHolder = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
 func TestNewTopicResolverSender_InvalidNumIntraShardPeersShouldErr(t *testing.T) {
@@ -279,6 +298,153 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToFullHistoryNod
 	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 	assert.Nil(t, err)
 	assert.True(t, sentToFullHistoryPeer)
+}
+
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers(t *testing.T) {
+	t.Parallel()
+
+	countPrefPeersSh0 := 0
+	preferredPeersShard0 := make([]core.PeerID, 0)
+	for idx := 0; idx < 5; idx++ {
+		preferredPeersShard0 = append(preferredPeersShard0, core.PeerID(fmt.Sprintf("prefPIDsh0-%d", idx)))
+	}
+
+	countPrefPeersSh1 := 0
+	preferredPeersShard1 := make([]core.PeerID, 0)
+	for idx := 0; idx < 5; idx++ {
+		preferredPeersShard1 = append(preferredPeersShard1, core.PeerID(fmt.Sprintf("prefPIDsh1-%d", idx)))
+	}
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = 1
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer1}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				0: preferredPeersShard0,
+				1: preferredPeersShard1,
+			}
+		},
+	}
+	arg.NumCrossShardPeers = 5
+	arg.NumIntraShardPeers = 5
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if strings.HasPrefix(string(peerID), "prefPIDsh0") {
+				countPrefPeersSh0++
+			}
+
+			if strings.HasPrefix(string(peerID), "prefPIDsh1") {
+				countPrefPeersSh1++
+			}
+
+			return nil
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, countPrefPeersSh0)
+	assert.Equal(t, 1, countPrefPeersSh1)
+}
+
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeerFirst(t *testing.T) {
+	t.Parallel()
+
+	pIDPreferred := core.PeerID("preferred peer")
+	numTimesSent := 0
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+	sentToPreferredPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = 1
+	arg.NumCrossShardPeers = 5
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				37: {pIDPreferred},
+			}
+		},
+	}
+
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pIDPreferred.Bytes()) {
+				sentToPreferredPeer = true
+				require.Zero(t, numTimesSent)
+			}
+
+			numTimesSent++
+			return nil
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.True(t, sentToPreferredPeer)
+}
+
+func TestTopicResolverSender_SendOnRequestTopicShouldNotSendToPreferredPeerFirstIfOnlyOnePeerToRequest(t *testing.T) {
+	t.Parallel()
+
+	pIDPreferred := core.PeerID("preferred peer")
+	numTimesSent := 0
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+	sentToPreferredPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = 1
+	arg.NumCrossShardPeers = 1
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				37: {pIDPreferred},
+			}
+		},
+	}
+
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pIDPreferred.Bytes()) {
+				sentToPreferredPeer = true
+				require.Zero(t, numTimesSent)
+			}
+
+			numTimesSent++
+			return nil
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.False(t, sentToPreferredPeer)
 }
 
 func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t *testing.T) {
