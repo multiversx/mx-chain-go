@@ -17,7 +17,6 @@ import (
 )
 
 type trieCreator struct {
-	evictionWaitingListCfg   config.EvictionWaitingListConfig
 	snapshotDbCfg            config.DBConfig
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -42,7 +41,6 @@ func NewTrieFactory(
 	}
 
 	return &trieCreator{
-		evictionWaitingListCfg:   args.EvictionWaitingListCfg,
 		snapshotDbCfg:            args.SnapshotDbCfg,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,

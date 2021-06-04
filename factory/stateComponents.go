@@ -78,9 +78,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		return nil, err
 	}
 
-	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
-	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	peerAdapter, err := scf.createPeerAdapter()
 	if err != nil {
 		return nil, err
 	}
@@ -95,34 +93,9 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
-	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
-	trieStorageCfg := scf.config.AccountsTrieStorage
-	trieStoragePath, _ := path.Split(scf.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
-
-	evictionWaitingListCfg := scf.config.EvictionWaitingList
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.DBType(evictionWaitingListCfg.DB.Type),
-		Path:              filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
-		BatchDelaySeconds: evictionWaitingListCfg.DB.BatchDelaySeconds,
-		MaxBatchSize:      evictionWaitingListCfg.DB.MaxBatchSize,
-		MaxOpenFiles:      evictionWaitingListCfg.DB.MaxOpenFiles,
-	}
-	evictionDb, err := storageUnit.NewDB(arg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(evictionWaitingListCfg.Size, evictionDb, scf.core.InternalMarshalizer)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.UserAccountTrie))
-	storagePruning, err := storagePruningManager.NewStoragePruningManager(
-		trieEvictionWaitingList,
-		scf.config.TrieStorageManagerConfig.PruningBufferLen,
-	)
+	storagePruning, err := scf.getNewStoragePruningManager(scf.config.AccountsTrieStorage)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -150,4 +123,64 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 	}
 
 	return accountsAdapter, accountsAdapterAPI, nil
+}
+
+func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, error) {
+	accountFactory := factoryState.NewPeerAccountCreator()
+	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
+	storagePruning, err := scf.getNewStoragePruningManager(scf.config.PeerAccountsTrieStorage)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAdapter, err := state.NewPeerAccountsDB(
+		merkleTrie,
+		scf.core.Hasher,
+		scf.core.InternalMarshalizer,
+		accountFactory,
+		storagePruning,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return peerAdapter, nil
+}
+
+func (scf *stateComponentsFactory) getNewStoragePruningManager(trieStorageCfg config.StorageConfig) (state.StoragePruningManager, error) {
+	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
+	trieStoragePath, _ := path.Split(scf.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+
+	evictionWaitingListCfg := scf.config.EvictionWaitingList
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(evictionWaitingListCfg.DB.Type),
+		Path:              filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
+		BatchDelaySeconds: evictionWaitingListCfg.DB.BatchDelaySeconds,
+		MaxBatchSize:      evictionWaitingListCfg.DB.MaxBatchSize,
+		MaxOpenFiles:      evictionWaitingListCfg.DB.MaxOpenFiles,
+	}
+
+	evictionDb, err := storageUnit.NewDB(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(
+		scf.config.EvictionWaitingList.Size,
+		evictionDb,
+		scf.core.InternalMarshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	storagePruning, err := storagePruningManager.NewStoragePruningManager(
+		trieEvictionWaitingList,
+		scf.config.TrieStorageManagerConfig.PruningBufferLen,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return storagePruning, nil
 }

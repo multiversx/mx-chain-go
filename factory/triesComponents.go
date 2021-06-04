@@ -60,7 +60,6 @@ func NewTriesComponentsFactory(args TriesComponentsFactoryArgs) (*triesComponent
 func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 	trieContainer := state.NewDataTriesHolder()
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   tcf.config.EvictionWaitingList,
 		SnapshotDbCfg:            tcf.config.TrieSnapshotDB,
 		Marshalizer:              tcf.marshalizer,
 		Hasher:                   tcf.hasher,

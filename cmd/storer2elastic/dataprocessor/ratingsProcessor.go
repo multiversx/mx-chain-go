@@ -3,6 +3,7 @@ package dataprocessor
 import (
 	"context"
 	"fmt"
+	"path"
 	"path/filepath"
 
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -13,11 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // RatingProcessorArgs holds the arguments needed for creating a new ratingsProcessor
@@ -138,7 +143,6 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		return err
 	}
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   rp.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            rp.generalConfig.TrieSnapshotDB,
 		Marshalizer:              rp.marshalizer,
 		Hasher:                   rp.hasher,
@@ -160,11 +164,17 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		return err
 	}
 
+	storagePruning, err := rp.getNewStoragePruningManager(pathManager)
+	if err != nil {
+		return err
+	}
+
 	peerAdapter, err := state.NewPeerAccountsDB(
 		peerAccountsTrie,
 		rp.hasher,
 		rp.marshalizer,
 		stateFactory.NewPeerAccountCreator(),
+		storagePruning,
 	)
 	if err != nil {
 		return err
@@ -172,6 +182,45 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 
 	rp.peerAdapter = peerAdapter
 	return nil
+}
+
+func (rp *ratingsProcessor) getNewStoragePruningManager(pathManager storage.PathManagerHandler) (state.StoragePruningManager, error) {
+	shardID := core.GetShardIDString(rp.shardCoordinator.SelfId())
+	trieStorageCfg := rp.generalConfig.PeerAccountsTrieStorage
+	trieStoragePath, _ := path.Split(pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+
+	evictionWaitingListCfg := rp.generalConfig.EvictionWaitingList
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(evictionWaitingListCfg.DB.Type),
+		Path:              filepath.Join(trieStoragePath, evictionWaitingListCfg.DB.FilePath),
+		BatchDelaySeconds: evictionWaitingListCfg.DB.BatchDelaySeconds,
+		MaxBatchSize:      evictionWaitingListCfg.DB.MaxBatchSize,
+		MaxOpenFiles:      evictionWaitingListCfg.DB.MaxOpenFiles,
+	}
+
+	evictionDb, err := storageUnit.NewDB(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(
+		rp.generalConfig.EvictionWaitingList.Size,
+		evictionDb,
+		rp.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	storagePruning, err := storagePruningManager.NewStoragePruningManager(
+		trieEvictionWaitingList,
+		rp.generalConfig.TrieStorageManagerConfig.PruningBufferLen,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return storagePruning, nil
 }
 
 func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]*indexer.ValidatorRatingInfo, error) {

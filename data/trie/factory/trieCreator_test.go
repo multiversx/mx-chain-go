@@ -98,20 +98,3 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
-
-func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB:   config.DBConfig{Type: string(storageUnit.MemoryDB)},
-		Size: 100,
-	}
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
-
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
-	require.NotNil(t, tr)
-	require.Nil(t, err)
-}
