@@ -288,6 +288,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		CompiledSCPool:     arg.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
+	arwenChangeLocker := &sync.RWMutex{}
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:                         arg.VirtualMachineConfig,
 		BlockGasLimit:                  math.MaxUint64,
@@ -297,7 +298,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
 		EpochNotifier:                  epochNotifier,
-		ArwenChangeLocker:              &sync.RWMutex{},
+		ArwenChangeLocker:              arwenChangeLocker,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -391,7 +392,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
-		ArwenChangeLocker:                   &sync.RWMutex{},
+		ArwenChangeLocker:                   arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
