@@ -1,3 +1,5 @@
+// +build !race
+
 package delegation
 
 import (
@@ -29,6 +31,10 @@ var NewBalanceBig = arwen.NewBalanceBig
 var RequireAlmostEquals = arwen.RequireAlmostEquals
 
 func TestDelegation_Upgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skip for short")
+	}
+
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 

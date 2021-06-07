@@ -118,4 +118,6 @@ type BlockchainHook interface {
 	IsPayable(address []byte) (bool, error)
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
 }

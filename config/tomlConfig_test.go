@@ -38,6 +38,18 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
+	vmConfig := VirtualMachineConfig{
+		OutOfProcessEnabled: false,
+		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3", OutOfProcessSupported: true},
+			{StartEpoch: 88, Version: "v1.2", OutOfProcessSupported: false},
+		},
+	}
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -83,8 +95,15 @@ func TestTomlParser(t *testing.T) {
 		Consensus: TypeConfig{
 			Type: consensusType,
 		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
+		},
 	}
-
+	cfgExpected.VirtualMachine.Querying.OutOfProcessEnabled = true
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -127,6 +146,29 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = false
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        OutOfProcessEnabled = true
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
+            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+        ]
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
 
 `
 	cfg := Config{}

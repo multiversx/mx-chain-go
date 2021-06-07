@@ -1,3 +1,5 @@
+// +build !race
+
 package process
 
 import (
@@ -59,8 +61,14 @@ func createMockArgument(
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool:                 testscommon.NewPoolsHolderMock(),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "5000000000000000000000",

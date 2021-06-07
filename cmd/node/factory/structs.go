@@ -178,6 +178,7 @@ type processComponentsFactoryArgs struct {
 	storageReolverImportPath  string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
 	fallbackHeaderValidator   process.FallbackHeaderValidator
+	arwenChangeLocker         process.Locker
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -222,6 +223,7 @@ func NewProcessComponentsFactoryArgs(
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
 	chanGracefullyClose chan endProcess.ArgEndProcess,
@@ -273,6 +275,7 @@ func NewProcessComponentsFactoryArgs(
 		storageReolverImportPath:  storageReolverImportPath,
 		chanGracefullyClose:       chanGracefullyClose,
 		fallbackHeaderValidator:   fallbackHeaderValidator,
+		arwenChangeLocker:         arwenLocker,
 	}
 }
 
@@ -1453,6 +1456,7 @@ func newBlockProcessor(
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
 			workingDir,
+			processArgs.arwenChangeLocker,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1490,6 +1494,7 @@ func newBlockProcessor(
 			processArgs.mainConfig,
 			workingDir,
 			processArgs.rater,
+			processArgs.arwenChangeLocker,
 		)
 	}
 
@@ -1526,6 +1531,7 @@ func newShardBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	generalConfig config.Config,
 	workingDir string,
+	arwenChangeLocker process.Locker,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1565,6 +1571,7 @@ func newShardBlockProcessor(
 		WorkingDir:         workingDir,
 		NilCompiledSCStore: false,
 	}
+
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:                         config.VirtualMachine.Execution,
 		BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
@@ -1573,7 +1580,8 @@ func newShardBlockProcessor(
 		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             config.GeneralSettings.RepairCallbackEnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  config.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
+		ArwenChangeLocker:              arwenChangeLocker,
+		EpochNotifier:                  epochNotifier,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -1675,6 +1683,7 @@ func newShardBlockProcessor(
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       epochNotifier,
 		StakingV2EnableEpoch:                stakingV2EnableEpoch,
+		ArwenChangeLocker:                   arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1866,6 +1875,7 @@ func newMetaBlockProcessor(
 	generalConfig config.Config,
 	workingDir string,
 	rater sharding.PeerAccountListAndRatingHandler,
+	arwenLocker process.Locker,
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -2004,6 +2014,7 @@ func newMetaBlockProcessor(
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       epochNotifier,
 		StakingV2EnableEpoch:                systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:                   arwenLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
