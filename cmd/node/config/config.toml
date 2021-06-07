@@ -643,7 +643,13 @@
         OutOfProcessEnabled = true
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 4, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 3, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 4, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 5, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 6, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 7, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 8, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 9, Version = "v1.3", OutOfProcessSupported = false },
         ]
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
@@ -654,7 +660,13 @@
         OutOfProcessEnabled = true
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 4, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 3, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 4, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 5, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 6, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 7, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 8, Version = "v1.2", OutOfProcessSupported = false },
+            { StartEpoch = 9, Version = "v1.3", OutOfProcessSupported = false },
         ]
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
