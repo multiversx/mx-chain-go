@@ -307,23 +307,19 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 4, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 6, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 7, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 8, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 9, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 10, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 11, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 12, Version: "v1.2", OutOfProcessSupported: false},
 		},
-	}
-
-	for epoch := range vmConfig.ArwenVersions {
-		vmConfig.ArwenVersions[epoch].StartEpoch = uint32(epoch)
 	}
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
@@ -426,7 +422,7 @@ func runERC20TransactionSet(testContext *vm.VMTestContext) error {
 	_, err := runERC20TransactionsWithBenchmarksInVMTestContext(
 		testContext,
 		1,
-		1000,
+		100,
 		"transferToken",
 		big.NewInt(5),
 	)

@@ -272,7 +272,7 @@ func setupERC20Test(
 	testContext.Bob.Balance = big.NewInt(0).Set(initialAccountBalance)
 	testContext.CreateAccount(&testContext.Bob)
 
-	testContext.Alice.TokenBalance = big.NewInt(100000)
+	testContext.Alice.TokenBalance = big.NewInt(1000000000)
 	testContext.Bob.TokenBalance = big.NewInt(0)
 
 	tx = testContext.CreateTransferTokenTx(
