@@ -1910,6 +1910,7 @@ func newMetaBlockProcessor(
 		ValidatorAccountsDB: stateComponents.PeerAccounts,
 		ChanceComputer:      rater,
 		EpochNotifier:       epochNotifier,
+		ShardCoordinator:    shardCoordinator,
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVMContainer)
 	if err != nil {

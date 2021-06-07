@@ -1,7 +1,6 @@
 package delegation
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -14,11 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
+func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -68,7 +69,8 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	rewardAddress := createNewDelegationSystemSC(nodes[0], nodes)
+	nodeIndexForDelegationOwner := 0
+	delegationAddress := createNewDelegationSystemSC(nodes[nodeIndexForDelegationOwner], nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -77,10 +79,13 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
 
-	for _, node := range nodes {
-		txData := "changeRewardAddress" + "@" + hex.EncodeToString(rewardAddress)
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
-		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(1000000))
+	for index, node := range nodes {
+		if index == nodeIndexForDelegationOwner {
+			round, nonce = doMergeValidatorToDelegationSameOwner(t, delegationAddress, node, nodes, nodesMap, round, nonce)
+			continue
+		}
+
+		round, nonce = doMergeValidatorToDelegationWithWhitelist(t, delegationAddress, node, nodes, nodesMap, nodeIndexForDelegationOwner, round, nonce)
 	}
 	time.Sleep(time.Second)
 
@@ -89,13 +94,13 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	round, nonce = processBlocks(t, round, nonce, nbBlocksToProduce, nodesMap)
 
-	checkRewardsUpdatedInDelegationSC(t, nodes, rewardAddress, epochs)
+	checkRewardsUpdatedInDelegationSC(t, nodes, delegationAddress, epochs)
 
 	balancesBeforeClaimRewards := getNodesBalances(nodes)
 	balanceToConsumeForGas := core.SafeMul(integrationTests.MinTxGasPrice, core.MinMetaTxExtraGasCost)
 	for i, node := range nodes {
 		txData := "claimRewards"
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), rewardAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), delegationAddress, txData, core.MinMetaTxExtraGasCost)
 		balancesBeforeClaimRewards[i].Sub(balancesBeforeClaimRewards[i], balanceToConsumeForGas)
 	}
 	time.Sleep(time.Second)
@@ -109,6 +114,49 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
 	assert.Equal(t, delegationMgr.GetBalance(), big.NewInt(0))
+}
+
+func doMergeValidatorToDelegationSameOwner(
+	t *testing.T,
+	delegationAddress []byte,
+	node *integrationTests.TestProcessorNode,
+	nodes []*integrationTests.TestProcessorNode,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	round, nonce uint64,
+) (uint64, uint64) {
+	numBlocksToProduce := uint64(3)
+	txDataFieldBuilder := txDataBuilder.NewBuilder()
+	txDataFieldBuilder.Func("mergeValidatorToDelegationSameOwner").Bytes(delegationAddress)
+	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txDataFieldBuilder.ToString(), core.MinMetaTxExtraGasCost)
+
+	return processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
+}
+
+func doMergeValidatorToDelegationWithWhitelist(
+	t *testing.T,
+	delegationAddress []byte,
+	node *integrationTests.TestProcessorNode,
+	nodes []*integrationTests.TestProcessorNode,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	nodeIndexForDelegationOwner int,
+	round, nonce uint64,
+) (uint64, uint64) {
+	numBlocksToProduce := uint64(3)
+	txDataFieldBuilder := txDataBuilder.NewBuilder()
+	txDataFieldBuilder.Func("whitelistForMerge").Bytes(node.OwnAccount.PkTxSignBytes)
+	integrationTests.CreateAndSendTransaction(nodes[nodeIndexForDelegationOwner], nodes, big.NewInt(0), delegationAddress, txDataFieldBuilder.ToString(), core.MinMetaTxExtraGasCost)
+
+	round, nonce = processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
+
+	txDataFieldBuilder.Clear()
+	txDataFieldBuilder.Func("mergeValidatorToDelegationWithWhitelist").Bytes(delegationAddress)
+	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.DelegationManagerSCAddress, txDataFieldBuilder.ToString(), core.MinMetaTxExtraGasCost)
+
+	round, nonce = processBlocks(t, round, nonce, numBlocksToProduce, nodesMap)
+
+	delegateToSystemSC(node, nodes, delegationAddress, big.NewInt(1000000))
+
+	return round, nonce
 }
 
 func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
@@ -188,7 +236,7 @@ func checkRewardsUpdatedInDelegationSC(t *testing.T, nodes []*integrationTests.T
 		assert.Nil(t, err)
 		assert.NotNil(t, vmOutput)
 
-		assert.Equal(t, len(vmOutput.ReturnData), 3)
+		require.Equal(t, len(vmOutput.ReturnData), 3)
 		rwdInBigInt := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 		assert.True(t, rwdInBigInt.Cmp(big.NewInt(0)) > 0)
 	}

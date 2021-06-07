@@ -277,6 +277,16 @@ func (nf *nodeFacade) GetESDTData(address string, key string, nonce uint64) (*es
 	return nf.node.GetESDTData(address, key, nonce)
 }
 
+// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+func (nf *nodeFacade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	return nf.node.GetNFTTokenIDsRegisteredByAddress(address)
+}
+
+// GetESDTsWithRole returns all the tokens with the given role for the given address
+func (nf *nodeFacade) GetESDTsWithRole(address string, role string) ([]string, error) {
+	return nf.node.GetESDTsWithRole(address, role)
+}
+
 // GetKeyValuePairs returns all the key-value pairs under the provided address
 func (nf *nodeFacade) GetKeyValuePairs(address string) (map[string]string, error) {
 	return nf.node.GetKeyValuePairs(address)
