@@ -1347,8 +1347,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
-		sc.arwenChangeLocker.RUnlock()
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
