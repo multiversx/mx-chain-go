@@ -682,7 +682,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
-		tpn.ArwenChangeLocker,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -733,7 +732,6 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
-		tpn.ArwenChangeLocker,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()

@@ -272,7 +272,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances(arwenChangeLocker)
+	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
 		return nil, err
 	}
@@ -646,7 +646,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances(arwenChangeLocker process.Locker) (map[uint32]data.HeaderHandler, error) {
+func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 	conversionBase := 10
@@ -679,7 +679,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
 		EpochConfig:          &pcf.epochConfig,
-		ArwenChangeLocker:    arwenChangeLocker,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
