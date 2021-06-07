@@ -67,6 +67,9 @@ var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible lis
 // ErrMapSizeZero signals that there are no elements in the map
 var ErrMapSizeZero = errors.New("map size zero")
 
+// ErrNilPreviousEpochConfig signals that the previous epoch config is nil
+var ErrNilPreviousEpochConfig = errors.New("nil previous epoch config")
+
 // ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
 var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
@@ -117,6 +120,9 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
 var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
+
+// ErrNilEpochNotifier signals that the provided epoch notifier is nil
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
 
 // ErrNilOwnPublicKey signals that a nil own public key has been provided
 var ErrNilOwnPublicKey = errors.New("nil own public key")

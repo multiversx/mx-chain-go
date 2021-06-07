@@ -239,6 +239,7 @@ type GeneralSettingsConfig struct {
 	GasPriceModifierEnableEpoch            uint32
 	RepairCallbackEnableEpoch              uint32
 	BalanceWaitingListsEnableEpoch         uint32
+	WaitingListFixEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32

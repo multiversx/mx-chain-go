@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -38,6 +40,7 @@ type vmContainerFactory struct {
 	epochNotifier          process.EpochNotifier
 	addressPubKeyConverter core.PubkeyConverter
 	scFactory              vm.SystemSCContainerFactory
+	shardCoordinator       sharding.Coordinator
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -53,44 +56,48 @@ type ArgsNewVMContainerFactory struct {
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      sharding.ChanceComputer
 	EpochNotifier       process.EpochNotifier
+	ShardCoordinator    sharding.Coordinator
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory, error) {
 	if check.IfNil(args.Economics) {
-		return nil, process.ErrNilEconomicsData
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilEconomicsData)
 	}
 	if check.IfNil(args.MessageSignVerifier) {
-		return nil, process.ErrNilKeyGen
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilKeyGen)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
-		return nil, process.ErrNilNodesConfigProvider
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesConfigProvider)
 	}
 	if check.IfNil(args.Hasher) {
-		return nil, process.ErrNilHasher
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilHasher)
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilMarshalizer)
 	}
 	if args.SystemSCConfig == nil {
-		return nil, process.ErrNilSystemSCConfig
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilSystemSCConfig)
 	}
 	if check.IfNil(args.ValidatorAccountsDB) {
-		return nil, vm.ErrNilValidatorAccountsDB
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilValidatorAccountsDB)
 	}
 	if check.IfNil(args.ChanceComputer) {
-		return nil, vm.ErrNilChanceComputer
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilChanceComputer)
 	}
 	if check.IfNil(args.GasSchedule) {
-		return nil, vm.ErrNilGasSchedule
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilGasSchedule)
 	}
 	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
-		return nil, vm.ErrNilAddressPubKeyConverter
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilAddressPubKeyConverter)
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilShardCoordinator)
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", err)
 	}
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -108,6 +115,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		chanceComputer:         args.ChanceComputer,
 		epochNotifier:          args.EpochNotifier,
 		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
+		shardCoordinator:       args.ShardCoordinator,
 	}, nil
 }
 
@@ -172,6 +180,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		Economics:              vmf.economics,
 		EpochNotifier:          vmf.epochNotifier,
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+		ShardCoordinator:       vmf.shardCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
