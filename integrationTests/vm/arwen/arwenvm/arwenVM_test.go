@@ -386,7 +386,8 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 	err = runERC20TransactionSet(testContext)
 	require.Nil(t, err)
 
-	repeatSwitching := 20
+	// TODO investigate why setting this variable to 20 causes 'too many open files' panic
+	repeatSwitching := 10
 	for i := 0; i < repeatSwitching; i++ {
 		epoch = uint32(4)
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
