@@ -115,14 +115,15 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 			continue
 		}
 
-		spaceUsed += len(serializedNode)
-		nodes[string(serializedNode)] = struct{}{}
-		remainingSpace -= len(serializedNode)
-
-		if remainingSpace-len(serializedNode) < 0 {
+		isNotFirstLargeElement := spaceUsed > 0 && (remainingSpace-len(serializedNode)) < 0
+		if isNotFirstLargeElement {
 			usedAllSpace = true
 			break
 		}
+
+		spaceUsed += len(serializedNode)
+		nodes[string(serializedNode)] = struct{}{}
+		remainingSpace -= len(serializedNode)
 	}
 
 	usedAllSpace = usedAllSpace || remainingSpace == 0
@@ -130,7 +131,7 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 }
 
 func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
-	var serialiazedNodes [][]byte
+	var serializedNodes [][]byte
 	var err error
 	var serializedNode []byte
 	for _, hash := range hashes {
@@ -139,12 +140,12 @@ func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string
 			return
 		}
 
-		serialiazedNodes, _, err = tnRes.getSubTrie(hash, uint64(remainingForSubtries))
+		serializedNodes, _, err = tnRes.getSubTrie(hash, uint64(remainingForSubtries))
 		if err != nil {
 			continue
 		}
 
-		for _, serializedNode = range serialiazedNodes {
+		for _, serializedNode = range serializedNodes {
 			_, exists := nodes[string(serializedNode)]
 			if exists {
 				continue
@@ -225,6 +226,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	message p2p.MessageP2P,
 ) error {
 
+	//TODO(feat/trie-multipart-nodes - remove this log)
 	log.Warn("assembling chunk", "reference", reference, "len", len(largeBuff))
 	maxChunks := len(largeBuff) / maxBuffToSendTrieNodes
 	if len(largeBuff)%maxBuffToSendTrieNodes != 0 {
@@ -242,6 +244,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	}
 	chunkBuffer := largeBuff[startIndex:endIndex]
 	chunk := batch.NewChunk(uint32(chunkIndex), reference, uint32(maxChunks), chunkBuffer)
+	//TODO(feat/trie-multipart-nodes - remove this log)
 	log.Warn("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
 
 	buff, err := tnRes.marshalizer.Marshal(chunk)

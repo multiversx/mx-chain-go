@@ -1056,7 +1056,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	chTxRequested := make(chan struct{})
 	localErr := errors.New("local error")
 	resolverMock := &mock.ChunkResolverStub{
-		RequestDataFromHashAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
+		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return localErr
 		},
@@ -1088,7 +1088,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	chTxRequested := make(chan struct{})
 	resolverMock := &mock.ChunkResolverStub{
-		RequestDataFromHashAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
+		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return nil
 		},
