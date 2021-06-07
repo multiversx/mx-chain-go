@@ -799,11 +799,20 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-					ProposalCost:     "500",
-					NumNodes:         100,
-					MinQuorum:        50,
-					MinPassThreshold: 50,
-					MinVetoThreshold: 50,
+					V1: config.GovernanceSystemSCConfigV1{
+						ProposalCost:     "500",
+						NumNodes:         100,
+						MinQuorum:        50,
+						MinPassThreshold: 50,
+						MinVetoThreshold: 50,
+					},
+					Active: config.GovernanceSystemSCConfigActive{
+						ProposalCost:     "500",
+						MinQuorum:        "50",
+						MinPassThreshold: "50",
+						MinVetoThreshold: "50",
+					},
+					FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -840,7 +849,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					DelegationManagerEnableEpoch:       0,
 				},
 			},
-			ShardCoordinator:    tpn.ShardCoordinator,
+			ShardCoordinator: tpn.ShardCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1538,11 +1547,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -1579,7 +1590,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
-		ShardCoordinator:    tpn.ShardCoordinator,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
