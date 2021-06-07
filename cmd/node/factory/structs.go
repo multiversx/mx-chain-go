@@ -1494,6 +1494,7 @@ func newBlockProcessor(
 			processArgs.mainConfig,
 			workingDir,
 			processArgs.rater,
+			processArgs.arwenChangeLocker,
 		)
 	}
 
@@ -1874,6 +1875,7 @@ func newMetaBlockProcessor(
 	generalConfig config.Config,
 	workingDir string,
 	rater sharding.PeerAccountListAndRatingHandler,
+	arwenLocker process.Locker,
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -2012,6 +2014,7 @@ func newMetaBlockProcessor(
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       epochNotifier,
 		StakingV2EnableEpoch:                systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:                   arwenLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
