@@ -20,6 +20,8 @@ const topicRequestSuffix = "_REQUEST"
 
 const minPeersToQuery = 2
 
+const preferredPeerIndex = -1
+
 type peerType string
 
 func (pt peerType) String() string {
@@ -48,6 +50,7 @@ type ArgTopicResolverSender struct {
 	NumFullHistoryPeers         int
 	CurrentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 	PreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
+	SelfShardIdProvider         dataRetriever.SelfShardIDProvider
 	TargetShardId               uint32
 }
 
@@ -66,6 +69,7 @@ type topicResolverSender struct {
 	resolverDebugHandler               dataRetriever.ResolverDebugHandler
 	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler
 	preferredPeersHolderHandler        dataRetriever.PreferredPeersHolderHandler
+	selfShardId                        uint32
 	targetShardId                      uint32
 }
 
@@ -92,6 +96,9 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	if check.IfNil(arg.PreferredPeersHolder) {
 		return nil, dataRetriever.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(arg.SelfShardIdProvider) {
+		return nil, dataRetriever.ErrNilSelfShardIDProvider
+	}
 	if arg.NumIntraShardPeers < 0 {
 		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
 			dataRetriever.ErrInvalidValue)
@@ -116,6 +123,7 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 		marshalizer:                        arg.Marshalizer,
 		randomizer:                         arg.Randomizer,
 		targetShardId:                      arg.TargetShardId,
+		selfShardId:                        arg.SelfShardIdProvider.SelfId(),
 		outputAntiflooder:                  arg.OutputAntiflooder,
 		numIntraShardPeers:                 arg.NumIntraShardPeers,
 		numCrossShardPeers:                 arg.NumCrossShardPeers,
@@ -142,7 +150,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	var intraPeers, crossPeers []core.PeerID
 	fullHistoryPeers := make([]core.PeerID, 0)
 	if trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
-		crossPeers = trs.peerListCreator.PeerList()
+		crossPeers = trs.peerListCreator.CrossShardPeerList()
 		preferredPeer := trs.getPreferredPeer(crossShardPeer)
 		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, crossShardPeer.String())
 
@@ -150,6 +158,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 		preferredPeer = trs.getPreferredPeer(intraShardPeer)
 		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, intraShardPeer.String())
 	} else {
+		// TODO: select preferred peers of type full history as well.
 		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
 		numSentIntra = trs.sendOnTopic(fullHistoryPeers, "", topicToSendRequest, buff, trs.numFullHistoryPeers, fullHistoryPeer.String())
 	}
@@ -204,19 +213,12 @@ func (trs *topicResolverSender) sendOnTopic(
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
 	shouldSendToPreferredPeer := preferredPeer != "" && maxToSend > 1
+	if shouldSendToPreferredPeer {
+		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
+	}
+
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
-		var peer core.PeerID
-		if shouldSendToPreferredPeer {
-			peer = preferredPeer
-			// TODO: remove this log or set to TRACE before merging the PR
-			histogramMap["preferred"]++
-			log.Debug("sending request to preferred peer", "peer", peer.Pretty(), "topic", topicToSendRequest, "peer type", peerType)
-			shouldSendToPreferredPeer = false
-			idx--
-		} else {
-			peer = peerList[shuffledIndexes[idx]]
-			histogramMap[peerType]++
-		}
+		peer := getPeerID(shuffledIndexes[idx], peerList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
@@ -237,49 +239,45 @@ func (trs *topicResolverSender) sendOnTopic(
 	return msgSentCounter
 }
 
+func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
+	if index == preferredPeerIndex {
+		histogramMap["preferred"]++
+		log.Debug("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
+
+		return preferredPeer
+	}
+
+	histogramMap[peerType]++
+	return peersList[index]
+}
+
 func (trs *topicResolverSender) getPreferredPeer(pType peerType) core.PeerID {
 	peersInShard, found := trs.getPeersBasedOnPeerType(pType)
 	if !found {
 		return ""
 	}
 
-	indexes := make([]int, 0, len(peersInShard))
-	for idx := range peersInShard {
-		indexes = append(indexes, idx)
-	}
+	randomIdx := trs.randomizer.Intn(len(peersInShard))
 
-	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
-
-	return peersInShard[shuffledIndexes[0]]
+	return peersInShard[randomIdx]
 }
 
 func (trs *topicResolverSender) getPeersBasedOnPeerType(pType peerType) ([]core.PeerID, bool) {
 	preferredPeers := trs.preferredPeersHolderHandler.Get()
 
-	var targetShardID uint32
+	var shardToSearch uint32
 	if pType == crossShardPeer {
-		found := false
-		for shardID, peersInShard := range preferredPeers {
-			if shardID != trs.targetShardId && len(peersInShard) > 0 {
-				targetShardID = shardID
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return nil, false
-		}
+		shardToSearch = trs.targetShardId
 	} else {
-		targetShardID = trs.targetShardId
+		shardToSearch = trs.selfShardId
 	}
 
-	peersInShard, anyPeerInShard := preferredPeers[targetShardID]
-	if !anyPeerInShard || len(peersInShard) == 0 {
+	peers, found := preferredPeers[shardToSearch]
+	if !found || len(peers) == 0 {
 		return nil, false
 	}
 
-	return peersInShard, true
+	return peers, true
 }
 
 // Send is used to send an array buffer to a connected peer

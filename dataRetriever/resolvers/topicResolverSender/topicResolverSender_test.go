@@ -33,6 +33,7 @@ func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSend
 		NumCrossShardPeers:          2,
 		NumFullHistoryPeers:         3,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		SelfShardIdProvider:         mock.NewMultipleShardsCoordinatorMock(),
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{
 			GetCalled: func() map[uint32][]core.PeerID {
 				return map[uint32][]core.PeerID{}
@@ -118,6 +119,17 @@ func TestNewTopicResolverSender_NilPreferredPeersHolderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(trs))
 	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+}
+
+func TestNewTopicResolverSender_NilSelfShardIDProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.SelfShardIdProvider = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilSelfShardIDProvider, err)
 }
 
 func TestNewTopicResolverSender_InvalidNumIntraShardPeersShouldErr(t *testing.T) {
@@ -215,7 +227,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 
 	arg := createMockArgTopicResolverSender()
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return make([]core.PeerID, 0)
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -251,7 +263,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndNotSendToFullHistory
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{pID1}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -303,6 +315,8 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToFullHistoryNod
 func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers(t *testing.T) {
 	t.Parallel()
 
+	selfShardID := uint32(0)
+	targetShardID := uint32(1)
 	countPrefPeersSh0 := 0
 	preferredPeersShard0 := make([]core.PeerID, 0)
 	for idx := 0; idx < 5; idx++ {
@@ -317,9 +331,14 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers
 	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
 
 	arg := createMockArgTopicResolverSender()
-	arg.TargetShardId = 1
+	arg.TargetShardId = targetShardID
+
+	selfShardIDProvider := mock.NewMultipleShardsCoordinatorMock()
+	selfShardIDProvider.CurrentShard = selfShardID
+	arg.SelfShardIdProvider = selfShardIDProvider
+
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{regularPeer0}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -329,8 +348,8 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers
 	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
 		GetCalled: func() map[uint32][]core.PeerID {
 			return map[uint32][]core.PeerID{
-				0: preferredPeersShard0,
-				1: preferredPeersShard1,
+				selfShardID:   preferredPeersShard0,
+				targetShardID: preferredPeersShard1,
 			}
 		},
 	}
@@ -357,19 +376,20 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeers
 	assert.Equal(t, 1, countPrefPeersSh1)
 }
 
-func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeerFirst(t *testing.T) {
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToCrossPreferredPeerFirst(t *testing.T) {
 	t.Parallel()
 
+	targetShardID := uint32(37)
 	pIDPreferred := core.PeerID("preferred peer")
 	numTimesSent := 0
 	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
 	sentToPreferredPeer := false
 
 	arg := createMockArgTopicResolverSender()
-	arg.TargetShardId = 1
+	arg.TargetShardId = targetShardID
 	arg.NumCrossShardPeers = 5
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -379,7 +399,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeerF
 	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
 		GetCalled: func() map[uint32][]core.PeerID {
 			return map[uint32][]core.PeerID{
-				37: {pIDPreferred},
+				targetShardID: {pIDPreferred},
 			}
 		},
 	}
@@ -402,6 +422,57 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToPreferredPeerF
 	assert.True(t, sentToPreferredPeer)
 }
 
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToIntraPreferredPeerFirst(t *testing.T) {
+	t.Parallel()
+
+	selfShardID := uint32(37)
+	pIDPreferred := core.PeerID("preferred peer")
+	numTimesSent := 0
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+	sentToPreferredPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = 0
+	arg.NumCrossShardPeers = 5
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		CrossShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				selfShardID: {pIDPreferred},
+			}
+		},
+	}
+
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pIDPreferred.Bytes()) {
+				sentToPreferredPeer = true
+				require.Zero(t, numTimesSent)
+			}
+
+			numTimesSent++
+			return nil
+		},
+	}
+
+	selfShardIDProvider := mock.NewMultipleShardsCoordinatorMock()
+	selfShardIDProvider.CurrentShard = selfShardID
+	arg.SelfShardIdProvider = selfShardIDProvider
+
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.True(t, sentToPreferredPeer)
+}
+
 func TestTopicResolverSender_SendOnRequestTopicShouldNotSendToPreferredPeerFirstIfOnlyOnePeerToRequest(t *testing.T) {
 	t.Parallel()
 
@@ -414,7 +485,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldNotSendToPreferredPeerFirst
 	arg.TargetShardId = 1
 	arg.NumCrossShardPeers = 1
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -462,7 +533,7 @@ func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t 
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -497,7 +568,7 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 	}
 	arg.NumIntraShardPeers = 0
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -532,7 +603,7 @@ func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t 
 	}
 	arg.NumCrossShardPeers = 0
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{pIDNotCalled}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {
@@ -565,7 +636,7 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []core.PeerID {
+		CrossShardPeerListCalled: func() []core.PeerID {
 			return []core.PeerID{pID1}
 		},
 		IntraShardPeerListCalled: func() []core.PeerID {

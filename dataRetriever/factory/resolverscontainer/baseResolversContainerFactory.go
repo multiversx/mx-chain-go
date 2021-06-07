@@ -292,6 +292,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		NumFullHistoryPeers:         numFullHistory,
 		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 		PreferredPeersHolder:        brcf.preferredPeersHolder,
+		SelfShardIdProvider:         brcf.shardCoordinator,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units

@@ -236,7 +236,7 @@ type StorageType uint8
 
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
-	PeerList() []core.PeerID
+	CrossShardPeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
 	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
@@ -387,5 +387,11 @@ type CurrentNetworkEpochProviderHandler interface {
 type PreferredPeersHolderHandler interface {
 	Get() map[uint32][]core.PeerID
 	Contains(peerID core.PeerID) bool
+	IsInterfaceNil() bool
+}
+
+// SelfShardIDProvider defines the behavior of a component able to provide the self shard ID
+type SelfShardIDProvider interface {
+	SelfId() uint32
 	IsInterfaceNil() bool
 }
