@@ -307,18 +307,23 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 4, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 6, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 7, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 8, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 9, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 11, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
 		},
+	}
+
+	for epoch := range vmConfig.ArwenVersions {
+		vmConfig.ArwenVersions[epoch].StartEpoch = uint32(epoch)
 	}
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
@@ -341,6 +346,80 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 
 	err = runERC20TransactionSet(testContext)
 	require.Nil(t, err)
+}
+
+func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
+	vmConfig := &config.VirtualMachineConfig{
+		OutOfProcessEnabled: true,
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 6, Version: "v1.2", OutOfProcessSupported: true},
+		},
+	}
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
+		vm.ArgEnableEpoch{},
+		vmConfig,
+		gasSchedule,
+	)
+	require.Nil(t, err)
+	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	epoch := uint32(3)
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	epoch = uint32(4)
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	epoch = uint32(3)
+	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	repeatSwitching := 20
+	for i := 0; i < repeatSwitching; i++ {
+		epoch = uint32(4)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(5)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(6)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+	}
+
+	repeatSwitching = 20
+	for i := 0; i < repeatSwitching; i++ {
+		epoch = uint32(4)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(5)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+	}
 }
 
 func runERC20TransactionSet(testContext *vm.VMTestContext) error {
