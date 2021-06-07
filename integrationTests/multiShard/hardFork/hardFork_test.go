@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -497,6 +498,7 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			ArwenChangeLocker: &sync.RWMutex{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

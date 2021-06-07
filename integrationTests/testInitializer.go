@@ -476,6 +476,7 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
+	arwenChangeLocker process.Locker,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -497,6 +498,7 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		dataPool,
 		economics,
+		arwenChangeLocker,
 	)
 
 	return genesisBlocks
@@ -612,6 +614,7 @@ func CreateFullGenesisBlocks(
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
+		ArwenChangeLocker: &sync.RWMutex{},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -635,6 +638,7 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
+	arwenChangeLocker process.Locker,
 ) data.HeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -720,6 +724,7 @@ func CreateGenesisMetaBlock(
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
+		ArwenChangeLocker: arwenChangeLocker,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

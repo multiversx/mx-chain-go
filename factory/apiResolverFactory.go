@@ -277,13 +277,12 @@ func createScQueryElement(
 			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
 		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
-		log.Debug("apiResolver: enable epoch for ESDT functions", "epoch", args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch)
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {

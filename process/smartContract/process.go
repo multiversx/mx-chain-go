@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -63,6 +62,7 @@ type scProcessor struct {
 	flagReturnDataToLastTransfer        atomic.Flag
 	flagSenderInOutTransfer             atomic.Flag
 	isGenesisProcessing                 bool
+	arwenChangeLocker                   process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -105,6 +105,7 @@ type ArgsNewSmartContractProcessor struct {
 	SenderInOutTransferEnableEpoch      uint32
 	EpochNotifier                       process.EpochNotifier
 	IsGenesisProcessing                 bool
+	ArwenChangeLocker                   process.Locker
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -163,6 +164,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, process.ErrNilLocker
+	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
 	sc := &scProcessor{
@@ -191,6 +195,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		stakingV2EnableEpoch:                args.StakingV2EnableEpoch,
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
+		arwenChangeLocker:                   args.ArwenChangeLocker,
 	}
 
 	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
@@ -350,14 +355,14 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	shard.GlobalVMFactoryRWLock.RLock()
+	sc.arwenChangeLocker.RLock()
 
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
-		shard.GlobalVMFactoryRWLock.RUnlock()
+		sc.arwenChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
@@ -365,7 +370,7 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
-	shard.GlobalVMFactoryRWLock.RUnlock()
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1340,16 +1345,16 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
-	shard.GlobalVMFactoryRWLock.RLock()
+	sc.arwenChangeLocker.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		shard.GlobalVMFactoryRWLock.RUnlock()
+		sc.arwenChangeLocker.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
-	shard.GlobalVMFactoryRWLock.RUnlock()
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)

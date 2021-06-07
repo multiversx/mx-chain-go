@@ -60,6 +60,7 @@ type ArgsGenesisBlockCreator struct {
 	ImportStartHandler   update.ImportStartHandler
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
+	ArwenChangeLocker    process.Locker
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

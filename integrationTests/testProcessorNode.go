@@ -242,6 +242,7 @@ type TestProcessorNode struct {
 	ResolversContainer    dataRetriever.ResolversContainer
 	ResolverFinder        dataRetriever.ResolversFinder
 	RequestHandler        process.RequestHandler
+	ArwenChangeLocker     process.Locker
 
 	InterimProcContainer   process.IntermediateProcessorContainer
 	TxProcessor            process.TransactionProcessor
@@ -395,6 +396,7 @@ func newBaseTestProcessorNode(
 		NodesSetup:              nodesSetup,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -568,6 +570,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		MinTransactionVersion: MinTransactionVersion,
 		HistoryRepository:     &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:         forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:     &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -679,6 +682,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.ArwenChangeLocker,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -729,6 +733,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
+		tpn.ArwenChangeLocker,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -868,7 +873,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			DeployEnableEpoch:              0,
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
-			ArwenESDTFunctionsEnableEpoch:  0,
+			ArwenChangeLocker:              tpn.ArwenChangeLocker,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1353,7 +1358,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1405,6 +1410,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1633,6 +1639,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
@@ -2097,6 +2104,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
+	processComponents.ArwenChangeLockerInternal = tpn.ArwenChangeLocker
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk

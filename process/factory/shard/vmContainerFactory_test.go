@@ -5,6 +5,7 @@
 package shard
 
 import (
+	"sync"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -56,12 +57,31 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilGasSchedule, err)
+}
+
+func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         makeVMConfig(),
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  forking.NewGenericEpochNotifier(),
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilLocker, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
@@ -76,7 +96,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -97,7 +117,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 	require.NotNil(t, vmf)
@@ -133,6 +153,7 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)

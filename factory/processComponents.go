@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	syncGo "sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -97,6 +98,7 @@ type processComponents struct {
 	importHandler               update.ImportHandler
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
+	arwenChangeLocker           process.Locker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -197,6 +199,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	arwenChangeLocker := &syncGo.RWMutex{}
+
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
@@ -268,7 +272,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
+	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances(arwenChangeLocker)
 	if err != nil {
 		return nil, err
 	}
@@ -446,6 +450,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
+		arwenChangeLocker,
 	)
 	if err != nil {
 		return nil, err
@@ -527,6 +532,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
+		arwenChangeLocker:           arwenChangeLocker,
 	}, nil
 }
 
@@ -640,7 +646,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
+func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances(arwenChangeLocker process.Locker) (map[uint32]data.HeaderHandler, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 	conversionBase := 10
@@ -673,6 +679,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
 		EpochConfig:          &pcf.epochConfig,
+		ArwenChangeLocker:    arwenChangeLocker,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

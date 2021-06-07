@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -126,6 +127,7 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		ArwenChangeLocker: &sync.RWMutex{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
