@@ -8,5 +8,5 @@ type HashSliceResolver interface {
 
 // ChunkResolver can request a chunk of a large data
 type ChunkResolver interface {
-	RequestDataFromHashAndChunk(hash []byte, chunkIndex uint32) error
+	RequestDataFromReferenceAndChunk(reference []byte, chunkIndex uint32) error
 }

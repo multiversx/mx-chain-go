@@ -167,16 +167,16 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	}
 }
 
-func (rrh *resolverRequestHandler) requestHashWithChunkIndex(
-	hash []byte,
+func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
+	reference []byte,
 	chunkIndex uint32,
 	resolver ChunkResolver,
 ) {
-	err := resolver.RequestDataFromHashAndChunk(hash, chunkIndex)
+	err := resolver.RequestDataFromReferenceAndChunk(reference, chunkIndex)
 	if err != nil {
 		log.Debug("requestByHashes.requestHashWithChunkIndex",
 			"error", err.Error(),
-			"hash", hash,
+			"reference", reference,
 			"chunk index", chunkIndex,
 		)
 	}
@@ -476,7 +476,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(destShardID uint32, requestHa
 		return
 	}
 
-	go rrh.requestHashWithChunkIndex(hash, chunkIndex, trieResolver)
+	go rrh.requestReferenceWithChunkIndex(hash, chunkIndex, trieResolver)
 
 	rrh.addRequestedItems([][]byte{hash})
 }

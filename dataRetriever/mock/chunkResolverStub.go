@@ -3,13 +3,13 @@ package mock
 // ChunkResolverStub -
 type ChunkResolverStub struct {
 	HashSliceResolverStub
-	RequestDataFromHashAndChunkCalled func(hash []byte, chunkIndex uint32) error
+	RequestDataFromReferenceAndChunkCalled func(hash []byte, chunkIndex uint32) error
 }
 
-// RequestDataFromHashAndChunk -
-func (crs *ChunkResolverStub) RequestDataFromHashAndChunk(hash []byte, chunkIndex uint32) error {
-	if crs.RequestDataFromHashAndChunkCalled != nil {
-		return crs.RequestDataFromHashAndChunkCalled(hash, chunkIndex)
+// RequestDataFromReferenceAndChunk -
+func (crs *ChunkResolverStub) RequestDataFromReferenceAndChunk(hash []byte, chunkIndex uint32) error {
+	if crs.RequestDataFromReferenceAndChunkCalled != nil {
+		return crs.RequestDataFromReferenceAndChunkCalled(hash, chunkIndex)
 	}
 
 	return nil
