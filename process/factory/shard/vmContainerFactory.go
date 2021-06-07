@@ -175,6 +175,8 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 		return
 	}
 
+	logVMContainerFactory.Debug("ensureCorrectArwenVersion", "version now", currentArwenVM.GetVersion())
+
 	if !vmf.shouldReplaceArwenInstance(newVersion, currentArwenVM) {
 		return
 	}
@@ -195,7 +197,7 @@ func (vmf *vmContainerFactory) ensureCorrectArwenVersion(epoch uint32) {
 		return
 	}
 
-	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch)
+	logVMContainerFactory.Debug("Arwen VM replaced", "epoch", epoch, "version", newArwenVM.GetVersion())
 }
 
 func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
