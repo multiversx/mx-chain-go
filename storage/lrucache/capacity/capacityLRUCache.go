@@ -58,6 +58,9 @@ func (c *capacityLRU) Purge() {
 
 // AddSized adds a value to the cache.  Returns true if an eviction occurred.
 func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	c.addSized(key, value, sizeInBytes)
 
 	return c.evictIfNeeded()
@@ -74,9 +77,6 @@ func (c *capacityLRU) addSized(key interface{}, value interface{}, sizeInBytes i
 		return
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
 	// Check for existing item
 	if ent, ok := c.items[key]; ok {
 		c.update(key, value, sizeInBytes, ent)
@@ -87,6 +87,9 @@ func (c *capacityLRU) addSized(key interface{}, value interface{}, sizeInBytes i
 
 // AddSizedAndReturnEvicted adds the given key-value pair to the cache, and returns the evicted values
 func (c *capacityLRU) AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{} {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	c.addSized(key, value, sizeInBytes)
 
 	evictedValues := make(map[interface{}]interface{})

@@ -79,8 +79,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		cancel()
 		u.cacher.Clear()
+		cancel()
 	}()
 
 	tss := statistics.NewTrieSyncStatistics()
