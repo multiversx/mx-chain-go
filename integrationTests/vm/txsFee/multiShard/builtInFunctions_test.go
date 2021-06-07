@@ -21,6 +21,10 @@ import (
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires golang fix")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
 		vm.ArgEnableEpoch{
