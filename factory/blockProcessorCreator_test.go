@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +29,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	require.NoError(t, err)
 
 	bp, err := pcf.NewBlockProcessor(
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
@@ -128,7 +129,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	require.NoError(t, err)
 
 	bp, err := pcf.NewBlockProcessor(
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},

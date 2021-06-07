@@ -406,7 +406,7 @@ func createConsensusOnlyNode(
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
-	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
 

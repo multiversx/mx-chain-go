@@ -567,7 +567,7 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 		ValidatorProvider:              &mock.ValidatorsProviderStub{},
 		BlockTrack:                     &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:                     &mock.RequestHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                  &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
 		PeerMapper:                     &mock.NetworkShardingCollectorStub{},
