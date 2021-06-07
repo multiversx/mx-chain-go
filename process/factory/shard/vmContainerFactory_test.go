@@ -55,7 +55,6 @@ func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
@@ -87,7 +86,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
+		Config:                         makeVMConfig(),
 		BlockGasLimit:                  10000,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		ArgBlockChainHook:              createMockVMAccountsArguments(),
@@ -108,7 +107,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	argsNewVMFactory := ArgVMContainerFactory{
-		Config:                         config.VirtualMachineConfig{},
+		Config:                         makeVMConfig(),
 		BlockGasLimit:                  10000,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		ArgBlockChainHook:              createMockVMAccountsArguments(),
