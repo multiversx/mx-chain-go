@@ -115,14 +115,15 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 			continue
 		}
 
-		spaceUsed += len(serializedNode)
-		nodes[string(serializedNode)] = struct{}{}
-		remainingSpace -= len(serializedNode)
-
-		if remainingSpace-len(serializedNode) < 0 {
+		isNotFirstLargeElement := spaceUsed > 0 && (remainingSpace-len(serializedNode)) < 0
+		if isNotFirstLargeElement {
 			usedAllSpace = true
 			break
 		}
+
+		spaceUsed += len(serializedNode)
+		nodes[string(serializedNode)] = struct{}{}
+		remainingSpace -= len(serializedNode)
 	}
 
 	usedAllSpace = usedAllSpace || remainingSpace == 0
