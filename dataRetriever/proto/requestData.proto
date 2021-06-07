@@ -24,8 +24,8 @@ enum RequestDataType {
 // RequestData holds the requested data
 // This struct will be serialized and sent to the other peers
 message RequestData {
-	bytes           Value = 2      [(gogoproto.jsontag) = "value"];
-	RequestDataType Type  = 1      [(gogoproto.jsontag) = "type"];
-	uint32          Epoch = 3      [(gogoproto.jsontag) = "epoch"];
+	RequestDataType Type       = 1 [(gogoproto.jsontag) = "type"];
+	bytes           Value      = 2 [(gogoproto.jsontag) = "value"];
+	uint32          Epoch      = 3 [(gogoproto.jsontag) = "epoch"];
 	uint32          ChunkIndex = 4 [(gogoproto.jsontag) = "chunkIndex"];
 }

@@ -1,6 +1,6 @@
 package testscommon
 
-// HasherMock -
+// HasherStub -
 type HasherStub struct {
 	ComputeCalled   func(s string) []byte
 	EmptyHashCalled func() []byte
