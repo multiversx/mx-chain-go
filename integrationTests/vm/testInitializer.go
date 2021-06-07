@@ -502,6 +502,7 @@ func CreateVMAndBlockchainHookMeta(
 		ValidatorAccountsDB: accnts,
 		ChanceComputer:      &mock.NodesCoordinatorMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	})
 	if err != nil {
 		log.LogIfError(err)
