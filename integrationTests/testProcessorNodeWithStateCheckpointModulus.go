@@ -108,7 +108,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData,
-		tpn.ArwenChangeLocker,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
