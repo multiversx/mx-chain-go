@@ -202,7 +202,24 @@ func createTestGasMap() map[string]map[string]uint64 {
 	return gasSchedule
 }
 
-func TestMultipleDataTriesSync(t *testing.T) {
+func TestMultipleDataTriesSyncSmallValues(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testMultipleDataTriesSync(t, 1000, 50, 32)
+}
+
+func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	//TODO this test should pass when the trie multipart data transmission feature is finalized
+	testMultipleDataTriesSync(t, 2, 2, 1<<20)
+}
+
+func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -231,8 +248,6 @@ func TestMultipleDataTriesSync(t *testing.T) {
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	numAccounts := 1000
-	numDataTrieLeaves := 50
 	accState := nResolver.AccntState
 	dataTrieRootHashes := make([][]byte, numAccounts)
 
@@ -242,7 +257,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 		userAcc, ok := account.(state.UserAccountHandler)
 		assert.True(t, ok)
 
-		rootHash := addValuesToDataTrie(t, accState, userAcc, numDataTrieLeaves)
+		rootHash := addValuesToDataTrie(t, accState, userAcc, numDataTrieLeaves, valSize)
 		dataTrieRootHashes[i] = rootHash
 	}
 
@@ -321,10 +336,11 @@ func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.A
 	}
 }
 
-func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.UserAccountHandler, numVals int) []byte {
+func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.UserAccountHandler, numVals int, valSize int) []byte {
 	for i := 0; i < numVals; i++ {
-		randBytes := integrationTests.CreateRandomBytes(32)
-		_ = acc.DataTrieTracker().SaveKeyValue(randBytes, randBytes)
+		keyRandBytes := integrationTests.CreateRandomBytes(32)
+		valRandBytes := integrationTests.CreateRandomBytes(valSize)
+		_ = acc.DataTrieTracker().SaveKeyValue(keyRandBytes, valRandBytes)
 	}
 
 	err := adb.SaveAccount(acc)

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -1091,8 +1092,21 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
+// NumConnectedPeersProvider defines the actions that a component that provides the number of connected peers should do
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// CheckedChunkResult is the DTO used to hold the results after checking a chunk of intercepted data
+type CheckedChunkResult struct {
+	IsChunk        bool
+	HaveAllChunks  bool
+	CompleteBuffer []byte
+}
+
+// InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
+type InterceptedChunksProcessor interface {
+	CheckBatch(b *batch.Batch) (CheckedChunkResult, error)
 	IsInterfaceNil() bool
 }

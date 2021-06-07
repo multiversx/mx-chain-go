@@ -439,9 +439,6 @@ const (
 	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
 	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
 
-	//MetricMaxNodesChange
-	MetricMaxNodesChange = "erd_max_nodes_change_enable_epoch"
-
 	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
 	MetricBlockGasAndFreeRecheckEnableEpoch = "erd_block_gas_and_fee_recheck_enable_epoch"
 
@@ -451,7 +448,7 @@ const (
 	//MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
 	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
@@ -750,7 +747,7 @@ const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
-const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+const MaxLeafSize = uint64(1 << 26) //64MB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32

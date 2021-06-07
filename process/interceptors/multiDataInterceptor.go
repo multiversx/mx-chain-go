@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -9,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
@@ -28,9 +31,11 @@ type ArgMultiDataInterceptor struct {
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
-	marshalizer      marshal.Marshalizer
-	factory          process.InterceptedDataFactory
-	whiteListRequest process.WhiteListHandler
+	marshalizer        marshal.Marshalizer
+	factory            process.InterceptedDataFactory
+	whiteListRequest   process.WhiteListHandler
+	mutChunksProcessor sync.RWMutex
+	chunksProcessor    process.InterceptedChunksProcessor
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -72,6 +77,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
+		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
 
 	return multiDataIntercept, nil
@@ -114,6 +120,24 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	if err != nil {
 		mdi.throttler.EndProcessing()
 		return err
+	}
+
+	mdi.mutChunksProcessor.RLock()
+	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b)
+	mdi.mutChunksProcessor.RUnlock()
+	if err != nil {
+		mdi.throttler.EndProcessing()
+		return nil
+	}
+
+	isIncompleteChunk := checkChunksRes.IsChunk && !checkChunksRes.HaveAllChunks
+	if isIncompleteChunk {
+		mdi.throttler.EndProcessing()
+		return nil
+	}
+	isCompleteChunk := checkChunksRes.IsChunk && checkChunksRes.HaveAllChunks
+	if isCompleteChunk {
+		multiDataBuff = [][]byte{checkChunksRes.CompleteBuffer}
 	}
 
 	listInterceptedData := make([]process.InterceptedData, len(multiDataBuff))
@@ -198,6 +222,21 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 // RegisterHandler registers a callback function to be notified on received data
 func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	mdi.processor.RegisterHandler(handler)
+}
+
+// SetChunkProcessor sets the intercepted chunks processor
+// TODO: use this in epoch bootstrapper, hardfork, interceptor for trie nodes
+// TODO(next PR) add unit tests for this function & L123-L140
+func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.InterceptedChunksProcessor) error {
+	if check.IfNil(processor) {
+		return process.ErrNilChunksProcessor
+	}
+
+	mdi.mutChunksProcessor.Lock()
+	mdi.chunksProcessor = processor
+	mdi.mutChunksProcessor.Unlock()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
