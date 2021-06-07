@@ -412,7 +412,13 @@ func hardForkImport(
 			ValidatorAccounts:        node.PeerState,
 			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			VirtualMachineConfig: config.VirtualMachineConfig{
+				OutOfProcessEnabled: true,
+				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				},
+			},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,

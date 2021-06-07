@@ -1233,6 +1233,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 }
 
 func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]uint64) {
+	tpn.ArwenChangeLocker = &sync.RWMutex{}
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
 		return

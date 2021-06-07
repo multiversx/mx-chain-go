@@ -542,8 +542,14 @@ func CreateFullGenesisBlocks(
 		ValidatorAccounts:        validatorAccounts,
 		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		TrieStorageManagers:      trieStorageManagers,
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -641,8 +647,14 @@ func CreateGenesisMetaBlock(
 		ValidatorAccounts:        validatorAccounts,
 		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
