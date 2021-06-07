@@ -979,3 +979,6 @@ var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost 
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")

@@ -8,6 +8,7 @@ import (
 
 // VMExecutionHandlerStub -
 type VMExecutionHandlerStub struct {
+	GetVersionCalled             func() string
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
@@ -20,6 +21,14 @@ func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[s
 	}
 }
 
+//GetVersion returns the version of the VM
+func (vm *VMExecutionHandlerStub) GetVersion() string {
+	if vm.GetVersionCalled == nil {
+		return ""
+	}
+
+	return vm.GetVersionCalled()
+}
 
 // RunSmartContractCreate --
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {

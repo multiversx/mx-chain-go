@@ -1,3 +1,5 @@
+// +build !race
+
 package arwenVM
 
 import (
@@ -8,6 +10,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
@@ -25,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -718,5 +722,65 @@ func TestAndCatchTrieError(t *testing.T) {
 		transferNonce++
 		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
 		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
+	}
+}
+
+func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
+	vmConfig := &config.VirtualMachineConfig{
+		OutOfProcessEnabled: true,
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 4, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 6, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 7, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 8, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 9, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 11, Version: "v1.2", OutOfProcessSupported: true},
+		},
+	}
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
+		vm.ArgEnableEpoch{},
+		vmConfig,
+		gasSchedule,
+	)
+	require.Nil(t, err)
+	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	for _, versionConfig := range vmConfig.ArwenVersions {
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+	}
+
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+}
+
+func runERC20TransactionSet(testContext *vm.VMTestContext) error {
+	_, err := runERC20TransactionsWithBenchmarksInVMTestContext(
+		testContext,
+		1,
+		1000,
+		"transferToken",
+		big.NewInt(5),
+	)
+
+	return err
+}
+
+func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
+	return &testscommon.HeaderHandlerStub{
+		EpochField: epoch,
 	}
 }

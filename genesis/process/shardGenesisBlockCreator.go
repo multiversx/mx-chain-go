@@ -292,7 +292,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		DeployEnableEpoch:              arg.GeneralConfig.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  arg.GeneralConfig.ArwenESDTFunctionsEnableEpoch,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

@@ -1573,7 +1573,6 @@ func newShardBlockProcessor(
 		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             config.GeneralSettings.RepairCallbackEnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  config.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

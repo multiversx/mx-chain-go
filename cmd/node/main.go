@@ -2760,7 +2760,6 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)

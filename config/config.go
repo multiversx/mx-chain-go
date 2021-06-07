@@ -237,7 +237,6 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards               uint32
 	BlockGasAndFeesReCheckEnableEpoch      uint32
 	ReturnDataToLastTransferEnableEpoch    uint32
-	ArwenESDTFunctionsEnableEpoch          uint32
 	SenderInOutTransferEnableEpoch         uint32
 	SaveJailedAlwaysEnableEpoch            uint32
 }
@@ -350,6 +349,14 @@ type VirtualMachineServicesConfig struct {
 type VirtualMachineConfig struct {
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
 	OutOfProcessEnabled bool
+	ArwenVersions       []ArwenVersionByEpoch
+}
+
+// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
+type ArwenVersionByEpoch struct {
+	StartEpoch            uint32
+	OutOfProcessSupported bool
+	Version               string
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
