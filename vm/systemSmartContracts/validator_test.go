@@ -5049,7 +5049,7 @@ func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blo
 
 func createVmContextWithStakingScWithRealAddresses(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &testscommon.AccountsStub{}, &mock.RaterMock{})
 
 	argsStaking := createMockStakingScArgumentsWithRealSystemScAddresses()
 	argsStaking.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)

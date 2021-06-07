@@ -1151,7 +1151,7 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorDataCallerAlready
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	_ = eei.SetSystemSCContainer(

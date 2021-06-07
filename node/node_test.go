@@ -602,7 +602,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -614,9 +614,12 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 
 				return ch, nil
 			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
 		})
 
-	accDB := &mock.AccountsStub{
+	accDB := &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -664,7 +667,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 
 	acc.DataTrieTracker().SetDataTrie(
-		&mock.TrieStub{
+		&testscommon.TrieStub{
 			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
@@ -676,9 +679,13 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 				return ch, nil
 			},
-		})
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		},
+	)
 
-	accDB := &mock.AccountsStub{
+	accDB := &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},

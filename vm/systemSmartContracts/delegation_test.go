@@ -4903,7 +4903,7 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 		},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
