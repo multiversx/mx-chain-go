@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -271,6 +272,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
 		PubkeyConv:         arg.PubkeyConv,
@@ -292,6 +296,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		DeployEnableEpoch:              arg.GeneralConfig.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.GeneralConfig.RepairCallbackEnableEpoch,
+		EpochNotifier:                  epochNotifier,
+		ArwenChangeLocker:              &sync.RWMutex{},
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -353,9 +359,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
-
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, generalConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
@@ -388,6 +391,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:                   &sync.RWMutex{},
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

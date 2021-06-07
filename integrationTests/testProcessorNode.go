@@ -302,6 +302,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ArwenChangeLocker                 process.Locker
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -835,7 +836,10 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config: config.VirtualMachineConfig{
 				OutOfProcessEnabled: true,
-				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				},
 			},
 			BlockGasLimit:                  tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
 			GasSchedule:                    gasSchedule,
@@ -843,6 +847,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			DeployEnableEpoch:              0,
 			AheadOfTimeGasUsageEnableEpoch: 0,
 			ArwenV3EnableEpoch:             0,
+			EpochNotifier:                  tpn.EpochNotifier,
+			ArwenChangeLocker:              tpn.ArwenChangeLocker,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1305,7 +1311,10 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
-			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+			},
 		},
 		BlockGasLimit:                  maxGasLimitPerBlock,
 		GasSchedule:                    gasSchedule,
@@ -1313,6 +1322,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		EpochNotifier:                  tpn.EpochNotifier,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1363,6 +1374,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
@@ -1583,6 +1595,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -95,6 +96,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		BuiltInFunctions:     builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
+		ArwenChangeLocker:    &sync.RWMutex{},
 	}
 }
 

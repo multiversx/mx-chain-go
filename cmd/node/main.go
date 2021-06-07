@@ -1294,6 +1294,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	arwenLocker := &sync.RWMutex{}
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1336,6 +1337,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
+		arwenLocker,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
 		chanStopNodeProcess,
@@ -1477,6 +1479,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		apiWorkingDir,
 		stateComponents.AccountsAdapterAPI,
 	)
@@ -2511,6 +2514,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 	accountsAPI state.AccountsAdapter,
 ) (facade.ApiResolver, error) {
@@ -2533,6 +2537,7 @@ func createApiResolver(
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		workingDir,
 	)
 	if err != nil {
@@ -2624,6 +2629,7 @@ func createScQueryService(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 ) (process.SCQueryService, error) {
 	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
@@ -2652,6 +2658,7 @@ func createScQueryService(
 			systemSCConfig,
 			rater,
 			epochNotifier,
+			arwenLocker,
 			workingDir,
 			i,
 		)
@@ -2690,6 +2697,7 @@ func createScQueryElement(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenChangeLocker process.Locker,
 	workingDir string,
 	index int,
 ) (process.SCQueryService, error) {
@@ -2760,6 +2768,8 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
+			ArwenChangeLocker:              arwenChangeLocker,
+			EpochNotifier:                  epochNotifier,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
