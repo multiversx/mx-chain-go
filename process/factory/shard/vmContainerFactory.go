@@ -109,25 +109,25 @@ func (vmf *vmContainerFactory) sortArwenVersions() {
 
 func (vmf *vmContainerFactory) validateArwenVersions() error {
 	if len(vmf.arwenVersions) == 0 {
-		return ErrEmptyVersionsByEpochsList
+		return process.ErrEmptyVersionsByEpochsList
 	}
 
 	currentEpoch := uint32(0)
 	for idx, ver := range vmf.arwenVersions {
 		if idx == 0 && ver.StartEpoch != 0 {
 			return fmt.Errorf("%w first version should start on epoch 0",
-				ErrInvalidVersionOnEpochValues)
+				process.ErrInvalidVersionOnEpochValues)
 		}
 
 		if idx > 0 && currentEpoch >= ver.StartEpoch {
 			return fmt.Errorf("%w, StartEpoch is greater or equal to next epoch StartEpoch value, version %s",
-				ErrInvalidVersionOnEpochValues, ver.Version)
+				process.ErrInvalidVersionOnEpochValues, ver.Version)
 		}
 		currentEpoch = ver.StartEpoch
 
 		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
 			return fmt.Errorf("%w for version %s",
-				ErrInvalidVersionStringTooLong, ver.Version)
+				process.ErrInvalidVersionStringTooLong, ver.Version)
 		}
 	}
 
@@ -162,13 +162,8 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
-// Close closes the vm container factory
-func (vmf *vmContainerFactory) Close() error {
-	return vmf.blockChainHookImpl.Close()
-}
-
 // EpochConfirmed updates the VM version in the container, depending on the epoch
-func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32, _ uint64) {
+func (vmf *vmContainerFactory) EpochConfirmed(epoch uint32) {
 	vmf.ensureCorrectArwenVersion(epoch)
 }
 
@@ -267,7 +262,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVMByVersion(version config
 	case "v1.2":
 		return vmf.createOutOfProcessArwenVMV12()
 	default:
-		return nil, ErrArwenOutOfProcessUnsupported
+		return nil, process.ErrArwenOutOfProcessUnsupported
 	}
 }
 

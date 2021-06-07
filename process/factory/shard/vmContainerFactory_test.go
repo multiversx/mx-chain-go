@@ -1,10 +1,15 @@
+// +build !race
+
 package shard
 
 import (
+	"sync"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	ipcNodePart12 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -36,6 +41,26 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		NilCompiledSCStore: true,
 	}
 	return arguments
+}
+
+func TestNewVMContainerFactory_NilLockerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         makeVMConfig(),
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  forking.NewGenericEpochNotifier(),
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+		ArwenChangeLocker:              &sync.RWMutex{},
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilLocker, err)
 }
 
 func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
@@ -107,4 +132,94 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+}
+
+func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
+	epochNotifier := forking.NewGenericEpochNotifier()
+
+	argsNewVMFactory := ArgVMContainerFactory{
+		Config:                         makeVMConfig(),
+		BlockGasLimit:                  10000,
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
+		ArgBlockChainHook:              createMockVMAccountsArguments(),
+		EpochNotifier:                  epochNotifier,
+		DeployEnableEpoch:              0,
+		AheadOfTimeGasUsageEnableEpoch: 0,
+		ArwenV3EnableEpoch:             0,
+		ArwenChangeLocker:              &sync.RWMutex{},
+	}
+
+	vmf, err := NewVMContainerFactory(argsNewVMFactory)
+	require.NotNil(t, vmf)
+	require.Nil(t, err)
+
+	container, err := vmf.Create()
+	require.Nil(t, err)
+	require.NotNil(t, container)
+	defer func() {
+		_ = container.Close()
+	}()
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(1)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(6)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(10)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.True(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(11)
+	require.Equal(t, "v1.2", getArwenVersion(t, container))
+	require.True(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(12)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(13)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+
+	epochNotifier.CheckEpoch(20)
+	require.Equal(t, "v1.3", getArwenVersion(t, container))
+	require.False(t, isOutOfProcess(t, container))
+}
+
+func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bool {
+	vm, err := container.Get(factory.ArwenVirtualMachine)
+	require.Nil(t, err)
+	require.NotNil(t, vm)
+
+	_, ok := vm.(*ipcNodePart12.ArwenDriver)
+	return ok
+}
+
+func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) string {
+	vm, err := container.Get(factory.ArwenVirtualMachine)
+	require.Nil(t, err)
+	require.NotNil(t, vm)
+
+	return vm.GetVersion()
+}
+
+func makeVMConfig() config.VirtualMachineConfig {
+	return config.VirtualMachineConfig{
+		OutOfProcessEnabled: true,
+		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{
+			LogsMarshalizer:     "json",
+			MessagesMarshalizer: "json",
+			MaxLoopTime:         1000,
+		},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
+		},
+	}
 }
