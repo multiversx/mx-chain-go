@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -174,6 +175,6 @@ func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
 		Storage:        &mock.StorerMock{},
 		Cache:          &mock.HeadersCacherStub{},
 		Marshalizer:    &mock.MarshalizerMock{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }

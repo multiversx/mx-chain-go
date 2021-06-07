@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -145,7 +146,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			BlKeyGen: &mock.KeyGenMock{},
 			TxKeyGen: &mock.KeyGenMock{},
 		},
-		RequestHandler:   &mock.RequestHandlerStub{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Messenger:        &mock.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		EconomicsData:    &economicsmocks.EconomicsHandlerStub{},

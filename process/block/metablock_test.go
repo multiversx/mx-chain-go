@@ -96,7 +96,7 @@ func createMockMetaArguments(
 			ForkDetector:        &mock.ForkDetectorMock{},
 			NodesCoordinator:    mock.NewNodesCoordinatorMock(),
 			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &mock.RequestHandlerStub{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},

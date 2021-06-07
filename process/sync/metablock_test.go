@@ -56,7 +56,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		Hasher:              &mock.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		ForkDetector:        &mock.ForkDetectorMock{},
-		RequestHandler:      &mock.RequestHandlerStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		Accounts:            &mock.AccountsStub{},
 		BlackListHandler:    &mock.BlackListHandlerStub{},
