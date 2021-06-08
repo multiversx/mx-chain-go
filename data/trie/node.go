@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -97,7 +98,7 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		return nil, fmt.Errorf("getNodeFromDB error %w for key %v", err, hex.EncodeToString(n))
+		return nil, fmt.Errorf(core.GetNodeFromDBErrorString+"%w for key %v", err, hex.EncodeToString(n))
 	}
 
 	decodedNode, err := decodeNode(encChild, marshalizer, hasher)

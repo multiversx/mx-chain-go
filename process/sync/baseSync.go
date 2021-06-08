@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -477,8 +478,19 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 		err := boot.syncStarter.SyncBlock()
 		if err != nil {
 			log.Debug("SyncBlock", "error", err.Error())
+
+			if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
+				err = boot.syncTrie()
+				if err != nil {
+					log.Debug("syncTrie", "error", err.Error())
+				}
+			}
 		}
 	}
+}
+
+func (boot *baseBootstrap) syncTrie() error {
+	return nil
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
