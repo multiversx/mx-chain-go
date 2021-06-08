@@ -165,42 +165,43 @@ func extractGasRemainedFromMessage(message string) uint64 {
 }
 
 func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) error {
-	var err error
 	if tx.GasPrice == 0 {
 		tx.GasPrice = tce.feeHandler.MinGasPrice()
 	}
-
-	if tx.GasLimit == 0 {
-		tx.GasLimit, err = tce.getTxGasLimit(tx)
-	}
-
 	if len(tx.Signature) == 0 {
 		tx.Signature = []byte(dummySignature)
 	}
+	if tx.GasLimit == 0 {
+		var err error
+		tx.GasLimit, err = tce.getTxGasLimit(tx)
 
-	return err
+		return err
+	}
+
+	return nil
 }
 
-func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (gasLimit uint64, err error) {
+func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {
 	selfShardID := tce.shardCoordinator.SelfId()
 	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
 
-	gasLimit = maxGasLimitPerBlock
-
 	senderShardID := tce.shardCoordinator.ComputeId(tx.SndAddr)
 	if tce.shardCoordinator.SelfId() != senderShardID {
-		return
+		return maxGasLimitPerBlock, nil
 	}
 
 	accountHandler, err := tce.accounts.LoadAccount(tx.SndAddr)
-	if err != nil || accountHandler == nil {
-		err = process.ErrInsufficientFunds
-		return
+	if err != nil {
+		return 0, err
+	}
+
+	if check.IfNil(accountHandler) {
+		return maxGasLimitPerBlock, nil
 	}
 
 	accountSender, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
-		return
+		return maxGasLimitPerBlock, nil
 	}
 
 	accountSenderBalance := accountSender.GetBalance()
@@ -210,7 +211,7 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 		return tce.feeHandler.ComputeGasLimitBasedOnBalance(tx, accountSenderBalance)
 	}
 
-	return
+	return maxGasLimitPerBlock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -586,9 +586,7 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx process.TransactionWit
 		return 0, process.ErrInsufficientFunds
 	}
 
-	gasLimitMoveBalance := ed.ComputeGasLimit(tx)
 	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
-
 	if moveBalanceFee.Cmp(balanceWithoutTransferValue) > 0 {
 		return 0, process.ErrInsufficientFunds
 	}
@@ -605,6 +603,7 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx process.TransactionWit
 	gasPriceBigForProcessingBig := big.NewInt(0).SetUint64(gasPriceBigForProcessing)
 	gasLimitFromRemainedBalanceBig := big.NewInt(0).Div(remainedBalanceAfterMoveBalanceFee, gasPriceBigForProcessingBig)
 
+	gasLimitMoveBalance := ed.ComputeGasLimit(tx)
 	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
 
 	return totalGasLimit, nil

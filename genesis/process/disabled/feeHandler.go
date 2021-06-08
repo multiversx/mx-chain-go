@@ -26,7 +26,7 @@ func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
 	return big.NewInt(0)
 }
 
-// ComputeGasLimitBasedOnBalance -
+// ComputeGasLimitBasedOnBalance return 0 and nil
 func (fh *FeeHandler) ComputeGasLimitBasedOnBalance(_ process.TransactionWithFeeHandler, _ *big.Int) (uint64, error) {
 	return 0, nil
 }
@@ -103,7 +103,7 @@ func (fh *FeeHandler) SplitTxGasInCategories(_ process.TransactionWithFeeHandler
 	return 0, 0
 }
 
-// GasPriceForProcessing
+// GasPriceForProcessing return 0
 func (fh *FeeHandler) GasPriceForProcessing(_ process.TransactionWithFeeHandler) uint64 {
 	return 0
 }
