@@ -7,8 +7,6 @@ import (
 
 	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
-	ipcCommon12 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
-	ipcMarshaling12 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
 	ipcNodePart12 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
@@ -206,20 +204,8 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 ) bool {
 	specificVersionRequired := newVersion.Version != "*"
 	differentVersion := newVersion.Version != currentVM.GetVersion()
-	differentProcessSpace := vmf.shouldChangeProcessSpace(newVersion, currentVM)
 
-	return (specificVersionRequired && differentVersion) || differentProcessSpace
-}
-
-func (vmf *vmContainerFactory) shouldChangeProcessSpace(
-	newVersion config.ArwenVersionByEpoch,
-	currentVM vmcommon.VMExecutionHandler,
-) bool {
-	if !vmf.config.OutOfProcessEnabled {
-		return false
-	}
-
-	return newVersion.OutOfProcessSupported != vmf.isArwenOutOfProcess(currentVM)
+	return specificVersionRequired && differentVersion
 }
 
 func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandler) bool {
@@ -228,10 +214,6 @@ func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandle
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	if version.OutOfProcessSupported && vmf.config.OutOfProcessEnabled {
-		return vmf.createOutOfProcessArwenVMByVersion(version)
-	}
-
 	return vmf.createInProcessArwenVMByVersion(version)
 }
 
@@ -255,16 +237,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 		return vmf.createInProcessArwenVMV12()
 	default:
 		return vmf.createInProcessArwenVMV13()
-	}
-}
-
-func (vmf *vmContainerFactory) createOutOfProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "version", version)
-	switch version.Version {
-	case "v1.2":
-		return vmf.createOutOfProcessArwenVMV12()
-	default:
-		return nil, process.ErrArwenOutOfProcessUnsupported
 	}
 }
 
@@ -296,36 +268,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMV13() (vmcommon.VMExecution
 		ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
 	}
 	return arwenHost13.NewArwenVM(vmf.blockChainHookImpl, hostParameters)
-}
-
-func (vmf *vmContainerFactory) createOutOfProcessArwenVMV12() (vmcommon.VMExecutionHandler, error) {
-	outOfProcessConfig := vmf.config.OutOfProcessConfig
-	logsMarshalizer := ipcMarshaling12.ParseKind(outOfProcessConfig.LogsMarshalizer)
-	messagesMarshalizer := ipcMarshaling12.ParseKind(outOfProcessConfig.MessagesMarshalizer)
-	maxLoopTime := outOfProcessConfig.MaxLoopTime
-
-	logger.GetLogLevelPattern()
-
-	arwenVM, err := ipcNodePart12.NewArwenDriver(
-		vmf.blockChainHookImpl,
-		ipcCommon12.ArwenArguments{
-			VMHostParameters: arwen12.VMHostParameters{
-				VMType:                   factory.ArwenVirtualMachine,
-				BlockGasLimit:            vmf.blockGasLimit,
-				GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-				ProtocolBuiltinFunctions: vmf.builtinFunctions,
-				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
-				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-				AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
-				DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
-				ArwenV3EnableEpoch:       vmf.arwenV3EnableEpoch,
-			},
-			LogsMarshalizer:     logsMarshalizer,
-			MessagesMarshalizer: messagesMarshalizer,
-		},
-		ipcNodePart12.Config{MaxLoopTime: maxLoopTime},
-	)
-	return arwenVM, err
 }
 
 func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {

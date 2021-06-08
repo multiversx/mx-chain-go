@@ -1884,9 +1884,9 @@ func createShardCoordinator(
 			return nil, "", err
 		}
 		if selfShardId == core.DisabledShardIDAsObserver {
-			pubKeyBytes, err := pubKey.ToByteArray()
-			if err != nil {
-				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
+			pubKeyBytes, errConvert := pubKey.ToByteArray()
+			if errConvert != nil {
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 			}
 
 			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -1935,9 +1935,9 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		pubKeyBytes, err := pubKey.ToByteArray()
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
+		pubKeyBytes, errConvert := pubKey.ToByteArray()
+		if errConvert != nil {
+			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 		}
 
 		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -2759,7 +2759,6 @@ func createScQueryElement(
 		}
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),

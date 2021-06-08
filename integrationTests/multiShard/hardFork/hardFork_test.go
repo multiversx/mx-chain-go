@@ -413,10 +413,8 @@ func hardForkImport(
 			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{
-				OutOfProcessEnabled: true,
-				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
 				ArwenVersions: []config.ArwenVersionByEpoch{
-					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			HardForkConfig: config.HardforkConfig{
