@@ -73,7 +73,7 @@ func createMockArgument(
 		TxLogsProcessor:   &mock.TxLogProcessorMock{},
 		VirtualMachineConfig: config.VirtualMachineConfig{
 			ArwenVersions: []config.ArwenVersionByEpoch{
-				{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+				{StartEpoch: 0, Version: "*"},
 			},
 		},
 		HardForkConfig: config.HardforkConfig{},

@@ -40,15 +40,9 @@ func TestTomlParser(t *testing.T) {
 	consensusType := "bls"
 
 	vmConfig := VirtualMachineConfig{
-		OutOfProcessEnabled: false,
-		OutOfProcessConfig: VirtualMachineOutOfProcessConfig{
-			LogsMarshalizer:     "json",
-			MessagesMarshalizer: "json",
-			MaxLoopTime:         1000,
-		},
 		ArwenVersions: []ArwenVersionByEpoch{
-			{StartEpoch: 12, Version: "v0.3", OutOfProcessSupported: true},
-			{StartEpoch: 88, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
 		},
 	}
 
@@ -130,7 +124,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 	}
-	cfgExpected.VirtualMachine.Querying.OutOfProcessEnabled = true
 
 	testString := `
 [MiniBlocksStorage]
@@ -177,26 +170,17 @@ func TestTomlParser(t *testing.T) {
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = false
         ArwenVersions = [
-            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
         ]
-        [VirtualMachine.Execution.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
+
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 12, Version = "v0.3", OutOfProcessSupported = true},
-            { StartEpoch = 88, Version = "v1.2", OutOfProcessSupported = false},
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
         ]
-        [VirtualMachine.Querying.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
 
 [Debug]
     [Debug.InterceptorResolver]

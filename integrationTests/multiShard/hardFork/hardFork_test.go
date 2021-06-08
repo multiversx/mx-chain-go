@@ -427,7 +427,7 @@ func hardForkImport(
 			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{
 				ArwenVersions: []config.ArwenVersionByEpoch{
-					{StartEpoch: 0, OutOfProcessSupported: false, Version: "*"},
+					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			HardForkConfig: config.HardforkConfig{
