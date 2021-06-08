@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // ResultInfo will hold the result information after running the tests
@@ -214,7 +216,7 @@ func DeployAndExecuteERC20WithBigInt(
 	return benchmarks, nil
 }
 
-func setupERC20Test(
+func SetupERC20Test(
 	testContext *vm.VMTestContext,
 	contractCodeFile string,
 ) error {
@@ -334,7 +336,25 @@ func runERC20TransactionsWithBenchmarks(
 	return benchmarks, nil
 }
 
-func runERC20TransactionsWithBenchmarksInVMTestContext(
+func RunERC20TransactionSet(testContext *vm.VMTestContext) error {
+	_, err := RunERC20TransactionsWithBenchmarksInVMTestContext(
+		testContext,
+		1,
+		100,
+		"transferToken",
+		big.NewInt(5),
+	)
+
+	return err
+}
+
+func MakeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
+	return &testscommon.HeaderHandlerStub{
+		EpochField: epoch,
+	}
+}
+
+func RunERC20TransactionsWithBenchmarksInVMTestContext(
 	testContext *vm.VMTestContext,
 	numRun int,
 	numTransferInBatch int,
@@ -356,7 +376,7 @@ func runERC20TransactionsWithBenchmarksInVMTestContext(
 		return nil, err
 	}
 
-	err = validateERC20TransactionsInVMTestContext(
+	err = ValidateERC20TransactionsInVMTestContext(
 		testContext,
 		numRun,
 		numTransferInBatch,
@@ -369,7 +389,7 @@ func runERC20TransactionsWithBenchmarksInVMTestContext(
 	return benchmarks, nil
 }
 
-func validateERC20TransactionsInVMTestContext(
+func ValidateERC20TransactionsInVMTestContext(
 	testContext *vm.VMTestContext,
 	numRun int,
 	numTransferInBatch int,

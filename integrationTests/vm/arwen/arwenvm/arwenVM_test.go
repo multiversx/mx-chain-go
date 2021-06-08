@@ -12,7 +12,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
@@ -30,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -299,187 +297,6 @@ func TestWASMMetering(t *testing.T) {
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
 	require.Equal(t, 1905, int(consumedGasValue))
-}
-
-func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
-	vmConfig := &config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 1, Version: "v1.2"},
-			{StartEpoch: 2, Version: "v1.2"},
-			{StartEpoch: 3, Version: "v1.2"},
-			{StartEpoch: 4, Version: "v1.2"},
-			{StartEpoch: 5, Version: "v1.2"},
-			{StartEpoch: 6, Version: "v1.3"},
-			{StartEpoch: 7, Version: "v1.2"},
-			{StartEpoch: 8, Version: "v1.2"},
-			{StartEpoch: 9, Version: "v1.2"},
-			{StartEpoch: 10, Version: "v1.3"},
-			{StartEpoch: 11, Version: "v1.2"},
-			{StartEpoch: 12, Version: "v1.2"},
-		},
-	}
-
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
-		vm.ArgEnableEpoch{},
-		vmConfig,
-		gasSchedule,
-	)
-	require.Nil(t, err)
-	defer testContext.Close()
-
-	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
-
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	for _, versionConfig := range vmConfig.ArwenVersions {
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(versionConfig.StartEpoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-	}
-
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-}
-
-func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
-	vmConfig := &config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 1, Version: "v1.2"},
-			{StartEpoch: 2, Version: "v1.2"},
-			{StartEpoch: 3, Version: "v1.2"},
-			{StartEpoch: 4, Version: "v1.3"},
-			{StartEpoch: 5, Version: "v1.2"},
-			{StartEpoch: 6, Version: "v1.2"},
-		},
-	}
-
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
-		vm.ArgEnableEpoch{},
-		vmConfig,
-		gasSchedule,
-	)
-	require.Nil(t, err)
-	defer testContext.Close()
-
-	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
-
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	epoch := uint32(3)
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	epoch = uint32(4)
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	epoch = uint32(3)
-	testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	repeatSwitching := 20
-	for i := 0; i < repeatSwitching; i++ {
-		epoch = uint32(4)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-
-		epoch = uint32(5)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-
-		epoch = uint32(6)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-	}
-
-	repeatSwitching = 20
-	for i := 0; i < repeatSwitching; i++ {
-		epoch = uint32(4)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-
-		epoch = uint32(5)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-	}
-}
-
-func TestSCExecutionWithVMVersionSwitchingEpochRevertAndVMQueries(t *testing.T) {
-	vmConfig := &config.VirtualMachineConfig{
-		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 1, Version: "v1.2"},
-			{StartEpoch: 2, Version: "v1.2"},
-			{StartEpoch: 3, Version: "v1.2"},
-			{StartEpoch: 4, Version: "v1.3"},
-			{StartEpoch: 5, Version: "v1.2"},
-			{StartEpoch: 6, Version: "v1.2"},
-		},
-	}
-
-	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
-		vm.ArgEnableEpoch{},
-		vmConfig,
-		gasSchedule,
-	)
-	require.Nil(t, err)
-	defer testContext.Close()
-
-	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
-
-	err = runERC20TransactionSet(testContext)
-	require.Nil(t, err)
-
-	repeatSwitching := 20
-	for i := 0; i < repeatSwitching; i++ {
-		epoch := uint32(4)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-
-		epoch = uint32(5)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-
-		epoch = uint32(6)
-		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
-		err = runERC20TransactionSet(testContext)
-		require.Nil(t, err)
-	}
-}
-
-func runERC20TransactionSet(testContext *vm.VMTestContext) error {
-	_, err := runERC20TransactionsWithBenchmarksInVMTestContext(
-		testContext,
-		1,
-		100,
-		"transferToken",
-		big.NewInt(5),
-	)
-
-	return err
-}
-
-func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
-	return &testscommon.HeaderHandlerStub{
-		EpochField: epoch,
-	}
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
