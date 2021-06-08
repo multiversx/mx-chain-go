@@ -21,7 +21,7 @@ import (
 
 var _ process.EndOfEpochEconomics = (*economics)(nil)
 
-const numberOfDaysInYear = 365.0
+const numberOfDaysInYear = 2.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
