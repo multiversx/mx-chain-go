@@ -194,14 +194,14 @@ func (vmTestContext *VMTestContext) CreateAccount(account *VMTestAccount) {
 	)
 }
 
-// GetIntValueFromSC -
+// GetIntValueFromSCWithTransientVM -
 func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName string, args ...[]byte) *big.Int {
 	vmOutput := vmTestContext.GetVMOutputWithTransientVM(funcName, args...)
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
-// GetVmOutput -
+// GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	gasSchedule := vmTestContext.GasSchedule
 	accnts := vmTestContext.Accounts
@@ -611,7 +611,7 @@ func CreateVMAndBlockchainHookMeta(
 		log.LogIfError(err)
 	}
 
-	argVmContainer := metachain.ArgsNewVMContainerFactory{
+	argVMContainer := metachain.ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   args,
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
@@ -626,8 +626,8 @@ func CreateVMAndBlockchainHookMeta(
 		EpochConfig:         createEpochConfig(),
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 	}
-	argVmContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
-	vmFactory, err := metachain.NewVMContainerFactory(argVmContainer)
+	argVMContainer.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch = arg.UnbondTokensV2EnableEpoch
+	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -822,11 +822,11 @@ func TestDeployedContractContents(
 	assert.NotNil(t, destinationRecovShardAccount)
 	assert.Equal(t, uint64(0), destinationRecovShardAccount.GetNonce())
 	assert.Equal(t, requiredBalance, destinationRecovShardAccount.GetBalance())
-	//test codehash
+	// test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovShardAccount.GetCodeHash())
-	//test code
+	// test code
 	assert.Equal(t, scCodeBytes, accnts.GetCode(destinationRecovShardAccount.GetCodeHash()))
-	//in this test we know we have a as a variable inside the contract, we can ask directly its value
+	// in this test we know we have a as a variable inside the contract, we can ask directly its value
 	// using trackableDataTrie functionality
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
 
