@@ -216,6 +216,7 @@ func DeployAndExecuteERC20WithBigInt(
 	return benchmarks, nil
 }
 
+// SetupERC20Test prepares an ERC20 contract and the accounts to transfer tokens between
 func SetupERC20Test(
 	testContext *vm.VMTestContext,
 	contractCodeFile string,
@@ -336,6 +337,7 @@ func runERC20TransactionsWithBenchmarks(
 	return benchmarks, nil
 }
 
+// RunERC20TransactionSet performs a predetermined set of ERC20 token transfers
 func RunERC20TransactionSet(testContext *vm.VMTestContext) error {
 	_, err := RunERC20TransactionsWithBenchmarksInVMTestContext(
 		testContext,
@@ -348,12 +350,14 @@ func RunERC20TransactionSet(testContext *vm.VMTestContext) error {
 	return err
 }
 
+// MakeHeaderHandlerStub prepares a HeaderHandlerStub with the provided epoch
 func MakeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
 	return &testscommon.HeaderHandlerStub{
 		EpochField: epoch,
 	}
 }
 
+// RunERC20TransactionsWithBenchmarksInVMTestContext executes a configurable set of ERC20 token transfers
 func RunERC20TransactionsWithBenchmarksInVMTestContext(
 	testContext *vm.VMTestContext,
 	numRun int,
@@ -389,6 +393,7 @@ func RunERC20TransactionsWithBenchmarksInVMTestContext(
 	return benchmarks, nil
 }
 
+// ValidateERC20TransactionsInVMTestContext verifies whether the ERC20 transfers were executed correctly
 func ValidateERC20TransactionsInVMTestContext(
 	testContext *vm.VMTestContext,
 	numRun int,
