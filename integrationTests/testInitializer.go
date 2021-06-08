@@ -561,11 +561,13 @@ func CreateFullGenesisBlocks(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -581,8 +583,9 @@ func CreateFullGenesisBlocks(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				MinCreationDeposit: "100",
-				MinStakeAmount:     "100",
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -667,11 +670,13 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",

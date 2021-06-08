@@ -79,11 +79,13 @@ func createMockArgument(
 				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     nodePrice.Text(10),
@@ -101,7 +103,7 @@ func createMockArgument(
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -461,7 +463,6 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapHardForkBlockProcessor))
 }
-
 
 func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {
 	return &mock.InitialNodesHandlerStub{

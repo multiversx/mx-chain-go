@@ -928,11 +928,13 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -950,7 +952,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -968,7 +970,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -990,8 +992,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
-
-		StakingDataProvider: stakingSCprovider,
+		StakingDataProvider:     stakingSCprovider,
 		NodesConfigProvider: &mock.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
