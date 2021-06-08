@@ -15,23 +15,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 )
 
-// topicRequestSuffix represents the topic name suffix
-const topicRequestSuffix = "_REQUEST"
-
-const minPeersToQuery = 2
-
-const preferredPeerIndex = -1
-
-type peerType string
-
-func (pt peerType) String() string {
-	return string(pt)
-}
-
 const (
-	intraShardPeer  peerType = "intra peer"
-	crossShardPeer  peerType = "cross peer"
-	fullHistoryPeer peerType = "full history peer"
+	// topicRequestSuffix represents the topic name suffix
+	topicRequestSuffix = "_REQUEST"
+	minPeersToQuery    = 2
+	preferredPeerIndex = -1
 )
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
@@ -151,16 +139,16 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	fullHistoryPeers := make([]core.PeerID, 0)
 	if trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
 		crossPeers = trs.peerListCreator.CrossShardPeerList()
-		preferredPeer := trs.getPreferredPeer(crossShardPeer)
-		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, crossShardPeer.String())
+		preferredPeer := trs.getPreferredPeer(trs.targetShardId)
+		numSentCross = trs.sendOnTopic(crossPeers, preferredPeer, topicToSendRequest, buff, trs.numCrossShardPeers, core.CrossShardPeer.String())
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
-		preferredPeer = trs.getPreferredPeer(intraShardPeer)
-		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, intraShardPeer.String())
+		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
+		numSentIntra = trs.sendOnTopic(intraPeers, preferredPeer, topicToSendRequest, buff, trs.numIntraShardPeers, core.IntraShardPeer.String())
 	} else {
 		// TODO: select preferred peers of type full history as well.
 		fullHistoryPeers = trs.peerListCreator.FullHistoryList()
-		numSentIntra = trs.sendOnTopic(fullHistoryPeers, "", topicToSendRequest, buff, trs.numFullHistoryPeers, fullHistoryPeer.String())
+		numSentIntra = trs.sendOnTopic(fullHistoryPeers, "", topicToSendRequest, buff, trs.numFullHistoryPeers, core.FullHistoryPeer.String())
 	}
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
@@ -251,8 +239,8 @@ func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, pe
 	return peersList[index]
 }
 
-func (trs *topicResolverSender) getPreferredPeer(pType peerType) core.PeerID {
-	peersInShard, found := trs.getPeersBasedOnPeerType(pType)
+func (trs *topicResolverSender) getPreferredPeer(shardID uint32) core.PeerID {
+	peersInShard, found := trs.getPreferredPeersInShard(shardID)
 	if !found {
 		return ""
 	}
@@ -262,17 +250,10 @@ func (trs *topicResolverSender) getPreferredPeer(pType peerType) core.PeerID {
 	return peersInShard[randomIdx]
 }
 
-func (trs *topicResolverSender) getPeersBasedOnPeerType(pType peerType) ([]core.PeerID, bool) {
+func (trs *topicResolverSender) getPreferredPeersInShard(shardID uint32) ([]core.PeerID, bool) {
 	preferredPeers := trs.preferredPeersHolderHandler.Get()
 
-	var shardToSearch uint32
-	if pType == crossShardPeer {
-		shardToSearch = trs.targetShardId
-	} else {
-		shardToSearch = trs.selfShardId
-	}
-
-	peers, found := preferredPeers[shardToSearch]
+	peers, found := preferredPeers[shardID]
 	if !found || len(peers) == 0 {
 		return nil, false
 	}

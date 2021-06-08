@@ -75,8 +75,6 @@ func TestNewDiffPeerListCreator_ShouldWork(t *testing.T) {
 	assert.Equal(t, excludedTopic, dplc.ExcludedPeersOnTopic())
 }
 
-// ------- MakeDiffList
-
 func TestMakeDiffList_EmptyExcludedShoudRetAllPeersList(t *testing.T) {
 	t.Parallel()
 
@@ -122,9 +120,7 @@ func TestMakeDiffList_NoneFoundInExcludedShouldRetAllPeers(t *testing.T) {
 	assert.Equal(t, allPeers, diff)
 }
 
-//------- PeersList
-
-func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListEmptyMainListShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	dplc, _ := topicResolverSender.NewDiffPeerListCreator(
@@ -141,7 +137,7 @@ func TestDiffPeerListCreator_PeersListEmptyMainListShouldRetEmpty(t *testing.T) 
 	assert.Empty(t, dplc.CrossShardPeerList())
 }
 
-func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListNoExcludedTopicSetShouldRetPeersOnMain(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -161,7 +157,7 @@ func TestDiffPeerListCreator_PeersListNoExcludedTopicSetShouldRetPeersOnMain(t *
 	assert.Equal(t, peersOnMain, dplc.CrossShardPeerList())
 }
 
-func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListDiffShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -193,7 +189,7 @@ func TestDiffPeerListCreator_PeersListDiffShouldWork(t *testing.T) {
 	assert.Equal(t, pID1, resultingList[0])
 }
 
-func TestDiffPeerListCreator_PeersListNoDifferenceShouldReturnMain(t *testing.T) {
+func TestDiffPeerListCreator_CrossShardPeersListNoDifferenceShouldReturnMain(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
