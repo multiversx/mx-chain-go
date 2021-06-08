@@ -841,7 +841,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 					DelegationManagerEnableEpoch:       0,
 				},
 			},
-			ShardCoordinator:    tpn.ShardCoordinator,
+			ShardCoordinator: tpn.ShardCoordinator,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -1126,6 +1126,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -1180,6 +1181,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1209,6 +1211,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  2,
 			NumIntraShardPeers:  1,
@@ -1572,7 +1575,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				DelegationManagerEnableEpoch:       0,
 			},
 		},
-		ShardCoordinator:    tpn.ShardCoordinator,
+		ShardCoordinator: tpn.ShardCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
