@@ -42,6 +42,7 @@ type ProcessComponentsMock struct {
 	ImportStartHandlerInternal     update.ImportStartHandler
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
+	ArwenChangeLockerInternal      process.Locker
 }
 
 // Create -
@@ -202,6 +203,11 @@ func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.Requeste
 // NodeRedundancyHandler -
 func (pcm *ProcessComponentsMock) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return pcm.NodeRedundancyHandlerInternal
+}
+
+// ArwenChangeLocker -
+func (pcm *ProcessComponentsMock) ArwenChangeLocker() process.Locker {
+	return pcm.ArwenChangeLockerInternal
 }
 
 // IsInterfaceNil -
