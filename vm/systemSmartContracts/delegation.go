@@ -46,6 +46,7 @@ type delegation struct {
 	stakingSCAddr                      []byte
 	validatorSCAddr                    []byte
 	endOfEpochAddr                     []byte
+	governanceSCAddr                   []byte
 	gasCost                            vm.GasCost
 	marshalizer                        marshal.Marshalizer
 	delegationEnabled                  atomic.Flag
@@ -76,6 +77,7 @@ type ArgsNewDelegation struct {
 	StakingSCAddress       []byte
 	ValidatorSCAddress     []byte
 	EndOfEpochAddress      []byte
+	GovernanceSCAddress    []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	EpochNotifier          vm.EpochNotifier
@@ -94,6 +96,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -125,6 +130,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		sigVerifier:                        args.SigVerifier,
 		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
 		endOfEpochAddr:                     args.EndOfEpochAddress,
+		governanceSCAddr:                   args.GovernanceSCAddress,
 		stakingV2EnableEpoch:               args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		stakingV2Enabled:                   atomic.Flag{},
 		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
@@ -1583,6 +1589,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(valueToUnDelegate) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
+		return vmcommon.UserError
+	}
+
+	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
+		d.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 
