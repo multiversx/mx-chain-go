@@ -48,7 +48,6 @@ func (eb *erc20Benchmark) Run() (time.Duration, error) {
 		createTestGasMap(),
 		eb.scFilename,
 		eb.function,
-		false,
 	)
 	if err != nil {
 		return 0, err

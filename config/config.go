@@ -347,16 +347,14 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
-	OutOfProcessEnabled bool
-	ArwenVersions       []ArwenVersionByEpoch
+	OutOfProcessConfig VirtualMachineOutOfProcessConfig
+	ArwenVersions      []ArwenVersionByEpoch
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
 type ArwenVersionByEpoch struct {
-	StartEpoch            uint32
-	OutOfProcessSupported bool
-	Version               string
+	StartEpoch uint32
+	Version    string
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process

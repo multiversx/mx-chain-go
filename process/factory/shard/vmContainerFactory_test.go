@@ -177,11 +177,11 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 
 	epochNotifier.CheckEpoch(10)
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
-	require.True(t, isOutOfProcess(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(11)
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
-	require.True(t, isOutOfProcess(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(12)
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
@@ -215,16 +215,15 @@ func getArwenVersion(t testing.TB, container process.VirtualMachinesContainer) s
 
 func makeVMConfig() config.VirtualMachineConfig {
 	return config.VirtualMachineConfig{
-		OutOfProcessEnabled: true,
 		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{
 			LogsMarshalizer:     "json",
 			MessagesMarshalizer: "json",
 			MaxLoopTime:         1000,
 		},
 		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 10, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 12, Version: "v1.3", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 10, Version: "v1.2"},
+			{StartEpoch: 12, Version: "v1.3"},
 		},
 	}
 }

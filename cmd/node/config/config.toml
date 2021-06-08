@@ -640,16 +640,15 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 3, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 4, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 5, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 6, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 7, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 8, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 9, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 3, Version = "v1.3" },
+            { StartEpoch = 4, Version = "v1.2" },
+            { StartEpoch = 5, Version = "v1.3" },
+            { StartEpoch = 6, Version = "v1.2" },
+            { StartEpoch = 7, Version = "v1.3" },
+            { StartEpoch = 8, Version = "v1.2" },
+            { StartEpoch = 9, Version = "v1.3" },
         ]
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
@@ -657,16 +656,15 @@
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 3, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 4, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 5, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 6, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 7, Version = "v1.3", OutOfProcessSupported = false },
-            { StartEpoch = 8, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 9, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 3, Version = "v1.3" },
+            { StartEpoch = 4, Version = "v1.2" },
+            { StartEpoch = 5, Version = "v1.3" },
+            { StartEpoch = 6, Version = "v1.2" },
+            { StartEpoch = 7, Version = "v1.3" },
+            { StartEpoch = 8, Version = "v1.2" },
+            { StartEpoch = 9, Version = "v1.3" },
         ]
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"

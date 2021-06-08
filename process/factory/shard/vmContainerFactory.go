@@ -206,20 +206,8 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 ) bool {
 	specificVersionRequired := newVersion.Version != "*"
 	differentVersion := newVersion.Version != currentVM.GetVersion()
-	differentProcessSpace := vmf.shouldChangeProcessSpace(newVersion, currentVM)
 
-	return (specificVersionRequired && differentVersion) || differentProcessSpace
-}
-
-func (vmf *vmContainerFactory) shouldChangeProcessSpace(
-	newVersion config.ArwenVersionByEpoch,
-	currentVM vmcommon.VMExecutionHandler,
-) bool {
-	if !vmf.config.OutOfProcessEnabled {
-		return false
-	}
-
-	return newVersion.OutOfProcessSupported != vmf.isArwenOutOfProcess(currentVM)
+	return specificVersionRequired && differentVersion
 }
 
 func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandler) bool {
@@ -228,10 +216,6 @@ func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandle
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	if version.OutOfProcessSupported && vmf.config.OutOfProcessEnabled {
-		return vmf.createOutOfProcessArwenVMByVersion(version)
-	}
-
 	return vmf.createInProcessArwenVMByVersion(version)
 }
 
@@ -255,16 +239,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVMByVersion(version config.Ar
 		return vmf.createInProcessArwenVMV12()
 	default:
 		return vmf.createInProcessArwenVMV13()
-	}
-}
-
-func (vmf *vmContainerFactory) createOutOfProcessArwenVMByVersion(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "version", version)
-	switch version.Version {
-	case "v1.2":
-		return vmf.createOutOfProcessArwenVMV12()
-	default:
-		return nil, process.ErrArwenOutOfProcessUnsupported
 	}
 }
 
