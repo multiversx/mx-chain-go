@@ -602,28 +602,20 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 1, Version = "v1.2", OutOfProcessSupported = true },
-            { StartEpoch = 4, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.2" },
+            { StartEpoch = 4, Version = "v1.3" },
         ]
-        [VirtualMachine.Execution.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
+
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
-        OutOfProcessEnabled = true
         ArwenVersions = [
-            { StartEpoch = 0, Version = "v1.2", OutOfProcessSupported = false },
-            { StartEpoch = 1, Version = "v1.2", OutOfProcessSupported = true },
-            { StartEpoch = 4, Version = "v1.3", OutOfProcessSupported = false },
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.2" },
+            { StartEpoch = 4, Version = "v1.3" },
         ]
-        [VirtualMachine.Querying.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 10000
+
 
 [Hardfork]
     EnableTrigger = true

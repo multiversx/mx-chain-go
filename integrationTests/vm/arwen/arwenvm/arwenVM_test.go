@@ -303,22 +303,20 @@ func TestWASMMetering(t *testing.T) {
 
 func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 	vmConfig := &config.VirtualMachineConfig{
-		OutOfProcessEnabled: true,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 4, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 6, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 7, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 8, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 9, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 10, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 11, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 12, Version: "v1.2", OutOfProcessSupported: false},
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 1, Version: "v1.2"},
+			{StartEpoch: 2, Version: "v1.2"},
+			{StartEpoch: 3, Version: "v1.2"},
+			{StartEpoch: 4, Version: "v1.2"},
+			{StartEpoch: 5, Version: "v1.2"},
+			{StartEpoch: 6, Version: "v1.3"},
+			{StartEpoch: 7, Version: "v1.2"},
+			{StartEpoch: 8, Version: "v1.2"},
+			{StartEpoch: 9, Version: "v1.2"},
+			{StartEpoch: 10, Version: "v1.3"},
+			{StartEpoch: 11, Version: "v1.2"},
+			{StartEpoch: 12, Version: "v1.2"},
 		},
 	}
 
@@ -346,16 +344,14 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 
 func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 	vmConfig := &config.VirtualMachineConfig{
-		OutOfProcessEnabled: true,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		ArwenVersions: []config.ArwenVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 1, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 2, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 3, Version: "v1.2", OutOfProcessSupported: true},
-			{StartEpoch: 4, Version: "v1.3", OutOfProcessSupported: false},
-			{StartEpoch: 5, Version: "v1.2", OutOfProcessSupported: false},
-			{StartEpoch: 6, Version: "v1.2", OutOfProcessSupported: true},
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 1, Version: "v1.2"},
+			{StartEpoch: 2, Version: "v1.2"},
+			{StartEpoch: 3, Version: "v1.2"},
+			{StartEpoch: 4, Version: "v1.3"},
+			{StartEpoch: 5, Version: "v1.2"},
+			{StartEpoch: 6, Version: "v1.2"},
 		},
 	}
 
@@ -443,11 +439,11 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	}
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 
-	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 }
@@ -457,11 +453,11 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 
-	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 }
@@ -507,7 +503,6 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
@@ -547,7 +542,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
@@ -755,7 +749,6 @@ func TestAndCatchTrieError(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)

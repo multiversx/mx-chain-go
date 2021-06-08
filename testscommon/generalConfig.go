@@ -321,19 +321,15 @@ func GetGeneralConfig() config.Config {
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Execution: config.VirtualMachineConfig{
-				OutOfProcessEnabled: false,
-				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{},
 				ArwenVersions: []config.ArwenVersionByEpoch{
-					{StartEpoch: 0, Version: "*", OutOfProcessSupported: false},
+					{StartEpoch: 0, Version: "*"},
 				},
 			},
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
-					OutOfProcessEnabled: false,
-					OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{},
 					ArwenVersions: []config.ArwenVersionByEpoch{
-						{StartEpoch: 0, Version: "*", OutOfProcessSupported: false},
+						{StartEpoch: 0, Version: "*"},
 					},
 				},
 			},
