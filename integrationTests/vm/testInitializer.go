@@ -100,6 +100,7 @@ type VMTestContext struct {
 	GasSchedule      map[string]map[string]uint64
 	VMConfiguration  *config.VirtualMachineConfig
 	EpochNotifier    process.EpochNotifier
+	SCQueryService   *smartContract.SCQueryService
 
 	Alice         VMTestAccount
 	Bob           VMTestAccount
@@ -194,14 +195,14 @@ func (vmTestContext *VMTestContext) CreateAccount(account *VMTestAccount) {
 }
 
 // GetIntValueFromSC -
-func (vmTestContext *VMTestContext) GetIntValueFromSC(funcName string, args ...[]byte) *big.Int {
-	vmOutput := vmTestContext.GetVmOutput(funcName, args...)
+func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName string, args ...[]byte) *big.Int {
+	vmOutput := vmTestContext.GetVMOutputWithTransientVM(funcName, args...)
 
 	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 }
 
 // GetVmOutput -
-func (vmTestContext *VMTestContext) GetVmOutput(funcName string, args ...[]byte) *vmcommon.VMOutput {
+func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	gasSchedule := vmTestContext.GasSchedule
 	accnts := vmTestContext.Accounts
 	scAddressBytes := vmTestContext.Contract.Address

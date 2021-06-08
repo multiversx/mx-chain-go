@@ -377,14 +377,14 @@ func validateERC20TransactionsInVMTestContext(
 ) error {
 	initAlice := testContext.Alice.TokenBalance
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
-	valueFromScAlice := testContext.GetIntValueFromSC("balanceOf", testContext.Alice.Address)
+	valueFromScAlice := testContext.GetIntValueFromSCWithTransientVM("balanceOf", testContext.Alice.Address)
 	if finalAlice.Uint64() != valueFromScAlice.Uint64() {
 		return fmt.Errorf("alice balance mismatch: computed %d, got %d", finalAlice.Uint64(), valueFromScAlice.Uint64())
 	}
 
 	initBob := testContext.Bob.TokenBalance
 	finalBob := big.NewInt(0).Add(initBob, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
-	valueFromScBob := testContext.GetIntValueFromSC("balanceOf", testContext.Bob.Address)
+	valueFromScBob := testContext.GetIntValueFromSCWithTransientVM("balanceOf", testContext.Bob.Address)
 	if finalBob.Uint64() != valueFromScBob.Uint64() {
 		return fmt.Errorf("bob balance mismatch: computed %d, got %d", finalBob.Uint64(), valueFromScBob.Uint64())
 	}

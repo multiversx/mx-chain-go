@@ -327,6 +327,8 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 		gasSchedule,
 	)
 	require.Nil(t, err)
+	defer testContext.Close()
+
 	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
 
 	err = runERC20TransactionSet(testContext)
@@ -362,6 +364,8 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 		gasSchedule,
 	)
 	require.Nil(t, err)
+	defer testContext.Close()
+
 	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
 
 	err = runERC20TransactionSet(testContext)
@@ -382,8 +386,7 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 	err = runERC20TransactionSet(testContext)
 	require.Nil(t, err)
 
-	// TODO investigate why setting this variable to 20 causes 'too many open files' panic
-	repeatSwitching := 10
+	repeatSwitching := 20
 	for i := 0; i < repeatSwitching; i++ {
 		epoch = uint32(4)
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
@@ -409,6 +412,52 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
 		require.Nil(t, err)
 
 		epoch = uint32(5)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+	}
+}
+
+func TestSCExecutionWithVMVersionSwitchingEpochRevertAndVMQueries(t *testing.T) {
+	vmConfig := &config.VirtualMachineConfig{
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "v1.2"},
+			{StartEpoch: 1, Version: "v1.2"},
+			{StartEpoch: 2, Version: "v1.2"},
+			{StartEpoch: 3, Version: "v1.2"},
+			{StartEpoch: 4, Version: "v1.3"},
+			{StartEpoch: 5, Version: "v1.2"},
+			{StartEpoch: 6, Version: "v1.2"},
+		},
+	}
+
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	testContext, err := vm.CreateTxProcessorArwenWithVMConfig(
+		vm.ArgEnableEpoch{},
+		vmConfig,
+		gasSchedule,
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	_ = setupERC20Test(testContext, "../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	err = runERC20TransactionSet(testContext)
+	require.Nil(t, err)
+
+	repeatSwitching := 20
+	for i := 0; i < repeatSwitching; i++ {
+		epoch := uint32(4)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(5)
+		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
+		err = runERC20TransactionSet(testContext)
+		require.Nil(t, err)
+
+		epoch = uint32(6)
 		testContext.EpochNotifier.CheckEpoch(makeHeaderHandlerStub(epoch))
 		err = runERC20TransactionSet(testContext)
 		require.Nil(t, err)
