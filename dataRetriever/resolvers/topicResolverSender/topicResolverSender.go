@@ -274,6 +274,11 @@ func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, p
 		TopicField: topic,
 	}
 
+	shouldAvoidAntiFloodCheck := trs.preferredPeersHolderHandler.Contains(peer)
+	if shouldAvoidAntiFloodCheck {
+		return trs.messenger.SendToConnectedPeer(topic, buff, peer)
+	}
+
 	err := trs.outputAntiflooder.CanProcessMessage(msg, peer)
 	if err != nil {
 		return fmt.Errorf("%w while sending %d bytes to peer %s",

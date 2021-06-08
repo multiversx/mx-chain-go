@@ -473,6 +473,67 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToIntraPreferred
 	assert.True(t, sentToPreferredPeer)
 }
 
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSkipAntifloodChecksForPreferredPeers(t *testing.T) {
+	t.Parallel()
+
+	selfShardID := uint32(37)
+	pIDPreferred := core.PeerID("preferred peer")
+	regularPeer0, regularPeer1 := core.PeerID("peer0"), core.PeerID("peer1")
+	targetShardID := uint32(55)
+
+	sentToPreferredPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.TargetShardId = targetShardID
+	arg.NumCrossShardPeers = 5
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		CrossShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{regularPeer0, regularPeer1, regularPeer0, regularPeer1}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{}
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{
+				targetShardID: {pIDPreferred},
+			}
+		},
+		ContainsCalled: func(peerID core.PeerID) bool {
+			return peerID == pIDPreferred
+		},
+	}
+
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if peerID == pIDPreferred {
+				sentToPreferredPeer = true
+			}
+			return nil
+		},
+	}
+	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			if fromConnectedPeer == pIDPreferred {
+				require.Fail(t, "CanProcessMessage should have not be called for preferred peer")
+			}
+
+			return nil
+		},
+	}
+
+	selfShardIDProvider := mock.NewMultipleShardsCoordinatorMock()
+	selfShardIDProvider.CurrentShard = selfShardID
+	arg.SelfShardIdProvider = selfShardIDProvider
+
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	require.NoError(t, err)
+	require.True(t, sentToPreferredPeer)
+}
+
 func TestTopicResolverSender_SendOnRequestTopicShouldNotSendToPreferredPeerFirstIfOnlyOnePeerToRequest(t *testing.T) {
 	t.Parallel()
 
@@ -683,6 +744,39 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 	err := trs.Send(buffToSend, pID1)
 
 	assert.True(t, errors.Is(err, expectedErr))
+}
+
+func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.T) {
+	t.Parallel()
+
+	pID1 := core.PeerID("peer1")
+	buffToSend := []byte("buff")
+	sendWasCalled := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			sendWasCalled = true
+			return nil
+		},
+	}
+	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			require.Fail(t, "CanProcessMessage should have not be called for preferred peer")
+
+			return nil
+		},
+	}
+	arg.PreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		ContainsCalled: func(peerID core.PeerID) bool {
+			return peerID == pID1
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.Send(buffToSend, pID1)
+	require.NoError(t, err)
+	require.True(t, sendWasCalled)
 }
 
 func TestTopicResolverSender_SendShouldWork(t *testing.T) {
