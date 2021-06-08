@@ -179,11 +179,11 @@ func TestVmContainerFactory_ResolveArwenVersion(t *testing.T) {
 
 	epochNotifier.CheckEpoch(makeHeaderHandlerStub(10))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
-	require.True(t, isOutOfProcess(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(makeHeaderHandlerStub(11))
 	require.Equal(t, "v1.2", getArwenVersion(t, container))
-	require.True(t, isOutOfProcess(t, container))
+	require.False(t, isOutOfProcess(t, container))
 
 	epochNotifier.CheckEpoch(makeHeaderHandlerStub(12))
 	require.Equal(t, "v1.3", getArwenVersion(t, container))
