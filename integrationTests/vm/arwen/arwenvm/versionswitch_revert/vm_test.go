@@ -1,3 +1,7 @@
+// +build !race
+
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package versionswitch_revert
 
 import (
@@ -11,6 +15,10 @@ import (
 )
 
 func TestSCExecutionWithVMVersionSwitchingEpochRevert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	vmConfig := &config.VirtualMachineConfig{
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "v1.2"},
