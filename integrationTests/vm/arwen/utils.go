@@ -228,7 +228,6 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
-		OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
 		ArwenVersions: []config.ArwenVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},

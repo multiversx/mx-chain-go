@@ -62,7 +62,6 @@ func createMockArgument(
 		DataPool:                 testscommon.NewPoolsHolderMock(),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig: config.VirtualMachineConfig{
-			OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
 			ArwenVersions: []config.ArwenVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},

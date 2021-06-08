@@ -419,7 +419,6 @@ func CreateVMAndBlockchainHook(
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config: config.VirtualMachineConfig{
-			OutOfProcessConfig: config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 999},
 			ArwenVersions: []config.ArwenVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},

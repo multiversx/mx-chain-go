@@ -347,8 +347,7 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessConfig VirtualMachineOutOfProcessConfig
-	ArwenVersions      []ArwenVersionByEpoch
+	ArwenVersions []ArwenVersionByEpoch
 }
 
 // ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
@@ -361,13 +360,6 @@ type ArwenVersionByEpoch struct {
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
-}
-
-// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
-type VirtualMachineOutOfProcessConfig struct {
-	LogsMarshalizer     string
-	MessagesMarshalizer string
-	MaxLoopTime         int
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
