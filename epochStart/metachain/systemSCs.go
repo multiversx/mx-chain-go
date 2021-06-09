@@ -1488,7 +1488,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
-	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
+	log.Debug("systemSCProcessor: ESDT initialization", "enabled", s.flagESDTEnabled.IsSet())
 
 	s.flagSaveJailedAlwaysEnabled.Toggle(epoch >= s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())

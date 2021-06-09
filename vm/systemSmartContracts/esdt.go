@@ -1495,7 +1495,7 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
-	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
+	log.Debug("ESDT contract", "enabled", e.flagEnabled.IsSet())
 }
 
 // SetNewGasCost is called whenever a gas cost was changed
