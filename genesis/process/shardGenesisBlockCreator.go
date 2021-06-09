@@ -281,9 +281,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
-
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           arg.Accounts,
 		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
@@ -297,7 +294,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	arwenChangeLocker := &sync.RWMutex{}
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:                         arg.VirtualMachineConfig,
 		BlockGasLimit:                  math.MaxUint64,
