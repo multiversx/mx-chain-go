@@ -36,19 +36,12 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
 	ChanceComputer       sharding.ChanceComputer
 	ShardCoordinator     sharding.Coordinator
+	EpochConfig          config.EpochConfig
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
-
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	DelegationEnableEpoch                  uint32
-	StakingV2EnableEpoch                   uint32
-	CorrectLastUnJailEnableEpoch           uint32
-	ESDTEnableEpoch                        uint32
-	SaveJailedAlwaysEnableEpoch            uint32
-	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
-	ESDTOwnerAddressBytes                  []byte
+	MaxNodesEnableConfig    []config.MaxNodesChangeConfig
+	ESDTOwnerAddressBytes   []byte
 
 	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
 	EpochNotifier       process.EpochNotifier
@@ -77,6 +70,7 @@ type systemSCProcessor struct {
 	correctLastUnJailEpoch         uint32
 	esdtEnableEpoch                uint32
 	saveJailedAlwaysEnableEpoch    uint32
+	governanceEnableEpoch          uint32
 	maxNodesEnableConfig           []config.MaxNodesChangeConfig
 	maxNodes                       uint32
 	flagSwitchJailedWaiting        atomic.Flag
@@ -89,6 +83,7 @@ type systemSCProcessor struct {
 	flagCorrectNumNodesToStake     atomic.Flag
 	flagESDTEnabled                atomic.Flag
 	flagSaveJailedAlwaysEnabled    atomic.Flag
+	flagGovernanceEnabled          atomic.Flag
 	esdtOwnerAddressBytes          []byte
 	mapNumSwitchedPerShard         map[uint32]uint32
 	mapNumSwitchablePerShard       map[uint32]uint32
@@ -172,18 +167,28 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		chanceComputer:              args.ChanceComputer,
 		mapNumSwitchedPerShard:      make(map[uint32]uint32),
 		mapNumSwitchablePerShard:    make(map[uint32]uint32),
-		switchEnableEpoch:           args.SwitchJailWaitingEnableEpoch,
-		hystNodesEnableEpoch:        args.SwitchHysteresisForMinNodesEnableEpoch,
-		delegationEnableEpoch:       args.DelegationEnableEpoch,
-		stakingV2EnableEpoch:        args.StakingV2EnableEpoch,
-		esdtEnableEpoch:             args.ESDTEnableEpoch,
+		switchEnableEpoch:           args.EpochConfig.EnableEpochs.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:        args.EpochConfig.EnableEpochs.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:       args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
+		stakingV2EnableEpoch:        args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		esdtEnableEpoch:             args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		stakingDataProvider:         args.StakingDataProvider,
 		nodesConfigProvider:         args.NodesConfigProvider,
 		shardCoordinator:            args.ShardCoordinator,
-		correctLastUnJailEpoch:      args.CorrectLastUnJailEnableEpoch,
+		correctLastUnJailEpoch:      args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
 		esdtOwnerAddressBytes:       args.ESDTOwnerAddressBytes,
-		saveJailedAlwaysEnableEpoch: args.SaveJailedAlwaysEnableEpoch,
+		saveJailedAlwaysEnableEpoch: args.EpochConfig.EnableEpochs.SaveJailedAlwaysEnableEpoch,
+		governanceEnableEpoch:       args.EpochConfig.EnableEpochs.GovernanceEnableEpoch,
 	}
+
+	log.Debug("systemSC: enable epoch for switch jail waiting", "epoch", s.switchEnableEpoch)
+	log.Debug("systemSC: enable epoch for switch hysteresis for min nodes", "epoch", s.hystNodesEnableEpoch)
+	log.Debug("systemSC: enable epoch for delegation manager", "epoch", s.delegationEnableEpoch)
+	log.Debug("systemSC: enable epoch for staking v2", "epoch", s.stakingV2EnableEpoch)
+	log.Debug("systemSC: enable epoch for ESDT", "epoch", s.esdtEnableEpoch)
+	log.Debug("systemSC: enable epoch for correct last unjailed", "epoch", s.correctLastUnJailEpoch)
+	log.Debug("systemSC: enable epoch for save jailed always", "epoch", s.saveJailedAlwaysEnableEpoch)
+	log.Debug("systemSC: enable epoch for governanceV2 init", "epoch", s.governanceEnableEpoch)
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
@@ -282,6 +287,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		if err != nil {
 			//not a critical error
 			log.Error("error while initializing ESDT", "err", err)
+		}
+	}
+
+	if s.flagGovernanceEnabled.IsSet() {
+		err := s.updateToGovernanceV2()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -1063,6 +1075,32 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	return nil
 }
 
+func (s *systemSCProcessor) updateToGovernanceV2() error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.GovernanceSCAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.GovernanceSCAddress,
+		Function:      "initV2",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when updating to governanceV2", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when updating to governanceV2", vmOutput.ReturnCode)
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandler, error) {
 	validatorAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
 	if err != nil {
@@ -1411,7 +1449,7 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
+func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
@@ -1437,7 +1475,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	s.flagSetOwnerEnabled.Toggle(epoch == s.stakingV2EnableEpoch)
 	s.flagStakingV2Enabled.Toggle(epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
-	log.Debug("systemSCProcessor:change of maximum number of nodes and/or shuffling percentage",
+	log.Debug("systemSCProcessor: change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
@@ -1447,11 +1485,14 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectLastUnjailedEnabled.IsSet())
 
 	s.flagCorrectNumNodesToStake.Toggle(epoch >= s.correctLastUnJailEpoch)
-	log.Debug("systemSCProcessor: correct num nodes to stake", "enabled", s.flagCorrectNumNodesToStake.IsSet())
+	log.Debug("systemSCProcessor: correct last unjailed", "enabled", s.flagCorrectNumNodesToStake.IsSet())
 
 	s.flagESDTEnabled.Toggle(epoch == s.esdtEnableEpoch)
 	log.Debug("systemSCProcessor: ESDT", "enabled", s.flagESDTEnabled.IsSet())
 
 	s.flagSaveJailedAlwaysEnabled.Toggle(epoch >= s.saveJailedAlwaysEnableEpoch)
 	log.Debug("systemSCProcessor: save jailed always", "enabled", s.flagSaveJailedAlwaysEnabled.IsSet())
+
+	s.flagGovernanceEnabled.Toggle(epoch == s.governanceEnableEpoch)
+	log.Debug("systemProcessor: governanceV2", "enabled", s.flagGovernanceEnabled.IsSet())
 }

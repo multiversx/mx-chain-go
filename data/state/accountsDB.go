@@ -449,6 +449,10 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 		"new root hash", accountHandler.GetRootHash(),
 	)
 
+	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
+		adb.dataTries.Put(accountHandler.AddressBytes(), accountHandler.DataTrie())
+	}
+
 	return nil
 }
 
@@ -898,6 +902,14 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte, ctx context.Context) (m
 	}
 
 	return allTries, nil
+}
+
+// GetTrie returns the trie that has the given rootHash
+func (adb *AccountsDB) GetTrie(rootHash []byte) (data.Trie, error) {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	return adb.mainTrie.Recreate(rootHash)
 }
 
 // Journalize adds a new object to entries list.

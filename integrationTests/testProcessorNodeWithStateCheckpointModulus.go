@@ -1,6 +1,8 @@
 package integrationTests
 
 import (
+	"sync"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -23,10 +25,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	pkBytes := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -72,6 +72,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -83,7 +84,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
@@ -122,6 +123,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

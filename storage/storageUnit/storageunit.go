@@ -236,11 +236,6 @@ func (u *Unit) SearchFirst(key []byte) ([]byte, error) {
 	return u.Get(key)
 }
 
-// HasInEpoch will call the Has method as this storer doesn't handle epochs
-func (u *Unit) HasInEpoch(key []byte, _ uint32) error {
-	return u.Has(key)
-}
-
 // Remove removes the data associated to the given key from both cache and persistence medium
 func (u *Unit) Remove(key []byte) error {
 	u.lock.Lock()
@@ -486,11 +481,11 @@ func NewBloomFilter(conf BloomConfig) (storage.BloomFilter, error) {
 func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	switch h {
 	case Keccak:
-		return keccak.Keccak{}, nil
+		return keccak.NewKeccak(), nil
 	case Blake2b:
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	case Fnv:
-		return fnv.Fnv{}, nil
+		return fnv.NewFnv(), nil
 	default:
 		return nil, storage.ErrNotSupportedHashType
 	}

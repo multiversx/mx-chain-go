@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,9 +45,21 @@ func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUni
 
 func getDefaultArgs() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
+
+	lockPersisterMap := sync.Mutex{}
+	persistersMap := make(map[string]storage.Persister)
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return memorydb.New(), nil
+			lockPersisterMap.Lock()
+			defer lockPersisterMap.Unlock()
+
+			persister, exists := persistersMap[path]
+			if !exists {
+				persister = memorydb.New()
+				persistersMap[path] = persister
+			}
+
+			return persister, nil
 		},
 	}
 	return &pruning.StorerArgs{
@@ -166,28 +179,6 @@ func TestNewPruningStorer_OkValsShouldWork(t *testing.T) {
 
 	args := getDefaultArgs()
 	ps, err := pruning.NewPruningStorer(args)
-
-	assert.NotNil(t, ps)
-	assert.Nil(t, err)
-	assert.False(t, ps.IsInterfaceNil())
-}
-
-func TestNewShardedPruningStorer_OkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	shardId := uint32(7)
-	shardIdStr := fmt.Sprintf("%d", shardId)
-	args := getDefaultArgs()
-	args.PersisterFactory = &mock.PersisterFactoryStub{
-		CreateCalled: func(path string) (storage.Persister, error) {
-			if !strings.Contains(path, shardIdStr) {
-				assert.Fail(t, "path not set correctly")
-			}
-
-			return memorydb.New(), nil
-		},
-	}
-	ps, err := pruning.NewShardedPruningStorer(args, shardId)
 
 	assert.NotNil(t, ps)
 	assert.Nil(t, err)
@@ -337,57 +328,6 @@ func TestNewPruningStorer_Has_OnePersisterShouldWork(t *testing.T) {
 
 	wrongKey := []byte("wrong_key")
 	err = ps.Has(wrongKey)
-	assert.NotNil(t, err)
-}
-
-func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
-	t.Parallel()
-
-	persistersByPath := make(map[string]storage.Persister)
-	persistersByPath["Epoch_0"] = memorydb.New()
-	args := getDefaultArgs()
-	args.DbPath = "Epoch_0"
-	args.PersisterFactory = &mock.PersisterFactoryStub{
-		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
-		CreateCalled: func(path string) (storage.Persister, error) {
-			if _, ok := persistersByPath[path]; ok {
-				return persistersByPath[path], nil
-			}
-			newPers := memorydb.New()
-			persistersByPath[path] = newPers
-
-			return newPers, nil
-		},
-	}
-	args.NumOfActivePersisters = 1
-	args.CleanOldEpochsData = true
-	args.NumOfEpochsToKeep = 2
-	ps, _ := pruning.NewPruningStorer(args)
-
-	testKey, testVal := []byte("key"), []byte("value")
-	err := ps.Put(testKey, testVal)
-	assert.Nil(t, err)
-
-	ps.ClearCache()
-	err = ps.Has(testKey)
-	assert.Nil(t, err)
-
-	_ = ps.ChangeEpochSimple(1)
-	ps.ClearCache()
-
-	// data should still be available in the closed persister
-	err = ps.HasInEpoch(testKey, 0)
-	assert.Nil(t, err)
-
-	// data should not be available when calling in another epoch
-	err = ps.HasInEpoch(testKey, 1)
-	assert.NotNil(t, err)
-
-	// after one more epoch change, the persister which holds the data should be removed and the key should not be available
-	_ = ps.ChangeEpochSimple(2)
-	ps.ClearCache()
-
-	err = ps.HasInEpoch(testKey, 0)
 	assert.NotNil(t, err)
 }
 
@@ -569,12 +509,12 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 
 	defer func() {
 		dr := factory.NewDirectoryReader()
-		directories, err := dr.ListDirectoriesAsString(".")
-		assert.NoError(t, err)
+		directories, errList := dr.ListDirectoriesAsString(".")
+		assert.NoError(t, errList)
 		for _, dir := range directories {
 			if strings.HasPrefix(dir, "TestOnly-") {
-				err = os.RemoveAll(dir)
-				assert.NoError(t, err)
+				errList = os.RemoveAll(dir)
+				assert.NoError(t, errList)
 			}
 		}
 	}()

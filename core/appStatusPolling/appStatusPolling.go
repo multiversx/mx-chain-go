@@ -1,14 +1,18 @@
 package appStatusPolling
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 const minPollingDuration = time.Second
+
+var log = logger.GetOrCreate("core/appStatusPolling")
 
 // AppStatusPolling will update an AppStatusHandler by polling components at a predefined interval
 type AppStatusPolling struct {
@@ -44,10 +48,15 @@ func (asp *AppStatusPolling) RegisterPollingFunc(handler func(appStatusHandler c
 }
 
 // Poll will notify the AppStatusHandler at a given time
-func (asp *AppStatusPolling) Poll() {
+func (asp *AppStatusPolling) Poll(ctx context.Context) {
 	go func() {
 		for {
-			time.Sleep(asp.pollingDuration)
+			select {
+			case <-ctx.Done():
+				log.Debug("closing AppStatusPolling.Poll go routine")
+				return
+			case <-time.After(asp.pollingDuration):
+			}
 
 			asp.mutRegisteredFunc.RLock()
 			for _, handler := range asp.registeredFunctions {

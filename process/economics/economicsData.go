@@ -117,6 +117,8 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:                    statusHandler.NewNilStatusHandler(),
 		builtInFunctionsCostHandler:      args.BuiltInFunctionsCostHandler,
 	}
+	log.Debug("economicsData: enable epoch for penalized too much gas", "epoch", ed.penalizedTooMuchGasEnableEpoch)
+	log.Debug("economicsData: enable epoch for gas price modifier", "epoch", ed.gasPriceModifierEnableEpoch)
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
 	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
@@ -517,7 +519,7 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFe
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (ed *economicsData) EpochConfirmed(epoch uint32) {
+func (ed *economicsData) EpochConfirmed(epoch uint32, _ uint64) {
 	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 

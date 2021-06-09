@@ -10,6 +10,7 @@ import (
 type ScQueryStub struct {
 	ExecuteQueryCalled           func(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeScCallGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
+	CloseCalled                  func() error
 }
 
 // ExecuteQuery -
@@ -20,12 +21,21 @@ func (s *ScQueryStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, 
 	return &vmcommon.VMOutput{}, nil
 }
 
-// ComputeScCallGasLimit --
+// ComputeScCallGasLimit -
 func (s *ScQueryStub) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
 	if s.ComputeScCallGasLimitHandler != nil {
 		return s.ComputeScCallGasLimitHandler(tx)
 	}
 	return 100, nil
+}
+
+// Close -
+func (s *ScQueryStub) Close() error {
+	if s.CloseCalled != nil {
+		return s.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

@@ -23,3 +23,9 @@ type StorerArgs struct {
 	CleanOldEpochsData        bool
 	EnabledDbLookupExtensions bool
 }
+
+// FullHistoryStorerArgs will hold the arguments needed for full history PruningStorer
+type FullHistoryStorerArgs struct {
+	*StorerArgs
+	NumOfOldActivePersisters uint32
+}

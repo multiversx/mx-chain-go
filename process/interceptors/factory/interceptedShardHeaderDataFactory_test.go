@@ -23,8 +23,9 @@ func TestNewInterceptedShardHeaderDataFactory_NilArgumentsShouldErr(t *testing.T
 func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.ProtoMarshalizer = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.IntMarsh = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.Nil(t, imh)
@@ -34,8 +35,9 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.TxSignMarshalizer = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.TxMarsh = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -45,7 +47,8 @@ func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *tes
 func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.HeaderSigVerifier = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
@@ -56,8 +59,9 @@ func TestNewInterceptedShardHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *t
 func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.Hasher = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.Hash = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -67,7 +71,8 @@ func TestNewInterceptedShardHeaderDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
@@ -78,7 +83,8 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.ValidityAttester = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
@@ -89,7 +95,8 @@ func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *te
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.False(t, check.IfNil(imh))

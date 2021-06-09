@@ -4,7 +4,10 @@ import "github.com/ElrondNetwork/elrond-go/core"
 
 // PeerShardMapperStub -
 type PeerShardMapperStub struct {
-	GetPeerInfoCalled func(pid core.PeerID) core.P2PPeerInfo
+	GetPeerInfoCalled            func(pid core.PeerID) core.P2PPeerInfo
+	UpdatePeerIdPublicKeyCalled  func(pid core.PeerID, pk []byte)
+	UpdatePublicKeyShardIdCalled func(pk []byte, shardId uint32)
+	UpdatePeerIdShardIdCalled    func(pid core.PeerID, shardId uint32)
 }
 
 // GetPeerInfo -
@@ -14,6 +17,27 @@ func (psms *PeerShardMapperStub) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	}
 
 	return core.P2PPeerInfo{}
+}
+
+// UpdatePeerIdPublicKey -
+func (psms *PeerShardMapperStub) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
+	if psms.UpdatePeerIdPublicKeyCalled != nil {
+		psms.UpdatePeerIdPublicKeyCalled(pid, pk)
+	}
+}
+
+// UpdatePublicKeyShardId -
+func (psms *PeerShardMapperStub) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
+	if psms.UpdatePublicKeyShardIdCalled != nil {
+		psms.UpdatePublicKeyShardIdCalled(pk, shardId)
+	}
+}
+
+// UpdatePeerIdShardId -
+func (psms *PeerShardMapperStub) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
+	if psms.UpdatePeerIdShardIdCalled != nil {
+		psms.UpdatePeerIdShardIdCalled(pid, shardId)
+	}
 }
 
 // IsInterfaceNil -

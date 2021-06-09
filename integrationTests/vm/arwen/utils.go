@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -53,7 +54,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.Sha256{}
+var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -78,9 +79,11 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
+	EpochNotifier     process.EpochNotifier
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
+	ArwenChangeLocker process.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -120,6 +123,8 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
+	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
 
@@ -188,7 +193,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  context.EpochNotifier,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -224,11 +229,25 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Name:     "SmartContractsStorage",
+				Type:     "LRU",
+				Capacity: 100,
+			},
+			DB: config.DBConfig{
+				FilePath:          "SmartContractsStorage",
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+			},
+		},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
-		OutOfProcessEnabled: false,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "*"},
+		},
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -236,9 +255,11 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		BlockGasLimit:                  maxGasLimit,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		ArgBlockChainHook:              args,
+		EpochNotifier:                  context.EpochNotifier,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
+		ArwenChangeLocker:              context.ArwenChangeLocker,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -256,6 +277,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: context.BlockchainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
@@ -282,10 +304,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker: context.ArwenChangeLocker,
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

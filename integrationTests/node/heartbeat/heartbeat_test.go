@@ -135,10 +135,8 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
-
-		_ = nodes[i].Bootstrap()
 	}
 
 	for i := 0; i < len(nodes)-1; i++ {
@@ -241,6 +239,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		&mock.NetworkShardingCollectorStub{
 			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
+			UpdatePeerIdSubTypeCalled:   func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
 		})
 
 	argMonitor := process.ArgHeartbeatMonitor{
@@ -277,6 +276,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

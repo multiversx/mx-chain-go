@@ -18,38 +18,51 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+type coreComponentsHandler interface {
+	InternalMarshalizer() marshal.Marshalizer
+	TxMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	AddressPubKeyConverter() core.PubkeyConverter
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	ChainID() string
+	IsInterfaceNil() bool
+}
+
+type dataComponentsHandler interface {
+	StorageService() dataRetriever.StorageService
+	Blockchain() data.ChainHandler
+	Datapool() dataRetriever.PoolsHolder
+	SetBlockchain(chain data.ChainHandler)
+	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
-	GenesisTime              uint64
-	StartEpochNum            uint32
-	Accounts                 state.AccountsAdapter
-	ValidatorAccounts        state.AccountsAdapter
-	PubkeyConv               core.PubkeyConverter
-	InitialNodesSetup        genesis.InitialNodesHandler
-	Economics                process.EconomicsDataHandler
-	ShardCoordinator         sharding.Coordinator
-	Store                    dataRetriever.StorageService
-	Blkc                     data.ChainHandler
-	Marshalizer              marshal.Marshalizer
-	SignMarshalizer          marshal.Marshalizer
-	Hasher                   hashing.Hasher
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	DataPool                 dataRetriever.PoolsHolder
-	AccountsParser           genesis.AccountsParser
-	SmartContractParser      genesis.InitialSmartContractParser
-	GasSchedule              core.GasScheduleNotifier
-	TxLogsProcessor          process.TransactionLogProcessor
-	VirtualMachineConfig     config.VirtualMachineConfig
-	HardForkConfig           config.HardforkConfig
-	TrieStorageManagers      map[string]data.StorageManager
-	ChainID                  string
-	SystemSCConfig           config.SystemSmartContractsConfig
-	GeneralConfig            *config.GeneralSettingsConfig
-	BlockSignKeyGen          crypto.KeyGenerator
-	ImportStartHandler       update.ImportStartHandler
-	WorkingDir               string
-	GenesisNodePrice         *big.Int
-	GenesisString            string
+	GenesisTime          uint64
+	StartEpochNum        uint32
+	Data                 dataComponentsHandler
+	Core                 coreComponentsHandler
+	Accounts             state.AccountsAdapter
+	ValidatorAccounts    state.AccountsAdapter
+	InitialNodesSetup    genesis.InitialNodesHandler
+	Economics            process.EconomicsDataHandler
+	ShardCoordinator     sharding.Coordinator
+	AccountsParser       genesis.AccountsParser
+	SmartContractParser  genesis.InitialSmartContractParser
+	GasSchedule          core.GasScheduleNotifier
+	TxLogsProcessor      process.TransactionLogProcessor
+	VirtualMachineConfig config.VirtualMachineConfig
+	HardForkConfig       config.HardforkConfig
+	TrieStorageManagers  map[string]data.StorageManager
+	SystemSCConfig       config.SystemSmartContractsConfig
+	EpochConfig          *config.EpochConfig
+	ImportStartHandler   update.ImportStartHandler
+	WorkingDir           string
+	BlockSignKeyGen      crypto.KeyGenerator
+
+	GenesisNodePrice *big.Int
+	GenesisString    string
 	// created components
 	importHandler update.ImportHandler
 }

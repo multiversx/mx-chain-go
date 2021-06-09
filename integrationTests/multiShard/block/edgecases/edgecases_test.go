@@ -43,7 +43,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		closeNodes(nodesMap)
 	}()
 
-	p2pBootstrapNodes(nodesMap)
+	integrationTests.BootstrapDelay()
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
@@ -159,15 +159,6 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, shards := range nodesMap {
 		for _, n := range shards {
 			_ = n.Messenger.Close()
-		}
-	}
-}
-
-//nolint
-func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
-	for _, shards := range nodesMap {
-		for _, n := range shards {
-			_ = n.Messenger.Bootstrap()
 		}
 	}
 }

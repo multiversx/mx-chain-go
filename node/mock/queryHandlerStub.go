@@ -3,6 +3,7 @@ package mock
 // QueryHandlerStub -
 type QueryHandlerStub struct {
 	QueryCalled func(search string) []string
+	CloseCalled func() error
 }
 
 // Query -
@@ -12,6 +13,15 @@ func (qhs *QueryHandlerStub) Query(search string) []string {
 	}
 
 	return make([]string, 0)
+}
+
+// Close -
+func (qhs *QueryHandlerStub) Close() error {
+	if qhs.CloseCalled != nil {
+		return qhs.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

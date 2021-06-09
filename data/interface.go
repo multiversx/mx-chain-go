@@ -174,11 +174,10 @@ type Trie interface {
 	GetNumNodes() NumNodesDTO
 	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	IsInterfaceNil() bool
-	ClosePersister() error
 	GetProof(key []byte) ([][]byte, error)
 	VerifyProof(key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	IsInterfaceNil() bool
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -188,6 +187,15 @@ type DBWriteCacher interface {
 	Remove(key []byte) error
 	Close() error
 	IsInterfaceNil() bool
+}
+
+// DBRemoveCacher is used to cache keys that will be deleted from the database
+type DBRemoveCacher interface {
+	Put([]byte, ModifiedHashes) error
+	Evict([]byte) (ModifiedHashes, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
+	IsInterfaceNil() bool
+	Close() error
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
@@ -207,6 +215,7 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -251,6 +260,7 @@ type SnapshotDbHandler interface {
 	DecreaseNumReferences()
 	IncreaseNumReferences()
 	MarkForRemoval()
+	MarkForDisconnection()
 	SetPath(string)
 }
 

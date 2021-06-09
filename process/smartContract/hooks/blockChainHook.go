@@ -515,7 +515,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
 	adrAndNonce := append(creatorAddress, buffNonce...)
-	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+	scAddress := keccak.NewKeccak().Compute(string(adrAndNonce))
 
 	return scAddress
 }
@@ -580,17 +580,18 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	}
 }
 
+// Close closes/cleans up the blockchain hook
+func (bh *BlockChainHookImpl) Close() error {
+	bh.compiledScPool.Clear()
+	return bh.compiledScStorage.DestroyUnit()
+}
+
 // ClearCompiledCodes deletes the compiled codes from storage and cache
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
 		log.Error("blockchainHook ClearCompiledCodes DestroyUnit", "error", err)
-	}
-
-	err = bh.compiledScStorage.Close()
-	if err != nil {
-		log.Error("blockchainHook ClearCompiledCodes Close", "error", err)
 	}
 
 	err = bh.makeCompiledSCStorage()
@@ -623,6 +624,16 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil
+}
+
+// GetSnapshot gets the number of entries in the journal as a snapshot id
+func (bh *BlockChainHookImpl) GetSnapshot() int {
+	return bh.accounts.JournalLen()
+}
+
+// RevertToSnapshot reverts snaphots up to the specified one
+func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
+	return bh.accounts.RevertToSnapshot(snapshot)
 }
 
 func startMeasure(hook string) (string, *core.StopWatch) {

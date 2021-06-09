@@ -71,9 +71,6 @@ func TestScDeploy(t *testing.T) {
 		}
 	}()
 
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	log.Info("delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

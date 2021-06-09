@@ -29,6 +29,12 @@ func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte) {
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
 }
 
+// Close - closes all underlying components
+func (tsm *trieStorageManagerWithoutPruning) Close() error {
+	log.Trace("trieStorageManagerWithoutPruning - Close:trie storage pruning is disabled")
+	return tsm.db.Close()
+}
+
 // IsPruningEnabled returns false if the trie pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 	return false

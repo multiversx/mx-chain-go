@@ -2,6 +2,7 @@ package storageResolvers
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -319,9 +320,8 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	t.Parallel()
 
-	newEpochCalled := false
 	sendCalled := false
-	epochIdentifier := []byte("epoch identifier")
+	epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
 	arg := createMockHeaderResolverArg()
 	arg.HdrStorage = &mock.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
@@ -329,11 +329,7 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
-		NewEpochCalled: func(epoch uint32) {
-			newEpochCalled = true
-		},
-	}
+	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{}
 	arg.Messenger = &mock.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			sendCalled = true
@@ -346,6 +342,28 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	err := hdRes.RequestDataFromEpoch(epochIdentifier)
 
 	assert.Nil(t, err)
-	assert.True(t, newEpochCalled)
 	assert.True(t, sendCalled)
+}
+
+func TestHeaderResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHeaderResolverArg()
+	closeCalled := 0
+	arg.HdrStorage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	arg.HeadersNoncesStorage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	hdRes, _ := NewHeaderResolver(arg)
+
+	assert.Nil(t, hdRes.Close())
+	assert.Equal(t, 2, closeCalled)
 }

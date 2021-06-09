@@ -246,6 +246,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager(core.SCDeployInitFunctionName, [][]byte{})
 	vmInput.CallValue = big.NewInt(15)
 
@@ -264,7 +265,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	assert.Equal(t, dm.maxFee, dManagementData.MaxServiceFee)
 	assert.Equal(t, dm.minCreationDeposit, dManagementData.MinDeposit)
 
-	dContractList, _ := dm.getDelegationContractList()
+	dContractList, _ := getDelegationContractList(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress)
 	assert.Equal(t, 1, len(dContractList.Addresses))
 }
 
@@ -282,6 +283,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
 	dm.gasCost.MetaChainSystemSCsCost.DelegationMgrOps = 10
 
@@ -309,7 +311,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
-	_ = dm.saveDelegationManagementData(&DelegationManagement{
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{
 		MinDeposit: big.NewInt(10),
 	})
 	vmInput.CallValue = big.NewInt(9)
@@ -378,12 +380,14 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(20))
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: make([][]byte, 0)})
-	_ = dm.saveDelegationManagementData(&DelegationManagement{
-		MinDeposit:  big.NewInt(10),
-		LastAddress: vm.FirstDelegationSCAddress,
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{
+		MinDeposit:          big.NewInt(10),
+		LastAddress:         vm.FirstDelegationSCAddress,
+		MinDelegationAmount: big.NewInt(1),
 	})
 	vmInput.CallValue = big.NewInt(20)
 
@@ -395,7 +399,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	expectedAddress := createNewAddress(vm.FirstDelegationSCAddress)
 	assert.Equal(t, expectedAddress, dManagement.LastAddress)
 
-	dList, _ := dm.getDelegationContractList()
+	dList, _ := getDelegationContractList(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress)
 	assert.Equal(t, 1, len(dList.Addresses))
 	assert.Equal(t, expectedAddress, dList.Addresses[0])
 
@@ -447,6 +451,7 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("getAllContractAddresses", [][]byte{})
 
 	output := dm.Execute(vmInput)
@@ -518,9 +523,10 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("changeMinDeposit", [][]byte{{25}})
 	vmInput.CallerAddr = configChangeAddress
-	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDeposit: big.NewInt(0)})
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDeposit: big.NewInt(0)})
 
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -543,6 +549,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
 	vmInput.CallValue = big.NewInt(10)
 
@@ -566,7 +573,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
-	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: big.NewInt(25)})
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(25)})
 	vmInput.Arguments = [][]byte{{0}}
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -588,11 +595,12 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
 	vmInput.Arguments = [][]byte{{25}}
 	vmInput.CallerAddr = configChangeAddress
 
-	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: big.NewInt(25)})
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(25)})
 	dm.marshalizer = &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			return nil, expectedErr
@@ -622,11 +630,12 @@ func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("changeMinDelegationAmount", [][]byte{})
 	vmInput.Arguments = [][]byte{newMinDelegationAmount.Bytes()}
 	vmInput.CallerAddr = configChangeAddress
 
-	_ = dm.saveDelegationManagementData(&DelegationManagement{MinDelegationAmount: existingMinDelegationAmount})
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: existingMinDelegationAmount})
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
@@ -715,6 +724,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	dm, _ := NewDelegationManagerSystemSC(args)
+	eei.SetSCAddress(dm.delegationMgrSCAddress)
 	vmInput := getDefaultVmInputForDelegationManager("getContractConfig", [][]byte{})
 
 	delegationManagement := &DelegationManagement{
@@ -726,7 +736,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 		MinDelegationAmount: big.NewInt(445566),
 	}
 
-	_ = dm.saveDelegationManagementData(delegationManagement)
+	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, delegationManagement)
 
 	vmInput.CallerAddr = vm.DelegationManagerSCAddress
 	output := dm.Execute(vmInput)

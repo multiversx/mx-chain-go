@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 type subroundSignature struct {
@@ -19,6 +19,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	appStatusHandler core.AppStatusHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -26,26 +27,19 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(appStatusHandler) {
+		return nil, spos.ErrNilAppStatusHandler
+	}
 
 	srSignature := subroundSignature{
 		Subround:         baseSubround,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		appStatusHandler: appStatusHandler,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
 	srSignature.Extend = extend
 
 	return &srSignature, nil
-}
-
-// SetAppStatusHandler method set appStatusHandler
-func (sr *subroundSignature) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
 }
 
 func checkNewSubroundSignatureParams(
@@ -90,7 +84,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			[]byte(sr.SelfPubKey()),
 			nil,
 			int(MtSignature),
-			sr.Rounder().Index(),
+			sr.RoundHandler().Index(),
 			sr.ChainID(),
 			nil,
 			nil,
@@ -150,7 +144,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -288,9 +282,9 @@ func (sr *subroundSignature) waitAllSignatures() {
 }
 
 func (sr *subroundSignature) remainingTime() time.Duration {
-	startTime := sr.Rounder().TimeStamp()
+	startTime := sr.RoundHandler().TimeStamp()
 	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
-	remainigTime := sr.Rounder().RemainingTime(startTime, maxTime)
+	remainigTime := sr.RoundHandler().RemainingTime(startTime, maxTime)
 
 	return remainigTime
 }

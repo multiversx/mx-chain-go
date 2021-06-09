@@ -68,6 +68,7 @@ type ArgsNewESDTSmartContract struct {
 	EpochNotifier          vm.EpochNotifier
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
+	EpochConfig            config.EpochConfig
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -106,10 +107,12 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		eSDTSCAddress:          args.ESDTSCAddress,
 		hasher:                 args.Hasher,
 		marshalizer:            args.Marshalizer,
-		enabledEpoch:           args.ESDTSCConfig.EnabledEpoch,
+		enabledEpoch:           args.EpochConfig.EnableEpochs.ESDTEnableEpoch,
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
+	log.Debug("esdt: enable epoch for esdt", "epoch", e.enabledEpoch)
+
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
 	return e, nil
@@ -418,8 +421,8 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	for i := 0; i < numOfRetriesForIdentifier; i++ {
 		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
 		newIdentifier := append(tickerPrefix, encoded...)
-		data := e.eei.GetStorage(newIdentifier)
-		if len(data) == 0 {
+		buff := e.eei.GetStorage(newIdentifier)
+		if len(buff) == 0 {
 			return newIdentifier, nil
 		}
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
@@ -1490,7 +1493,7 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (e *esdt) EpochConfirmed(epoch uint32) {
+func (e *esdt) EpochConfirmed(epoch uint32, _ uint64) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }

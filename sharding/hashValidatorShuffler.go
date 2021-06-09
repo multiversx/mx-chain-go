@@ -72,6 +72,8 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 
 	var configs []config.MaxNodesChangeConfig
 
+	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
+	log.Debug("hashValidatorShuffler: enable epoch for balance waiting lists", "epoch", args.BalanceWaitingListsEnableEpoch)
 	if args.MaxNodesEnableConfig != nil {
 		configs = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
 		copy(configs, args.MaxNodesEnableConfig)
@@ -84,6 +86,9 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		balanceWaitingListsEnableEpoch: args.BalanceWaitingListsEnableEpoch,
 		waitingListFixEnableEpoch:      args.WaitingListFixEnableEpoch,
 	}
+
+	log.Debug("randHashShuffler: enable epoch for balance waiting list", "epoch", rxs.balanceWaitingListsEnableEpoch)
+	log.Debug("randHashShuffler: enable epoch for waiting waiting list", "epoch", rxs.waitingListFixEnableEpoch)
 
 	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
 
@@ -518,7 +523,7 @@ func shuffleList(validators []Validator, randomness []byte) []Validator {
 	mapValidators := make(map[string]Validator)
 	var concat []byte
 
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	for i, v := range validators {
 		concat = append(v.PubKey(), randomness...)
 

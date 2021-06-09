@@ -64,6 +64,11 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	return s, nil
 }
 
+// GetVersion returns an empty string, because the system VM is not versioned
+func (s *systemVM) GetVersion() string {
+	return ""
+}
+
 // RunSmartContractCreate creates and saves a new smart contract to the trie
 func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if input == nil {

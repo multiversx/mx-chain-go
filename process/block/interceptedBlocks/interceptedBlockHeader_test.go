@@ -236,13 +236,13 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInterceptedHeader_CheckAgainstRounderErrorsShouldErr(t *testing.T) {
+func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultShardArgument()
 	expectedErr := errors.New("expected error")
 	arg.ValidityAttester = &mock.ValidityAttesterStub{
-		CheckBlockAgainstRounderCalled: func(headerHandler data.HeaderHandler) error {
+		CheckBlockAgainstRoundHandlerCalled: func(headerHandler data.HeaderHandler) error {
 			return expectedErr
 		},
 	}

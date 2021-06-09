@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -142,4 +143,12 @@ func (ewl *EvictionWaitingList) ShouldKeepHash(hash string, identifier data.Trie
 	}
 
 	return false, nil
+}
+
+// Close -
+func (ewl *EvictionWaitingList) Close() error {
+	if !check.IfNil(ewl.Db) {
+		return ewl.Db.Close()
+	}
+	return nil
 }

@@ -43,6 +43,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
 	}
 }
 
@@ -1183,7 +1184,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
-	validatorArgs.StakingSCConfig.StakingV2Epoch = 0
+	validatorArgs.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
@@ -1915,6 +1916,47 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	assert.Equal(t, eei.output[1], []byte{})
 	assert.Equal(t, eei.output[2], []byte{20})
 	assert.Equal(t, eei.output[3], []byte{50})
+}
+
+func TestDelegationSystemSC_ExecuteUnDelegateFailsAsLockedForVoting(t *testing.T) {
+	t.Parallel()
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&testscommon.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	addValidatorAndStakingScToVmContext(eei)
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{100}})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+	})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+	stakeLockKey := append([]byte(stakeLockPrefix), vmInput.CallerAddr...)
+	eei.SetStorageForAddress(d.governanceSCAddr, stakeLockKey, big.NewInt(0).SetUint64(10000).Bytes())
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "stake is locked for voting")
 }
 
 func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
@@ -2820,7 +2862,7 @@ func prepareReDelegateRewardsComponents(
 	args.Eei = eei
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
-	args.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
+	args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch = extraCheckEpoch
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)

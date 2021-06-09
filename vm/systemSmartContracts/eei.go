@@ -657,6 +657,11 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 	return host.chanceComputer.GetChance(validatorAccount.GetTempRating()) < minChance
 }
 
+// CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
+func (host *vmContext) CleanStorageUpdates() {
+	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
 // IsInterfaceNil returns if the underlying implementation is nil
 func (host *vmContext) IsInterfaceNil() bool {
 	return host == nil

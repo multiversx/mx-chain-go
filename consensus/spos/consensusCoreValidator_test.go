@@ -19,7 +19,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	multiSignerMock := mock.NewMultiSigner()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := &mock.RounderMock{}
+	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
@@ -40,7 +40,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
 		multiSigner:             multiSignerMock,
-		rounder:                 rounderMock,
+		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
 		nodesCoordinator:        validatorGroupSelector,
@@ -129,15 +129,15 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 	assert.Equal(t, ErrNilMultiSigner, err)
 }
 
-func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) {
+func TestConsensusContainerValidator_ValidateNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.rounder = nil
+	container.roundHandler = nil
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, ErrNilRounder, err)
+	assert.Equal(t, ErrNilRoundHandler, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *testing.T) {

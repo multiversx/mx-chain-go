@@ -123,8 +123,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
 
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesConfig := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -177,39 +176,42 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		_ = n.ConnectTo(nodeToJoinLate)
 	}
 
-	rounder := &mock.RounderMock{IndexField: int64(round)}
+	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.BlockSig = &mock.SignerMock{}
+	cryptoComponents.TxSig = &mock.SignerMock{}
+	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.HasherField = integrationTests.TestHasher
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.PathHandlerField = &testscommon.PathManagerStub{}
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:                integrationTests.TestMarshalizer,
-		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-		Hasher:                     integrationTests.TestHasher,
+		CryptoComponentsHolder:     cryptoComponents,
+		CoreComponentsHolder:       coreComponents,
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
-		SingleSigner:               &mock.SignerMock{},
-		BlockSingleSigner:          &mock.SignerMock{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &testscommon.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    rounder,
-		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
+		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
-		TxSignHasher:               integrationTests.TestHasher,
-		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -226,7 +228,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		shardC,
 		&testscommon.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
-		0)
+		0,
+		false,
+	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)

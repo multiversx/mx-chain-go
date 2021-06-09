@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -77,6 +78,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
