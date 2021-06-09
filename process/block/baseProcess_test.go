@@ -1358,6 +1358,11 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
+			GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
+				channel := make(chan core.KeyValueHolder)
+				close(channel)
+				return channel, nil
+			},
 		},
 	}
 
