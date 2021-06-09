@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"math"
-	"strings"
 	"sync"
 	"time"
 
@@ -104,7 +103,8 @@ type baseBootstrap struct {
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
 
-	indexer process.Indexer
+	indexer          process.Indexer
+	accountsDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
@@ -439,6 +439,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Indexer) {
 		return process.ErrNilIndexer
 	}
+	if check.IfNil(arguments.AccountsDBSyncer) {
+		return process.ErrNilAccountsDBSyncer
+	}
 
 	return nil
 }
@@ -478,19 +481,8 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 		err := boot.syncStarter.SyncBlock()
 		if err != nil {
 			log.Debug("SyncBlock", "error", err.Error())
-
-			if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
-				err = boot.syncTrie()
-				if err != nil {
-					log.Debug("syncTrie", "error", err.Error())
-				}
-			}
 		}
 	}
-}
-
-func (boot *baseBootstrap) syncTrie() error {
-	return nil
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
@@ -633,6 +625,16 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 
 	return nil
+}
+
+func (boot *baseBootstrap) syncUserAccountsState() error {
+	rootHash, err := boot.accounts.RootHash()
+	if err != nil {
+		log.Error("SyncBlock syncUserAccountsState", "error", err)
+		return err
+	}
+
+	return boot.accountsDBSyncer.SyncAccounts(rootHash)
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {

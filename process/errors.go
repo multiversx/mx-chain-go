@@ -1009,3 +1009,6 @@ var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch sett
 
 // ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
 var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
+
+// ErrNilAccountsDBSyncer signals that a nil accounts db syncer has been provided
+var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")

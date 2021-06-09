@@ -68,11 +68,14 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:    &mock.AppStatusHandlerStub{},
 		Indexer:             &mock.IndexerMock{},
+		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-		EpochBootstrapper:   &mock.EpochStartTriggerStub{},
+		ArgBaseBootstrapper:         argsBaseBootstrapper,
+		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
+		ValidatorAccountsDB:         &mock.AccountsStub{},
+		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
 	return argsMetaBootstrapper

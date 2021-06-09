@@ -190,6 +190,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:    &mock.AppStatusHandlerStub{},
 		Indexer:             &mock.IndexerMock{},
+		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

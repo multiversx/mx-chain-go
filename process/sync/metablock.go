@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -15,7 +16,9 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-	epochBootstrapper process.EpochBootstrapper
+	epochBootstrapper           process.EpochBootstrapper
+	validatorStatisticsDBSyncer process.AccountsDBSyncer
+	validatorAccountsDB         state.AccountsAdapter
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -31,6 +34,12 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 	if check.IfNil(arguments.EpochHandler) {
 		return nil, process.ErrNilEpochHandler
+	}
+	if check.IfNil(arguments.ValidatorStatisticsDBSyncer) {
+		return nil, process.ErrNilAccountsDBSyncer
+	}
+	if check.IfNil(arguments.ValidatorAccountsDB) {
+		return nil, process.ErrNilPeerAccountsAdapter
 	}
 
 	err := checkBootstrapNilParameters(arguments.ArgBaseBootstrapper)
@@ -61,11 +70,14 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		poolsHolder:         arguments.PoolsHolder,
 		statusHandler:       arguments.AppStatusHandler,
 		indexer:             arguments.Indexer,
+		accountsDBSyncer:    arguments.AccountsDBSyncer,
 	}
 
 	boot := MetaBootstrap{
-		baseBootstrap:     base,
-		epochBootstrapper: arguments.EpochBootstrapper,
+		baseBootstrap:               base,
+		epochBootstrapper:           arguments.EpochBootstrapper,
+		validatorStatisticsDBSyncer: arguments.ValidatorStatisticsDBSyncer,
+		validatorAccountsDB:         arguments.ValidatorAccountsDB,
 	}
 
 	base.blockBootstrapper = &boot
@@ -153,6 +165,34 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
 	return boot.syncBlock()
+}
+
+func (boot *MetaBootstrap) syncAccountsDBs() error {
+	var err error
+
+	log.Debug("base sync: started syncPeerAccountsState")
+	err = boot.syncPeerAccountsState()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("base sync: started syncUserAccountsState")
+	err = boot.syncUserAccountsState()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *MetaBootstrap) syncPeerAccountsState() error {
+	rootHash, err := boot.validatorAccountsDB.RootHash()
+	if err != nil {
+		log.Error("SyncBlock syncUserAccountsState", "error", err)
+		return err
+	}
+
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
 }
 
 // Close closes the synchronization loop

@@ -39,7 +39,7 @@ type ArgBaseBootstrapper struct {
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler    core.AppStatusHandler
 	Indexer             process.Indexer
-	TrieSyncer          process.AccountsDBSyncer
+	AccountsDBSyncer    process.AccountsDBSyncer
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create
@@ -52,5 +52,7 @@ type ArgShardBootstrapper struct {
 // new instances of meta bootstrapper
 type ArgMetaBootstrapper struct {
 	ArgBaseBootstrapper
-	EpochBootstrapper process.EpochBootstrapper
+	EpochBootstrapper           process.EpochBootstrapper
+	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
+	ValidatorAccountsDB         state.AccountsAdapter
 }

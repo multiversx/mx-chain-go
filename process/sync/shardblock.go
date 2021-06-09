@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"math"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -58,6 +59,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		poolsHolder:         arguments.PoolsHolder,
 		statusHandler:       arguments.AppStatusHandler,
 		indexer:             arguments.Indexer,
+		accountsDBSyncer:    arguments.AccountsDBSyncer,
 	}
 
 	boot := ShardBootstrap{
@@ -127,7 +129,16 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock() error {
-	return boot.syncBlock()
+	err := boot.syncBlock()
+
+	if err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
+		errSync := boot.syncUserAccountsState()
+		if errSync != nil {
+			log.Debug("SyncBlock syncTrie", "error", errSync)
+		}
+	}
+
+	return err
 }
 
 // Close closes the synchronization loop
