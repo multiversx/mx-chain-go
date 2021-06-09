@@ -124,7 +124,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 	}
-
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]

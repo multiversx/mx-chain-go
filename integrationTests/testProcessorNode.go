@@ -309,6 +309,7 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+	ArwenChangeLocker                 process.Locker
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
