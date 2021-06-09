@@ -1097,6 +1097,14 @@ type NumConnectedPeersProvider interface {
 	IsInterfaceNil() bool
 }
 
+// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
+type Locker interface {
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
+}
+
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	SyncAccounts(rootHash []byte) error
