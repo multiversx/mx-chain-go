@@ -33,6 +33,11 @@ func (dir *disabledInterceptorResolver) LogFailedToResolveData(_ string, _ []byt
 func (dir *disabledInterceptorResolver) LogSucceededToResolveData(_ string, _ []byte) {
 }
 
+// Close returns nil
+func (dir *disabledInterceptorResolver) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (dir *disabledInterceptorResolver) IsInterfaceNil() bool {
 	return dir == nil

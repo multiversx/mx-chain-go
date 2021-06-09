@@ -16,6 +16,7 @@ const (
 	getConfigPath        = "/config"
 	getStatusPath        = "/status"
 	economicsPath        = "/economics"
+	enableEpochsPath     = "/enable-epochs"
 	getESDTsPath         = "/esdts"
 	getFFTsPath          = "/esdt/fungible-tokens"
 	getSFTsPath          = "/esdt/semi-fungible-tokens"
@@ -39,6 +40,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, enableEpochsPath, GetEnableEpochs)
 	router.RegisterHandler(http.MethodGet, getESDTsPath, getHandlerFuncForEsdt(""))
 	router.RegisterHandler(http.MethodGet, getFFTsPath, getHandlerFuncForEsdt(core.FungibleESDT))
 	router.RegisterHandler(http.MethodGet, getSFTsPath, getHandlerFuncForEsdt(core.SemiFungibleESDT))
@@ -89,6 +91,24 @@ func GetNetworkConfig(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"config": configMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetEnableEpochs returns metrics related to the activation epochs of the network
+func GetEnableEpochs(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	enableEpochsMetrics := facade.StatusMetrics().EnableEpochsMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

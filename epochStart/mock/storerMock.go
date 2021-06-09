@@ -71,11 +71,6 @@ func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(_ []byte, _ uint32) error {
-	return errors.New("not implemented")
-}
-
 // SearchFirst -
 func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return sm.Get(key)

@@ -59,7 +59,7 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 				return true
 			},
 		},
-		rounder: &mock.RounderMock{
+		roundHandler: &mock.RoundHandlerMock{
 			BeforeGenesisCalled: func() bool {
 				return false
 			},
@@ -99,7 +99,7 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	miniBlock3 := &block.MiniBlock{SenderShardID: 2}
 
 	hashes := [][]byte{hash1, hash2, hash3}
-	miniBlocksAndHashes := []*process.MiniblockAndHash{
+	miniBlocksAndHashes := []*block.MiniblockAndHash{
 		{
 			Hash:      hash1,
 			Miniblock: miniBlock1,

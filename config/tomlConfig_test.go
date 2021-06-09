@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -37,6 +38,13 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
+
+	vmConfig := VirtualMachineConfig{
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
+		},
+	}
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -70,8 +78,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -80,8 +92,36 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
+		Consensus: ConsensusConfig{
 			Type: consensusType,
+		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
+		},
+		Debug: DebugConfig{
+			InterceptorResolver: InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       9,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        10,
+			},
+			Antiflood: AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+			},
+			ShuffleOut: ShuffleOutDebugConfig{
+				CallGCWhenShuffleOut:    true,
+				ExtraPrintsOnShuffleOut: true,
+				DoProfileOnShuffleOut:   true,
+			},
 		},
 	}
 
@@ -128,13 +168,44 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 `
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
@@ -278,7 +349,13 @@ func TestAPIRoutesToml(t *testing.T) {
 	package1 := "testPackage1"
 	route2 := "testRoute2"
 
+	loggingThreshold := 10
+
 	expectedCfg := ApiRoutesConfig{
+		Logging: ApiLoggingConfig{
+			LoggingEnabled:          true,
+			ThresholdInMicroSeconds: loggingThreshold,
+		},
 		APIPackages: map[string]APIPackageConfig{
 			package0: {
 				Routes: []RouteConfig{
@@ -295,6 +372,10 @@ func TestAPIRoutesToml(t *testing.T) {
 	}
 
 	testString := `
+[Logging]
+    LoggingEnabled = true
+    ThresholdInMicroSeconds = 10
+
      # API routes configuration
 [APIPackages]
 

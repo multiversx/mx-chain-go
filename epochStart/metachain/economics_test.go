@@ -80,7 +80,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *te
 	require.Equal(t, epochStart.ErrNilRewardsHandler, err)
 }
 
-func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRounder(t *testing.T) {
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRoundHandler(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochEconomicsArguments()
@@ -88,7 +88,7 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRounder(t *testing.T
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, epochStart.ErrNilRounder, err)
+	require.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorShouldWork(t *testing.T) {
@@ -153,7 +153,7 @@ func TestNewEndOfEpochEconomicsDataCreator_NilRoundTimeDurationHandler(t *testin
 	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
 
 	assert.True(t, check.IfNil(eoeedc))
-	assert.Equal(t, epochStart.ErrNilRounder, err)
+	assert.Equal(t, epochStart.ErrNilRoundHandler, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_ShouldWork(t *testing.T) {

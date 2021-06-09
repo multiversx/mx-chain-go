@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -102,6 +103,7 @@ func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaste
 		HeadersSubscriber:     headersSubscriber,
 		LeaderCacheSize:       2,
 		ValidatorCacheSize:    2,
+		AlarmScheduler:        alarm.NewAlarmScheduler(),
 	}
 
 	return dbbArgs
@@ -134,6 +136,16 @@ func TestNewDelayedBlockBroadcaster_NilInterceptorsContainerShouldErr(t *testing
 	delayBroadcasterArgs.InterceptorsContainer = nil
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Equal(t, spos.ErrNilInterceptorsContainer, err)
+	require.Nil(t, dbb)
+}
+
+func TestNewDelayedBlockBroadcaster_NilAlarmSchedulerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	delayBroadcasterArgs.AlarmScheduler = nil
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Equal(t, spos.ErrNilAlarmScheduler, err)
 	require.Nil(t, dbb)
 }
 

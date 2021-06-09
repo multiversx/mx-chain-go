@@ -10,6 +10,21 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilBootstrapComponentsHolder signals that a nil bootstrap components holder was provided
+var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
+
+// ErrNilStatusComponentsHolder signals that a nil status components holder was provided
+var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilDataComponentsHolder signals that a nil data components holder was provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
@@ -137,8 +152,8 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
@@ -424,6 +439,9 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
+
+// ErrInvalidChainID signals that an invalid chain ID was provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
 
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
@@ -800,9 +818,6 @@ var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is hig
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
-
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
@@ -868,6 +883,12 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
+
+// ErrRelayedTxV2Disabled signals that the v2 version of relayed tx is disabled
+var ErrRelayedTxV2Disabled = errors.New("relayed tx v2 is disabled")
+
+// ErrRelayedTxV2ZeroVal signals that the v2 version of relayed tx should be created with 0 as value
+var ErrRelayedTxV2ZeroVal = errors.New("relayed tx v2 value should be 0")
 
 // ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
 var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
@@ -979,3 +1000,12 @@ var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost 
 
 // ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built in functions cost handler has been provided
 var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
+
+// ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
+var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
+
+// ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
+var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")

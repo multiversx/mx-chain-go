@@ -14,7 +14,6 @@ package bloom
 import (
 	"encoding/binary"
 	"errors"
-
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -62,7 +61,7 @@ func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 func NewDefaultFilter() *Bloom {
 	return &Bloom{
 		filter:   make([]byte, 2048),
-		hashFunc: []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}},
+		hashFunc: []hashing.Hasher{keccak.NewKeccak(), blake2b.NewBlake2b(), fnv.NewFnv()},
 	}
 }
 

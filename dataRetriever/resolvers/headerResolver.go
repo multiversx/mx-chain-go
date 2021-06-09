@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -28,19 +28,19 @@ type ArgHeaderResolver struct {
 	ShardCoordinator     sharding.Coordinator
 	AntifloodHandler     dataRetriever.P2PAntifloodHandler
 	Throttler            dataRetriever.ResolverThrottler
+	IsFullHistoryNode    bool
 }
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
+	baseStorageResolver
 	dataRetriever.TopicResolverSender
 	messageProcessor
-	headers              dataRetriever.HeadersPool
-	hdrStorage           storage.Storer
-	hdrNoncesStorage     storage.Storer
-	nonceConverter       typeConverters.Uint64ByteSliceConverter
-	epochHandler         dataRetriever.EpochHandler
-	shardCoordinator     sharding.Coordinator
-	epochProviderByNonce dataRetriever.EpochProviderByNonce
+	headers          dataRetriever.HeadersPool
+	hdrNoncesStorage storage.Storer
+	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	epochHandler     dataRetriever.EpochHandler
+	shardCoordinator sharding.Coordinator
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -73,16 +73,15 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 		return nil, dataRetriever.ErrNilThrottler
 	}
 
-	epochHandler := epochproviders.NewNilEpochHandler()
+	epochHandler := disabled.NewEpochHandler()
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender:  arg.SenderResolver,
-		headers:              arg.Headers,
-		hdrStorage:           arg.HdrStorage,
-		hdrNoncesStorage:     arg.HeadersNoncesStorage,
-		nonceConverter:       arg.NonceConverter,
-		epochHandler:         epochHandler,
-		shardCoordinator:     arg.ShardCoordinator,
-		epochProviderByNonce: epochproviders.NewSimpleEpochProviderByNonce(epochHandler),
+		TopicResolverSender: arg.SenderResolver,
+		headers:             arg.Headers,
+		baseStorageResolver: createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
+		hdrNoncesStorage:    arg.HeadersNoncesStorage,
+		nonceConverter:      arg.NonceConverter,
+		epochHandler:        epochHandler,
+		shardCoordinator:    arg.ShardCoordinator,
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,
@@ -167,13 +166,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 
 	epoch := rd.Epoch
 
-	// TODO : uncomment this when epoch provider by nonce is complete
-	//epoch, err = hdrRes.epochProviderByNonce.EpochForNonce(nonce)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//hash, err := hdrRes.hdrNoncesStorage.GetFromEpoch(rd.Value, epoch)
+	//header-nonces storer contains un-pruned data so it is safe to search like this
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(rd.Value)
 	if err != nil {
 		log.Trace("hdrNoncesStorage.Get from calculated epoch", "error", err.Error())
@@ -215,11 +208,7 @@ func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
 	value, err := hdrRes.headers.GetHeaderByHash(rd.Value)
 	if err != nil {
-		return hdrRes.hdrStorage.SearchFirst(rd.Value)
-
-		// TODO : uncomment this when epoch provider by nonce is complete
-
-		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
+		return hdrRes.getFromStorage(rd.Value, rd.Epoch)
 	}
 
 	return hdrRes.marshalizer.Marshal(value)
@@ -237,7 +226,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
 	}
 
-	return hdrRes.hdrStorage.SearchFirst(actualKey)
+	return hdrRes.searchFirst(actualKey)
 }
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
@@ -288,6 +277,11 @@ func (hdrRes *HeaderResolver) NumPeersToQuery() (int, int) {
 // SetResolverDebugHandler will set a resolver debug handler
 func (hdrRes *HeaderResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
 	return hdrRes.TopicResolverSender.SetResolverDebugHandler(handler)
+}
+
+// Close returns nil
+func (hdrRes *HeaderResolver) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

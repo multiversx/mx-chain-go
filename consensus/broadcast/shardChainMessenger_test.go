@@ -59,6 +59,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,
 	}
+	alarmScheduler := &mock.AlarmSchedulerStub{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -72,6 +73,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			InterceptorsContainer:      interceptorsContainer,
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
+			AlarmScheduler:             alarmScheduler,
 		},
 	}
 }
@@ -223,7 +225,7 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -262,7 +264,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 }
 
 func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -300,7 +302,7 @@ func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 }
 
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
-	channelCalled := make(chan bool)
+	channelCalled := make(chan bool, 1)
 
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {

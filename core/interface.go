@@ -1,6 +1,8 @@
 package core
 
-import "time"
+import (
+	"time"
+)
 
 // AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
 type AppStatusHandler interface {
@@ -62,7 +64,15 @@ type KeyValueHolder interface {
 
 // EpochSubscriberHandler defines the behavior of a component that can be notified if a new epoch was confirmed
 type EpochSubscriberHandler interface {
-	EpochConfirmed(epoch uint32)
+	EpochConfirmed(epoch uint32, timestamp uint64)
+	IsInterfaceNil() bool
+}
+
+// Accumulator defines the interface able to accumulate data and periodically evict them
+type Accumulator interface {
+	AddData(data interface{})
+	OutputChannel() <-chan []interface{}
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -84,4 +94,9 @@ type GasScheduleNotifier interface {
 	LatestGasSchedule() map[string]map[string]uint64
 	UnRegisterAll()
 	IsInterfaceNil() bool
+}
+
+// Queue is an interface for queue implementations that evict the first element when the queue is full
+type Queue interface {
+	Add(hash []byte) []byte
 }

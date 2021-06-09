@@ -121,8 +121,8 @@ func TestGasScheduleNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 		},
 	})
 
-	g.EpochConfirmed(0)
-	g.EpochConfirmed(0)
+	g.EpochConfirmed(0, 0)
+	g.EpochConfirmed(0, 0)
 
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
 }
@@ -147,7 +147,7 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 		},
 	})
 
-	g.EpochConfirmed(newEpoch)
+	g.EpochConfirmed(newEpoch, 0)
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, newEpoch, g.currentEpoch)
@@ -174,7 +174,7 @@ func TestGasScheduleNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 	g.RegisterNotifyHandler(handler)
 
 	start := time.Now()
-	g.EpochConfirmed(newEpoch)
+	g.EpochConfirmed(newEpoch, 0)
 	end := time.Now()
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalls))

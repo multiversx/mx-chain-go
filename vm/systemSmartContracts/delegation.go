@@ -46,6 +46,7 @@ type delegation struct {
 	stakingSCAddr                      []byte
 	validatorSCAddr                    []byte
 	endOfEpochAddr                     []byte
+	governanceSCAddr                   []byte
 	gasCost                            vm.GasCost
 	marshalizer                        marshal.Marshalizer
 	delegationEnabled                  atomic.Flag
@@ -67,19 +68,19 @@ type delegation struct {
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
-	DelegationSCConfig                 config.DelegationSystemSCConfig
-	StakingSCConfig                    config.StakingSystemSCConfig
-	Eei                                vm.SystemEI
-	SigVerifier                        vm.MessageSignVerifier
-	DelegationMgrSCAddress             []byte
-	StakingSCAddress                   []byte
-	ValidatorSCAddress                 []byte
-	EndOfEpochAddress                  []byte
-	GasCost                            vm.GasCost
-	Marshalizer                        marshal.Marshalizer
-	EpochNotifier                      vm.EpochNotifier
-	ValidatorToDelegationEnableEpoch   uint32
-	ReDelegateBelowMinCheckEnableEpoch uint32
+	DelegationSCConfig     config.DelegationSystemSCConfig
+	EpochConfig            config.EpochConfig
+	StakingSCConfig        config.StakingSystemSCConfig
+	Eei                    vm.SystemEI
+	SigVerifier            vm.MessageSignVerifier
+	DelegationMgrSCAddress []byte
+	StakingSCAddress       []byte
+	ValidatorSCAddress     []byte
+	EndOfEpochAddress      []byte
+	GovernanceSCAddress    []byte
+	GasCost                vm.GasCost
+	Marshalizer            marshal.Marshalizer
+	EpochNotifier          vm.EpochNotifier
 }
 
 // NewDelegationSystemSC creates a new delegation system SC
@@ -95,6 +96,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -120,17 +124,22 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		gasCost:                            args.GasCost,
 		marshalizer:                        args.Marshalizer,
 		delegationEnabled:                  atomic.Flag{},
-		enableDelegationEpoch:              args.DelegationSCConfig.EnabledEpoch,
+		enableDelegationEpoch:              args.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch,
 		minServiceFee:                      args.DelegationSCConfig.MinServiceFee,
 		maxServiceFee:                      args.DelegationSCConfig.MaxServiceFee,
 		sigVerifier:                        args.SigVerifier,
 		unBondPeriodInEpochs:               args.StakingSCConfig.UnBondPeriodInEpochs,
 		endOfEpochAddr:                     args.EndOfEpochAddress,
-		stakingV2EnableEpoch:               args.StakingSCConfig.StakingV2Epoch,
+		governanceSCAddr:                   args.GovernanceSCAddress,
+		stakingV2EnableEpoch:               args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		stakingV2Enabled:                   atomic.Flag{},
-		validatorToDelegationEnableEpoch:   args.ValidatorToDelegationEnableEpoch,
-		reDelegateBelowMinCheckEnableEpoch: args.ReDelegateBelowMinCheckEnableEpoch,
+		validatorToDelegationEnableEpoch:   args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
+		reDelegateBelowMinCheckEnableEpoch: args.EpochConfig.EnableEpochs.ReDelegateBelowMinCheckEnableEpoch,
 	}
+	log.Debug("delegation: enable epoch for delegation smart contract", "epoch", d.enableDelegationEpoch)
+	log.Debug("delegation: enable epoch for staking v2", "epoch", d.stakingV2EnableEpoch)
+	log.Debug("delegation: enable epoch for validator to delegation", "epoch", d.validatorToDelegationEnableEpoch)
+	log.Debug("delegation: enable epoch for re-delegate below minimum check", "epoch", d.reDelegateBelowMinCheckEnableEpoch)
 
 	var okValue bool
 
@@ -1583,6 +1592,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
+		d.eei.AddReturnMessage("stake is locked for voting")
+		return vmcommon.UserError
+	}
+
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
@@ -2816,18 +2830,18 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (d *delegation) EpochConfirmed(epoch uint32) {
+func (d *delegation) EpochConfirmed(epoch uint32, _ uint64) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
-	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
+	log.Debug("delegationSC: delegation", "enabled", d.delegationEnabled.IsSet())
 
 	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
-	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
+	log.Debug("delegationSC: stakingV2", "enabled", d.stakingV2Enabled.IsSet())
 
 	d.flagValidatorToDelegation.Toggle(epoch >= d.validatorToDelegationEnableEpoch)
-	log.Debug("validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
+	log.Debug("delegationSC: validator to delegation", "enabled", d.flagValidatorToDelegation.IsSet())
 
 	d.flagReDelegateBelowMinCheck.Toggle(epoch >= d.reDelegateBelowMinCheckEnableEpoch)
-	log.Debug("re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
+	log.Debug("delegationSC: re-delegate below minimum check", "enabled", d.flagReDelegateBelowMinCheck.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

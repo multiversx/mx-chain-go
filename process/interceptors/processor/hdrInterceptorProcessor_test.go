@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -175,7 +176,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		},
 		GetHdrHandlerStub: mock.GetHdrHandlerStub{
 			HeaderHandlerCalled: func() data.HeaderHandler {
-				return &mock.HeaderHandlerStub{}
+				return &testscommon.HeaderHandlerStub{}
 			},
 		},
 	}

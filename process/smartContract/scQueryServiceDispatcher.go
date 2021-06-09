@@ -68,6 +68,23 @@ func (sqsd *scQueryServiceDispatcher) getNewIndex() int {
 	return updatedValue
 }
 
+// Close closes all underlying components
+func (sqsd *scQueryServiceDispatcher) Close() error {
+	sqsd.mutList.RLock()
+	defer sqsd.mutList.RUnlock()
+
+	var errFound error
+	for _, scQueryService := range sqsd.list {
+		err := scQueryService.Close()
+		if err != nil {
+			log.Error("error while closing inner SC query service in scQueryServiceDispatcher.Close", "error", err)
+			errFound = err
+		}
+	}
+
+	return errFound
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sqsd *scQueryServiceDispatcher) IsInterfaceNil() bool {
 	return sqsd == nil

@@ -14,6 +14,7 @@ type StorerStub struct {
 	DestroyUnitCalled      func() error
 	RangeKeysCalled        func(handler func(key []byte, val []byte) bool)
 	GetBulkFromEpochCalled func(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	CloseCalled            func() error
 }
 
 // GetFromEpoch -
@@ -26,11 +27,6 @@ func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string]
 	return ss.GetBulkFromEpochCalled(keys, epoch)
 }
 
-// HasInEpoch -
-func (ss *StorerStub) HasInEpoch(key []byte, epoch uint32) error {
-	return ss.HasInEpochCalled(key, epoch)
-}
-
 // SearchFirst -
 func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 	return ss.SearchFirstCalled(key)
@@ -38,6 +34,10 @@ func (ss *StorerStub) SearchFirst(key []byte) ([]byte, error) {
 
 // Close -
 func (ss *StorerStub) Close() error {
+	if ss.CloseCalled != nil {
+		return ss.CloseCalled()
+	}
+
 	return nil
 }
 
