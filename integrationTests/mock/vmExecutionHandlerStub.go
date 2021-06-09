@@ -14,7 +14,7 @@ type VMExecutionHandlerStub struct {
 	GetVersionCalled             func() string
 }
 
-// GetVersionCalled -
+// GetVersion -
 func (vm *VMExecutionHandlerStub) GetVersion() string {
 	if vm.GetVersionCalled != nil {
 		return vm.GetVersionCalled()
