@@ -14,7 +14,7 @@ type VMExecutionHandlerStub struct {
 	GetVersionCalled             func() string
 }
 
-// GetVersionCalled -
+// GetVersion -
 func (vm *VMExecutionHandlerStub) GetVersion() string {
 	if vm.GetVersionCalled != nil {
 		return vm.GetVersionCalled()
@@ -53,7 +53,7 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	return vm.RunSmartContractCallCalled(input)
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if there is no value under the interface
 func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
 	return vm == nil
 }

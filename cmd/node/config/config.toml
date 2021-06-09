@@ -604,7 +604,6 @@
     [VirtualMachine.Execution]
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.2" },
             { StartEpoch = 4, Version = "v1.3" },
         ]
 
@@ -612,7 +611,6 @@
         NumConcurrentVMs = 1
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 1, Version = "v1.2" },
             { StartEpoch = 4, Version = "v1.3" },
         ]
 

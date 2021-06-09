@@ -14,7 +14,14 @@ type VMExecutionHandlerStub struct {
 	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
 }
 
-//GetVersion returns the version of the VM
+// GasScheduleChange -
+func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	if vm.GasScheduleChangeCalled != nil {
+		vm.GasScheduleChangeCalled(gasSchedule)
+	}
+}
+
+// GetVersion -
 func (vm *VMExecutionHandlerStub) GetVersion() string {
 	if vm.GetVersionCalled == nil {
 		return ""
@@ -23,7 +30,7 @@ func (vm *VMExecutionHandlerStub) GetVersion() string {
 	return vm.GetVersionCalled()
 }
 
-// RunSmartContractCreate computes how a smart contract creation should be performed
+// RunSmartContractCreate --
 func (vm *VMExecutionHandlerStub) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
 	if vm.RunSmartContractCreateCalled == nil {
 		return &vmcommon.VMOutput{
@@ -45,13 +52,6 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	}
 
 	return vm.RunSmartContractCallCalled(input)
-}
-
-// GasScheduleChange -
-func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
-	if vm.GasScheduleChangeCalled != nil {
-		vm.GasScheduleChangeCalled(gasSchedule)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

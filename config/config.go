@@ -344,6 +344,12 @@ type VirtualMachineConfig struct {
 	ArwenVersions []ArwenVersionByEpoch
 }
 
+// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
+type ArwenVersionByEpoch struct {
+	StartEpoch uint32
+	Version    string
+}
+
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
@@ -491,12 +497,6 @@ type ConfigurationPathsHolder struct {
 	ValidatorKey               string
 	ElasticSearchTemplatesPath string
 	Epoch                      string
-}
-
-// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
-type ArwenVersionByEpoch struct {
-	StartEpoch uint32
-	Version    string
 }
 
 // TrieSyncConfig represents the trie synchronization configuration area

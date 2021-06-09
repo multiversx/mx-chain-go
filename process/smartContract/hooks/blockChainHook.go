@@ -621,19 +621,19 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
-	return bh == nil
-}
-
 // GetSnapshot gets the number of entries in the journal as a snapshot id
 func (bh *BlockChainHookImpl) GetSnapshot() int {
 	return bh.accounts.JournalLen()
 }
 
-// RevertToSnapshot reverts snaphots up to the specified one
+// RevertToSnapshot reverts snapshots up to the specified one
 func (bh *BlockChainHookImpl) RevertToSnapshot(snapshot int) error {
 	return bh.accounts.RevertToSnapshot(snapshot)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
+	return bh == nil
 }
 
 func startMeasure(hook string) (string, *core.StopWatch) {

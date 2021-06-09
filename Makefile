@@ -74,6 +74,7 @@ benchmark-arwen:
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 
+#TODO: this is no longer required should be removed in a subsequent PR
 arwen:
 ifndef ARWEN_PATH
 	$(error ARWEN_PATH is undefined)
