@@ -922,7 +922,14 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		},
 	}
 
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler, blockChainHook, &mock.BlockChainMock{})
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      feeHandler,
+		BlockChainHook:    blockChainHook,
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
@@ -945,13 +952,20 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		_ = vmContainer.Close()
 	}()
 
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, testContext.EconomicsData, blockChainHook, &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{
-				ShardID: testContext.ShardCoordinator.SelfId(),
-			}
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:    vmContainer,
+		EconomicsFee:   testContext.EconomicsData,
+		BlockChainHook: blockChainHook,
+		BlockChain: &mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					ShardID: testContext.ShardCoordinator.SelfId(),
+				}
+			},
 		},
-	})
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	gasLimit, err := scQueryService.ComputeScCallGasLimit(tx)
 	if err != nil {

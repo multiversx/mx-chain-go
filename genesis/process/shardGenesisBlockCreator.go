@@ -487,12 +487,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		vmFactoryImpl.BlockChainHookImpl(),
-		arg.Blkc,
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:        arg.Blkc,
+		ArwenChangeLocker: arwenChangeLocker,
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}
