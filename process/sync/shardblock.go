@@ -130,8 +130,8 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock() error {
 	err := boot.syncBlock()
-
-	if err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
+	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
+	if isErrGetNodeFromDB {
 		errSync := boot.syncUserAccountsState()
 		if errSync != nil {
 			log.Debug("SyncBlock syncTrie", "error", errSync)

@@ -166,8 +166,8 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
 	err := boot.syncBlock()
-
-	if err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
+	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
+	if isErrGetNodeFromDB {
 		errSync := boot.syncAccountsDBs()
 		if errSync != nil {
 			log.Debug("SyncBlock syncTrie", "error", errSync)
@@ -180,13 +180,11 @@ func (boot *MetaBootstrap) SyncBlock() error {
 func (boot *MetaBootstrap) syncAccountsDBs() error {
 	var err error
 
-	log.Debug("base sync: started syncPeerAccountsState")
-	err = boot.syncPeerAccountsState()
+	err = boot.syncValidatorAccountsState()
 	if err != nil {
 		return err
 	}
 
-	log.Debug("base sync: started syncUserAccountsState")
 	err = boot.syncUserAccountsState()
 	if err != nil {
 		return err
@@ -195,13 +193,14 @@ func (boot *MetaBootstrap) syncAccountsDBs() error {
 	return nil
 }
 
-func (boot *MetaBootstrap) syncPeerAccountsState() error {
+func (boot *MetaBootstrap) syncValidatorAccountsState() error {
 	rootHash, err := boot.validatorAccountsDB.RootHash()
 	if err != nil {
 		log.Error("SyncBlock syncUserAccountsState", "error", err)
 		return err
 	}
 
+	log.Warn("base sync: started syncValidatorAccountsState")
 	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
 }
 

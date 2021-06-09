@@ -98,7 +98,7 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		return nil, fmt.Errorf(core.GetNodeFromDBErrorString+"%w for key %v", err, hex.EncodeToString(n))
+		return nil, fmt.Errorf(core.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
 	}
 
 	decodedNode, err := decodeNode(encChild, marshalizer, hasher)

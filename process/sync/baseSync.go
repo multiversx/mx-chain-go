@@ -634,6 +634,7 @@ func (boot *baseBootstrap) syncUserAccountsState() error {
 		return err
 	}
 
+	log.Warn("base sync: started syncUserAccountsState")
 	return boot.accountsDBSyncer.SyncAccounts(rootHash)
 }
 
