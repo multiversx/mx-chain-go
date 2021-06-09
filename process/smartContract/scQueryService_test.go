@@ -52,6 +52,39 @@ func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewSCQueryService_NilBLockChainShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.BlockChain = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilBlockChain, err)
+}
+
+func TestNewSCQueryService_NilBLockChainHookShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.BlockChainHook = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
+func TestNewSCQueryService_NilArwenLockerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.ArwenChangeLocker = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilLocker, err)
+}
+
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
