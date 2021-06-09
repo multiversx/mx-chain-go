@@ -89,7 +89,6 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.VmContainer = nil
 	target, err := NewSCQueryService(args)
 
 	assert.NotNil(t, target)
