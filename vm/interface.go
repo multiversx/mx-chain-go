@@ -121,4 +121,6 @@ type BlockchainHook interface {
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
 	Close() error
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
 }

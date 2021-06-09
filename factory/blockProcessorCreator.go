@@ -43,6 +43,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	arwenChangeLocker process.Locker,
 ) (process.BlockProcessor, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardBlockProcessor(
@@ -54,6 +55,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockTracker,
 			pcf.smartContractParser,
 			txSimulatorProcessorArgs,
+			arwenChangeLocker,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -67,6 +69,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockTracker,
 			pendingMiniBlocksHandler,
 			txSimulatorProcessorArgs,
+			arwenChangeLocker,
 		)
 	}
 
@@ -82,6 +85,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockTracker process.BlockTracker,
 	smartContractParser genesis.InitialSmartContractParser,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	arwenChangeLocker process.Locker,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -128,15 +132,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockGasLimit:                  pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:                    pcf.gasSchedule,
 		ArgBlockChainHook:              argsHook,
+		EpochNotifier:                  pcf.coreData.EpochNotifier(),
 		DeployEnableEpoch:              pcf.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  pcf.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
+		ArwenChangeLocker:              arwenChangeLocker,
 	}
 	log.Debug("blockProcessorCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
-	log.Debug("blockProcessorCreator: enable epoch for ESDT functions", "epoch", argsNewVMFactory.ArwenESDTFunctionsEnableEpoch)
 
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -243,6 +247,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		ArwenChangeLocker:                   arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -411,6 +416,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	arwenChangeLocker process.Locker,
 ) (process.BlockProcessor, error) {
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -556,6 +562,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		ArwenChangeLocker:                   arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -1,6 +1,8 @@
 package integrationTests
 
 import (
+	"sync"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -70,6 +72,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 	tpn.NodesSetup = nodesSetup
 
