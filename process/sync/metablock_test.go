@@ -95,6 +95,42 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
 }
 
+func TestNewMetaBootstrap_NilValidatorDBShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.ValidatorAccountsDB = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
+}
+
+func TestNewMetaBootstrap_NilValidatorDBSyncerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.ValidatorStatisticsDBSyncer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
+}
+
+func TestNewMetaBootstrap_NilUserDBSyncerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.AccountsDBSyncer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilAccountsDBSyncer, err)
+}
+
 func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1430,4 +1466,93 @@ func TestMetaBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 
 	bootstrapper := &sync.MetaBootstrap{}
 	assert.Nil(t, bootstrapper.Close())
+}
+
+func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	hdr := block.MetaBlock{Nonce: 1, PubKeysBitmap: []byte("X")}
+	blkc := &mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr
+	}
+	args.ChainHandler = blkc
+
+	errGetNodeFromDB := errors.New(core.GetNodeFromDBErrorString)
+	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
+	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return errGetNodeFromDB
+	}
+	args.BlockProcessor = blockProcessor
+
+	hash := []byte("aaa")
+	pools := createMockPools()
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		sds := &mock.HeadersCacherStub{}
+		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
+			if hdrNonce == 2 {
+				return []data.HeaderHandler{&block.MetaBlock{
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}}, [][]byte{hash}, nil
+			}
+
+			return nil, nil, errors.New("err")
+		}
+
+		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
+		}
+
+		return sds
+	}
+	args.PoolsHolder = pools
+
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() *process.ForkInfo {
+		return process.NewForkInfo()
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return hdr.Nonce
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
+	}
+	forkDetector.RemoveHeaderCalled = func(nonce uint64, hash []byte) {}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
+	args.ForkDetector = forkDetector
+	args.RoundHandler, _ = round.NewRound(
+		time.Now(),
+		time.Now().Add(2*100*time.Millisecond),
+		100*time.Millisecond,
+		&mock.SyncTimerMock{},
+		0,
+	)
+	accountsSyncCalled := false
+	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
+		SyncAccountsCalled: func(rootHash []byte) error {
+			accountsSyncCalled = true
+			return nil
+		}}
+	validatorSyncCalled := false
+	args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
+		SyncAccountsCalled: func(rootHash []byte) error {
+			validatorSyncCalled = true
+			return nil
+		}}
+	args.Accounts = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+		return []byte("roothash"), nil
+	}}
+	args.ValidatorAccountsDB = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+		return []byte("roothash"), nil
+	}}
+
+	bs, _ := sync.NewMetaBootstrap(args)
+	err := bs.SyncBlock()
+
+	assert.Equal(t, errGetNodeFromDB, err)
+	assert.True(t, accountsSyncCalled)
+	assert.True(t, validatorSyncCalled)
 }
