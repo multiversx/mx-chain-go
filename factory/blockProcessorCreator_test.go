@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,7 +88,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	stateComp := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
-			return &mock.AccountsStub{
+			return &testscommon.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},

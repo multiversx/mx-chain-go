@@ -1927,7 +1927,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateFailsAsLockedForVoting(t *testing.T
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{},
 	)
 	args.Eei = eei

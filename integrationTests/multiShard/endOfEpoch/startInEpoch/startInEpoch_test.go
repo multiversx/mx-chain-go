@@ -190,7 +190,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.HasherField = integrationTests.TestHasher
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 	coreComponents.Uint64ByteSliceConverterField = uint64Converter
-	coreComponents.PathHandlerField = &mock.PathManagerStub{}
+	coreComponents.PathHandlerField = &testscommon.PathManagerStub{}
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}

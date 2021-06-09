@@ -1354,7 +1354,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
-		state.UserAccountsState: &mock.AccountsStub{
+		state.UserAccountsState: &testscommon.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
 			},
@@ -1410,7 +1410,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},

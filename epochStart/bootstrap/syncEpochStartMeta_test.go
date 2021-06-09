@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -133,7 +134,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			Hash:                &mock.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
-			PathHdl:             &mock.PathManagerStub{},
+			PathHdl:             &testscommon.PathManagerStub{},
 			ChainIdCalled: func() string {
 				return "chain-ID"
 			},

@@ -285,7 +285,7 @@ func TestVmContext_CleanStorage(t *testing.T) {
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&mock.RaterMock{})
 
 	vmCtx.CleanCache()

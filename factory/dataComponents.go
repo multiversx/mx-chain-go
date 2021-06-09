@@ -88,8 +88,8 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		Config:           &dcf.config,
 		EconomicsData:    dcf.core.EconomicsData(),
 		ShardCoordinator: dcf.shardCoordinator,
-		Marshalizer:      dcf.core.InternalMarshalizer,
-		PathManager:      dcf.pathManager,
+		Marshalizer:      dcf.core.InternalMarshalizer(),
+		PathManager:      dcf.core.PathHandler(),
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {
@@ -158,7 +158,18 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 func (cc *dataComponents) Close() error {
 	if cc.store != nil {
 		log.Debug("closing all store units....")
-		return cc.store.CloseAll()
+		err := cc.store.CloseAll()
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.TrieNodes()) {
+		log.Debug("closing trie nodes data pool....")
+		err := cc.datapool.TrieNodes().Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

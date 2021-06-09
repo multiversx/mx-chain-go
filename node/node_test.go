@@ -804,7 +804,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -838,7 +838,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -1111,7 +1111,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	coreComponents.TxMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -2150,7 +2150,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = messenger
 	dataComponents := getDefaultDataComponents()
@@ -2186,7 +2186,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = messenger
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 	dataComponents := getDefaultDataComponents()
 
 	n, _ := node.NewNode(
@@ -2222,7 +2222,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()
@@ -2261,7 +2261,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()
@@ -2303,7 +2303,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &testscommon.AccountsStub{}
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 	networkComponents := getDefaultNetworkComponents()

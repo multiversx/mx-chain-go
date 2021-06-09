@@ -603,7 +603,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField: &mock.EpochNotifierStub{},
+		EpochNotifierField:  &mock.EpochNotifierStub{},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{

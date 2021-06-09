@@ -310,8 +310,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Config:           &e.generalConfig,
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
-			Marshalizer:      e.marshalizer,
-			PathManager:      e.pathManager,
+			Marshalizer:      e.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:      e.coreComponentsHolder.PathHandler(),
 		},
 	)
 	if err != nil {
@@ -1042,6 +1042,12 @@ func (e *epochStartBootstrap) Close() error {
 			err := tsm.Close()
 			log.LogIfError(err)
 		}
+	}
+
+	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
+		log.Debug("closing trie nodes data pool....")
+		err := e.dataPool.TrieNodes().Close()
+		log.LogIfError(err)
 	}
 
 	return nil

@@ -401,9 +401,9 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &mock.AccountsStub{},
-		Accounts:        &mock.AccountsStub{},
-		AccountsAPI:     &mock.AccountsStub{},
+		PeersAcc:        &testscommon.AccountsStub{},
+		Accounts:        &testscommon.AccountsStub{},
+		AccountsAPI:     &testscommon.AccountsStub{},
 		Tries:           &mock.TriesHolderStub{},
 		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
 	}
