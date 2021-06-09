@@ -16,12 +16,8 @@ import (
 func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 	return ArgsNewOpenStorageUnits{
 		GeneralConfig:             config.Config{},
-		Marshalizer:               &mock.MarshalizerMock{},
 		BootstrapDataProvider:     &mock.BootStrapDataProviderStub{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
-		WorkingDir:                "",
-		ChainID:                   "",
-		DefaultDBPath:             "",
 		DefaultEpochString:        "Epoch",
 		DefaultShardString:        "Shard",
 	}

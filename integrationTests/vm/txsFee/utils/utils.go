@@ -211,7 +211,7 @@ func randStringBytes(n int) string {
 
 // GenerateUserNameForMyDNSContract -
 func GenerateUserNameForMyDNSContract() []byte {
-	testHasher := keccak.Keccak{}
+	testHasher := keccak.NewKeccak()
 	contractLastByte := byte(49)
 
 	for {

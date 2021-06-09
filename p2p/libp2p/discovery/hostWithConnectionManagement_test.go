@@ -24,7 +24,7 @@ func createStubNetwork() network.Network {
 func TestNewHostWithConnectionManagement_NilHostShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hwcm, err := discovery.NewHostWithConnectionManagement(nil, &mock.SharderStub{})
+	hwcm, err := discovery.NewHostWithConnectionManagement(nil, &mock.KadSharderStub{})
 
 	assert.True(t, check.IfNil(hwcm))
 	assert.Equal(t, p2p.ErrNilHost, err)
@@ -42,7 +42,7 @@ func TestNewHostWithConnectionManagement_NilSharderShouldErr(t *testing.T) {
 func TestNewHostWithConnectionManagement_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, &mock.SharderStub{})
+	hwcm, err := discovery.NewHostWithConnectionManagement(&mock.ConnectableHostStub{}, &mock.KadSharderStub{})
 
 	assert.False(t, check.IfNil(hwcm))
 	assert.Nil(t, err)
@@ -64,7 +64,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderNotEvictedShouldCallConn
 				return createStubNetwork()
 			},
 		},
-		&mock.SharderStub{
+		&mock.KadSharderStub{
 			ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
 				return make([]peer.ID, 0)
 			},
@@ -93,7 +93,7 @@ func TestHostWithConnectionManagement_ConnectWithSharderEvictedShouldNotCallConn
 				return createStubNetwork()
 			},
 		},
-		&mock.SharderStub{
+		&mock.KadSharderStub{
 			ComputeEvictListCalled: func(pidList []peer.ID) []peer.ID {
 				return make([]peer.ID, 0)
 			},

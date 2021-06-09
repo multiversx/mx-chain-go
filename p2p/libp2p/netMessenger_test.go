@@ -5,15 +5,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -45,7 +48,7 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
 	_ = mes.CreateTopic("test", false)
 
-	_ = mes.RegisterMessageProcessor("test",
+	_ = mes.RegisterMessageProcessor("test", "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				if bytes.Equal(matchData, message.Data()) {
@@ -98,6 +101,36 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	_ = netw.LinkAll()
 
 	return netw, mes1, mes2
+}
+
+func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
+	netw := mocknet.New(context.Background())
+
+	mes1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	mes3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+
+	_ = netw.LinkAll()
+
+	nscm1 := mock.NewNetworkShardingCollectorMock()
+	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm1.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes1.SetPeerShardResolver(nscm1)
+
+	nscm2 := mock.NewNetworkShardingCollectorMock()
+	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm2.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes2.SetPeerShardResolver(nscm2)
+
+	nscm3 := mock.NewNetworkShardingCollectorMock()
+	nscm3.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm3.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm3.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes3.SetPeerShardResolver(nscm3)
+
+	return mes1, mes2, mes3
 }
 
 func createMockMessenger() p2p.Messenger {
@@ -172,6 +205,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
+		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
 		ProtocolID:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
@@ -189,6 +223,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
+		Type:                             "optimized",
 		RefreshIntervalInSec:             10,
 		ProtocolID:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
@@ -288,41 +323,10 @@ func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T)
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("one topic"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
-
-	assert.True(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
 func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 
@@ -334,7 +338,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testin
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterMessageProcessor("test", nil)
+	err := mes.RegisterMessageProcessor("test", "identifier", nil)
 
 	assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 
@@ -346,7 +350,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 
@@ -357,11 +361,11 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	mes := createMockMessenger()
 	_ = mes.CreateTopic("test", false)
 	//registration
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 	//re-registration
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
-	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 
 	_ = mes.Close()
 }
@@ -370,7 +374,7 @@ func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldNotEr
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-	err := mes.UnregisterMessageProcessor("test")
+	err := mes.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
 
@@ -383,10 +387,10 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	//unregistration
-	err := mes.UnregisterMessageProcessor("test")
+	err := mes.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
 
@@ -398,16 +402,57 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 	//registration
 	_ = mes.CreateTopic("test1", false)
-	_ = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
 	_ = mes.CreateTopic("test2", false)
-	_ = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
 	//unregistration
 	err := mes.UnregisterAllMessageProcessors()
 	assert.Nil(t, err)
-	err = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	err = mes.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
-	err = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	err = mes.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
+	_ = mes.Close()
+}
+
+func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic: %v", r))
+		}
+	}()
+
+	mes := createMockMessenger()
+	topic := "test topic"
+	_ = mes.CreateTopic(topic, false)
+
+	numIdentifiers := 100
+	identifiers := make([]string, 0, numIdentifiers)
+	for i := 0; i < numIdentifiers; i++ {
+		identifiers = append(identifiers, fmt.Sprintf("identifier%d", i))
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(numIdentifiers * 3)
+	for i := 0; i < numIdentifiers; i++ {
+		go func(index int) {
+			_ = mes.RegisterMessageProcessor(topic, identifiers[index], &mock.MessageProcessorStub{})
+			wg.Done()
+		}(i)
+
+		go func(index int) {
+			_ = mes.UnregisterMessageProcessor(topic, identifiers[index])
+			wg.Done()
+		}(i)
+
+		go func() {
+			mes.Broadcast(topic, []byte("buff"))
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 	_ = mes.Close()
 }
 
@@ -897,6 +942,43 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	_ = mes2.Close()
 	_ = mes3.Close()
 	_ = mes4.Close()
+}
+
+//------- ConnectedFullHistoryPeersOnTopic
+
+func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
+	mes1, mes2, mes3 := createMockNetworkOf3()
+
+	adr2 := mes2.Addresses()[0]
+	adr3 := mes3.Addresses()[0]
+	fmt.Println("Connecting ...")
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+	_ = mes1.ConnectToPeer(adr3)
+	//connected peers:  1 ----- 2
+	//                  |       |
+	//                  3 ------+
+
+	_ = mes1.CreateTopic("topic123", false)
+	_ = mes2.CreateTopic("topic123", false)
+	_ = mes3.CreateTopic("topic123", false)
+
+	//wait a bit for topic announcements
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 2, len(mes1.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 1, len(mes1.ConnectedFullHistoryPeersOnTopic("topic123")))
+
+	assert.Equal(t, 2, len(mes2.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 1, len(mes2.ConnectedFullHistoryPeersOnTopic("topic123")))
+
+	assert.Equal(t, 2, len(mes3.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 2, len(mes3.ConnectedFullHistoryPeersOnTopic("topic123")))
+
+	_ = mes1.Close()
+	_ = mes2.Close()
+	_ = mes3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
@@ -1550,4 +1632,63 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 	assert.Equal(t, 2, cpi.NumValidatorsOnShard[crossShardID])
 	assert.Equal(t, selfShardID, cpi.SelfShardID)
 	assert.Equal(t, 1, len(cpi.UnknownPeers))
+}
+
+func TestNetworkMessenger_Bootstrap(t *testing.T) {
+	t.Skip("long test used to debug go routines closing on the netMessenger")
+
+	t.Parallel()
+
+	_ = logger.SetLogLevel("*:DEBUG")
+	log := logger.GetOrCreate("internal tests")
+
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		Marshalizer:   &marshal.GogoProtoMarshalizer{},
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port:                       "0",
+				Seed:                       "",
+				MaximumExpectedPeerCount:   1,
+				ThresholdMinConnectedPeers: 1,
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled:                          true,
+				Type:                             "optimized",
+				RefreshIntervalInSec:             10,
+				ProtocolID:                       "erd/kad/1.0.0",
+				InitialPeerList:                  []string{"/ip4/35.214.140.83/tcp/10000/p2p/16Uiu2HAm6hPymvkZyFgbvWaVBKhEoPjmXhkV32r9JaFvQ7Rk8ynU"},
+				BucketSize:                       10,
+				RoutingTableRefreshIntervalInSec: 5,
+			},
+			Sharding: config.ShardingConfig{
+				TargetPeerCount:         0,
+				MaxIntraShardValidators: 0,
+				MaxCrossShardValidators: 0,
+				MaxIntraShardObservers:  0,
+				MaxCrossShardObservers:  0,
+				MaxSeeders:              0,
+				Type:                    "NilListSharder",
+			},
+		},
+		SyncTimer: &mock.SyncTimerStub{},
+	}
+
+	netMes, err := libp2p.NewNetworkMessenger(args)
+	require.Nil(t, err)
+
+	go func() {
+		time.Sleep(time.Second * 1)
+		goRoutinesNumberStart := runtime.NumGoroutine()
+		log.Info("before closing", "num go routines", goRoutinesNumberStart)
+
+		_ = netMes.Close()
+	}()
+
+	_ = netMes.Bootstrap()
+
+	time.Sleep(time.Second * 5)
+
+	goRoutinesNumberStart := runtime.NumGoroutine()
+	core.DumpGoRoutinesToLog(goRoutinesNumberStart)
 }

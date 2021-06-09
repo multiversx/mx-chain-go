@@ -47,6 +47,24 @@ func (builder *txDataBuilder) ToBytes() []byte {
 	return []byte(builder.ToString())
 }
 
+// GetLast returns the currently last element.
+func (builder *txDataBuilder) GetLast() string {
+	if len(builder.elements) == 0 {
+		return ""
+	}
+
+	return builder.elements[len(builder.elements)-1]
+}
+
+// SetLast replaces the last element with the provided one.
+func (builder *txDataBuilder) SetLast(element string) {
+	if len(builder.elements) == 0 {
+		builder.elements = []string{element}
+	}
+
+	builder.elements[len(builder.elements)-1] = element
+}
+
 // Func sets the function to be invoked by the data string.
 func (builder *txDataBuilder) Func(function string) *txDataBuilder {
 	builder.function = function
@@ -127,6 +145,11 @@ func (builder *txDataBuilder) IssueESDT(token string, ticker string, supply int6
 // TransferESDT appends to the data string all the elements required to request an ESDT transfer.
 func (builder *txDataBuilder) TransferESDT(token string, value int64) *txDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
+}
+
+//TransferNFTESDT appends to the data string all the elements required to request an ESDT NFT transfer.
+func (builder *txDataBuilder) TransferESDTNFT(token string, nonce int, value int64) *txDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTNFTTransfer).Str(token).Int(nonce).Int64(value)
 }
 
 // BurnESDT appends to the data string all the elements required to burn ESDT tokens.

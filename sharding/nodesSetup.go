@@ -9,7 +9,7 @@ import (
 )
 
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
-var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
+var _ GenesisNodeInfoHandler = (*nodeInfo)(nil)
 
 const defaultInitialRating = uint32(5000001)
 
@@ -18,11 +18,11 @@ type InitialNode struct {
 	PubKey        string `json:"pubkey"`
 	Address       string `json:"address"`
 	InitialRating uint32 `json:"initialRating"`
-	NodeInfo
+	nodeInfo
 }
 
-// NodeInfo holds node info
-type NodeInfo struct {
+// nodeInfo holds node info
+type nodeInfo struct {
 	assignedShard uint32
 	eligible      bool
 	pubKey        []byte
@@ -31,38 +31,36 @@ type NodeInfo struct {
 }
 
 // AssignedShard gets the node assigned shard
-func (ni *NodeInfo) AssignedShard() uint32 {
+func (ni *nodeInfo) AssignedShard() uint32 {
 	return ni.assignedShard
 }
 
 // AddressBytes gets the node address as bytes
-func (ni *NodeInfo) AddressBytes() []byte {
+func (ni *nodeInfo) AddressBytes() []byte {
 	return ni.address
 }
 
 // PubKeyBytes gets the node public key as bytes
-func (ni *NodeInfo) PubKeyBytes() []byte {
+func (ni *nodeInfo) PubKeyBytes() []byte {
 	return ni.pubKey
 }
 
 // GetInitialRating gets the initial rating for a node
-func (ni *NodeInfo) GetInitialRating() uint32 {
+func (ni *nodeInfo) GetInitialRating() uint32 {
 	return ni.initialRating
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (ni *NodeInfo) IsInterfaceNil() bool {
+func (ni *nodeInfo) IsInterfaceNil() bool {
 	return ni == nil
 }
 
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
-	StartTime             int64  `json:"startTime"`
-	RoundDuration         uint64 `json:"roundDuration"`
-	ConsensusGroupSize    uint32 `json:"consensusGroupSize"`
-	MinNodesPerShard      uint32 `json:"minNodesPerShard"`
-	ChainID               string `json:"chainID"`
-	MinTransactionVersion uint32 `json:"minTransactionVersion"`
+	StartTime          int64  `json:"startTime"`
+	RoundDuration      uint64 `json:"roundDuration"`
+	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
+	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
 
 	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
@@ -119,12 +117,6 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
-	//TODO: delete this log before merging:
-	log.Debug("nodes setup",
-		"start time", nodes.StartTime,
-		"chain id", nodes.ChainID,
-		"round duration", nodes.RoundDuration,
-		"min tx version", nodes.MinTransactionVersion)
 	return nodes, nil
 }
 
@@ -249,7 +241,7 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			nodeInfo := &NodeInfo{
+			ni := &nodeInfo{
 				assignedShard: in.assignedShard,
 				eligible:      in.eligible,
 				pubKey:        in.pubKey,
@@ -257,9 +249,9 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 				initialRating: in.initialRating,
 			}
 			if in.eligible {
-				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
+				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
 			} else {
-				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], nodeInfo)
+				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], ni)
 			}
 		}
 	}
@@ -392,16 +384,6 @@ func (ns *NodesSetup) GetStartTime() int64 {
 // GetRoundDuration returns the round duration
 func (ns *NodesSetup) GetRoundDuration() uint64 {
 	return ns.RoundDuration
-}
-
-// GetChainId returns the chain ID
-func (ns *NodesSetup) GetChainId() string {
-	return ns.ChainID
-}
-
-// GetMinTransactionVersion returns the minimum transaction version
-func (ns *NodesSetup) GetMinTransactionVersion() uint32 {
-	return ns.MinTransactionVersion
 }
 
 // GetShardConsensusGroupSize returns the shard consensus group size

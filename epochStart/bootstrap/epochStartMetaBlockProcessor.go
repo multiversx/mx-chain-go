@@ -39,7 +39,7 @@ type epochStartMetaBlockProcessor struct {
 	minNumOfPeersToConsiderBlockValid int
 }
 
-// NewEpochStartMetaBlockProcessor will return a interceptor processor for epoch start meta block
+// NewEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block
 func NewEpochStartMetaBlockProcessor(
 	messenger Messenger,
 	handler RequestHandler,
@@ -115,7 +115,7 @@ func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger 
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error {
+func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return nil
@@ -128,7 +128,13 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	if !ok {
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
+			"header", interceptedHdr.HeaderHandler())
+		return nil
+	}
+
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil
@@ -260,7 +266,6 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 
 // RegisterHandler registers a callback function to be notified of incoming epoch start metablocks
 func (e *epochStartMetaBlockProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
-	panic("not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

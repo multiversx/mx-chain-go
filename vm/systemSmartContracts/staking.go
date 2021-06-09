@@ -56,16 +56,16 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	StakingSCConfig                  config.StakingSystemSCConfig
-	MinNumNodes                      uint64
-	Eei                              vm.SystemEI
-	StakingAccessAddr                []byte
-	JailAccessAddr                   []byte
-	EndOfEpochAccessAddr             []byte
-	GasCost                          vm.GasCost
-	Marshalizer                      marshal.Marshalizer
-	EpochNotifier                    vm.EpochNotifier
-	ValidatorToDelegationEnableEpoch uint32
+	StakingSCConfig      config.StakingSystemSCConfig
+	MinNumNodes          uint64
+	Eei                  vm.SystemEI
+	StakingAccessAddr    []byte
+	JailAccessAddr       []byte
+	EndOfEpochAccessAddr []byte
+	GasCost              vm.GasCost
+	Marshalizer          marshal.Marshalizer
+	EpochNotifier        vm.EpochNotifier
+	EpochConfig          config.EpochConfig
 }
 
 type waitingListReturnData struct {
@@ -125,13 +125,17 @@ func NewStakingSmartContract(
 		maxNumNodes:                      args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:                      args.Marshalizer,
 		endOfEpochAccessAddr:             args.EndOfEpochAccessAddr,
-		enableStakingEpoch:               args.StakingSCConfig.StakeEnableEpoch,
-		stakingV2Epoch:                   args.StakingSCConfig.StakingV2Epoch,
+		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
+		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		walletAddressLen:                 len(args.StakingAccessAddr),
 		minNodePrice:                     minStakeValue,
-		correctLastUnjailedEpoch:         args.StakingSCConfig.CorrectLastUnjailedEpoch,
-		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
+		correctLastUnjailedEpoch:         args.EpochConfig.EnableEpochs.CorrectLastUnjailedEnableEpoch,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 	}
+	log.Debug("staking: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("staking: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("staking: enable epoch for correct last unjailed", "epoch", reg.correctLastUnjailedEpoch)
+	log.Debug("staking: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 
 	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -1846,7 +1850,7 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (s *stakingSC) EpochConfirmed(epoch uint32) {
+func (s *stakingSC) EpochConfirmed(epoch uint32, _ uint64) {
 	s.flagEnableStaking.Toggle(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", s.flagEnableStaking.IsSet())
 

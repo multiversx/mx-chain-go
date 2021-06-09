@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
@@ -29,12 +28,14 @@ func NewSubroundsFactory(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	currentPid core.PeerID,
+	appStatusHandler core.AppStatusHandler,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
 		chainID,
+		appStatusHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func NewSubroundsFactory(
 		consensusCore:    consensusDataContainer,
 		consensusState:   consensusState,
 		worker:           worker,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		appStatusHandler: appStatusHandler,
 		chainID:          chainID,
 		currentPid:       currentPid,
 	}
@@ -57,6 +58,7 @@ func checkNewFactoryParams(
 	state *spos.ConsensusState,
 	worker spos.WorkerHandler,
 	chainID []byte,
+	appStatusHandler core.AppStatusHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -65,24 +67,17 @@ func checkNewFactoryParams(
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
-	if worker == nil || worker.IsInterfaceNil() {
+	if check.IfNil(worker) {
 		return spos.ErrNilWorker
+	}
+	if check.IfNil(appStatusHandler) {
+		return spos.ErrNilAppStatusHandler
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
 	}
 
 	return nil
-}
-
-// SetAppStatusHandler method will update the value of the factory's appStatusHandler
-func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return spos.ErrNilAppStatusHandler
-	}
-	fct.appStatusHandler = ash
-
-	return fct.worker.SetAppStatusHandler(ash)
 }
 
 // SetIndexer method will update the value of the factory's indexer
@@ -120,7 +115,7 @@ func (fct *factory) GenerateSubrounds() error {
 }
 
 func (fct *factory) getTimeDuration() time.Duration {
-	return fct.consensusCore.Rounder().TimeDuration()
+	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
 func (fct *factory) generateStartRoundSubround() error {
@@ -137,12 +132,8 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 		fct.currentPid,
+		fct.appStatusHandler,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -179,12 +170,8 @@ func (fct *factory) generateBlockSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 		fct.currentPid,
+		fct.appStatusHandler,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subround.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -220,6 +207,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 		fct.currentPid,
+		fct.appStatusHandler,
 	)
 	if err != nil {
 		return err
@@ -228,12 +216,8 @@ func (fct *factory) generateSignatureSubround() error {
 	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
+		fct.appStatusHandler,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subroundSignatureObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}
@@ -258,6 +242,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.consensusCore,
 		fct.chainID,
 		fct.currentPid,
+		fct.appStatusHandler,
 	)
 	if err != nil {
 		return err
@@ -268,12 +253,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
+		fct.appStatusHandler,
 	)
-	if err != nil {
-		return err
-	}
-
-	err = subroundEndRoundObject.SetAppStatusHandler(fct.appStatusHandler)
 	if err != nil {
 		return err
 	}

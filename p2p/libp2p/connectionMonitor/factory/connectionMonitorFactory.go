@@ -11,7 +11,7 @@ import (
 // ArgsConnectionMonitorFactory represents the argument for the connection monitor factory
 type ArgsConnectionMonitorFactory struct {
 	Reconnecter                p2p.Reconnecter
-	Sharder                    p2p.CommonSharder
+	Sharder                    p2p.Sharder
 	ThresholdMinConnectedPeers uint32
 	TargetCount                int
 }

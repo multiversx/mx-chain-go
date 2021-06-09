@@ -30,7 +30,7 @@ test-short-v:
 	go test -short -v -count=1 ./...
 
 test-race:
-	go test -short -race -count=1 ./...
+	go test -short -race -v ./...
 
 test-memp2p-v:
 	go test -v -count=1 ./p2p/memp2p
@@ -62,7 +62,7 @@ test-miniblocks-sc-v:
 test-arwen:
 	go test -count=1 -v ./integrationTests/vm/arwen/...
 
-test-coverage:
+test-coverage: arwen
 	@echo "Running unit tests"
 	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
@@ -78,12 +78,28 @@ arwen:
 ifndef ARWEN_PATH
 	$(error ARWEN_PATH is undefined)
 endif
+	# WARNING: the first Arwen version listed in go.mod is built; all others are ignored.
+
 	# When referencing a non-release version, add the commit hash, like this:
-	#go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
-	#When referencing a released version, use this instead:
-	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //')
+	# go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
+
+	# When referencing a released version, use this instead:
+	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //' | head -n 1)
+
 	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
 	stat ${ARWEN_PATH}
 
 cli-docs:
 	cd ./cmd && bash ./CLI.md.sh
+
+lint-install:
+ifeq (,$(wildcard test -f bin/golangci-lint))
+	@echo "Installing golint"
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
+endif
+
+run-lint:
+	@echo "Running golint"
+	bin/golangci-lint run --max-issues-per-linter 0 --max-same-issues 0 --timeout=2m
+
+lint: lint-install run-lint

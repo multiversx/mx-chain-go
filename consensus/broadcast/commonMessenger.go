@@ -56,6 +56,7 @@ type CommonMessengerArgs struct {
 	InterceptorsContainer      process.InterceptorsContainer
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
+	AlarmScheduler             core.TimersScheduler
 }
 
 func checkCommonMessengerNilParameters(
@@ -85,6 +86,9 @@ func checkCommonMessengerNilParameters(
 	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.AlarmScheduler) {
+		return spos.ErrNilAlarmScheduler
+	}
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
 	}
@@ -109,7 +113,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 	consensusTopic := core.ConsensusTopic +
 		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
 
-	go cm.messenger.Broadcast(consensusTopic, buff)
+	cm.messenger.Broadcast(consensusTopic, buff)
 
 	return nil
 }
@@ -120,7 +124,7 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) err
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
-		go cm.messenger.Broadcast(miniBlocksTopic, v)
+		cm.messenger.Broadcast(miniBlocksTopic, v)
 	}
 
 	if len(miniBlocks) > 0 {
@@ -150,7 +154,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 		}
 
 		for _, buff := range packets {
-			go cm.messenger.Broadcast(topic, buff)
+			cm.messenger.Broadcast(topic, buff)
 		}
 	}
 

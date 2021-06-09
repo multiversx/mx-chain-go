@@ -131,7 +131,6 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetNumCheckpoints() uint32
 	GetCode(codeHash []byte) []byte
-
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
 	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
@@ -141,6 +140,7 @@ type AccountsAdapter interface {
 	IsPruningEnabled() bool
 	GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte, ctx context.Context) (map[string]data.Trie, error)
+	GetTrie(rootHash []byte) (data.Trie, error)
 	IsInterfaceNil() bool
 }
 

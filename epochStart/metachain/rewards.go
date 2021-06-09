@@ -83,7 +83,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
-	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.Epoch, "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {

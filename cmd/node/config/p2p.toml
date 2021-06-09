@@ -34,6 +34,13 @@
     #Enabled: true/false to enable/disable this discovery mechanism
     Enabled = true
 
+    #Type represents the kad-dht glue code implementation.
+    #"legacy" will define the first implementation.
+    #"optimized" represents the new variant able to connect to multiple seeders at once. This implementation also has
+    #a built-in timer that will try to automatically reconnect to the seeders (in case the seeders recover after a
+    #premature shutdown)
+    Type = "optimized"
+
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10
 
@@ -61,11 +68,13 @@
 
 [Sharding]
     # The targeted number of peer connections
-    TargetPeerCount = 24
+    TargetPeerCount = 36
     MaxIntraShardValidators = 12
     MaxCrossShardValidators = 8
     MaxIntraShardObservers = 2
     MaxCrossShardObservers = 1
+    MaxFullHistoryObservers = 10
+    MaxSeeders = 2
     #available options:
     #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
     #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account

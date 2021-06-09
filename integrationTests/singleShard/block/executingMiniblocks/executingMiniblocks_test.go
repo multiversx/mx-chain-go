@@ -46,9 +46,6 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 		}
 	}()
 
-	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
-	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
 	time.Sleep(integrationTests.P2pBootstrapDelay)

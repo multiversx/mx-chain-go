@@ -5,11 +5,12 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -57,7 +58,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
-	epochHandler := epochproviders.NewNilEpochHandler()
+	epochHandler := disabled.NewEpochHandler()
 	return &headerResolver{
 		storageResolver: &storageResolver{
 			messenger:                arg.Messenger,
@@ -84,7 +85,6 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -97,7 +97,6 @@ func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) e
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -106,7 +105,28 @@ func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) e
 
 // RequestDataFromEpoch requests the epoch start block
 func (hdrRes *headerResolver) RequestDataFromEpoch(identifier []byte) error {
-	return hdrRes.RequestDataFromHash(identifier, 0)
+	buff, err := hdrRes.resolveHeaderFromEpoch(identifier)
+	if err != nil {
+		hdrRes.signalGracefullyClose()
+		return err
+	}
+
+	return hdrRes.sendToSelf(buff)
+}
+
+// resolveHeaderFromEpoch resolves a header using its key based on epoch
+func (hdrRes *headerResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error) {
+	actualKey := key
+
+	isUnknownEpoch, err := core.IsUnknownEpochIdentifier(key)
+	if err != nil {
+		return nil, err
+	}
+	if isUnknownEpoch {
+		actualKey = []byte(core.EpochStartIdentifier(hdrRes.manualEpochStartNotifier.CurrentEpoch() - 1))
+	}
+
+	return hdrRes.hdrStorage.SearchFirst(actualKey)
 }
 
 // SetEpochHandler sets the epoch handler
@@ -120,6 +140,21 @@ func (hdrRes *headerResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 	hdrRes.mutEpochHandler.Unlock()
 
 	return nil
+}
+
+// Close will try to close the associated opened storers
+func (hdrRes *headerResolver) Close() error {
+	errNonces := hdrRes.hdrNoncesStorage.Close()
+	log.LogIfError(errNonces)
+
+	errHeaders := hdrRes.hdrStorage.Close()
+	log.LogIfError(errHeaders)
+
+	if errNonces != nil {
+		return errNonces
+	}
+
+	return errHeaders
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
