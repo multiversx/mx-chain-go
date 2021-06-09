@@ -21,6 +21,10 @@ func (tlpm *TxLogProcessorMock) SaveLog(_ []byte, _ data.TransactionHandler, _ [
 	return nil
 }
 
+// Clean -
+func (tlpm *TxLogProcessorMock) Clean() {
+}
+
 // IsInterfaceNil -
 func (tlpm *TxLogProcessorMock) IsInterfaceNil() bool {
 	return tlpm == nil

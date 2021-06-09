@@ -283,7 +283,7 @@ type TestProcessorNode struct {
 
 	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
 
-	//Node is used to call the functionality already implemented in it
+	// Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
 
@@ -1844,10 +1844,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
+		BlockTracker:             tpn.BlockTracker,
+		BlockSizeThrottler:       TestBlockSizeThrottler,
+		HistoryRepository:        tpn.HistoryRepository,
+		EpochNotifier:            tpn.EpochNotifier,
+		TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2024,6 +2025,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
+		argumentsBase.TransactionsLogProcessor = &mock.TxLogsProcessorStub{}
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
 		}

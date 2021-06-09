@@ -198,10 +198,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:       tpn.BlockTracker,
-		BlockSizeThrottler: TestBlockSizeThrottler,
-		HistoryRepository:  tpn.HistoryRepository,
-		EpochNotifier:      tpn.EpochNotifier,
+		BlockTracker:             tpn.BlockTracker,
+		BlockSizeThrottler:       TestBlockSizeThrottler,
+		HistoryRepository:        tpn.HistoryRepository,
+		EpochNotifier:            tpn.EpochNotifier,
+		TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

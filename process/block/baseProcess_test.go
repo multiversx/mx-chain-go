@@ -353,11 +353,12 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
+			BlockTracker:             mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler:       &mock.BlockSizeThrottlerStub{},
+			Version:                  "softwareVersion",
+			HistoryRepository:        &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:            &mock.EpochNotifierStub{},
+			TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
 		},
 	}
 
@@ -465,7 +466,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
 
-//------- RevertState
+// ------- RevertState
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -533,7 +534,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	assert.True(t, removeFromDataPoolWasCalled)
 }
 
-//------- ComputeNewNoncePrevHash
+// ------- ComputeNewNoncePrevHash
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()

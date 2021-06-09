@@ -263,6 +263,7 @@ type ValidatorStatisticsProcessor interface {
 type TransactionLogProcessor interface {
 	GetLog(txHash []byte) (data.LogHandler, error)
 	SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	Clean()
 	IsInterfaceNil() bool
 }
 

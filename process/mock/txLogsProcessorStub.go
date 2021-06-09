@@ -20,6 +20,10 @@ func (txls *TxLogsProcessorStub) GetLog(txHash []byte) (data.LogHandler, error) 
 	return nil, nil
 }
 
+// Clean -
+func (txls *TxLogsProcessorStub) Clean() {
+}
+
 // SaveLog -
 func (txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 	if txls.SaveLogCalled != nil {

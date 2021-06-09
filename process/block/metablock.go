@@ -84,36 +84,37 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:              arguments.AccountsDB,
-		blockSizeThrottler:      arguments.BlockSizeThrottler,
-		forkDetector:            arguments.ForkDetector,
-		hasher:                  arguments.CoreComponents.Hasher(),
-		marshalizer:             arguments.CoreComponents.InternalMarshalizer(),
-		store:                   arguments.DataComponents.StorageService(),
-		shardCoordinator:        arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:              arguments.FeeHandler,
-		nodesCoordinator:        arguments.NodesCoordinator,
-		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        arguments.CoreComponents.StatusHandler(),
-		blockChainHook:          arguments.BlockChainHook,
-		txCoordinator:           arguments.TxCoordinator,
-		epochStartTrigger:       arguments.EpochStartTrigger,
-		headerValidator:         arguments.HeaderValidator,
-		roundHandler:            arguments.CoreComponents.RoundHandler(),
-		bootStorer:              arguments.BootStorer,
-		blockTracker:            arguments.BlockTracker,
-		dataPool:                arguments.DataComponents.Datapool(),
-		blockChain:              arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:  arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
-		indexer:                 arguments.StatusComponents.ElasticIndexer(),
-		tpsBenchmark:            arguments.StatusComponents.TpsBenchmark(),
-		genesisNonce:            genesisHdr.GetNonce(),
-		headerIntegrityVerifier: arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:             arguments.HistoryRepository,
-		epochNotifier:           arguments.EpochNotifier,
-		vmContainerFactory:      arguments.VMContainersFactory,
-		vmContainer:             arguments.VmContainer,
+		accountsDB:               arguments.AccountsDB,
+		blockSizeThrottler:       arguments.BlockSizeThrottler,
+		forkDetector:             arguments.ForkDetector,
+		hasher:                   arguments.CoreComponents.Hasher(),
+		marshalizer:              arguments.CoreComponents.InternalMarshalizer(),
+		store:                    arguments.DataComponents.StorageService(),
+		shardCoordinator:         arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:               arguments.FeeHandler,
+		nodesCoordinator:         arguments.NodesCoordinator,
+		uint64Converter:          arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:           arguments.RequestHandler,
+		appStatusHandler:         arguments.CoreComponents.StatusHandler(),
+		blockChainHook:           arguments.BlockChainHook,
+		txCoordinator:            arguments.TxCoordinator,
+		epochStartTrigger:        arguments.EpochStartTrigger,
+		headerValidator:          arguments.HeaderValidator,
+		roundHandler:             arguments.CoreComponents.RoundHandler(),
+		bootStorer:               arguments.BootStorer,
+		blockTracker:             arguments.BlockTracker,
+		dataPool:                 arguments.DataComponents.Datapool(),
+		blockChain:               arguments.DataComponents.Blockchain(),
+		stateCheckpointModulus:   arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
+		indexer:                  arguments.StatusComponents.ElasticIndexer(),
+		tpsBenchmark:             arguments.StatusComponents.TpsBenchmark(),
+		genesisNonce:             genesisHdr.GetNonce(),
+		headerIntegrityVerifier:  arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:              arguments.HistoryRepository,
+		epochNotifier:            arguments.EpochNotifier,
+		vmContainerFactory:       arguments.VMContainersFactory,
+		vmContainer:              arguments.VmContainer,
+		transactionsLogProcessor: arguments.TransactionsLogProcessor,
 	}
 
 	mp := metaProcessor{
@@ -481,7 +482,7 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(header *block.MetaBlock)
 		return err
 	}
 
-	//if all miniblockshards hashes are in header miniblocks as well
+	// if all miniblockshards hashes are in header miniblocks as well
 	mapMetaMiniBlockHdrs := make(map[string]struct{}, len(header.MiniBlockHeaders))
 	for _, metaMiniBlock := range header.MiniBlockHeaders {
 		mapMetaMiniBlockHdrs[string(metaMiniBlock.Hash)] = struct{}{}
