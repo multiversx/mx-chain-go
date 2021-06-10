@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// StorageManagerStub --
+// StorageManagerStub -
 type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
 	TakeSnapshotCalled                func([]byte)
@@ -18,7 +18,7 @@ type StorageManagerStub struct {
 	IsInterfaceNilCalled              func() bool
 }
 
-// Database --
+// Database -
 func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
@@ -26,17 +26,17 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 	return nil
 }
 
-// TakeSnapshot --
+// TakeSnapshot -
 func (sms *StorageManagerStub) TakeSnapshot([]byte) {
 
 }
 
-// SetCheckpoint --
+// SetCheckpoint -
 func (sms *StorageManagerStub) SetCheckpoint([]byte) {
 
 }
 
-// GetSnapshotThatContainsHash --
+// GetSnapshotThatContainsHash -
 func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
@@ -45,7 +45,7 @@ func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.Snapsh
 	return nil
 }
 
-// IsPruningEnabled --
+// IsPruningEnabled -
 func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	if sms.IsPruningEnabledCalled != nil {
 		return sms.IsPruningEnabledCalled()
@@ -53,7 +53,7 @@ func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// IsPruningBlocked --
+// IsPruningBlocked -
 func (sms *StorageManagerStub) IsPruningBlocked() bool {
 	if sms.IsPruningBlockedCalled != nil {
 		return sms.IsPruningBlockedCalled()
@@ -85,7 +85,7 @@ func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 	}
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (sms *StorageManagerStub) IsInterfaceNil() bool {
 	return sms == nil
 }
