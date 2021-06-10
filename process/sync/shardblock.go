@@ -57,6 +57,11 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
 		indexer:             arguments.Indexer,
+		isInImportMode:      arguments.IsInImportMode,
+	}
+
+	if arguments.IsInImportMode {
+		log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
 	boot := ShardBootstrap{

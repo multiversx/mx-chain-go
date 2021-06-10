@@ -112,6 +112,7 @@ type baseBootstrap struct {
 	poolsHolder        dataRetriever.PoolsHolder
 	mutRequestHeaders  sync.Mutex
 	cancelFunc         func()
+	isInImportMode     bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -536,7 +537,8 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
-	if nodeState != core.NsNotSynchronized {
+	shouldSync := nodeState == core.NsNotSynchronized || boot.isInImportMode
+	if !shouldSync {
 		return nil
 	}
 
