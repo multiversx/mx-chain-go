@@ -60,7 +60,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		isInImportMode:      arguments.IsInImportMode,
 	}
 
-	if arguments.IsInImportMode {
+	if base.isInImportMode {
 		log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
