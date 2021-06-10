@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -69,15 +68,15 @@ func NewTrieStorageManager(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		db:                    db,
-		snapshots:             snapshots,
-		snapshotId:            snapshotId,
-		snapshotDbCfg:         snapshotDbCfg,
-		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
-		pruningBlockingOps:    0,
-		maxSnapshots:          generalConfig.MaxSnapshots,
-		keepSnapshots:         generalConfig.KeepSnapshots,
-		cancelFunc:            cancelFunc,
+		db:                 db,
+		snapshots:          snapshots,
+		snapshotId:         snapshotId,
+		snapshotDbCfg:      snapshotDbCfg,
+		snapshotReq:        make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
+		pruningBlockingOps: 0,
+		maxSnapshots:       generalConfig.MaxSnapshots,
+		keepSnapshots:      generalConfig.KeepSnapshots,
+		cancelFunc:         cancelFunc,
 	}
 
 	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
@@ -324,7 +323,7 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	}
 
 	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
-		if tsm.keepSnapshots  {
+		if tsm.keepSnapshots {
 			tsm.disconnectSnapshot()
 		} else {
 			tsm.removeSnapshot()
@@ -470,19 +469,14 @@ func (tsm *trieStorageManager) Close() error {
 
 	tsm.cancelFunc()
 
-	err1 := tsm.db.Close()
-	err2 := tsm.dbEvictionWaitingList.Close()
+	err := tsm.db.Close()
 
 	for _, sdb := range tsm.snapshots {
 		log.LogIfError(sdb.Close())
 	}
 
-	if err1 != nil || err2 != nil {
-		errorStr := ""
-		if err2 != nil {
-			errorStr = err2.Error()
-		}
-		return fmt.Errorf("trieStorageManager close failed: %w , %s", err1, errorStr)
+	if err != nil {
+		return fmt.Errorf("trieStorageManager close failed: %w", err)
 	}
 
 	return nil

@@ -12,6 +12,7 @@ type TrieStorageManagerStub struct {
 	MarkForEvictionCalled             func(bytes []byte, hashes data.ModifiedHashes) error
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
+	IsPruningBlockedCalled            func() bool
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
 	GetSnapshotDbBatchDelayCalled     func() int
@@ -103,6 +104,15 @@ func (tms *TrieStorageManagerStub) GetSnapshotDbBatchDelay() int {
 	}
 
 	return 0
+}
+
+// IsPruningBlocked -
+func (tms *TrieStorageManagerStub) IsPruningBlocked() bool {
+	if tms.IsPruningBlockedCalled != nil {
+		return tms.IsPruningBlockedCalled()
+	}
+
+	return false
 }
 
 // Close -

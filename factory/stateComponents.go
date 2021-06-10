@@ -16,7 +16,6 @@ import (
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -109,32 +108,32 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 
 func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapter, state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := scf.tries.TriesContainer.Get([]byte(trieFactory.UserAccountTrie))
-	storagePruning, err := scf.getNewStoragePruningManager(scf.config.AccountsTrieStorage)
+	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	storagePruning, err := scf.newStoragePruningManager(scf.config.AccountsTrieStorage)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	accountsAdapter, err := state.NewAccountsDB(
 		merkleTrie,
-		scf.core.Hasher,
-		scf.core.InternalMarshalizer,
+		scf.core.Hasher(),
+		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountsAdapterAPI, err := state.NewAccountsDB(
 		merkleTrie,
-		scf.core.Hasher,
-		scf.core.InternalMarshalizer,
+		scf.core.Hasher(),
+		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", ErrAccountsAdapterCreation, err.Error())
+		return nil, nil, fmt.Errorf("accounts adapter API: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	return accountsAdapter, accountsAdapterAPI, nil
@@ -142,16 +141,16 @@ func (scf *stateComponentsFactory) createAccountsAdapters() (state.AccountsAdapt
 
 func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := scf.tries.TriesContainer.Get([]byte(trieFactory.PeerAccountTrie))
-	storagePruning, err := scf.getNewStoragePruningManager(scf.config.PeerAccountsTrieStorage)
+	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	storagePruning, err := scf.newStoragePruningManager(scf.config.PeerAccountsTrieStorage)
 	if err != nil {
 		return nil, err
 	}
 
 	peerAdapter, err := state.NewPeerAccountsDB(
 		merkleTrie,
-		scf.core.Hasher,
-		scf.core.InternalMarshalizer,
+		scf.core.Hasher(),
+		scf.core.InternalMarshalizer(),
 		accountFactory,
 		storagePruning,
 	)
@@ -162,9 +161,9 @@ func (scf *stateComponentsFactory) createPeerAdapter() (state.AccountsAdapter, e
 	return peerAdapter, nil
 }
 
-func (scf *stateComponentsFactory) getNewStoragePruningManager(trieStorageCfg config.StorageConfig) (state.StoragePruningManager, error) {
+func (scf *stateComponentsFactory) newStoragePruningManager(trieStorageCfg config.StorageConfig) (state.StoragePruningManager, error) {
 	shardID := core.GetShardIDString(scf.shardCoordinator.SelfId())
-	trieStoragePath, _ := path.Split(scf.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
+	trieStoragePath, _ := path.Split(scf.core.PathHandler().PathForStatic(shardID, trieStorageCfg.DB.FilePath))
 
 	evictionWaitingListCfg := scf.config.EvictionWaitingList
 	arg := storageUnit.ArgDB{
@@ -183,7 +182,7 @@ func (scf *stateComponentsFactory) getNewStoragePruningManager(trieStorageCfg co
 	trieEvictionWaitingList, err := evictionWaitingList.NewEvictionWaitingList(
 		scf.config.EvictionWaitingList.Size,
 		evictionDb,
-		scf.core.InternalMarshalizer,
+		scf.core.InternalMarshalizer(),
 	)
 	if err != nil {
 		return nil, err
@@ -202,5 +201,25 @@ func (scf *stateComponentsFactory) getNewStoragePruningManager(trieStorageCfg co
 
 // Close closes all underlying components that need closing
 func (pc *stateComponents) Close() error {
+	errString := ""
+
+	err := pc.accountsAdapter.Close()
+	if err != nil {
+		errString += fmt.Errorf("accountsAdapter close failed: %w ", err).Error()
+	}
+
+	err = pc.accountsAdapterAPI.Close()
+	if err != nil {
+		errString += fmt.Errorf("accountsAdapterAPI close failed: %w ", err).Error()
+	}
+
+	err = pc.peerAccounts.Close()
+	if err != nil {
+		errString += fmt.Errorf("peerAccounts close failed: %w ", err).Error()
+	}
+
+	if len(errString) != 0 {
+		return fmt.Errorf("state components close failed: %s", errString)
+	}
 	return nil
 }

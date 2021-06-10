@@ -1040,6 +1040,14 @@ func (adb *AccountsDB) GetNumCheckpoints() uint32 {
 	return atomic.LoadUint32(&adb.numCheckpoints)
 }
 
+// Close will handle the closing of the underlying components
+func (adb *AccountsDB) Close() error {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	return adb.storagePruningManager.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (adb *AccountsDB) IsInterfaceNil() bool {
 	return adb == nil

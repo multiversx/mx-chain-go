@@ -189,15 +189,6 @@ type DBWriteCacher interface {
 	IsInterfaceNil() bool
 }
 
-// DBRemoveCacher is used to cache keys that will be deleted from the database
-type DBRemoveCacher interface {
-	Put([]byte, ModifiedHashes) error
-	Evict([]byte) (ModifiedHashes, error)
-	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
-	IsInterfaceNil() bool
-	Close() error
-}
-
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error

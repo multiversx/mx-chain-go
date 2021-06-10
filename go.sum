@@ -11,6 +11,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOv
 github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20210609132422-ff138bc60ef0 h1:VdMcmGLgvCd4mslscTdAjkTE7UQvxMoBbJiEkgoKjZg=
+github.com/ElrondNetwork/arwen-wasm-vm v0.0.0-20210609132422-ff138bc60ef0/go.mod h1:zcrq866qW5H1XdB8IVa9RHWlf12kkdCvo3yHANu5VPk=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33/go.mod h1:TktLl1iYOuio2TYGRVTUFI47QX0gEuOml7l3pyGsbog=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.5/go.mod h1:KkBYEpvpc72DED4uecEQwWyZlouMLv/Wr1c2A/cHdto=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.6-0.20201113105541-2d483b749160/go.mod h1:uS9EKt7jtD8IEvENBkYcs2A1EBUcR7fsg7O7DddMnKw=
@@ -27,8 +29,12 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.0/go.mod h1:Io5YGUs48YNnXlyJYSBX6Evx
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.7/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.19 h1:j1aWov6w8sBR7Hce23RDKzjt9QZMmiSOdCNXCEB42jg=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.19/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
+github.com/ElrondNetwork/arwen-wasm-vm v1.2.20-0.20210610073003-65f9eda506a1 h1:UBrS47Zinvv2gS9UIG3matZVzi9n/2jq5Ikey4IxNZo=
+github.com/ElrondNetwork/arwen-wasm-vm v1.2.20-0.20210610073003-65f9eda506a1/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.15 h1:NbSakXqhXuTr62bBtoaYR3LBpbZo0nWL2Ev2FqPuRBo=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.15/go.mod h1:zcrq866qW5H1XdB8IVa9RHWlf12kkdCvo3yHANu5VPk=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.16-0.20210609134035-158edfc36476 h1:DG9VJkraKgbBKl+mp/+fqhJ3noMwRj0BXpqV6Cj5SWI=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.16-0.20210609134035-158edfc36476/go.mod h1:zcrq866qW5H1XdB8IVa9RHWlf12kkdCvo3yHANu5VPk=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=

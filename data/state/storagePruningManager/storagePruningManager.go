@@ -216,6 +216,11 @@ func (spm *storagePruningManager) removeFromDb(
 	return nil
 }
 
+// Close will handle the closing of the underlying components
+func (spm *storagePruningManager) Close() error {
+	return spm.dbEvictionWaitingList.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (spm *storagePruningManager) IsInterfaceNil() bool {
 	return spm == nil

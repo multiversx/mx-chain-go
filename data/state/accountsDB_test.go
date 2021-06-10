@@ -1220,13 +1220,7 @@ func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 }
 
 func TestAccountsDB_SaveAccountWithoutLoading(t *testing.T) {
-	marshalizer := &mock.MarshalizerMock{}
-	hsh := mock.HasherMock{}
-	accFactory := factory.NewAccountCreator()
-	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+	_, adb := getDefaultTrieAndAccountsDb()
 
 	key := []byte("key")
 	key1 := []byte("key1")

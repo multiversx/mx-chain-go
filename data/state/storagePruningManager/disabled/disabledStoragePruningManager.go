@@ -25,6 +25,11 @@ func (i *disabledStoragePruningManager) PruneTrie(_ []byte, _ data.TriePruningId
 func (i *disabledStoragePruningManager) CancelPrune(_ []byte, _ data.TriePruningIdentifier, _ data.StorageManager) {
 }
 
+// Close does nothing for this implementation
+func (i *disabledStoragePruningManager) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (i *disabledStoragePruningManager) IsInterfaceNil() bool {
 	return i == nil

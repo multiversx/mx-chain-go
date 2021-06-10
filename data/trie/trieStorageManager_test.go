@@ -477,7 +477,7 @@ func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
 func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
 	t.Parallel()
 	nrOfSnapshots := 5
-	tr, trieStorage, _ := newEmptyTrie()
+	tr, trieStorage := newEmptyTrie()
 	trieStorage.keepSnapshots = true
 
 	for i := 0; i < nrOfSnapshots; i++ {
@@ -505,7 +505,7 @@ func TestShouldNotRemoveSnapshotDbsIfKeepSnapshotsTrue(t *testing.T) {
 func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 	t.Parallel()
 	nrOfSnapshots := 5
-	tr, trieStorage, _ := newEmptyTrie()
+	tr, trieStorage := newEmptyTrie()
 	trieStorage.keepSnapshots = false
 
 	for i := 0; i < nrOfSnapshots; i++ {
@@ -539,7 +539,7 @@ func TestShouldRemoveSnapshotDbsIfKeepSnapshotsFalse(t *testing.T) {
 func TestShouldNotDisconnectSnapshotDbIfItIsStillInUse(t *testing.T) {
 	t.Parallel()
 
-	tr, trieStorage, _ := newEmptyTrie()
+	tr, trieStorage := newEmptyTrie()
 	trieStorage.keepSnapshots = true
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 
