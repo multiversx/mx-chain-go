@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/oldDbCleaner"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -419,6 +420,16 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	oldDbCleanupFunc := func() error {
+		return oldDbCleaner.CleanOldStorageForShuffleOut(
+			oldDbCleaner.Args{
+				WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+				ChainID:              nr.configs.GeneralConfig.GeneralSettings.ChainID,
+				PruningStorageConfig: nr.configs.GeneralConfig.StoragePruning,
+				EpochStartTrigger:    managedProcessComponents.EpochStartTrigger(),
+			},
+		)
+	}
 	err = waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -427,6 +438,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		httpServerWrapper,
 		currentNode,
 		goRoutinesNumberStart,
+		oldDbCleanupFunc,
 	)
 	if err != nil {
 		return true, nil
@@ -695,6 +707,7 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
+	oldDbCleanerHandler func() error,
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -724,6 +737,10 @@ func waitForSignal(
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
+		err := oldDbCleanerHandler()
+		if err != nil {
+			log.Warn("cannot clean old db", "error", err)
+		}
 	} else {
 		return fmt.Errorf("not reshuffled, closing")
 	}
@@ -1244,17 +1261,16 @@ func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string 
 }
 
 func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
-	if cleanupStorage {
-		dbPath := filepath.Join(
-			workingDir,
-			core.DefaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err := os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	if !cleanupStorage {
+		return nil
 	}
-	return nil
+
+	dbPath := filepath.Join(
+		workingDir,
+		core.DefaultDBPath)
+	log.Trace("cleaning storage", "path", dbPath)
+
+	return os.RemoveAll(dbPath)
 }
 
 func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
