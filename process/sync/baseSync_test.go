@@ -122,3 +122,29 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(1), orderedMiniBlocks[1].SenderShardID)
 	assert.Equal(t, uint32(2), orderedMiniBlocks[2].SenderShardID)
 }
+
+func TestBaseBootstrap_shouldSync(t *testing.T) {
+	t.Parallel()
+
+	boot := &baseBootstrap{
+		isInImportMode:        true,
+		isNodeStateCalculated: true,
+		rounder:               &mock.RounderMock{},
+	}
+	assert.True(t, boot.shouldSync())
+
+	boot = &baseBootstrap{
+		isInImportMode:        false,
+		isNodeStateCalculated: true,
+		rounder:               &mock.RounderMock{},
+	}
+	assert.True(t, boot.shouldSync())
+
+	boot = &baseBootstrap{
+		roundIndex:            1,
+		isInImportMode:        false,
+		isNodeStateCalculated: true,
+		rounder:               &mock.RounderMock{},
+	}
+	assert.False(t, boot.shouldSync())
+}

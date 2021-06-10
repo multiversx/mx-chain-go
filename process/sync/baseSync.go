@@ -536,9 +536,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
-	nodeState := boot.GetNodeState()
-	shouldSync := nodeState == core.NsNotSynchronized || boot.isInImportMode
-	if !shouldSync {
+	if !boot.shouldSync() {
 		return nil
 	}
 
@@ -632,6 +630,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 
 	return nil
+}
+
+func (boot *baseBootstrap) shouldSync() bool {
+	if boot.isInImportMode {
+		return true
+	}
+
+	nodeState := boot.GetNodeState()
+	return nodeState == core.NsNotSynchronized
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
