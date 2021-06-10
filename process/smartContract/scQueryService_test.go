@@ -474,17 +474,20 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 	t.Parallel()
 
 	closeCalled := false
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
+	argsNewSCQueryService := ArgsNewSCQueryService{
+		VmContainer: &mock.VMContainerMock{
 			CloseCalled: func() error {
 				closeCalled = true
 				return nil
 			},
 		},
-		&mock.FeeHandlerStub{},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+
+	target, _ := NewSCQueryService(argsNewSCQueryService)
 
 	err := target.Close()
 	assert.Nil(t, err)

@@ -219,7 +219,14 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		},
 	}
 
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler, blockChainHook, &mock.BlockChainMock{})
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      feeHandler,
+		BlockChainHook:    blockChainHook,
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
