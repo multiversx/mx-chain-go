@@ -132,7 +132,14 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
+	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       tpn.VMContainer,
+		EconomicsFee:      tpn.EconomicsData,
+		BlockChainHook:    tpn.BlockchainHook,
+		BlockChain:        tpn.BlockChain,
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+	}
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }

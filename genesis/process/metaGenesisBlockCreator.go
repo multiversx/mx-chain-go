@@ -433,12 +433,14 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		virtualMachineFactory.BlockChainHookImpl(),
-		arg.Blkc,
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
+		BlockChain:        arg.Blkc,
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}

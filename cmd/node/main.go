@@ -2787,7 +2787,14 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      economics,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        blockChain,
+		ArwenChangeLocker: arwenChangeLocker,
+	}
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
 func createBuiltinFuncs(
