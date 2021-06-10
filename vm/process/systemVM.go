@@ -123,6 +123,11 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	return vmOutput, nil
 }
 
+// GetVersion returns an empty string, because the system VM is not versioned
+func (s *systemVM) GetVersion() string {
+	return ""
+}
+
 // GasScheduleChange sets the new gas schedule where it is needed
 func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 	s.mutGasLock.Lock()
