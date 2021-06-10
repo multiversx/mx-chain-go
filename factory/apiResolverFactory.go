@@ -299,12 +299,14 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		args.coreComponents.EconomicsData(),
-		vmFactory.BlockChainHookImpl(),
-		args.dataComponents.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      args.coreComponents.EconomicsData(),
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        args.dataComponents.Blockchain(),
+		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+	}
+	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	return scQueryService, err
 }
