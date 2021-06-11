@@ -33,7 +33,9 @@ jobs:
               dep ensure
           fi
       - name: Run unit tests
-        run: make test-coverage
+        run: |
+          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
+          make test-coverage
 
       - name: Upload coverage
         run: bash <(curl -s https://codecov.io/bash) -f coverage.txt -y codecov.yml
