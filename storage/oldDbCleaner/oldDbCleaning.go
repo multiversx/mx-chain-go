@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -25,7 +24,7 @@ type Args struct {
 	WorkingDir           string
 	ChainID              string
 	PruningStorageConfig config.StoragePruningConfig
-	EpochStartTrigger    process.EpochStartTriggerHandler
+	CurrentEpoch         uint32
 }
 
 // CleanOldStorageForShuffleOut handles the deletion of old databases in regards to the pruning storer configuration.
@@ -33,10 +32,6 @@ type Args struct {
 func CleanOldStorageForShuffleOut(args Args) error {
 	if !args.PruningStorageConfig.CleanOldEpochsData {
 		return nil
-	}
-
-	if check.IfNil(args.EpochStartTrigger) {
-		return storage.ErrNilEpochStartTrigger
 	}
 
 	if check.IfNil(args.DirectoryReader) {
@@ -62,7 +57,7 @@ func CleanOldStorageForShuffleOut(args Args) error {
 		return nil
 	}
 
-	epochToRemoveTo := args.EpochStartTrigger.Epoch() - uint32(args.PruningStorageConfig.NumEpochsToKeep)
+	epochToRemoveTo := args.CurrentEpoch - uint32(args.PruningStorageConfig.NumEpochsToKeep)
 
 	for idx, epoch := range sortedEpochs {
 		if epoch >= epochToRemoveTo {
@@ -70,6 +65,7 @@ func CleanOldStorageForShuffleOut(args Args) error {
 		}
 
 		fullDirectoryPath := path.Join(dbPath, sortedEpochDirectories[idx])
+		log.Debug("removing old data from old shard", "directory path", fullDirectoryPath)
 		err := args.FileRemover(fullDirectoryPath)
 		if err != nil {
 			log.Warn("cannot remove old DB", "error", err)

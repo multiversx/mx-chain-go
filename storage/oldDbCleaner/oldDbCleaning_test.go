@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,19 +22,6 @@ func TestCleanupOldStorageForShuffleOut_ShouldExitIfDontCleanOldData(t *testing.
 	require.NoError(t, err)
 }
 
-func TestCleanupOldStorageForShuffleOut_NilEpochStartTriggerShouldErr(t *testing.T) {
-	prunStorerCfg := config.StoragePruningConfig{
-		CleanOldEpochsData: true,
-	}
-
-	err := CleanOldStorageForShuffleOut(
-		Args{
-			PruningStorageConfig: prunStorerCfg,
-		},
-	)
-	require.Equal(t, storage.ErrNilEpochStartTrigger, err)
-}
-
 func TestCleanupOldStorageForShuffleOut_EmptyDirectoriesList(t *testing.T) {
 	prunStorerCfg := config.StoragePruningConfig{
 		CleanOldEpochsData: true,
@@ -51,7 +36,6 @@ func TestCleanupOldStorageForShuffleOut_EmptyDirectoriesList(t *testing.T) {
 		Args{
 			PruningStorageConfig: prunStorerCfg,
 			DirectoryReader:      dirReader,
-			EpochStartTrigger:    &testscommon.EpochStartTriggerStub{},
 		},
 	)
 	require.NoError(t, err)
@@ -65,7 +49,6 @@ func TestCleanupOldStorageForShuffleOut_ShouldUseDefaultDirReaderAndFileRemover(
 	err := CleanOldStorageForShuffleOut(
 		Args{
 			PruningStorageConfig: prunStorerCfg,
-			EpochStartTrigger:    &testscommon.EpochStartTriggerStub{},
 		},
 	)
 	require.Error(t, err)
@@ -90,18 +73,12 @@ func TestCleanupOldStorageForShuffleOut_ShouldNotErrWithSomeWrongDirectoryNames(
 		NumEpochsToKeep:    2,
 	}
 
-	epochTrigger := &testscommon.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
-			return 6
-		},
-	}
-
 	err := CleanOldStorageForShuffleOut(
 		Args{
 			DirectoryReader:      dirReader,
 			FileRemover:          fileRemover,
 			PruningStorageConfig: prunStorerCfg,
-			EpochStartTrigger:    epochTrigger,
+			CurrentEpoch:         6,
 			WorkingDir:           "workDir",
 			ChainID:              "T",
 		},
@@ -135,18 +112,12 @@ func TestCleanupOldStorageForShuffleOut_ShouldNotErrWithAllDirectoryNamesWrong(t
 		NumEpochsToKeep:    2,
 	}
 
-	epochTrigger := &testscommon.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
-			return 6
-		},
-	}
-
 	err := CleanOldStorageForShuffleOut(
 		Args{
 			DirectoryReader:      dirReader,
 			FileRemover:          fileRemover,
 			PruningStorageConfig: prunStorerCfg,
-			EpochStartTrigger:    epochTrigger,
+			CurrentEpoch:         6,
 			WorkingDir:           "workDir",
 			ChainID:              "T",
 		},
@@ -177,23 +148,19 @@ func TestCleanupOldStorageForShuffleOut_ShouldWork(t *testing.T) {
 		NumEpochsToKeep:    2,
 	}
 
-	epochTrigger := &testscommon.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
-			return 6
-		},
+	closeHandler := func() error {
+		return CleanOldStorageForShuffleOut(
+			Args{
+				DirectoryReader:      dirReader,
+				FileRemover:          fileRemover,
+				PruningStorageConfig: prunStorerCfg,
+				CurrentEpoch:         6,
+				WorkingDir:           "workDir",
+				ChainID:              "T",
+			},
+		)
 	}
-
-	err := CleanOldStorageForShuffleOut(
-		Args{
-			DirectoryReader:      dirReader,
-			FileRemover:          fileRemover,
-			PruningStorageConfig: prunStorerCfg,
-			EpochStartTrigger:    epochTrigger,
-			WorkingDir:           "workDir",
-			ChainID:              "T",
-		},
-	)
-
+	err := closeHandler()
 	require.NoError(t, err)
 
 	expectedRes := []string{

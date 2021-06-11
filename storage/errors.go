@@ -126,6 +126,3 @@ var ErrNilTimeCache = errors.New("nil time cache")
 
 // ErrNilTxGasHandler signals that a nil tx gas handler was provided
 var ErrNilTxGasHandler = errors.New("nil tx gas handler")
-
-// ErrNilEpochStartTrigger signals that a nil epoch start trigger has been provided
-var ErrNilEpochStartTrigger = errors.New("nil epoch start trigger")

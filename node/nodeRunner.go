@@ -420,16 +420,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	oldDbCleanupFunc := func() error {
-		return oldDbCleaner.CleanOldStorageForShuffleOut(
-			oldDbCleaner.Args{
-				WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
-				ChainID:              nr.configs.GeneralConfig.GeneralSettings.ChainID,
-				PruningStorageConfig: nr.configs.GeneralConfig.StoragePruning,
-				EpochStartTrigger:    managedProcessComponents.EpochStartTrigger(),
-			},
-		)
+	dbCleanerArgs := oldDbCleaner.Args{
+		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
+		ChainID:              nr.configs.GeneralConfig.GeneralSettings.ChainID,
+		PruningStorageConfig: nr.configs.GeneralConfig.StoragePruning,
 	}
+
 	err = waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -438,7 +434,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		httpServerWrapper,
 		currentNode,
 		goRoutinesNumberStart,
-		oldDbCleanupFunc,
+		dbCleanerArgs,
 	)
 	if err != nil {
 		return true, nil
@@ -707,7 +703,7 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
-	oldDbCleanerHandler func() error,
+	oldDbCleanerArgs oldDbCleaner.Args,
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -720,6 +716,8 @@ func waitForSignal(
 			reshuffled = true
 		}
 	}
+
+	oldDbCleanerArgs.CurrentEpoch = currentNode.coreComponents.EpochNotifier().CurrentEpoch()
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
@@ -737,7 +735,7 @@ func waitForSignal(
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
-		err := oldDbCleanerHandler()
+		err := oldDbCleaner.CleanOldStorageForShuffleOut(oldDbCleanerArgs)
 		if err != nil {
 			log.Warn("cannot clean old db", "error", err)
 		}
