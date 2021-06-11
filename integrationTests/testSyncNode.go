@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
@@ -86,6 +87,7 @@ func NewTestSyncNode(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -207,11 +209,10 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:             tpn.BlockTracker,
-		BlockSizeThrottler:       TestBlockSizeThrottler,
-		HistoryRepository:        tpn.HistoryRepository,
-		EpochNotifier:            tpn.EpochNotifier,
-		TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
+		BlockTracker:       tpn.BlockTracker,
+		BlockSizeThrottler: TestBlockSizeThrottler,
+		HistoryRepository:  tpn.HistoryRepository,
+		EpochNotifier:      tpn.EpochNotifier,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

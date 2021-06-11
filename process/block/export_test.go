@@ -122,12 +122,11 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:             mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			BlockSizeThrottler:       &mock.BlockSizeThrottlerStub{},
-			Version:                  "softwareVersion",
-			HistoryRepository:        &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:            &mock.EpochNotifierStub{},
-			TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
+			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:      &mock.EpochNotifierStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

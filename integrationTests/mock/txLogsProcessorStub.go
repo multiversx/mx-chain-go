@@ -22,7 +22,6 @@ func (txls *TxLogsProcessorStub) GetLog(txHash []byte) (data.LogHandler, error) 
 
 // Clean -
 func (txls *TxLogsProcessorStub) Clean() {
-
 }
 
 // SaveLog -

@@ -353,12 +353,11 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:             mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
-			BlockSizeThrottler:       &mock.BlockSizeThrottlerStub{},
-			Version:                  "softwareVersion",
-			HistoryRepository:        &testscommon.HistoryRepositoryStub{},
-			EpochNotifier:            &mock.EpochNotifierStub{},
-			TransactionsLogProcessor: &mock.TxLogsProcessorStub{},
+			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
+			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:      &mock.EpochNotifierStub{},
 		},
 	}
 
@@ -386,6 +385,7 @@ func createMockTransactionCoordinatorArguments(
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	return argsTransactionCoordinator

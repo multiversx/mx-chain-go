@@ -870,7 +870,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
-		log.Debug("ExecuteBuiltInFunction-txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
+		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)

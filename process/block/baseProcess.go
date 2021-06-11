@@ -83,8 +83,6 @@ type baseProcessor struct {
 	epochNotifier      process.EpochNotifier
 	vmContainerFactory process.VirtualMachinesContainerFactory
 	vmContainer        process.VirtualMachinesContainer
-
-	transactionsLogProcessor process.TransactionLogProcessor
 }
 
 type bootStorerDataArgs struct {
@@ -437,9 +435,6 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.StatusHandler()) {
 		return process.ErrNilAppStatusHandler
 	}
-	if check.IfNil(arguments.TransactionsLogProcessor) {
-		return process.ErrNilTxLogsProcessor
-	}
 
 	return nil
 }
@@ -657,8 +652,6 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToFinal)
 	}
-
-	bp.transactionsLogProcessor.Clean()
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(

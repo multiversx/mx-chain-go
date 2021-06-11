@@ -215,6 +215,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -1684,9 +1685,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	//we will have a miniblock that will have 3 tx hashes
-	//all txs will be in datapool and none of them will return err when processed
-	//so, tx processor will return nil on processing tx
+	// we will have a miniblock that will have 3 tx hashes
+	// all txs will be in datapool and none of them will return err when processed
+	// so, tx processor will return nil on processing tx
 
 	txHash1 := []byte("tx hash 1")
 	txHash2 := []byte("tx hash 2")
@@ -1705,7 +1706,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx2Nonce := uint64(46)
 	tx3Nonce := uint64(47)
 
-	//put the existing tx inside datapool
+	// put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
@@ -1747,7 +1748,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
+				// execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
 				}
@@ -1819,9 +1820,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	//we will have a miniblock that will have 3 tx hashes
-	//all txs will be in datapool and none of them will return err when processed
-	//so, tx processor will return nil on processing tx
+	// we will have a miniblock that will have 3 tx hashes
+	// all txs will be in datapool and none of them will return err when processed
+	// so, tx processor will return nil on processing tx
 
 	txHash1 := []byte("tx hash 1")
 	txHash2 := []byte("tx hash 2 - this will cause the tx processor to err")
@@ -1840,7 +1841,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	tx2Nonce := uint64(46)
 	tx3Nonce := uint64(47)
 
-	//put the existing tx inside datapool
+	// put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
@@ -2384,6 +2385,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 1,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2402,20 +2404,20 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 	maxGasLimitPerBlock := uint64(1500000000)
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock + 1
 			},
@@ -2425,6 +2427,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2459,20 +2462,20 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 	maxGasLimitPerBlock := uint64(1500000000)
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2485,6 +2488,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2525,20 +2529,20 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 	maxGasLimitPerBlock := uint64(1500000000)
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2551,6 +2555,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2591,20 +2596,20 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 	maxGasLimitPerBlock := uint64(1500000000)
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return maxGasLimitPerBlock
 			},
@@ -2617,6 +2622,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -2656,7 +2662,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
+	txCoordinatorArgs := ArgTransactionCoordinator{
 		Hasher:                            &mock.HasherMock{},
 		Marshalizer:                       &mock.MarshalizerMock{},
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
@@ -2672,6 +2678,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2725,20 +2732,20 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
@@ -2748,6 +2755,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2811,20 +2819,20 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
@@ -2834,6 +2842,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2893,7 +2902,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
+	txCoordinatorArgs := ArgTransactionCoordinator{
 		Hasher:                            &mock.HasherMock{},
 		Marshalizer:                       &mock.MarshalizerMock{},
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
@@ -2909,6 +2918,7 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2931,30 +2941,31 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit() + 1
 			},
 		},
-		TxTypeHandler:                     &mock.TxTypeHandlerMock{
+		TxTypeHandler: &mock.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			},
 		},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -2984,30 +2995,31 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
 		},
-		TxTypeHandler:                     &mock.TxTypeHandlerMock{
+		TxTypeHandler: &mock.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.MoveBalance, process.SCInvoking
 			},
 		},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3042,20 +3054,20 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit - 1
 			},
@@ -3063,8 +3075,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3102,20 +3115,20 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			MaxGasLimitPerBlockCalled: func() uint64 {
 				return tx1GasLimit + tx2GasLimit + tx3GasLimit
 			},
@@ -3123,8 +3136,9 @@ func TestTransactionCoordinator_CheckGasConsumedByMiniBlockInReceiverShardShould
 				return tx.GetGasLimit()
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3159,7 +3173,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
+	txCoordinatorArgs := ArgTransactionCoordinator{
 		Hasher:                            &mock.HasherMock{},
 		Marshalizer:                       &mock.MarshalizerMock{},
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
@@ -3173,8 +3187,9 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
 		BalanceComputation:                &mock.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3209,26 +3224,27 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
@@ -3273,26 +3289,27 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3336,26 +3353,27 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3397,7 +3415,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
+	txCoordinatorArgs := ArgTransactionCoordinator{
 		Hasher:                            &mock.HasherMock{},
 		Marshalizer:                       &mock.MarshalizerMock{},
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
@@ -3411,8 +3429,9 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
 		BalanceComputation:                &mock.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
@@ -3441,26 +3460,27 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 
 	txHash := []byte("tx_hash1")
 	dataPool := initDataPool(txHash)
-	txCoordinatorArgs:= ArgTransactionCoordinator{
-		Hasher:                            &mock.HasherMock{},
-		Marshalizer:                       &mock.MarshalizerMock{},
-		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:                          initAccountsMock(),
-		MiniBlockPool:                     dataPool.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
-		PreProcessors:                     createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
-		InterProcessors:                   createInterimProcessorContainer(),
-		GasHandler:                        &mock.GasHandlerMock{},
-		FeeHandler:                        &mock.FeeAccumulatorStub{},
-		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
-		BalanceComputation:                &mock.BalanceComputationStub{},
-		EconomicsFee:                      &mock.FeeHandlerStub{
+	txCoordinatorArgs := ArgTransactionCoordinator{
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
+		Accounts:             initAccountsMock(),
+		MiniBlockPool:        dataPool.MiniBlocks(),
+		RequestHandler:       &mock.RequestHandlerStub{},
+		PreProcessors:        createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
+		InterProcessors:      createInterimProcessorContainer(),
+		GasHandler:           &mock.GasHandlerMock{},
+		FeeHandler:           &mock.FeeAccumulatorStub{},
+		BlockSizeComputation: &mock.BlockSizeComputationStub{},
+		BalanceComputation:   &mock.BalanceComputationStub{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.1
 			},
 		},
-		TxTypeHandler:                    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
 	assert.Nil(t, err)
