@@ -28,6 +28,7 @@ import (
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -289,6 +290,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 			MaxOpenFiles:      10,
 		},
 		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
 	)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)

@@ -405,7 +405,7 @@ func getDefaultStateComponents() *testscommon.StateComponentsMock {
 		Accounts:        &testscommon.AccountsStub{},
 		AccountsAPI:     &testscommon.AccountsStub{},
 		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+		StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 	}
 }
 

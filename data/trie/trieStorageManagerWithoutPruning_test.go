@@ -27,7 +27,7 @@ func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldNotPanic(t *testing.
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.TakeSnapshot([]byte{})
+	ts.TakeSnapshot([]byte{}, true)
 }
 
 func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldNotPanic(t *testing.T) {

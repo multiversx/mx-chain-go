@@ -2801,7 +2801,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 		PeersAcc:        &testscommon.AccountsStub{},
 		Accounts:        &testscommon.AccountsStub{},
 		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+		StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 	}
 }
 
@@ -2830,7 +2830,7 @@ func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

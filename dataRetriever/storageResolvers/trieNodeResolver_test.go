@@ -21,7 +21,7 @@ func createMockTrieResolverArguments() ArgTrieResolver {
 		ResponseTopicName:        "",
 		Marshalizer:              &mock.MarshalizerStub{},
 		TrieDataGetter:           &testscommon.TrieStub{},
-		TrieStorageManager:       &mock.TrieStorageManagerStub{},
+		TrieStorageManager:       &testscommon.StorageManagerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess, 1),
 		DelayBeforeGracefulClose: 0,

@@ -259,10 +259,11 @@ type StateTriesConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen   uint32
-	SnapshotsBufferLen uint32
-	MaxSnapshots       uint32
-	KeepSnapshots      bool
+	PruningBufferLen              uint32
+	SnapshotsBufferLen            uint32
+	MaxSnapshots                  uint32
+	KeepSnapshots                 bool
+	CheckpointHashesHolderMaxSize uint64
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

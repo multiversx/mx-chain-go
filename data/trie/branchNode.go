@@ -286,10 +286,20 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
-func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	hash, err := getNodeHash(bn)
+	if err != nil {
+		return err
+	}
+
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
 	}
 
 	for i := range bn.children {
@@ -302,12 +312,13 @@ func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb dat
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes)
 		if err != nil {
 			return err
 		}
 	}
 
+	checkpointHashes.Remove(hash)
 	return bn.saveToStorage(targetDb)
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +34,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (data.Trie, *state.Ac
 			Type: "MemoryDB",
 		},
 		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
 	)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
@@ -54,7 +56,7 @@ func TestAccountsDB_PruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	trieStorage := tr.GetStorageManager()
-	trieStorage.TakeSnapshot(rootHash)
+	trieStorage.TakeSnapshot(rootHash, true)
 	time.Sleep(trieDbOperationDelay)
 	spm.PruneTrie(rootHash, data.NewRoot, trieStorage)
 	time.Sleep(trieDbOperationDelay)

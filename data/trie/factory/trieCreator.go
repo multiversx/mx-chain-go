@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -92,12 +93,14 @@ func (tc *trieCreator) Create(
 		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
+	hashesHolder := checkpointHashesHolder.NewCheckpointHashesHolder(tc.trieStorageManagerConfig.CheckpointHashesHolderMaxSize)
 	trieStorage, err := trie.NewTrieStorageManager(
 		accountsTrieStorage,
 		tc.marshalizer,
 		tc.hasher,
 		snapshotDbCfg,
 		tc.trieStorageManagerConfig,
+		hashesHolder,
 	)
 	if err != nil {
 		return nil, nil, err

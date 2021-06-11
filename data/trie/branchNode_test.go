@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -63,7 +64,14 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		MaxSnapshots:       2,
 	}
 
-	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, generalCfg)
+	trieStorage, _ := NewTrieStorageManager(
+		db,
+		marsh,
+		hsh,
+		cfg,
+		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
+	)
 	tr := &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
 		marshalizer:          marsh,
@@ -183,8 +191,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshalizerAndHasher()
-	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{})
-	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{})
+	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{}, checkpointHashesHolder.NewCheckpointHashesHolder(10))
+	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{}, checkpointHashesHolder.NewCheckpointHashesHolder(10))
 	maxTrieLevelInMemory := uint(5)
 
 	tr1, _ := NewTrie(trieStorage1, marsh, hsh, maxTrieLevelInMemory)

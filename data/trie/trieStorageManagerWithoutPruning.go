@@ -20,7 +20,7 @@ func NewTrieStorageManagerWithoutPruning(db data.DBWriteCacher) (*trieStorageMan
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool) {
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
@@ -38,4 +38,14 @@ func (tsm *trieStorageManagerWithoutPruning) Close() error {
 // IsPruningEnabled returns false if the trie pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 	return false
+}
+
+// AddDirtyCheckpointHashes does nothing for this implementation
+func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, _ data.ModifiedHashes) bool {
+	return false
+}
+
+// Remove does nothing for this implementation
+func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte) error {
+	return nil
 }

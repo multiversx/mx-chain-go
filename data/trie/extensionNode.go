@@ -198,7 +198,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	return nil
 }
 
-func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -209,11 +209,22 @@ func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb 
 		return err
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb)
+	hash, err := getNodeHash(en)
 	if err != nil {
 		return err
 	}
 
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
+	}
+
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes)
+	if err != nil {
+		return err
+	}
+
+	checkpointHashes.Remove(hash)
 	return en.saveToStorage(targetDb)
 }
 

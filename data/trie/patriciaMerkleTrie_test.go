@@ -15,10 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +53,14 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		MaxSnapshots:       2,
 	}
 
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(
+		db,
+		marshalizer,
+		hasher,
+		cfg,
+		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
+	)
 	maxTrieLevelInMemory := uint(5)
 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
@@ -423,7 +432,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	storageManager := tr.GetStorageManager()
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true)
 	time.Sleep(time.Second)
 
 	err := storageManager.Database().Remove(rootHash)
@@ -478,7 +487,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	storageManager := tr.GetStorageManager()
 
 	rootHash, _ := tr.RootHash()
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true)
 	time.Sleep(time.Second)
 
 	err := storageManager.Database().Remove(rootHash)
@@ -505,7 +514,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *t
 	getDbCalled := false
 	getSnapshotCalled := false
 
-	trieStorageManager := &mock.StorageManagerStub{
+	trieStorageManager := &testscommon.StorageManagerStub{
 		GetDbThatContainsHashCalled: func(bytes []byte) data.DBWriteCacher {
 			getDbCalled = true
 			return nil

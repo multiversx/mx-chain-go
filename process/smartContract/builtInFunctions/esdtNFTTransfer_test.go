@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -74,7 +75,14 @@ func createTrieStorageManager(store storage.Storer, marshalizer marshal.Marshali
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorageManager, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(
+		store,
+		marshalizer,
+		hasher,
+		cfg,
+		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
+	)
 
 	return trieStorageManager
 }

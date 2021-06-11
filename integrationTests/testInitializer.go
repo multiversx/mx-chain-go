@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -353,7 +354,14 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       3,
 	}
-	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(
+		store,
+		TestMarshalizer,
+		TestHasher,
+		cfg,
+		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
+	)
 
 	return trieStorageManager, store
 }
@@ -931,7 +939,14 @@ func CreateNewDefaultTrie() data.Trie {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, generalCfg)
+	trieStorage, _ := trie.NewTrieStorageManager(
+		CreateMemUnit(),
+		TestMarshalizer,
+		TestHasher,
+		config.DBConfig{},
+		generalCfg,
+		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
+	)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 	return tr

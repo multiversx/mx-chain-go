@@ -124,23 +124,31 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ data.DBWriteCacher, targetDb d
 	ln.dirty = false
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
-func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
 	}
 
-	//TODO add early return if should not commit to checkpoint db and set commited flag to true
+	hash, err := getNodeHash(ln)
+	if err != nil {
+		return err
+	}
 
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
+	}
+
+	checkpointHashes.Remove(hash)
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
+
 func (ln *leafNode) commitSnapshot(_ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
-
-	//TODO set commited flag to true
 
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
