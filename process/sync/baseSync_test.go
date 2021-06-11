@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -123,7 +124,7 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(2), orderedMiniBlocks[2].SenderShardID)
 }
 
-func TestBaseBootstrap_shouldSync(t *testing.T) {
+func TestBaseBootstrap_GetNodeState(t *testing.T) {
 	t.Parallel()
 
 	boot := &baseBootstrap{
@@ -131,14 +132,14 @@ func TestBaseBootstrap_shouldSync(t *testing.T) {
 		isNodeStateCalculated: true,
 		rounder:               &mock.RounderMock{},
 	}
-	assert.True(t, boot.shouldSync())
+	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
 		rounder:               &mock.RounderMock{},
 	}
-	assert.True(t, boot.shouldSync())
+	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		roundIndex:            1,
@@ -146,5 +147,5 @@ func TestBaseBootstrap_shouldSync(t *testing.T) {
 		isNodeStateCalculated: true,
 		rounder:               &mock.RounderMock{},
 	}
-	assert.False(t, boot.shouldSync())
+	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
 }

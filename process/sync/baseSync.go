@@ -536,7 +536,8 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
-	if !boot.shouldSync() {
+	nodeState := boot.GetNodeState()
+	if nodeState != core.NsNotSynchronized {
 		return nil
 	}
 
@@ -630,15 +631,6 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 
 	return nil
-}
-
-func (boot *baseBootstrap) shouldSync() bool {
-	if boot.isInImportMode {
-		return true
-	}
-
-	nodeState := boot.GetNodeState()
-	return nodeState == core.NsNotSynchronized
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -1007,6 +999,10 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
 func (boot *baseBootstrap) GetNodeState() core.NodeState {
+	if boot.isInImportMode {
+		return core.NsNotSynchronized
+	}
+
 	boot.mutNodeState.RLock()
 	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated
 	isNodeSynchronized := boot.isNodeSynchronized
