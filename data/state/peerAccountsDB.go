@@ -21,6 +21,7 @@ func NewPeerAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
+	storagePruningManager StoragePruningManager,
 ) (*PeerAccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -33,6 +34,9 @@ func NewPeerAccountsDB(
 	}
 	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
+	}
+	if check.IfNil(storagePruningManager) {
+		return nil, ErrNilStoragePruningManager
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
@@ -49,6 +53,7 @@ func NewPeerAccountsDB(
 			loadCodeMeasurements: &loadingMeasurements{
 				identifier: "load code",
 			},
+			storagePruningManager: storagePruningManager,
 		},
 	}, nil
 }

@@ -187,6 +187,11 @@ func (as *AccountsStub) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// Close -
+func (as *AccountsStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (as *AccountsStub) IsInterfaceNil() bool {
 	return as == nil

@@ -560,7 +560,7 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("log"), []byte("wood"))
 	_ = tr.Commit()
@@ -575,7 +575,7 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 	t.Parallel()
 
-	tr, _, _ := newEmptyTrie()
+	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()

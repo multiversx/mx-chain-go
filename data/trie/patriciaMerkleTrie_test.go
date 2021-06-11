@@ -3,7 +3,6 @@ package trie_test
 import (
 	"context"
 	cryptoRand "crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -52,8 +51,7 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		MaxSnapshots:       2,
 	}
 
-	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, generalCfg)
 	maxTrieLevelInMemory := uint(5)
 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
@@ -389,49 +387,6 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
-	_ = tr.Commit()
-
-	storageManager := tr.GetStorageManager()
-	storageManager.CancelPrune(rootHash, data.OldRoot)
-	storageManager.Prune(rootHash, data.OldRoot)
-
-	newTr, err := tr.Recreate(rootHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, newTr)
-}
-
-func TestPatriciaMerkleTrie_Prune(t *testing.T) {
-	t.Parallel()
-
-	tr, _ := trie.NewTrie(getDefaultTrieParameters())
-
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	_ = tr.Update([]byte("dog"), []byte("value of dog"))
-	_ = tr.Commit()
-
-	tr.GetStorageManager().CancelPrune(rootHash, data.NewRoot)
-	tr.GetStorageManager().Prune(rootHash, data.OldRoot)
-	time.Sleep(time.Second)
-
-	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
-	val, err := tr.GetStorageManager().Database().Get(rootHash)
-	assert.Nil(t, val)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 	t.Parallel()
 
@@ -467,13 +422,12 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	dirtyHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(dirtyHashes)
 	storageManager := tr.GetStorageManager()
-
 	storageManager.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
-	storageManager.Prune(rootHash, data.NewRoot)
+
+	err := storageManager.Database().Remove(rootHash)
+	assert.Nil(t, err)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
@@ -510,7 +464,7 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	_ = tr.Update(key1, nil)
 	_ = tr.Update(key1, val1)
 
-	oldHashes := tr.ResetOldHashes()
+	oldHashes := tr.GetObsoleteHashes()
 	newHashes, _ := tr.GetDirtyHashes()
 
 	assert.Equal(t, len(oldHashes), len(newHashes))
@@ -520,8 +474,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	t.Parallel()
 
 	tr := initTrie()
-	newHashes, _ := tr.GetDirtyHashes()
-	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 	storageManager := tr.GetStorageManager()
 
@@ -529,7 +481,8 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	storageManager.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 
-	storageManager.Prune(rootHash, data.NewRoot)
+	err := storageManager.Database().Remove(rootHash)
+	assert.Nil(t, err)
 
 	val, err := storageManager.Database().Get(rootHash)
 	assert.NotNil(t, err)

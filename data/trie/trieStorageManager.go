@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -22,28 +20,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-type pruningOperation byte
-
-const (
-	cancelPrune pruningOperation = 0
-	prune       pruningOperation = 1
-)
-
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	db data.DBWriteCacher
 
-	snapshots          []data.SnapshotDbHandler
-	snapshotId         int
-	snapshotDbCfg      config.DBConfig
-	snapshotReq        chan *snapshotsQueueEntry
-	pruningBuffer      atomicBuffer
+	snapshots     []data.SnapshotDbHandler
+	snapshotId    int
+	snapshotDbCfg config.DBConfig
+	snapshotReq   chan *snapshotsQueueEntry
+
 	pruningBlockingOps uint32
 	maxSnapshots       uint32
 	keepSnapshots      bool
 	cancelFunc         context.CancelFunc
 
-	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
 }
 
@@ -58,7 +48,6 @@ func NewTrieStorageManager(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	snapshotDbCfg config.DBConfig,
-	ewl data.DBRemoveCacher,
 	generalConfig config.TrieStorageManagerConfig,
 ) (*trieStorageManager, error) {
 	if check.IfNil(db) {
@@ -70,9 +59,6 @@ func NewTrieStorageManager(
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(ewl) {
-		return nil, ErrNilEvictionWaitingList
-	}
 
 	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(snapshotDbCfg)
 	if err != nil {
@@ -82,17 +68,15 @@ func NewTrieStorageManager(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		db:                    db,
-		snapshots:             snapshots,
-		snapshotId:            snapshotId,
-		snapshotDbCfg:         snapshotDbCfg,
-		pruningBuffer:         newPruningBuffer(generalConfig.PruningBufferLen),
-		dbEvictionWaitingList: ewl,
-		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
-		pruningBlockingOps:    0,
-		maxSnapshots:          generalConfig.MaxSnapshots,
-		keepSnapshots:         generalConfig.KeepSnapshots,
-		cancelFunc:            cancelFunc,
+		db:                 db,
+		snapshots:          snapshots,
+		snapshotId:         snapshotId,
+		snapshotDbCfg:      snapshotDbCfg,
+		snapshotReq:        make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
+		pruningBlockingOps: 0,
+		maxSnapshots:       generalConfig.MaxSnapshots,
+		keepSnapshots:      generalConfig.KeepSnapshots,
+		cancelFunc:         cancelFunc,
 	}
 
 	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
@@ -214,136 +198,6 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 	tsm.pruningBlockingOps--
 
 	log.Trace("exit pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
-}
-
-// Prune removes the given hash from db
-func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	rootHash = append(rootHash, byte(identifier))
-
-	if tsm.pruningBlockingOps > 0 {
-		if identifier == data.NewRoot {
-			tsm.cancelPrune(rootHash)
-			return
-		}
-
-		rootHash = append(rootHash, byte(prune))
-		tsm.pruningBuffer.add(rootHash)
-
-		return
-	}
-
-	oldHashes := tsm.pruningBuffer.removeAll()
-	tsm.resolveBufferedHashes(oldHashes)
-	tsm.prune(rootHash)
-}
-
-func (tsm *trieStorageManager) resolveBufferedHashes(oldHashes [][]byte) {
-	for _, rootHash := range oldHashes {
-		lastBytePos := len(rootHash) - 1
-		if lastBytePos < 0 {
-			continue
-		}
-
-		pruneOperation := pruningOperation(rootHash[lastBytePos])
-		rootHash = rootHash[:lastBytePos]
-
-		switch pruneOperation {
-		case prune:
-			tsm.prune(rootHash)
-		case cancelPrune:
-			tsm.cancelPrune(rootHash)
-		default:
-			log.Error("invalid pruning operation", "operation id", pruneOperation)
-		}
-	}
-}
-
-func (tsm *trieStorageManager) prune(rootHash []byte) {
-	log.Trace("trie storage manager prune", "root", rootHash)
-
-	err := tsm.removeFromDb(rootHash)
-	if err != nil {
-		log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
-	}
-}
-
-// CancelPrune removes the given hash from the eviction waiting list
-func (tsm *trieStorageManager) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	rootHash = append(rootHash, byte(identifier))
-
-	if tsm.pruningBlockingOps > 0 || tsm.pruningBuffer.len() != 0 {
-		rootHash = append(rootHash, byte(cancelPrune))
-		tsm.pruningBuffer.add(rootHash)
-
-		return
-	}
-
-	tsm.cancelPrune(rootHash)
-}
-
-func (tsm *trieStorageManager) cancelPrune(rootHash []byte) {
-	log.Trace("trie storage manager cancel prune", "root", rootHash)
-	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
-}
-
-func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
-	hashes, err := tsm.dbEvictionWaitingList.Evict(rootHash)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("trie removeFromDb", "rootHash", rootHash)
-
-	lastBytePos := len(rootHash) - 1
-	if lastBytePos < 0 {
-		return ErrInvalidIdentifier
-	}
-	identifier := data.TriePruningIdentifier(rootHash[lastBytePos])
-
-	sw := core.NewStopWatch()
-	sw.Start("removeFromDb")
-	defer func() {
-		sw.Stop("removeFromDb")
-		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
-	}()
-
-	var hash []byte
-	var shouldKeepHash bool
-	for key := range hashes {
-		shouldKeepHash, err = tsm.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
-		if err != nil {
-			return err
-		}
-		if shouldKeepHash {
-			continue
-		}
-
-		hash, err = hex.DecodeString(key)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("remove hash from trie db", "hash", hex.EncodeToString(hash))
-		err = tsm.db.Remove(hash)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// MarkForEviction adds the given hashes in the eviction waiting list at the provided key
-func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes data.ModifiedHashes) error {
-	log.Trace("trie storage manager: mark for eviction", "root", root)
-
-	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }
 
 // GetSnapshotThatContainsHash returns the snapshot that contains the given hash
@@ -469,7 +323,7 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 	}
 
 	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
-		if tsm.keepSnapshots  {
+		if tsm.keepSnapshots {
 			tsm.disconnectSnapshot()
 		} else {
 			tsm.removeSnapshot()
@@ -595,6 +449,14 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 	return true
 }
 
+// IsPruningBlocked returns true if there is any pruningBlockingOperation in progress
+func (tsm *trieStorageManager) IsPruningBlocked() bool {
+	tsm.storageOperationMutex.RLock()
+	defer tsm.storageOperationMutex.RUnlock()
+
+	return tsm.pruningBlockingOps != 0
+}
+
 // GetSnapshotDbBatchDelay returns the batch write delay in seconds
 func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 	return tsm.snapshotDbCfg.BatchDelaySeconds
@@ -607,19 +469,14 @@ func (tsm *trieStorageManager) Close() error {
 
 	tsm.cancelFunc()
 
-	err1 := tsm.db.Close()
-	err2 := tsm.dbEvictionWaitingList.Close()
+	err := tsm.db.Close()
 
 	for _, sdb := range tsm.snapshots {
 		log.LogIfError(sdb.Close())
 	}
 
-	if err1 != nil || err2 != nil {
-		errorStr := ""
-		if err2 != nil {
-			errorStr = err2.Error()
-		}
-		return fmt.Errorf("trieStorageManager close failed: %w , %s", err1, errorStr)
+	if err != nil {
+		return fmt.Errorf("trieStorageManager close failed: %w", err)
 	}
 
 	return nil

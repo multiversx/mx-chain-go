@@ -57,8 +57,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
-		cancel()
 		v.cacher.Clear()
+		cancel()
 	}()
 
 	tss := statistics.NewTrieSyncStatistics()

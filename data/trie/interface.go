@@ -56,12 +56,6 @@ type node interface {
 	IsInterfaceNil() bool
 }
 
-type atomicBuffer interface {
-	add(rootHash []byte)
-	removeAll() [][]byte
-	len() int
-}
-
 type snapshotNode interface {
 	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 	commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error

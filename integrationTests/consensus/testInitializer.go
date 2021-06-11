@@ -21,8 +21,9 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -167,15 +168,25 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
+	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, generalCfg)
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
-			return state.NewUserAccount(address)
+	storagePruning, _ := storagePruningManager.NewStoragePruningManager(
+		ewl,
+		generalCfg.PruningBufferLen,
+	)
+	adb, _ := state.NewAccountsDB(
+		tr,
+		sha256.NewSha256(),
+		marshalizer,
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
+				return state.NewUserAccount(address)
+			},
 		},
-	})
+		storagePruning,
+	)
 	return adb
 }
 

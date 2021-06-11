@@ -869,7 +869,6 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
 		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   e.coreComponentsHolder.Hasher(),

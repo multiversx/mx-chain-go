@@ -57,11 +57,11 @@ func (lm *loadingMeasurements) resetAndPrint() {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
-	mainTrie       data.Trie
-	hasher         hashing.Hasher
-	marshalizer    marshal.Marshalizer
-	accountFactory AccountFactory
-
+	mainTrie               data.Trie
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
+	accountFactory         AccountFactory
+	storagePruningManager  StoragePruningManager
 	obsoleteDataTrieHashes map[string][][]byte
 
 	lastRootHash []byte
@@ -82,6 +82,7 @@ func NewAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
+	storagePruningManager StoragePruningManager,
 ) (*AccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -95,6 +96,9 @@ func NewAccountsDB(
 	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
 	}
+	if check.IfNil(storagePruningManager) {
+		return nil, ErrNilStoragePruningManager
+	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &AccountsDB{
@@ -102,6 +106,7 @@ func NewAccountsDB(
 		hasher:                 hasher,
 		marshalizer:            marshalizer,
 		accountFactory:         accountFactory,
+		storagePruningManager:  storagePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
@@ -736,60 +741,82 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	oldHashes := make([][]byte, 0)
+	oldHashes := make(data.ModifiedHashes)
 	newHashes := make(data.ModifiedHashes)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
-		oldTrieHashes := dataTries[i].ResetOldHashes()
-		newTrieHashes, err := dataTries[i].GetDirtyHashes()
+		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
 		if err != nil {
 			return nil, err
-		}
-
-		err = dataTries[i].Commit()
-		if err != nil {
-			return nil, err
-		}
-
-		oldHashes = append(oldHashes, oldTrieHashes...)
-		for hash := range newTrieHashes {
-			newHashes[hash] = struct{}{}
 		}
 	}
 	adb.dataTries.Reset()
 
-	newTrieHashes, err := adb.mainTrie.GetDirtyHashes()
-	if err != nil {
-		return nil, err
-	}
-	for hash := range newTrieHashes {
-		newHashes[hash] = struct{}{}
-	}
-
-	for _, hashes := range adb.obsoleteDataTrieHashes {
-		oldHashes = append(oldHashes, hashes...)
-	}
+	oldRoot := adb.mainTrie.GetOldRoot()
 
 	//Step 2. commit main trie
-	adb.mainTrie.SetNewHashes(newHashes)
-	adb.mainTrie.AppendToOldHashes(oldHashes)
-	err = adb.mainTrie.Commit()
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
 
-	root, err := adb.mainTrie.RootHash()
+	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
-	adb.lastRootHash = root
+
+	err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	adb.lastRootHash = newRoot
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
-	log.Trace("accountsDB.Commit ended", "root hash", root)
+	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
-	return root, nil
+	return newRoot, nil
+}
+
+func (adb *AccountsDB) markForEviction(
+	oldRoot []byte,
+	newRoot []byte,
+	oldHashes data.ModifiedHashes,
+	newHashes data.ModifiedHashes,
+) error {
+	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		return nil
+	}
+
+	for _, hashes := range adb.obsoleteDataTrieHashes {
+		for _, hash := range hashes {
+			oldHashes[string(hash)] = struct{}{}
+		}
+	}
+
+	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
+}
+
+func (adb *AccountsDB) commitTrie(tr data.Trie, oldHashes data.ModifiedHashes, newHashes data.ModifiedHashes) error {
+	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		oldTrieHashes := tr.GetObsoleteHashes()
+		newTrieHashes, err := tr.GetDirtyHashes()
+		if err != nil {
+			return err
+		}
+
+		for _, hash := range oldTrieHashes {
+			oldHashes[string(hash)] = struct{}{}
+		}
+
+		for hash := range newTrieHashes {
+			newHashes[hash] = struct{}{}
+		}
+	}
+
+	return tr.Commit()
 }
 
 // RootHash returns the main trie's root hash
@@ -902,7 +929,7 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIde
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.mainTrie.GetStorageManager().Prune(rootHash, identifier)
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
 // CancelPrune clears the trie's evictionWaitingList
@@ -912,7 +939,7 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.mainTrie.GetStorageManager().CancelPrune(rootHash, identifier)
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -1011,6 +1038,14 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte, ctx context.Context) (chan 
 // GetNumCheckpoints returns the total number of state checkpoints
 func (adb *AccountsDB) GetNumCheckpoints() uint32 {
 	return atomic.LoadUint32(&adb.numCheckpoints)
+}
+
+// Close will handle the closing of the underlying components
+func (adb *AccountsDB) Close() error {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	return adb.storagePruningManager.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

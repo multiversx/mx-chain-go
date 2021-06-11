@@ -114,6 +114,11 @@ func (w *readOnlyAccountsDB) GetTrie(_ []byte) (data.Trie, error) {
 	return nil, nil
 }
 
+// Close will handle the closing of the underlying components
+func (w *readOnlyAccountsDB) Close() error {
+	return w.originalAccounts.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (w *readOnlyAccountsDB) IsInterfaceNil() bool {
 	return w == nil

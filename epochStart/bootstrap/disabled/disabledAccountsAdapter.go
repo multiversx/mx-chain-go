@@ -112,6 +112,11 @@ func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
 }
 
+// Close -
+func (a *accountsAdapter) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (a *accountsAdapter) IsInterfaceNil() bool {
 	return a == nil

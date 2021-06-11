@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,6 +20,7 @@ func TestNewPeerAccountsDB_WithNilTrieShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -33,6 +35,7 @@ func TestNewPeerAccountsDB_WithNilHasherShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -47,6 +50,7 @@ func TestNewPeerAccountsDB_WithNilMarshalizerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.AccountsFactoryStub{},
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
@@ -61,10 +65,26 @@ func TestNewPeerAccountsDB_WithNilAddressFactoryShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.True(t, check.IfNil(adb))
 	assert.Equal(t, state.ErrNilAccountFactory, err)
+}
+
+func TestNewPeerAccountsDB_WithNilStoragePruningManagerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb, err := state.NewPeerAccountsDB(
+		&testscommon.TrieStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+		nil,
+	)
+
+	assert.True(t, check.IfNil(adb))
+	assert.Equal(t, state.ErrNilStoragePruningManager, err)
 }
 
 func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
@@ -83,6 +103,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},
+		disabled.NewDisabledStoragePruningManager(),
 	)
 
 	assert.Nil(t, err)
