@@ -1,11 +1,15 @@
-package transactionLog
+package testscommon
 
 import (
 	"encoding/hex"
+	"strings"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
+
+var log = logger.GetOrCreate("testscommon/transactionLog")
 
 type printTxLogProcessor struct {
 }
@@ -41,7 +45,7 @@ func (tlp *printTxLogProcessor) SaveLog(txHash []byte, _ data.TransactionHandler
 
 	log.Info("printTxLogProcessor.SaveLog", "transaction hash", hex.EncodeToString(txHash))
 	for _, entry := range logEntries {
-		log.Info("entry",
+		log.Debug("entry",
 			"identifier", string(entry.Identifier),
 			"address", entry.Address,
 			"topics", prepareTopics(entry.Topics))
@@ -52,7 +56,7 @@ func (tlp *printTxLogProcessor) SaveLog(txHash []byte, _ data.TransactionHandler
 func prepareTopics(topics [][]byte) string {
 	all := ""
 	for _, topic := range topics {
-		all += string(topic) + " "
+		all = strings.Join([]string{all, string(topic)}, " ")
 	}
 
 	return all

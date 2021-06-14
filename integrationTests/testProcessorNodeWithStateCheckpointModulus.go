@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
@@ -74,7 +73,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: testscommon.NewPrintTxLogProcessor(),
 	}
 	tpn.NodesSetup = nodesSetup
 
