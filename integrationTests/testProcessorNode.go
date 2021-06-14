@@ -79,6 +79,7 @@ import (
 	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -399,7 +400,7 @@ func newBaseTestProcessorNode(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: testscommon.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -581,7 +582,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
-		TransactionLogProcessor: testscommon.NewPrintTxLogProcessor(),
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

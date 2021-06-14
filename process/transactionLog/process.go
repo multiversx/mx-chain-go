@@ -26,11 +26,10 @@ type ArgTxLogProcessor struct {
 }
 
 type txLogProcessor struct {
-	storeLogsInCache bool
-	logs             map[string]*transaction.Log
-	mut              sync.RWMutex
-	storer           storage.Storer
-	marshalizer      marshal.Marshalizer
+	logs        map[string]data.LogHandler
+	mut         sync.RWMutex
+	storer      storage.Storer
+	marshalizer marshal.Marshalizer
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
@@ -44,11 +43,10 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	}
 
 	return &txLogProcessor{
-		storer:           args.Storer,
-		marshalizer:      args.Marshalizer,
-		logs:             make(map[string]*transaction.Log),
-		storeLogsInCache: false,
-		mut:              sync.RWMutex{},
+		storer:      args.Storer,
+		marshalizer: args.Marshalizer,
+		logs:        make(map[string]data.LogHandler),
+		mut:         sync.RWMutex{},
 	}, nil
 }
 
@@ -86,17 +84,27 @@ func (tlp *txLogProcessor) GetLogFromCache(txHash []byte) (data.LogHandler, bool
 	return txLog, true
 }
 
+// GetAllCurrentLogs will return all generated logs for the current block
+func (tlp *txLogProcessor) GetAllCurrentLogs() map[string]data.LogHandler {
+	logsMap := make(map[string]data.LogHandler)
+
+	tlp.mut.RLock()
+	for key, value := range tlp.logs {
+		logsMap[key] = value
+	}
+	tlp.mut.RUnlock()
+
+	return logsMap
+}
+
 // EnableLogToBeSavedInCache will set a flag with true and txLogProcessor will start saving transactions logs also in RAM
 func (tlp *txLogProcessor) EnableLogToBeSavedInCache() {
-	tlp.mut.Lock()
-	tlp.storeLogsInCache = true
-	tlp.mut.Unlock()
 }
 
 // Clean will remove all transaction logs from RAM memory
 func (tlp *txLogProcessor) Clean() {
 	tlp.mut.Lock()
-	tlp.logs = make(map[string]*transaction.Log)
+	tlp.logs = make(map[string]data.LogHandler)
 	tlp.mut.Unlock()
 }
 
@@ -143,11 +151,10 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {
-	if tlp.storeLogsInCache {
-		tlp.mut.Lock()
-		tlp.logs[string(txHash)] = log
-		tlp.mut.Unlock()
-	}
+	tlp.mut.Lock()
+	tlp.logs[string(txHash)] = log
+	tlp.mut.Unlock()
+
 }
 
 // For SC deployment transactions, we use the sender address

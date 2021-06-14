@@ -29,3 +29,8 @@ func (tlpm *TxLogProcessorMock) Clean() {
 func (tlpm *TxLogProcessorMock) IsInterfaceNil() bool {
 	return tlpm == nil
 }
+
+// GetAllCurrentLogs -
+func (tlpm *TxLogProcessorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
+}

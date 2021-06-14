@@ -1,15 +1,12 @@
-package testscommon
+package transactionLog
 
 import (
 	"encoding/hex"
 	"strings"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
-
-var log = logger.GetOrCreate("testscommon/transactionLog")
 
 type printTxLogProcessor struct {
 }
@@ -35,6 +32,11 @@ func (tlp *printTxLogProcessor) EnableLogToBeSavedInCache() {
 
 // Clean -
 func (tlp *printTxLogProcessor) Clean() {
+}
+
+// GetAllCurrentLogs -
+func (tlp *printTxLogProcessor) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
 }
 
 // SaveLog -

@@ -37,3 +37,8 @@ func (txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandl
 func (txls *TxLogsProcessorStub) IsInterfaceNil() bool {
 	return txls == nil
 }
+
+// GetAllCurrentLogs -
+func (txls *TxLogsProcessorStub) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
+}

@@ -849,6 +849,11 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 	return txPool
 }
 
+// GetAllCurrentLogs return the cached logs data from current round
+func (tc *transactionCoordinator) GetAllCurrentLogs() map[string]data.LogHandler {
+	return tc.transactionsLogProcessor.GetAllCurrentLogs()
+}
+
 // RequestMiniBlocks request miniblocks if missing
 func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 	if check.IfNil(header) {

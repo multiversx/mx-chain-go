@@ -568,6 +568,7 @@ func (mp *metaProcessor) indexBlock(
 		Txs:     mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		Scrs:    mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
 		Rewards: rewardsTxs,
+		Logs:    mp.txCoordinator.GetAllCurrentLogs(),
 	}
 
 	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
