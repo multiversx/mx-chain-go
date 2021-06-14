@@ -193,7 +193,6 @@ func (trs *topicResolverSender) sendOnTopic(
 		return 0
 	}
 
-	// TODO: remove this map before merging or move to level TRACE
 	histogramMap := make(map[string]int)
 
 	indexes := createIndexList(len(peerList))
@@ -221,8 +220,7 @@ func (trs *topicResolverSender) sendOnTopic(
 		}
 	}
 	log.Trace("requests are sent to", logData...)
-
-	log.Debug("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
+	log.Trace("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
 
 	return msgSentCounter
 }
@@ -230,7 +228,7 @@ func (trs *topicResolverSender) sendOnTopic(
 func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
 	if index == preferredPeerIndex {
 		histogramMap["preferred"]++
-		log.Debug("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
+		log.Trace("sending request to preferred peer", "peer", preferredPeer.Pretty(), "topic", topic, "peer type", peerType)
 
 		return preferredPeer
 	}

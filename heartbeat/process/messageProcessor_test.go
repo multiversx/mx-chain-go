@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
@@ -259,6 +260,59 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	assert.NotNil(t, ret)
 	assert.True(t, updatePeerInfoWasCalled)
 	assert.True(t, updatePidSubTypeCalled)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageInvalidPeerSignatureShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hb := data.Heartbeat{
+		Payload:         []byte("Payload"),
+		Pubkey:          []byte("PubKey"),
+		Signature:       []byte("signed"),
+		ShardID:         0,
+		VersionNumber:   "VersionNumber",
+		NodeDisplayName: "NodeDisplayName",
+	}
+
+	marshalizer := &mock.MarshalizerStub{}
+
+	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
+		(obj.(*data.Heartbeat)).Pubkey = hb.Pubkey
+		(obj.(*data.Heartbeat)).Payload = hb.Payload
+		(obj.(*data.Heartbeat)).Signature = hb.Signature
+		(obj.(*data.Heartbeat)).ShardID = hb.ShardID
+		(obj.(*data.Heartbeat)).VersionNumber = hb.VersionNumber
+		(obj.(*data.Heartbeat)).NodeDisplayName = hb.NodeDisplayName
+
+		return nil
+	}
+
+	expErr := errors.New("invalid signature")
+
+	mon, err := process.NewMessageProcessor(
+		&mock.PeerSignatureHandler{Signer: &mock.SinglesignStub{
+			VerifyCalled: func(_ crypto.PublicKey, _ []byte, _ []byte) error {
+				return expErr
+			},
+		}},
+		marshalizer,
+		&p2pmocks.NetworkShardingCollectorStub{},
+	)
+	assert.Nil(t, err)
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      make([]byte, 5),
+		SeqNoField:     nil,
+		TopicField:     "",
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
+	assert.Equal(t, expErr, err)
+	assert.Nil(t, ret)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
