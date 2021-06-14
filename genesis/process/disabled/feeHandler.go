@@ -21,7 +21,7 @@ func (fh *FeeHandler) DeveloperPercentage() float64 {
 	return 0
 }
 
-// GenesisTotalSupply -
+// GenesisTotalSupply returns 0
 func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
 	return big.NewInt(0)
 }
@@ -36,7 +36,7 @@ func (fh *FeeHandler) MinGasPrice() uint64 {
 	return 0
 }
 
-// MinGasLimit will return min gas limit
+// MinGasLimit returns 0
 func (fh *FeeHandler) MinGasLimit() uint64 {
 	return 0
 }
@@ -88,17 +88,17 @@ func (fh *FeeHandler) ProcessTransactionFee(_ *big.Int, _ *big.Int, _ []byte) {
 func (fh *FeeHandler) RevertFees(_ [][]byte) {
 }
 
-// GetDeveloperFees -
+// GetDeveloperFees returns 0
 func (fh *FeeHandler) GetDeveloperFees() *big.Int {
 	return big.NewInt(0)
 }
 
-// GasPerDataByte -
+// GasPerDataByte returns 0
 func (fh *FeeHandler) GasPerDataByte() uint64 {
 	return 0
 }
 
-// SplitTxGasInCategories -
+// SplitTxGasInCategories returns 0, 0
 func (fh *FeeHandler) SplitTxGasInCategories(_ process.TransactionWithFeeHandler) (uint64, uint64) {
 	return 0, 0
 }
@@ -108,22 +108,22 @@ func (fh *FeeHandler) GasPriceForProcessing(_ process.TransactionWithFeeHandler)
 	return 0
 }
 
-// GasPriceForMove -
+// GasPriceForMove returns 0
 func (fh *FeeHandler) GasPriceForMove(_ process.TransactionWithFeeHandler) uint64 {
 	return 0
 }
 
-// MinGasPriceForProcessing -
+// MinGasPriceForProcessing returns 0
 func (fh *FeeHandler) MinGasPriceForProcessing() uint64 {
 	return 0
 }
 
-// ComputeGasUsedAndFeeBasedOnRefundValue -
+// ComputeGasUsedAndFeeBasedOnRefundValue returns 0, 0
 func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValue(_ process.TransactionWithFeeHandler, _ *big.Int) (uint64, *big.Int) {
 	return 0, big.NewInt(0)
 }
 
-// ComputeTxFeeBasedOnGasUsed -
+// ComputeTxFeeBasedOnGasUsed returns 0
 func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ process.TransactionWithFeeHandler, _ uint64) *big.Int {
 	return big.NewInt(0)
 }

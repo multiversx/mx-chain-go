@@ -196,12 +196,12 @@ func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) 
 	}
 
 	if check.IfNil(accountHandler) {
-		return maxGasLimitPerBlock, nil
+		return 0, process.ErrInsufficientFee
 	}
 
 	accountSender, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
-		return maxGasLimitPerBlock, nil
+		return 0, process.ErrInsufficientFee
 	}
 
 	accountSenderBalance := accountSender.GetBalance()
