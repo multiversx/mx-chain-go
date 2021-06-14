@@ -31,7 +31,6 @@ func (tlp *printTxLogProcessor) EnableLogToBeSavedInCache() {
 
 // Clean -
 func (tlp *printTxLogProcessor) Clean() {
-	return
 }
 
 // SaveLog -
