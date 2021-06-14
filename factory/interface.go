@@ -249,6 +249,7 @@ type ProcessComponentsHolder interface {
 	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
+	ArwenChangeLocker() process.Locker
 	IsInterfaceNil() bool
 }
 

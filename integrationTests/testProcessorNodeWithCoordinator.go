@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -205,6 +206,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

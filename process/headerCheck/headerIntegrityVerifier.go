@@ -99,7 +99,6 @@ func (hdrIntVer *headerIntegrityVerifier) GetVersion(epoch uint32) string {
 	return ver
 }
 
-// GetVersion returns the version by providing the epoch
 func (hdrIntVer *headerIntegrityVerifier) getMatchingVersion(epoch uint32) string {
 	storedVersion, ok := hdrIntVer.getFromCache(epoch)
 	if ok {

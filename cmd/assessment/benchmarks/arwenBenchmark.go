@@ -6,7 +6,7 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenVM"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenvm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 )
 
@@ -47,7 +47,7 @@ func (ab *arwenBenchmark) Run() (time.Duration, error) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, ab.scFilename)
 	}
 
-	result, err := arwenVM.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap())
+	result, err := arwenvm.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap())
 	if err != nil {
 		return 0, err
 	}

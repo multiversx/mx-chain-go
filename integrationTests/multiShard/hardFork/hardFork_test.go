@@ -414,18 +414,22 @@ func hardForkImport(
 		dataComponents.BlockChain = node.BlockChain
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:          0,
-			StartEpochNum:        100,
-			Core:                 coreComponents,
-			Data:                 dataComponents,
-			Accounts:             node.AccntState,
-			InitialNodesSetup:    node.NodesSetup,
-			Economics:            node.EconomicsData,
-			ShardCoordinator:     node.ShardCoordinator,
-			ValidatorAccounts:    node.PeerState,
-			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig: config.VirtualMachineConfig{},
+			GenesisTime:       0,
+			StartEpochNum:     100,
+			Core:              coreComponents,
+			Data:              dataComponents,
+			Accounts:          node.AccntState,
+			InitialNodesSetup: node.NodesSetup,
+			Economics:         node.EconomicsData,
+			ShardCoordinator:  node.ShardCoordinator,
+			ValidatorAccounts: node.PeerState,
+			GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,
