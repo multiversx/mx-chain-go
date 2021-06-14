@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -364,6 +365,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:                      txcache.NewDisabledCache(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -441,12 +443,14 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		virtualMachineFactory.BlockChainHookImpl(),
-		arg.Data.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    virtualMachineFactory.BlockChainHookImpl(),
+		BlockChain:        arg.Data.Blockchain(),
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}

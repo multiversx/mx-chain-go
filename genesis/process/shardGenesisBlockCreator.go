@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -261,6 +262,9 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 }
 
 func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochs config.EnableEpochs) (*genesisProcessors, error) {
+	genesisArwenLocker := &sync.RWMutex{} //use a local instance as to not run in concurrent issues when doing bootstrap
+	epochNotifier := forking.NewGenericEpochNotifier()
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          arg.GasSchedule,
 		MapDNSAddresses:      make(map[string]struct{}),
@@ -296,15 +300,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockGasLimit:                  math.MaxUint64,
 		GasSchedule:                    arg.GasSchedule,
 		ArgBlockChainHook:              argsHook,
+		EpochNotifier:                  epochNotifier,
 		DeployEnableEpoch:              arg.EpochConfig.EnableEpochs.SCDeployEnableEpoch,
 		AheadOfTimeGasUsageEnableEpoch: arg.EpochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 		ArwenV3EnableEpoch:             arg.EpochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-		ArwenESDTFunctionsEnableEpoch:  arg.EpochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
+		ArwenChangeLocker:              genesisArwenLocker,
 	}
 	log.Debug("shardGenesisCreator: enable epoch for sc deploy", "epoch", argsNewVMFactory.DeployEnableEpoch)
 	log.Debug("shardGenesisCreator: enable epoch for ahead of time gas usage", "epoch", argsNewVMFactory.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("shardGenesisCreator: enable epoch for repair callback", "epoch", argsNewVMFactory.ArwenV3EnableEpoch)
-	log.Debug("shardGenesisCreator: enable epoch for ESDT functions", "epoch", argsNewVMFactory.ArwenESDTFunctionsEnableEpoch)
 
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -355,7 +359,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
 	temporaryBlock := &dataBlock.Header{
 		Epoch:     arg.StartEpochNum,
 		TimeStamp: arg.GenesisTime,
@@ -408,6 +411,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		VMOutputCacher:                      txcache.NewDisabledCache(),
+		ArwenChangeLocker:                   genesisArwenLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -504,12 +508,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		vmFactoryImpl.BlockChainHookImpl(),
-		arg.Data.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:        arg.Data.Blockchain(),
+		ArwenChangeLocker: genesisArwenLocker,
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}

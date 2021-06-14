@@ -32,6 +32,8 @@ type BlockChainHookStub struct {
 	NumberOfShardsCalled          func() uint32
 	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
 	CloseCalled                   func() error
+	GetSnapshotCalled             func() int
+	RevertToSnapshotCalled        func(snapshot int) error
 }
 
 // AccountExists -
@@ -238,4 +240,20 @@ func (b *BlockChainHookStub) NumberOfShards() uint32 {
 		return b.NumberOfShardsCalled()
 	}
 	return 1
+}
+
+// GetSnapshot -
+func (b *BlockChainHookStub) GetSnapshot() int {
+	if b.GetSnapshotCalled != nil {
+		return b.GetSnapshotCalled()
+	}
+	return 1
+}
+
+// RevertToSnapshot -
+func (b *BlockChainHookStub) RevertToSnapshot(snapshot int) error {
+	if b.RevertToSnapshotCalled != nil {
+		return b.RevertToSnapshotCalled(snapshot)
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -40,6 +41,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&txsimulator.ArgsTxSimulator{
 			VMOutputCacher: txcache.NewDisabledCache(),
 		},
+		&sync.RWMutex{},
 	)
 
 	require.NoError(t, err)
@@ -142,6 +144,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&txsimulator.ArgsTxSimulator{
 			VMOutputCacher: txcache.NewDisabledCache(),
 		},
+		&sync.RWMutex{},
 	)
 
 	require.NoError(t, err)

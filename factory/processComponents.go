@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	syncGo "sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -97,6 +98,7 @@ type processComponents struct {
 	importHandler               update.ImportHandler
 	nodeRedundancyHandler       consensus.NodeRedundancyHandler
 	currentEpochProvider        dataRetriever.CurrentNetworkEpochProviderHandler
+	arwenChangeLocker           process.Locker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -197,6 +199,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	arwenChangeLocker := &syncGo.RWMutex{}
+
 	currentEpochProvider, err := epochProviders.CreateCurrentEpochProvider(
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
@@ -455,6 +459,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockTracker,
 		pendingMiniBlocksHandler,
 		txSimulatorProcessorArgs,
+		arwenChangeLocker,
 	)
 	if err != nil {
 		return nil, err
@@ -536,6 +541,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		importHandler:               pcf.importHandler,
 		nodeRedundancyHandler:       nodeRedundancyHandler,
 		currentEpochProvider:        currentEpochProvider,
+		arwenChangeLocker:           arwenChangeLocker,
 	}, nil
 }
 
@@ -651,7 +657,6 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
-	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
 	if !ok {

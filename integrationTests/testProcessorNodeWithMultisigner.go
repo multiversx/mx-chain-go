@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -61,6 +62,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -243,6 +245,7 @@ func CreateNodeWithBLSAndTxKeys(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]

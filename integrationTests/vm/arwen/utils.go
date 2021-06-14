@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -79,9 +80,11 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
+	EpochNotifier     process.EpochNotifier
 	UnsignexTxHandler process.TransactionFeeHandler
 	EconomicsFee      process.FeeHandler
 	LastConsumedFee   uint64
+	ArwenChangeLocker process.Locker
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -121,6 +124,8 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context := &TestContext{}
 	context.T = t
 	context.Round = 500
+	context.EpochNotifier = &mock.EpochNotifierStub{}
+	context.ArwenChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
 
@@ -131,7 +136,14 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee, context.BlockchainHook, &mock.BlockChainMock{})
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       context.VMContainer,
+		EconomicsFee:      context.EconomicsFee,
+		BlockChainHook:    context.BlockchainHook,
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
 	require.Nil(t, err)
@@ -189,7 +201,7 @@ func (context *TestContext) initFeeHandlers() {
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
+		EpochNotifier:                  context.EpochNotifier,
 		BuiltInFunctionsCostHandler:    &mock.BuiltInCostHandlerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
@@ -241,8 +253,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
-		OutOfProcessEnabled: false,
-		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		ArwenVersions: []config.ArwenVersionByEpoch{
+			{StartEpoch: 0, Version: "*"},
+		},
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -250,10 +263,11 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		BlockGasLimit:                  maxGasLimit,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		ArgBlockChainHook:              args,
+		EpochNotifier:                  context.EpochNotifier,
 		DeployEnableEpoch:              0,
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
-		ArwenESDTFunctionsEnableEpoch:  0,
+		ArwenChangeLocker:              context.ArwenChangeLocker,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -298,11 +312,12 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
-		VMOutputCacher:   txcache.NewDisabledCache(),
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		EpochNotifier:     forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker: context.ArwenChangeLocker,
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

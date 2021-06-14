@@ -66,6 +66,7 @@ type scProcessor struct {
 	flagReturnDataToLastTransfer        atomic.Flag
 	flagSenderInOutTransfer             atomic.Flag
 	isGenesisProcessing                 bool
+	arwenChangeLocker                   process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -110,6 +111,7 @@ type ArgsNewSmartContractProcessor struct {
 	EpochNotifier                       process.EpochNotifier
 	IsGenesisProcessing                 bool
 	VMOutputCacher                      storage.Cacher
+	ArwenChangeLocker                   process.Locker
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -168,6 +170,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, process.ErrNilLocker
+	}
 	if check.IfNil(args.VMOutputCacher) {
 		return nil, process.ErrNilCacher
 	}
@@ -199,6 +204,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		stakingV2EnableEpoch:                args.StakingV2EnableEpoch,
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
+		arwenChangeLocker:                   args.ArwenChangeLocker,
 		vmOutputCacher:                      args.VMOutputCacher,
 	}
 
@@ -358,11 +364,14 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
+	sc.arwenChangeLocker.RLock()
+
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
+		sc.arwenChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
@@ -370,6 +379,7 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1351,13 +1361,16 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
+	sc.arwenChangeLocker.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		sc.arwenChangeLocker.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
