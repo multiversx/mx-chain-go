@@ -1,4 +1,8 @@
-package arwenVM
+// +build !race
+
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
+package arwenvm
 
 import (
 	"encoding/hex"
@@ -301,11 +305,11 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	}
 
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 
-	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 }
@@ -315,11 +319,11 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 
-	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
 	displayBenchmarksResults(durations)
 }
@@ -365,7 +369,6 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
@@ -405,7 +408,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
@@ -613,7 +615,6 @@ func TestAndCatchTrieError(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)

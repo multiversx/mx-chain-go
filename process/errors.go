@@ -1009,3 +1009,6 @@ var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch
 
 // ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
 var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")
