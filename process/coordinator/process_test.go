@@ -232,6 +232,17 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
+func TestNewTransactionCoordinator_TxLogProcessor(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.TransactionsLogProcessor = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilTxLogsProcessor, err)
+}
+
 func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
