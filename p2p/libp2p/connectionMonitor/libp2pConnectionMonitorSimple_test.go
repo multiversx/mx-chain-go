@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const durationTimeoutWaiting = time.Second * 2
@@ -124,6 +125,48 @@ func TestLibp2pConnectionMonitorSimple_ConnectedWithSharderShouldCallEvictAndClo
 
 	assert.Equal(t, 1, numClosedWasCalled)
 	assert.Equal(t, 1, numComputeWasCalled)
+}
+
+func TestNewLibp2pConnectionMonitorSimple_DisconnectedShouldRemovePeerFromPreferredPeers(t *testing.T) {
+	t.Parallel()
+
+	prefPeerID := "preferred peer 0"
+	chRemoveCalled := make(chan struct{}, 1)
+
+	rs := mock.ReconnecterStub{
+		ReconnectToNetworkCalled: func(ctx context.Context) {
+		},
+	}
+
+	ns := mock.NetworkStub{
+		PeersCall: func() []peer.ID {
+			//only one connection which is under the threshold
+			return []peer.ID{"mock"}
+		},
+	}
+
+	removeCalled := false
+	prefPeersHolder := &p2pmocks.PeersHolderStub{
+		RemoveCalled: func(peerID core.PeerID) {
+			removeCalled = true
+			require.Equal(t, core.PeerID(prefPeerID), peerID)
+			chRemoveCalled <- struct{}{}
+		},
+	}
+
+	lcms, _ := NewLibp2pConnectionMonitorSimple(&rs, 3, &mock.KadSharderStub{}, prefPeersHolder)
+	lcms.Disconnected(&ns, &mock.ConnStub{
+		IDCalled: func() string {
+			return prefPeerID
+		},
+	})
+
+	require.True(t, removeCalled)
+	select {
+	case <-chRemoveCalled:
+	case <-time.After(durationTimeoutWaiting):
+		assert.Fail(t, "timeout waiting to call reconnect")
+	}
 }
 
 func TestLibp2pConnectionMonitorSimple_EmptyFuncsShouldNotPanic(t *testing.T) {
