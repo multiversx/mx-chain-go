@@ -2,21 +2,12 @@ package transactionLog
 
 import (
 	"encoding/hex"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type printTxLogProcessor struct {
-	storeLogsInCache bool
-	logs             map[string]*transaction.Log
-	mut              sync.RWMutex
-	storer           storage.Storer
-	marshalizer      marshal.Marshalizer
 }
 
 // NewPrintTxLogProcessor -
