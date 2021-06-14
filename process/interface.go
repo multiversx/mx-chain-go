@@ -502,6 +502,7 @@ type RequestHandler interface {
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
+	RequestTrieNode(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32)
 	IsInterfaceNil() bool
 }
 

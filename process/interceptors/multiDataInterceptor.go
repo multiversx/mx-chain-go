@@ -127,7 +127,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()
-		return nil
+		return err
 	}
 
 	isIncompleteChunk := checkChunksRes.IsChunk && !checkChunksRes.HaveAllChunks
@@ -225,8 +225,7 @@ func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash
 }
 
 // SetChunkProcessor sets the intercepted chunks processor
-// TODO: use this in epoch bootstrapper, hardfork, interceptor for trie nodes
-// TODO(next PR) add unit tests for this function & L123-L140
+// TODO(next PR): use this in epoch bootstrapper, hardfork, interceptor for trie nodes
 func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.InterceptedChunksProcessor) error {
 	if check.IfNil(processor) {
 		return process.ErrNilChunksProcessor
