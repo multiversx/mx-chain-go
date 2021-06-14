@@ -116,6 +116,18 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	require.Equal(t, process.ErrNoVM, err)
 }
 
+func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VMOutputCacher = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilCacher, err)
+}
+
 func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
 	t.Parallel()
 
