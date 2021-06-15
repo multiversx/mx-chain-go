@@ -1,6 +1,7 @@
 package requestHandlers
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
+const bytesInUint32 = 4
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
 //TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
@@ -174,7 +176,7 @@ func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 ) {
 	err := resolver.RequestDataFromReferenceAndChunk(reference, chunkIndex)
 	if err != nil {
-		log.Debug("requestByHashes.requestHashWithChunkIndex",
+		log.Debug("requestByHashes.requestReferenceWithChunkIndex",
 			"error", err.Error(),
 			"reference", reference,
 			"chunk index", chunkIndex,
@@ -443,20 +445,27 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
 
+func (rrh *resolverRequestHandler) createIdentifier(requestHash []byte, chunkIndex uint32) []byte {
+	chunkBuffer := make([]byte, bytesInUint32)
+	binary.BigEndian.PutUint32(chunkBuffer, chunkIndex)
+
+	return append(requestHash, chunkBuffer...)
+}
+
 // RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
 func (rrh *resolverRequestHandler) RequestTrieNode(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32) {
-	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{requestHash})
+	identifier := rrh.createIdentifier(requestHash, chunkIndex)
+	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier})
 	if len(unrequestedHashes) == 0 {
 		return
 	}
 
-	hash := unrequestedHashes[0]
 	rrh.whiteList.Add(unrequestedHashes)
 
 	log.Trace("requesting trie node from network",
 		"topic", topic,
 		"shard", destShardID,
-		"hash", hash,
+		"hash", requestHash,
 		"chunk index", chunkIndex,
 	)
 
@@ -476,9 +485,9 @@ func (rrh *resolverRequestHandler) RequestTrieNode(destShardID uint32, requestHa
 		return
 	}
 
-	go rrh.requestReferenceWithChunkIndex(hash, chunkIndex, trieResolver)
+	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieResolver)
 
-	rrh.addRequestedItems([][]byte{hash})
+	rrh.addRequestedItems([][]byte{identifier})
 }
 
 func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {

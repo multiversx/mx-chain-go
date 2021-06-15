@@ -39,7 +39,7 @@ func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 	arg.Topic = ""
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrEmptyTopic, err)
 }
 
@@ -50,7 +50,7 @@ func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	arg.Marshalizer = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
@@ -61,7 +61,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 	arg.DataFactory = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilInterceptedDataFactory, err)
 }
 
@@ -72,7 +72,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing
 	arg.Processor = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilInterceptedDataProcessor, err)
 }
 
@@ -83,7 +83,7 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 	arg.Throttler = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilInterceptorThrottler, err)
 }
 
@@ -94,7 +94,7 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 	arg.AntifloodHandler = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
 }
 
@@ -105,7 +105,7 @@ func TestNewMultiDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {
 	arg.WhiteListRequest = nil
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 }
 
@@ -116,7 +116,7 @@ func TestNewMultiDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 	arg.CurrentPeerId = ""
 	mdi, err := interceptors.NewMultiDataInterceptor(arg)
 
-	assert.Nil(t, mdi)
+	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrEmptyPeerID, err)
 }
 
@@ -357,6 +357,141 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.T) {
+	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
+
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	arg := createMockArgMultiDataInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+			assert.Fail(t, "should have not called create intercepted data")
+			return nil, nil
+		},
+	}
+	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
+	arg.Throttler = throttler
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	expectedErr := errors.New("expected error")
+	_ = mdi.SetChunkProcessor(
+		&mock.ChunkProcessorStub{
+			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+				return process.CheckedChunkResult{}, expectedErr
+			},
+		},
+	)
+
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+	}
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+}
+
+func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *testing.T) {
+	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
+
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	arg := createMockArgMultiDataInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+			assert.Fail(t, "should have not called create intercepted data")
+			return nil, nil
+		},
+	}
+	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
+	arg.Throttler = throttler
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	_ = mdi.SetChunkProcessor(
+		&mock.ChunkProcessorStub{
+			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+				return process.CheckedChunkResult{
+					IsChunk:        true,
+					HaveAllChunks:  false,
+					CompleteBuffer: nil,
+				}, nil
+			},
+		},
+	)
+
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+	}
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+}
+
+func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *testing.T) {
+	buffData := [][]byte{[]byte("buff1")}
+	newBuffData := []byte("new buff")
+
+	createCalled := false
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	arg := createMockArgMultiDataInterceptor()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return nil
+		},
+		IsForCurrentShardCalled: func() bool {
+			return true
+		},
+	}
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+			assert.Equal(t, newBuffData, buff) //chunk processor switched the buffer
+			createCalled = true
+			return interceptedData, nil
+		},
+	}
+	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
+	arg.Throttler = throttler
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	_ = mdi.SetChunkProcessor(
+		&mock.ChunkProcessorStub{
+			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+				return process.CheckedChunkResult{
+					IsChunk:        true,
+					HaveAllChunks:  true,
+					CompleteBuffer: newBuffData,
+				}, nil
+			},
+		},
+	)
+
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+	}
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Nil(t, err)
+	assert.True(t, createCalled)
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+}
+
 func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *testing.T) {
 	t.Parallel()
 
@@ -577,12 +712,16 @@ func TestMultiDataInterceptor_RegisterHandler(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-//------- IsInterfaceNil
-
-func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {
+func TestMultiDataInterceptor_SetChunkProcessor(t *testing.T) {
 	t.Parallel()
 
-	var mdi *interceptors.MultiDataInterceptor
+	arg := createMockArgMultiDataInterceptor()
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	err := mdi.SetChunkProcessor(nil)
+	assert.Equal(t, process.ErrNilChunksProcessor, err)
 
-	assert.True(t, check.IfNil(mdi))
+	cps := &mock.ChunkProcessorStub{}
+	err = mdi.SetChunkProcessor(cps)
+	assert.Nil(t, err)
+	assert.Equal(t, cps, mdi.ChunksProcessor())
 }

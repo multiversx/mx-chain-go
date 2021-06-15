@@ -1009,3 +1009,9 @@ var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers 
 
 // ErrNilChunksProcessor signals that a nil chunks processor has been provided
 var ErrNilChunksProcessor = errors.New("nil chunks processor")
+
+// ErrIncompatibleReference signals that an incompatible reference was provided when processing a batch
+var ErrIncompatibleReference = errors.New("incompatible reference when processing batch")
+
+// ErrProcessClosed signals that an incomplete processing occurred due to the early process closing
+var ErrProcessClosed = errors.New("incomplete processing: process is closing")
