@@ -45,7 +45,6 @@ func (c *chunk) TryAssembleAllChunks() []byte {
 	buff := make([]byte, 0, c.size)
 	for i := uint32(0); i < c.maxChunks; i++ {
 		part := c.data[i]
-
 		buff = append(buff, part...)
 	}
 
