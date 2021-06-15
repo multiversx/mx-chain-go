@@ -397,6 +397,22 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 	assert.False(t, tc.IsInterfaceNil())
 }
 
+func TestTransactionCoordinator_GetAllCurrentLogs(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.TransactionsLogProcessor = &mock.TxLogsProcessorStub{
+		GetAllCurrentLogsCalled: func() map[string]data.LogHandler {
+			return map[string]data.LogHandler{}
+		},
+	}
+
+	tc, _ := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	logs := tc.GetAllCurrentLogs()
+	require.NotNil(t, logs)
+}
+
 func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 	t.Parallel()
 
