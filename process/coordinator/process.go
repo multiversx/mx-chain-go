@@ -707,6 +707,7 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 	}
 	tc.mutInterimProcessors.RUnlock()
 
+	// TODO add checks for logs verification
 	tc.transactionsLogProcessor.Clean()
 }
 
