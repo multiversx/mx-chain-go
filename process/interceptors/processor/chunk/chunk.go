@@ -21,7 +21,7 @@ func NewChunk(maxChunks uint32) *chunk {
 	}
 }
 
-// Put will add are rewrite an existing chunk
+// Put will add or rewrite an existing chunk
 func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 	if chunkIndex >= c.maxChunks {
 		return
