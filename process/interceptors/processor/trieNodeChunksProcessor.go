@@ -47,6 +47,7 @@ type trieNodeChunksProcessor struct {
 	topic             string
 	shardID           uint32
 	cancel            func()
+	chanClose         chan struct{}
 }
 
 // NewTrieNodeChunksProcessor creates a new trieNodeChunksProcessor instance
@@ -76,6 +77,7 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 		requestHandler:    arg.RequestHandler,
 		topic:             arg.Topic,
 		shardID:           arg.ShardID,
+		chanClose:         make(chan struct{}),
 	}
 	var ctx context.Context
 	ctx, tncp.cancel = context.WithCancel(context.Background())
@@ -118,9 +120,12 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch) (process.Checked
 	}
 
 	proc.chanCheckRequests <- req
-	response := <-respChan
-
-	return response, nil
+	select {
+	case response := <-respChan:
+		return response, nil
+	case <-proc.chanClose:
+		return process.CheckedChunkResult{}, process.ErrProcessClosed
+	}
 }
 
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
@@ -143,10 +148,14 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 		proc.chunksCacher.Put(cr.batch.Reference, chunkData, chunkData.Size())
 	}
 
-	cr.chanResponse <- process.CheckedChunkResult{
+	select {
+	case cr.chanResponse <- process.CheckedChunkResult{
 		IsChunk:        true,
 		HaveAllChunks:  haveAllChunks,
 		CompleteBuffer: buff,
+	}:
+	default:
+		log.Trace("trieNodeChunksProcessor.processCheckRequest - no one is listening on the end chan")
 	}
 }
 
@@ -204,6 +213,11 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 
 // Close will close the process go routine
 func (proc *trieNodeChunksProcessor) Close() error {
+	defer func() {
+		//this instruction should be called last as to release hanging go routines
+		close(proc.chanClose)
+	}()
+
 	proc.cancel()
 	return nil
 }

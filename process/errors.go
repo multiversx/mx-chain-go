@@ -1012,3 +1012,6 @@ var ErrNilChunksProcessor = errors.New("nil chunks processor")
 
 // ErrIncompatibleReference signals that an incompatible reference
 var ErrIncompatibleReference = errors.New("incompatible reference when processing batch")
+
+// ErrProcessClosed signals that an incomplete processing occurred due to the early process closing
+var ErrProcessClosed = errors.New("incomplete processing: process is closing")
