@@ -352,6 +352,7 @@ type InterceptorsContainer interface {
 	Remove(key string)
 	Len() int
 	Iterate(handler func(key string, interceptor Interceptor) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -467,6 +468,7 @@ type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -502,7 +504,7 @@ type RequestHandler interface {
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
-	RequestTrieNode(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32)
+	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	IsInterfaceNil() bool
 }
 
@@ -1109,5 +1111,6 @@ type CheckedChunkResult struct {
 // InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
 type InterceptedChunksProcessor interface {
 	CheckBatch(b *batch.Batch) (CheckedChunkResult, error)
+	Close() error
 	IsInterfaceNil() bool
 }

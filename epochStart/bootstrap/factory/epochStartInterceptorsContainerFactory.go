@@ -38,6 +38,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
 	EnableSignTxWithHashEpoch uint32
 	EpochNotifier             process.EpochNotifier
+	RequestHandler            process.RequestHandler
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -70,7 +71,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
-	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:            args.CoreComponents,
 		CryptoComponents:          cryptoComponents,
 		ShardCoordinator:          args.ShardCoordinator,
@@ -81,7 +82,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		Accounts:                  accountsAdapter,
 		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              feeHandler,
-		BlackList:                 blackListHandler,
+		BlockBlackList:            blackListHandler,
 		HeaderSigVerifier:         headerSigVerifier,
 		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		SizeCheckDelta:            uint32(sizeCheckDelta),
@@ -92,6 +93,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		AntifloodHandler:          antiFloodHandler,
 		ArgumentsParser:           args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		RequestHandler:            args.RequestHandler,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

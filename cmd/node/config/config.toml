@@ -350,6 +350,12 @@
     Type = "SizeLRU"
     SizeInBytes = 104857600 #100MB
 
+[TrieNodesChunksDataPool]
+    Name = "TrieNodesDataPool"
+    Capacity = 400
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 #100MB
+
 [SmartContractDataPool]
     Name = "SmartContractDataPool"
     Capacity = 900000

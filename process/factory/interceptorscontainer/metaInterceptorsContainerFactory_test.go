@@ -334,7 +334,7 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.BlackList = nil
+	args.BlockBlackList = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -363,6 +363,18 @@ func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testi
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
+}
+
+func TestNewMetaInterceptorsContainerFactory_NilRequestHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.RequestHandler = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilRequestHandler, err)
 }
 
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
@@ -537,8 +549,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 func getArgumentsMeta(
 	coreComp *mock.CoreComponentsMock,
 	cryptoComp *mock.CryptoComponentsMock,
-) interceptorscontainer.MetaInterceptorsContainerFactoryArgs {
-	return interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
+	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
@@ -549,7 +561,7 @@ func getArgumentsMeta(
 		Accounts:                &mock.AccountsStub{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
-		BlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:          0,
@@ -559,5 +571,6 @@ func getArgumentsMeta(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		RequestHandler:          &testscommon.RequestHandlerStub{},
 	}
 }

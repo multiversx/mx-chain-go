@@ -1064,7 +1064,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 				return resolverMock, nil
 			},
 		},
@@ -1075,7 +1075,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNode(0, []byte("hash"), "topic", 1)
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	select {
 	case <-chTxRequested:
 	case <-time.After(timeoutSendRequests):
@@ -1096,7 +1096,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
 				return resolverMock, nil
 			},
 		},
@@ -1107,7 +1107,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNode(0, []byte("hash"), "topic", 1)
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	select {
 	case <-chTxRequested:
 	case <-time.After(timeoutSendRequests):
@@ -1122,7 +1122,7 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 	called := false
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				called = true
 				return nil, localError
 			},
@@ -1134,7 +1134,7 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNode(0, []byte("hash"), "topic", 1)
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	assert.True(t, called)
 }
 
@@ -1144,7 +1144,7 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 	called := false
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, shId uint32) (resolver dataRetriever.Resolver, err error) {
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
 				called = true
 				return &mock.HashSliceResolverStub{}, nil
 			},
@@ -1156,6 +1156,6 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNode(0, []byte("hash"), "topic", 1)
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
 	assert.True(t, called)
 }

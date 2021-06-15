@@ -17,7 +17,7 @@ type RequestHandlerStub struct {
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
 	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
 	GetNumPeersToQueryCalled           func(key string) (int, int, error)
-	RequestTrieNodeCalled              func(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32)
+	RequestTrieNodeCalled              func(requestHash []byte, topic string, chunkIndex uint32)
 }
 
 // SetNumPeersToQuery -
@@ -136,9 +136,9 @@ func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hashes [][]b
 }
 
 // RequestTrieNode -
-func (rhs *RequestHandlerStub) RequestTrieNode(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32) {
+func (rhs *RequestHandlerStub) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
 	if rhs.RequestTrieNodeCalled != nil {
-		rhs.RequestTrieNodeCalled(destShardID, requestHash, topic, chunkIndex)
+		rhs.RequestTrieNodeCalled(requestHash, topic, chunkIndex)
 	}
 }
 

@@ -444,6 +444,16 @@ func TestSingleDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T
 	assert.True(t, debugger == sdi.InterceptedDebugHandler()) //pointer testing
 }
 
+func TestSingleDataInterceptor_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
+
+	err := sdi.Close()
+	assert.Nil(t, err)
+}
+
 //------- IsInterfaceNil
 
 func TestSingleDataInterceptor_IsInterfaceNil(t *testing.T) {

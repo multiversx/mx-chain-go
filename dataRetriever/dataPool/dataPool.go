@@ -16,6 +16,7 @@ type dataPool struct {
 	miniBlocks           storage.Cacher
 	peerChangesBlocks    storage.Cacher
 	trieNodes            storage.Cacher
+	trieNodesChunks      storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
 	smartContracts       storage.Cacher
 }
@@ -29,6 +30,7 @@ func NewDataPool(
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	trieNodes storage.Cacher,
+	trieNodesChunks storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
 	smartContracts storage.Cacher,
 ) (*dataPool, error) {
@@ -57,6 +59,9 @@ func NewDataPool(
 	if check.IfNil(trieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
+	if check.IfNil(trieNodesChunks) {
+		return nil, dataRetriever.ErrNilTrieNodesChunksPool
+	}
 	if check.IfNil(smartContracts) {
 		return nil, dataRetriever.ErrNilSmartContractsPool
 	}
@@ -69,6 +74,7 @@ func NewDataPool(
 		miniBlocks:           miniBlocks,
 		peerChangesBlocks:    peerChangesBlocks,
 		trieNodes:            trieNodes,
+		trieNodesChunks:      trieNodesChunks,
 		currBlockTxs:         currBlockTxs,
 		smartContracts:       smartContracts,
 	}, nil
@@ -112,6 +118,11 @@ func (dp *dataPool) PeerChangesBlocks() storage.Cacher {
 // TrieNodes returns the holder for trie nodes
 func (dp *dataPool) TrieNodes() storage.Cacher {
 	return dp.trieNodes
+}
+
+// TrieNodesChunks returns the holder for trie nodes chunks
+func (dp *dataPool) TrieNodesChunks() storage.Cacher {
+	return dp.trieNodesChunks
 }
 
 // SmartContracts returns the holder for smart contracts

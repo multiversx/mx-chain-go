@@ -653,7 +653,7 @@ func TestTrieNodeResolver_RequestDataFromHashArray(t *testing.T) {
 	assert.True(t, sendRequestCalled)
 }
 
-func TestTrieNodeResolver_RequestDataFromHashAndChunk(t *testing.T) {
+func TestTrieNodeResolver_RequestDataFromReferenceAndChunk(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("hash")
@@ -671,7 +671,7 @@ func TestTrieNodeResolver_RequestDataFromHashAndChunk(t *testing.T) {
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
-	err := tnRes.RequestDataFromHashAndChunk(hash, chunkIndex)
+	err := tnRes.RequestDataFromReferenceAndChunk(hash, chunkIndex)
 	require.Nil(t, err)
 	assert.True(t, sendRequestCalled)
 }

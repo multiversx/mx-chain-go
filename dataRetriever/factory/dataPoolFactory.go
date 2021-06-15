@@ -90,6 +90,13 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
+	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		log.Error("error creating trieNodesChunks")
+		return nil, err
+	}
+
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
@@ -110,6 +117,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		txBlockBody,
 		peerChangeBlockBody,
 		trieNodes,
+		trieNodesChunks,
 		currBlockTxs,
 		smartContracts,
 	)

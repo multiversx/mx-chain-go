@@ -1,10 +1,13 @@
 package interceptorscontainer
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -16,6 +19,7 @@ import (
 )
 
 const numGoRoutines = 100
+const chunksProcessorRequestInterval = time.Second
 
 type baseInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer
@@ -32,6 +36,8 @@ type baseInterceptorsContainerFactory struct {
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
+	hasher                 hashing.Hasher
+	requestHandler         process.RequestHandler
 }
 
 func checkBaseParams(
@@ -47,6 +53,7 @@ func checkBaseParams(
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
+	requestHandler process.RequestHandler,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -122,6 +129,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(coreComponents.AddressPubKeyConverter()) {
 		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(requestHandler) {
+		return process.ErrNilRequestHandler
 	}
 
 	return nil
@@ -535,6 +545,24 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 			CurrentPeerId:    bicf.messenger.ID(),
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	argChunkProcessor := processor.TrieNodesChunksProcessorArgs{
+		Hasher:          bicf.hasher,
+		ChunksCacher:    bicf.dataPool.TrieNodesChunks(),
+		RequestInterval: chunksProcessorRequestInterval,
+		RequestHandler:  bicf.requestHandler,
+		Topic:           topic,
+	}
+
+	chunkProcessor, err := processor.NewTrieNodeChunksProcessor(argChunkProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptor.SetChunkProcessor(chunkProcessor)
 	if err != nil {
 		return nil, err
 	}

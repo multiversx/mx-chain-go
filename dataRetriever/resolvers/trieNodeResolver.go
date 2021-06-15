@@ -226,8 +226,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	message p2p.MessageP2P,
 ) error {
 
-	//TODO(feat/trie-multipart-nodes - remove this log)
-	log.Warn("assembling chunk", "reference", reference, "len", len(largeBuff))
+	log.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
 	maxChunks := len(largeBuff) / maxBuffToSendTrieNodes
 	if len(largeBuff)%maxBuffToSendTrieNodes != 0 {
 		maxChunks++
@@ -244,8 +243,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	}
 	chunkBuffer := largeBuff[startIndex:endIndex]
 	chunk := batch.NewChunk(uint32(chunkIndex), reference, uint32(maxChunks), chunkBuffer)
-	//TODO(feat/trie-multipart-nodes - remove this log)
-	log.Warn("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
+	log.Trace("assembled chunk", "index", chunkIndex, "reference", reference, "max chunks", maxChunks, "len", len(chunkBuffer))
 
 	buff, err := tnRes.marshalizer.Marshal(chunk)
 	if err != nil {
@@ -285,8 +283,8 @@ func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	)
 }
 
-// RequestDataFromHashAndChunk requests a trie node's chunk by specifying the required hash and the chunk index
-func (tnRes *TrieNodeResolver) RequestDataFromHashAndChunk(hash []byte, chunkIndex uint32) error {
+// RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index
+func (tnRes *TrieNodeResolver) RequestDataFromReferenceAndChunk(hash []byte, chunkIndex uint32) error {
 	return tnRes.SendOnRequestTopic(
 		&dataRetriever.RequestData{
 			Type:       dataRetriever.HashType,

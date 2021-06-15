@@ -11,6 +11,7 @@ type InterceptorStub struct {
 	ProcessReceivedMessageCalled     func(message p2p.MessageP2P) error
 	SetInterceptedDebugHandlerCalled func(debugger process.InterceptedDebugger) error
 	RegisterHandlerCalled            func(handler func(topic string, hash []byte, data interface{}))
+	CloseCalled                      func() error
 }
 
 // ProcessReceivedMessage -
@@ -36,6 +37,15 @@ func (is *InterceptorStub) RegisterHandler(handler func(topic string, hash []byt
 	if is.RegisterHandlerCalled != nil {
 		is.RegisterHandlerCalled(handler)
 	}
+}
+
+// Close -
+func (is *InterceptorStub) Close() error {
+	if is.CloseCalled != nil {
+		return is.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

@@ -35,7 +35,6 @@ type TrieNodesChunksProcessorArgs struct {
 	RequestInterval time.Duration
 	RequestHandler  process.RequestHandler
 	Topic           string
-	ShardID         uint32
 }
 
 type trieNodeChunksProcessor struct {
@@ -45,7 +44,6 @@ type trieNodeChunksProcessor struct {
 	requestInterval   time.Duration
 	requestHandler    process.RequestHandler
 	topic             string
-	shardID           uint32
 	cancel            func()
 	chanClose         chan struct{}
 }
@@ -76,7 +74,6 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 		requestInterval:   arg.RequestInterval,
 		requestHandler:    arg.RequestHandler,
 		topic:             arg.Topic,
-		shardID:           arg.ShardID,
 		chanClose:         make(chan struct{}),
 	}
 	var ctx context.Context
@@ -212,7 +209,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 		default:
 		}
 
-		proc.requestHandler.RequestTrieNode(proc.shardID, reference, proc.topic, missingChunkIndex)
+		proc.requestHandler.RequestTrieNode(reference, proc.topic, missingChunkIndex)
 	}
 }
 

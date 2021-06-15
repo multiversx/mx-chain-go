@@ -72,6 +72,9 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
@@ -87,6 +90,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		txBlockBody,
 		peerChangeBlockBody,
 		trieNodes,
+		trieNodesChunks,
 		currentTx,
 		smartContracts,
 	)
@@ -131,6 +135,9 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
@@ -146,6 +153,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		txBlockBody,
 		peerChangeBlockBody,
 		trieNodes,
+		trieNodesChunks,
 		currentTx,
 		smartContracts,
 	)

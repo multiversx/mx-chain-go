@@ -70,7 +70,7 @@ func (r *RequestHandler) GetNumPeersToQuery(_ string) (int, int, error) {
 }
 
 // RequestTrieNode does nothing
-func (r *RequestHandler) RequestTrieNode(_ uint32, _ []byte, _ string, _ uint32) {
+func (r *RequestHandler) RequestTrieNode(_ []byte, _ string, _ uint32) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

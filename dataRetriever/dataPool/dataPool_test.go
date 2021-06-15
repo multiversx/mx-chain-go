@@ -24,6 +24,7 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 		testscommon.NewCacherStub(),
 	)
@@ -40,6 +41,7 @@ func TestNewDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 		nil,
 		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
+		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -62,6 +64,7 @@ func TestNewDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 		testscommon.NewCacherStub(),
 	)
@@ -78,6 +81,7 @@ func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
 		testscommon.NewShardedDataStub(),
 		testscommon.NewShardedDataStub(),
 		nil,
+		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -100,6 +104,7 @@ func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
 		nil,
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 		testscommon.NewCacherStub(),
 	)
@@ -119,11 +124,32 @@ func TestNewDataPool_NilTrieNodesShouldErr(t *testing.T) {
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		nil,
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 		testscommon.NewCacherStub(),
 	)
 
 	assert.Equal(t, dataRetriever.ErrNilTrieNodesPool, err)
+	assert.Nil(t, tdp)
+}
+
+func TestNewDataPool_NilTrieNodesChunksShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp, err := dataPool.NewDataPool(
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		&mock.HeadersCacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		nil,
+		&mock.TxForCurrentBlockStub{},
+		testscommon.NewCacherStub(),
+	)
+
+	assert.Equal(t, dataRetriever.ErrNilTrieNodesChunksPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -135,6 +161,7 @@ func TestNewDataPool_NilSmartContractsShouldErr(t *testing.T) {
 		testscommon.NewShardedDataStub(),
 		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
+		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -156,6 +183,7 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
 		nil,
+		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 		testscommon.NewCacherStub(),
@@ -183,6 +211,7 @@ func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
 		txBlocks,
 		peersBlock,
 		trieNodes,
+		testscommon.NewCacherStub(),
 		nil,
 		smartContracts,
 	)
@@ -199,6 +228,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	txBlocks := testscommon.NewCacherStub()
 	peersBlock := testscommon.NewCacherStub()
 	trieNodes := testscommon.NewCacherStub()
+	trieNodesChunks := testscommon.NewCacherStub()
 	currBlock := &mock.TxForCurrentBlockStub{}
 	smartContracts := testscommon.NewCacherStub()
 
@@ -210,6 +240,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		txBlocks,
 		peersBlock,
 		trieNodes,
+		trieNodesChunks,
 		currBlock,
 		smartContracts,
 	)
@@ -226,4 +257,6 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, scResults == tdp.UnsignedTransactions())
 	assert.True(t, currBlock == tdp.CurrentBlockTxs())
 	assert.True(t, trieNodes == tdp.TrieNodes())
+	assert.True(t, trieNodesChunks == tdp.TrieNodesChunks())
+	assert.True(t, smartContracts == tdp.SmartContracts())
 }

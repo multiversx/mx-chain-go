@@ -56,7 +56,7 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {
 	node         *node.Node
-	mesenger     p2p.Messenger
+	messenger    p2p.Messenger
 	blkc         data.ChainHandler
 	blkProcessor *mock.BlockProcessorMock
 	sk           crypto.PrivateKey
@@ -518,7 +518,7 @@ func createNodes(
 
 		testNodeObject.node = n
 		testNodeObject.sk = kp.sk
-		testNodeObject.mesenger = mes
+		testNodeObject.messenger = mes
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc

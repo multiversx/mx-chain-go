@@ -22,6 +22,11 @@ func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch) (process
 	}, nil
 }
 
+// Close returns nil
+func (d *disabledInterceptedChunksProcessor) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *disabledInterceptedChunksProcessor) IsInterfaceNil() bool {
 	return d == nil

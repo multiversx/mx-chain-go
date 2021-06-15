@@ -453,7 +453,7 @@ func (rrh *resolverRequestHandler) createIdentifier(requestHash []byte, chunkInd
 }
 
 // RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
-func (rrh *resolverRequestHandler) RequestTrieNode(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32) {
+func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
 	identifier := rrh.createIdentifier(requestHash, chunkIndex)
 	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier})
 	if len(unrequestedHashes) == 0 {
@@ -464,17 +464,15 @@ func (rrh *resolverRequestHandler) RequestTrieNode(destShardID uint32, requestHa
 
 	log.Trace("requesting trie node from network",
 		"topic", topic,
-		"shard", destShardID,
 		"hash", requestHash,
 		"chunk index", chunkIndex,
 	)
 
-	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
+	resolver, err := rrh.resolversFinder.MetaChainResolver(topic)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),
 			"topic", topic,
-			"shard", destShardID,
 		)
 		return
 	}
