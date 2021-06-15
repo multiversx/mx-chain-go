@@ -40,6 +40,7 @@ func NewPeerAccountsDB(
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
@@ -54,6 +55,8 @@ func NewPeerAccountsDB(
 				identifier: "load code",
 			},
 			storagePruningManager: storagePruningManager,
+			ctx:                   ctx,
+			cancelFunc:            cancelFunc,
 		},
 	}, nil
 }

@@ -209,7 +209,7 @@ func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb 
 		return err
 	}
 
-	hash, err := getNodeHash(en)
+	hash, err := computeAndSetNodeHash(en)
 	if err != nil {
 		return err
 	}

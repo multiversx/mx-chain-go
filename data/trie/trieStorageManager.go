@@ -49,29 +49,32 @@ type snapshotsQueueEntry struct {
 	entryType byte
 }
 
+// NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
+type NewTrieStorageManagerArgs struct {
+	DB                     data.DBWriteCacher
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	SnapshotDbConfig       config.DBConfig
+	GeneralConfig          config.TrieStorageManagerConfig
+	CheckpointHashesHolder data.CheckpointHashesHolder
+}
+
 // NewTrieStorageManager creates a new instance of trieStorageManager
-func NewTrieStorageManager(
-	db data.DBWriteCacher,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	snapshotDbCfg config.DBConfig,
-	generalConfig config.TrieStorageManagerConfig,
-	checkpointHashesHolder data.CheckpointHashesHolder,
-) (*trieStorageManager, error) {
-	if check.IfNil(db) {
+func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager, error) {
+	if check.IfNil(args.DB) {
 		return nil, ErrNilDatabase
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(checkpointHashesHolder) {
+	if check.IfNil(args.CheckpointHashesHolder) {
 		return nil, ErrNilCheckpointHashesHolder
 	}
 
-	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(snapshotDbCfg)
+	snapshots, snapshotId, err := getSnapshotsAndSnapshotId(args.SnapshotDbConfig)
 	if err != nil {
 		log.Debug("get snapshot", "error", err.Error())
 	}
@@ -79,19 +82,19 @@ func NewTrieStorageManager(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		db:                     db,
+		db:                     args.DB,
 		snapshots:              snapshots,
 		snapshotId:             snapshotId,
-		snapshotDbCfg:          snapshotDbCfg,
-		snapshotReq:            make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
+		snapshotDbCfg:          args.SnapshotDbConfig,
+		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		pruningBlockingOps:     0,
-		maxSnapshots:           generalConfig.MaxSnapshots,
-		keepSnapshots:          generalConfig.KeepSnapshots,
+		maxSnapshots:           args.GeneralConfig.MaxSnapshots,
+		keepSnapshots:          args.GeneralConfig.KeepSnapshots,
 		cancelFunc:             cancelFunc,
-		checkpointHashesHolder: checkpointHashesHolder,
+		checkpointHashesHolder: args.CheckpointHashesHolder,
 	}
 
-	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
+	go tsm.storageProcessLoop(ctx, args.Marshalizer, args.Hasher)
 	return tsm, nil
 }
 

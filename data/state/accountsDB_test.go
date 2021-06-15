@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -61,8 +61,8 @@ func generateAddressAccountAccountsDB(trie data.Trie) ([]byte, *mock.AccountWrap
 }
 
 func getDefaultTrieAndAccountsDb() (data.Trie, *state.AccountsDB) {
-	hashesHolder := checkpointHashesHolder.NewCheckpointHashesHolder(10000000)
-	adb, tr, _ := getDefaultStateComponents(hashesHolder)
+	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
 	return tr, adb
 }
 
@@ -74,19 +74,19 @@ func getDefaultStateComponents(
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	db := mock.NewMemDbMock()
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hsh,
-		config.DBConfig{
+	args := trie.NewTrieStorageManagerArgs{
+		DB:          mock.NewMemDbMock(),
+		Marshalizer: marshalizer,
+		Hasher:      hsh,
+		SnapshotDbConfig: config.DBConfig{
 			Type: "MemoryDB",
 		},
-		generalCfg,
-		hashesHolder,
-	)
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
@@ -1635,16 +1635,16 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	db := mock.NewMemDbMock()
 	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hsh,
-		config.DBConfig{},
-		config.TrieStorageManagerConfig{},
-		&testscommon.CheckpointHashesHolderStub{},
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     mock.NewMemDbMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hsh,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+	storageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
@@ -1710,17 +1710,17 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	db := mock.NewMemDbMock()
 
 	ewl := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hsh,
-		config.DBConfig{},
-		config.TrieStorageManagerConfig{},
-		&testscommon.CheckpointHashesHolderStub{},
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     mock.NewMemDbMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hsh,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
@@ -1861,7 +1861,7 @@ func TestAccountsDB_CommitAddsDirtyHashesToCheckpointHashesHolder(t *testing.T) 
 
 	newHashes := make(data.ModifiedHashes)
 	var rootHash []byte
-	hashesHolder := &testscommon.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(rH []byte, hashes data.ModifiedHashes) bool {
 			assert.True(t, len(rH) != 0)
 			assert.True(t, len(hashes) != 0)
@@ -1877,7 +1877,7 @@ func TestAccountsDB_CommitAddsDirtyHashesToCheckpointHashesHolder(t *testing.T) 
 		},
 	}
 
-	adb, tr, _ := getDefaultStateComponents(hashesHolder)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
@@ -1906,7 +1906,7 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 
 	newHashes := make(data.ModifiedHashes)
 	numRemoveCalls := 0
-	hashesHolder := &testscommon.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ data.ModifiedHashes) bool {
 			return true
 		},
@@ -1917,7 +1917,7 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 		},
 	}
 
-	adb, tr, trieStorage := getDefaultStateComponents(hashesHolder)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes = modifyDataTries(t, accountsAddresses, adb)
@@ -1937,7 +1937,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 
 	newHashes := make(data.ModifiedHashes)
 	removeCommitedCalled := false
-	hashesHolder := &testscommon.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ data.ModifiedHashes) bool {
 			return false
 		},
@@ -1948,7 +1948,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 			return false
 		},
 	}
-	adb, tr, trieStorage := getDefaultStateComponents(hashesHolder)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes = modifyDataTries(t, accountsAddresses, adb)
@@ -1974,15 +1974,15 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	t.Parallel()
 
 	newHashes := make(data.ModifiedHashes)
-	hashesHolder := checkpointHashesHolder.NewCheckpointHashesHolder(100000)
-	adb, tr, trieStorage := getDefaultStateComponents(hashesHolder)
+	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(100000, testscommon.HashSize)
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	rootHash, _ := tr.RootHash()
 
 	_, err := adb.Commit()
 	assert.Nil(t, err)
-	hashesHolder.RemoveCommitted(rootHash)
+	checkpointHashesHolder.RemoveCommitted(rootHash)
 
 	newHashes = modifyDataTries(t, accountsAddresses, adb)
 
@@ -2036,7 +2036,7 @@ func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) 
 	t.Parallel()
 
 	putCalled := false
-	hashesHolder := &testscommon.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(rootHash []byte, hashes data.ModifiedHashes) bool {
 			putCalled = true
 			assert.Equal(t, 32, len(rootHash))
@@ -2046,7 +2046,7 @@ func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) 
 			return false
 		},
 	}
-	adb, _, _ := getDefaultStateComponents(hashesHolder)
+	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	_ = modifyDataTries(t, accountsAddresses, adb)
@@ -2060,14 +2060,14 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 
 	newHashes := make(data.ModifiedHashes)
 	removeCalled := 0
-	hashesHolder := &testscommon.CheckpointHashesHolderStub{
+	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		RemoveCalled: func(hash []byte) {
 			_, ok := newHashes[string(hash)]
 			assert.True(t, ok)
 			removeCalled++
 		},
 	}
-	adb, tr, _ := getDefaultStateComponents(hashesHolder)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
@@ -2130,16 +2130,16 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := mock.HasherMock{}
-	db := mock.NewMemDbMock()
 
-	storageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hasher,
-		config.DBConfig{},
-		config.TrieStorageManagerConfig{},
-		&testscommon.CheckpointHashesHolderStub{},
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     mock.NewMemDbMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+	storageManager, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
 	spm := disabled.NewDisabledStoragePruningManager()
 	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)

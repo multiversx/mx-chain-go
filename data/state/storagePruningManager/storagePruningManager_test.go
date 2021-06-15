@@ -11,7 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,19 +24,19 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (data.Trie, *state.Ac
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	db := mock.NewMemDbMock()
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hsh,
-		config.DBConfig{
+	args := trie.NewTrieStorageManagerArgs{
+		DB:          mock.NewMemDbMock(),
+		Marshalizer: marshalizer,
+		Hasher:      hsh,
+		SnapshotDbConfig: config.DBConfig{
 			Type: "MemoryDB",
 		},
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hsh, 5)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)

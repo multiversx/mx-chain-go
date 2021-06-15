@@ -77,6 +77,8 @@ type AccountsDB struct {
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
 	stopWatch            *core.StopWatch
+	ctx                  context.Context
+	cancelFunc           context.CancelFunc
 }
 
 var log = logger.GetOrCreate("state")
@@ -106,6 +108,7 @@ func NewAccountsDB(
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -121,6 +124,8 @@ func NewAccountsDB(
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
+		ctx:        ctx,
+		cancelFunc: cancelFunc,
 	}, nil
 }
 
@@ -783,7 +788,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	if shouldCreateCheckpoint {
 		log.Debug("checkpoint hashes holder is full - force state checkpoint")
-		adb.setStateCheckpoint(newRoot, context.Background())
+		adb.setStateCheckpoint(newRoot, adb.ctx)
 	}
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
@@ -991,7 +996,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, ctx context.
 			continue
 		}
 
-		if len(account.RootHash) <= 0 {
+		if len(account.RootHash) == 0 {
 			continue
 		}
 
@@ -1068,6 +1073,7 @@ func (adb *AccountsDB) Close() error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	adb.cancelFunc()
 	return adb.storagePruningManager.Close()
 }
 

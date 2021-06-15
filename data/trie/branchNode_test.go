@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -64,14 +64,15 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		MaxSnapshots:       2,
 	}
 
-	trieStorage, _ := NewTrieStorageManager(
-		db,
-		marsh,
-		hsh,
-		cfg,
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+	args := NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marsh,
+		Hasher:                 hsh,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hsh.Size())),
+	}
+	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
 		marshalizer:          marsh,
@@ -191,8 +192,24 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshalizerAndHasher()
-	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{}, checkpointHashesHolder.NewCheckpointHashesHolder(10))
-	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, config.TrieStorageManagerConfig{}, checkpointHashesHolder.NewCheckpointHashesHolder(10))
+	args := NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marsh,
+		Hasher:                 hsh,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
+	}
+	trieStorage1, _ := NewTrieStorageManager(args)
+	args = NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marsh,
+		Hasher:                 hsh,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, uint64(hsh.Size())),
+	}
+	trieStorage2, _ := NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
 	tr1, _ := NewTrie(trieStorage1, marsh, hsh, maxTrieLevelInMemory)

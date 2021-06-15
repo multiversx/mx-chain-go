@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -52,15 +52,15 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-
-	trieStorageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hasher,
-		cfg,
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory

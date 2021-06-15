@@ -1,17 +1,18 @@
-package checkpointHashesHolder
+package hashesHolder
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCheckpointHashesHolder(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(10)
+	chh := NewCheckpointHashesHolder(10, testscommon.HashSize)
 	assert.False(t, check.IfNil(chh))
 }
 
@@ -51,7 +52,7 @@ func getTestValues() *testValues {
 func TestCheckpointHashesHolder_Put(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(200)
+	chh := NewCheckpointHashesHolder(200, testscommon.HashSize)
 	testData := getTestValues()
 
 	shouldCreateCheckpoint := chh.Put(testData.keys[0], testData.values[0])
@@ -78,7 +79,7 @@ func TestCheckpointHashesHolder_Put(t *testing.T) {
 func TestCheckpointHashesHolder_ShouldCommit(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(500)
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
 	_ = chh.Put(testData.keys[0], testData.values[0])
@@ -94,7 +95,7 @@ func TestCheckpointHashesHolder_ShouldCommit(t *testing.T) {
 func TestCheckpointHashesHolder_RemoveCommitted(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(500)
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
 	_ = chh.Put(testData.keys[0], testData.values[0])
@@ -115,10 +116,27 @@ func TestCheckpointHashesHolder_RemoveCommitted(t *testing.T) {
 	assert.True(t, ok)
 }
 
+func TestCheckpointHashesHolder_computeCurrentSize(t *testing.T) {
+	t.Parallel()
+
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
+	testData := getTestValues()
+
+	_ = chh.Put(testData.keys[0], testData.values[0])
+	_ = chh.Put(testData.keys[1], testData.values[1])
+	_ = chh.Put(testData.keys[2], testData.values[2])
+	assert.Equal(t, uint64(315), chh.currentSize)
+
+	chh.currentSize = 0
+
+	chh.computeCurrentSize()
+	assert.Equal(t, uint64(315), chh.currentSize)
+}
+
 func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(500)
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
 	_ = chh.Put(testData.keys[0], testData.values[0])
@@ -136,7 +154,7 @@ func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing
 func TestCheckpointHashesHolder_Remove(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(500)
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
 	_ = chh.Put(testData.keys[0], testData.values[0])
@@ -153,7 +171,7 @@ func TestCheckpointHashesHolder_Remove(t *testing.T) {
 func TestCheckpointHashesHolder_RemoveInvalidSizeComputation(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(500)
+	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
 	_ = chh.Put(testData.keys[0], testData.values[0])

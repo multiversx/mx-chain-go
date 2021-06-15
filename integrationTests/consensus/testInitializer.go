@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -169,14 +169,15 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		store,
-		marshalizer,
-		hasher,
-		cfg,
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)

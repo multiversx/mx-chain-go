@@ -292,7 +292,7 @@ func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb dat
 		return fmt.Errorf("commit checkpoint error %w", err)
 	}
 
-	hash, err := getNodeHash(bn)
+	hash, err := computeAndSetNodeHash(bn)
 	if err != nil {
 		return err
 	}

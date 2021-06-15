@@ -35,7 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/checkpointHashesHolder"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -354,14 +354,15 @@ func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       3,
 	}
-	trieStorageManager, _ := trie.NewTrieStorageManager(
-		store,
-		TestMarshalizer,
-		TestHasher,
-		cfg,
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
 	return trieStorageManager, store
 }
@@ -939,14 +940,15 @@ func CreateNewDefaultTrie() data.Trie {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		CreateMemUnit(),
-		TestMarshalizer,
-		TestHasher,
-		config.DBConfig{},
-		generalCfg,
-		checkpointHashesHolder.NewCheckpointHashesHolder(10000000),
-	)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     CreateMemUnit(),
+		Marshalizer:            TestMarshalizer,
+		Hasher:                 TestHasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 	return tr

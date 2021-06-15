@@ -70,7 +70,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
-	key, err := getNodeHash(n)
+	key, err := computeAndSetNodeHash(n)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	return err
 }
 
-func getNodeHash(n node) ([]byte, error) {
+func computeAndSetNodeHash(n node) ([]byte, error) {
 	key := n.getHash()
 	if len(key) != 0 {
 		return key, nil

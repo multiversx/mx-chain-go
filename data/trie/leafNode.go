@@ -130,7 +130,7 @@ func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWrite
 		return fmt.Errorf("commit checkpoint error %w", err)
 	}
 
-	hash, err := getNodeHash(ln)
+	hash, err := computeAndSetNodeHash(ln)
 	if err != nil {
 		return err
 	}
