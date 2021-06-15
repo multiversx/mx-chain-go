@@ -119,7 +119,12 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch) (process.Checked
 		chanResponse: respChan,
 	}
 
-	proc.chanCheckRequests <- req
+	select {
+	case proc.chanCheckRequests <- req:
+	case <-proc.chanClose:
+		return process.CheckedChunkResult{}, process.ErrProcessClosed
+	}
+
 	select {
 	case response := <-respChan:
 		return response, nil

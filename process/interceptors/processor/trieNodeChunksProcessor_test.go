@@ -167,6 +167,30 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 	_ = tncp.Close()
 }
 
+func TestTrieNodeChunksProcessor_CheckBatchComponentClosed(t *testing.T) {
+	t.Parallel()
+
+	expectedCheckedChunkResult := process.CheckedChunkResult{
+		IsChunk:        false,
+		HaveAllChunks:  false,
+		CompleteBuffer: nil,
+	}
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	tncp, _ := NewTrieNodeChunksProcessor(args)
+
+	_ = tncp.Close()
+
+	chunkResult, err := tncp.CheckBatch(&batch.Batch{
+		Data:       [][]byte{[]byte("buff1")},
+		Reference:  reference,
+		ChunkIndex: 0,
+		MaxChunks:  2,
+	})
+	assert.Equal(t, process.ErrProcessClosed, err)
+	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
+}
+
 func TestTrieNodeChunksProcessor_RequestShouldWork(t *testing.T) {
 	t.Parallel()
 
