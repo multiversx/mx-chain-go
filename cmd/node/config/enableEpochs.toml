@@ -64,7 +64,7 @@
     ESDTEnableEpoch = 2
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 2
+    GovernanceEnableEpoch = 1000000
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -78,10 +78,10 @@
     CorrectLastUnjailedEnableEpoch = 2
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
-    RelayedTransactionsV2EnableEpoch = 2
+    RelayedTransactionsV2EnableEpoch = 1000000
 
     # UnbondTokensV2EnableEpoch represents the epoch when the new implementation of the unbond tokens function is available
-    UnbondTokensV2EnableEpoch = 2
+    UnbondTokensV2EnableEpoch = 3
 
     # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
     SaveJailedAlwaysEnableEpoch = 3
@@ -93,16 +93,16 @@
     ValidatorToDelegationEnableEpoch = 3
 
     # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 3
+    WaitingListFixEnableEpoch = 1000000
 
     # GovernanceSCEnableEpoch represents the epoch when the governance SC is enabled
-    GovernanceSCEnableEpoch = 4
+    GovernanceSCEnableEpoch = 1000000
 
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
+        { EpochEnable = 1, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
 [GasSchedule]
