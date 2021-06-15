@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -8,17 +8,26 @@ import (
 
 // InterceptorStub -
 type InterceptorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RegisterHandlerCalled        func(handler func(topic string, hash []byte, data interface{}))
+	ProcessReceivedMessageCalled     func(message p2p.MessageP2P) error
+	SetInterceptedDebugHandlerCalled func(debugger process.InterceptedDebugger) error
+	RegisterHandlerCalled            func(handler func(topic string, hash []byte, data interface{}))
 }
 
 // ProcessReceivedMessage -
 func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
-	return is.ProcessReceivedMessageCalled(message)
+	if is.ProcessReceivedMessageCalled != nil {
+		return is.ProcessReceivedMessageCalled(message)
+	}
+
+	return nil
 }
 
 // SetInterceptedDebugHandler -
-func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebugger) error {
+func (is *InterceptorStub) SetInterceptedDebugHandler(debugger process.InterceptedDebugger) error {
+	if is.SetInterceptedDebugHandlerCalled != nil {
+		return is.SetInterceptedDebugHandlerCalled(debugger)
+	}
+
 	return nil
 }
 
@@ -29,7 +38,7 @@ func (is *InterceptorStub) RegisterHandler(handler func(topic string, hash []byt
 	}
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (is *InterceptorStub) IsInterfaceNil() bool {
 	return is == nil
 }
