@@ -739,11 +739,11 @@ func waitForSignal(
 		if err != nil {
 			log.Warn("cannot clean old db", "error", err)
 		}
-	} else {
-		return fmt.Errorf("not reshuffled, closing")
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("not reshuffled, closing")
 }
 
 func (nr *nodeRunner) logInformation(
