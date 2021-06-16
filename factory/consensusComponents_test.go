@@ -425,7 +425,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 	return &mock.ProcessComponentsMock{
 		NodesCoord:               &mock.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
-		IntContainer:             &mock.InterceptorsContainerStub{},
+		IntContainer:             &testscommon.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},

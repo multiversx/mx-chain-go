@@ -2723,7 +2723,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			NoShards:     1,
 			CurrentShard: 0,
 		},
-		IntContainer:             &mock.InterceptorsContainerStub{},
+		IntContainer:             &testscommon.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},

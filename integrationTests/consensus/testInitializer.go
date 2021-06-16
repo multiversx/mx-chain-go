@@ -398,7 +398,7 @@ func createConsensusOnlyNode(
 	processComponents.NodesCoord = nodesCoordinator
 	processComponents.BlockProcess = blockProcessor
 	processComponents.BlockTrack = &mock.BlockTrackerStub{}
-	processComponents.IntContainer = &mock.InterceptorsContainerStub{}
+	processComponents.IntContainer = &testscommon.InterceptorsContainerStub{}
 	processComponents.ResFinder = resolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
