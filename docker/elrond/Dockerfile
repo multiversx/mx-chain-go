@@ -1,5 +1,4 @@
 FROM golang:1.15.7 as builder
-MAINTAINER ElrondNetwork
 
 RUN apt-get update && apt-get install -y
 WORKDIR /go/elrond-go
