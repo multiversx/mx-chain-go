@@ -64,7 +64,7 @@ test-arwen:
 
 test-coverage: arwen
 	@echo "Running unit tests"
-	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
+	CURRENT_DIRECTORY=$(CURRENT_DIRECTORY) go test -cpu 2 -cover -coverprofile=coverage.txt -covermode=atomic -v ${TESTS_TO_RUN}
 
 test-multishard-sc:
 	go test -count=1 -v ./integrationTests/multiShard/smartContract
