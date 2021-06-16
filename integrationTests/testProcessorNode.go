@@ -2,7 +2,6 @@ package integrationTests
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -2856,8 +2855,7 @@ func GetTokenIdentifier(nodes []*TestProcessorNode, ticker []byte) []byte {
 		userAcc, _ := acc.(state.UserAccountHandler)
 
 		rootHash, _ := userAcc.DataTrie().RootHash()
-		ctx := context.Background()
-		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+		chLeaves, _ := userAcc.DataTrie().GetAllLeavesOnChannel(rootHash)
 		for leaf := range chLeaves {
 			if !bytes.HasPrefix(leaf.Key(), ticker) {
 				continue

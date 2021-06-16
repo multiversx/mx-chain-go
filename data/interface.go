@@ -182,11 +182,12 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, error)
 	VerifyProof(key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	Close() error
 	IsInterfaceNil() bool
 }
 

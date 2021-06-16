@@ -116,23 +116,6 @@ func TestCheckpointHashesHolder_RemoveCommitted(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestCheckpointHashesHolder_computeCurrentSize(t *testing.T) {
-	t.Parallel()
-
-	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
-	testData := getTestValues()
-
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
-	assert.Equal(t, uint64(315), chh.currentSize)
-
-	chh.currentSize = 0
-
-	chh.computeCurrentSize()
-	assert.Equal(t, uint64(315), chh.currentSize)
-}
-
 func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing.T) {
 	t.Parallel()
 
@@ -148,7 +131,7 @@ func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing
 	chh.RemoveCommitted(testData.keys[1])
 	assert.Equal(t, 1, len(chh.hashes))
 	assert.Equal(t, 1, len(chh.hashes[0]))
-	assert.Equal(t, uint64(0), chh.currentSize)
+	assert.Equal(t, uint64(105), chh.currentSize)
 }
 
 func TestCheckpointHashesHolder_Remove(t *testing.T) {
@@ -183,5 +166,5 @@ func TestCheckpointHashesHolder_RemoveInvalidSizeComputation(t *testing.T) {
 	chh.Remove([]byte("hash5"))
 	assert.Equal(t, 3, len(chh.hashes))
 	assert.Equal(t, 2, len(chh.hashes[1]["rootHash2"]))
-	assert.Equal(t, uint64(1), chh.currentSize)
+	assert.Equal(t, uint64(283), chh.currentSize)
 }

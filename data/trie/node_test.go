@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -539,7 +539,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash(), context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 
@@ -595,4 +595,48 @@ func TestPatriciaMerkleTrie_oldRootAndoldHashesAreResetAfterEveryCommit(t *testi
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(tr.oldHashes))
 	assert.Equal(t, 0, len(tr.oldRoot))
+}
+
+func TestPatriciaMerkleTrie_Close(t *testing.T) {
+	t.Parallel()
+
+	numLeavesToAdd := 200
+	tr, _ := newEmptyTrie()
+
+	for i := 0; i < numLeavesToAdd; i++ {
+		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+	}
+	_ = tr.Commit()
+
+	rootHash, _ := tr.RootHash()
+	leavesChannel1, _ := tr.GetAllLeavesOnChannel(rootHash)
+	assert.Equal(t, 1, len(tr.cancelFuncs))
+	_, _ = tr.GetAllLeavesOnChannel(rootHash)
+	assert.Equal(t, 2, len(tr.cancelFuncs))
+
+	_ = tr.Update([]byte("god"), []byte("puppy"))
+	_ = tr.Commit()
+
+	rootHash, _ = tr.RootHash()
+	_, _ = tr.GetAllLeavesOnChannel(rootHash)
+	assert.Equal(t, 3, len(tr.cancelFuncs))
+
+	_ = tr.Update([]byte("eggod"), []byte("cat"))
+	_ = tr.Commit()
+
+	rootHash, _ = tr.RootHash()
+	leavesChannel2, _ := tr.GetAllLeavesOnChannel(rootHash)
+	assert.Equal(t, 4, len(tr.cancelFuncs))
+
+	for range leavesChannel1 {
+	}
+	assert.Equal(t, 3, len(tr.cancelFuncs))
+
+	for range leavesChannel2 {
+	}
+	assert.Equal(t, 2, len(tr.cancelFuncs))
+
+	err := tr.Close()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(tr.cancelFuncs))
 }

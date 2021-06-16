@@ -2,7 +2,6 @@ package state_test
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -258,7 +257,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	)
 
 	for i := 0; i < numCheckpoints; i++ {
-		adb.SetStateCheckpoint([]byte("rootHash"), context.Background())
+		adb.SetStateCheckpoint([]byte("rootHash"))
 	}
 
 	time.Sleep(time.Second * 2)
@@ -1123,7 +1122,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"), context.Background())
+	adb.SnapshotState([]byte("roothash"))
 	time.Sleep(time.Second)
 
 	snapshotMut.Lock()
@@ -1151,7 +1150,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SetStateCheckpoint([]byte("roothash"), context.Background())
+	adb.SetStateCheckpoint([]byte("roothash"))
 	time.Sleep(time.Second)
 
 	snapshotMut.Lock()
@@ -1348,7 +1347,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	_, err := adb.GetAllLeaves([]byte("root hash"), context.Background())
+	_, err := adb.GetAllLeaves([]byte("root hash"))
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 }
@@ -1956,7 +1955,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 	mergeMaps(newHashes, newHashesMainTrie)
 
 	rootHash, _ := adb.Commit()
-	adb.SnapshotState(rootHash, context.Background())
+	adb.SnapshotState(rootHash)
 	for trieStorage.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -1992,7 +1991,7 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	mergeMaps(newHashes, newHashesMainTrie)
 	rootHash, _ = adb.Commit()
 
-	adb.SetStateCheckpoint(rootHash, context.Background())
+	adb.SetStateCheckpoint(rootHash)
 	for trieStorage.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}

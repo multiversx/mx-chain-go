@@ -1,7 +1,6 @@
 package trie_test
 
 import (
-	"context"
 	cryptoRand "crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -560,7 +559,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -580,7 +579,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 

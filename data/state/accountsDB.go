@@ -2,7 +2,6 @@ package state
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -77,8 +76,6 @@ type AccountsDB struct {
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
 	stopWatch            *core.StopWatch
-	ctx                  context.Context
-	cancelFunc           context.CancelFunc
 }
 
 var log = logger.GetOrCreate("state")
@@ -108,7 +105,6 @@ func NewAccountsDB(
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -124,8 +120,6 @@ func NewAccountsDB(
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
 	}, nil
 }
 
@@ -788,7 +782,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 	if shouldCreateCheckpoint {
 		log.Debug("checkpoint hashes holder is full - force state checkpoint")
-		adb.setStateCheckpoint(newRoot, adb.ctx)
+		adb.setStateCheckpoint(newRoot)
 	}
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
@@ -885,8 +879,8 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *AccountsDB) RecreateAllTries(rootHash []byte, ctx context.Context) (map[string]data.Trie, error) {
-	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash, ctx)
+func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +953,7 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *AccountsDB) SnapshotState(rootHash []byte, ctx context.Context) {
+func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -970,7 +964,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte, ctx context.Context) {
 	go func() {
 		adb.stopWatch.Start("snapshotState")
 		trieStorageManager.TakeSnapshot(rootHash, createNewDb)
-		adb.snapshotUserAccountDataTrie(rootHash, ctx, true)
+		adb.snapshotUserAccountDataTrie(rootHash, true)
 		adb.stopWatch.Stop("snapshotState")
 
 		log.Debug("snapshotState", adb.stopWatch.GetMeasurements()...)
@@ -980,9 +974,9 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte, ctx context.Context) {
 	}()
 }
 
-func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, ctx context.Context, isSnapshot bool) {
+func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, isSnapshot bool) {
 	// TODO improve GetAllLeaves to return only the accounts that have dirty data tries
-	leavesChannel, err := adb.GetAllLeaves(rootHash, ctx)
+	leavesChannel, err := adb.GetAllLeaves(rootHash)
 	if err != nil {
 		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
 		return
@@ -1010,14 +1004,14 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, ctx context.
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
-func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte, ctx context.Context) {
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	adb.setStateCheckpoint(rootHash, ctx)
+	adb.setStateCheckpoint(rootHash)
 }
 
-func (adb *AccountsDB) setStateCheckpoint(rootHash []byte, ctx context.Context) {
+func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager.EnterPruningBufferingMode()
@@ -1025,7 +1019,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte, ctx context.Context) 
 	go func() {
 		adb.stopWatch.Start("setStateCheckpoint")
 		trieStorageManager.SetCheckpoint(rootHash)
-		adb.snapshotUserAccountDataTrie(rootHash, ctx, false)
+		adb.snapshotUserAccountDataTrie(rootHash, false)
 		adb.stopWatch.Stop("setStateCheckpoint")
 
 		log.Debug("setStateCheckpoint", adb.stopWatch.GetMeasurements()...)
@@ -1056,11 +1050,11 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	return adb.mainTrie.GetAllLeavesOnChannel(rootHash, ctx)
+	return adb.mainTrie.GetAllLeavesOnChannel(rootHash)
 }
 
 // GetNumCheckpoints returns the total number of state checkpoints
@@ -1073,7 +1067,7 @@ func (adb *AccountsDB) Close() error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	adb.cancelFunc()
+	_ = adb.mainTrie.Close()
 	return adb.storagePruningManager.Close()
 }
 

@@ -226,8 +226,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -295,8 +294,7 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -401,8 +399,7 @@ func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContr
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -498,8 +495,7 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}

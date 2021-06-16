@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -40,6 +41,7 @@ type patriciaMerkleTrie struct {
 	oldHashes            [][]byte
 	oldRoot              []byte
 	maxTrieLevelInMemory uint
+	cancelFuncs          map[string]context.CancelFunc
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -70,6 +72,7 @@ func NewTrie(
 		oldHashes:            make([][]byte, 0),
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: maxTrieLevelInMemory,
+		cancelFuncs:          make(map[string]context.CancelFunc),
 	}, nil
 }
 
@@ -480,27 +483,47 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	return nodes, remainingSpace, nil
 }
 
+func (tr *patriciaMerkleTrie) addCancelFunc(rootHash []byte, cancelFunc context.CancelFunc) string {
+	id := 0
+	ok := true
+	key := string(rootHash)
+
+	for ok {
+		_, ok = tr.cancelFuncs[key+strconv.Itoa(id)]
+		if ok {
+			id++
+		}
+	}
+
+	key = key + strconv.Itoa(id)
+	tr.cancelFuncs[key] = cancelFunc
+	return key
+}
+
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
-func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
 	leavesChannel := make(chan core.KeyValueHolder, 100)
 
-	tr.mutOperation.RLock()
+	tr.mutOperation.Lock()
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	cancelFuncId := tr.addCancelFunc(rootHash, cancelFunc)
 
 	newTrie, err := tr.recreate(rootHash)
 	if err != nil {
-		tr.mutOperation.RUnlock()
+		tr.mutOperation.Unlock()
 		close(leavesChannel)
 		return nil, err
 	}
 
 	if check.IfNil(newTrie) || newTrie.root == nil {
-		tr.mutOperation.RUnlock()
+		tr.mutOperation.Unlock()
 		close(leavesChannel)
 		return leavesChannel, nil
 	}
 
 	tr.trieStorage.EnterPruningBufferingMode()
-	tr.mutOperation.RUnlock()
+	tr.mutOperation.Unlock()
 
 	go func() {
 		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.trieStorage.Database(), tr.marshalizer, ctx)
@@ -508,9 +531,10 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
-		tr.mutOperation.RLock()
+		tr.mutOperation.Lock()
 		tr.trieStorage.ExitPruningBufferingMode()
-		tr.mutOperation.RUnlock()
+		delete(tr.cancelFuncs, cancelFuncId)
+		tr.mutOperation.Unlock()
 
 		close(leavesChannel)
 	}()
@@ -656,4 +680,18 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	defer tr.mutOperation.Unlock()
 
 	return tr.oldRoot
+}
+
+// Close calls all the canceFuncs
+func (tr *patriciaMerkleTrie) Close() error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	for _, cancelFunc := range tr.cancelFuncs {
+		cancelFunc()
+	}
+
+	tr.cancelFuncs = make(map[string]context.CancelFunc)
+
+	return nil
 }

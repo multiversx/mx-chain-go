@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -40,7 +39,6 @@ func NewPeerAccountsDB(
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
@@ -55,14 +53,12 @@ func NewPeerAccountsDB(
 				identifier: "load code",
 			},
 			storagePruningManager: storagePruningManager,
-			ctx:                   ctx,
-			cancelFunc:            cancelFunc,
 		},
 	}, nil
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
@@ -74,7 +70,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
-func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte, _ context.Context) {
+func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
@@ -86,7 +82,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte, _ context.Context
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
 	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return nil, err

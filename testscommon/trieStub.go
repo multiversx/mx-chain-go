@@ -1,7 +1,6 @@
 package testscommon
 
 import (
-	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -29,6 +28,7 @@ type TrieStub struct {
 	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
 	GetNumNodesCalled           func() data.NumNodesDTO
 	GetOldRootCalled            func() []byte
+	CloseCalled                 func() error
 }
 
 // GetStorageManager -
@@ -59,7 +59,7 @@ func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
 	if ts.GetAllLeavesOnChannelCalled != nil {
 		return ts.GetAllLeavesOnChannelCalled(rootHash)
 	}
@@ -68,16 +68,6 @@ func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (c
 	close(ch)
 
 	return ch, nil
-}
-
-// IsPruningEnabled -
-func (ts *TrieStub) IsPruningEnabled() bool {
-	return false
-}
-
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	return nil
 }
 
 // Get -
@@ -201,6 +191,15 @@ func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
 func (ts *TrieStub) GetOldRoot() []byte {
 	if ts.GetOldRootCalled != nil {
 		return ts.GetOldRootCalled()
+	}
+
+	return nil
+}
+
+// Close -
+func (ts *TrieStub) Close() error {
+	if ts.CloseCalled != nil {
+		return ts.CloseCalled()
 	}
 
 	return nil
