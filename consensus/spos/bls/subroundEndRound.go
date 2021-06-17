@@ -192,6 +192,14 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.Header.SetLeaderSignature(leaderSignature)
 
+	roundHandler := sr.RoundHandler()
+	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
+		log.Debug("doEndRoundJob: time is out -> cancel broadcasting final info and header",
+			"round time stamp", roundHandler.TimeStamp(),
+			"current time", time.Now())
+		return false
+	}
+
 	// broadcast header and final info section
 
 	// create and broadcast header final info

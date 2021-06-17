@@ -8,17 +8,18 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var _ core.Accumulator = (*timeAccumulator)(nil)
+var log = logger.GetOrCreate("core/accumulator")
 
 const minimumAlowedTime = time.Millisecond * 10
 
 // timeAccumulator is a structure that is able to accumulate data and will try to write on the output channel
 //once per provided interval
 type timeAccumulator struct {
-	ctx            context.Context
 	cancel         func()
 	maxAllowedTime time.Duration
 	maxOffset      time.Duration
@@ -42,14 +43,13 @@ func NewTimeAccumulator(maxAllowedTime time.Duration, maxOffset time.Duration) (
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ta := &timeAccumulator{
-		ctx:            ctx,
 		cancel:         cancel,
 		maxAllowedTime: maxAllowedTime,
 		output:         make(chan []interface{}),
 		maxOffset:      maxOffset,
 	}
 
-	go ta.continuousEviction()
+	go ta.continuousEviction(ctx)
 
 	return ta, nil
 }
@@ -67,7 +67,7 @@ func (ta *timeAccumulator) OutputChannel() <-chan []interface{} {
 }
 
 // will call do eviction periodically until the context is done
-func (ta *timeAccumulator) continuousEviction() {
+func (ta *timeAccumulator) continuousEviction(ctx context.Context) {
 	defer func() {
 		close(ta.output)
 	}()
@@ -75,11 +75,12 @@ func (ta *timeAccumulator) continuousEviction() {
 	for {
 		select {
 		case <-time.After(ta.computeWaitTime()):
-			isDone := ta.doEviction()
+			isDone := ta.doEviction(ctx)
 			if isDone {
 				return
 			}
-		case <-ta.ctx.Done():
+		case <-ctx.Done():
+			log.Debug("closing timeAccumulator.continuousEviction go routine")
 			return
 		}
 	}
@@ -100,7 +101,7 @@ func (ta *timeAccumulator) computeWaitTime() time.Duration {
 
 // doEviction will do the eviction of all accumulated data
 // if context.Done is triggered during the eviction, the whole operation will be aborted
-func (ta *timeAccumulator) doEviction() bool {
+func (ta *timeAccumulator) doEviction(ctx context.Context) bool {
 	ta.mut.Lock()
 	tempData := make([]interface{}, len(ta.data))
 	copy(tempData, ta.data)
@@ -110,7 +111,8 @@ func (ta *timeAccumulator) doEviction() bool {
 	select {
 	case ta.output <- tempData:
 		return false
-	case <-ta.ctx.Done():
+	case <-ctx.Done():
+		log.Debug("closing timeAccumulator.doEviction go routine")
 		return true
 	}
 }

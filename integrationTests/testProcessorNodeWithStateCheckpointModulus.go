@@ -1,6 +1,8 @@
 package integrationTests
 
 import (
+	"sync"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -23,10 +25,8 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	pkBytes := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -72,6 +72,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -111,7 +112,14 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
+	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       tpn.VMContainer,
+		EconomicsFee:      tpn.EconomicsData,
+		BlockChainHook:    tpn.BlockchainHook,
+		BlockChain:        tpn.BlockChain,
+		ArwenChangeLocker: tpn.ArwenChangeLocker,
+	}
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,

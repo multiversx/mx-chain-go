@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -26,14 +27,18 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil
 		}}
-	service, _ := smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
-			return uint64(math.MaxUint64)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer: vmContainer,
+		EconomicsFee: &mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
 		},
-	},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	functionName := "Get"
 	query := process.SCQuery{
@@ -77,6 +82,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 

@@ -822,6 +822,7 @@ type PeerValidatorMapper interface {
 type SCQueryService interface {
 	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -1094,4 +1095,12 @@ type Indexer interface {
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
 	IsInterfaceNil() bool
+}
+
+// Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
+type Locker interface {
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
 }

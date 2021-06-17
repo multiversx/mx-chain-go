@@ -462,7 +462,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
-	args.StakingV2EnableEpoch = 0
+	args.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})

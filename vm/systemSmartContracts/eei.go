@@ -318,6 +318,7 @@ func (host *vmContext) DeploySystemSC(
 	baseContract []byte,
 	newAddress []byte,
 	ownerAddress []byte,
+	initFunction string,
 	value *big.Int,
 	input [][]byte,
 ) (vmcommon.ReturnCode, error) {
@@ -326,7 +327,7 @@ func (host *vmContext) DeploySystemSC(
 		return vmcommon.ExecutionFailed, vm.ErrUnknownSystemSmartContract
 	}
 
-	callInput := createDirectCallInput(newAddress, ownerAddress, value, core.SCDeployInitFunctionName, input)
+	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
@@ -654,6 +655,11 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 
 	minChance := host.chanceComputer.GetChance(0)
 	return host.chanceComputer.GetChance(validatorAccount.GetTempRating()) < minChance
+}
+
+// CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
+func (host *vmContext) CleanStorageUpdates() {
+	host.storageUpdate = make(map[string]map[string][]byte)
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

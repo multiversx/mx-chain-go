@@ -4,10 +4,12 @@ import (
 	"context"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 var _ p2p.ChannelLoadBalancer = (*OutgoingChannelLoadBalancer)(nil)
+var log = logger.GetOrCreate("p2p/loadbalancer")
 
 const defaultSendChannel = "default send channel"
 
@@ -56,6 +58,7 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 			select {
 			case obj = <-ch:
 			case <-oplb.ctx.Done():
+				log.Debug("closing OutgoingChannelLoadBalancer's append channel go routine")
 				return
 			}
 

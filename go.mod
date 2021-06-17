@@ -3,9 +3,10 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v1.2.8
+	github.com/ElrondNetwork/arwen-wasm-vm v1.2.19
+	github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.16
 	github.com/ElrondNetwork/concurrent-map v0.1.3
-	github.com/ElrondNetwork/elastic-indexer-go v1.0.3
+	github.com/ElrondNetwork/elastic-indexer-go v1.0.6
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.21.0-beta
@@ -36,7 +37,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/pelletier/go-toml v1.9.0
 	github.com/pkg/errors v0.9.1
-	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
+	github.com/shirou/gopsutil v0.0.0-20190901111213-e4ec7b275ada
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.22.5
@@ -47,3 +48,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
+
+replace github.com/ElrondNetwork/arwen-wasm-vm/v1_3 v1.3.16 => github.com/ElrondNetwork/arwen-wasm-vm v1.3.16

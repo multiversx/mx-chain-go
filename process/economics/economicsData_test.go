@@ -32,11 +32,17 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:                 0.1,
-			ProtocolSustainabilityPercentage: 0.1,
-			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-			TopUpGradientPoint:               "300000000000000000000",
-			TopUpFactor:                      0.25,
+			RewardsConfigByEpoch: []config.EpochRewardSettings{
+				{
+					LeaderPercentage:                 0.1,
+					DeveloperPercentage:              0.1,
+					ProtocolSustainabilityPercentage: 0.1,
+					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					TopUpGradientPoint:               "300000000000000000000",
+					TopUpFactor:                      0.25,
+					EpochEnable:                      0,
+				},
+			},
 		},
 		FeeSettings: feeSettings,
 	}
@@ -86,6 +92,20 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 	return args
 }
 
+func TestNewEconomicsData_NilOrEmptyEpochRewardsConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.Economics.RewardsSettings.RewardsConfigByEpoch = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyEpochRewardsConfig, err)
+
+	args.Economics.RewardsSettings.RewardsConfigByEpoch = make([]config.EpochRewardSettings, 0)
+	_, err = economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrEmptyEpochRewardsConfig, err)
+}
+
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -107,7 +127,6 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
 	}
-
 }
 
 func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
@@ -162,7 +181,7 @@ func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsData(1)
-	args.Economics.RewardsSettings.LeaderPercentage = -0.1
+	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage = -0.1
 
 	_, err := economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
@@ -193,7 +212,7 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 
 	args := createArgsForEconomicsData(1)
 	leaderPercentage := 0.40
-	args.Economics.RewardsSettings.LeaderPercentage = leaderPercentage
+	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage = leaderPercentage
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	value := economicsData.LeaderPercentage()
@@ -276,6 +295,94 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	economicsData.EpochConfirmed(2, 0)
 	cost = economicsData.ComputeTxFee(tx)
 	assert.Equal(t, big.NewInt(5050), cost)
+}
+
+func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	rs := []config.EpochRewardSettings{
+		{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpGradientPoint:               "300000000000000000000",
+			TopUpFactor:                      0.25,
+			EpochEnable:                      0,
+		},
+		{
+			LeaderPercentage:                 0.2,
+			DeveloperPercentage:              0.2,
+			ProtocolSustainabilityPercentage: 0.2,
+			ProtocolSustainabilityAddress:    "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49",
+			TopUpGradientPoint:               "200000000000000000000",
+			TopUpFactor:                      0.5,
+			EpochEnable:                      2,
+		},
+	}
+
+	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1, 0)
+	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[0], *rewardsActiveConfig)
+
+	economicsData.EpochConfirmed(2, 0)
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[0], *rewardsActiveConfig)
+
+	economicsData.EpochConfirmed(3, 0)
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[1], *rewardsActiveConfig)
+}
+
+func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	rs := []config.EpochRewardSettings{
+		{
+			LeaderPercentage:                 0.2,
+			DeveloperPercentage:              0.2,
+			ProtocolSustainabilityPercentage: 0.2,
+			ProtocolSustainabilityAddress:    "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49",
+			TopUpGradientPoint:               "200000000000000000000",
+			TopUpFactor:                      0.5,
+			EpochEnable:                      2,
+		},
+		{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpGradientPoint:               "300000000000000000000",
+			TopUpFactor:                      0.25,
+			EpochEnable:                      0,
+		},
+	}
+
+	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	economicsData.EpochConfirmed(1, 0)
+	rewardsActiveConfig := economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[1], *rewardsActiveConfig)
+
+	economicsData.EpochConfirmed(2, 0)
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[1], *rewardsActiveConfig)
+
+	economicsData.EpochConfirmed(3, 0)
+	rewardsActiveConfig = economicsData.GetRewardsActiveConfig()
+	require.NotNil(t, rewardsActiveConfig)
+	require.Equal(t, rs[0], *rewardsActiveConfig)
 }
 
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {

@@ -414,18 +414,22 @@ func hardForkImport(
 		dataComponents.BlockChain = node.BlockChain
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:          0,
-			StartEpochNum:        100,
-			Core:                 coreComponents,
-			Data:                 dataComponents,
-			Accounts:             node.AccntState,
-			InitialNodesSetup:    node.NodesSetup,
-			Economics:            node.EconomicsData,
-			ShardCoordinator:     node.ShardCoordinator,
-			ValidatorAccounts:    node.PeerState,
-			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig: config.VirtualMachineConfig{},
+			GenesisTime:       0,
+			StartEpochNum:     100,
+			Core:              coreComponents,
+			Data:              dataComponents,
+			Accounts:          node.AccntState,
+			InitialNodesSetup: node.NodesSetup,
+			Economics:         node.EconomicsData,
+			ShardCoordinator:  node.ShardCoordinator,
+			ValidatorAccounts: node.PeerState,
+			GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,
@@ -442,11 +446,13 @@ func hardForkImport(
 					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-					ProposalCost:     "500",
-					NumNodes:         100,
-					MinQuorum:        50,
-					MinPassThreshold: 50,
-					MinVetoThreshold: 50,
+					Active: config.GovernanceSystemSCConfigActive{
+						ProposalCost:     "500",
+						MinQuorum:        "50",
+						MinPassThreshold: "50",
+						MinVetoThreshold: "50",
+					},
+					FirstWhitelistedAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -485,7 +491,7 @@ func hardForkImport(
 					SCDeployEnableEpoch:                0,
 					RelayedTransactionsEnableEpoch:     0,
 					PenalizedTooMuchGasEnableEpoch:     0,
-					StakingV2Epoch:                     1000000,
+					StakingV2EnableEpoch:               1000000,
 					StakeEnableEpoch:                   0,
 					DelegationManagerEnableEpoch:       0,
 					DelegationSmartContractEnableEpoch: 0,

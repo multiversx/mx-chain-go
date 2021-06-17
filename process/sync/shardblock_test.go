@@ -1944,3 +1944,10 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
 	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }
+
+func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
+	t.Parallel()
+
+	bootstrapper := &sync.ShardBootstrap{}
+	assert.Nil(t, bootstrapper.Close())
+}

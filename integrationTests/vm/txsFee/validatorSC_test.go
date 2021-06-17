@@ -130,7 +130,19 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 }
 
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, vm.ArgEnableEpoch{})
+	argUnbondTokensV1 := vm.ArgEnableEpoch{
+		UnbondTokensV2EnableEpoch: 20000,
+	}
+	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV1)
+
+	argUnbondTokensV2 := vm.ArgEnableEpoch{
+		UnbondTokensV2EnableEpoch: 0,
+	}
+	testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t, argUnbondTokensV2)
+}
+
+func testValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T, arg vm.ArgEnableEpoch) {
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, arg)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()

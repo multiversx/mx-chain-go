@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -37,6 +38,13 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	consensusType := "bls"
+
+	vmConfig := VirtualMachineConfig{
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
+		},
+	}
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -70,8 +78,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -83,8 +95,35 @@ func TestTomlParser(t *testing.T) {
 		Consensus: ConsensusConfig{
 			Type: consensusType,
 		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
+		},
+		Debug: DebugConfig{
+			InterceptorResolver: InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       9,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        10,
+			},
+			Antiflood: AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+			},
+			ShuffleOut: ShuffleOutDebugConfig{
+				CallGCWhenShuffleOut:    true,
+				ExtraPrintsOnShuffleOut: true,
+				DoProfileOnShuffleOut:   true,
+			},
+		},
 	}
-
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -128,18 +167,52 @@ func TestTomlParser(t *testing.T) {
 [Consensus]
 	Type = "` + consensusType + `"
 
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+    [Debug.ShuffleOut]
+        CallGCWhenShuffleOut = true
+        ExtraPrintsOnShuffleOut = true
+        DoProfileOnShuffleOut = true
 `
 	cfg := Config{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
 	protocolSustainabilityPercentage := 0.1
-	leaderPercentage := 0.1
+	leaderPercentage1 := 0.1
+	leaderPercentage2 := 0.2
+	epoch0 := uint32(0)
+	epoch1 := uint32(1)
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
@@ -152,10 +225,22 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:                 leaderPercentage,
-			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
-			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
-			DeveloperPercentage:              developerPercentage,
+			RewardsConfigByEpoch: []EpochRewardSettings{
+				{
+					EpochEnable:                      epoch0,
+					LeaderPercentage:                 leaderPercentage1,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+				{
+					EpochEnable:                      epoch1,
+					LeaderPercentage:                 leaderPercentage2,
+					ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+					ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+					DeveloperPercentage:              developerPercentage,
+				},
+			},
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -168,10 +253,20 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
-	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
-    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
+	[[RewardsSettings.RewardsConfigByEpoch]]
+	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"

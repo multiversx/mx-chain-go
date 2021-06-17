@@ -27,7 +27,7 @@ type SystemEIStub struct {
 	IsValidatorCalled                   func(blsKey []byte) bool
 	StatusFromValidatorStatisticsCalled func(blsKey []byte) string
 	ExecuteOnDestContextCalled          func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	DeploySystemSCCalled                func(baseContract []byte, newAddress []byte, caller []byte, value *big.Int, args [][]byte) (vmcommon.ReturnCode, error)
+	DeploySystemSCCalled                func(baseContract []byte, newAddress []byte, caller []byte, initFunction string, value *big.Int, args [][]byte) (vmcommon.ReturnCode, error)
 	GetStorageFromAddressCalled         func(address []byte, key []byte) []byte
 	SetStorageForAddressCalled          func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                     func(blsKey []byte) bool
@@ -35,6 +35,7 @@ type SystemEIStub struct {
 	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
 	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
 	GasLeftCalled                       func() uint64
+	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
 }
 
@@ -118,11 +119,12 @@ func (s *SystemEIStub) DeploySystemSC(
 	baseContract []byte,
 	newAddress []byte,
 	ownerAddress []byte,
+	initFunction string,
 	value *big.Int,
 	input [][]byte,
 ) (vmcommon.ReturnCode, error) {
 	if s.DeploySystemSCCalled != nil {
-		return s.DeploySystemSCCalled(baseContract, newAddress, ownerAddress, value, input)
+		return s.DeploySystemSCCalled(baseContract, newAddress, ownerAddress, initFunction, value, input)
 	}
 	return vmcommon.Ok, nil
 }
@@ -255,6 +257,13 @@ func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
 func (s *SystemEIStub) CleanCache() {
 	if s.CleanCacheCalled != nil {
 		s.CleanCacheCalled()
+	}
+}
+
+// CleanStorageUpdates -
+func (s *SystemEIStub) CleanStorageUpdates() {
+	if s.CleanStorageUpdatesCalled != nil {
+		s.CleanStorageUpdatesCalled()
 	}
 }
 
