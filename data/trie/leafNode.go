@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -367,7 +366,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	key []byte,
 	_ data.DBWriteCacher,
 	_ marshal.Marshalizer,
-	_ context.Context,
+	chanClose chan struct{},
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -381,9 +380,15 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 
 	trieLeaf := keyValStorage.NewKeyValStorage(nodeKey, ln.Value)
-	leavesChannel <- trieLeaf
-
-	return nil
+	for {
+		select {
+		case <-chanClose:
+			log.Trace("getAllLeavesOnChannel interrupted")
+			return nil
+		case leavesChannel <- trieLeaf:
+			return nil
+		}
+	}
 }
 
 func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {

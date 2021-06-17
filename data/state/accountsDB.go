@@ -75,7 +75,6 @@ type AccountsDB struct {
 
 	numCheckpoints       uint32
 	loadCodeMeasurements *loadingMeasurements
-	stopWatch            *core.StopWatch
 }
 
 var log = logger.GetOrCreate("state")
@@ -116,7 +115,6 @@ func NewAccountsDB(
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		numCheckpoints:         numCheckpoints,
-		stopWatch:              core.NewStopWatch(),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
@@ -962,12 +960,13 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.stopWatch.Start("snapshotState")
+		stopWatch := core.NewStopWatch()
+		stopWatch.Start("snapshotState")
 		trieStorageManager.TakeSnapshot(rootHash, createNewDb)
 		adb.snapshotUserAccountDataTrie(rootHash, true)
-		adb.stopWatch.Stop("snapshotState")
+		stopWatch.Stop("snapshotState")
 
-		log.Debug("snapshotState", adb.stopWatch.GetMeasurements()...)
+		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
@@ -1017,12 +1016,13 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.stopWatch.Start("setStateCheckpoint")
+		stopWatch := core.NewStopWatch()
+		stopWatch.Start("setStateCheckpoint")
 		trieStorageManager.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash, false)
-		adb.stopWatch.Stop("setStateCheckpoint")
+		stopWatch.Stop("setStateCheckpoint")
 
-		log.Debug("setStateCheckpoint", adb.stopWatch.GetMeasurements()...)
+		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
 		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()

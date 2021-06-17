@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -750,7 +749,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	key []byte, db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
-	ctx context.Context,
+	chanClose chan struct{},
 ) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -759,7 +758,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 
 	for i := range bn.children {
 		select {
-		case <-ctx.Done():
+		case <-chanClose:
 			log.Trace("getAllLeavesOnChannel interrupted")
 			return nil
 		default:
@@ -773,7 +772,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			}
 
 			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
 			if err != nil {
 				return err
 			}

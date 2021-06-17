@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -616,7 +615,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	key []byte, db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
-	ctx context.Context,
+	chanClose chan struct{},
 ) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -624,7 +623,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	}
 
 	select {
-	case <-ctx.Done():
+	case <-chanClose:
 		log.Trace("getAllLeavesOnChannel interrupted")
 		return nil
 	default:
@@ -634,7 +633,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
 		if err != nil {
 			return err
 		}

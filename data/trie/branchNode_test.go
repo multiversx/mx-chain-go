@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -81,7 +80,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldHashes:            make([][]byte, 0),
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: 5,
-		cancelFuncs:          map[string]context.CancelFunc{},
+		chanClose:            make(chan struct{}),
 	}
 
 	return tr, trieStorage
