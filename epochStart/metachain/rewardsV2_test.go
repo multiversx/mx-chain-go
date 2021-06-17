@@ -73,6 +73,17 @@ func TestNewRewardsCreator_NilEconomicsDataProvider(t *testing.T) {
 	require.Equal(t, epochStart.ErrNilEconomicsDataProvider, err)
 }
 
+func TestNewRewardsCreator_NilRewardsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	args.RewardsHandler = nil
+
+	rwd, err := NewRewardsCreatorV2(args)
+	require.True(t, check.IfNil(rwd))
+	require.Equal(t, epochStart.ErrNilRewardsHandler, err)
+}
+
 func TestNewRewardsCreatorOK(t *testing.T) {
 	t.Parallel()
 

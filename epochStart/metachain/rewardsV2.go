@@ -55,7 +55,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 		return nil, epochStart.ErrNilEconomicsDataProvider
 	}
 	if check.IfNil(args.RewardsHandler) {
-		return nil, epochStart.ErrInvalidRewardsTopUpGradientPoint
+		return nil, epochStart.ErrNilRewardsHandler
 	}
 
 	rc := &rewardsCreatorV2{
