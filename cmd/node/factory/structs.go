@@ -2198,7 +2198,7 @@ func newMetaBlockProcessor(
 		},
 
 		StakingDataProvider:   stakingDataProvider,
-		RewardsHandler: economicsData,
+		RewardsHandler:        economicsData,
 		EconomicsDataProvider: economicsDataProvider,
 		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
