@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,39 +71,6 @@ func TestNewRewardsCreator_NilEconomicsDataProvider(t *testing.T) {
 	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrNilEconomicsDataProvider, err)
-}
-
-func TestNewRewardsCreator_NegativeGradientPointShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsCreatorV2Arguments()
-	args.TopUpGradientPoint = big.NewInt(-1)
-
-	rwd, err := NewRewardsCreatorV2(args)
-	require.True(t, check.IfNil(rwd))
-	require.Equal(t, epochStart.ErrInvalidRewardsTopUpGradientPoint, err)
-}
-
-func TestNewRewardsCreator_NegativeTopUpRewardFactorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsCreatorV2Arguments()
-	args.TopUpRewardFactor = -1
-
-	rwd, err := NewRewardsCreatorV2(args)
-	require.True(t, check.IfNil(rwd))
-	require.Equal(t, epochStart.ErrInvalidRewardsTopUpFactor, err)
-}
-
-func TestNewRewardsCreator_SupraUnitaryTopUpRewardFactorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsCreatorV2Arguments()
-	args.TopUpRewardFactor = 1.5
-
-	rwd, err := NewRewardsCreatorV2(args)
-	require.True(t, check.IfNil(rwd))
-	require.Equal(t, epochStart.ErrInvalidRewardsTopUpFactor, err)
 }
 
 func TestNewRewardsCreatorOK(t *testing.T) {
@@ -588,7 +556,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	totalToDistribute, _ := big.NewInt(0).SetString("3000000000000000000000", 10)
-	topUpRewardsLimit := core.GetApproximatePercentageOfValue(totalToDistribute, rwd.topUpRewardFactor)
+	topUpRewardsLimit := core.GetApproximatePercentageOfValue(totalToDistribute, rwd.rewardsHandler.RewardsTopUpFactor())
 
 	totalTopUpEligible, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
 	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
@@ -1789,23 +1757,41 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 
 func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
+	topUpRewardFactor := 0.25
+
+	rewardsHandler := &economicsmocks.EconomicsHandlerStub{
+		RewardsTopUpGradientPointCalled: func() *big.Int {
+			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
+		},
+		RewardsTopUpFactorCalled: func() float64 {
+			return topUpRewardFactor
+		},
+	}
 	return RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 		StakingDataProvider:    &mock.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
-		TopUpRewardFactor:      0.25,
-		TopUpGradientPoint:     rewardsTopUpGradientPoint,
+		RewardsHandler:         rewardsHandler,
 	}
 }
 
 func getRewardsCreatorV35Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
+	topUpRewardFactor := 0.5
+
+	rewardsHandler := &economicsmocks.EconomicsHandlerStub{
+		RewardsTopUpGradientPointCalled: func() *big.Int {
+			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
+		},
+		RewardsTopUpFactorCalled: func() float64 {
+			return topUpRewardFactor
+		},
+	}
 	return RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 		StakingDataProvider:    &mock.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
-		TopUpRewardFactor:      0.5,
-		TopUpGradientPoint:     rewardsTopUpGradientPoint,
+		RewardsHandler:         rewardsHandler,
 	}
 }
 
