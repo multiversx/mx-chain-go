@@ -666,6 +666,22 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 
 // Close stops all the active goroutines started by the trie
 func (tr *patriciaMerkleTrie) Close() error {
-	close(tr.chanClose)
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if !isChannelClosed(tr.chanClose) {
+		close(tr.chanClose)
+	}
+
 	return nil
+}
+
+func isChannelClosed(ch chan struct{}) bool {
+	select {
+	case <-ch:
+		return true
+	default:
+	}
+
+	return false
 }
