@@ -36,7 +36,7 @@ func (tlp *printTxLogProcessor) Clean() {
 
 // GetAllCurrentLogs -
 func (tlp *printTxLogProcessor) GetAllCurrentLogs() map[string]data.LogHandler {
-	return nil
+	return map[string]data.LogHandler{}
 }
 
 // SaveLog -
@@ -47,7 +47,7 @@ func (tlp *printTxLogProcessor) SaveLog(txHash []byte, _ data.TransactionHandler
 
 	log.Info("printTxLogProcessor.SaveLog", "transaction hash", hex.EncodeToString(txHash))
 	for _, entry := range logEntries {
-		log.Debug("entry",
+		log.Debug("printTxLogProcessor.entry",
 			"identifier", string(entry.Identifier),
 			"address", entry.Address,
 			"topics", prepareTopics(entry.Topics))
