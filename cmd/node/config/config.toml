@@ -643,12 +643,6 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 3, Version = "v1.3" },
-            { StartEpoch = 4, Version = "v1.2" },
-            { StartEpoch = 5, Version = "v1.3" },
-            { StartEpoch = 6, Version = "v1.2" },
-            { StartEpoch = 7, Version = "v1.3" },
-            { StartEpoch = 8, Version = "v1.2" },
-            { StartEpoch = 9, Version = "v1.3" },
         ]
 
     [VirtualMachine.Querying]
@@ -656,12 +650,6 @@
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
             { StartEpoch = 3, Version = "v1.3" },
-            { StartEpoch = 4, Version = "v1.2" },
-            { StartEpoch = 5, Version = "v1.3" },
-            { StartEpoch = 6, Version = "v1.2" },
-            { StartEpoch = 7, Version = "v1.3" },
-            { StartEpoch = 8, Version = "v1.2" },
-            { StartEpoch = 9, Version = "v1.3" },
         ]
 
 [Hardfork]
