@@ -18,6 +18,7 @@ type memoryUsageRecord struct {
 	stats        runtime.MemStats
 	timestamp    time.Time
 	parentFolder string
+	identifier   string
 }
 
 func newMemoryUsageRecord(stats runtime.MemStats, timestamp time.Time, parentFolder string) *memoryUsageRecord {
@@ -26,6 +27,16 @@ func newMemoryUsageRecord(stats runtime.MemStats, timestamp time.Time, parentFol
 		timestamp:    timestamp,
 		parentFolder: parentFolder,
 	}
+}
+
+// WriteMemoryUseInfo will try to write the memstats in a file
+func WriteMemoryUseInfo(stats runtime.MemStats, timestamp time.Time, parentFolder string, identifier string) error {
+	memRecord := newMemoryUsageRecord(stats, timestamp, parentFolder)
+	if len(identifier) > 0 {
+		memRecord.identifier = identifier + "__" //as to align with the filename pattern
+	}
+
+	return memRecord.save()
 }
 
 func (record *memoryUsageRecord) save() error {
@@ -50,7 +61,7 @@ func (record *memoryUsageRecord) getFilename() string {
 	inUse := core.ConvertBytes(record.stats.HeapInuse)
 	inUse = strings.ReplaceAll(inUse, " ", "_")
 	inUse = strings.ReplaceAll(inUse, ".", "_")
-	filename := fmt.Sprintf("mem__%s__%s.pprof", timestamp, inUse)
+	filename := fmt.Sprintf("mem__%s%s__%s.pprof", record.identifier, timestamp, inUse)
 	return path.Join(record.parentFolder, filename)
 }
 

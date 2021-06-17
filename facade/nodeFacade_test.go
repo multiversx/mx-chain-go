@@ -744,16 +744,54 @@ func TestNodeFacade_GetAllIssuedESDTs(t *testing.T) {
 	expectedValue := []string{"value"}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func() ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return expectedValue, nil
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	res, err := nf.GetAllIssuedESDTs()
+	res, err := nf.GetAllIssuedESDTs("")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, res)
+}
+
+func TestNodeFacade_GetESDTsWithRole(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []string{"ABC-1q2w3e", "PPP-sc78gh"}
+	args := createMockArguments()
+
+	args.Node = &mock.NodeStub{
+		GetESDTsWithRoleCalled: func(address string, role string) ([]string, error) {
+			return expectedResponse, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(args)
+
+	res, err := nf.GetESDTsWithRole("address", "role")
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
+}
+
+func TestNodeFacade_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+	t.Parallel()
+
+	expectedResponse := []string{"ABC-1q2w3e", "PPP-sc78gh"}
+	args := createMockArguments()
+
+	args.Node = &mock.NodeStub{
+		GetNFTTokenIDsRegisteredByAddressCalled: func(address string) ([]string, error) {
+			return expectedResponse, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(args)
+
+	res, err := nf.GetNFTTokenIDsRegisteredByAddress("address")
+	require.NoError(t, err)
+	require.Equal(t, expectedResponse, res)
 }
 
 func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
@@ -762,14 +800,14 @@ func TestNodeFacade_GetAllIssuedESDTsWithError(t *testing.T) {
 	localErr := errors.New("local")
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetAllIssuedESDTsCalled: func() ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
 			return nil, localErr
 		},
 	}
 
 	nf, _ := NewNodeFacade(arg)
 
-	_, err := nf.GetAllIssuedESDTs()
+	_, err := nf.GetAllIssuedESDTs("")
 	assert.Equal(t, err, localErr)
 }
 

@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -151,10 +152,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	err = netMessenger.Bootstrap(ncf.bootstrapWaitSeconds)
+	err = netMessenger.Bootstrap()
 	if err != nil {
 		return nil, err
 	}
+
+	ncf.waitForBootstrap(ncf.bootstrapWaitSeconds)
 
 	return &networkComponents{
 		netMessenger:           netMessenger,
@@ -168,6 +171,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peerHonestyHandler:     peerHonestyHandler,
 		closeFunc:              cancelFunc,
 	}, nil
+}
+
+func (ncf *networkComponentsFactory) waitForBootstrap(numSecondsToWait uint32) {
+	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
+	time.Sleep(time.Duration(ncf.bootstrapWaitSeconds) * time.Second)
 }
 
 func (ncf *networkComponentsFactory) createPeerHonestyHandler(

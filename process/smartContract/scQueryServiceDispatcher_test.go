@@ -161,3 +161,30 @@ func TestScQueryServiceDispatcher_ShouldWorkInAConcurrentManner(t *testing.T) {
 	assert.Equal(t, uint32(numCalls), atomic.LoadUint32(&calledElement1))
 	assert.Equal(t, uint32(numCalls), atomic.LoadUint32(&calledElement2))
 }
+
+func TestNewScQueryServiceDispatcher_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	closeCalled1 := false
+	closeCalled2 := false
+	sqsd, _ := NewScQueryServiceDispatcher([]process.SCQueryService{
+		&mock.ScQueryStub{
+			CloseCalled: func() error {
+				closeCalled1 = true
+				return expectedErr
+			},
+		},
+		&mock.ScQueryStub{
+			CloseCalled: func() error {
+				closeCalled2 = true
+				return nil
+			},
+		},
+	})
+
+	err := sqsd.Close()
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, closeCalled1)
+	assert.True(t, closeCalled2)
+}

@@ -1421,3 +1421,10 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 
 	assert.Equal(t, 3, calls)
 }
+
+func TestMetaBootstrap_NilInnerBootstrapperClose(t *testing.T) {
+	t.Parallel()
+
+	bootstrapper := &sync.MetaBootstrap{}
+	assert.Nil(t, bootstrapper.Close())
+}

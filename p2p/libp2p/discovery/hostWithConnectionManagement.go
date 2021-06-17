@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -52,6 +53,11 @@ func (hwcm *hostWithConnectionManagement) canConnectToPeer(pid peer.ID) error {
 	}
 
 	return nil
+}
+
+// IsConnected returns true if the current host is connected to the provided peer info
+func (hwcm *hostWithConnectionManagement) IsConnected(pi peer.AddrInfo) bool {
+	return hwcm.Network().Connectedness(pi.ID) == network.Connected
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

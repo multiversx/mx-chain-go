@@ -49,10 +49,12 @@ type Facade struct {
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTDataCalled                       func(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetAllESDTTokensCalled                  func(address string) (map[string]*esdt.ESDigitalToken, error)
+	GetESDTsWithRoleCalled                  func(address string, role string) ([]string, error)
+	GetNFTTokenIDsRegisteredByAddressCalled func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                 func() ([]string, error)
+	GetAllIssuedESDTsCalled                 func(tokenType string) ([]string, error)
 	GetDirectStakedListHandler              func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                func() ([]*api.Delegator, error)
 	GetProofCalled                          func(string, string) ([][]byte, error)
@@ -174,11 +176,30 @@ func (f *Facade) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalTok
 	return make(map[string]*esdt.ESDigitalToken), nil
 }
 
-// GetAllIssuedESDTs -
-func (f *Facade) GetAllIssuedESDTs() ([]string, error) {
-	if f.GetAllIssuedESDTsCalled != nil {
-		return f.GetAllIssuedESDTsCalled()
+// GetNFTTokenIDsRegisteredByAddress -
+func (f *Facade) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	if f.GetNFTTokenIDsRegisteredByAddressCalled != nil {
+		return f.GetNFTTokenIDsRegisteredByAddressCalled(address)
 	}
+
+	return make([]string, 0), nil
+}
+
+// GetESDTsWithRole -
+func (f *Facade) GetESDTsWithRole(address string, role string) ([]string, error) {
+	if f.GetESDTsWithRoleCalled != nil {
+		return f.GetESDTsWithRoleCalled(address, role)
+	}
+
+	return make([]string, 0), nil
+}
+
+// GetAllIssuedESDTs -
+func (f *Facade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+	if f.GetAllIssuedESDTsCalled != nil {
+		return f.GetAllIssuedESDTsCalled(tokenType)
+	}
+
 	return make([]string, 0), nil
 }
 

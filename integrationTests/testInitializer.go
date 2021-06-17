@@ -57,6 +57,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -81,10 +83,12 @@ var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
 const (
-	shuffleBetweenShards = false
-	adaptivity           = false
-	hysteresis           = float32(0.2)
-	maxTrieLevelInMemory = uint(5)
+	shuffleBetweenShards    = false
+	adaptivity              = false
+	hysteresis              = float32(0.2)
+	maxTrieLevelInMemory    = uint(5)
+	delegationManagementKey = "delegationManagement"
+	delegationContractsList = "delegationContracts"
 )
 
 // Type defines account types to save in accounts trie
@@ -534,30 +538,36 @@ func CreateFullGenesisBlocks(
 	dataComponents.BlockChain = blkc
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		Core:                 coreComponents,
-		Data:                 dataComponents,
-		GenesisTime:          0,
-		StartEpochNum:        0,
-		Accounts:             accounts,
-		InitialNodesSetup:    nodesSetup,
-		Economics:            economics,
-		ShardCoordinator:     shardCoordinator,
-		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig: config.VirtualMachineConfig{},
-		TrieStorageManagers:  trieStorageManagers,
+		Core:              coreComponents,
+		Data:              dataComponents,
+		GenesisTime:       0,
+		StartEpochNum:     0,
+		Accounts:          accounts,
+		InitialNodesSetup: nodesSetup,
+		Economics:         economics,
+		ShardCoordinator:  shardCoordinator,
+		ValidatorAccounts: validatorAccounts,
+		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
+		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -573,8 +583,9 @@ func CreateFullGenesisBlocks(
 				MinUnstakeTokensValue:                "1",
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				MinCreationDeposit: "100",
-				MinStakeAmount:     "100",
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: DelegationManagerConfigChangeAddress,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -595,7 +606,7 @@ func CreateFullGenesisBlocks(
 				SCDeployEnableEpoch:                0,
 				RelayedTransactionsEnableEpoch:     0,
 				PenalizedTooMuchGasEnableEpoch:     0,
-				StakingV2Epoch:                     StakingV2Epoch,
+				StakingV2EnableEpoch:               StakingV2Epoch,
 				StakeEnableEpoch:                   0,
 				DelegationSmartContractEnableEpoch: 0,
 				DelegationManagerEnableEpoch:       0,
@@ -640,30 +651,36 @@ func CreateGenesisMetaBlock(
 	dataComponents.BlockChain = blkc
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		Core:                 coreComponents,
-		Data:                 dataComponents,
-		GenesisTime:          0,
-		Accounts:             accounts,
-		TrieStorageManagers:  trieStorageManagers,
-		InitialNodesSetup:    nodesSetup,
-		ShardCoordinator:     shardCoordinator,
-		Economics:            economics,
-		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig: config.VirtualMachineConfig{},
-		HardForkConfig:       config.HardforkConfig{},
+		Core:                coreComponents,
+		Data:                dataComponents,
+		GenesisTime:         0,
+		Accounts:            accounts,
+		TrieStorageManagers: trieStorageManagers,
+		InitialNodesSetup:   nodesSetup,
+		ShardCoordinator:    shardCoordinator,
+		Economics:           economics,
+		ValidatorAccounts:   validatorAccounts,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: DelegationManagerConfigChangeAddress,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -697,7 +714,7 @@ func CreateGenesisMetaBlock(
 				SCDeployEnableEpoch:                0,
 				RelayedTransactionsEnableEpoch:     0,
 				PenalizedTooMuchGasEnableEpoch:     0,
-				StakingV2Epoch:                     StakingV2Epoch,
+				StakingV2EnableEpoch:               StakingV2Epoch,
 				StakeEnableEpoch:                   0,
 				DelegationManagerEnableEpoch:       0,
 				DelegationSmartContractEnableEpoch: 0,
@@ -2342,5 +2359,47 @@ func WhiteListTxs(nodes []*TestProcessorNode, txs []*transaction.Transaction) {
 				n.WhiteListHandler.Add([][]byte{txHash})
 			}
 		}
+	}
+}
+
+// SaveDelegationManagerConfig will save a mock configuration for the delegation manager SC
+func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		managementData := &systemSmartContracts.DelegationManagement{
+			MinDeposit:          big.NewInt(100),
+			LastAddress:         vm.FirstDelegationSCAddress,
+			MinDelegationAmount: big.NewInt(1),
+		}
+		marshaledData, _ := TestMarshalizer.Marshal(managementData)
+		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationManagementKey), marshaledData)
+		_ = n.AccntState.SaveAccount(userAcc)
+		_, _ = n.AccntState.Commit()
+	}
+}
+
+// SaveDelegationContractsList will save a mock configuration for the delegation contracts list
+func SaveDelegationContractsList(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
+		userAcc, _ := acc.(state.UserAccountHandler)
+
+		managementData := &systemSmartContracts.DelegationContractList{
+			Addresses: [][]byte{[]byte("addr")},
+		}
+		marshaledData, _ := TestMarshalizer.Marshal(managementData)
+		_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(delegationContractsList), marshaledData)
+		_ = n.AccntState.SaveAccount(userAcc)
+		_, _ = n.AccntState.Commit()
 	}
 }

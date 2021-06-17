@@ -1074,6 +1074,7 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 			case "shardBlocks_0_META":
 				hdl = registerHandlerHeaders
 			case "txBlockBodies_0_1":
+			case "txBlockBodies_0_META":
 				hdl = registerHandlerMiniblocks
 			default:
 				return nil, errors.New("unexpected topic")

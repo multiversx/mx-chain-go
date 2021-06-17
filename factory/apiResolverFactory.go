@@ -84,7 +84,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		workingDir:          apiWorkingDir,
 	}
 
-	scQueryService, _, _, err := createScQueryService(argsSCQuery)
+	scQueryService, err := createScQueryService(argsSCQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -163,10 +163,10 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 
 func createScQueryService(
 	args *scQueryServiceArgs,
-) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
+) (process.SCQueryService, error) {
 	numConcurrentVms := args.generalConfig.VirtualMachine.Querying.NumConcurrentVMs
 	if numConcurrentVms < 1 {
-		return nil, nil, nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
 	}
 
 	argsQueryElem := &scQueryElementArgs{
@@ -184,16 +184,14 @@ func createScQueryService(
 	}
 
 	var err error
-	var vmFactory process.VirtualMachinesContainerFactory
-	var vmContainer process.VirtualMachinesContainer
 	var scQueryService process.SCQueryService
 
 	list := make([]process.SCQueryService, 0, numConcurrentVms)
 	for i := 0; i < numConcurrentVms; i++ {
 		argsQueryElem.index = i
-		scQueryService, vmFactory, vmContainer, err = createScQueryElement(argsQueryElem)
+		scQueryService, err = createScQueryElement(argsQueryElem)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 
 		list = append(list, scQueryService)
@@ -201,15 +199,15 @@ func createScQueryService(
 
 	sqQueryDispatcher, err := smartContract.NewScQueryServiceDispatcher(list)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return sqQueryDispatcher, vmFactory, vmContainer, nil
+	return sqQueryDispatcher, nil
 }
 
 func createScQueryElement(
 	args *scQueryElementArgs,
-) (process.SCQueryService, process.VirtualMachinesContainerFactory, process.VirtualMachinesContainer, error) {
+) (process.SCQueryService, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
@@ -220,13 +218,13 @@ func createScQueryElement(
 		args.processComponents.ShardCoordinator(),
 	)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	cacherCfg := storageFactory.GetCacherFromConfig(args.generalConfig.SmartContractDataPool)
 	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
@@ -261,54 +259,56 @@ func createScQueryElement(
 			ChanceComputer:      args.coreComponents.Rater(),
 			EpochNotifier:       args.coreComponents.EpochNotifier(),
 			EpochConfig:         args.epochConfig,
+			ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		}
 		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:                    args.gasScheduleNotifier,
 			ArgBlockChainHook:              argsHook,
+			EpochNotifier:                  args.coreComponents.EpochNotifier(),
 			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
 		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
-		log.Debug("apiResolver: enable epoch for ESDT functions", "epoch", args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch)
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		args.coreComponents.EconomicsData(),
-		vmFactory.BlockChainHookImpl(),
-		args.dataComponents.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      args.coreComponents.EconomicsData(),
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        args.dataComponents.Blockchain(),
+		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+	}
+	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	return scQueryService, vmFactory, vmContainer, err
+	return scQueryService, err
 }
 
 func createBuiltinFuncs(

@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -57,11 +58,23 @@ func InitMetrics(
 	initZeroString := "0"
 	appStatusHandler := statusHandlerUtils.StatusHandler()
 
+	leaderPercentage := float64(0)
+	rewardsConfigs := make([]config.EpochRewardSettings, len(economicsConfig.RewardsSettings.RewardsConfigByEpoch))
+	_ = copy(rewardsConfigs, economicsConfig.RewardsSettings.RewardsConfigByEpoch)
+
+	sort.Slice(rewardsConfigs, func(i, j int) bool {
+		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
+	})
+
+	if len(rewardsConfigs) > 0 {
+		leaderPercentage = rewardsConfigs[0].LeaderPercentage
+	}
+
 	appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNonce, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
@@ -89,7 +102,8 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNoncesPassedInCurrentEpoch, initUint)
-	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
+	// TODO: add all other rewards parameters
+	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(core.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
@@ -130,7 +144,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricGasPriceModifierEnableEpoch, uint64(enableEpochs.GasPriceModifierEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricRepairCallbackEnableEpoch, uint64(enableEpochs.RepairCallbackEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricBlockGasAndFreeRecheckEnableEpoch, uint64(enableEpochs.BlockGasAndFeesReCheckEnableEpoch))
-	appStatusHandler.SetUInt64Value(core.MetricStakingV2EnableEpoch, uint64(enableEpochs.StakingV2Epoch))
+	appStatusHandler.SetUInt64Value(core.MetricStakingV2EnableEpoch, uint64(enableEpochs.StakingV2EnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricStakeEnableEpoch, uint64(enableEpochs.StakeEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDoubleKeyProtectionEnableEpoch, uint64(enableEpochs.DoubleKeyProtectionEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricEsdtEnableEpoch, uint64(enableEpochs.ESDTEnableEpoch))

@@ -275,6 +275,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	nodesRewardInfo := rc.initNodesRewardsInfo(validatorsInfo)
 
 	// totalTopUpEligible is the cumulative top-up stake value for eligible nodes
+	totalStakeEligible := rc.stakingDataProvider.GetTotalStakeEligibleNodes()
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
 	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
@@ -285,6 +286,12 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	} else {
 		baseRewardsPerBlock = big.NewInt(0).Div(baseRewards, nbBlocks)
 	}
+
+	log.Info("rewards to be distributed",
+		"totalStakeEligible", totalStakeEligible.String(),
+		"totalTopUpEligible", totalTopUpEligible.String(),
+		"baseRewards", baseRewards.String(),
+		"topUpRewards", topUpRewards.String())
 
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 

@@ -112,8 +112,8 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	headerIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	go scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
-	go scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
+	scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -130,7 +130,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	}
 
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	go scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
+	scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil
 }

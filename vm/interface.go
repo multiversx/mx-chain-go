@@ -37,7 +37,7 @@ type SystemSCContainer interface {
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
+	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
@@ -55,6 +55,7 @@ type SystemEI interface {
 	StatusFromValidatorStatistics(blsKey []byte) string
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
+	CleanStorageUpdates()
 
 	IsInterfaceNil() bool
 }
@@ -120,4 +121,6 @@ type BlockchainHook interface {
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
 	Close() error
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
 }

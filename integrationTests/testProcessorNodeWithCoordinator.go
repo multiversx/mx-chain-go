@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -75,17 +76,18 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			cache, _ := lrucache.NewCache(10000)
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                numShards,
-				EligibleNodes:           validatorsMapForNodesCoordinator,
-				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     cache,
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+				ShardConsensusGroupSize:    shardConsensusGroupSize,
+				MetaConsensusGroupSize:     metaConsensusGroupSize,
+				Marshalizer:                TestMarshalizer,
+				Hasher:                     TestHasher,
+				ShardIDAsObserver:          shardId,
+				NbShards:                   numShards,
+				EligibleNodes:              validatorsMapForNodesCoordinator,
+				WaitingNodes:               waitingMapForNodesCoordinator,
+				SelfPublicKey:              v.PubKeyBytes(),
+				ConsensusGroupCache:        cache,
+				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+				WaitingListFixEnabledEpoch: 0,
 			}
 
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -204,6 +206,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

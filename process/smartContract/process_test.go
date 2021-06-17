@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -95,6 +96,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		BuiltInFunctions:     builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
+		ArwenChangeLocker:    &sync.RWMutex{},
 	}
 }
 
@@ -307,6 +309,17 @@ func TestNewSmartContractProcessor_NilBadTxForwarderShouldErr(t *testing.T) {
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilBadTxHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilLockerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArwenChangeLocker = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilLocker, err)
 }
 
 func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
@@ -3737,12 +3750,16 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				Denomination: 18,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:                 0.1,
-				DeveloperPercentage:              0.3,
-				ProtocolSustainabilityPercentage: 0.1,
-				ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
-				TopUpGradientPoint:               "3000000000000000000000000",
-				TopUpFactor:                      0.25,
+				RewardsConfigByEpoch: []config.EpochRewardSettings{
+					{
+						LeaderPercentage:                 0.1,
+						DeveloperPercentage:              0.3,
+						ProtocolSustainabilityPercentage: 0.1,
+						ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
+						TopUpGradientPoint:               "300000000000000000000",
+						TopUpFactor:                      0.25,
+					},
+				},
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "1500000000",
@@ -3787,9 +3804,9 @@ func computeExpectedResults(
 	expectedTotalFee.Add(expectedTotalFee, builtInFee)
 	var expectedDevFees *big.Int
 	if stakingV2Enabled {
-		expectedDevFees = core.GetIntTrimmedPercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+		expectedDevFees = core.GetIntTrimmedPercentageOfValue(processFee, args.Economics.RewardsSettings.RewardsConfigByEpoch[0].DeveloperPercentage)
 	} else {
-		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.RewardsConfigByEpoch[0].DeveloperPercentage)
 	}
 	return expectedTotalFee, expectedDevFees
 }

@@ -230,7 +230,7 @@ func registerShardsInformation(
 		numOfShards := uint64(coordinator.NumberOfShards())
 
 		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetachain, numOfShards)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
@@ -372,6 +372,7 @@ func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStat
 		for {
 			select {
 			case <-ctx.Done():
+				log.Debug("registerNetStatistics go routine is stopping...")
 				return
 			default:
 			}
@@ -403,6 +404,7 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 		for {
 			select {
 			case <-ctx.Done():
+				log.Debug("registerCpuStatistics go routine is stopping...")
 				return
 			default:
 			}
