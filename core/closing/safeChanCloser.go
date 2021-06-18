@@ -5,8 +5,8 @@ import (
 )
 
 type safeChanCloser struct {
-	mut     sync.Mutex
-	chClose chan struct{}
+	closeMut sync.Mutex
+	chClose  chan struct{}
 }
 
 // NewSafeChanCloser returns a safe chan closer instance
@@ -18,8 +18,8 @@ func NewSafeChanCloser() *safeChanCloser {
 
 // Close will close the channel in a safe concurrent manner
 func (closer *safeChanCloser) Close() {
-	closer.mut.Lock()
-	defer closer.mut.Unlock()
+	closer.closeMut.Lock()
+	defer closer.closeMut.Unlock()
 
 	select {
 	case <-closer.chClose:
