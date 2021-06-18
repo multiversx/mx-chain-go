@@ -239,6 +239,7 @@ type GeneralSettingsConfig struct {
 	ReturnDataToLastTransferEnableEpoch    uint32
 	SenderInOutTransferEnableEpoch         uint32
 	SaveJailedAlwaysEnableEpoch            uint32
+	RepairScrNonceIncrementEnableEpoch     uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

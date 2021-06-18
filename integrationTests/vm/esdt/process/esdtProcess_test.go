@@ -1839,8 +1839,6 @@ func TestESDTMultiTransferFromSC(t *testing.T) {
 }
 
 func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
-	logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE,arwen:TRACE")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1942,6 +1940,6 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 	esdtCommon.CheckAddressHasESDTTokens(t, nodes[1].OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }

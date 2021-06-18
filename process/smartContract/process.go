@@ -54,6 +54,7 @@ type scProcessor struct {
 	stakingV2EnableEpoch                uint32
 	returnDataToLastTransferEnableEpoch uint32
 	senderInOutTransferEnableEpoch      uint32
+	repairScrNonceIncrementEnableEpoch  uint32
 	flagStakingV2                       atomic.Flag
 	flagDeploy                          atomic.Flag
 	flagBuiltin                         atomic.Flag
@@ -61,6 +62,7 @@ type scProcessor struct {
 	flagRepairCallBackData              atomic.Flag
 	flagReturnDataToLastTransfer        atomic.Flag
 	flagSenderInOutTransfer             atomic.Flag
+	flagRepairScrNonceIncrement         atomic.Flag
 	isGenesisProcessing                 bool
 	arwenChangeLocker                   process.Locker
 
@@ -103,6 +105,7 @@ type ArgsNewSmartContractProcessor struct {
 	StakingV2EnableEpoch                uint32
 	ReturnDataToLastTransferEnableEpoch uint32
 	SenderInOutTransferEnableEpoch      uint32
+	RepairScrNonceIncrementEnableEpoch  uint32
 	EpochNotifier                       process.EpochNotifier
 	IsGenesisProcessing                 bool
 	ArwenChangeLocker                   process.Locker
@@ -196,6 +199,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 		arwenChangeLocker:                   args.ArwenChangeLocker,
+		repairScrNonceIncrementEnableEpoch:  args.RepairScrNonceIncrementEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -1699,11 +1703,12 @@ func createBaseSCR(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
+	transferNonce uint64,
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
 	result.Value = big.NewInt(0)
-	result.Nonce = outAcc.Nonce
+	result.Nonce = outAcc.Nonce + transferNonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
@@ -1770,7 +1775,7 @@ func (sc *scProcessor) createSmartContractResults(
 
 	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		result := createBaseSCR(outAcc, tx, txHash)
+		result := createBaseSCR(outAcc, tx, txHash, outAcc.Nonce)
 		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 
 		return false, []data.TransactionHandler{result}
@@ -1779,13 +1784,13 @@ func (sc *scProcessor) createSmartContractResults(
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
 		if callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
-			result := createBaseSCR(outAcc, tx, txHash)
+			result := createBaseSCR(outAcc, tx, txHash, outAcc.Nonce)
 			sc.addVMOutputResultsToSCR(vmOutput, result)
 			return true, []data.TransactionHandler{result}
 		}
 
 		if !sc.flagDeploy.IsSet() {
-			result := createBaseSCR(outAcc, tx, txHash)
+			result := createBaseSCR(outAcc, tx, txHash, outAcc.Nonce)
 			result.Code = outAcc.Code
 			result.Value.Set(outAcc.BalanceDelta)
 			if result.Value.Cmp(zero) > 0 {
@@ -1802,7 +1807,11 @@ func (sc *scProcessor) createSmartContractResults(
 	var result *smartContractResult.SmartContractResult
 	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
 	for i, outputTransfer := range outAcc.OutputTransfers {
-		result = createBaseSCR(outAcc, tx, txHash)
+		transferNonce := uint64(0)
+		if sc.flagRepairScrNonceIncrement.IsSet() {
+			transferNonce = uint64(i)
+		}
+		result = createBaseSCR(outAcc, tx, txHash, transferNonce)
 
 		if outputTransfer.Value != nil {
 			result.Value.Set(outputTransfer.Value)
@@ -2327,6 +2336,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 
 	sc.flagSenderInOutTransfer.Toggle(epoch >= sc.senderInOutTransferEnableEpoch)
 	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
+
+	sc.flagRepairScrNonceIncrement.Toggle(epoch >= sc.repairScrNonceIncrementEnableEpoch)
+	log.Debug("scProcessor: repair scr nonce increment", "enabled", sc.flagRepairScrNonceIncrement.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

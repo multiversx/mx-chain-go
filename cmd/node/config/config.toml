@@ -67,6 +67,10 @@
    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
    WaitingListFixEnableEpoch = 3
 
+   # RepairScrNonceIncrementEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
+   # is enabled. The fix is done by adding an extra increment.
+   RepairScrNonceIncrementEnableEpoch = 3
+
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [

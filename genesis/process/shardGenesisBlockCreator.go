@@ -390,6 +390,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		RepairCallbackEnableEpoch:           generalConfig.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
+		RepairScrNonceIncrementEnableEpoch:  generalConfig.RepairScrNonceIncrementEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		ArwenChangeLocker:                   arwenChangeLocker,
