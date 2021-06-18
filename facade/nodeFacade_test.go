@@ -279,11 +279,11 @@ func TestNodeFacade_SetSyncer(t *testing.T) {
 func TestNodeFacade_GetAccount(t *testing.T) {
 	t.Parallel()
 
-	called := 0
+	getAccountCalled := false
 	node := &mock.NodeStub{}
-	node.GetAccountHandler = func(address string) (state.UserAccountHandler, error) {
-		called++
-		return nil, nil
+	node.GetAccountHandler = func(address string) (api.AccountResponse, error) {
+		getAccountCalled = true
+		return api.AccountResponse{}, nil
 	}
 
 	arg := createMockArguments()
@@ -291,7 +291,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	_, _ = nf.GetAccount("test")
-	assert.Equal(t, called, 1)
+	assert.True(t, getAccountCalled)
 }
 
 func TestNodeFacade_GetUsername(t *testing.T) {
