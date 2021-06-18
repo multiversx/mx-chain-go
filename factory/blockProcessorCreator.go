@@ -742,8 +742,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			DelegationSystemSCEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		},
 		StakingDataProvider:   stakingDataProvider,
-		TopUpRewardFactor:     pcf.coreData.EconomicsData().RewardsTopUpFactor(),
-		TopUpGradientPoint:    pcf.coreData.EconomicsData().RewardsTopUpGradientPoint(),
+		RewardsHandler:        pcf.coreData.EconomicsData(),
 		EconomicsDataProvider: economicsDataProvider,
 		EpochEnableV2:         pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
