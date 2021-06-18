@@ -1461,6 +1461,7 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 		if err == state.ErrAccNotFound {
 			return api.AccountResponse{
 				Address: address,
+				Balance: "0",
 			}, nil
 		}
 		return api.AccountResponse{}, errors.New("could not fetch sender address from provided param: " + err.Error())
