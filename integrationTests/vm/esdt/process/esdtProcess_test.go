@@ -1923,21 +1923,11 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 
 	// __________
 	txData := txDataBuilder.NewBuilder()
-	txData.Func("getAllKnownTokens")
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		scAddress,
-		txData.ToString(),
-		integrationTests.AdditionalGasLimit,
-	)
-
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
-
-	// __________
-	txData.Clear()
 	txData.Func("batchTransferEsdtToken")
+
+	txData.Bytes(nodes[1].OwnAccount.Address)
+	txData.Bytes(tokenIdentifier)
+	txData.Int64(10)
 
 	txData.Bytes(nodes[1].OwnAccount.Address)
 	txData.Bytes(tokenIdentifier)
@@ -1953,4 +1943,5 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+	esdtCommon.CheckAddressHasESDTTokens(t, nodes[1].OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }
