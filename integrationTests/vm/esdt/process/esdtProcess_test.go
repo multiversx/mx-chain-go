@@ -1892,6 +1892,9 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
 	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, string(tokenIdentifier), initialSupply)
 
+	log := logger.GetOrCreate("esdttest")
+	log.Info("tokenIdentifier", "id", string(tokenIdentifier))
+
 	// deploy the smart contract
 	scCode := arwen.GetSCCode("../testdata/multi-transfer-esdt.wasm")
 	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(
@@ -1904,7 +1907,7 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
-		arwen.CreateDeployTxData(scCode),
+		arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(tokenIdentifier),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -1916,9 +1919,22 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 		[]byte(core.ESDTRoleLocalMint),
 	}
 	esdtCommon.SetRoles(nodes, scAddress, tokenIdentifier, roles)
-
 	// __________
 	txData := txDataBuilder.NewBuilder()
+	txData.Func("getAllKnownTokens")
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// __________
+	txData.Clear()
 	txData.Func("batchTransferEsdtToken")
 
 	txData.Bytes(nodes[1].OwnAccount.Address)
