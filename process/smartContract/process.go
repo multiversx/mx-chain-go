@@ -392,11 +392,6 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, err
 	}
 
-	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
-	if ignorableError != nil {
-		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
-	}
-
 	return vmOutput, nil
 }
 
@@ -418,6 +413,11 @@ func (sc *scProcessor) finishSCExecution(
 	if err != nil {
 		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
+	}
+
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)

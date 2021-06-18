@@ -79,6 +79,7 @@ import (
 	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -194,7 +195,7 @@ type TestKeyPair struct {
 	Pk crypto.PublicKey
 }
 
-//CryptoParams holds crypto parametres
+// CryptoParams holds crypto parametres
 type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
 	Keys         map[uint32][]*TestKeyPair
@@ -284,7 +285,7 @@ type TestProcessorNode struct {
 
 	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
 
-	//Node is used to call the functionality already implemented in it
+	// Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
 
@@ -309,6 +310,8 @@ type TestProcessorNode struct {
 	PenalizedTooMuchGasEnableEpoch    uint32
 	BlockGasAndFeesReCheckEnableEpoch uint32
 	UseValidVmBlsSigVerifier          bool
+
+	TransactionLogProcessor process.TransactionLogProcessor
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -397,6 +400,7 @@ func newBaseTestProcessorNode(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &sync.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -574,10 +578,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 				return 1
 			},
 		},
-		MinTransactionVersion: MinTransactionVersion,
-		HistoryRepository:     &testscommon.HistoryRepositoryStub{},
-		EpochNotifier:         forking.NewGenericEpochNotifier(),
-		ArwenChangeLocker:     &sync.RWMutex{},
+		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ArwenChangeLocker:       &sync.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -1426,7 +1431,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasHandler:                     tpn.GasHandler,
 		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:                tpn.TransactionLogProcessor,
 		BadTxForwarder:                 badBlocksHandler,
 		EpochNotifier:                  tpn.EpochNotifier,
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
@@ -1496,6 +1501,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 }
@@ -1655,7 +1661,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GasHandler:                     tpn.GasHandler,
 		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
+		TxLogsProcessor:                tpn.TransactionLogProcessor,
 		BadTxForwarder:                 badBlocksHandler,
 		EpochNotifier:                  tpn.EpochNotifier,
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
@@ -1714,6 +1720,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EconomicsFee:                      tpn.EconomicsData,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: tpn.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          tpn.TransactionLogProcessor,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 }
@@ -1975,8 +1982,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				UserAccountsDB:                tpn.AccntState,
 			},
 			StakingDataProvider:   stakingDataProvider,
-			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
-			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 			EpochEnableV2:         StakingV2Epoch,
 		}
