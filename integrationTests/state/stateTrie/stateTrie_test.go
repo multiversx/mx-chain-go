@@ -35,9 +35,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getNewTrieStorageManagerArgs() trie.NewTrieStorageManagerArgs {
+	return trie.NewTrieStorageManagerArgs{
+		DB:                     memorydb.New(),
+		Marshalizer:            integrationTests.TestMarshalizer,
+		Hasher:                 integrationTests.TestHasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+}
 
 func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
@@ -251,7 +263,10 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, config.TrieStorageManagerConfig{})
+	args := getNewTrieStorageManagerArgs()
+	args.DB = store
+	args.Hasher = hasher
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	maxTrieLevelInMemory := uint(5)
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, maxTrieLevelInMemory)
@@ -314,7 +329,9 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, config.TrieStorageManagerConfig{})
+	args := getNewTrieStorageManagerArgs()
+	args.DB = mu
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
@@ -414,8 +431,6 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(rootHash))
 	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 }
-
-//------- Revert
 
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
@@ -1038,7 +1053,9 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, config.TrieStorageManagerConfig{})
+	args := getNewTrieStorageManagerArgs()
+	args.DB = store
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
@@ -1120,7 +1137,9 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, generalCfg)
+	args := getNewTrieStorageManagerArgs()
+	args.GeneralConfig = generalCfg
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
@@ -1163,7 +1182,9 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, generalCfg)
+	args := getNewTrieStorageManagerArgs()
+	args.GeneralConfig = generalCfg
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
@@ -1218,7 +1239,9 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, generalCfg)
+	args := getNewTrieStorageManagerArgs()
+	args.GeneralConfig = generalCfg
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)

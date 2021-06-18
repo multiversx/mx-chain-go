@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -198,7 +197,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	return nil
 }
 
-func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -209,11 +208,22 @@ func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb 
 		return err
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb)
+	hash, err := computeAndSetNodeHash(en)
 	if err != nil {
 		return err
 	}
 
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
+	}
+
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes)
+	if err != nil {
+		return err
+	}
+
+	checkpointHashes.Remove(hash)
 	return en.saveToStorage(targetDb)
 }
 
@@ -605,7 +615,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	key []byte, db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
-	ctx context.Context,
+	chanClose chan struct{},
 ) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -613,7 +623,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 	}
 
 	select {
-	case <-ctx.Done():
+	case <-chanClose:
 		log.Trace("getAllLeavesOnChannel interrupted")
 		return nil
 	default:
@@ -623,7 +633,7 @@ func (en *extensionNode) getAllLeavesOnChannel(
 		}
 
 		childKey := append(key, en.Key...)
-		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
 		if err != nil {
 			return err
 		}

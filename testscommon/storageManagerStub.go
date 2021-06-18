@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -7,7 +7,7 @@ import (
 // StorageManagerStub -
 type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
-	TakeSnapshotCalled                func([]byte)
+	TakeSnapshotCalled                func([]byte, bool)
 	SetCheckpointCalled               func([]byte)
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
@@ -15,6 +15,8 @@ type StorageManagerStub struct {
 	IsPruningBlockedCalled            func() bool
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
+	AddDirtyCheckpointHashesCalled    func([]byte, data.ModifiedHashes) bool
+	RemoveCalled                      func([]byte) error
 	IsInterfaceNilCalled              func() bool
 }
 
@@ -27,13 +29,17 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 }
 
 // TakeSnapshot -
-func (sms *StorageManagerStub) TakeSnapshot([]byte) {
-
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, newDB bool) {
+	if sms.TakeSnapshotCalled != nil {
+		sms.TakeSnapshotCalled(rootHash, newDB)
+	}
 }
 
 // SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint([]byte) {
-
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte) {
+	if sms.SetCheckpointCalled != nil {
+		sms.SetCheckpointCalled(rootHash)
+	}
 }
 
 // GetSnapshotThatContainsHash -
@@ -61,16 +67,6 @@ func (sms *StorageManagerStub) IsPruningBlocked() bool {
 	return false
 }
 
-// GetSnapshotDbBatchDelay -
-func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
-	return 0
-}
-
-// Close -
-func (sms *StorageManagerStub) Close() error {
-	return nil
-}
-
 // EnterPruningBufferingMode -
 func (sms *StorageManagerStub) EnterPruningBufferingMode() {
 	if sms.EnterPruningBufferingModeCalled != nil {
@@ -83,6 +79,34 @@ func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 	if sms.ExitPruningBufferingModeCalled != nil {
 		sms.ExitPruningBufferingModeCalled()
 	}
+}
+
+// AddDirtyCheckpointHashes -
+func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes data.ModifiedHashes) bool {
+	if sms.AddDirtyCheckpointHashesCalled != nil {
+		return sms.AddDirtyCheckpointHashesCalled(rootHash, hashes)
+	}
+
+	return false
+}
+
+// Remove -
+func (sms *StorageManagerStub) Remove(hash []byte) error {
+	if sms.RemoveCalled != nil {
+		return sms.RemoveCalled(hash)
+	}
+
+	return nil
+}
+
+// GetSnapshotDbBatchDelay -
+func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
+	return 0
+}
+
+// Close -
+func (sms *StorageManagerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -

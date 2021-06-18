@@ -1,7 +1,6 @@
 package trie_test
 
 import (
-	"context"
 	cryptoRand "crypto/rand"
 	"fmt"
 	"io/ioutil"
@@ -15,10 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,8 +51,15 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, generalCfg)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     db,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
+	}
+	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 	maxTrieLevelInMemory := uint(5)
 
 	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
@@ -423,7 +431,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	storageManager := tr.GetStorageManager()
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true)
 	time.Sleep(time.Second)
 
 	err := storageManager.Database().Remove(rootHash)
@@ -478,7 +486,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	storageManager := tr.GetStorageManager()
 
 	rootHash, _ := tr.RootHash()
-	storageManager.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash, true)
 	time.Sleep(time.Second)
 
 	err := storageManager.Database().Remove(rootHash)
@@ -505,7 +513,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *t
 	getDbCalled := false
 	getSnapshotCalled := false
 
-	trieStorageManager := &mock.StorageManagerStub{
+	trieStorageManager := &testscommon.StorageManagerStub{
 		GetDbThatContainsHashCalled: func(bytes []byte) data.DBWriteCacher {
 			getDbCalled = true
 			return nil
@@ -551,7 +559,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -571,7 +579,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 

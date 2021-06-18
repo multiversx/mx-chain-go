@@ -28,6 +28,7 @@ import (
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	dataTx "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -277,19 +278,21 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(
-		store,
-		marsh,
-		testHasher,
-		config.DBConfig{
+	args := trie.NewTrieStorageManagerArgs{
+		DB:          store,
+		Marshalizer: marsh,
+		Hasher:      testHasher,
+		SnapshotDbConfig: config.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "MemoryDB",
 			BatchDelaySeconds: 30,
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,
 		},
-		generalCfg,
-	)
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(testHasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)

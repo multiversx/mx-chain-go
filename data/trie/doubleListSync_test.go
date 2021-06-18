@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -48,7 +49,15 @@ func createTrieStorageManager(store storage.Storer) (data.StorageManager, storag
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	tsm, _ := NewTrieStorageManager(store, marshalizer, hasher, cfg, generalCfg)
+	args := NewTrieStorageManagerArgs{
+		DB:                     store,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+	}
+	tsm, _ := NewTrieStorageManager(args)
 
 	return tsm, store
 }

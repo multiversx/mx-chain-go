@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -286,10 +285,20 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
-func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
+	}
+
+	hash, err := computeAndSetNodeHash(bn)
+	if err != nil {
+		return err
+	}
+
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
 	}
 
 	for i := range bn.children {
@@ -302,12 +311,13 @@ func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb dat
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes)
 		if err != nil {
 			return err
 		}
 	}
 
+	checkpointHashes.Remove(hash)
 	return bn.saveToStorage(targetDb)
 }
 
@@ -739,7 +749,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	leavesChannel chan core.KeyValueHolder,
 	key []byte, db data.DBWriteCacher,
 	marshalizer marshal.Marshalizer,
-	ctx context.Context,
+	chanClose chan struct{},
 ) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -748,7 +758,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 
 	for i := range bn.children {
 		select {
-		case <-ctx.Done():
+		case <-chanClose:
 			log.Trace("getAllLeavesOnChannel interrupted")
 			return nil
 		default:
@@ -762,7 +772,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			}
 
 			childKey := append(key, byte(i))
-			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, chanClose)
 			if err != nil {
 				return err
 			}

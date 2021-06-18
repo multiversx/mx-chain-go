@@ -21,6 +21,16 @@ const (
 // ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
 type ModifiedHashes map[string]struct{}
 
+// Clone is used to create a clone of the map
+func (mh ModifiedHashes) Clone() ModifiedHashes {
+	newMap := make(ModifiedHashes)
+	for key := range mh {
+		newMap[key] = struct{}{}
+	}
+
+	return newMap
+}
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -172,11 +182,12 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, error)
 	VerifyProof(key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -198,7 +209,7 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	TakeSnapshot([]byte)
+	TakeSnapshot([]byte, bool)
 	SetCheckpoint([]byte)
 	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
@@ -206,6 +217,8 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
+	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
+	Remove(hash []byte) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -269,5 +282,14 @@ type SyncStatisticsHandler interface {
 	SetNumMissing(rootHash []byte, value int)
 	NumReceived() int
 	NumMissing() int
+	IsInterfaceNil() bool
+}
+
+// CheckpointHashesHolder is used to hold the hashes that need to be committed in the future state checkpoint
+type CheckpointHashesHolder interface {
+	Put(rootHash []byte, hashes ModifiedHashes) bool
+	RemoveCommitted(lastCommittedRootHash []byte)
+	Remove(hash []byte)
+	ShouldCommit(hash []byte) bool
 	IsInterfaceNil() bool
 }

@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -124,23 +123,31 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ data.DBWriteCacher, targetDb d
 	ln.dirty = false
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
-func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
 	}
 
-	//TODO add early return if should not commit to checkpoint db and set commited flag to true
+	hash, err := computeAndSetNodeHash(ln)
+	if err != nil {
+		return err
+	}
 
+	shouldCommit := checkpointHashes.ShouldCommit(hash)
+	if !shouldCommit {
+		return nil
+	}
+
+	checkpointHashes.Remove(hash)
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
+
 func (ln *leafNode) commitSnapshot(_ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
-
-	//TODO set commited flag to true
 
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
@@ -359,7 +366,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	key []byte,
 	_ data.DBWriteCacher,
 	_ marshal.Marshalizer,
-	_ context.Context,
+	chanClose chan struct{},
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -373,9 +380,15 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 
 	trieLeaf := keyValStorage.NewKeyValStorage(nodeKey, ln.Value)
-	leavesChannel <- trieLeaf
-
-	return nil
+	for {
+		select {
+		case <-chanClose:
+			log.Trace("getAllLeavesOnChannel interrupted")
+			return nil
+		case leavesChannel <- trieLeaf:
+			return nil
+		}
+	}
 }
 
 func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {

@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -40,6 +39,7 @@ type patriciaMerkleTrie struct {
 	oldHashes            [][]byte
 	oldRoot              []byte
 	maxTrieLevelInMemory uint
+	chanClose            chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -70,6 +70,7 @@ func NewTrie(
 		oldHashes:            make([][]byte, 0),
 		oldRoot:              make([]byte, 0),
 		maxTrieLevelInMemory: maxTrieLevelInMemory,
+		chanClose:            make(chan struct{}),
 	}, nil
 }
 
@@ -481,11 +482,10 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 }
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
-func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
 	leavesChannel := make(chan core.KeyValueHolder, 100)
 
 	tr.mutOperation.RLock()
-
 	newTrie, err := tr.recreate(rootHash)
 	if err != nil {
 		tr.mutOperation.RUnlock()
@@ -503,14 +503,20 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.trieStorage.Database(), tr.marshalizer, ctx)
+		err = newTrie.root.getAllLeavesOnChannel(
+			leavesChannel,
+			[]byte{},
+			tr.trieStorage.Database(),
+			tr.marshalizer,
+			tr.chanClose,
+		)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
-		tr.mutOperation.RLock()
+		tr.mutOperation.Lock()
 		tr.trieStorage.ExitPruningBufferingMode()
-		tr.mutOperation.RUnlock()
+		tr.mutOperation.Unlock()
 
 		close(leavesChannel)
 	}()
@@ -656,4 +662,26 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	defer tr.mutOperation.Unlock()
 
 	return tr.oldRoot
+}
+
+// Close stops all the active goroutines started by the trie
+func (tr *patriciaMerkleTrie) Close() error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if !isChannelClosed(tr.chanClose) {
+		close(tr.chanClose)
+	}
+
+	return nil
+}
+
+func isChannelClosed(ch chan struct{}) bool {
+	select {
+	case <-ch:
+		return true
+	default:
+	}
+
+	return false
 }

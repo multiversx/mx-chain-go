@@ -93,7 +93,7 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 	adb, err := state.NewPeerAccountsDB(
 		&testscommon.TrieStub{
 			GetStorageManagerCalled: func() data.StorageManager {
-				return &mock.StorageManagerStub{
+				return &testscommon.StorageManagerStub{
 					DatabaseCalled: func() data.DBWriteCacher {
 						return mock.NewMemDbMock()
 					},

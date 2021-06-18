@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"context"
 	"io"
 	"sync"
 	"time"
@@ -38,13 +37,13 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() data.NumNodesDTO
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
-	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error
 	commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 
 	getMarshalizer() marshal.Marshalizer
@@ -57,7 +56,7 @@ type node interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error
 	commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 }
 

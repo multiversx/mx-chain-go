@@ -299,6 +299,7 @@
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
     KeepSnapshots = false
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]

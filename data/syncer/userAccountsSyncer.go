@@ -91,9 +91,13 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
+	defer func() {
+		_ = mainTrie.Close()
+	}()
+
 	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
 
-	rootHashes, err := u.findAllAccountRootHashes(mainTrie, ctx)
+	rootHashes, err := u.findAllAccountRootHashes(mainTrie)
 	if err != nil {
 		return err
 	}
@@ -187,13 +191,13 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	return nil
 }
 
-func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie, ctx context.Context) ([][]byte, error) {
+func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie) ([][]byte, error) {
 	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err
 	}
 
-	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash, ctx)
+	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash)
 	if err != nil {
 		return nil, err
 	}

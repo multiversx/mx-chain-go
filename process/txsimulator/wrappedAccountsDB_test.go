@@ -93,11 +93,11 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	roAccDb.CancelPrune(nil, data.NewRoot)
 
-	roAccDb.SnapshotState(nil, nil)
+	roAccDb.SnapshotState(nil)
 
-	roAccDb.SetStateCheckpoint(nil, nil)
+	roAccDb.SetStateCheckpoint(nil)
 
-	_, err = roAccDb.RecreateAllTries(nil, nil)
+	_, err = roAccDb.RecreateAllTries(nil)
 	require.NoError(t, err)
 }
 
@@ -155,7 +155,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
-	actualAllLeaves, err := roAccDb.GetAllLeaves(nil, nil)
+	actualAllLeaves, err := roAccDb.GetAllLeaves(nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedLeavesChannel, actualAllLeaves)
 

@@ -1,14 +1,13 @@
 package peer
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -560,8 +559,7 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	ctx := context.Background()
-	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash, ctx)
+	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
 		return nil, err
 	}

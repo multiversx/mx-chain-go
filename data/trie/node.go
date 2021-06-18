@@ -70,16 +70,12 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
-	key := n.getHash()
-	if key == nil {
-		err := n.setHash()
-		if err != nil {
-			return err
-		}
-		key = n.getHash()
+	key, err := computeAndSetNodeHash(n)
+	if err != nil {
+		return err
 	}
 
-	n, err := n.getCollapsed()
+	n, err = n.getCollapsed()
 	if err != nil {
 		return err
 	}
@@ -92,6 +88,21 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	err = db.Put(key, val)
 
 	return err
+}
+
+func computeAndSetNodeHash(n node) ([]byte, error) {
+	key := n.getHash()
+	if len(key) != 0 {
+		return key, nil
+	}
+
+	err := n.setHash()
+	if err != nil {
+		return nil, err
+	}
+	key = n.getHash()
+
+	return key, nil
 }
 
 func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {

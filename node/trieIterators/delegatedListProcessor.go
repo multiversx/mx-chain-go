@@ -1,7 +1,6 @@
 package trieIterators
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -126,8 +125,7 @@ func (dlp *delegatedListProcessor) getDelegatorsList(delegationSC []byte) ([][]b
 		return nil, fmt.Errorf("%w for delegationSC %s", err, hex.EncodeToString(delegationSC))
 	}
 
-	ctx := context.Background()
-	chLeaves, err := delegatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := delegatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
