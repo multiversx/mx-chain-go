@@ -364,7 +364,9 @@ func (nf *nodeFacade) GetAccount(address string) (apiData.AccountResponse, error
 		return apiData.AccountResponse{}, err
 	}
 
-	accountResponse.Code = hex.EncodeToString(nf.node.GetCode(accountResponse.CodeHash))
+	codeHash := accountResponse.CodeHash
+	code := nf.node.GetCode(codeHash)
+	accountResponse.Code = hex.EncodeToString(code)
 	return accountResponse, nil
 }
 
