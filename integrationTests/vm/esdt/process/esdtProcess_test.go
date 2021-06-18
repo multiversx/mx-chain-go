@@ -1919,6 +1919,8 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 		[]byte(core.ESDTRoleLocalMint),
 	}
 	esdtCommon.SetRoles(nodes, scAddress, tokenIdentifier, roles)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+
 	// __________
 	txData := txDataBuilder.NewBuilder()
 	txData.Func("getAllKnownTokens")
