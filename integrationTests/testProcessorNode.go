@@ -1975,8 +1975,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				UserAccountsDB:                tpn.AccntState,
 			},
 			StakingDataProvider:   stakingDataProvider,
-			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
-			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 			EpochEnableV2:         StakingV2Epoch,
 		}
