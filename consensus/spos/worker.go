@@ -68,9 +68,9 @@ type Worker struct {
 	poolAdder        PoolAdder
 
 	cancelFunc                func()
-	closingChan               chan struct{}
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
+	closer                    core.SafeCloser
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -143,7 +143,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
-		closingChan:              make(chan struct{}),
+		closer:                   closing.NewSafeChanCloser(),
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -560,7 +560,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		cnsDtaList[i] = nil
 		select {
 		case wrk.executeMessageChannel <- cnsDta:
-		case <-wrk.closingChan:
+		case <-wrk.closer.ChanClose():
 			log.Debug("worker's executeMessage go routine is stopping...")
 			return
 		}
@@ -650,9 +650,9 @@ func (wrk *Worker) ExecuteStoredMessages() {
 
 // Close will close the endless running go routine
 func (wrk *Worker) Close() error {
-	//calling close on the closingChan should be the last instruction called
+	//calling close on the SafeCloser instance should be the last instruction called
 	//(just to close some go routines started as edge cases that would otherwise hang)
-	defer close(wrk.closingChan)
+	defer wrk.closer.Close()
 
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
