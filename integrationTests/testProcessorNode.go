@@ -333,8 +333,7 @@ func newBaseTestProcessorNode(
 	sk, pk := kg.GeneratePair()
 
 	pksBytes := CreatePkBytes(maxShards)
-	address := make([]byte, 32)
-	address = []byte("afafafafafafafafafafafafafafafaf")
+	address := []byte("afafafafafafafafafafafafafafafaf")
 	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
@@ -1915,8 +1914,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				UserAccountsDB:                tpn.AccntState,
 			},
 			StakingDataProvider:   stakingDataProvider,
-			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
-			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 			EpochEnableV2:         StakingV2Epoch,
 		}
