@@ -355,10 +355,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		RepairCallbackEnableEpoch:           generalConfig.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
-		RepairScrNonceIncrementEnableEpoch:  generalConfig.RepairScrNonceIncrementEnableEpoch,
-		IsGenesisProcessing:                 true,
-		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
-		ArwenChangeLocker:                   &sync.RWMutex{},
+		IncrementSCRNonceInMultiTransferEnableEpoch: generalConfig.IncrementSCRNonceInMultiTransferEnableEpoch,
+		IsGenesisProcessing:                         true,
+		StakingV2EnableEpoch:                        arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:                           &sync.RWMutex{},
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -1889,9 +1888,6 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
 	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, string(tokenIdentifier), initialSupply)
-
-	log := logger.GetOrCreate("esdttest")
-	log.Info("tokenIdentifier", "id", string(tokenIdentifier))
 
 	// deploy the smart contract
 	scCode := arwen.GetSCCode("../testdata/multi-transfer-esdt.wasm")
