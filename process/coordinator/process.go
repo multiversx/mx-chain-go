@@ -45,6 +45,7 @@ type ArgTransactionCoordinator struct {
 	BalanceComputation                preprocess.BalanceComputationHandler
 	EconomicsFee                      process.FeeHandler
 	TxTypeHandler                     process.TxTypeHandler
+	TransactionsLogProcessor          process.TransactionLogProcessor
 	BlockGasAndFeesReCheckEnableEpoch uint32
 }
 
@@ -74,6 +75,7 @@ type transactionCoordinator struct {
 	requestedItemsHandler             process.TimeCacher
 	economicsFee                      process.FeeHandler
 	txTypeHandler                     process.TxTypeHandler
+	transactionsLogProcessor          process.TransactionLogProcessor
 	blockGasAndFeesReCheckEnableEpoch uint32
 }
 
@@ -96,6 +98,7 @@ func NewTransactionCoordinator(arguments ArgTransactionCoordinator) (*transactio
 		economicsFee:                      arguments.EconomicsFee,
 		txTypeHandler:                     arguments.TxTypeHandler,
 		blockGasAndFeesReCheckEnableEpoch: arguments.BlockGasAndFeesReCheckEnableEpoch,
+		transactionsLogProcessor:          arguments.TransactionsLogProcessor,
 	}
 	log.Debug("coordinator/process: enable epoch for block gas and fees re-check", "epoch", tc.blockGasAndFeesReCheckEnableEpoch)
 
@@ -703,6 +706,8 @@ func (tc *transactionCoordinator) CreateBlockStarted() {
 		value.CreateBlockStarted()
 	}
 	tc.mutInterimProcessors.RUnlock()
+
+	tc.transactionsLogProcessor.Clean()
 }
 
 func (tc *transactionCoordinator) getPreProcessor(blockType block.Type) process.PreProcessor {
@@ -777,7 +782,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 		if !check.IfNil(preproc) && isPreProcessMiniBlock {
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
-				//preproc supports marshalizing items
+				// preproc supports marshalizing items
 				tc.appendMarshalizedItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
@@ -791,7 +796,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 		if !check.IfNil(interimProc) && !isPreProcessMiniBlock {
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
-				//interimProc supports marshalizing items
+				// interimProc supports marshalizing items
 				tc.appendMarshalizedItems(
 					dataMarshalizer,
 					miniBlock.TxHashes,
@@ -842,6 +847,11 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 	}
 
 	return txPool
+}
+
+// GetAllCurrentLogs return the cached logs data from current round
+func (tc *transactionCoordinator) GetAllCurrentLogs() map[string]data.LogHandler {
+	return tc.transactionsLogProcessor.GetAllCurrentLogs()
 }
 
 // RequestMiniBlocks request miniblocks if missing
@@ -1341,6 +1351,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.TxTypeHandler) {
 		return process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(arguments.TransactionsLogProcessor) {
+		return process.ErrNilTxLogsProcessor
 	}
 
 	return nil

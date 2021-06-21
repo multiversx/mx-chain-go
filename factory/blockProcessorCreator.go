@@ -360,6 +360,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: pcf.epochConfig.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -652,6 +653,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
