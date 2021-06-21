@@ -48,6 +48,7 @@ func NewShardResolversContainerFactory(
 		throttler:                   thr,
 		isFullHistoryNode:           args.IsFullHistoryNode,
 		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
+		preferredPeersHolder:        args.PreferredPeersHolder,
 		numCrossShardPeers:          int(args.ResolverConfig.NumCrossShardPeers),
 		numIntraShardPeers:          int(args.ResolverConfig.NumIntraShardPeers),
 		numFullHistoryPeers:         int(args.ResolverConfig.NumFullHistoryPeers),
@@ -205,8 +206,15 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, srcf.numIntraShardPeers+srcf.numCrossShardPeers, srcf.numFullHistoryPeers, srcf.currentNetworkEpochProvider)
+	resolver, err := srcf.createTrieNodesResolver(
+		identifierTrieNodes,
+		triesFactory.UserAccountTrie,
+		0,
+		srcf.numIntraShardPeers+srcf.numCrossShardPeers,
+		srcf.numFullHistoryPeers,
+		core.MetachainShardId,
+		srcf.currentNetworkEpochProvider,
+	)
 	if err != nil {
 		return err
 	}
@@ -222,7 +230,6 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	unit dataRetriever.UnitType,
 	dataPool dataRetriever.ShardedDataCacherNotifier,
 ) error {
-
 	shardC := srcf.shardCoordinator
 
 	keys := make([]string, 0)
@@ -231,7 +238,7 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool)
+	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
