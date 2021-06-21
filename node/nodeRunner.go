@@ -343,10 +343,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
 
 	log.Debug("starting node...")
 

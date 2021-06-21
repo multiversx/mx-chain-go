@@ -155,6 +155,11 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 			vmOutput)
 	}
 
+	tokenNonce := esdtTransferData.TokenMetaData.Nonce
+	logEntry := newEntryForNFT(core.BuiltInFunctionESDTNFTTransfer, vmInput.CallerAddr, vmInput.Arguments[0], tokenNonce)
+	logEntry.Topics = append(logEntry.Topics, acntDst.AddressBytes())
+	vmOutput.Logs = []*vmcommon.LogEntry{logEntry}
+
 	return vmOutput, nil
 }
 
