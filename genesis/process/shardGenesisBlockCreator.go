@@ -506,12 +506,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		arg.Economics,
-		vmFactoryImpl.BlockChainHookImpl(),
-		arg.Data.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      arg.Economics,
+		BlockChainHook:    vmFactoryImpl.BlockChainHookImpl(),
+		BlockChain:        arg.Data.Blockchain(),
+		ArwenChangeLocker: genesisArwenLocker,
+	}
+	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
 		return nil, err
 	}
