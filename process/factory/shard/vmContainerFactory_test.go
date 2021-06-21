@@ -58,6 +58,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		AheadOfTimeGasUsageEnableEpoch: 0,
 		ArwenV3EnableEpoch:             0,
 		ArwenChangeLocker:              &sync.RWMutex{},
+		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMFactory)
 
