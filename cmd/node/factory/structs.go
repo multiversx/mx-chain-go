@@ -1679,10 +1679,11 @@ func newShardBlockProcessor(
 		RepairCallbackEnableEpoch:           config.GeneralSettings.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: config.GeneralSettings.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      config.GeneralSettings.SenderInOutTransferEnableEpoch,
-		BadTxForwarder:                      badTxInterim,
-		EpochNotifier:                       epochNotifier,
-		StakingV2EnableEpoch:                stakingV2EnableEpoch,
-		ArwenChangeLocker:                   arwenChangeLocker,
+		IncrementSCRNonceInMultiTransferEnableEpoch: config.GeneralSettings.IncrementSCRNonceInMultiTransferEnableEpoch,
+		BadTxForwarder:       badTxInterim,
+		EpochNotifier:        epochNotifier,
+		StakingV2EnableEpoch: stakingV2EnableEpoch,
+		ArwenChangeLocker:    arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -2010,10 +2011,11 @@ func newMetaBlockProcessor(
 		RepairCallbackEnableEpoch:           generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: generalConfig.GeneralSettings.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      generalConfig.GeneralSettings.SenderInOutTransferEnableEpoch,
-		BadTxForwarder:                      badTxForwarder,
-		EpochNotifier:                       epochNotifier,
-		StakingV2EnableEpoch:                systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
-		ArwenChangeLocker:                   arwenLocker,
+		IncrementSCRNonceInMultiTransferEnableEpoch: generalConfig.GeneralSettings.IncrementSCRNonceInMultiTransferEnableEpoch,
+		BadTxForwarder:       badTxForwarder,
+		EpochNotifier:        epochNotifier,
+		StakingV2EnableEpoch: systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:    arwenLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
