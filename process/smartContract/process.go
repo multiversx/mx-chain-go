@@ -63,7 +63,6 @@ type scProcessor struct {
 	flagReturnDataToLastTransfer                atomic.Flag
 	flagSenderInOutTransfer                     atomic.Flag
 	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
-	isGenesisProcessing                         bool
 	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
@@ -73,10 +72,10 @@ type scProcessor struct {
 	txTypeHandler  process.TxTypeHandler
 	gasHandler     process.GasHandler
 
-	builtInGasCosts map[string]uint64
-	mutGasLock      sync.RWMutex
-
-	txLogsProcessor process.TransactionLogProcessor
+	builtInGasCosts     map[string]uint64
+	mutGasLock          sync.RWMutex
+	txLogsProcessor     process.TransactionLogProcessor
+	isGenesisProcessing bool
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -107,8 +106,8 @@ type ArgsNewSmartContractProcessor struct {
 	SenderInOutTransferEnableEpoch              uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	EpochNotifier                               process.EpochNotifier
-	IsGenesisProcessing                         bool
 	ArwenChangeLocker                           process.Locker
+	IsGenesisProcessing                         bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data

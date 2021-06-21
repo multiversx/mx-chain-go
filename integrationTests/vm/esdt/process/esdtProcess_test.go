@@ -1860,6 +1860,9 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
+	ownerNode := nodes[0]
+	ceossShardNode := nodes[1]
+
 	defer func() {
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
@@ -1879,7 +1882,7 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	initialSupply := int64(10000000000)
 	ticker := "TCK"
 	esdtCommon.IssueTestTokenWithSpecialRoles(nodes, initialSupply, ticker)
-	tokenIssuer := nodes[0]
+	tokenIssuer := ownerNode
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 12
@@ -1897,7 +1900,7 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 		vmFactory.ArwenVirtualMachine)
 
 	integrationTests.CreateAndSendTransaction(
-		nodes[0],
+		ownerNode,
 		nodes,
 		big.NewInt(0),
 		testVm.CreateEmptyAddress(),
@@ -1906,7 +1909,7 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
-	_, err := nodes[0].AccntState.GetExistingAccount(scAddress)
+	_, err := ownerNode.AccntState.GetExistingAccount(scAddress)
 	require.Nil(t, err)
 
 	roles := [][]byte{
@@ -1915,20 +1918,19 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	esdtCommon.SetRoles(nodes, scAddress, tokenIdentifier, roles)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 
-	// __________
 	txData := txDataBuilder.NewBuilder()
 	txData.Func("batchTransferEsdtToken")
 
-	txData.Bytes(nodes[1].OwnAccount.Address)
+	txData.Bytes(ceossShardNode.OwnAccount.Address)
 	txData.Bytes(tokenIdentifier)
 	txData.Int64(10)
 
-	txData.Bytes(nodes[1].OwnAccount.Address)
+	txData.Bytes(ceossShardNode.OwnAccount.Address)
 	txData.Bytes(tokenIdentifier)
 	txData.Int64(10)
 
 	integrationTests.CreateAndSendTransaction(
-		nodes[0],
+		ownerNode,
 		nodes,
 		big.NewInt(0),
 		scAddress,
@@ -1937,5 +1939,5 @@ func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
 	)
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
-	esdtCommon.CheckAddressHasESDTTokens(t, nodes[1].OwnAccount.Address, nodes, string(tokenIdentifier), 20)
+	esdtCommon.CheckAddressHasESDTTokens(t, ceossShardNode.OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }
