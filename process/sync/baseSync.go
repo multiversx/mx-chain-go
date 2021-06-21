@@ -112,6 +112,7 @@ type baseBootstrap struct {
 	poolsHolder        dataRetriever.PoolsHolder
 	mutRequestHeaders  sync.Mutex
 	cancelFunc         func()
+	isInImportMode     bool
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -998,6 +999,10 @@ func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
 // which means that the state of the node in the current round is not calculated yet. Note that when the node is not
 // connected to the network, GetNodeState could return 'NsNotSynchronized' but the SyncBlock is not automatically called.
 func (boot *baseBootstrap) GetNodeState() core.NodeState {
+	if boot.isInImportMode {
+		return core.NsNotSynchronized
+	}
+
 	boot.mutNodeState.RLock()
 	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeStateCalculated
 	isNodeSynchronized := boot.isNodeSynchronized

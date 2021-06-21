@@ -55,7 +55,6 @@ func RunTest(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	if err != nil {
@@ -125,7 +124,6 @@ func DeployAndExecuteERC20WithBigInt(
 	gasSchedule map[string]map[string]uint64,
 	fileName string,
 	functionName string,
-	outOfProcess bool,
 ) ([]time.Duration, error) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
@@ -140,7 +138,6 @@ func DeployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
 	if err != nil {

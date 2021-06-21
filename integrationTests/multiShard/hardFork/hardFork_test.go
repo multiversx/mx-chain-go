@@ -412,7 +412,11 @@ func hardForkImport(
 			ValidatorAccounts:        node.PeerState,
 			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			VirtualMachineConfig: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,

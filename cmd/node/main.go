@@ -1294,6 +1294,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	arwenLocker := &sync.RWMutex{}
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1336,6 +1337,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
+		arwenLocker,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
 		chanStopNodeProcess,
@@ -1477,6 +1479,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		apiWorkingDir,
 		stateComponents.AccountsAdapterAPI,
 	)
@@ -1880,9 +1883,9 @@ func createShardCoordinator(
 			return nil, "", err
 		}
 		if selfShardId == core.DisabledShardIDAsObserver {
-			pubKeyBytes, err := pubKey.ToByteArray()
-			if err != nil {
-				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
+			pubKeyBytes, errConvert := pubKey.ToByteArray()
+			if errConvert != nil {
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 			}
 
 			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -1931,9 +1934,9 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		pubKeyBytes, err := pubKey.ToByteArray()
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
+		pubKeyBytes, errConvert := pubKey.ToByteArray()
+		if errConvert != nil {
+			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 		}
 
 		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -2510,6 +2513,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 	accountsAPI state.AccountsAdapter,
 ) (facade.ApiResolver, error) {
@@ -2532,6 +2536,7 @@ func createApiResolver(
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		workingDir,
 	)
 	if err != nil {
@@ -2623,6 +2628,7 @@ func createScQueryService(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 ) (process.SCQueryService, error) {
 	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
@@ -2651,6 +2657,7 @@ func createScQueryService(
 			systemSCConfig,
 			rater,
 			epochNotifier,
+			arwenLocker,
 			workingDir,
 			i,
 		)
@@ -2689,6 +2696,7 @@ func createScQueryElement(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenChangeLocker process.Locker,
 	workingDir string,
 	index int,
 ) (process.SCQueryService, error) {
@@ -2750,7 +2758,6 @@ func createScQueryElement(
 		}
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
@@ -2759,7 +2766,8 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              arwenChangeLocker,
+			EpochNotifier:                  epochNotifier,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
@@ -2778,7 +2786,14 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      economics,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        blockChain,
+		ArwenChangeLocker: arwenChangeLocker,
+	}
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
 func createBuiltinFuncs(

@@ -542,8 +542,12 @@ func CreateFullGenesisBlocks(
 		ValidatorAccounts:        validatorAccounts,
 		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		TrieStorageManagers:      trieStorageManagers,
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
+		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -641,8 +645,12 @@ func CreateGenesisMetaBlock(
 		ValidatorAccounts:        validatorAccounts,
 		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		VirtualMachineConfig: config.VirtualMachineConfig{
+			ArwenVersions: []config.ArwenVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
+		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",

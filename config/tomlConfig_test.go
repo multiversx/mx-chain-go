@@ -38,6 +38,12 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
+	vmConfig := VirtualMachineConfig{
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
+		},
+	}
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -83,8 +89,14 @@ func TestTomlParser(t *testing.T) {
 		Consensus: TypeConfig{
 			Type: consensusType,
 		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
+		},
 	}
-
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -127,6 +139,20 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+        
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
 
 `
 	cfg := Config{}
