@@ -670,9 +670,7 @@ type PeerShardMapper interface {
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
-	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
@@ -972,6 +970,13 @@ type WhiteListHandler interface {
 type InterceptedDebugger interface {
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
 	IsInterfaceNil() bool
 }
 

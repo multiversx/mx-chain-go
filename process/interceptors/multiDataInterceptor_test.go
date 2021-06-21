@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,14 +22,15 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 	return interceptors.ArgMultiDataInterceptor{
-		Topic:            "test topic",
-		Marshalizer:      &mock.MarshalizerMock{},
-		DataFactory:      &mock.InterceptedDataFactoryStub{},
-		Processor:        &mock.InterceptorProcessorStub{},
-		Throttler:        createMockThrottler(),
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest: &mock.WhiteListHandlerStub{},
-		CurrentPeerId:    "pid",
+		Topic:                "test topic",
+		Marshalizer:          &mock.MarshalizerMock{},
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &mock.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
 	}
 }
 
@@ -96,6 +98,17 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, mdi)
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
+}
+
+func TestNewMultiDataInterceptor_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.PreferredPeersHolder = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.Nil(t, mdi)
+	assert.Equal(t, process.ErrNilPreferredPeersHolder, err)
 }
 
 func TestNewMultiDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {

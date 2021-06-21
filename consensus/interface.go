@@ -78,9 +78,7 @@ type P2PMessenger interface {
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
-	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool

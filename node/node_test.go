@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3019,7 +3020,7 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{
+		node.WithNetworkShardingCollector(&p2pmocks.NetworkShardingCollectorStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				return core.P2PPeerInfo{
 					PeerType: 0,

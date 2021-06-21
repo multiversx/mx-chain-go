@@ -924,6 +924,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
+		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -958,6 +959,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
+		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1139,6 +1141,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1179,6 +1182,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
+		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1206,11 +1210,11 @@ func (pcf *processComponentsFactory) newForkDetector(
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
 func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*networksharding.PeerShardMapper, error) {
-
 	networkShardingCollector, err := createNetworkShardingCollector(
 		&pcf.config,
 		pcf.nodesCoordinator,
 		pcf.coreData.EpochStartNotifierWithConfirm(),
+		pcf.network.PreferredPeersHolderHandler(),
 		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	if err != nil {
@@ -1218,7 +1222,7 @@ func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*network
 	}
 
 	localID := pcf.network.NetworkMessenger().ID()
-	networkShardingCollector.UpdatePeerIdShardId(localID, pcf.bootstrapComponents.ShardCoordinator().SelfId())
+	networkShardingCollector.UpdatePeerIDInfo(localID, pcf.crypto.PublicKeyBytes(), pcf.bootstrapComponents.ShardCoordinator().SelfId())
 
 	err = pcf.network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
@@ -1237,6 +1241,7 @@ func createNetworkShardingCollector(
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	preferredPeersHolder PreferredPeersHolderHandler,
 	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
@@ -1263,6 +1268,7 @@ func createNetworkShardingCollector(
 		FallbackPkShardCache:  cachePkShardID,
 		FallbackPidShardCache: cachePidShardID,
 		NodesCoordinator:      nodesCoordinator,
+		PreferredPeersHolder:  preferredPeersHolder,
 		StartEpoch:            epochStart,
 	}
 	psm, err := networksharding.NewPeerShardMapper(arg)
