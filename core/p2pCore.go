@@ -63,3 +63,22 @@ type QueryP2PPeerInfo struct {
 	PeerSubType   string   `json:"peersubtype"`
 	Addresses     []string `json:"addresses"`
 }
+
+// PeerTopicType represents the type of a peer in regards to the topic it is used
+type PeerTopicType string
+
+// String returns a string version of the peer topic type
+func (pt PeerTopicType) String() string {
+	return string(pt)
+}
+
+const (
+	// IntraShardPeer represents the identifier for intra shard peers to be used in intra shard topics
+	IntraShardPeer PeerTopicType = "intra peer"
+
+	// CrossShardPeer represents the identifier for intra shard peers to be used in cross shard topics
+	CrossShardPeer PeerTopicType = "cross peer"
+
+	// FullHistoryPeer represents the identifier for intra shard peers to be used in full history topics
+	FullHistoryPeer PeerTopicType = "full history peer"
+)

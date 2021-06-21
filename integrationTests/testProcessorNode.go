@@ -87,6 +87,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -1167,6 +1168,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -1221,6 +1223,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1250,6 +1253,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  2,
 			NumIntraShardPeers:  1,
@@ -2778,7 +2782,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		ReqHandler:               &mock.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
-		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {
