@@ -1,7 +1,6 @@
 package address
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -10,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,24 +32,13 @@ type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (state.UserAccountHandler, error)
-	GetCode(account state.UserAccountHandler) []byte
+	GetAccount(address string) (api.AccountResponse, error)
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
 	GetESDTsWithRole(address string, role string) ([]string, error)
 	GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error)
 	GetKeyValuePairs(address string) (map[string]string, error)
 	IsInterfaceNil() bool
-}
-
-type accountResponse struct {
-	Address  string `json:"address"`
-	Nonce    uint64 `json:"nonce"`
-	Balance  string `json:"balance"`
-	Username string `json:"username"`
-	Code     string `json:"code"`
-	CodeHash []byte `json:"codeHash"`
-	RootHash []byte `json:"rootHash"`
 }
 
 type esdtTokenData struct {
@@ -116,8 +104,7 @@ func getFacade(c *gin.Context) (FacadeHandler, bool) {
 	return facade, true
 }
 
-// GetAccount returns an accountResponse containing information
-//  about the account correlated with provided address
+// GetAccount returns a response containing information about the account correlated with provided address
 func GetAccount(c *gin.Context) {
 	facade, ok := getFacade(c)
 	if !ok {
@@ -125,7 +112,7 @@ func GetAccount(c *gin.Context) {
 	}
 
 	addr := c.Param("address")
-	acc, err := facade.GetAccount(addr)
+	accountResponse, err := facade.GetAccount(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -138,11 +125,12 @@ func GetAccount(c *gin.Context) {
 		return
 	}
 
-	code := facade.GetCode(acc)
+	accountResponse.Address = addr
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, code, acc)},
+			Data:  gin.H{"account": accountResponse},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -663,16 +651,4 @@ func GetAllESDTData(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
-}
-
-func accountResponseFromBaseAccount(address string, code []byte, account state.UserAccountHandler) accountResponse {
-	return accountResponse{
-		Address:  address,
-		Nonce:    account.GetNonce(),
-		Balance:  account.GetBalance().String(),
-		Username: string(account.GetUserName()),
-		Code:     hex.EncodeToString(code),
-		CodeHash: account.GetCodeHash(),
-		RootHash: account.GetRootHash(),
-	}
 }
