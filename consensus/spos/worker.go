@@ -372,7 +372,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
-	wrk.updateNetworkShardingVals(message, cnsMsg)
+	wrk.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
@@ -500,11 +500,6 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
-}
-
-func (wrk *Worker) updateNetworkShardingVals(message p2p.MessageP2P, cnsMsg *consensus.Message) {
-	wrk.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), cnsMsg.PubKey)
-	wrk.networkShardingCollector.UpdatePublicKeyShardId(cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

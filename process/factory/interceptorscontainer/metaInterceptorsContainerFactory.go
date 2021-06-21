@@ -38,6 +38,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
+		args.PreferredPeersHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -99,6 +100,7 @@ func NewMetaInterceptorsContainerFactory(
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:   args.PreferredPeersHolder,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -226,13 +228,14 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:            topic,
-			DataFactory:      hdrFactory,
-			Processor:        hdrProcessor,
-			Throttler:        micf.globalThrottler,
-			AntifloodHandler: micf.antifloodHandler,
-			WhiteListRequest: micf.whiteListHandler,
-			CurrentPeerId:    micf.messenger.ID(),
+			Topic:                topic,
+			DataFactory:          hdrFactory,
+			Processor:            hdrProcessor,
+			Throttler:            micf.globalThrottler,
+			AntifloodHandler:     micf.antifloodHandler,
+			WhiteListRequest:     micf.whiteListHandler,
+			CurrentPeerId:        micf.messenger.ID(),
+			PreferredPeersHolder: micf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
