@@ -7,7 +7,6 @@ import (
 
 	arwen12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost12 "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
-	ipcNodePart12 "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	arwen13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen"
 	arwenHost13 "github.com/ElrondNetwork/arwen-wasm-vm/v1_3/arwen/host"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -208,11 +207,6 @@ func (vmf *vmContainerFactory) shouldReplaceArwenInstance(
 	differentVersion := newVersion.Version != currentVM.GetVersion()
 
 	return specificVersionRequired && differentVersion
-}
-
-func (vmf *vmContainerFactory) isArwenOutOfProcess(vm vmcommon.VMExecutionHandler) bool {
-	_, ok := vm.(*ipcNodePart12.ArwenDriver)
-	return ok
 }
 
 func (vmf *vmContainerFactory) createArwenVM(version config.ArwenVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
