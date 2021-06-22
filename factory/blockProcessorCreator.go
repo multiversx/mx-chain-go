@@ -248,6 +248,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                   arwenChangeLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -563,6 +565,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                   arwenChangeLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

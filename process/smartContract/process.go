@@ -198,6 +198,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 		arwenChangeLocker:                   args.ArwenChangeLocker,
+
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
@@ -206,6 +207,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
+	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
+		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)

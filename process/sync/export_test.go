@@ -214,15 +214,15 @@ func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*hdrInfo {
 }
 
 // SetNotarizedMap -
-func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, shardId uint32, nonce uint64, hash []byte) {
-	hdrInfo, ok := notarizedMap[shardId]
+func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*hdrInfo, shardId uint32, nonce uint64, hash []byte) {
+	hdrInfoInstance, ok := notarizedMap[shardId]
 	if !ok {
-		notarizedMap[shardId] = &HdrInfo{Nonce: nonce, Hash: hash}
+		notarizedMap[shardId] = &hdrInfo{Nonce: nonce, Hash: hash}
 		return
 	}
 
-	hdrInfo.Nonce = nonce
-	hdrInfo.Hash = hash
+	hdrInfoInstance.Nonce = nonce
+	hdrInfoInstance.Hash = hash
 }
 
 // SetNodeStateCalculated -

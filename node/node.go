@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -998,7 +999,8 @@ func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 
 	ownerAddress := ""
 	if len(account.GetOwnerAddress()) > 0 {
-		ownerAddress = n.addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
+		ownerAddress = addressPubkeyConverter.Encode(account.GetOwnerAddress())
 	}
 
 	return api.AccountResponse{

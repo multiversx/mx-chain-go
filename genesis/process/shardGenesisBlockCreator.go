@@ -407,10 +407,11 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
-		IncrementSCRNonceInMultiTransferEnableEpoch: generalConfig.IncrementSCRNonceInMultiTransferEnableEpoch, //TODO(iulian) fix this
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                   genesisArwenLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

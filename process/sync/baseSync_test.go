@@ -130,14 +130,14 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 	boot := &baseBootstrap{
 		isInImportMode:        true,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
@@ -145,7 +145,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		roundIndex:            1,
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
 }
