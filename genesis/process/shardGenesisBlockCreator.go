@@ -56,6 +56,8 @@ func createGenesisConfig() config.EnableEpochs {
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
 		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
 		RelayedTransactionsV2EnableEpoch:       unreachableEpoch,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 	}
 }
 
