@@ -100,3 +100,11 @@ type GasScheduleNotifier interface {
 type Queue interface {
 	Add(hash []byte) []byte
 }
+
+// SafeCloser represents a subcomponent used for signaling a closing event. Its Close method is considered to be
+// concurrent safe
+type SafeCloser interface {
+	Close()
+	ChanClose() <-chan struct{}
+	IsInterfaceNil() bool
+}
