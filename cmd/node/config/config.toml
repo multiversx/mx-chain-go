@@ -71,7 +71,6 @@
    # is enabled. The fix is done by adding an extra increment.
    IncrementSCRNonceInMultiTransferEnableEpoch = 3
 
-   # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
@@ -398,7 +397,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 209715200 #200MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
