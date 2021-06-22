@@ -1575,6 +1575,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
+		defaultSecondsToCheckHealth := 300                  //5minutes
+		defaultDianoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+
+		config.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
+		config.Health.MemoryUsageToCreateProfiles = defaultDianoseMemoryLimit
+
 		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", math.MaxUint32,
@@ -1583,6 +1591,10 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
+			"health interval diagnose components deeply in seconds", config.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
+			"health interval diagnose components in seconds", config.Health.IntervalDiagnoseComponentsInSeconds,
+			"health interval verify memory in seconds", config.Health.IntervalVerifyMemoryInSeconds,
+			"health memory usage threshold", core.ConvertBytes(uint64(config.Health.MemoryUsageToCreateProfiles)),
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = math.MaxUint32
