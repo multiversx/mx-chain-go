@@ -1040,7 +1040,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db)
+	_ = bn.commitSnapshot(db, db, nil)
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -1240,8 +1240,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db)
-	_ = collapsedBn.commitSnapshot(db, db)
+	_ = bn.commitSnapshot(db, db, nil)
+	_ = collapsedBn.commitSnapshot(db, db, nil)
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1278,7 +1278,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, db)
+	_ = bn.commitSnapshot(db, db, nil)
 
 	hashes, err := collapsedBn.getAllHashes(db)
 	assert.Nil(t, err)

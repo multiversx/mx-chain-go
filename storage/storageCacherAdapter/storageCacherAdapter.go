@@ -52,15 +52,10 @@ func NewStorageCacherAdapter(
 	}, nil
 }
 
-// Clear clears the underlying cacher and db
+// Clear clears the cache
 func (c *storageCacherAdapter) Clear() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	err := c.db.Destroy()
-	if err != nil {
-		log.Error("could not destroy the db", "err", err.Error())
-	}
 
 	c.cacher.Purge()
 }

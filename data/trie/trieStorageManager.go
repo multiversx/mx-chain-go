@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -44,9 +45,10 @@ type trieStorageManager struct {
 }
 
 type snapshotsQueueEntry struct {
-	rootHash  []byte
-	newDb     bool
-	entryType byte
+	rootHash   []byte
+	newDb      bool
+	entryType  byte
+	leavesChan chan core.KeyValueHolder
 }
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
@@ -236,7 +238,7 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data
 
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
-func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool) {
+func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool, leavesChan chan core.KeyValueHolder) {
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot an empty trie")
 		return
@@ -246,9 +248,10 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool) {
 	tsm.checkpointHashesHolder.RemoveCommitted(rootHash)
 
 	snapshotEntry := &snapshotsQueueEntry{
-		rootHash:  rootHash,
-		newDb:     newDb,
-		entryType: snapshot,
+		rootHash:   rootHash,
+		newDb:      newDb,
+		entryType:  snapshot,
+		leavesChan: leavesChan,
 	}
 	tsm.writeOnChan(snapshotEntry)
 }
@@ -256,7 +259,7 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte, newDb bool) {
 // SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
-func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
+func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
 	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not set checkpoint for empty trie")
 		return
@@ -265,9 +268,10 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 	tsm.EnterPruningBufferingMode()
 
 	checkpointEntry := &snapshotsQueueEntry{
-		rootHash:  rootHash,
-		newDb:     false,
-		entryType: checkpoint,
+		rootHash:   rootHash,
+		newDb:      false,
+		entryType:  checkpoint,
+		leavesChan: leavesChan,
 	}
 	tsm.writeOnChan(checkpointEntry)
 }
@@ -280,6 +284,9 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	defer func() {
 		tsm.ExitPruningBufferingMode()
 		log.Trace("trie snapshot finished", "rootHash", snapshotEntry.rootHash)
+		if snapshotEntry.leavesChan != nil {
+			close(snapshotEntry.leavesChan)
+		}
 	}()
 
 	if tsm.isPresentInLastSnapshotDb(snapshotEntry.rootHash) {
@@ -300,7 +307,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	if snapshotEntry.entryType == snapshot {
-		err = newRoot.commitSnapshot(tsm.db, db)
+		err = newRoot.commitSnapshot(tsm.db, db, snapshotEntry.leavesChan)
 		if err != nil {
 			log.Error("trie storage manager: commit", "error", err.Error())
 		}
@@ -308,7 +315,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder)
+	err = newRoot.commitCheckpoint(tsm.db, db, tsm.checkpointHashesHolder, snapshotEntry.leavesChan)
 	if err != nil {
 		log.Error("trie storage manager: commit", "error", err.Error())
 	}

@@ -197,7 +197,12 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	return nil
 }
 
-func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
+func (en *extensionNode) commitCheckpoint(
+	originDb data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	checkpointHashes data.CheckpointHashesHolder,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -218,7 +223,7 @@ func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb 
 		return nil
 	}
 
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes)
+	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan)
 	if err != nil {
 		return err
 	}
@@ -227,7 +232,11 @@ func (en *extensionNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb 
 	return en.saveToStorage(targetDb)
 }
 
-func (en *extensionNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commitSnapshot(
+	originDb data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
@@ -238,7 +247,7 @@ func (en *extensionNode) commitSnapshot(originDb data.DBWriteCacher, targetDb da
 		return err
 	}
 
-	err = en.child.commitSnapshot(originDb, targetDb)
+	err = en.child.commitSnapshot(originDb, targetDb, leavesChan)
 	if err != nil {
 		return err
 	}

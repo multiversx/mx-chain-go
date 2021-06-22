@@ -237,6 +237,9 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 					DatabaseCalled: func() data.DBWriteCacher {
 						return db
 					},
+					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder) {
+						close(leavesChan)
+					},
 				}
 			},
 			RecreateCalled: func(root []byte) (data.Trie, error) {
@@ -1110,7 +1113,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(rootHash []byte, _ bool) {
+				TakeSnapshotCalled: func(rootHash []byte, _ bool, _ chan core.KeyValueHolder) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -1130,6 +1133,48 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	snapshotMut.Unlock()
 }
 
+func TestAccountsDB_SnapshotStateWithDataTries(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	accountsAddresses := generateAccounts(t, 3, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
+	rootHash, _ := adb.Commit()
+
+	adb.SnapshotState(rootHash)
+	time.Sleep(time.Second)
+
+	trieDb := tr.GetStorageManager().Database()
+	err := trieDb.Remove(rootHash)
+	assert.Nil(t, err)
+	for hash := range newHashes {
+		err = trieDb.Remove([]byte(hash))
+		assert.Nil(t, err)
+	}
+
+	snapshotDb := tr.GetStorageManager().GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, snapshotDb)
+
+	val, err := trieDb.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	val, err = snapshotDb.Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	for hash := range newHashes {
+		val, err := trieDb.Get([]byte(hash))
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+
+		val, err = snapshotDb.Get([]byte(hash))
+		assert.NotNil(t, val)
+		assert.Nil(t, err)
+	}
+}
+
 func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	t.Parallel()
 
@@ -1138,7 +1183,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	trieStub := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(rootHash []byte) {
+				SetCheckpointCalled: func(rootHash []byte, _ chan core.KeyValueHolder) {
 					snapshotMut.Lock()
 					setCheckPointWasCalled = true
 					snapshotMut.Unlock()
@@ -1156,6 +1201,48 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	snapshotMut.Lock()
 	assert.True(t, setCheckPointWasCalled)
 	snapshotMut.Unlock()
+}
+
+func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	accountsAddresses := generateAccounts(t, 3, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
+	rootHash, _ := adb.Commit()
+
+	adb.SetStateCheckpoint(rootHash)
+	time.Sleep(time.Second)
+
+	trieDb := tr.GetStorageManager().Database()
+	err := trieDb.Remove(rootHash)
+	assert.Nil(t, err)
+	for hash := range newHashes {
+		err = trieDb.Remove([]byte(hash))
+		assert.Nil(t, err)
+	}
+
+	snapshotDb := tr.GetStorageManager().GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, snapshotDb)
+
+	val, err := trieDb.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	val, err = snapshotDb.Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	for hash := range newHashes {
+		val, err := trieDb.Get([]byte(hash))
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+
+		val, err = snapshotDb.Get([]byte(hash))
+		assert.NotNil(t, val)
+		assert.Nil(t, err)
+	}
 }
 
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
