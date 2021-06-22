@@ -2021,7 +2021,6 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashesHolder(t *testing.T) {
 	t.Parallel()
 
-	newHashes := make(data.ModifiedHashes)
 	removeCommitedCalled := false
 	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ data.ModifiedHashes) bool {
@@ -2037,7 +2036,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
-	newHashes = modifyDataTries(t, accountsAddresses, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
 	newHashesMainTrie, _ := tr.GetDirtyHashes()
 	mergeMaps(newHashes, newHashesMainTrie)
 
@@ -2059,7 +2058,6 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	t.Parallel()
 
-	newHashes := make(data.ModifiedHashes)
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(100000, testscommon.HashSize)
 	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
@@ -2070,7 +2068,7 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	assert.Nil(t, err)
 	checkpointHashesHolder.RemoveCommitted(rootHash)
 
-	newHashes = modifyDataTries(t, accountsAddresses, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
 
 	_ = generateAccounts(t, 2, adb)
 

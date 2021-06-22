@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	createNewDb   = true
-	useExistingDb = false
+	createNewDb       = true
+	useExistingDb     = false
+	leavesChannelSize = 100
 )
 
 var numCheckpointsKey = []byte("state checkpoint")
@@ -962,7 +963,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		stopWatch := core.NewStopWatch()
 		stopWatch.Start("snapshotState")
-		leavesChannel := make(chan core.KeyValueHolder, 100)
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		trieStorageManager.TakeSnapshot(rootHash, createNewDb, leavesChannel)
 		adb.snapshotUserAccountDataTrie(true, leavesChannel)
 		stopWatch.Stop("snapshotState")
@@ -1012,7 +1013,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	go func() {
 		stopWatch := core.NewStopWatch()
 		stopWatch.Start("setStateCheckpoint")
-		leavesChannel := make(chan core.KeyValueHolder, 100)
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
 		trieStorageManager.SetCheckpoint(rootHash, leavesChannel)
 		adb.snapshotUserAccountDataTrie(false, leavesChannel)
 		stopWatch.Stop("setStateCheckpoint")

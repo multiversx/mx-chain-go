@@ -144,7 +144,7 @@ func (ln *leafNode) commitCheckpoint(
 		return nil
 	}
 
-	err = sendNodeOnChannel(ln, leavesChan)
+	err = writeNodeOnChannel(ln, leavesChan)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (ln *leafNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	err = sendNodeOnChannel(ln, leavesChan)
+	err = writeNodeOnChannel(ln, leavesChan)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (ln *leafNode) commitSnapshot(
 	return encodeNodeAndCommitToDB(ln, targetDb)
 }
 
-func sendNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {
+func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {
 	if leavesChan == nil {
 		return nil
 	}
