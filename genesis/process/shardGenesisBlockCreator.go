@@ -56,6 +56,8 @@ func createGenesisConfig() config.EnableEpochs {
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
 		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
 		RelayedTransactionsV2EnableEpoch:       unreachableEpoch,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: unreachableEpoch,
 	}
 }
 
@@ -410,6 +412,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                   genesisArwenLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
