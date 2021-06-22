@@ -966,38 +966,57 @@ func (n *Node) CreateTransaction(
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
+func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
-		return nil, ErrNilPubkeyConverter
+		return api.AccountResponse{}, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return nil, ErrNilAccountsAdapter
+		return api.AccountResponse{}, ErrNilAccountsAdapter
 	}
 
 	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, err
+		return api.AccountResponse{}, err
 	}
 
 	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return state.NewUserAccount(addr)
+			return api.AccountResponse{
+				Address:         address,
+				Balance:         "0",
+				DeveloperReward: "0",
+			}, nil
 		}
-		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
+		return api.AccountResponse{}, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
-		return nil, errors.New("account is not of type with balance and nonce")
+		return api.AccountResponse{}, errors.New("account is not of type with balance and nonce")
 	}
 
-	return account, nil
+	ownerAddress := ""
+	if len(account.GetOwnerAddress()) > 0 {
+		ownerAddress = n.addressPubkeyConverter.Encode(account.GetOwnerAddress())
+	}
+
+	return api.AccountResponse{
+		Address:         address,
+		Nonce:           account.GetNonce(),
+		Balance:         account.GetBalance().String(),
+		Username:        string(account.GetUserName()),
+		CodeHash:        account.GetCodeHash(),
+		RootHash:        account.GetRootHash(),
+		CodeMetadata:    account.GetCodeMetadata(),
+		DeveloperReward: account.GetDeveloperReward().String(),
+		OwnerAddress:    ownerAddress,
+	}, nil
 }
 
-// GetCode returns the code for the given account
-func (n *Node) GetCode(account state.UserAccountHandler) []byte {
-	return n.stateComponents.AccountsAdapter().GetCode(account.GetCodeHash())
+// GetCode returns the code for the given code hash
+func (n *Node) GetCode(codeHash []byte) []byte {
+	return n.stateComponents.AccountsAdapter().GetCode(codeHash)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json

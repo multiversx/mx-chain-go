@@ -362,6 +362,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		RepairCallbackEnableEpoch:           enableEpochs.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: enableEpochs.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
+		IncrementSCRNonceInMultiTransferEnableEpoch: generalConfig.IncrementSCRNonceInMultiTransferEnableEpoch, //TODO(iulian) fix this
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
 		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
