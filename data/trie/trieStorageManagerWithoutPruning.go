@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -20,12 +21,12 @@ func NewTrieStorageManagerWithoutPruning(db data.DBWriteCacher) (*trieStorageMan
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool, _ chan core.KeyValueHolder) {
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, _ chan core.KeyValueHolder) {
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
 }
 

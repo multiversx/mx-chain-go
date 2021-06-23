@@ -63,7 +63,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.TakeSnapshot(rootHash, true)
+	trieStorageManager.TakeSnapshot(rootHash, true, nil)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
@@ -75,7 +75,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.SetCheckpoint(rootHash)
+	trieStorageManager.SetCheckpoint(rootHash, nil)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
