@@ -1575,13 +1575,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
-		defaultSecondsToCheckHealth := 300                  //5minutes
-		defaultDianoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+		defaultSecondsToCheckHealth := 300                   // 5minutes
+		defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
 
 		config.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
 		config.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
 		config.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
-		config.Health.MemoryUsageToCreateProfiles = defaultDianoseMemoryLimit
+		config.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
 
 		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
