@@ -109,16 +109,17 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	return dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		trieNodesChunks,
-		currBlockTxs,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     uTxPool,
+		RewardTransactions:       rewardTxPool,
+		Headers:                  hdrPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                trieNodes,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currBlockTxs,
+		SmartContracts:           smartContracts,
+	}
+	return dataPool.NewDataPool(dataPoolArgs)
 }
