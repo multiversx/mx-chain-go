@@ -693,7 +693,7 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	accountState := &mock.AccountsStub{
+	accountState := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
