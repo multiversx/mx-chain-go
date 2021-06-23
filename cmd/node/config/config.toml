@@ -593,7 +593,7 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 100
+    CheckpointRoundsModulus = 10000000
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -609,14 +609,14 @@
     [VirtualMachine.Execution]
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 4, Version = "v1.3" },
+            { StartEpoch = 3, Version = "v1.3" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 4, Version = "v1.3" },
+            { StartEpoch = 3, Version = "v1.3" },
         ]
 
 

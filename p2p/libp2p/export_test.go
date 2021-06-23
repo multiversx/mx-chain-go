@@ -42,6 +42,16 @@ func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) erro
 	return netMes.validMessageByTimestamp(msg)
 }
 
+func (netMes *networkMessenger) MapHistogram(input map[uint32]int) string {
+	return netMes.mapHistogram(input)
+}
+
+func (netMes *networkMessenger) GetOption(handlerFunc func() error) Option {
+	return func(messenger *networkMessenger) error {
+		return handlerFunc()
+	}
+}
+
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }

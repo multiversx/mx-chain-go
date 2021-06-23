@@ -470,7 +470,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
 
-	importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+	importCheckpointRoundsModulus := uint(math.MaxUint32)
 	var err error
 
 	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)

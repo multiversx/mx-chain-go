@@ -434,6 +434,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
 		Indexer:             ccf.statusComponents.ElasticIndexer(),
+		IsInImportMode:      ccf.isInImportMode,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -497,6 +498,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
 		Indexer:             ccf.statusComponents.ElasticIndexer(),
+		IsInImportMode:      ccf.isInImportMode,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

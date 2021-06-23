@@ -98,7 +98,10 @@
     # GovernanceSCEnableEpoch represents the epoch when the governance SC is enabled
     GovernanceSCEnableEpoch = 4
 
-    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
+    # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
+    # is enabled. The fix is done by adding an extra increment.
+    IncrementSCRNonceInMultiTransferEnableEpoch = 3
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },

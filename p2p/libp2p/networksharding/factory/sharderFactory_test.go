@@ -5,24 +5,31 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArg() ArgsSharderFactory {
 	return ArgsSharderFactory{
-		Type:                    "unknown",
-		PeerShardResolver:       &mock.PeerShardResolverStub{},
-		Pid:                     "",
-		MaxConnectionCount:      6,
-		MaxIntraShardValidators: 1,
-		MaxCrossShardValidators: 1,
-		MaxIntraShardObservers:  1,
-		MaxCrossShardObservers:  1,
-		MaxFullHistoryObservers: 1,
+		Type:                 "unknown",
+		PeerShardResolver:    &mock.PeerShardResolverStub{},
+		Pid:                  "",
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		P2pConfig: config.P2PConfig{
+			Sharding: config.ShardingConfig{
+				TargetPeerCount:         6,
+				MaxIntraShardValidators: 1,
+				MaxCrossShardValidators: 1,
+				MaxIntraShardObservers:  1,
+				MaxCrossShardObservers:  1,
+				MaxFullHistoryObservers: 1,
+			},
+		},
 	}
 }
 
@@ -37,14 +44,18 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 	maxObservers := uint32(1)
 
 	argListsSharder := networksharding.ArgListsSharder{
-		PeerResolver:            &mock.PeerShardResolverStub{},
-		SelfPeerId:              "",
-		MaxPeerCount:            maxPeerCount,
-		MaxIntraShardValidators: maxValidators,
-		MaxCrossShardValidators: maxValidators,
-		MaxIntraShardObservers:  maxObservers,
-		MaxCrossShardObservers:  maxObservers,
-		MaxSeeders:              0,
+		PeerResolver: &mock.PeerShardResolverStub{},
+		SelfPeerId:   "",
+		P2pConfig: config.P2PConfig{
+			Sharding: config.ShardingConfig{
+				TargetPeerCount:         maxPeerCount,
+				MaxIntraShardObservers:  maxObservers,
+				MaxIntraShardValidators: maxValidators,
+				MaxCrossShardObservers:  maxObservers,
+				MaxCrossShardValidators: maxValidators,
+				MaxSeeders:              0,
+			},
+		},
 	}
 	expectedSharder, _ := networksharding.NewListsSharder(argListsSharder)
 	assert.Nil(t, err)
