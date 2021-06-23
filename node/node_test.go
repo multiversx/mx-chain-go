@@ -35,6 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2411,7 +2412,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 	stateComponents.Accounts = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
-	assert.Nil(t, recovAccnt)
+	assert.Empty(t, recovAccnt)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
@@ -2435,7 +2436,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	coreComponents.AddrPubKeyConv = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
-	assert.Nil(t, recovAccnt)
+	assert.Empty(t, recovAccnt)
 	assert.Equal(t, node.ErrNilPubkeyConverter, err)
 }
 
@@ -2465,7 +2466,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
-	assert.Nil(t, recovAccnt)
+	assert.Empty(t, recovAccnt)
 	assert.Equal(t, errExpected, err)
 }
 
@@ -2490,10 +2491,11 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
-	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
-	assert.Nil(t, recovAccnt.GetCodeHash())
-	assert.Nil(t, recovAccnt.GetRootHash())
+	assert.Equal(t, uint64(0), recovAccnt.Nonce)
+	assert.Equal(t, "0", recovAccnt.Balance)
+	assert.Equal(t, "0", recovAccnt.DeveloperReward)
+	assert.Nil(t, recovAccnt.CodeHash)
+	assert.Nil(t, recovAccnt.RootHash)
 }
 
 func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
@@ -2517,7 +2519,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
-	assert.Nil(t, recovAccnt)
+	assert.Empty(t, recovAccnt)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), errExpected.Error())
 }
@@ -2530,6 +2532,9 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))
+	accnt.AddToDeveloperReward(big.NewInt(37))
+	accnt.SetCodeMetadata([]byte("metadata"))
+	accnt.SetOwnerAddress([]byte("owner address"))
 
 	accDB := &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
@@ -2549,7 +2554,12 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
-	assert.Equal(t, accnt, recovAccnt)
+	assert.Equal(t, uint64(2), recovAccnt.Nonce)
+	assert.Equal(t, "1", recovAccnt.Balance)
+	assert.Equal(t, []byte("root hash"), recovAccnt.RootHash)
+	assert.Equal(t, []byte("code hash"), recovAccnt.CodeHash)
+	assert.Equal(t, []byte("metadata"), recovAccnt.CodeMetadata)
+	assert.Equal(t, hex.EncodeToString([]byte("owner address")), recovAccnt.OwnerAddress)
 }
 
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
@@ -3038,7 +3048,7 @@ func TestNode_ShouldWork(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithNetworkComponents(networkComponents),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{
+		node.WithNetworkShardingCollector(&p2pmocks.NetworkShardingCollectorStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				return core.P2PPeerInfo{
 					PeerType: 0,

@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,7 +91,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                  chainID,
-		NetworkShardingCollector: createMockNetworkShardingCollector(),
+		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
 		SignatureSize:            SignatureSize,
@@ -100,15 +101,6 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	}
 
 	return workerArgs
-}
-
-func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
-	return &mock.NetworkShardingCollectorStub{
-		UpdatePeerIdPublicKeyCalled:  func(pid core.PeerID, pk []byte) {},
-		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
-		UpdatePeerIdShardIdCalled:    func(pid core.PeerID, shardId uint32) {},
-		UpdatePeerIdSubTypeCalled:    func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
-	}
 }
 
 func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {

@@ -978,6 +978,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
