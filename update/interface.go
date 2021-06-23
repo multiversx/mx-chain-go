@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -255,5 +256,15 @@ type GenesisNodesSetupHandler interface {
 type RoundHandler interface {
 	Index() int64
 	TimeStamp() time.Time
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
 	IsInterfaceNil() bool
 }

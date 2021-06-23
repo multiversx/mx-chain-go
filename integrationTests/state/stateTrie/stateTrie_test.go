@@ -119,8 +119,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	t.Parallel()
 
 	balance := big.NewInt(40)
-	adr, accountHandler, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
-	account := accountHandler.(state.UserAccountHandler)
+	adr, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 	_ = account.AddToBalance(balance)
 
 	err := adb.SaveAccount(account)
@@ -313,7 +312,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state2.DataTrieTracker().SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(state2)

@@ -8,11 +8,12 @@ import (
 
 // NetworkComponentsStub -
 type NetworkComponentsStub struct {
-	Messenger       p2p.Messenger
-	InputAntiFlood  factory.P2PAntifloodHandler
-	OutputAntiFlood factory.P2PAntifloodHandler
-	PeerBlackList   process.PeerBlackListCacher
-	PeerHonesty     factory.PeerHonestyHandler
+	Messenger            p2p.Messenger
+	InputAntiFlood       factory.P2PAntifloodHandler
+	OutputAntiFlood      factory.P2PAntifloodHandler
+	PeerBlackList        process.PeerBlackListCacher
+	PeerHonesty          factory.PeerHonestyHandler
+	PreferredPeersHolder factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -58,6 +59,11 @@ func (ncs *NetworkComponentsStub) OutputAntiFloodHandler() factory.P2PAntifloodH
 // PeerBlackListHandler -
 func (ncs *NetworkComponentsStub) PeerBlackListHandler() process.PeerBlackListCacher {
 	return ncs.PeerBlackList
+}
+
+// PreferredPeersHolderHandler -
+func (ncs *NetworkComponentsStub) PreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncs.PreferredPeersHolder
 }
 
 // IsInterfaceNil -

@@ -364,7 +364,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
-		ArwenChangeLocker:                   &sync.RWMutex{}, //local Locker as to not interfere with the rest of the components
+		ArwenChangeLocker:                   &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -435,6 +437,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EconomicsFee:                      genesisFeeHandler,
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          arg.TxLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
