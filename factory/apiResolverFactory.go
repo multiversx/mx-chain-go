@@ -115,8 +115,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	txCostHandler, err := transaction.NewTransactionCostEstimator(
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
-		scQueryService,
-		args.GasScheduleNotifier,
+		args.ProcessComponents.TransactionSimulatorProcessor(),
+		args.StateComponents.AccountsAdapter(),
+		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err

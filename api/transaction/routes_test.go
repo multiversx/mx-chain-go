@@ -528,8 +528,8 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 		},
 		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (*tr.CostResponse, error) {
 			return &tr.CostResponse{
-				GasUnits:   expectedGasLimit,
-				RetMessage: "",
+				GasUnits:      expectedGasLimit,
+				ReturnMessage: "",
 			}, nil
 		},
 	}
