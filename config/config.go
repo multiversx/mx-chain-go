@@ -215,31 +215,31 @@ type MaxNodesChangeConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec               int
-	MaxComputableRounds                    uint64
-	StartInEpochEnabled                    bool
-	SCDeployEnableEpoch                    uint32
-	BuiltInFunctionsEnableEpoch            uint32
-	RelayedTransactionsEnableEpoch         uint32
-	PenalizedTooMuchGasEnableEpoch         uint32
-	SwitchJailWaitingEnableEpoch           uint32
-	SwitchHysteresisForMinNodesEnableEpoch uint32
-	BelowSignedThresholdEnableEpoch        uint32
-	TransactionSignedWithTxHashEnableEpoch uint32
-	MetaProtectionEnableEpoch              uint32
-	AheadOfTimeGasUsageEnableEpoch         uint32
-	GasPriceModifierEnableEpoch            uint32
-	RepairCallbackEnableEpoch              uint32
-	BalanceWaitingListsEnableEpoch         uint32
-	WaitingListFixEnableEpoch              uint32
-	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
-	GenesisString                          string
-	GenesisMaxNumberOfShards               uint32
-	BlockGasAndFeesReCheckEnableEpoch      uint32
-	ReturnDataToLastTransferEnableEpoch    uint32
-	ArwenESDTFunctionsEnableEpoch          uint32
-	SenderInOutTransferEnableEpoch         uint32
-	SaveJailedAlwaysEnableEpoch            uint32
+	StatusPollingIntervalSec                    int
+	MaxComputableRounds                         uint64
+	StartInEpochEnabled                         bool
+	SCDeployEnableEpoch                         uint32
+	BuiltInFunctionsEnableEpoch                 uint32
+	RelayedTransactionsEnableEpoch              uint32
+	PenalizedTooMuchGasEnableEpoch              uint32
+	SwitchJailWaitingEnableEpoch                uint32
+	SwitchHysteresisForMinNodesEnableEpoch      uint32
+	BelowSignedThresholdEnableEpoch             uint32
+	TransactionSignedWithTxHashEnableEpoch      uint32
+	MetaProtectionEnableEpoch                   uint32
+	AheadOfTimeGasUsageEnableEpoch              uint32
+	GasPriceModifierEnableEpoch                 uint32
+	RepairCallbackEnableEpoch                   uint32
+	BalanceWaitingListsEnableEpoch              uint32
+	WaitingListFixEnableEpoch                   uint32
+	MaxNodesChangeEnableEpoch                   []MaxNodesChangeConfig
+	GenesisString                               string
+	GenesisMaxNumberOfShards                    uint32
+	BlockGasAndFeesReCheckEnableEpoch           uint32
+	ReturnDataToLastTransferEnableEpoch         uint32
+	SenderInOutTransferEnableEpoch              uint32
+	SaveJailedAlwaysEnableEpoch                 uint32
+	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -348,21 +348,19 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
-	OutOfProcessEnabled bool
+	ArwenVersions []ArwenVersionByEpoch
+}
+
+// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
+type ArwenVersionByEpoch struct {
+	StartEpoch uint32
+	Version    string
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
-}
-
-// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
-type VirtualMachineOutOfProcessConfig struct {
-	LogsMarshalizer     string
-	MessagesMarshalizer string
-	MaxLoopTime         int
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

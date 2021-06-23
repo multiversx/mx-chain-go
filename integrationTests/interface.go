@@ -57,8 +57,7 @@ type Facade interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (state.UserAccountHandler, error)
-	GetCode(account state.UserAccountHandler) []byte
+	GetAccount(address string) (dataApi.AccountResponse, error)
 	GetESDTData(address string, key string, nonce uint64) (*esdt.ESDigitalToken, error)
 	GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error)
 	GetESDTsWithRole(address string, role string) ([]string, error)

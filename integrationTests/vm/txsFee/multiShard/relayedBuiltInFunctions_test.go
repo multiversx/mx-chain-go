@@ -15,6 +15,10 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires golang fix")
+	}
+
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		2,
 		vm.ArgEnableEpoch{

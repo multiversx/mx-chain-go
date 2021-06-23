@@ -47,6 +47,24 @@ func (builder *txDataBuilder) ToBytes() []byte {
 	return []byte(builder.ToString())
 }
 
+// GetLast returns the currently last element.
+func (builder *txDataBuilder) GetLast() string {
+	if len(builder.elements) == 0 {
+		return ""
+	}
+
+	return builder.elements[len(builder.elements)-1]
+}
+
+// SetLast replaces the last element with the provided one.
+func (builder *txDataBuilder) SetLast(element string) {
+	if len(builder.elements) == 0 {
+		builder.elements = []string{element}
+	}
+
+	builder.elements[len(builder.elements)-1] = element
+}
+
 // Func sets the function to be invoked by the data string.
 func (builder *txDataBuilder) Func(function string) *txDataBuilder {
 	builder.function = function
@@ -129,6 +147,11 @@ func (builder *txDataBuilder) TransferESDT(token string, value int64) *txDataBui
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
 }
 
+//TransferESDTNFT appends to the data string all the elements required to request an ESDT NFT transfer.
+func (builder *txDataBuilder) TransferESDTNFT(token string, nonce int, value int64) *txDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTNFTTransfer).Str(token).Int(nonce).Int64(value)
+}
+
 // BurnESDT appends to the data string all the elements required to burn ESDT tokens.
 func (builder *txDataBuilder) BurnESDT(token string, value int64) *txDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTBurn).Str(token).Int64(value)
@@ -162,6 +185,11 @@ func (builder *txDataBuilder) CanBurn(prop bool) *txDataBuilder {
 // CanTransferNFTCreateRole appends "canTransferNFTCreateRole" followed by the provided boolean value.
 func (builder *txDataBuilder) CanTransferNFTCreateRole(prop bool) *txDataBuilder {
 	return builder.Str("canTransferNFTCreateRole").Bool(prop)
+}
+
+// CanAddSpecialRoles appends "canAddSpecialRoles" followed by the provided boolean value.
+func (builder *txDataBuilder) CanAddSpecialRoles(prop bool) *txDataBuilder {
+	return builder.Str("canAddSpecialRoles").Bool(prop)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

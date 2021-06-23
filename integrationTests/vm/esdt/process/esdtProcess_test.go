@@ -1,3 +1,5 @@
+// +build !race
+
 package process
 
 import (
@@ -1833,4 +1835,109 @@ func TestESDTMultiTransferFromSC(t *testing.T) {
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
 	time.Sleep(time.Second)
+}
+
+func TestESDTMultiTransferFromSC_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	ownerNode := nodes[0]
+	crossShardNode := nodes[1]
+
+	defer func() {
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+
+	initialSupply := int64(10000000000)
+	ticker := "TCK"
+	esdtCommon.IssueTestTokenWithSpecialRoles(nodes, initialSupply, ticker)
+	tokenIssuer := ownerNode
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 12
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
+	esdtCommon.CheckAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, string(tokenIdentifier), initialSupply)
+
+	// deploy the smart contract
+	scCode := arwen.GetSCCode("../testdata/multi-transfer-esdt.wasm")
+	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(
+		tokenIssuer.OwnAccount.Address,
+		tokenIssuer.OwnAccount.Nonce,
+		vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		ownerNode,
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(tokenIdentifier),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err := ownerNode.AccntState.GetExistingAccount(scAddress)
+	require.Nil(t, err)
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleLocalMint),
+	}
+	esdtCommon.SetRoles(nodes, scAddress, tokenIdentifier, roles)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+
+	txData := txDataBuilder.NewBuilder()
+	txData.Func("batchTransferEsdtToken")
+
+	txData.Bytes(crossShardNode.OwnAccount.Address)
+	txData.Bytes(tokenIdentifier)
+	txData.Int64(10)
+
+	txData.Bytes(crossShardNode.OwnAccount.Address)
+	txData.Bytes(tokenIdentifier)
+	txData.Int64(10)
+
+	integrationTests.CreateAndSendTransaction(
+		ownerNode,
+		nodes,
+		big.NewInt(0),
+		scAddress,
+		txData.ToString(),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+	esdtCommon.CheckAddressHasESDTTokens(t, crossShardNode.OwnAccount.Address, nodes, string(tokenIdentifier), 20)
 }

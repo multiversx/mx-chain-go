@@ -1,3 +1,5 @@
+// +build !race
+
 package delegation
 
 import (
@@ -29,6 +31,10 @@ var NewBalanceBig = arwen.NewBalanceBig
 var RequireAlmostEquals = arwen.RequireAlmostEquals
 
 func TestDelegation_Upgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skip for short")
+	}
+
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
@@ -206,7 +212,7 @@ func TestDelegationProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -214,7 +220,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -222,10 +228,10 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -240,7 +246,6 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)

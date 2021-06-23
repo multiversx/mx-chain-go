@@ -63,10 +63,10 @@ type NodeHandler interface {
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
-	GetAccount(address string) (state.UserAccountHandler, error)
+	GetAccount(address string) (api.AccountResponse, error)
 
-	// GetCode returns the code for the given account
-	GetCode(account state.UserAccountHandler) []byte
+	// GetCode returns the code for the given code hash
+	GetCode(codeHash []byte) []byte
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []data.PubKeyHeartbeat

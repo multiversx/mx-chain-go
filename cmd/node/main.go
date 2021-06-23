@@ -1294,6 +1294,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	arwenLocker := &sync.RWMutex{}
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1336,6 +1337,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
+		arwenLocker,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
 		chanStopNodeProcess,
@@ -1477,6 +1479,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		apiWorkingDir,
 		stateComponents.AccountsAdapterAPI,
 	)
@@ -1572,18 +1575,29 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
-		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
+		defaultSecondsToCheckHealth := 300                   // 5minutes
+		defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+
+		config.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
+		config.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
+
 		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StateTriesConfig.CheckpointRoundsModulus", math.MaxUint32,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
 			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
+			"health interval diagnose components deeply in seconds", config.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
+			"health interval diagnose components in seconds", config.Health.IntervalDiagnoseComponentsInSeconds,
+			"health interval verify memory in seconds", config.Health.IntervalVerifyMemoryInSeconds,
+			"health memory usage threshold", core.ConvertBytes(uint64(config.Health.MemoryUsageToCreateProfiles)),
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
-		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StateTriesConfig.CheckpointRoundsModulus = math.MaxUint32
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
 		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
@@ -1881,9 +1895,9 @@ func createShardCoordinator(
 			return nil, "", err
 		}
 		if selfShardId == core.DisabledShardIDAsObserver {
-			pubKeyBytes, err := pubKey.ToByteArray()
-			if err != nil {
-				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", err)
+			pubKeyBytes, errConvert := pubKey.ToByteArray()
+			if errConvert != nil {
+				return nil, core.NodeTypeObserver, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 			}
 
 			selfShardId = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -1932,9 +1946,9 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		pubKeyBytes, err := pubKey.ToByteArray()
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", err)
+		pubKeyBytes, errConvert := pubKey.ToByteArray()
+		if errConvert != nil {
+			return nil, nil, fmt.Errorf("%w while assigning random shard ID for observer", errConvert)
 		}
 
 		shardIDAsObserver = core.AssignShardForPubKeyWhenNotSpecified(pubKeyBytes, nodesConfig.NumberOfShards())
@@ -2511,6 +2525,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 	accountsAPI state.AccountsAdapter,
 ) (facade.ApiResolver, error) {
@@ -2533,6 +2548,7 @@ func createApiResolver(
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		arwenLocker,
 		workingDir,
 	)
 	if err != nil {
@@ -2624,6 +2640,7 @@ func createScQueryService(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenLocker process.Locker,
 	workingDir string,
 ) (process.SCQueryService, error) {
 	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
@@ -2652,6 +2669,7 @@ func createScQueryService(
 			systemSCConfig,
 			rater,
 			epochNotifier,
+			arwenLocker,
 			workingDir,
 			i,
 		)
@@ -2690,6 +2708,7 @@ func createScQueryElement(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	arwenChangeLocker process.Locker,
 	workingDir string,
 	index int,
 ) (process.SCQueryService, error) {
@@ -2751,7 +2770,6 @@ func createScQueryElement(
 		}
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
@@ -2760,7 +2778,8 @@ func createScQueryElement(
 			DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  generalConfig.GeneralSettings.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              arwenChangeLocker,
+			EpochNotifier:                  epochNotifier,
 		}
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
@@ -2779,7 +2798,14 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      economics,
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        blockChain,
+		ArwenChangeLocker: arwenChangeLocker,
+	}
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
 }
 
 func createBuiltinFuncs(
