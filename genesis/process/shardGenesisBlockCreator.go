@@ -390,9 +390,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		RepairCallbackEnableEpoch:           generalConfig.RepairCallbackEnableEpoch,
 		ReturnDataToLastTransferEnableEpoch: generalConfig.ReturnDataToLastTransferEnableEpoch,
 		SenderInOutTransferEnableEpoch:      generalConfig.SenderInOutTransferEnableEpoch,
-		IsGenesisProcessing:                 true,
-		StakingV2EnableEpoch:                arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
-		ArwenChangeLocker:                   arwenChangeLocker,
+		IncrementSCRNonceInMultiTransferEnableEpoch: generalConfig.IncrementSCRNonceInMultiTransferEnableEpoch,
+		IsGenesisProcessing:                         true,
+		StakingV2EnableEpoch:                        arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		ArwenChangeLocker:                           arwenChangeLocker,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
