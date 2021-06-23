@@ -16,7 +16,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -684,13 +683,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 
 		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			value, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {
-				header, headerOk := value.(data.HeaderHandler)
-				if !headerOk {
-					assert.Fail(t, "wrong type in shard header pool")
-				}
-
 				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}

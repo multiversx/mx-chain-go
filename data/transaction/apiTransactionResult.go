@@ -52,6 +52,7 @@ type SimulationResults struct {
 	ScResults  map[string]*ApiSmartContractResult `json:"scResults,omitempty"`
 	Receipts   map[string]*ReceiptApi             `json:"receipts,omitempty"`
 	Hash       string                             `json:"hash,omitempty"`
+	VMOutput   *vmcommon.VMOutput                 `json:"-"`
 }
 
 // ApiSmartContractResult represents a smart contract result with changed fields' types in order to make it friendly for API's json
@@ -85,6 +86,7 @@ type ReceiptApi struct {
 
 // CostResponse is structure used to return the transaction cost in gas units
 type CostResponse struct {
-	GasUnits   uint64 `json:"txGasUnits"`
-	RetMessage string `json:"returnMessage"`
+	GasUnits             uint64                             `json:"txGasUnits"`
+	ReturnMessage        string                             `json:"returnMessage"`
+	SmartContractResults map[string]*ApiSmartContractResult `json:"smartContractResults"`
 }

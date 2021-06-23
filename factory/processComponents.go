@@ -412,7 +412,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	//TODO refactor all these factory calls
+	// TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -435,9 +435,18 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
+	vmOutputCacher, err := storageUnit.NewCache(vmOutputCacherConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
 		AddressPubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		VMOutputCacher:         vmOutputCacher,
+		Hasher:                 pcf.coreData.Hasher(),
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
 	blockProcessor, err := pcf.newBlockProcessor(
@@ -1007,7 +1016,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
 	defer func() {
-		//we need to call this after we wired all the notified components
+		// we need to call this after we wired all the notified components
 		if pcf.importDBConfig.IsImportDBMode {
 			manualEpochStartNotifier.NewEpoch(pcf.bootstrapComponents.EpochBootstrapParams().Epoch() + 1)
 		}

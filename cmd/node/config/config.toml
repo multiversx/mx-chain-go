@@ -354,7 +354,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 209715200 #200MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -408,6 +408,11 @@
 [PeerHonesty]
     Name = "PeerHonesty"
     Capacity = 5000
+    Type = "LRU"
+
+[VMOutputCacher]
+    Name = "VMOutputCacher"
+    Capacity = 10000
     Type = "LRU"
 
 [Antiflood]
@@ -588,7 +593,7 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 100
+    CheckpointRoundsModulus = 10000000
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
@@ -604,16 +609,15 @@
     [VirtualMachine.Execution]
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 3, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.3" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
         ArwenVersions = [
             { StartEpoch = 0, Version = "v1.2" },
-            { StartEpoch = 3, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.3" },
         ]
-
 
 [Hardfork]
     EnableTrigger = true
