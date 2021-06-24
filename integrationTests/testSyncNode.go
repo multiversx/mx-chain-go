@@ -273,6 +273,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		Indexer:             &mock.NilIndexer{},
+		IsInImportMode:      false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -312,6 +313,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		Indexer:             &mock.NilIndexer{},
+		IsInImportMode:      false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

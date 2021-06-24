@@ -448,7 +448,7 @@ const (
 	//MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
 	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
@@ -462,6 +462,9 @@ const (
 
 	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
+
+	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
+	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
 )
 
 const (
