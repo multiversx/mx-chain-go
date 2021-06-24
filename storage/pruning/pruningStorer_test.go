@@ -811,20 +811,3 @@ func TestRegex(t *testing.T) {
 		assert.Equal(t, expectedRes, rg.ReplaceAllString(path, replacementEpoch))
 	}
 }
-
-func TestDirectories(t *testing.T) {
-	pathToCreate := "user-directory/go/src/workspace/db/Epoch_2/Shard_27"
-	pathParameter := pathToCreate + "/MiniBlock"
-	// should become user-directory/go/src/workspace/db
-
-	err := os.MkdirAll(pathToCreate, os.ModePerm)
-	assert.Nil(t, err)
-
-	pruning.RemoveDirectoryIfEmpty(pathParameter)
-
-	if _, err = os.Stat(pathParameter); !os.IsNotExist(err) {
-		assert.Fail(t, "directory should have been removed")
-	}
-
-	_ = os.RemoveAll("user-directory")
-}
