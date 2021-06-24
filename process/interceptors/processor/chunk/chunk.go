@@ -27,7 +27,7 @@ func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 		return
 	}
 
-	existing, _ := c.data[chunkIndex]
+	existing := c.data[chunkIndex]
 	c.data[chunkIndex] = buff
 	c.size = c.size - len(existing) + len(buff)
 }

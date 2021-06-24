@@ -11,7 +11,7 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
-//HeadersPoolConfig will map the headers cache configuration
+// HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
 	NumElementsToRemoveOnEviction int
@@ -54,7 +54,7 @@ type TypeConfig struct {
 // MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
 	Type string
-	//TODO check if we still need this
+	// TODO check if we still need this
 	SizeCheckDelta uint32
 }
 
@@ -177,6 +177,7 @@ type Config struct {
 	Logs                  LogsConfig
 	TrieSync              TrieSyncConfig
 	Resolvers             ResolverConfig
+	VMOutputCacher        CacheConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
@@ -342,21 +343,19 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
-	OutOfProcessEnabled bool
+	ArwenVersions []ArwenVersionByEpoch
+}
+
+// ArwenVersionByEpoch represents the Arwen version to be used starting with an epoch
+type ArwenVersionByEpoch struct {
+	StartEpoch uint32
+	Version    string
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
 	NumConcurrentVMs int
-}
-
-// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
-type VirtualMachineOutOfProcessConfig struct {
-	LogsMarshalizer     string
-	MessagesMarshalizer string
-	MaxLoopTime         int
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

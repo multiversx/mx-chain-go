@@ -11,19 +11,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:            "test topic",
-		DataFactory:      &mock.InterceptedDataFactoryStub{},
-		Processor:        &mock.InterceptorProcessorStub{},
-		Throttler:        createMockThrottler(),
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest: &mock.WhiteListHandlerStub{},
-		CurrentPeerId:    "pid",
+		Topic:                "test topic",
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &mock.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
 	}
 }
 
@@ -107,6 +109,17 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
+}
+
+func TestNewSingleDataInterceptor_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	arg.PreferredPeersHolder = nil
+	sdi, err := interceptors.NewSingleDataInterceptor(arg)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilPreferredPeersHolder, err)
 }
 
 func TestNewSingleDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {

@@ -93,6 +93,12 @@ type BlockchainHook interface {
 	// GetESDTToken loads the ESDT digital token for the given key
 	GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
 
+	// GetSnapshot gets the number of entries in the journal as a snapshot id
+	GetSnapshot() int
+
+	// RevertToSnapshot reverts snaphots up to the specified one
+	RevertToSnapshot(snapshot int) error
+
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -121,6 +127,9 @@ type VMExecutionHandler interface {
 
 	// GasScheduleChange sets a new gas schedule for the VM
 	GasScheduleChange(newGasSchedule map[string]map[string]uint64)
+
+	// GetVersion returns the version of the VM instance
+	GetVersion() string
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

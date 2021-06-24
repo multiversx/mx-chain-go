@@ -145,6 +145,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.nodeRedundancyHandler) {
 		return errors.ErrNilNodeRedundancyHandler
 	}
+	if check.IfNilReflect(m.processComponents.arwenChangeLocker) {
+		return errors.ErrNilLocker
+	}
 
 	return nil
 }
@@ -486,7 +489,7 @@ func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.Request
 }
 
 // NodeRedundancyHandler returns the node redundancy handler
-func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler{
+func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -495,6 +498,18 @@ func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedunda
 	}
 
 	return m.processComponents.nodeRedundancyHandler
+}
+
+// ArwenChangeLocker returns the locker used when accessing Arwen safely as to avoid using it while its changing its version
+func (m *managedProcessComponents) ArwenChangeLocker() process.Locker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.arwenChangeLocker
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -570,7 +571,7 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 		ReqHandler:                     &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                  &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
-		PeerMapper:                     &mock.NetworkShardingCollectorStub{},
+		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		WhiteListHandlerInternal:       &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxsInternal: &mock.WhiteListHandlerStub{},
 	}

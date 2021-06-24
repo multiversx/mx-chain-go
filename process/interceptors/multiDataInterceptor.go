@@ -18,14 +18,15 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic            string
-	Marshalizer      marshal.Marshalizer
-	DataFactory      process.InterceptedDataFactory
-	Processor        process.InterceptorProcessor
-	Throttler        process.InterceptorThrottler
-	AntifloodHandler process.P2PAntifloodHandler
-	WhiteListRequest process.WhiteListHandler
-	CurrentPeerId    core.PeerID
+	Topic                string
+	Marshalizer          marshal.Marshalizer
+	DataFactory          process.InterceptedDataFactory
+	Processor            process.InterceptorProcessor
+	Throttler            process.InterceptorThrottler
+	AntifloodHandler     process.P2PAntifloodHandler
+	WhiteListRequest     process.WhiteListHandler
+	PreferredPeersHolder process.PreferredPeersHolderHandler
+	CurrentPeerId        core.PeerID
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
@@ -61,18 +62,22 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if check.IfNil(arg.WhiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, process.ErrNilPreferredPeersHolder
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:        arg.Throttler,
-			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.Topic,
-			currentPeerId:    arg.CurrentPeerId,
-			processor:        arg.Processor,
-			debugHandler:     resolver.NewDisabledInterceptorResolver(),
+			throttler:            arg.Throttler,
+			antifloodHandler:     arg.AntifloodHandler,
+			topic:                arg.Topic,
+			currentPeerId:        arg.CurrentPeerId,
+			processor:            arg.Processor,
+			preferredPeersHolder: arg.PreferredPeersHolder,
+			debugHandler:         resolver.NewDisabledInterceptorResolver(),
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,

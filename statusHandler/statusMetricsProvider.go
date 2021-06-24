@@ -207,6 +207,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[core.MetricGovernanceEnableEpoch] = sm.loadUint64Metric(core.MetricGovernanceEnableEpoch)
 	enableEpochsMetrics[core.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationManagerEnableEpoch)
 	enableEpochsMetrics[core.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationSmartContractEnableEpoch)
+	enableEpochsMetrics[core.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.loadUint64Metric(core.MetricIncrementSCRNonceInMultiTransferEnableEpoch)
 
 	return enableEpochsMetrics
 }

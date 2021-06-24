@@ -33,6 +33,11 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedMiniBlocksCalled               func(hdr data.HeaderHandler, body *block.Body) error
 }
 
+// GetAllCurrentLogs -
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
+}
+
 // CreatePostProcessMiniBlocks -
 func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
 	if tcm.CreatePostProcessMiniBlocksCalled != nil {

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -29,7 +31,7 @@ type SerialDB struct {
 	cancel            context.CancelFunc
 	mutClosed         sync.Mutex
 	closed            bool
-	closingChan       chan struct{}
+	closer            core.SafeCloser
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -69,7 +71,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		dbAccess:          make(chan serialQueryer),
 		cancel:            cancel,
 		closed:            false,
-		closingChan:       make(chan struct{}),
+		closer:            closing.NewSafeChanCloser(),
 	}
 
 	dbStore.batch = NewBatch()
@@ -209,7 +211,7 @@ func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
 	select {
 	case s.dbAccess <- req:
 		return nil
-	case <-s.closingChan:
+	case <-s.closer.ChanClose():
 		return storage.ErrSerialDBIsClosed
 	}
 }
@@ -265,9 +267,9 @@ func (s *SerialDB) Close() error {
 		return nil
 	}
 
-	//calling close on the closingChan should be the last instruction called
+	//calling close on the SafeCloser instance should be the last instruction called
 	//(just to close some go routines started as edge cases that would otherwise hang)
-	defer close(s.closingChan)
+	defer s.closer.Close()
 
 	s.closed = true
 	_ = s.putBatch()
