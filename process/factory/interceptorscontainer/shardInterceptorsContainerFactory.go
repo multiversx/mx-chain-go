@@ -35,6 +35,7 @@ func NewShardInterceptorsContainerFactory(
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
+		args.PreferredPeersHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -62,6 +63,9 @@ func NewShardInterceptorsContainerFactory(
 	}
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(args.PreferredPeersHolder) {
+		return nil, process.ErrNilPreferredPeersHolder
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
@@ -94,6 +98,7 @@ func NewShardInterceptorsContainerFactory(
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:   args.PreferredPeersHolder,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

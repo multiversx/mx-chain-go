@@ -536,6 +536,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
 		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
 		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
+		Logs:     sp.txCoordinator.GetAllCurrentLogs(),
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
