@@ -14,7 +14,7 @@ func NewDisabledInterceptedChunksProcessor() *disabledInterceptedChunksProcessor
 }
 
 // CheckBatch returns a checked chunk result that signals that no chunk has been received
-func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch) (process.CheckedChunkResult, error) {
+func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch, _ process.WhiteListHandler) (process.CheckedChunkResult, error) {
 	return process.CheckedChunkResult{
 		IsChunk:        false,
 		HaveAllChunks:  false,

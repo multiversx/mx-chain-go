@@ -69,29 +69,30 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 	return hash, nil
 }
 
-func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
+// encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
+func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) (int, error) {
 	key := n.getHash()
 	if key == nil {
 		err := n.setHash()
 		if err != nil {
-			return err
+			return 0, err
 		}
 		key = n.getHash()
 	}
 
 	n, err := n.getCollapsed()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	val, err := n.getEncodedNode()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	err = db.Put(key, val)
 
-	return err
+	return len(val), err
 }
 
 func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {

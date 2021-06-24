@@ -572,8 +572,8 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 		TxLogsProcess:                  &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
-		WhiteListHandlerInternal:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxsInternal: &mock.WhiteListHandlerStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
 	}
 }
 

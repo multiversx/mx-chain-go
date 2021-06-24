@@ -533,7 +533,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	args.WhiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
+	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -644,8 +644,8 @@ func getArgumentsShard(
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		WhiteListHandler:        &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		RequestHandler:          &testscommon.RequestHandlerStub{},

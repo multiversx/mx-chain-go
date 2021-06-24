@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 		Processor:            &mock.InterceptorProcessorStub{},
 		Throttler:            createMockThrottler(),
 		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &mock.WhiteListHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:        "pid",
 	}
@@ -390,7 +391,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	expectedErr := errors.New("expected error")
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{}, expectedErr
 			},
 		},
@@ -428,7 +429,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  false,
@@ -481,7 +482,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  true,
@@ -529,7 +530,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -597,7 +598,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 			}
 		},
 	}
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -659,7 +660,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 		},
 	}
 
-	whiteListHandler := &mock.WhiteListHandlerStub{
+	whiteListHandler := &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},

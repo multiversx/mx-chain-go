@@ -128,7 +128,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	mdi.mutChunksProcessor.RLock()
-	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b)
+	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b, mdi.whiteListRequest)
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()

@@ -19,15 +19,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -131,26 +127,11 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
-	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
-		&testscommon.CacherStub{
-			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
-				return false
-			},
-		},
-	)
-	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
-		nRequester.ResolverFinder,
-		&mock.RequestedItemsHandlerStub{},
-		whiteListHandler,
-		10000,
-		nRequester.ShardCoordinator.SelfId(),
-		time.Second,
-	)
 
 	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:                 requestHandler,
+		RequestHandler:                 nRequester.RequestHandler,
 		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
 		DB:                             requesterTrie.GetStorageManager().Database(),
 		Marshalizer:                    integrationTests.TestMarshalizer,
@@ -168,10 +149,10 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		for {
 			select {
 			case <-ctxPrint.Done():
-				fmt.Printf("Sync done: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+				fmt.Printf("Sync done: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
 				return
 			case <-time.After(time.Millisecond * 100):
-				fmt.Printf("Sync in progress: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+				fmt.Printf("Sync in progress: received: %d, large: %d, missing: %d\n", tss.NumReceived(), tss.NumLarge(), tss.NumMissing())
 			}
 		}
 	}()
@@ -268,21 +249,6 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.RootHash()
-	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
-		&testscommon.CacherStub{
-			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
-				return false
-			},
-		},
-	)
-	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
-		nRequester.ResolverFinder,
-		&mock.RequestedItemsHandlerStub{},
-		whiteListHandler,
-		10000,
-		nRequester.ShardCoordinator.SelfId(),
-		time.Second,
-	)
 
 	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
 	syncerArgs := syncer.ArgsNewUserAccountsSyncer{
@@ -290,7 +256,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 			Hasher:                    integrationTests.TestHasher,
 			Marshalizer:               integrationTests.TestMarshalizer,
 			TrieStorageManager:        nRequester.TrieStorageManagers[trieFactory.UserAccountTrie],
-			RequestHandler:            requestHandler,
+			RequestHandler:            nRequester.RequestHandler,
 			Timeout:                   time.Second * 10,
 			Cacher:                    nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:      200,

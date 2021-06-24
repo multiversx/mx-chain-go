@@ -508,6 +508,7 @@ type RequestHandler interface {
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
+	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	IsInterfaceNil() bool
 }
 
@@ -971,6 +972,7 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData InterceptedData) bool
+	IsWhiteListedAtLeastOne(identifiers [][]byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -1126,7 +1128,7 @@ type CheckedChunkResult struct {
 
 // InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
 type InterceptedChunksProcessor interface {
-	CheckBatch(b *batch.Batch) (CheckedChunkResult, error)
+	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
 	Close() error
 	IsInterfaceNil() bool
 }

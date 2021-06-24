@@ -381,8 +381,8 @@ func TestCreateSyncers(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	epochStartProvider.whiteListHandler = &mock.WhiteListHandlerStub{}
-	epochStartProvider.whiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
 	err := epochStartProvider.createSyncers()

@@ -350,7 +350,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesGetSerializedNodes
 func TestTrieNodeResolver_ProcessReceivedMessageMultipleHashesNotEnoughSpaceShouldNotReadSubtries(t *testing.T) {
 	t.Parallel()
 
-	nodes := [][]byte{bytes.Repeat([]byte{1}, resolvers.MaxBuffToSendTrieNodes)}
+	nodes := [][]byte{bytes.Repeat([]byte{1}, core.MaxBufferSizeToSendTrieNodes)}
 	hashes := [][]byte{[]byte("hash1")}
 
 	var receivedNodes [][]byte
@@ -540,7 +540,7 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChun
 
 	randBuff := make([]byte, 1<<20) //1MB
 	_, _ = rand.Read(randBuff)
-	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, resolvers.MaxBuffToSendTrieNodes)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, core.MaxBufferSizeToSendTrieNodes)
 }
 
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredChunk(t *testing.T) {
@@ -548,9 +548,30 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredC
 
 	randBuff := make([]byte, 1<<20) //1MB
 	_, _ = rand.Read(randBuff)
-	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 1, 4, resolvers.MaxBuffToSendTrieNodes, 2*resolvers.MaxBuffToSendTrieNodes)
-	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 2, 4, 2*resolvers.MaxBuffToSendTrieNodes, 3*resolvers.MaxBuffToSendTrieNodes)
-	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 3, 4, 3*resolvers.MaxBuffToSendTrieNodes, 4*resolvers.MaxBuffToSendTrieNodes)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		1,
+		4,
+		core.MaxBufferSizeToSendTrieNodes,
+		2*core.MaxBufferSizeToSendTrieNodes,
+	)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		2,
+		4,
+		2*core.MaxBufferSizeToSendTrieNodes,
+		3*core.MaxBufferSizeToSendTrieNodes,
+	)
+	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
+		t,
+		randBuff,
+		3,
+		4,
+		3*core.MaxBufferSizeToSendTrieNodes,
+		4*core.MaxBufferSizeToSendTrieNodes,
+	)
 
 	randBuff = make([]byte, 1<<20+1) //1MB + 1 byte
 	_, _ = rand.Read(randBuff)
