@@ -11,8 +11,8 @@ func TestCostResponseStructure(t *testing.T) {
 	t.Parallel()
 
 	costResponse := &CostResponse{
-		GasUnits:   10000,
-		RetMessage: "",
+		GasUnits:      10000,
+		ReturnMessage: "",
 	}
 
 	costResponseBytes, err := json.Marshal(costResponse)

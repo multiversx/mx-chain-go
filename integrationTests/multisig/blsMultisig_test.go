@@ -93,12 +93,7 @@ func verifySigAllSignersBls(
 			return err
 		}
 
-		muSigBls, ok := muSig.(crypto.MultiSigner)
-		if !ok {
-			return crypto.ErrInvalidSigner
-		}
-
-		multiSigners[i] = muSigBls
+		multiSigners[i] = muSig
 		err = multiSigners[i].SetAggregatedSig(signature)
 		if err != nil {
 			return err

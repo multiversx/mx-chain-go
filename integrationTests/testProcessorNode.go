@@ -84,6 +84,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
@@ -1441,6 +1442,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		VMOutputCacher:                 txcache.NewDisabledCache(),
 		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
@@ -1671,6 +1673,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		DeployEnableEpoch:              tpn.DeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
+		VMOutputCacher:                 txcache.NewDisabledCache(),
 		ArwenChangeLocker:              tpn.ArwenChangeLocker,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
