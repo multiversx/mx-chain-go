@@ -158,6 +158,12 @@ var ErrBadRequest = errors.New("request should not be done as it doesn't follow 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
+// ErrNilPreferredPeersHolder signals that a nil preferred peers holder handler has been provided
+var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
+// ErrNilSelfShardIDProvider signals that a nil self shard ID provider has been provided
+var ErrNilSelfShardIDProvider = errors.New("nil self shard ID provider")
+
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
 

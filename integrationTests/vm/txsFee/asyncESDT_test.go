@@ -1,3 +1,7 @@
+// +build !race
+
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package txsFee
 
 import (
@@ -120,10 +124,10 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(5000))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(0))
 
-	expectedSenderBalance := big.NewInt(95000000)
+	expectedSenderBalance := big.NewInt(95999990)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedSenderBalance)
 
-	expectedAccumulatedFees := big.NewInt(5000000)
+	expectedAccumulatedFees := big.NewInt(4000010)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
@@ -132,8 +136,8 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5000000", indexerTx.Fee)
+	require.Equal(t, uint64(400001), indexerTx.GasUsed)
+	require.Equal(t, "4000010", indexerTx.Fee)
 }
 
 func TestAsyncESDTCallsOutOfGas(t *testing.T) {

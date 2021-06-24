@@ -99,12 +99,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
-	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
-
 	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,

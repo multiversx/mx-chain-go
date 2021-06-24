@@ -10,13 +10,14 @@ import (
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
 type ArgSingleDataInterceptor struct {
-	Topic            string
-	DataFactory      process.InterceptedDataFactory
-	Processor        process.InterceptorProcessor
-	Throttler        process.InterceptorThrottler
-	AntifloodHandler process.P2PAntifloodHandler
-	WhiteListRequest process.WhiteListHandler
-	CurrentPeerId    core.PeerID
+	Topic                string
+	DataFactory          process.InterceptedDataFactory
+	Processor            process.InterceptorProcessor
+	Throttler            process.InterceptorThrottler
+	AntifloodHandler     process.P2PAntifloodHandler
+	WhiteListRequest     process.WhiteListHandler
+	PreferredPeersHolder process.PreferredPeersHolderHandler
+	CurrentPeerId        core.PeerID
 }
 
 // SingleDataInterceptor is used for intercepting packed multi data
@@ -46,18 +47,22 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 	if check.IfNil(arg.WhiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, process.ErrNilPreferredPeersHolder
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:        arg.Throttler,
-			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.Topic,
-			currentPeerId:    arg.CurrentPeerId,
-			processor:        arg.Processor,
-			debugHandler:     resolver.NewDisabledInterceptorResolver(),
+			throttler:            arg.Throttler,
+			antifloodHandler:     arg.AntifloodHandler,
+			topic:                arg.Topic,
+			currentPeerId:        arg.CurrentPeerId,
+			processor:            arg.Processor,
+			preferredPeersHolder: arg.PreferredPeersHolder,
+			debugHandler:         resolver.NewDisabledInterceptorResolver(),
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,

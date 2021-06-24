@@ -320,6 +320,26 @@ func GetGeneralConfig() config.Config {
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
 		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Execution: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "*"},
+					},
+				},
+			},
+		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
+		},
 	}
 }
 

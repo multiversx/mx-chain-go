@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/peer"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
@@ -55,8 +56,9 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 
 	p2pConfigSeeder := p2pConfig
 	argSeeder := libp2p.ArgsNetworkMessenger{
-		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfigSeeder,
+		ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfigSeeder,
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 	//Step 1. Create advertiser
 	advertiser, _ := libp2p.NewMockMessenger(argSeeder, netw)
@@ -66,8 +68,9 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
 		arg := libp2p.ArgsNetworkMessenger{
-			ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-			P2pConfig:     p2pConfig,
+			ListenAddress:        libp2p.ListenLocalhostAddrWithIp4AndTcp,
+			P2pConfig:            p2pConfig,
+			PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		}
 		node, _ := libp2p.NewMockMessenger(arg, netw)
 		peers[i] = node

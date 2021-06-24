@@ -644,6 +644,9 @@ var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
+// ErrNilPreferredPeersHolder signals that preferred peers holder is nil
+var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -1006,6 +1009,9 @@ var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch
 
 // ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
 var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")
 
 // ErrNilChunksProcessor signals that a nil chunks processor has been provided
 var ErrNilChunksProcessor = errors.New("nil chunks processor")

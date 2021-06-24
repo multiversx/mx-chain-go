@@ -11,13 +11,14 @@ import (
 )
 
 type baseDataInterceptor struct {
-	throttler        process.InterceptorThrottler
-	antifloodHandler process.P2PAntifloodHandler
-	topic            string
-	currentPeerId    core.PeerID
-	processor        process.InterceptorProcessor
-	mutDebugHandler  sync.RWMutex
-	debugHandler     process.InterceptedDebugger
+	throttler            process.InterceptorThrottler
+	antifloodHandler     process.P2PAntifloodHandler
+	topic                string
+	currentPeerId        core.PeerID
+	processor            process.InterceptorProcessor
+	mutDebugHandler      sync.RWMutex
+	debugHandler         process.InterceptedDebugger
+	preferredPeersHolder process.PreferredPeersHolderHandler
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -28,7 +29,7 @@ func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromCon
 		return process.ErrNilDataToProcess
 	}
 
-	if !bdi.isMessageFromSelfToSelf(fromConnectedPeer, message) {
+	if !bdi.shouldSkipAntifloodChecks(fromConnectedPeer, message) {
 		err := bdi.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 		if err != nil {
 			return err
@@ -45,6 +46,14 @@ func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromCon
 
 	bdi.throttler.StartProcessing()
 	return nil
+}
+
+func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
+	if bdi.isMessageFromSelfToSelf(fromConnectedPeer, message) {
+		return true
+	}
+
+	return bdi.preferredPeersHolder.Contains(fromConnectedPeer)
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {

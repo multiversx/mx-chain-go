@@ -93,6 +93,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		AntifloodHandler:          antiFloodHandler,
 		ArgumentsParser:           args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		PreferredPeersHolder:      disabled.NewPreferredPeersHolder(),
 		RequestHandler:            args.RequestHandler,
 	}
 
