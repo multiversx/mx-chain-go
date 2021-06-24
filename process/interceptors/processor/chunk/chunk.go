@@ -37,8 +37,7 @@ func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 func (c *chunk) TryAssembleAllChunks() []byte {
 	gotAllParts := c.maxChunks > 0 && len(c.data) == int(c.maxChunks)
 	if !gotAllParts {
-		//TODO(iulian) remove this log
-		log.Warn("not all parts got", "max chunks", c.maxChunks, "len chunk", len(c.data))
+		log.Trace("not all parts received", "max chunks", c.maxChunks, "len chunk", len(c.data))
 		return nil
 	}
 

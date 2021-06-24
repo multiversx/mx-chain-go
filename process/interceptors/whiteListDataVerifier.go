@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const maxElementSize = 32
+const maxElementSize = 32 + 4 // hash + chunk_index_as_uint32
 
 var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
 

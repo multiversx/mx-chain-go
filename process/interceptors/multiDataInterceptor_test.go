@@ -725,3 +725,23 @@ func TestMultiDataInterceptor_SetChunkProcessor(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cps, mdi.ChunksProcessor())
 }
+
+func TestMultiDataInterceptor_Close(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	arg := createMockArgMultiDataInterceptor()
+	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
+	cps := &mock.ChunkProcessorStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}
+	_ = mdi.SetChunkProcessor(cps)
+
+	err := mdi.Close()
+
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
+}

@@ -316,3 +316,31 @@ func TestInterceptorsContainer_IterateEarlyExitShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
 }
+
+func TestInterceptorsContainer_Close(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewInterceptorsContainer()
+
+	expectedErr := errors.New("expected error")
+	closeCalled1 := false
+	closeCalled2 := false
+
+	_ = c.Add("key1", &testscommon.InterceptorStub{
+		CloseCalled: func() error {
+			closeCalled1 = true
+			return expectedErr
+		},
+	})
+	_ = c.Add("key2", &testscommon.InterceptorStub{
+		CloseCalled: func() error {
+			closeCalled2 = true
+			return nil
+		},
+	})
+
+	err := c.Close()
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, closeCalled1)
+	assert.True(t, closeCalled2)
+}

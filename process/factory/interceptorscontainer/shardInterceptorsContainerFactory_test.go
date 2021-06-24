@@ -67,6 +67,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.TrieNodesCalled = func() storage.Cacher {
 		return testscommon.NewCacherStub()
 	}
+	pools.TrieNodesChunksCalled = func() storage.Cacher {
+		return testscommon.NewCacherStub()
+	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
 	}
@@ -555,7 +558,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		NbShards:           uint32(noOfShards),
 	}
 
-	mesenger := &mock.TopicHandlerStub{
+	messenger := &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
@@ -569,7 +572,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
-	args.Messenger = mesenger
+	args.Messenger = messenger
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -603,7 +606,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		EpochNotifierField: &mock.EpochNotifierStub{},
+		EpochNotifierField:  &mock.EpochNotifierStub{},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
@@ -620,8 +623,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 func getArgumentsShard(
 	coreComp *mock.CoreComponentsMock,
 	cryptoComp *mock.CryptoComponentsMock,
-) interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
-	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
+	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
 		Accounts:                &mock.AccountsStub{},
@@ -642,5 +645,6 @@ func getArgumentsShard(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		RequestHandler:          &testscommon.RequestHandlerStub{},
 	}
 }

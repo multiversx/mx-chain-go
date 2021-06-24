@@ -215,8 +215,7 @@ func TestMultipleDataTriesSyncLargeValues(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	//TODO this test should pass when the trie multipart data transmission feature is finalized
-	testMultipleDataTriesSync(t, 2, 2, 1<<20)
+	testMultipleDataTriesSync(t, 3, 3, 1<<21)
 }
 
 func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves int, valSize int) {

@@ -72,6 +72,9 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
@@ -79,17 +82,19 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	currentTx, err := dataPool.NewCurrentBlockPool()
 	panicIfError("CreatePoolsHolder", err)
 
-	holder, err := dataPool.NewDataPool(
-		txPool,
-		unsignedTxPool,
-		rewardsTxPool,
-		headersPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currentTx,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     unsignedTxPool,
+		RewardTransactions:       rewardsTxPool,
+		Headers:                  headersPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                trieNodes,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currentTx,
+		SmartContracts:           smartContracts,
+	}
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
 
 	return holder
@@ -131,6 +136,9 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
+	trieNodesChunks, err := storageUnit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	smartContracts, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
@@ -138,17 +146,19 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	currentTx, err := dataPool.NewCurrentBlockPool()
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	holder, err := dataPool.NewDataPool(
-		txPool,
-		unsignedTxPool,
-		rewardsTxPool,
-		headersPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currentTx,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     unsignedTxPool,
+		RewardTransactions:       rewardsTxPool,
+		Headers:                  headersPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                trieNodes,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currentTx,
+		SmartContracts:           smartContracts,
+	}
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	return holder

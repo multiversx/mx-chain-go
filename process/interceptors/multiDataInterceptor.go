@@ -225,7 +225,6 @@ func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash
 }
 
 // SetChunkProcessor sets the intercepted chunks processor
-// TODO(next PR): use this in epoch bootstrapper, hardfork, interceptor for trie nodes
 func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.InterceptedChunksProcessor) error {
 	if check.IfNil(processor) {
 		return process.ErrNilChunksProcessor
@@ -236,6 +235,14 @@ func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.Intercepted
 	mdi.mutChunksProcessor.Unlock()
 
 	return nil
+}
+
+// Close will call the chunk processor's close method
+func (mdi *MultiDataInterceptor) Close() error {
+	mdi.mutChunksProcessor.RLock()
+	defer mdi.mutChunksProcessor.RUnlock()
+
+	return mdi.chunksProcessor.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -14,6 +14,7 @@ type InterceptorsContainerStub struct {
 	ReplaceCalled     func(key string, interceptor process.Interceptor) error
 	RemoveCalled      func(key string)
 	LenCalled         func() int
+	CloseCalled       func() error
 }
 
 // Iterate -
@@ -77,6 +78,15 @@ func (ics *InterceptorsContainerStub) Len() int {
 	}
 
 	return 0
+}
+
+// Close -
+func (ics *InterceptorsContainerStub) Close() error {
+	if ics.CloseCalled != nil {
+		return ics.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

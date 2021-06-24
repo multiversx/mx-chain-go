@@ -27,7 +27,6 @@ func createMockTrieNodesChunksProcessorArgs() TrieNodesChunksProcessorArgs {
 		RequestInterval: time.Second,
 		RequestHandler:  &testscommon.RequestHandlerStub{},
 		Topic:           "topic",
-		ShardID:         0,
 	}
 }
 
@@ -195,12 +194,10 @@ func TestTrieNodeChunksProcessor_RequestShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockTrieNodesChunksProcessorArgs()
-	args.ShardID = 2
 	numRequested := uint32(0)
 	args.RequestHandler = &testscommon.RequestHandlerStub{
-		RequestTrieNodeCalled: func(destShardID uint32, requestHash []byte, topic string, chunkIndex uint32) {
+		RequestTrieNodeCalled: func(requestHash []byte, topic string, chunkIndex uint32) {
 			atomic.AddUint32(&numRequested, 1)
-			assert.Equal(t, args.ShardID, destShardID)
 			assert.Equal(t, reference, requestHash)
 			assert.Equal(t, args.Topic, topic)
 			assert.True(t, chunkIndex >= 1 && chunkIndex <= 2)
