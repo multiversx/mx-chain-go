@@ -380,7 +380,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		TxTypeHandler:                       txTypeHandler,
 		GasHandler:                          gasHandler,
 		GasSchedule:                         arg.GasSchedule,
-		BuiltInFunctions:                    vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     arg.TxLogsProcessor,
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       epochNotifier,

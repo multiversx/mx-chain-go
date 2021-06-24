@@ -345,7 +345,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		TxTypeHandler:                       txTypeHandler,
 		GasHandler:                          gasHandler,
 		GasSchedule:                         arg.GasSchedule,
-		BuiltInFunctions:                    virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     arg.TxLogsProcessor,
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       epochNotifier,

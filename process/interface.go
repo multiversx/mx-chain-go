@@ -451,6 +451,7 @@ type BlockChainHookHandler interface {
 	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
+	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

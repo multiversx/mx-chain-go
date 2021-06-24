@@ -94,7 +94,6 @@ type ArgsNewSmartContractProcessor struct {
 	TxTypeHandler                               process.TxTypeHandler
 	GasHandler                                  process.GasHandler
 	GasSchedule                                 core.GasScheduleNotifier
-	BuiltInFunctions                            process.BuiltInFunctionContainer
 	TxLogsProcessor                             process.TransactionLogProcessor
 	BadTxForwarder                              process.IntermediateTransactionHandler
 	DeployEnableEpoch                           uint32
@@ -154,9 +153,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return nil, process.ErrNilGasSchedule
 	}
-	if check.IfNil(args.BuiltInFunctions) {
-		return nil, process.ErrNilBuiltInFunction
-	}
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
@@ -186,7 +182,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		txTypeHandler:                       args.TxTypeHandler,
 		gasHandler:                          args.GasHandler,
 		builtInGasCosts:                     builtInFuncCost,
-		builtInFunctions:                    args.BuiltInFunctions,
 		txLogsProcessor:                     args.TxLogsProcessor,
 		badTxForwarder:                      args.BadTxForwarder,
 		deployEnableEpoch:                   args.DeployEnableEpoch,
@@ -901,26 +896,23 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 
-	vmOutput := &vmcommon.VMOutput{
-		ReturnCode: vmcommon.UserError,
-	}
-
-	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
-	if err != nil {
-		vmOutput.ReturnMessage = err.Error()
-		return vmOutput, nil
-	}
-
-	vmOutput, err = builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	vmOutput, err := sc.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
 		}
+
+		return vmOutput, nil
 	}
 
-	err = sc.saveAccounts(acntSnd, acntDst)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return nil, err
+	}
+
+	acntDst, err = sc.reloadLocalAccount(acntDst)
 	if err != nil {
 		return nil, err
 	}
@@ -1889,11 +1881,6 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 		return true
 	}
 	function, args, err := sc.argsParser.ParseCallData(string(data))
-	if err != nil {
-		return false
-	}
-
-	_, err = sc.builtInFunctions.Get(function)
 	if err != nil {
 		return false
 	}

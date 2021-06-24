@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +92,6 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions:     builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
 		ArwenChangeLocker:    &sync.RWMutex{},
@@ -278,17 +276,6 @@ func TestNewSmartContractProcessor_NilLatestGasScheduleShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilGasSchedule, err)
 }
 
-func TestNewSmartContractProcessor_NilBuiltInFunctionsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.BuiltInFunctions = nil
-	sc, err := NewSmartContractProcessor(arguments)
-
-	require.Nil(t, sc)
-	require.Equal(t, process.ErrNilBuiltInFunction, err)
-}
-
 func TestNewSmartContractProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -374,7 +361,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	assert.Equal(t, arguments.TxFeeHandler, sc.txFeeHandler)
 	assert.Equal(t, arguments.EconomicsFee, sc.economicsFee)
 	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
-	assert.Equal(t, arguments.BuiltInFunctions, sc.builtInFunctions)
 	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
 	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
 	assert.Equal(t, arguments.DeployEnableEpoch, sc.deployEnableEpoch)
@@ -553,7 +539,6 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -589,11 +574,9 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
-	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{
-		ProcessBuiltinFunctionCalled: func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-			return nil, localError
-		},
-	})
+	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{ProcessBuiltInFunctionCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		return nil, localError
+	}}
 
 	scrAdded := false
 	badTxAdded := false
@@ -652,7 +635,6 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -702,7 +684,6 @@ func TestScProcessor_ExecuteBuiltInFunction(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)

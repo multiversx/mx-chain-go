@@ -294,7 +294,6 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions:  context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: &sync.RWMutex{},
