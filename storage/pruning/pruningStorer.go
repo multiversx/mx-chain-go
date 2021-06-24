@@ -848,7 +848,6 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := make([]*persisterData, 0)
-	persistersToRemoveFromMap := make([]*persisterData, 0)
 
 	ps.lock.Lock()
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
@@ -865,15 +864,12 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	if ps.cleanOldEpochsData && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
-			//epochToRemove := epoch - ps.numOfEpochsToKeep
-			persisterToRemove, ok := ps.persistersMapByEpoch[idxToRemove]
-			if !ok {
+			_, exists := ps.persistersMapByEpoch[idxToRemove]
+			if !exists {
 				break
 			}
 			delete(ps.persistersMapByEpoch, idxToRemove)
 			idxToRemove--
-			persistersToRemoveFromMap = append(persistersToRemoveFromMap, persisterToRemove)
-
 		}
 	}
 	ps.lock.Unlock()
