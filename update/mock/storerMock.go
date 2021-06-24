@@ -86,6 +86,11 @@ func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
+}
+
 // ClearCache -
 func (sm *StorerMock) ClearCache() {
 }

@@ -14,8 +14,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -67,7 +68,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 		Identifier:            "id",
 		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           &mock.PathManagerStub{},
+		PathManager:           &testscommon.PathManagerStub{},
 		CacheConf:             cacheConf,
 		DbPath:                dbConf.FilePath,
 		PersisterFactory:      persisterFactory,
@@ -87,7 +88,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 			return leveldb.NewSerialDB(path, 1, 20, 10)
 		},
 	}
-	pathManager := &mock.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
+	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
 		return fmt.Sprintf("TestOnly-Epoch_%d/Shard_%s/%s", epoch, shardId, identifier)
 	}}
 	return &pruning.StorerArgs{
@@ -508,7 +509,7 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	defer func() {
-		dr := factory.NewDirectoryReader()
+		dr := directoryhandler.NewDirectoryReader()
 		directories, errList := dr.ListDirectoriesAsString(".")
 		assert.NoError(t, errList)
 		for _, dir := range directories {

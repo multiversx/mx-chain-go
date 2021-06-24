@@ -323,6 +323,8 @@ type StorageService interface {
 	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
 	// If there is a missing key in the unit, it returns an error
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
+	// GetAllStorers returns all the storers
+	GetAllStorers() map[UnitType]storage.Storer
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
 	//CloseAll will close all the units

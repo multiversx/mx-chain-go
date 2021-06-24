@@ -4,15 +4,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	assert.False(t, b.IsInterfaceNil())
@@ -23,7 +23,7 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestHas_ReturnsCorrectly(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	s.HasCalled = func(key []byte) error {
 		return nil
 	}
@@ -35,7 +35,7 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -45,7 +45,7 @@ func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGet_ReturnsCorrectly(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	getResult := []byte("get called")
 	s.GetCalled = func(key []byte) (b []byte, e error) {
 		return getResult, nil
@@ -59,7 +59,7 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -69,7 +69,7 @@ func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestPut_ReturnsCorrectly(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	putErr := errors.New("error")
 	s.PutCalled = func(key, data []byte) error {
 		return putErr
@@ -82,7 +82,7 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
@@ -93,7 +93,7 @@ func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 }
 
 func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	getErr := errors.New("error")
 	s.GetCalled = func(key []byte) (bytes []byte, e error) {
 		return nil, getErr
@@ -118,7 +118,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 		key2: val2,
 	}
 
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	s.GetCalled = func(key []byte) (bytes []byte, e error) {
 		return m[string(key)], nil
 	}
@@ -135,7 +135,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 }
 
 func TestDestroy_ErrrorsWhenStorerDestroyErrors(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	destroyError := errors.New("error")
 	s.DestroyUnitCalled = func() error {
 		return destroyError
@@ -147,7 +147,7 @@ func TestDestroy_ErrrorsWhenStorerDestroyErrors(t *testing.T) {
 }
 
 func TestDestroy_ReturnsCorrectly(t *testing.T) {
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 	destroyCalled := false
 	s.DestroyUnitCalled = func() error {
 		destroyCalled = true
@@ -165,11 +165,11 @@ func TestDestroy_ReturnsCorrectly(t *testing.T) {
 func TestBlockChain_GetStorer(t *testing.T) {
 	t.Parallel()
 
-	txUnit := &mock.StorerStub{}
-	txBlockUnit := &mock.StorerStub{}
-	stateBlockUnit := &mock.StorerStub{}
-	peerBlockUnit := &mock.StorerStub{}
-	headerUnit := &mock.StorerStub{}
+	txUnit := &testscommon.StorerStub{}
+	txBlockUnit := &testscommon.StorerStub{}
+	stateBlockUnit := &testscommon.StorerStub{}
+	peerBlockUnit := &testscommon.StorerStub{}
+	headerUnit := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(0, txUnit)
@@ -189,7 +189,7 @@ func TestCloseAll_Error(t *testing.T) {
 	t.Parallel()
 
 	closeErr := errors.New("error")
-	s := &mock.StorerStub{
+	s := &testscommon.StorerStub{
 		CloseCalled: func() error {
 			return closeErr
 		},
@@ -205,7 +205,7 @@ func TestCloseAll_Error(t *testing.T) {
 func TestCloseAll_Ok(t *testing.T) {
 	t.Parallel()
 
-	s := &mock.StorerStub{}
+	s := &testscommon.StorerStub{}
 
 	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)

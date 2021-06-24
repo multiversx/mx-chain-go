@@ -36,7 +36,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 	}
 	args := createMockHeadersSyncHandlerArgs()
 	args.StorageService = &mock.ChainStorerMock{GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			GetCalled: func(key []byte) (bytes []byte, err error) {
 				if retErr {
 					return nil, errors.New("err")
@@ -65,7 +65,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	txHash := []byte("txHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	args := ArgsNewPendingMiniBlocksSyncer{
-		Storage: &mock.StorerStub{},
+		Storage: &testscommon.StorerStub{},
 		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -84,7 +84,7 @@ func createPendingTxSyncHandler() update.PendingTransactionsSyncHandler {
 	args := createMockArgs()
 	args.Storages = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					tx := &dataTransaction.Transaction{
 						Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),

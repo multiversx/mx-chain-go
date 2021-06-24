@@ -78,7 +78,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 func createMetaStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }

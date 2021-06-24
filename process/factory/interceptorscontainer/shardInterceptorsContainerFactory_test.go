@@ -77,7 +77,7 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 func createShardStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }

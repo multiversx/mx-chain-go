@@ -104,9 +104,10 @@ type Storer interface {
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
-	IsInterfaceNil() bool
-	Close() error
+	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
+	Close() error
+	IsInterfaceNil() bool
 }
 
 // StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations
@@ -125,6 +126,7 @@ type EpochStartNotifier interface {
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
 	PathForStatic(shardId string, identifier string) string
+	DatabasePath() string
 	IsInterfaceNil() bool
 }
 

@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -356,7 +357,7 @@ func CreateMockArguments(
 			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
-			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
+			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
 		},
 	}
@@ -1342,7 +1343,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&mock.StorerStub{
+		&testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
@@ -1383,7 +1384,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
 	}
 
-	hdrStore := &mock.StorerStub{
+	hdrStore := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]

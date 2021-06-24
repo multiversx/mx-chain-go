@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dblookupext2 "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -214,13 +215,13 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
 				}
 			case dataRetriever.UnsignedTransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
@@ -230,7 +231,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			}
 		},
 	}
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupext2.HistoryRepositoryStub{
 		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 			return &dblookupext.MiniblockMetadata{}, nil
 		},
@@ -452,12 +453,12 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *dblookupext2.HistoryRepositoryStub) {
 	chainStorer := genericMocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupext2.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return withDbLookupExt
 		},
@@ -505,7 +506,7 @@ func createShardCoordinator() *mock.ShardCoordinatorMock {
 }
 
 func setupGetMiniblockMetadataByTxHash(
-	historyRepo *testscommon.HistoryRepositoryStub,
+	historyRepo *dblookupext2.HistoryRepositoryStub,
 	blockType block.Type,
 	sourceShard uint32,
 	destinationShard uint32,

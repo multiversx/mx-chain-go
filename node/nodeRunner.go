@@ -38,7 +38,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/oldDbCleaner"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -416,12 +415,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	dbCleanerArgs := oldDbCleaner.Args{
-		WorkingDir:           nr.configs.FlagsConfig.WorkingDir,
-		ChainID:              nr.configs.GeneralConfig.GeneralSettings.ChainID,
-		PruningStorageConfig: nr.configs.GeneralConfig.StoragePruning,
-	}
-
 	err = waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -430,7 +423,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		httpServerWrapper,
 		currentNode,
 		goRoutinesNumberStart,
-		dbCleanerArgs,
 	)
 	if err != nil {
 		return true, nil
@@ -699,7 +691,6 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
-	oldDbCleanerArgs oldDbCleaner.Args,
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -712,8 +703,6 @@ func waitForSignal(
 			reshuffled = true
 		}
 	}
-
-	oldDbCleanerArgs.CurrentEpoch = currentNode.coreComponents.EpochNotifier().CurrentEpoch()
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
@@ -731,10 +720,6 @@ func waitForSignal(
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
-		err := oldDbCleaner.CleanOldStorageForShuffleOut(oldDbCleanerArgs)
-		if err != nil {
-			log.Warn("cannot clean old db", "error", err)
-		}
 
 		return nil
 	}

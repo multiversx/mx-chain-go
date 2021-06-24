@@ -569,6 +569,25 @@ func (ps *PruningStorer) ClearCache() {
 	ps.cacher.Clear()
 }
 
+// GetOldestEpoch returns the oldest epoch from current configuration
+func (ps *PruningStorer) GetOldestEpoch() (uint32, error) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if len(ps.persistersMapByEpoch) == 0 {
+		return 0, fmt.Errorf("no epoch configuration in pruning storer with identifer %s", ps.identifier)
+	}
+
+	oldestEpoch := uint32(math.MaxUint32)
+	for epoch := range ps.persistersMapByEpoch {
+		if epoch < oldestEpoch {
+			oldestEpoch = epoch
+		}
+	}
+
+	return oldestEpoch, nil
+}
+
 // DestroyUnit cleans up the bloom filter, the cache, and the dbs
 func (ps *PruningStorer) DestroyUnit() error {
 	ps.lock.Lock()
@@ -708,9 +727,9 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closeAndDestroyPersisters(epoch)
+	err = ps.closePersisters(epoch)
 	if err != nil {
-		log.Warn("closing and destroying old persister", "error", err.Error())
+		log.Warn("closing persisters", "error", err.Error())
 		return err
 	}
 	return nil
@@ -826,10 +845,10 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := make([]*persisterData, 0)
-	persistersToDestroy := make([]*persisterData, 0)
+	persistersToRemoveFromMap := make([]*persisterData, 0)
 
 	ps.lock.Lock()
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
@@ -847,13 +866,13 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
 			//epochToRemove := epoch - ps.numOfEpochsToKeep
-			persisterToDestroy, ok := ps.persistersMapByEpoch[idxToRemove]
+			persisterToRemove, ok := ps.persistersMapByEpoch[idxToRemove]
 			if !ok {
 				break
 			}
 			delete(ps.persistersMapByEpoch, idxToRemove)
 			idxToRemove--
-			persistersToDestroy = append(persistersToDestroy, persisterToDestroy)
+			persistersToRemoveFromMap = append(persistersToRemoveFromMap, persisterToRemove)
 
 		}
 	}
@@ -864,14 +883,6 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
 		}
-	}
-
-	for _, pd := range persistersToDestroy {
-		err := pd.getPersister().DestroyClosed()
-		if err != nil {
-			return err
-		}
-		removeDirectoryIfEmpty(pd.path)
 	}
 
 	return nil

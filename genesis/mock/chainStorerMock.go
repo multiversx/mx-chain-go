@@ -17,6 +17,7 @@ type ChainStorerMock struct {
 	DestroyCalled                 func() error
 	CloseAllCalled                func() error
 	SetEpochForPutOperationCalled func(epoch uint32)
+	GetAllStorersCalled           func() map[dataRetriever.UnitType]storage.Storer
 }
 
 // SetEpochForPutOperation -
@@ -77,6 +78,15 @@ func (csm *ChainStorerMock) Put(unitType dataRetriever.UnitType, key []byte, val
 	if csm.PutCalled != nil {
 		return csm.PutCalled(unitType, key, value)
 	}
+	return nil
+}
+
+// GetAllStorers -
+func (csm *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if csm.GetAllStorersCalled != nil {
+		return csm.GetAllStorersCalled()
+	}
+
 	return nil
 }
 
