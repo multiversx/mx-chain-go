@@ -334,6 +334,11 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
+		},
 	}
 }
 

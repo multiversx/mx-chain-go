@@ -40,6 +40,7 @@ type ArgBaseBootstrapper struct {
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler    core.AppStatusHandler
 	OutportHandler      outport.OutportHandler
+	IsInImportMode      bool
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create
