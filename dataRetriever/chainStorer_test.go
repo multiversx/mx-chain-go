@@ -134,7 +134,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 	assert.Equal(t, map[string][]byte{key1: val1, key2: val2}, t2)
 }
 
-func TestDestroy_ErrrorsWhenStorerDestroyErrors(t *testing.T) {
+func TestDestroy_ErrorsWhenStorerDestroyErrors(t *testing.T) {
 	s := &testscommon.StorerStub{}
 	destroyError := errors.New("error")
 	s.DestroyUnitCalled = func() error {
@@ -162,6 +162,35 @@ func TestDestroy_ReturnsCorrectly(t *testing.T) {
 	assert.True(t, destroyCalled)
 }
 
+type extendedStub struct {
+	*testscommon.StorerStub
+	SetEpochForPutOperationCalled func(epoch uint32)
+}
+
+func (es *extendedStub) SetEpochForPutOperation(epoch uint32) {
+	es.SetEpochForPutOperationCalled(epoch)
+}
+
+func TestBlockChain_SetEpochForPutOperation(t *testing.T) {
+	t.Parallel()
+
+	expectedEpoch := uint32(37)
+	setEpochWasCalled := false
+	headerUnit := &extendedStub{}
+	headerUnit.SetEpochForPutOperationCalled = func(epoch uint32) {
+		assert.Equal(t, expectedEpoch, epoch)
+		setEpochWasCalled = true
+	}
+	txUnit := &testscommon.StorerStub{}
+
+	b := dataRetriever.NewChainStorer()
+	b.AddStorer(0, headerUnit)
+	b.AddStorer(1, txUnit)
+
+	b.SetEpochForPutOperation(expectedEpoch)
+	assert.True(t, setEpochWasCalled)
+}
+
 func TestBlockChain_GetStorer(t *testing.T) {
 	t.Parallel()
 
@@ -183,6 +212,22 @@ func TestBlockChain_GetStorer(t *testing.T) {
 	assert.True(t, stateBlockUnit == b.GetStorer(2))
 	assert.True(t, peerBlockUnit == b.GetStorer(3))
 	assert.True(t, headerUnit == b.GetStorer(4))
+}
+
+func TestBlockChain_GetAllStorers(t *testing.T) {
+	t.Parallel()
+
+	txUnit := &testscommon.StorerStub{}
+	txBlockUnit := &testscommon.StorerStub{}
+
+	b := dataRetriever.NewChainStorer()
+	b.AddStorer(0, txUnit)
+	b.AddStorer(1, txBlockUnit)
+
+	allStorers := b.GetAllStorers()
+	assert.Equal(t, txUnit, allStorers[0])
+	assert.Equal(t, txBlockUnit, allStorers[1])
+	assert.Len(t, allStorers, 2)
 }
 
 func TestCloseAll_Error(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/olddbclean"
+	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -248,7 +248,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 
 	if psf.generalConfig.StoragePruning.CleanOldEpochsData {
-		_, err = olddbclean.NewOldDatabaseCleaner(olddbclean.Args{
+		_, err = clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
 			DatabasePath:        psf.pathManager.DatabasePath(),
 			StorageListProvider: store,
 			EpochStartNotifier:  psf.epochStartNotifier,
@@ -437,7 +437,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 
 	if psf.generalConfig.StoragePruning.CleanOldEpochsData {
-		_, err = olddbclean.NewOldDatabaseCleaner(olddbclean.Args{
+		_, err = clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
 			DatabasePath:        psf.pathManager.DatabasePath(),
 			StorageListProvider: store,
 			EpochStartNotifier:  psf.epochStartNotifier,

@@ -135,3 +135,6 @@ var ErrNilTimeCache = errors.New("nil time cache")
 
 // ErrNilTxGasHandler signals that a nil tx gas handler was provided
 var ErrNilTxGasHandler = errors.New("nil tx gas handler")
+
+// ErrCannotComputeStorageOldestEpoch signals an issue when computing the oldest epoch for storage
+var ErrCannotComputeStorageOldestEpoch = errors.New("could not compute the oldest epoch for storage")

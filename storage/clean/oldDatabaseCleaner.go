@@ -1,4 +1,4 @@
-package olddbclean
+package clean
 
 import (
 	"math"
@@ -18,27 +18,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 )
 
-var log = logger.GetOrCreate("storage/olddbclean")
+var log = logger.GetOrCreate("storage/clean")
 
-// Args holds the arguments needed for creating an oldDatabaseCleaner
-type Args struct {
+// ArgsOldDatabaseCleaner holds the arguments needed for creating an oldDatabaseCleaner
+type ArgsOldDatabaseCleaner struct {
 	DatabasePath        string
 	StorageListProvider StorageListProviderHandler
 	EpochStartNotifier  EpochStartNotifier
 }
 
 type oldDatabaseCleaner struct {
+	sync.RWMutex
+
 	databasePath        string
 	storageListProvider StorageListProviderHandler
-	fileRemover         func(file string) error
+	pathRemover         func(file string) error
 	directoryReader     storage.DirectoryReaderHandler
 	oldestEpochsToKeep  map[uint32]uint32
-
-	sync.RWMutex
 }
 
 // NewOldDatabaseCleaner returns a new instance of oldDatabaseCleaner
-func NewOldDatabaseCleaner(args Args) (*oldDatabaseCleaner, error) {
+func NewOldDatabaseCleaner(args ArgsOldDatabaseCleaner) (*oldDatabaseCleaner, error) {
 	if check.IfNil(args.StorageListProvider) {
 		return nil, storage.ErrNilStorageListProvider
 	}
@@ -46,7 +46,7 @@ func NewOldDatabaseCleaner(args Args) (*oldDatabaseCleaner, error) {
 		return nil, storage.ErrNilEpochStartNotifier
 	}
 
-	fileRemoverFunc := func(file string) error {
+	pathRemoverFunc := func(file string) error {
 		return os.RemoveAll(file)
 	}
 	directoryReader := directoryhandler.NewDirectoryReader()
@@ -54,7 +54,7 @@ func NewOldDatabaseCleaner(args Args) (*oldDatabaseCleaner, error) {
 	odc := &oldDatabaseCleaner{
 		databasePath:        args.DatabasePath,
 		storageListProvider: args.StorageListProvider,
-		fileRemover:         fileRemoverFunc,
+		pathRemover:         pathRemoverFunc,
 		directoryReader:     directoryReader,
 		oldestEpochsToKeep:  make(map[uint32]uint32),
 	}
@@ -68,9 +68,9 @@ func NewOldDatabaseCleaner(args Args) (*oldDatabaseCleaner, error) {
 func (odc *oldDatabaseCleaner) registerHandler(handler EpochStartNotifier) {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
 		func(hdr data.HeaderHandler) {
-			err := odc.handleEpochChangePrepare(hdr.GetEpoch())
+			err := odc.handleEpochChangeAction(hdr.GetEpoch())
 			if err != nil {
-				log.Warn("oldDatabaseCleaner: handleEpochChangePrepare", "error", err)
+				log.Debug("oldDatabaseCleaner: handleEpochChangeAction", "error", err)
 			}
 		},
 		func(hdr data.HeaderHandler) {},
@@ -79,8 +79,12 @@ func (odc *oldDatabaseCleaner) registerHandler(handler EpochStartNotifier) {
 	handler.RegisterHandler(subscribeHandler)
 }
 
-func (odc *oldDatabaseCleaner) handleEpochChangePrepare(epoch uint32) error {
-	newOldestEpoch := odc.computeOldestEpochToKeep(epoch)
+func (odc *oldDatabaseCleaner) handleEpochChangeAction(epoch uint32) error {
+	newOldestEpoch, err := odc.computeOldestEpochToKeep()
+	if err != nil {
+		return err
+	}
+
 	odc.oldestEpochsToKeep[epoch] = newOldestEpoch
 	log.Debug("old database cleaner", "epoch", epoch, "inner map", odc.oldestEpochsToKeep)
 	shouldClean := odc.shouldCleanOldData(epoch, newOldestEpoch)
@@ -88,7 +92,7 @@ func (odc *oldDatabaseCleaner) handleEpochChangePrepare(epoch uint32) error {
 		return nil
 	}
 
-	err := odc.cleanOldEpochs(epoch)
+	err = odc.cleanOldEpochs(epoch)
 	if err != nil {
 		return err
 	}
@@ -118,7 +122,7 @@ func (odc *oldDatabaseCleaner) shouldCleanOldData(currentEpoch uint32, newOldest
 	return true
 }
 
-func (odc *oldDatabaseCleaner) computeOldestEpochToKeep(currentEpoch uint32) uint32 {
+func (odc *oldDatabaseCleaner) computeOldestEpochToKeep() (uint32, error) {
 	odc.Lock()
 	defer odc.Unlock()
 
@@ -127,6 +131,7 @@ func (odc *oldDatabaseCleaner) computeOldestEpochToKeep(currentEpoch uint32) uin
 	for _, storer := range storers {
 		localEpoch, err := storer.GetOldestEpoch()
 		if err != nil {
+			logOldestEpochCompute(err)
 			continue
 		}
 
@@ -136,10 +141,16 @@ func (odc *oldDatabaseCleaner) computeOldestEpochToKeep(currentEpoch uint32) uin
 	}
 
 	if oldestEpoch == uint32(math.MaxUint32) {
-		oldestEpoch = currentEpoch
+		return 0, storage.ErrCannotComputeStorageOldestEpoch
 	}
 
-	return oldestEpoch
+	return oldestEpoch, nil
+}
+
+func logOldestEpochCompute(err error) {
+	if err != storage.ErrOldestEpochNotAvailable {
+		log.Debug("cannot compute oldest epoch for storer", "error", err)
+	}
 }
 
 func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
@@ -170,7 +181,7 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 
 		fullDirectoryPath := path.Join(odc.databasePath, sortedEpochDirectories[idx])
 		log.Debug("removing old database", "db path", fullDirectoryPath)
-		err := odc.fileRemover(fullDirectoryPath)
+		err := odc.pathRemover(fullDirectoryPath)
 		if err != nil {
 			log.Warn("cannot remove old DB", "path", fullDirectoryPath, "error", err)
 		}

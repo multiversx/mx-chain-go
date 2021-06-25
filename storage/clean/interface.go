@@ -1,4 +1,4 @@
-package olddbclean
+package clean
 
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"

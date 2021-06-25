@@ -109,9 +109,13 @@ func (c *chainStorer) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (ma
 // GetAllStorers returns the map containing all the storers
 func (c *chainStorer) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
 	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	chainMapCopy := make(map[dataRetriever.UnitType]storage.Storer, len(c.mapStorages))
+	for key, value := range c.mapStorages {
+		chainMapCopy[key] = value
+	}
+	c.mutex.Unlock()
 
-	return c.mapStorages
+	return chainMapCopy
 }
 
 // Destroy removes the underlying files/resources used by the storage service

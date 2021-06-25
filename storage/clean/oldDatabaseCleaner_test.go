@@ -1,4 +1,4 @@
-package olddbclean
+package clean
 
 import (
 	"errors"
@@ -19,12 +19,12 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 
 	tests := []struct {
 		description string
-		getArgs     func() Args
+		getArgs     func() ArgsOldDatabaseCleaner
 		expectedErr error
 	}{
 		{
 			description: "nil epoch start notifier",
-			getArgs: func() Args {
+			getArgs: func() ArgsOldDatabaseCleaner {
 				args := createMockArgs()
 				args.EpochStartNotifier = nil
 
@@ -34,7 +34,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 		},
 		{
 			description: "nil storage list provider",
-			getArgs: func() Args {
+			getArgs: func() ArgsOldDatabaseCleaner {
 				args := createMockArgs()
 				args.StorageListProvider = nil
 
@@ -44,7 +44,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 		},
 		{
 			description: "should work",
-			getArgs: func() Args {
+			getArgs: func() ArgsOldDatabaseCleaner {
 				return createMockArgs()
 			},
 			expectedErr: nil,
@@ -65,7 +65,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 	}
 }
 
-func TestOldDatabaseCleaner_EpochChangeRemoveFileIsCalled(t *testing.T) {
+func TestOldDatabaseCleaner_EpochChangeShouldErrIfOldestEpochComputationFails(t *testing.T) {
 	t.Parallel()
 
 	var handlerFunc epochStart.ActionHandler
@@ -87,14 +87,14 @@ func TestOldDatabaseCleaner_EpochChangeRemoveFileIsCalled(t *testing.T) {
 		return nil
 	}
 	odc, _ := NewOldDatabaseCleaner(args)
-	odc.fileRemover = fileRemover
+	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 6})
-	require.True(t, fileRemoverWasCalled)
+	require.False(t, fileRemoverWasCalled)
 }
 
 func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *testing.T) {
@@ -119,7 +119,7 @@ func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *test
 		return nil
 	}
 	odc, _ := NewOldDatabaseCleaner(args)
-	odc.fileRemover = fileRemover
+	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
@@ -151,7 +151,7 @@ func TestOldDatabaseCleaner_EpochChangeNoEpochDirectory(t *testing.T) {
 		return nil
 	}
 	odc, _ := NewOldDatabaseCleaner(args)
-	odc.fileRemover = fileRemover
+	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
@@ -186,7 +186,7 @@ func TestOldDatabaseCleaner_EpochChangeShouldNotRemoveIfNewOldestEpochIsOlder(t 
 
 	args.StorageListProvider = getStorageListProviderWithOldEpoch(4)
 	odc, _ := NewOldDatabaseCleaner(args)
-	odc.fileRemover = fileRemover
+	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
@@ -226,7 +226,7 @@ func TestOldDatabaseCleaner_EpochChange(t *testing.T) {
 
 	args.StorageListProvider = getStorageListProviderWithOldEpoch(2)
 	odc, _ := NewOldDatabaseCleaner(args)
-	odc.fileRemover = fileRemover
+	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
 	require.False(t, check.IfNil(odc))
 
@@ -258,8 +258,8 @@ func getStorageListProviderWithOldEpoch(epoch uint32) StorageListProviderHandler
 	}
 }
 
-func createMockArgs() Args {
-	return Args{
+func createMockArgs() ArgsOldDatabaseCleaner {
+	return ArgsOldDatabaseCleaner{
 		DatabasePath:        "db/D",
 		StorageListProvider: &mock.StorageListProviderStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{
