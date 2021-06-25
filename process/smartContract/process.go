@@ -779,11 +779,17 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	var vmOutput *vmcommon.VMOutput
-	vmOutput, err = sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
+	vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return 0, err
+	}
+
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
@@ -913,7 +919,6 @@ func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
 }
 
 func (sc *scProcessor) resolveBuiltInFunctions(
-	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 
@@ -926,16 +931,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		}
 
 		return vmOutput, nil
-	}
-
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
-	if err != nil {
-		return nil, err
-	}
-
-	acntDst, err = sc.reloadLocalAccount(acntDst)
-	if err != nil {
-		return nil, err
 	}
 
 	return vmOutput, nil
