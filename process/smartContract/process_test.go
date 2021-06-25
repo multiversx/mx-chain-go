@@ -709,7 +709,6 @@ func TestScProcessor_ExecuteBuiltInFunctionSCResultCallSelfShardCannotSaveLog(t 
 	arguments.ArgsParser = argParser
 	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
-	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
