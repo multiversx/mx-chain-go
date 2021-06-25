@@ -1,16 +1,26 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockChainHookHandlerStub -
 type BlockChainHookHandlerStub struct {
-	SetCurrentHeaderCalled   func(hdr data.HeaderHandler)
-	NewAddressCalled         func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled          func(address []byte) (bool, error)
-	DeleteCompiledCodeCalled func(codeHash []byte)
+	SetCurrentHeaderCalled       func(hdr data.HeaderHandler)
+	NewAddressCalled             func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsPayableCalled              func(address []byte) (bool, error)
+	DeleteCompiledCodeCalled     func(codeHash []byte)
+	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+}
+
+// ProcessBuiltInFunction -
+func (e *BlockChainHookHandlerStub) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	if e.ProcessBuiltInFunctionCalled != nil {
+		return e.ProcessBuiltInFunctionCalled(input)
+	}
+	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsPayable -
