@@ -5,8 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
+type OutportFactoryArgs struct {
+	ElasticIndexerFactoryArgs *indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs  interface{}
+}
+
 // CreateOutport will create a new instance of OutportHandler
-func CreateOutport(args *indexerFactory.ArgsIndexerFactory) (outport.OutportHandler, error) {
+func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 	err := checkArguments(args)
 	if err != nil {
 		return nil, err
@@ -21,8 +26,8 @@ func CreateOutport(args *indexerFactory.ArgsIndexerFactory) (outport.OutportHand
 	return outportHandler, nil
 }
 
-func createAndSubscribeDrivers(outport outport.OutportHandler, args *indexerFactory.ArgsIndexerFactory) error {
-	err := createAndSubscribeElasticDriverIfNeeded(outport, args)
+func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFactoryArgs) error {
+	err := createAndSubscribeElasticDriverIfNeeded(outport, args.ElasticIndexerFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -46,9 +51,9 @@ func createAndSubscribeElasticDriverIfNeeded(
 	return outport.SubscribeDriver(elasticDriver)
 }
 
-func checkArguments(args *indexerFactory.ArgsIndexerFactory) error {
+func checkArguments(args *OutportFactoryArgs) error {
 	if args == nil {
-		return outport.ErrNilArgsElasticDriverFactory
+		return outport.ErrNilArgsOutportFactory
 	}
 
 	return nil

@@ -191,8 +191,17 @@ func (pc *statusComponents) Close() error {
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
+		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:  scf.makeEventNotifierArgs(),
+	}
+
+	return outportDriverFactory.CreateOutport(outportFactoryArgs)
+}
+
+func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+	return &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		ShardCoordinator:         scf.shardCoordinator,
@@ -212,8 +221,10 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 		UseKibana:                elasticSearchConfig.UseKibana,
 		IsInImportDBMode:         scf.isInImportMode,
 	}
+}
 
-	return outportDriverFactory.CreateOutport(indexerFactoryArgs)
+func (scf *statusComponentsFactory) makeEventNotifierArgs() interface{} {
+	return nil
 }
 
 func startStatisticsMonitor(
