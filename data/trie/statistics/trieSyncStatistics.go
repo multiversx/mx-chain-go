@@ -68,7 +68,7 @@ func (tss *trieSyncStatistics) NumReceived() int {
 	return tss.numReceived
 }
 
-// NumLarge returns the large received nodes
+// NumLarge returns the received large nodes
 func (tss *trieSyncStatistics) NumLarge() int {
 	tss.RLock()
 	defer tss.RUnlock()

@@ -12,7 +12,7 @@ func NewDisabledWhiteListDataVerifier() *disabledWhiteListVerifier {
 	return &disabledWhiteListVerifier{}
 }
 
-// IsWhiteListed returns true
+// IsWhiteListed returns false
 func (w *disabledWhiteListVerifier) IsWhiteListed(_ process.InterceptedData) bool {
 	return false
 }
