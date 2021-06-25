@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor 
 		Processor:            &mock.InterceptorProcessorStub{},
 		Throttler:            createMockThrottler(),
 		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &mock.WhiteListHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
 		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:        "pid",
 	}
@@ -283,7 +284,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -350,7 +351,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 			}
 		},
 	}
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -382,7 +383,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 		},
 	}
 
-	whiteListHandler := &mock.WhiteListHandlerStub{
+	whiteListHandler := &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},

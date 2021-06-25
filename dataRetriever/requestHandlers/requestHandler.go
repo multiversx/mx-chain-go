@@ -445,7 +445,8 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
 
-func (rrh *resolverRequestHandler) createIdentifier(requestHash []byte, chunkIndex uint32) []byte {
+// CreateTrieNodeIdentifier returns the requested trie node identifier that will be whitelisted
+func (rrh *resolverRequestHandler) CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte {
 	chunkBuffer := make([]byte, bytesInUint32)
 	binary.BigEndian.PutUint32(chunkBuffer, chunkIndex)
 
@@ -454,7 +455,7 @@ func (rrh *resolverRequestHandler) createIdentifier(requestHash []byte, chunkInd
 
 // RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
 func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
-	identifier := rrh.createIdentifier(requestHash, chunkIndex)
+	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
 	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier})
 	if len(unrequestedHashes) == 0 {
 		return

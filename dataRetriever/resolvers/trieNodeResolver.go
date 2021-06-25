@@ -11,9 +11,6 @@ import (
 
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
 
-// maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = 1 << 18 //256KB
-
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
 	SenderResolver   dataRetriever.TopicResolverSender
@@ -108,7 +105,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, chunkInd
 func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
 	spaceUsed := 0
 	usedAllSpace := false
-	remainingSpace := maxBuffToSendTrieNodes
+	remainingSpace := core.MaxBufferSizeToSendTrieNodes
 	for _, hash := range hashes {
 		serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
 		if err != nil {
@@ -135,7 +132,7 @@ func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string
 	var err error
 	var serializedNode []byte
 	for _, hash := range hashes {
-		remainingForSubtries := maxBuffToSendTrieNodes - spaceUsedAlready
+		remainingForSubtries := core.MaxBufferSizeToSendTrieNodes - spaceUsedAlready
 		if remainingForSubtries < 0 {
 			return
 		}
@@ -207,7 +204,7 @@ func (tnRes *TrieNodeResolver) sendResponse(
 		return nil
 	}
 
-	if len(serializedNodes) == 1 && len(serializedNodes[0]) > maxBuffToSendTrieNodes {
+	if len(serializedNodes) == 1 && len(serializedNodes[0]) > core.MaxBufferSizeToSendTrieNodes {
 		return tnRes.sendLargeMessage(serializedNodes[0], hashes[0], int(chunkIndex), message)
 	}
 
@@ -227,8 +224,8 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 ) error {
 
 	log.Trace("assembling chunk", "reference", reference, "len", len(largeBuff))
-	maxChunks := len(largeBuff) / maxBuffToSendTrieNodes
-	if len(largeBuff)%maxBuffToSendTrieNodes != 0 {
+	maxChunks := len(largeBuff) / core.MaxBufferSizeToSendTrieNodes
+	if len(largeBuff)%core.MaxBufferSizeToSendTrieNodes != 0 {
 		maxChunks++
 	}
 	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex > maxChunks
@@ -236,8 +233,8 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 		return nil
 	}
 
-	startIndex := chunkIndex * maxBuffToSendTrieNodes
-	endIndex := startIndex + maxBuffToSendTrieNodes
+	startIndex := chunkIndex * core.MaxBufferSizeToSendTrieNodes
+	endIndex := startIndex + core.MaxBufferSizeToSendTrieNodes
 	if endIndex > len(largeBuff) {
 		endIndex = len(largeBuff)
 	}

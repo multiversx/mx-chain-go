@@ -18,6 +18,7 @@ type RequestHandlerStub struct {
 	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
 	GetNumPeersToQueryCalled           func(key string) (int, int, error)
 	RequestTrieNodeCalled              func(requestHash []byte, topic string, chunkIndex uint32)
+	CreateTrieNodeIdentifierCalled     func(requestHash []byte, chunkIndex uint32) []byte
 }
 
 // SetNumPeersToQuery -
@@ -133,6 +134,15 @@ func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hashes [][]b
 		return
 	}
 	rhs.RequestTrieNodesCalled(destShardID, hashes, topic)
+}
+
+// CreateTrieNodeIdentifier -
+func (rhs *RequestHandlerStub) CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte {
+	if rhs.CreateTrieNodeIdentifierCalled != nil {
+		return rhs.CreateTrieNodeIdentifierCalled(requestHash, chunkIndex)
+	}
+
+	return nil
 }
 
 // RequestTrieNode -

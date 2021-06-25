@@ -73,6 +73,11 @@ func (r *RequestHandler) GetNumPeersToQuery(_ string) (int, int, error) {
 func (r *RequestHandler) RequestTrieNode(_ []byte, _ string, _ uint32) {
 }
 
+// CreateTrieNodeIdentifier returns an empty slice
+func (r *RequestHandler) CreateTrieNodeIdentifier(_ []byte, _ uint32) []byte {
+	return make([]byte, 0)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *RequestHandler) IsInterfaceNil() bool {
 	return r == nil

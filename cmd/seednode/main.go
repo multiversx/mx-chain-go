@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
@@ -233,10 +234,11 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
-		Marshalizer:   marshalizer,
-		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfig,
-		SyncTimer:     &libp2p.LocalSyncTimer{},
+		Marshalizer:          marshalizer,
+		ListenAddress:        libp2p.ListenAddrWithIp4AndTcp,
+		P2pConfig:            p2pConfig,
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 	}
 
 	return libp2p.NewNetworkMessenger(arg)

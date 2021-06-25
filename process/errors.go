@@ -863,6 +863,9 @@ var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this 
 // ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
 var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
 
+// ErrTrieNodeIsNotWhitelisted signals that a trie node is not whitelisted
+var ErrTrieNodeIsNotWhitelisted = errors.New("trie node is not whitelisted")
+
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 

@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-const minimumRequestTimeInterval = time.Second
+const minimumRequestTimeInterval = time.Millisecond * 200
 
 type chunkHandler interface {
 	Put(chunkIndex uint32, buff []byte)
@@ -100,8 +100,8 @@ func (proc *trieNodeChunksProcessor) processLoop(ctx context.Context) {
 }
 
 // CheckBatch will check the batch returning a checked chunk result containing result processing
-func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch) (process.CheckedChunkResult, error) {
-	batchValid, err := proc.batchIsValid(b)
+func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler) (process.CheckedChunkResult, error) {
+	batchValid, err := proc.batchIsValid(b, whiteListHandler)
 	if !batchValid {
 		return process.CheckedChunkResult{
 			IsChunk:        false,
@@ -131,37 +131,54 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch) (process.Checked
 }
 
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
+	shouldNotCreateChunk := cr.batch.ChunkIndex != 0
+	result := process.CheckedChunkResult{
+		IsChunk: true,
+	}
 	chunkObject, found := proc.chunksCacher.Get(cr.batch.Reference)
 	if !found {
+		if shouldNotCreateChunk {
+			//we received other chunks from a previous, completed large trie node, return
+
+			proc.writeCheckedChunkResultOnChan(cr, result)
+			return
+		}
+
 		chunkObject = chunk.NewChunk(cr.batch.MaxChunks)
 	}
 	chunkData, ok := chunkObject.(chunkHandler)
 	if !ok {
+		if shouldNotCreateChunk {
+			//we received other chunks from a previous, completed large trie node, return
+			proc.writeCheckedChunkResultOnChan(cr, result)
+			return
+		}
+
 		chunkData = chunk.NewChunk(cr.batch.MaxChunks)
 	}
 
 	chunkData.Put(cr.batch.ChunkIndex, cr.batch.Data[0])
 
-	buff := chunkData.TryAssembleAllChunks()
-	haveAllChunks := len(buff) > 0
-	if haveAllChunks {
+	result.CompleteBuffer = chunkData.TryAssembleAllChunks()
+	result.HaveAllChunks = len(result.CompleteBuffer) > 0
+	if result.HaveAllChunks {
 		proc.chunksCacher.Remove(cr.batch.Reference)
 	} else {
 		proc.chunksCacher.Put(cr.batch.Reference, chunkData, chunkData.Size())
 	}
 
+	proc.writeCheckedChunkResultOnChan(cr, result)
+}
+
+func (proc *trieNodeChunksProcessor) writeCheckedChunkResultOnChan(cr checkRequest, result process.CheckedChunkResult) {
 	select {
-	case cr.chanResponse <- process.CheckedChunkResult{
-		IsChunk:        true,
-		HaveAllChunks:  haveAllChunks,
-		CompleteBuffer: buff,
-	}:
+	case cr.chanResponse <- result:
 	default:
 		log.Trace("trieNodeChunksProcessor.processCheckRequest - no one is listening on the end chan")
 	}
 }
 
-func (proc *trieNodeChunksProcessor) batchIsValid(b *batch.Batch) (bool, error) {
+func (proc *trieNodeChunksProcessor) batchIsValid(b *batch.Batch, whiteListHandler process.WhiteListHandler) (bool, error) {
 	if b.MaxChunks < 2 {
 		return false, nil
 	}
@@ -170,6 +187,17 @@ func (proc *trieNodeChunksProcessor) batchIsValid(b *batch.Batch) (bool, error) 
 	}
 	if len(b.Data) != 1 {
 		return false, nil
+	}
+	if check.IfNil(whiteListHandler) {
+		return false, process.ErrNilWhiteListHandler
+	}
+
+	identifier := proc.requestHandler.CreateTrieNodeIdentifier(b.Reference, b.ChunkIndex)
+	isWhiteListed := whiteListHandler.IsWhiteListedAtLeastOne([][]byte{identifier}) ||
+		whiteListHandler.IsWhiteListedAtLeastOne([][]byte{b.Reference})
+
+	if !isWhiteListed {
+		return false, process.ErrTrieNodeIsNotWhitelisted
 	}
 
 	return true, nil

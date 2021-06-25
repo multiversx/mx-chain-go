@@ -33,7 +33,12 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 		return false
 	}
 
-	for _, identifier := range interceptedData.Identifiers() {
+	return w.IsWhiteListedAtLeastOne(interceptedData.Identifiers())
+}
+
+// IsWhiteListedAtLeastOne return true if at least one identifier from the slice is whitelisted
+func (w *whiteListDataVerifier) IsWhiteListedAtLeastOne(identifiers [][]byte) bool {
+	for _, identifier := range identifiers {
 		if w.cache.Has(identifier) {
 			return true
 		}

@@ -16,6 +16,14 @@ import (
 
 var reference = bytes.Repeat([]byte{1}, 32)
 
+func createMockWhiteLister(isWhiteListed bool) process.WhiteListHandler {
+	return &testscommon.WhiteListHandlerStub{
+		IsWhiteListedAtLeastOneCalled: func(identifiers [][]byte) bool {
+			return isWhiteListed
+		},
+	}
+}
+
 func createMockTrieNodesChunksProcessorArgs() TrieNodesChunksProcessorArgs {
 	return TrieNodesChunksProcessorArgs{
 		Hasher: &testscommon.HasherStub{
@@ -54,7 +62,7 @@ func TestNewTrieNodeChunksProcessor_InvalidInterval(t *testing.T) {
 	t.Parallel()
 
 	args := createMockTrieNodesChunksProcessorArgs()
-	args.RequestInterval = time.Second - time.Nanosecond
+	args.RequestInterval = minimumRequestTimeInterval - time.Nanosecond
 	tncp, err := NewTrieNodeChunksProcessor(args)
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 	assert.True(t, check.IfNil(tncp))
@@ -97,32 +105,85 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 
 	args := createMockTrieNodesChunksProcessorArgs()
 	tncp, _ := NewTrieNodeChunksProcessor(args)
-	chunkResult, err := tncp.CheckBatch(&batch.Batch{
-		Data:       make([][]byte, 1),
-		Reference:  make([]byte, 32),
-		ChunkIndex: 0,
-		MaxChunks:  1,
-	})
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       make([][]byte, 1),
+			Reference:  make([]byte, 32),
+			ChunkIndex: 0,
+			MaxChunks:  1,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
 
-	chunkResult, err = tncp.CheckBatch(&batch.Batch{
-		Data:       make([][]byte, 1),
-		Reference:  nil,
-		ChunkIndex: 0,
-		MaxChunks:  2,
-	})
+	chunkResult, err = tncp.CheckBatch(
+		&batch.Batch{
+			Data:       make([][]byte, 1),
+			Reference:  nil,
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Equal(t, err, process.ErrIncompatibleReference)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
 
-	chunkResult, err = tncp.CheckBatch(&batch.Batch{
-		Data:       nil,
-		Reference:  make([]byte, 32),
-		ChunkIndex: 0,
-		MaxChunks:  2,
-	})
+	chunkResult, err = tncp.CheckBatch(
+		&batch.Batch{
+			Data:       nil,
+			Reference:  make([]byte, 32),
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
+	_ = tncp.Close()
+}
+
+func TestTrieNodeChunksProcessor_NilWhitelistHandler(t *testing.T) {
+	t.Parallel()
+
+	emptyCheckedChunkResult := process.CheckedChunkResult{}
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	tncp, _ := NewTrieNodeChunksProcessor(args)
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
+
+	_ = tncp.Close()
+}
+
+func TestTrieNodeChunksProcessor_NotWhiteListed(t *testing.T) {
+	t.Parallel()
+
+	emptyCheckedChunkResult := process.CheckedChunkResult{}
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	tncp, _ := NewTrieNodeChunksProcessor(args)
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(false),
+	)
+	assert.Equal(t, process.ErrTrieNodeIsNotWhitelisted, err)
+	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
+
 	_ = tncp.Close()
 }
 
@@ -137,22 +198,28 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 
 	args := createMockTrieNodesChunksProcessorArgs()
 	tncp, _ := NewTrieNodeChunksProcessor(args)
-	chunkResult, err := tncp.CheckBatch(&batch.Batch{
-		Data:       [][]byte{[]byte("buff1")},
-		Reference:  reference,
-		ChunkIndex: 0,
-		MaxChunks:  2,
-	})
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
 	assert.Equal(t, 1, args.ChunksCacher.Len())
 
-	chunkResult, err = tncp.CheckBatch(&batch.Batch{
-		Data:       [][]byte{[]byte("buff2")},
-		Reference:  reference,
-		ChunkIndex: 1,
-		MaxChunks:  2,
-	})
+	chunkResult, err = tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff2")},
+			Reference:  reference,
+			ChunkIndex: 1,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Nil(t, err)
 
 	expectedCheckedChunkResult = process.CheckedChunkResult{
@@ -164,6 +231,46 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 	assert.Equal(t, 0, args.ChunksCacher.Len())
 
 	_ = tncp.Close()
+}
+
+func TestTrieNodeChunksProcessor_CheckBatchNotTheFirstBatch(t *testing.T) {
+	t.Parallel()
+
+	expectedCheckedChunkResult := process.CheckedChunkResult{
+		IsChunk:        true,
+		HaveAllChunks:  false,
+		CompleteBuffer: nil,
+	}
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	tncp, _ := NewTrieNodeChunksProcessor(args)
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 1,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
+	assert.Equal(t, 0, args.ChunksCacher.Len())
+
+	tncp.chunksCacher.Put(reference, "wrong object", 0)
+
+	chunkResult, err = tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 1,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
+	assert.Equal(t, 1, args.ChunksCacher.Len())
 }
 
 func TestTrieNodeChunksProcessor_CheckBatchComponentClosed(t *testing.T) {
@@ -180,12 +287,15 @@ func TestTrieNodeChunksProcessor_CheckBatchComponentClosed(t *testing.T) {
 
 	_ = tncp.Close()
 
-	chunkResult, err := tncp.CheckBatch(&batch.Batch{
-		Data:       [][]byte{[]byte("buff1")},
-		Reference:  reference,
-		ChunkIndex: 0,
-		MaxChunks:  2,
-	})
+	chunkResult, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 0,
+			MaxChunks:  2,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Equal(t, process.ErrProcessClosed, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
 }
@@ -204,12 +314,15 @@ func TestTrieNodeChunksProcessor_RequestShouldWork(t *testing.T) {
 		},
 	}
 	tncp, _ := NewTrieNodeChunksProcessor(args)
-	_, err := tncp.CheckBatch(&batch.Batch{
-		Data:       [][]byte{[]byte("buff1")},
-		Reference:  reference,
-		ChunkIndex: 0,
-		MaxChunks:  3,
-	})
+	_, err := tncp.CheckBatch(
+		&batch.Batch{
+			Data:       [][]byte{[]byte("buff1")},
+			Reference:  reference,
+			ChunkIndex: 0,
+			MaxChunks:  3,
+		},
+		createMockWhiteLister(true),
+	)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second + time.Millisecond*500)
