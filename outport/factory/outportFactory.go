@@ -3,11 +3,12 @@ package factory
 import (
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 type OutportFactoryArgs struct {
 	ElasticIndexerFactoryArgs *indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs  interface{}
+	EventNotifierFactoryArgs  *notifierFactory.EventNotifierFactoryArgs
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -32,6 +33,11 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
+	err = createAndSubscribeEventNotifierIfNeeded(outport, args.EventNotifierFactoryArgs)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -49,6 +55,22 @@ func createAndSubscribeElasticDriverIfNeeded(
 	}
 
 	return outport.SubscribeDriver(elasticDriver)
+}
+
+func createAndSubscribeEventNotifierIfNeeded(
+	outport outport.OutportHandler,
+	args *notifierFactory.EventNotifierFactoryArgs,
+) error {
+	if !args.Enabled {
+		return nil
+	}
+
+	eventNotifier, err := notifierFactory.CreateEventNotifier(args)
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(eventNotifier)
 }
 
 func checkArguments(args *OutportFactoryArgs) error {

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 )
 
 // TODO: move app status handler initialization here
@@ -223,7 +224,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 	}
 }
 
-func (scf *statusComponentsFactory) makeEventNotifierArgs() interface{} {
+func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.EventNotifierFactoryArgs {
 	return nil
 }
 

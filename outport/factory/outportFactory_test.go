@@ -6,24 +6,28 @@ import (
 
 	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
 	"github.com/ElrondNetwork/elrond-go/outport"
+	notifierFactory "github.com/ElrondNetwork/notifier-go/factory"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsOutportHandler() *OutportFactoryArgs {
 	mockElasticArgs := &indexerFactory.ArgsIndexerFactory{}
+	mockNotifierArgs := &notifierFactory.EventNotifierFactoryArgs{}
 	return &OutportFactoryArgs{
 		ElasticIndexerFactoryArgs: mockElasticArgs,
+		EventNotifierFactoryArgs:  mockNotifierArgs,
 	}
 }
 
 func TestNewIndexerFactory(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		argsFunc func() *OutportFactoryArgs
 		exError  error
 	}{
 		{
-			name: "NilArgsElasticDriver",
+			name: "NilArgsOutportFactory",
 			argsFunc: func() *OutportFactoryArgs {
 				return nil
 			},
