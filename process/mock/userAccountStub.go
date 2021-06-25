@@ -11,6 +11,7 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
+	Balance               *big.Int
 	AddToBalanceCalled    func(value *big.Int) error
 	DataTrieTrackerCalled func() state.DataTrieTracker
 }
@@ -44,7 +45,7 @@ func (u *UserAccountStub) SubFromBalance(_ *big.Int) error {
 
 // GetBalance -
 func (u *UserAccountStub) GetBalance() *big.Int {
-	return nil
+	return u.Balance
 }
 
 // ClaimDeveloperRewards -
@@ -82,7 +83,7 @@ func (u *UserAccountStub) AddressBytes() []byte {
 	return nil
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 }
 

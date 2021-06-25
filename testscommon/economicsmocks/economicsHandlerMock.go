@@ -35,6 +35,7 @@ type EconomicsHandlerMock struct {
 	MinGasPriceForProcessingCalled               func() uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimitBasedOnBalanceCalled          func(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // LeaderPercentage -
@@ -140,6 +141,15 @@ func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWit
 		return ehm.ComputeMoveBalanceFeeCalled(tx)
 	}
 	return big.NewInt(0)
+
+}
+
+// ComputeGasLimitBasedOnBalance -
+func (ehm *EconomicsHandlerMock) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	if ehm.ComputeGasLimitBasedOnBalanceCalled != nil {
+		return ehm.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
+	}
+	return 0, nil
 }
 
 // ComputeTxFee -

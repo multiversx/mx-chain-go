@@ -22,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -97,6 +99,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
 		ArwenChangeLocker:    &sync.RWMutex{},
+		VMOutputCacher:       txcache.NewDisabledCache(),
 	}
 }
 
@@ -111,6 +114,18 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
+}
+
+func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VMOutputCacher = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilCacher, err)
 }
 
 func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
@@ -1530,6 +1545,10 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
+	arguments.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
+		Type:     storageUnit.LRUCache,
+		Capacity: 10000,
+	})
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
