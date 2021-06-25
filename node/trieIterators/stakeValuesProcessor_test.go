@@ -120,7 +120,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testi
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -181,7 +181,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -213,7 +213,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -245,7 +245,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
@@ -320,7 +320,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return acc, nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {

@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
@@ -103,11 +104,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
 
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +150,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -429,11 +426,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:         pcf.state.AccountsAdapter(),
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}

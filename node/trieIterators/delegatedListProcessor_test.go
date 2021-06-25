@@ -126,7 +126,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 		},
 	}
 	arg.Accounts.AccountsAdapter = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createDelegationScAccount(addressContainer, delegators, addressContainer), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {

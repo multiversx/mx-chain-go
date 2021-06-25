@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type baseAccount struct {
@@ -34,6 +35,11 @@ func (ba *baseAccount) SetDataTrie(trie data.Trie) {
 
 // DataTrieTracker returns the trie wrapper used in managing the SC data
 func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
+	return ba.dataTrieTracker
+}
+
+// AccountDataHandler return the account data handler
+func (ba *baseAccount) AccountDataHandler() vmcommon.AccountDataHandler {
 	return ba.dataTrieTracker
 }
 

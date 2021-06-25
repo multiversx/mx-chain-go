@@ -198,7 +198,7 @@ func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return nil, errors.New("not found")
 			},
 		},
@@ -215,7 +215,7 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return state.NewEmptyUserAccount(), nil
 			},
 		},
@@ -262,7 +262,7 @@ func TestVmContext_IsValidator(t *testing.T) {
 			hooks.NewVMCryptoHook(),
 			&mock.ArgumentParserMock{},
 			&mock.AccountsStub{
-				GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 					assert.Equal(t, blsKey, address)
 
 					acnt := state.NewEmptyPeerAccount()

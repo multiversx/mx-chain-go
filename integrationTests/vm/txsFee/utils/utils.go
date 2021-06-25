@@ -92,7 +92,7 @@ func DoDeploySecond(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	pathToContract string,
-	senderAccount state.AccountHandler,
+	senderAccount vmcommon.AccountHandler,
 	gasPrice uint64,
 	gasLimit uint64,
 	args [][]byte,

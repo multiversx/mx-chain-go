@@ -22,13 +22,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -356,7 +357,7 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -637,7 +638,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	}
 
 	adb, _ := state.NewAccountsDB(trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -725,7 +726,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	}
 
 	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})

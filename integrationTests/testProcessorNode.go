@@ -94,6 +94,7 @@ import (
 	vmProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 )
@@ -788,8 +789,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
@@ -897,7 +897,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 
 	vmContainer, _ := vmFactory.Create()
 
-	_ = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	_ = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:       vmContainer,
 		EconomicsFee:      tpn.EconomicsData,
@@ -1355,8 +1355,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)

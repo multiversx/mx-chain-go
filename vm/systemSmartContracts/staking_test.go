@@ -641,7 +641,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return peerAccount, nil
 			}},
 		&mock.RaterMock{})
@@ -1442,7 +1442,7 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
 	peerAccount := state.NewEmptyPeerAccount()
-	accountsStub.GetExistingAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
 	peerAccount.List = string(core.JailedList)
@@ -1495,7 +1495,7 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 
 	peerAccount := state.NewEmptyPeerAccount()
-	accountsStub.GetExistingAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	accountsStub.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return peerAccount, nil
 	}
 	peerAccount.List = string(core.EligibleList)

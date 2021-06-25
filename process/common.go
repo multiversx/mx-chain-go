@@ -602,7 +602,7 @@ func NewForkInfo() *ForkInfo {
 // DisplayProcessTxDetails displays information related to the tx which should be executed
 func DisplayProcessTxDetails(
 	message string,
-	accountHandler state.AccountHandler,
+	accountHandler vmcommon.AccountHandler,
 	txHandler data.TransactionHandler,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {

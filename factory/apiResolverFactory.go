@@ -25,6 +25,8 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
@@ -295,7 +297,7 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +319,7 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-) (process.BuiltInFunctionContainer, error) {
+) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:      gasScheduleNotifier,
 		MapDNSAddresses:  make(map[string]struct{}),
@@ -325,10 +327,10 @@ func createBuiltinFuncs(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
-	return builtInFuncFactory.CreateBuiltInFunctionContainer()
+	return builtInFuncs, nil
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type accountsAdapter struct {
@@ -27,12 +27,12 @@ func (a *accountsAdapter) GetCode(_ []byte) []byte {
 }
 
 // LoadAccount -
-func (a *accountsAdapter) LoadAccount(_ []byte) (state.AccountHandler, error) {
+func (a *accountsAdapter) LoadAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, nil
 }
 
 // SaveAccount -
-func (a *accountsAdapter) SaveAccount(_ state.AccountHandler) error {
+func (a *accountsAdapter) SaveAccount(_ vmcommon.AccountHandler) error {
 	return nil
 }
 
@@ -41,7 +41,7 @@ func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
 }
 
 // GetExistingAccount -
-func (a *accountsAdapter) GetExistingAccount(_ []byte) (state.AccountHandler, error) {
+func (a *accountsAdapter) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
 	return nil, nil
 }
 

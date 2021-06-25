@@ -705,7 +705,7 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 	return cleanSCRs
 }
 
-func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) error {
 	if !check.IfNil(acntSnd) {
 		err := sc.accounts.SaveAccount(acntSnd)
 		if err != nil {

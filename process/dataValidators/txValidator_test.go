@@ -11,12 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		acc.Nonce = nonce
 		acc.Balance = balance
@@ -263,7 +264,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -288,7 +289,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -326,7 +327,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return state.NewPeerAccount(address)
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
