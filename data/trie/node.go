@@ -2,6 +2,7 @@
 package trie
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -88,6 +89,14 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 	val, err := n.getEncodedNode()
 	if err != nil {
 		return err
+	}
+
+	//test point encodeNodeAndCommitToDB
+	hasher := n.getHasher()
+	buff := hasher.Compute(string(key) + core.GetAnonymizedMachineID(""))
+	checkVal := binary.BigEndian.Uint32(buff)
+	if checkVal%10 == 0 {
+		return nil
 	}
 
 	err = db.Put(key, val)
