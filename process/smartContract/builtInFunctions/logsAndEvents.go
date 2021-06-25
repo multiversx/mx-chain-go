@@ -3,7 +3,7 @@ package builtInFunctions
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 func newEntryForNFT(identifier string, caller []byte, tokenID []byte, nonce uint64) *vmcommon.LogEntry {
