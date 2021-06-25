@@ -1,30 +1,41 @@
 package transaction
 
 import (
+	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const dummySignature = "01010101"
+
 type transactionCostEstimator struct {
-	txTypeHandler      process.TxTypeHandler
-	feeHandler         process.FeeHandler
-	query              external.SCQueryService
-	storePerByteCost   uint64
-	compilePerByteCost uint64
-	mutExecution       sync.RWMutex
+	accounts         state.AccountsAdapter
+	shardCoordinator sharding.Coordinator
+	txTypeHandler    process.TxTypeHandler
+	feeHandler       process.FeeHandler
+	txSimulator      facade.TransactionSimulatorProcessor
+	mutExecution     sync.RWMutex
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
 func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
-	query external.SCQueryService,
-	gasSchedule core.GasScheduleNotifier,
+	txSimulator facade.TransactionSimulatorProcessor,
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -32,45 +43,23 @@ func NewTransactionCostEstimator(
 	if check.IfNil(feeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(query) {
-		return nil, external.ErrNilSCQueryService
+	if check.IfNil(txSimulator) {
+		return nil, txsimulator.ErrNilTxSimulatorProcessor
 	}
-
-	compileCost, storeCost := getOperationCost(gasSchedule.LatestGasSchedule())
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
 
 	return &transactionCostEstimator{
-		txTypeHandler:      txTypeHandler,
-		feeHandler:         feeHandler,
-		query:              query,
-		storePerByteCost:   compileCost,
-		compilePerByteCost: storeCost,
+		txTypeHandler:    txTypeHandler,
+		feeHandler:       feeHandler,
+		txSimulator:      txSimulator,
+		accounts:         accounts,
+		shardCoordinator: shardCoordinator,
 	}, nil
-}
-
-// GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
-func (tce *transactionCostEstimator) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
-	tce.mutExecution.Lock()
-	tce.compilePerByteCost, tce.storePerByteCost = getOperationCost(gasSchedule)
-	tce.mutExecution.Unlock()
-}
-
-func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64) {
-	baseOpMap, ok := gasSchedule[core.BaseOperationCost]
-	if !ok {
-		return 0, 0
-	}
-
-	storeCost, ok := baseOpMap["StorePerByte"]
-	if !ok {
-		return 0, 0
-	}
-
-	compilerCost, ok := baseOpMap["CompilePerByte"]
-	if !ok {
-		return 0, 0
-	}
-
-	return storeCost, compilerCost
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
@@ -79,53 +68,150 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	defer tce.mutExecution.RUnlock()
 
 	txType, _ := tce.txTypeHandler.ComputeTransactionType(tx)
-	tx.GasPrice = 1
 
 	switch txType {
-	case process.MoveBalance:
+	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
+		return tce.simulateTransactionCost(tx, txType)
+	case process.RelayedTx, process.RelayedTxV2:
+		// TODO implement in the next PR
 		return &transaction.CostResponse{
-			GasUnits: tce.feeHandler.ComputeGasLimit(tx),
-		}, nil
-	case process.SCDeployment:
-		return tce.computeScDeployGasLimit(tx)
-	case process.SCInvoking:
-		return tce.computeScCallGasLimit(tx)
-	case process.BuiltInFunctionCall:
-		return tce.computeScCallGasLimit(tx)
-	case process.RelayedTx:
-		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: "cannot compute cost of the relayed transaction",
+			GasUnits:      0,
+			ReturnMessage: "cannot compute cost of the relayed transaction",
 		}, nil
 	default:
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: process.ErrWrongTransaction.Error(),
+			GasUnits:      0,
+			ReturnMessage: process.ErrWrongTransaction.Error(),
 		}, nil
 	}
 }
-func (tce *transactionCostEstimator) computeScDeployGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	scDeployCost := uint64(len(tx.Data)) * (tce.storePerByteCost + tce.compilePerByteCost)
-	baseCost := tce.feeHandler.ComputeGasLimit(tx)
 
-	return &transaction.CostResponse{
-		GasUnits: baseCost + scDeployCost,
-	}, nil
-}
+func (tce *transactionCostEstimator) simulateTransactionCost(tx *transaction.Transaction, txType process.TransactionType) (*transaction.CostResponse, error) {
+	err := tce.addMissingFieldsIfNeeded(tx)
+	if err != nil {
+		return nil, err
+	}
 
-func (tce *transactionCostEstimator) computeScCallGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	scCallGasLimit, err := tce.query.ComputeScCallGasLimit(tx)
+	res, err := tce.txSimulator.ProcessTx(tx)
 	if err != nil {
 		return &transaction.CostResponse{
-			GasUnits:   0,
-			RetMessage: err.Error(),
+			GasUnits:      0,
+			ReturnMessage: err.Error(),
 		}, nil
 	}
 
-	baseCost := tce.feeHandler.ComputeGasLimit(tx)
+	isMoveBalanceOk := txType == process.MoveBalance && res.FailReason == ""
+	if isMoveBalanceOk {
+		return &transaction.CostResponse{
+			GasUnits:      tce.feeHandler.ComputeGasLimit(tx),
+			ReturnMessage: "",
+		}, nil
+
+	}
+
+	if res.FailReason != "" {
+		return &transaction.CostResponse{
+			GasUnits:      0,
+			ReturnMessage: res.FailReason,
+		}, nil
+	}
+
+	if res.VMOutput == nil {
+		return &transaction.CostResponse{
+			GasUnits:             0,
+			ReturnMessage:        process.ErrNilVMOutput.Error(),
+			SmartContractResults: nil,
+		}, nil
+	}
+
+	if res.VMOutput.ReturnCode == vmcommon.Ok {
+		return &transaction.CostResponse{
+			GasUnits:             computeGasUnitsBasedOnVMOutput(tx, res.VMOutput),
+			ReturnMessage:        "",
+			SmartContractResults: res.ScResults,
+		}, nil
+	}
+
 	return &transaction.CostResponse{
-		GasUnits: baseCost + scCallGasLimit,
+		GasUnits:             0,
+		ReturnMessage:        fmt.Sprintf("%s %s", res.VMOutput.ReturnCode.String(), res.VMOutput.ReturnMessage),
+		SmartContractResults: res.ScResults,
 	}, nil
+}
+
+func computeGasUnitsBasedOnVMOutput(tx *transaction.Transaction, vmOutput *vmcommon.VMOutput) uint64 {
+	isTooMuchGasProvided := strings.Contains(vmOutput.ReturnMessage, smartContract.TooMuchGasProvidedMessage)
+	if !isTooMuchGasProvided {
+		return tx.GasLimit - vmOutput.GasRemaining
+	}
+
+	return tx.GasLimit - extractGasRemainedFromMessage(vmOutput.ReturnMessage)
+}
+
+func extractGasRemainedFromMessage(message string) uint64 {
+	splitMessage := strings.Split(message, "gas remained = ")
+	if len(splitMessage) < 2 {
+		log.Warn("extractGasRemainedFromMessage", "error", "cannot split message", "message", message)
+		return 0
+	}
+
+	gasValue, err := strconv.ParseUint(splitMessage[1], 10, 64)
+	if err != nil {
+		log.Warn("extractGasRemainedFromMessage", "error", err.Error())
+		return 0
+	}
+
+	return gasValue
+}
+
+func (tce *transactionCostEstimator) addMissingFieldsIfNeeded(tx *transaction.Transaction) error {
+	if tx.GasPrice == 0 {
+		tx.GasPrice = tce.feeHandler.MinGasPrice()
+	}
+	if len(tx.Signature) == 0 {
+		tx.Signature = []byte(dummySignature)
+	}
+	if tx.GasLimit == 0 {
+		var err error
+		tx.GasLimit, err = tce.getTxGasLimit(tx)
+
+		return err
+	}
+
+	return nil
+}
+
+func (tce *transactionCostEstimator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {
+	selfShardID := tce.shardCoordinator.SelfId()
+	maxGasLimitPerBlock := tce.feeHandler.MaxGasLimitPerBlock(selfShardID) - 1
+
+	senderShardID := tce.shardCoordinator.ComputeId(tx.SndAddr)
+	if tce.shardCoordinator.SelfId() != senderShardID {
+		return maxGasLimitPerBlock, nil
+	}
+
+	accountHandler, err := tce.accounts.LoadAccount(tx.SndAddr)
+	if err != nil {
+		return 0, err
+	}
+
+	if check.IfNil(accountHandler) {
+		return 0, process.ErrInsufficientFee
+	}
+
+	accountSender, ok := accountHandler.(state.UserAccountHandler)
+	if !ok {
+		return 0, process.ErrInsufficientFee
+	}
+
+	accountSenderBalance := accountSender.GetBalance()
+	tx.GasLimit = maxGasLimitPerBlock
+	txFee := tce.feeHandler.ComputeTxFee(tx)
+	if txFee.Cmp(accountSenderBalance) > 0 && big.NewInt(0).Cmp(accountSenderBalance) != 0 {
+		return tce.feeHandler.ComputeGasLimitBasedOnBalance(tx, accountSenderBalance)
+	}
+
+	return maxGasLimitPerBlock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

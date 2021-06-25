@@ -31,16 +31,14 @@ type RewardsCreatorArgsV2 struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
-	TopUpRewardFactor     float64
-	TopUpGradientPoint    *big.Int
+	RewardsHandler        process.RewardsHandler
 }
 
 type rewardsCreatorV2 struct {
 	*baseRewardsCreator
 	stakingDataProvider   epochStart.StakingDataProvider
 	economicsDataProvider epochStart.EpochEconomicsDataProvider
-	topUpRewardFactor     float64
-	topUpGradientPoint    *big.Int
+	rewardsHandler        process.RewardsHandler
 }
 
 // NewRewardsCreatorV2 creates a new rewards creator object
@@ -56,19 +54,15 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	if check.IfNil(args.EconomicsDataProvider) {
 		return nil, epochStart.ErrNilEconomicsDataProvider
 	}
-	if args.TopUpGradientPoint.Cmp(zero) < 0 {
-		return nil, epochStart.ErrInvalidRewardsTopUpGradientPoint
-	}
-	if args.TopUpRewardFactor < 0 || args.TopUpRewardFactor > 1 {
-		return nil, epochStart.ErrInvalidRewardsTopUpFactor
+	if check.IfNil(args.RewardsHandler) {
+		return nil, epochStart.ErrNilRewardsHandler
 	}
 
 	rc := &rewardsCreatorV2{
 		baseRewardsCreator:    brc,
 		economicsDataProvider: args.EconomicsDataProvider,
 		stakingDataProvider:   args.StakingDataProvider,
-		topUpRewardFactor:     args.TopUpRewardFactor,
-		topUpGradientPoint:    args.TopUpGradientPoint,
+		rewardsHandler:        args.RewardsHandler,
 	}
 
 	return rc, nil
@@ -387,21 +381,34 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 		return big.NewInt(0)
 	}
 
+	log.Debug("computeTopUpRewards", "totalToDistribute", totalToDistribute.String())
+	log.Debug("computeTopUpRewards", "totalTopUpEligible", totalTopUpEligible.String())
+
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
-	k := core.GetIntTrimmedPercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
+	k := core.GetIntTrimmedPercentageOfValue(totalToDistribute, rc.rewardsHandler.RewardsTopUpFactor())
+	log.Debug("computeTopUpRewards", "topUpFactor", rc.rewardsHandler.RewardsTopUpFactor())
+	log.Debug("computeTopUpRewards", "k", k.String())
+
 	// p is the cumulative eligible stake where rewards per day reach 1/2 of k (constant)
 	// x/p - argument for atan
 	totalTopUpEligibleFloat := big.NewFloat(0).SetInt(totalTopUpEligible)
-	topUpGradientPointFloat := big.NewFloat(0).SetInt(rc.topUpGradientPoint)
+	topUpGradientPointFloat := big.NewFloat(0).SetInt(rc.rewardsHandler.RewardsTopUpGradientPoint())
+	log.Debug("computeTopUpRewards", "topUpGradientPoint", rc.rewardsHandler.RewardsTopUpGradientPoint().String())
 
 	floatArg, _ := big.NewFloat(0).Quo(totalTopUpEligibleFloat, topUpGradientPointFloat).Float64()
+	log.Debug("computeTopUpRewards", "x/p", floatArg)
+
 	// atan(x/p)
 	res1 := math.Atan(floatArg)
+	log.Debug("computeTopUpRewards", "atan(x/p)", res1)
 	// 2*k/pi
 	res2 := big.NewFloat(0).SetInt(big.NewInt(0).Mul(k, big.NewInt(2)))
 	res2 = big.NewFloat(0).Quo(res2, big.NewFloat(math.Pi))
+	log.Debug("computeTopUpRewards", "2k/pi", res2)
+
 	// topUpReward:= (2*k/pi)*atan(x/p)
 	topUpRewards, _ := big.NewFloat(0).Mul(big.NewFloat(res1), res2).Int(nil)
+	log.Debug("computeTopUpRewards", "topUpRewards", topUpRewards.String())
 
 	return topUpRewards
 }

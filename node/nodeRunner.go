@@ -153,6 +153,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
 	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
+	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -1081,6 +1082,10 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	if err != nil {
+		return nil, err
+	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:            *nr.configs.P2pConfig,
@@ -1089,6 +1094,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		StatusHandler:        managedCoreComponents.StatusHandler(),
 		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
 		Syncer:               managedCoreComponents.SyncTimer(),
+		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
@@ -1350,6 +1356,20 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	}
 
 	log.Trace("gops", "enabled", gopsEnabled)
+}
+
+func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
+	decodedPublicKeys := make([][]byte, 0)
+	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
+		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+		}
+
+		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+	}
+
+	return decodedPublicKeys, nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

@@ -61,6 +61,11 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		poolsHolder:         arguments.PoolsHolder,
 		statusHandler:       arguments.AppStatusHandler,
 		outportHandler:      arguments.OutportHandler,
+		isInImportMode:      arguments.IsInImportMode,
+	}
+
+	if base.isInImportMode {
+		log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
 	boot := MetaBootstrap{

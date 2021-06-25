@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
@@ -316,6 +317,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 		EpochNotifier:     forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker: context.ArwenChangeLocker,
+		VMOutputCacher:    txcache.NewDisabledCache(),
 	}
 	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	context.ScProcessor = smartContract.NewTestScProcessor(sc)

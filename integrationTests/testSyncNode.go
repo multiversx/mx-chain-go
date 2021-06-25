@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
@@ -86,6 +87,7 @@ func NewTestSyncNode(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
+		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -270,6 +272,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		OutportHandler:      mock.NewNilOutport(),
+		IsInImportMode:      false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -309,6 +312,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		OutportHandler:      mock.NewNilOutport(),
+		IsInImportMode:      false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

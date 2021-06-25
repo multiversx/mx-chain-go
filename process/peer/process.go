@@ -1117,28 +1117,20 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 
 func (vs *validatorStatistics) display(validatorKey string) {
 	peerAcc, err := vs.loadPeerAccount([]byte(validatorKey))
-
 	if err != nil {
 		log.Trace("display peer acc", "error", err)
 		return
 	}
 
-	acc, ok := peerAcc.(state.PeerAccountHandler)
-
-	if !ok {
-		log.Trace("display", "error", "not a peeracc")
-		return
-	}
-
 	log.Trace("validator statistics",
-		"pk", core.GetTrimmedPk(hex.EncodeToString(acc.GetBLSPublicKey())),
-		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
-		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
-		"val success", acc.GetValidatorSuccessRate().NumSuccess,
-		"val ignored sigs", acc.GetValidatorIgnoredSignaturesRate(),
-		"val fail", acc.GetValidatorSuccessRate().NumFailure,
-		"temp rating", acc.GetTempRating(),
-		"rating", acc.GetRating(),
+		"pk", core.GetTrimmedPk(hex.EncodeToString(peerAcc.GetBLSPublicKey())),
+		"leader fail", peerAcc.GetLeaderSuccessRate().NumFailure,
+		"leader success", peerAcc.GetLeaderSuccessRate().NumSuccess,
+		"val success", peerAcc.GetValidatorSuccessRate().NumSuccess,
+		"val ignored sigs", peerAcc.GetValidatorIgnoredSignaturesRate(),
+		"val fail", peerAcc.GetValidatorSuccessRate().NumFailure,
+		"temp rating", peerAcc.GetTempRating(),
+		"rating", peerAcc.GetRating(),
 	)
 }
 
