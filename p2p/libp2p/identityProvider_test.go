@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -59,7 +60,7 @@ func TestNewIdentityProvider_NilHostShouldErr(t *testing.T) {
 
 	ip, err := libp2p.NewIdentityProvider(
 		nil,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		&mock.MarshalizerStub{},
 		time.Second,
@@ -89,7 +90,7 @@ func TestNewIdentityProvider_NilSignerVerifierShouldErr(t *testing.T) {
 
 	ip, err := libp2p.NewIdentityProvider(
 		&mock.ConnectableHostStub{},
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		nil,
 		&mock.MarshalizerStub{},
 		time.Second,
@@ -104,7 +105,7 @@ func TestNewIdentityProvider_NilMarshalizerErr(t *testing.T) {
 
 	ip, err := libp2p.NewIdentityProvider(
 		&mock.ConnectableHostStub{},
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		nil,
 		time.Second,
@@ -124,7 +125,7 @@ func TestNewIdentityProvider_ShouldWorkAndSetStreamHandler(t *testing.T) {
 				setStreamHandlerCalled = true
 			},
 		},
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		&mock.MarshalizerStub{},
 		time.Second,
@@ -150,7 +151,7 @@ func TestIdentityProvider_ConnectedMarshalizerFailShouldNotPanic(t *testing.T) {
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{
 			PublicKeyCalled: func() []byte {
 				return []byte("pub key")
@@ -182,7 +183,7 @@ func TestIdentityProvider_ConnectedSignFailShouldNotPanic(t *testing.T) {
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{
 			PublicKeyCalled: func() []byte {
 				return []byte("pub key")
@@ -213,7 +214,7 @@ func TestIdentityProvider_ConnectedShouldWrite(t *testing.T) {
 	host, stream := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{
 			PublicKeyCalled: func() []byte {
 				return []byte("pub key")
@@ -244,7 +245,7 @@ func TestIdentityProvider_ProcessReceivedDataUnmarshalFailsShouldError(t *testin
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -266,7 +267,7 @@ func TestIdentityProvider_ProcessReceivedDataMarshalFailsShouldError(t *testing.
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{},
 		&mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
@@ -291,7 +292,7 @@ func TestIdentityProvider_ProcessReceivedDataSignerErrorsShouldError(t *testing.
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 		&mock.SignerVerifierStub{
 			VerifyCalled: func(message []byte, sig []byte, pk []byte) error {
 				return errExpected
@@ -313,8 +314,8 @@ func TestIdentityProvider_ProcessReceivedDataShouldUpdateCollector(t *testing.T)
 	host, _ := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
+		&p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDInfoCalled: func(_ core.PeerID, _ []byte, _ uint32) {
 				updateWasCalled = true
 			},
 		},
@@ -342,8 +343,8 @@ func TestIdentityProvider_HandleStreamsReceivedMessageShouldUpdateCollector(t *t
 	host, stream := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
+		&p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDInfoCalled: func(_ core.PeerID, _ []byte, _ uint32) {
 				updateWasCalled = true
 			},
 		},
@@ -376,8 +377,8 @@ func TestIdentityProvider_HandleStreamsTimeoutShouldNotFailOrWrite(t *testing.T)
 	host, stream := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
+		&p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDInfoCalled: func(_ core.PeerID, _ []byte, _ uint32) {
 				updateWasCalled = true
 			},
 		},
@@ -409,8 +410,8 @@ func TestIdentityProvider_HandleStreamsClosedStreamShouldNotFailOrWrite(t *testi
 	host, stream := createStubHostForIdentityProvider()
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
+		&p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDInfoCalled: func(_ core.PeerID, _ []byte, _ uint32) {
 				updateWasCalled = true
 			},
 		},

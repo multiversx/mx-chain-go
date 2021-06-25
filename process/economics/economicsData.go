@@ -579,6 +579,36 @@ func (ed *economicsData) setRewardsEpochConfig(currentEpoch uint32) {
 	)
 }
 
+// ComputeGasLimitBasedOnBalance will compute gas limit for the given transaction based on the balance
+func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	balanceWithoutTransferValue := big.NewInt(0).Sub(balance, tx.GetValue())
+	if balanceWithoutTransferValue.Cmp(big.NewInt(0)) < 1 {
+		return 0, process.ErrInsufficientFunds
+	}
+
+	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+	if moveBalanceFee.Cmp(balanceWithoutTransferValue) > 0 {
+		return 0, process.ErrInsufficientFunds
+	}
+
+	if !ed.flagGasPriceModifier.IsSet() {
+		gasPriceBig := big.NewInt(0).SetUint64(tx.GetGasPrice())
+		gasLimitBig := big.NewInt(0).Div(balanceWithoutTransferValue, gasPriceBig)
+
+		return gasLimitBig.Uint64(), nil
+	}
+
+	remainedBalanceAfterMoveBalanceFee := big.NewInt(0).Sub(balanceWithoutTransferValue, moveBalanceFee)
+	gasPriceBigForProcessing := ed.GasPriceForProcessing(tx)
+	gasPriceBigForProcessingBig := big.NewInt(0).SetUint64(gasPriceBigForProcessing)
+	gasLimitFromRemainedBalanceBig := big.NewInt(0).Div(remainedBalanceAfterMoveBalanceFee, gasPriceBigForProcessingBig)
+
+	gasLimitMoveBalance := ed.ComputeGasLimit(tx)
+	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
+
+	return totalGasLimit, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *economicsData) IsInterfaceNil() bool {
 	return ed == nil

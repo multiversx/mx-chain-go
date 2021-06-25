@@ -40,6 +40,7 @@ type ArgBaseBootstrapper struct {
 	AppStatusHandler    core.AppStatusHandler
 	Indexer             process.Indexer
 	AccountsDBSyncer    process.AccountsDBSyncer
+	IsInImportMode      bool
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

@@ -28,6 +28,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	WhiteListerVerifiedTxs    process.WhiteListHandler
 	AntifloodHandler          process.P2PAntifloodHandler
 	ArgumentsParser           process.ArgumentsParser
+	PreferredPeersHolder      process.PreferredPeersHolderHandler
 	SizeCheckDelta            uint32
 	EnableSignTxWithHashEpoch uint32
 }
@@ -53,6 +54,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	WhiteListerVerifiedTxs    process.WhiteListHandler
 	AntifloodHandler          process.P2PAntifloodHandler
 	ArgumentsParser           process.ArgumentsParser
+	PreferredPeersHolder      process.PreferredPeersHolderHandler
 	SizeCheckDelta            uint32
 	EnableSignTxWithHashEpoch uint32
 }

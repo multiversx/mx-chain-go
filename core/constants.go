@@ -462,6 +462,9 @@ const (
 
 	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
 	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
+
+	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
+	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
 )
 
 const (
