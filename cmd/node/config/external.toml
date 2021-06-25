@@ -13,3 +13,27 @@
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
     # ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory"]
     EnabledIndexes    = ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory"]
+
+# EventNotifierConnector defines settings needed to configure and launch the event notifier component
+[EventNotifierConnector]
+    # Enabled signals whether the driver is enabled or not
+    Enabled = false
+
+    # The port on which the Hub listens for subscriptions
+    TcpPort = "5000"
+
+    #
+    Username = ""
+
+    #
+    Password = ""
+
+    # The type of the hub. Options: | common | custom |
+    # Useed for custom implemenations for subscriptions/events filtering
+    # Defaults to: common
+    HubType = "common"
+
+    # The dispathing type. Options: | websocket | graphql | websocket:graphql |
+    # The driver can receive subscribe events and broadcast on one or more channels
+    # Defaults to: websocket.
+    DispatchType = "websocket"
