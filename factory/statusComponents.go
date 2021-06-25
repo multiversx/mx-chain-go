@@ -225,7 +225,16 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 }
 
 func (scf *statusComponentsFactory) makeEventNotifierArgs() *notifierFactory.EventNotifierFactoryArgs {
-	return nil
+	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
+	return &notifierFactory.EventNotifierFactoryArgs{
+		Enabled:      eventNotifierConfig.Enabled,
+		TcpPort:      eventNotifierConfig.TcpPort,
+		Username:     eventNotifierConfig.Username,
+		Password:     eventNotifierConfig.Password,
+		HubType:      eventNotifierConfig.HubType,
+		DispatchType: eventNotifierConfig.DispatchType,
+		Marshalizer:  scf.coreComponents.InternalMarshalizer(),
+	}
 }
 
 func startStatisticsMonitor(
