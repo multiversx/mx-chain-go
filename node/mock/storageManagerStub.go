@@ -18,6 +18,7 @@ type StorageManagerStub struct {
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
 	IsInterfaceNilCalled              func() bool
+	CloseCalled                       func() error
 }
 
 // Database --
@@ -98,6 +99,14 @@ func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 // GetSnapshotDbBatchDelay -
 func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 	return 0
+}
+
+// Close -
+func (sms *StorageManagerStub) Close() error {
+	if sms.CloseCalled != nil {
+		return sms.CloseCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil --

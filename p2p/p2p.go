@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/hex"
 	"io"
 	"time"
@@ -42,7 +43,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork() <-chan struct{}
+	ReconnectToNetwork(ctx context.Context)
 	IsInterfaceNil() bool
 }
 
@@ -85,6 +86,10 @@ type Messenger interface {
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 
+	// ConnectedFullHistoryPeersOnTopic returns the IDs of the full history peers to which the Messenger
+	// is currently connected, but filtered by a topic they are registered to.
+	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
+
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error
@@ -98,14 +103,10 @@ type Messenger interface {
 	// and it is listening to messages referencing it.
 	HasTopic(name string) bool
 
-	// HasTopicValidator returns true if the Messenger has registered a custom
-	// validator for a given topic name.
-	HasTopicValidator(name string) bool
-
 	// RegisterMessageProcessor adds the provided MessageProcessor to the list
 	// of handlers that are invoked whenever a message is received on the
 	// specified topic.
-	RegisterMessageProcessor(topic string, handler MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
 
 	// UnregisterAllMessageProcessors removes all the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
@@ -115,7 +116,7 @@ type Messenger interface {
 	// UnregisterMessageProcessor removes the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
 	// given topic.
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
@@ -216,24 +217,28 @@ type PeerShardResolver interface {
 
 // ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
 type ConnectedPeersInfo struct {
-	SelfShardID             uint32
-	UnknownPeers            []string
-	IntraShardValidators    map[uint32][]string
-	IntraShardObservers     map[uint32][]string
-	CrossShardValidators    map[uint32][]string
-	CrossShardObservers     map[uint32][]string
-	NumValidatorsOnShard    map[uint32]int
-	NumObserversOnShard     map[uint32]int
-	NumIntraShardValidators int
-	NumIntraShardObservers  int
-	NumCrossShardValidators int
-	NumCrossShardObservers  int
+	SelfShardID              uint32
+	UnknownPeers             []string
+	Seeders                  []string
+	IntraShardValidators     map[uint32][]string
+	IntraShardObservers      map[uint32][]string
+	CrossShardValidators     map[uint32][]string
+	CrossShardObservers      map[uint32][]string
+	FullHistoryObservers     map[uint32][]string
+	NumValidatorsOnShard     map[uint32]int
+	NumObserversOnShard      map[uint32]int
+	NumPreferredPeersOnShard map[uint32]int
+	NumIntraShardValidators  int
+	NumIntraShardObservers   int
+	NumCrossShardValidators  int
+	NumCrossShardObservers   int
+	NumFullHistoryObservers  int
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	IsInterfaceNil() bool
 }
 
@@ -252,6 +257,16 @@ type Marshalizer interface {
 	IsInterfaceNil() bool
 }
 
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
+	IsInterfaceNil() bool
+}
+
 // PeerCounts represents the DTO structure used to output the count metrics for connected peers
 type PeerCounts struct {
 	UnknownPeers    int
@@ -259,8 +274,10 @@ type PeerCounts struct {
 	CrossShardPeers int
 }
 
-// CommonSharder represents the common interface implemented by all sharder implementations
-type CommonSharder interface {
+// Sharder defines the eviction computing process of unwanted peers
+type Sharder interface {
+	SetSeeders(addresses []string)
+	IsSeeder(pid core.PeerID) bool
 	SetPeerShardResolver(psp PeerShardResolver) error
 	IsInterfaceNil() bool
 }

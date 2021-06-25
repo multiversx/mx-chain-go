@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -40,6 +41,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -94,6 +96,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -148,6 +151,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -204,6 +208,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 

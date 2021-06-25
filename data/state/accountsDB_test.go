@@ -1198,6 +1198,52 @@ func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 	assert.Equal(t, make([]byte, 32), rootHash)
 }
 
+func TestAccountsDB_SaveAccountWithoutLoading(t *testing.T) {
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+
+	key := []byte("key")
+	key1 := []byte("key1")
+	value := []byte("value")
+
+	address := make([]byte, 32)
+	account, err := adb.LoadAccount(address)
+	assert.Nil(t, err)
+	userAcc := account.(state.UserAccountHandler)
+
+	err = userAcc.DataTrieTracker().SaveKeyValue(key, value)
+	assert.Nil(t, err)
+	err = adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	_, err = adb.Commit()
+	assert.Nil(t, err)
+
+	err = userAcc.DataTrieTracker().SaveKeyValue(key1, value)
+	assert.Nil(t, err)
+	err = adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	_, err = adb.Commit()
+	assert.Nil(t, err)
+
+	account, err = adb.LoadAccount(address)
+	assert.Nil(t, err)
+	userAcc = account.(state.UserAccountHandler)
+
+	returnedVal, err := userAcc.DataTrieTracker().RetrieveValue(key)
+	assert.Nil(t, err)
+	assert.Equal(t, value, returnedVal)
+
+	returnedVal, err = userAcc.DataTrieTracker().RetrieveValue(key1)
+	assert.Nil(t, err)
+	assert.Equal(t, value, returnedVal)
+
+}
+
 func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	t.Parallel()
 

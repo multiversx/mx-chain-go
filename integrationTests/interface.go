@@ -3,7 +3,6 @@ package integrationTests
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	dataApi "github.com/ElrondNetwork/elrond-go/data/api"
@@ -46,9 +45,8 @@ type NodesCoordinatorFactory interface {
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
-	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
+	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +66,7 @@ type Facade interface {
 	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	TpsBenchmark() *statistics.TpsBenchmark
+	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
@@ -87,6 +85,5 @@ type Facade interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
-	CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error)
 	IsInterfaceNil() bool
 }

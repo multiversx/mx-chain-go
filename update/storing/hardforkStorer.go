@@ -124,7 +124,7 @@ func (hs *hardforkStorer) getFullKey(identifier string, key []byte) []byte {
 	return append([]byte(identifier), key...)
 }
 
-// Close tryies to close both storers
+// Close tries to close both storers
 func (hs *hardforkStorer) Close() error {
 	errKeysStore := hs.keysStore.Close()
 	errKeyValue := hs.keyValue.Close()

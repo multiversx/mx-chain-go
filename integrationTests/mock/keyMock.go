@@ -49,7 +49,7 @@ func (sk *PrivateKeyMock) ToByteArray() ([]byte, error) {
 // GeneratePublic -
 func (sk *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
 	return &PublicKeyMock{
-		pubKey: sha256.Sha256{}.Compute(string(sk.privKey)),
+		pubKey: sha256.NewSha256().Compute(string(sk.privKey)),
 	}
 }
 

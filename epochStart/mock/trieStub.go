@@ -58,15 +58,6 @@ func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
 	return false, nil
 }
 
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	if ts.ClosePersisterCalled != nil {
-		return ts.ClosePersisterCalled()
-	}
-
-	return nil
-}
-
 // Get -
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {

@@ -13,7 +13,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 }
 
 // GetMiniBlocks -
-func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 	return boot.miniBlocksProvider.GetMiniBlocks(hashes)
 }
 
@@ -158,8 +158,8 @@ func (boot *MetaBootstrap) IsForkDetected() bool {
 
 // GetNotarizedInfo -
 func (boot *MetaBootstrap) GetNotarizedInfo(
-	lastNotarized map[uint32]*HdrInfo,
-	finalNotarized map[uint32]*HdrInfo,
+	lastNotarized map[uint32]*hdrInfo,
+	finalNotarized map[uint32]*hdrInfo,
 	blockWithLastNotarized map[uint32]uint64,
 	blockWithFinalNotarized map[uint32]uint64,
 	startNonce uint64,
@@ -209,20 +209,20 @@ func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.Hea
 }
 
 // InitNotarizedMap -
-func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*HdrInfo {
-	return make(map[uint32]*HdrInfo)
+func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*hdrInfo {
+	return make(map[uint32]*hdrInfo)
 }
 
 // SetNotarizedMap -
-func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, shardId uint32, nonce uint64, hash []byte) {
-	hdrInfo, ok := notarizedMap[shardId]
+func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*hdrInfo, shardId uint32, nonce uint64, hash []byte) {
+	hdrInfoInstance, ok := notarizedMap[shardId]
 	if !ok {
-		notarizedMap[shardId] = &HdrInfo{Nonce: nonce, Hash: hash}
+		notarizedMap[shardId] = &hdrInfo{Nonce: nonce, Hash: hash}
 		return
 	}
 
-	hdrInfo.Nonce = nonce
-	hdrInfo.Hash = hash
+	hdrInfoInstance.Nonce = nonce
+	hdrInfoInstance.Hash = hash
 }
 
 // SetNodeStateCalculated -

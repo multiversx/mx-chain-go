@@ -47,6 +47,11 @@ func (a *antiFloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string)
 	return nil
 }
 
+// Close returns nil
+func (af *antiFloodHandler) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (a *antiFloodHandler) IsInterfaceNil() bool {
 	return a == nil

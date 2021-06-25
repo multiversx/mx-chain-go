@@ -104,7 +104,6 @@ type Storer interface {
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error)
-	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
 	RangeKeys(handler func(key []byte, val []byte) bool)

@@ -25,11 +25,6 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
-// HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
-	return sm.Has(key)
-}
-
 // Put -
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()

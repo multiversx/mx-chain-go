@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -58,7 +59,6 @@ type HistoryStorer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	HasInEpoch(key []byte, epoch uint32) error
 
 	IsInterfaceNil() bool
 }
@@ -96,6 +96,7 @@ type ImportHandler interface {
 	GetUnFinishedMetaBlocks() map[string]*block.MetaBlock
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -240,8 +241,6 @@ type GenesisNodesSetupHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
-	GetChainId() string
-	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	MinNumberOfShardNodes() uint32
@@ -257,5 +256,15 @@ type GenesisNodesSetupHandler interface {
 type RoundHandler interface {
 	Index() int64
 	TimeStamp() time.Time
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
 	IsInterfaceNil() bool
 }

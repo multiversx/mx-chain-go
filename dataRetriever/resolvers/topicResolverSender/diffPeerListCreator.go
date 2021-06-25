@@ -45,8 +45,8 @@ func NewDiffPeerListCreator(
 	}, nil
 }
 
-// PeerList will return the generated list of peers
-func (dplc *DiffPeerListCreator) PeerList() []core.PeerID {
+// CrossShardPeerList will return the generated list of cross shard peers
+func (dplc *DiffPeerListCreator) CrossShardPeerList() []core.PeerID {
 	allConnectedPeers := dplc.messenger.ConnectedPeersOnTopic(dplc.mainTopic)
 	mainTopicHasPeers := len(allConnectedPeers) != 0
 	if !mainTopicHasPeers {
@@ -71,6 +71,11 @@ func (dplc *DiffPeerListCreator) PeerList() []core.PeerID {
 // IntraShardPeerList returns the intra shard peer list
 func (dplc *DiffPeerListCreator) IntraShardPeerList() []core.PeerID {
 	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
+}
+
+// FullHistoryList returns the full history peers list
+func (dplc *DiffPeerListCreator) FullHistoryList() []core.PeerID {
+	return dplc.messenger.ConnectedFullHistoryPeersOnTopic(dplc.intraShardTopic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

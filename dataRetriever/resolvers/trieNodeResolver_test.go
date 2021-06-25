@@ -526,3 +526,12 @@ func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }
+
+func TestTrieNodeResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTrieNodeResolver()
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	assert.Nil(t, tnRes.Close())
+}

@@ -35,6 +35,7 @@ type SystemEIStub struct {
 	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
 	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
 	GasLeftCalled                       func() uint64
+	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
 }
 
@@ -256,6 +257,13 @@ func (s *SystemEIStub) CreateVMOutput() *vmcommon.VMOutput {
 func (s *SystemEIStub) CleanCache() {
 	if s.CleanCacheCalled != nil {
 		s.CleanCacheCalled()
+	}
+}
+
+// CleanStorageUpdates -
+func (s *SystemEIStub) CleanStorageUpdates() {
+	if s.CleanStorageUpdatesCalled != nil {
+		s.CleanStorageUpdatesCalled()
 	}
 }
 

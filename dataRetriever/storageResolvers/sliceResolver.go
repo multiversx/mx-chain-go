@@ -75,7 +75,6 @@ func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error 
 	mb, err := sliceRes.storage.Get(hash)
 	if err != nil {
 		sliceRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -123,11 +122,15 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 
 	if errFetch != nil {
 		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
-
 		sliceRes.signalGracefullyClose()
 	}
 
 	return errFetch
+}
+
+// Close will try to close the associated opened storers
+func (sliceRes *sliceResolver) Close() error {
+	return sliceRes.storage.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

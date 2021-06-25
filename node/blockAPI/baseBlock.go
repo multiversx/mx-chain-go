@@ -34,6 +34,7 @@ type baseAPIBockProcessor struct {
 	historyRepo              dblookupext.HistoryRepository
 	// TODO: use an interface instead of this function
 	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
+	txStatusComputer         transaction.StatusComputerHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -104,14 +105,8 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
 
-		tx.Status = (&transaction.StatusComputer{
-			MiniblockType:    miniblock.Type,
-			SourceShard:      tx.SourceShard,
-			DestinationShard: tx.DestinationShard,
-			Receiver:         tx.Tx.GetRcvAddr(),
-			TransactionData:  tx.Data,
-			SelfShard:        bap.selfShardID,
-		}).ComputeStatusWhenInStorageKnowingMiniblock()
+		// TODO : should check if tx is reward reverted
+		tx.Status, _ = bap.txStatusComputer.ComputeStatusWhenInStorageKnowingMiniblock(miniblock.Type, tx)
 
 		txs = append(txs, tx)
 	}

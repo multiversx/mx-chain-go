@@ -41,7 +41,7 @@ func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (db *delegationBenchmark) Run() (time.Duration, error) {
-	if !core.DoesFileExist(db.scFilename) {
+	if !core.FileExists(db.scFilename) {
 		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, db.scFilename)
 	}
 

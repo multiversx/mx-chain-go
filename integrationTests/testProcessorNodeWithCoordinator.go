@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -205,6 +206,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
+		ArwenChangeLocker:       &sync.RWMutex{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -212,7 +214,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
 
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)

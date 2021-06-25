@@ -719,7 +719,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storageUnit.Unit {
 
 	ldb, err1 := leveldb.NewDB(dir+"/levelDB", 10, 10, 10)
 	cache, err2 := lrucache.NewCache(cSize)
-	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}})
+	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.NewKeccak(), blake2b.NewBlake2b(), fnv.NewFnv()})
 
 	if err1 != nil {
 		fmt.Println(err1)

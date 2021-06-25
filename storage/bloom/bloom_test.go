@@ -10,18 +10,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewFilter(t *testing.T) {
-	_, err := bloom.NewFilter(200, []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}, fnv.Fnv{}})
+	_, err := bloom.NewFilter(200, []hashing.Hasher{keccak.NewKeccak(), blake2b.NewBlake2b(), fnv.NewFnv()})
 
 	assert.Nil(t, err, "Error creating new bloom filter")
 }
 
 func TestNewFilterWithSmallSize(t *testing.T) {
-	_, err := bloom.NewFilter(1, []hashing.Hasher{keccak.Keccak{}, &blake2b.Blake2b{}})
+	_, err := bloom.NewFilter(1, []hashing.Hasher{keccak.NewKeccak(), blake2b.NewBlake2b()})
 
 	assert.NotNil(t, err, "Expected nil")
 }

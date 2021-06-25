@@ -15,6 +15,16 @@ func NewHeaderSigVerifier() *headerSigVerifier {
 	return &headerSigVerifier{}
 }
 
+// VerifyRandSeed -
+func (h *headerSigVerifier) VerifyRandSeed(_ data.HeaderHandler) error {
+	return nil
+}
+
+// VerifyRandSeedAndLeaderSignature -
+func (h *headerSigVerifier) VerifyLeaderSignature(_ data.HeaderHandler) error {
+	return nil
+}
+
 // VerifyRandSeedAndLeaderSignature -
 func (h *headerSigVerifier) VerifyRandSeedAndLeaderSignature(_ data.HeaderHandler) error {
 	return nil

@@ -21,6 +21,11 @@ func (am *accumulatorMock) OutputChannel() <-chan []interface{} {
 	return am.ch
 }
 
+// Close -
+func (am *accumulatorMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (am *accumulatorMock) IsInterfaceNil() bool {
 	return am == nil

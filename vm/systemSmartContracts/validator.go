@@ -55,6 +55,7 @@ type validatorSC struct {
 	endOfEpochAddress                []byte
 	enableDelegationMgrEpoch         uint32
 	delegationMgrSCAddress           []byte
+	governanceSCAddress              []byte
 	flagDelegationMgr                atomic.Flag
 	validatorToDelegationEnableEpoch uint32
 	flagValidatorToDelegation        atomic.Flag
@@ -65,21 +66,22 @@ type validatorSC struct {
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
 type ArgsValidatorSmartContract struct {
-	StakingSCConfig                  config.StakingSystemSCConfig
-	GenesisTotalSupply               *big.Int
-	Eei                              vm.SystemEI
-	SigVerifier                      vm.MessageSignVerifier
-	StakingSCAddress                 []byte
-	ValidatorSCAddress               []byte
-	GasCost                          vm.GasCost
-	Marshalizer                      marshal.Marshalizer
-	EpochNotifier                    vm.EpochNotifier
-	EndOfEpochAddress                []byte
-	MinDeposit                       string
-	DelegationMgrSCAddress           []byte
-	DelegationMgrEnableEpoch         uint32
-	ValidatorToDelegationEnableEpoch uint32
-	ShardCoordinator                 sharding.Coordinator
+	StakingSCConfig          config.StakingSystemSCConfig
+	GenesisTotalSupply       *big.Int
+	Eei                      vm.SystemEI
+	SigVerifier              vm.MessageSignVerifier
+	StakingSCAddress         []byte
+	ValidatorSCAddress       []byte
+	GasCost                  vm.GasCost
+	Marshalizer              marshal.Marshalizer
+	EpochNotifier            vm.EpochNotifier
+	EndOfEpochAddress        []byte
+	MinDeposit               string
+	DelegationMgrSCAddress   []byte
+	GovernanceSCAddress      []byte
+	DelegationMgrEnableEpoch uint32
+	EpochConfig              config.EpochConfig
+	ShardCoordinator         sharding.Coordinator
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -115,6 +117,9 @@ func NewValidatorSmartContract(
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilShardCoordinator)
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for governance sc address", vm.ErrInvalidAddress)
 	}
 
 	baseConfig := ValidatorConfig{
@@ -153,23 +158,29 @@ func NewValidatorSmartContract(
 		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
 		sigVerifier:                      args.SigVerifier,
 		baseConfig:                       baseConfig,
-		stakingV2Epoch:                   args.StakingSCConfig.StakingV2Epoch,
-		enableStakingEpoch:               args.StakingSCConfig.StakeEnableEpoch,
+		stakingV2Epoch:                   args.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		enableStakingEpoch:               args.EpochConfig.EnableEpochs.StakeEnableEpoch,
 		stakingSCAddress:                 args.StakingSCAddress,
 		validatorSCAddress:               args.ValidatorSCAddress,
 		gasCost:                          args.GasCost,
 		marshalizer:                      args.Marshalizer,
 		minUnstakeTokensValue:            minUnstakeTokensValue,
 		walletAddressLen:                 len(args.ValidatorSCAddress),
-		enableDoubleKeyEpoch:             args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		enableDoubleKeyEpoch:             args.EpochConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch,
 		endOfEpochAddress:                args.EndOfEpochAddress,
 		minDeposit:                       minDeposit,
 		enableDelegationMgrEpoch:         args.DelegationMgrEnableEpoch,
 		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
-		validatorToDelegationEnableEpoch: args.ValidatorToDelegationEnableEpoch,
-		enableUnbondTokensV2Epoch:        args.StakingSCConfig.UnbondTokensV2EnableEpoch,
+		governanceSCAddress:              args.GovernanceSCAddress,
+		enableUnbondTokensV2Epoch:        args.EpochConfig.EnableEpochs.UnbondTokensV2EnableEpoch,
+		validatorToDelegationEnableEpoch: args.EpochConfig.EnableEpochs.ValidatorToDelegationEnableEpoch,
 		shardCoordinator:                 args.ShardCoordinator,
 	}
+	log.Debug("validator: enable epoch for staking v2", "epoch", reg.stakingV2Epoch)
+	log.Debug("validator: enable epoch for stake", "epoch", reg.enableStakingEpoch)
+	log.Debug("validator: enable epoch for double key protection", "epoch", reg.enableDoubleKeyEpoch)
+	log.Debug("validator: enable epoch for unbond tokens v2", "epoch", reg.enableUnbondTokensV2Epoch)
+	log.Debug("validator: enable epoch for validator to delegation", "epoch", reg.validatorToDelegationEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 
@@ -600,8 +611,8 @@ func (v *validatorSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument 
 			continue
 		}
 
-		data := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
-		if len(data) > 0 {
+		buff := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
+		if len(buff) > 0 {
 			return nil, vm.ErrKeyAlreadyRegistered
 		}
 	}
@@ -1233,6 +1244,11 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
+		v.eei.AddReturnMessage("stake is locked for voting")
+		return vmcommon.UserError
+	}
+
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
@@ -1545,6 +1561,10 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 	if len(args.Arguments) != 1 {
 		v.eei.AddReturnMessage("should have specified one argument containing the unstake value")
+		return vmcommon.UserError
+	}
+	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
+		v.eei.AddReturnMessage("stake is locked for voting")
 		return vmcommon.UserError
 	}
 
@@ -2114,7 +2134,7 @@ func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (v *validatorSC) EpochConfirmed(epoch uint32) {
+func (v *validatorSC) EpochConfirmed(epoch uint32, _ uint64) {
 	v.flagEnableStaking.Toggle(epoch >= v.enableStakingEpoch)
 	log.Debug("validatorSC: stake/unstake/unbond", "enabled", v.flagEnableStaking.IsSet())
 

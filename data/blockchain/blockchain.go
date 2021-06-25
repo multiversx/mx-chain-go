@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ data.ChainHandler = (*blockChain)(nil)
@@ -18,12 +17,15 @@ type blockChain struct {
 }
 
 // NewBlockChain returns an initialized blockchain
-func NewBlockChain() *blockChain {
+func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) {
+	if check.IfNil(appStatusHandler) {
+		return nil, ErrNilAppStatusHandler
+	}
 	return &blockChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler: statusHandler.NewNilStatusHandler(),
+			appStatusHandler: appStatusHandler,
 		},
-	}
+	}, nil
 }
 
 // SetGenesisHeader sets the genesis block header pointer

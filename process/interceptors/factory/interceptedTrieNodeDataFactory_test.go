@@ -19,8 +19,9 @@ func TestNewInterceptedTrieNodeDataFactory_NilArgumentsShouldErr(t *testing.T) {
 func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.ProtoMarshalizer = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.IntMarsh = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	itn, err := NewInterceptedTrieNodeDataFactory(arg)
 	assert.Nil(t, itn)
@@ -30,8 +31,9 @@ func TestNewInterceptedTrieNodeDataFactory_NilMarshalizerShouldErr(t *testing.T)
 func TestNewInterceptedTrieNodeDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.Hasher = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.Hash = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	itn, err := NewInterceptedTrieNodeDataFactory(arg)
 	assert.Nil(t, itn)
@@ -41,7 +43,9 @@ func TestNewInterceptedTrieNodeDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedTrieNodeDataFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	itn, err := NewInterceptedTrieNodeDataFactory(createMockArgument())
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
+	itn, err := NewInterceptedTrieNodeDataFactory(arg)
 	assert.NotNil(t, itn)
 	assert.Nil(t, err)
 	assert.False(t, itn.IsInterfaceNil())

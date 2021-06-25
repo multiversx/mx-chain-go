@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/presenter"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/provider"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
+	"github.com/ElrondNetwork/elrond-go/cmd/termui/view/termuic"
 	"github.com/urfave/cli"
 )
 
@@ -107,13 +107,15 @@ func startTermuiViewer(ctx *cli.Context) error {
 	nodeAddress := argsConfig.address
 	fetchIntervalFlagValue := argsConfig.interval
 
+	chanNodeIsStarting := make(chan struct{})
+
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
 	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, fetchIntervalFlagValue)
 	if err != nil {
 		return err
 	}
 
-	termuiConsole, err := termuic.NewTermuiConsole(presenterStatusHandler, fetchIntervalFlagValue)
+	termuiConsole, err := termuic.NewTermuiConsole(presenterStatusHandler, fetchIntervalFlagValue, chanNodeIsStarting)
 	if err != nil {
 		return err
 	}
@@ -130,17 +132,23 @@ func startTermuiViewer(ctx *cli.Context) error {
 		log.LogIfError(err)
 	}
 
-	err = provider.InitLogHandler(presenterStatusHandler, nodeAddress, loggerProfile, argsConfig.useWss, customLogProfile)
+	argsLogHandler := provider.LogHandlerArgs{
+		Presenter:          presenterStatusHandler,
+		NodeURL:            nodeAddress,
+		Profile:            loggerProfile,
+		ChanNodeIsStarting: chanNodeIsStarting,
+		UseWss:             argsConfig.useWss,
+		CustomLogProfile:   customLogProfile,
+	}
+	err = provider.InitLogHandler(argsLogHandler)
 	if err != nil {
 		return err
 	}
 
-	chanStartTermUI := make(chan struct{})
-	err = termuiConsole.Start(chanStartTermUI)
+	err = termuiConsole.Start()
 	if err != nil {
 		return err
 	}
-	chanStartTermUI <- struct{}{}
 
 	waitForUserToTerminateApp()
 

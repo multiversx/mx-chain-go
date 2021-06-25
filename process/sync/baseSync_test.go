@@ -60,7 +60,7 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 				return true
 			},
 		},
-		rounder: &mock.RounderMock{
+		roundHandler: &mock.RoundHandlerMock{
 			BeforeGenesisCalled: func() bool {
 				return false
 			},
@@ -100,7 +100,7 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	miniBlock3 := &block.MiniBlock{SenderShardID: 2}
 
 	hashes := [][]byte{hash1, hash2, hash3}
-	miniBlocksAndHashes := []*process.MiniblockAndHash{
+	miniBlocksAndHashes := []*block.MiniblockAndHash{
 		{
 			Hash:      hash1,
 			Miniblock: miniBlock1,
@@ -130,14 +130,14 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 	boot := &baseBootstrap{
 		isInImportMode:        true,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
 	boot = &baseBootstrap{
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
@@ -145,7 +145,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		roundIndex:            1,
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
-		rounder:               &mock.RounderMock{},
+		roundHandler:          &mock.RoundHandlerMock{},
 	}
 	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
 }

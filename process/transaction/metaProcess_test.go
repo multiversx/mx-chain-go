@@ -33,7 +33,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	return args
 }
 
-//------- NewMetaTxProcessor
+// ------- NewMetaTxProcessor
 
 func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -111,7 +111,7 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txProc)
 }
 
-//------- ProcessTransaction
+// ------- ProcessTransaction
 
 func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	t.Parallel()
@@ -144,7 +144,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	//these values will trigger ErrHigherNonceInTransaction
+	// these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
@@ -354,6 +354,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   parsers.NewCallArgsParser(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

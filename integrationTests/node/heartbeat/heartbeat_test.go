@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -135,10 +136,8 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
-
-		_ = nodes[i].Bootstrap()
 	}
 
 	for i := 0; i < len(nodes)-1; i++ {
@@ -238,10 +237,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 	mp, _ := process.NewMessageProcessor(
 		&mock2.PeerSignatureHandler{Signer: singlesigner, KeyGen: keyGen},
 		marshalizer,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
-		})
+		&p2pmocks.NetworkShardingCollectorStub{},
+	)
 
 	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                 integrationTests.TestMarshalizer,
@@ -277,6 +274,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)
