@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -27,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
@@ -46,7 +46,7 @@ type ArgBlockChainHook struct {
 	ShardCoordinator   sharding.Coordinator
 	Marshalizer        marshal.Marshalizer
 	Uint64Converter    typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions   process.BuiltInFunctionContainer
+	BuiltInFunctions   vmcommon.BuiltInFunctionContainer
 	CompiledSCPool     storage.Cacher
 	ConfigSCStorage    config.StorageConfig
 	WorkingDir         string
@@ -62,7 +62,7 @@ type BlockChainHookImpl struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
-	builtInFunctions process.BuiltInFunctionContainer
+	builtInFunctions vmcommon.BuiltInFunctionContainer
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -160,7 +160,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 		return nil, err
 	}
 
-	dstAccount, ok := acc.(state.UserAccountHandler)
+	dstAccount, ok := acc.(vmcommon.UserAccountHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -172,17 +172,12 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
 	defer stopMeasure(startMeasure("GetStorageData"))
 
-	account, err := bh.GetUserAccount(accountAddress)
+	userAcc, err := bh.GetUserAccount(accountAddress)
 	if err == state.ErrAccNotFound {
 		return make([]byte, 0), nil
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
 	}
 
 	value, err := userAcc.DataTrieTracker().RetrieveValue(index)
@@ -419,8 +414,8 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
-) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	var sndAccount state.UserAccountHandler
+) (vmcommon.UserAccountHandler, vmcommon.UserAccountHandler, error) {
+	var sndAccount vmcommon.UserAccountHandler
 	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
 	if sndShardId == bh.shardCoordinator.SelfId() {
 		acc, err := bh.accounts.GetExistingAccount(input.CallerAddr)
@@ -429,13 +424,13 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 
 		var ok bool
-		sndAccount, ok = acc.(state.UserAccountHandler)
+		sndAccount, ok = acc.(vmcommon.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 	}
 
-	var dstAccount state.UserAccountHandler
+	var dstAccount vmcommon.UserAccountHandler
 	dstShardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
 	if dstShardId == bh.shardCoordinator.SelfId() {
 		acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
@@ -444,18 +439,13 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 
 		var ok bool
-		dstAccount, ok = acc.(state.UserAccountHandler)
+		dstAccount, ok = acc.(vmcommon.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 	}
 
 	return sndAccount, dstAccount, nil
-}
-
-// GetBuiltInFunctions returns the built in functions container
-func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionContainer {
-	return bh.builtInFunctions
 }
 
 // GetBuiltinFunctionNames returns the built in function names
@@ -471,18 +461,13 @@ func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 
 // GetESDTToken returns the unmarshalled esdt data for the given key
 func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
-	account, err := bh.GetUserAccount(address)
+	userAcc, err := bh.GetUserAccount(address)
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	if err == state.ErrAccNotFound {
 		return esdtData, nil
 	}
 	if err != nil {
 		return nil, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
 	}
 
 	esdtTokenKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))

@@ -50,7 +50,6 @@ type scProcessor struct {
 	shardCoordinator                            sharding.Coordinator
 	vmContainer                                 process.VirtualMachinesContainer
 	argsParser                                  process.ArgumentsParser
-	builtInFunctions                            process.BuiltInFunctionContainer
 	deployEnableEpoch                           uint32
 	builtinEnableEpoch                          uint32
 	penalizedTooMuchGasEnableEpoch              uint32

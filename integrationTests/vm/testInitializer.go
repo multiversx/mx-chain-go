@@ -754,7 +754,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
+		BuiltInFuncNames: blockChainHook.GetBuiltinFunctionNames(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}

@@ -2,7 +2,6 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -29,11 +28,6 @@ func (e *BlockChainHookHandlerStub) IsPayable(address []byte) (bool, error) {
 		return e.IsPayableCalled(address)
 	}
 	return true, nil
-}
-
-// GetBuiltInFunctions -
-func (e *BlockChainHookHandlerStub) GetBuiltInFunctions() process.BuiltInFunctionContainer {
-	return nil
 }
 
 // SetCurrentHeader -

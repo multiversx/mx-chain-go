@@ -132,7 +132,7 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
 // TestBuiltinFunctions is an additional map of builtin functions to be added
 // to the scProcessor
-var TestBuiltinFunctions = make(map[string]process.BuiltinFunction)
+var TestBuiltinFunctions = make(map[string]vmcommon.BuiltinFunction)
 
 // TestBlockSizeThrottler represents a block size throttler used in adaptive block size computation
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}

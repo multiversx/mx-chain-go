@@ -457,7 +457,6 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	IsPayable(address []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
-	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
@@ -887,24 +886,6 @@ type ValidityAttester interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	IsInterfaceNil() bool
-}
-
-// BuiltinFunction defines the methods for the built-in protocol smart contract functions
-type BuiltinFunction interface {
-	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	SetNewGasConfig(gasCost *GasCost)
-	IsInterfaceNil() bool
-}
-
-// BuiltInFunctionContainer defines the methods for the built-in protocol container
-type BuiltInFunctionContainer interface {
-	Get(key string) (BuiltinFunction, error)
-	Add(key string, function BuiltinFunction) error
-	Replace(key string, function BuiltinFunction) error
-	Remove(key string)
-	Len() int
-	Keys() map[string]struct{}
 	IsInterfaceNil() bool
 }
 

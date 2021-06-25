@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -28,8 +30,8 @@ type builtInFuncFactory struct {
 	enableUserNameChange bool
 	marshalizer          marshal.Marshalizer
 	accounts             state.AccountsAdapter
-	builtInFunctions     process.BuiltInFunctionContainer
-	gasConfig            *process.GasCost
+	builtInFunctions     vmcommon.BuiltInFunctionContainer
+	gasConfig            *vmcommon.GasCost
 	shardCoordinator     sharding.Coordinator
 }
 
@@ -92,23 +94,23 @@ func (b *builtInFuncFactory) GasScheduleChange(gasSchedule map[string]map[string
 }
 
 // CreateBuiltInFunctionContainer will create the list of built-in functions
-func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFunctionContainer, error) {
+func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (vmcommon.BuiltInFunctionContainer, error) {
 
 	b.builtInFunctions = NewBuiltInFunctionContainer()
-	var newFunc process.BuiltinFunction
-	newFunc = NewClaimDeveloperRewardsFunc(b.gasConfig.BuiltInCost.ClaimDeveloperRewards)
+	var newFunc vmcommon.BuiltinFunction
+	newFunc = builtInFunctions.NewClaimDeveloperRewardsFunc(b.gasConfig.BuiltInCost.ClaimDeveloperRewards)
 	err := b.builtInFunctions.Add(core.BuiltInFunctionClaimDeveloperRewards, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc = NewChangeOwnerAddressFunc(b.gasConfig.BuiltInCost.ChangeOwnerAddress)
+	newFunc = builtInFunctions.NewChangeOwnerAddressFunc(b.gasConfig.BuiltInCost.ChangeOwnerAddress)
 	err = b.builtInFunctions.Add(core.BuiltInFunctionChangeOwnerAddress, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewSaveUserNameFunc(b.gasConfig.BuiltInCost.SaveUserName, b.mapDNSAddresses, b.enableUserNameChange)
+	newFunc, err = builtInFunctions.NewSaveUserNameFunc(b.gasConfig.BuiltInCost.SaveUserName, b.mapDNSAddresses, b.enableUserNameChange)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +119,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewSaveKeyValueStorageFunc(b.gasConfig.BaseOperationCost, b.gasConfig.BuiltInCost.SaveKeyValue)
+	newFunc, err = builtInFunctions.NewSaveKeyValueStorageFunc(b.gasConfig.BaseOperationCost, b.gasConfig.BuiltInCost.SaveKeyValue)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +128,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	pauseFunc, err := NewESDTPauseFunc(b.accounts, true)
+	pauseFunc, err := builtInFunctions.NewESDTPauseFunc(b.accounts, true)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +137,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, b.shardCoordinator)
+	newFunc, err = builtInFunctions.NewESDTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc, b.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +146,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTBurnFunc(b.gasConfig.BuiltInCost.ESDTBurn, b.marshalizer, pauseFunc)
+	newFunc, err = builtInFunctions.NewESDTBurnFunc(b.gasConfig.BuiltInCost.ESDTBurn, b.marshalizer, pauseFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +155,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, true, false)
+	newFunc, err = builtInFunctions.NewESDTFreezeWipeFunc(b.marshalizer, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +164,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, false, false)
+	newFunc, err = builtInFunctions.NewESDTFreezeWipeFunc(b.marshalizer, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +173,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, false, true)
+	newFunc, err = builtInFunctions.NewESDTFreezeWipeFunc(b.marshalizer, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +182,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTPauseFunc(b.accounts, false)
+	newFunc, err = builtInFunctions.NewESDTPauseFunc(b.accounts, false)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +191,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTRolesFunc(b.marshalizer, false)
+	newFunc, err = builtInFunctions.NewESDTRolesFunc(b.marshalizer, false)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +200,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	setRoleFunc, err := NewESDTRolesFunc(b.marshalizer, true)
+	setRoleFunc, err := builtInFunctions.NewESDTRolesFunc(b.marshalizer, true)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +209,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTLocalBurn, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = builtInFunctions.NewESDTLocalBurnFunc(b.gasConfig.BuiltInCost.ESDTLocalBurn, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +218,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTLocalMintFunc(b.gasConfig.BuiltInCost.ESDTLocalMint, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = builtInFunctions.NewESDTLocalMintFunc(b.gasConfig.BuiltInCost.ESDTLocalMint, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +227,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTAddQuantityFunc(b.gasConfig.BuiltInCost.ESDTNFTAddQuantity, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = builtInFunctions.NewESDTNFTAddQuantityFunc(b.gasConfig.BuiltInCost.ESDTNFTAddQuantity, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +236,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTBurnFunc(b.gasConfig.BuiltInCost.ESDTNFTBurn, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = builtInFunctions.NewESDTNFTBurnFunc(b.gasConfig.BuiltInCost.ESDTNFTBurn, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +245,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTCreateFunc(b.gasConfig.BuiltInCost.ESDTNFTCreate, b.gasConfig.BaseOperationCost, b.marshalizer, pauseFunc, setRoleFunc)
+	newFunc, err = builtInFunctions.NewESDTNFTCreateFunc(b.gasConfig.BuiltInCost.ESDTNFTCreate, b.gasConfig.BaseOperationCost, b.marshalizer, pauseFunc, setRoleFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +254,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTTransferFunc(b.gasConfig.BuiltInCost.ESDTNFTTransfer, b.marshalizer, pauseFunc, b.accounts, b.shardCoordinator, b.gasConfig.BaseOperationCost)
+	newFunc, err = builtInFunctions.NewESDTNFTTransferFunc(b.gasConfig.BuiltInCost.ESDTNFTTransfer, b.marshalizer, pauseFunc, b.accounts, b.shardCoordinator, b.gasConfig.BaseOperationCost)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +263,7 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 		return nil, err
 	}
 
-	newFunc, err = NewESDTNFTCreateRoleTransfer(b.marshalizer, b.accounts, b.shardCoordinator)
+	newFunc, err = builtInFunctions.NewESDTNFTCreateRoleTransfer(b.marshalizer, b.accounts, b.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -273,8 +275,8 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 	return b.builtInFunctions, nil
 }
 
-func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, error) {
-	baseOps := &process.BaseOperationCost{}
+func createGasConfig(gasMap map[string]map[string]uint64) (*vmcommon.GasCost, error) {
+	baseOps := &vmcommon.BaseOperationCost{}
 	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
 	if err != nil {
 		return nil, err
@@ -285,7 +287,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, err
 		return nil, err
 	}
 
-	builtInOps := &process.BuiltInCost{}
+	builtInOps := &vmcommon.BuiltInCost{}
 	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInOps)
 	if err != nil {
 		return nil, err
@@ -296,7 +298,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, err
 		return nil, err
 	}
 
-	gasCost := process.GasCost{
+	gasCost := vmcommon.GasCost{
 		BaseOperationCost: *baseOps,
 		BuiltInCost:       *builtInOps,
 	}
@@ -305,20 +307,20 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, err
 }
 
 // SetPayableHandler sets the payable interface to the needed functions
-func SetPayableHandler(container process.BuiltInFunctionContainer, payableHandler process.PayableHandler) error {
+func SetPayableHandler(container vmcommon.BuiltInFunctionContainer, payableHandler process.PayableHandler) error {
 	builtInFunc, err := container.Get(core.BuiltInFunctionESDTTransfer)
 	if err != nil {
 		log.Warn("SetIsPayable", "error", err.Error())
 		return err
 	}
 
-	esdtTransferFunc, ok := builtInFunc.(*esdtTransfer)
+	esdtTransferFunc, ok := builtInFunc.(vmcommon.AcceptPayableHandler)
 	if !ok {
 		log.Warn("SetIsPayable", "error", process.ErrWrongTypeAssertion)
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = esdtTransferFunc.setPayableHandler(payableHandler)
+	err = esdtTransferFunc.SetPayableHandler(payableHandler)
 	if err != nil {
 		return err
 	}
@@ -329,13 +331,13 @@ func SetPayableHandler(container process.BuiltInFunctionContainer, payableHandle
 		return err
 	}
 
-	esdtNFTTransferFunc, ok := builtInFunc.(*esdtNFTTransfer)
+	esdtNFTTransferFunc, ok := builtInFunc.(AcceptPayableHandler)
 	if !ok {
 		log.Warn("SetIsPayable", "error", process.ErrWrongTypeAssertion)
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = esdtNFTTransferFunc.setPayableHandler(payableHandler)
+	err = esdtNFTTransferFunc.SetPayableHandler(payableHandler)
 	if err != nil {
 		return err
 	}

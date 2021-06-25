@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	chainData "github.com/ElrondNetwork/elrond-go/data"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -31,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
