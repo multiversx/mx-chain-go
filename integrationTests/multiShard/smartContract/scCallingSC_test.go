@@ -477,7 +477,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	numMetachainNodes := 1
 
 	testBuiltinFunc := &integrationTests.TestBuiltinFunction{}
-	testBuiltinFunc.Function = func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	testBuiltinFunc.Function = func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 		if !check.IfNil(acntSnd) {
 			fmt.Println("builtin snd", hex.EncodeToString(acntSnd.AddressBytes()))
 		}
