@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/urfave/cli"
@@ -15,6 +19,8 @@ import (
 
 const (
 	maxMachineIDLen = 10
+	defaultLogsPath = "logs"
+	logFilePrefix   = "elrond-go"
 )
 
 var (
@@ -71,24 +77,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		cfgs, errCfg := readConfigs(c, log)
-		if errCfg != nil {
-			return errCfg
-		}
-
-		err = applyFlags(c, cfgs, log)
-		if err != nil {
-			return err
-		}
-
-		cfgs.FlagsConfig.Version = app.Version
-
-		nodeRunner, errRunner := node.NewNodeRunner(cfgs)
-		if errRunner != nil {
-			return errRunner
-		}
-
-		return nodeRunner.Start()
+		return startNodeRunner(c, log, app.Version)
 	}
 
 	err = app.Run(os.Args)
@@ -96,6 +85,48 @@ func main() {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
+	flagsConfig := getFlagsConfig(c, log)
+
+	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
+	if errLogger != nil {
+		return errLogger
+	}
+
+	cfgs, errCfg := readConfigs(c, log)
+	if errCfg != nil {
+		return errCfg
+	}
+
+	if !check.IfNil(fileLogging) {
+		err := fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec))
+		if err != nil {
+			return err
+		}
+	}
+
+	err := applyFlags(c, cfgs, flagsConfig, log)
+	if err != nil {
+		return err
+	}
+
+	cfgs.FlagsConfig.Version = version
+
+	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
+	if errRunner != nil {
+		return errRunner
+	}
+
+	err = nodeRunner.Start()
+
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.Close()
+		log.LogIfError(err)
+	}
+
+	return err
 }
 
 func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
@@ -191,4 +222,40 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
 	}, nil
+}
+
+func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig) (factory.FileLoggingHandler, error) {
+	var fileLogging factory.FileLoggingHandler
+	var err error
+	if flagsConfig.SaveLogFile {
+		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
+		if err != nil {
+			return nil, fmt.Errorf("%w creating a log file", err)
+		}
+	}
+
+	err = logger.SetDisplayByteSlice(logger.ToHex)
+	log.LogIfError(err)
+	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
+	logger.ToggleLoggerName(flagsConfig.EnableLogName)
+	logLevelFlagValue := flagsConfig.LogLevel
+	err = logger.SetLogLevel(logLevelFlagValue)
+	if err != nil {
+		return nil, err
+	}
+
+	if flagsConfig.DisableAnsiColor {
+		err = logger.RemoveLogObserver(os.Stdout)
+		if err != nil {
+			return nil, err
+		}
+
+		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+		if err != nil {
+			return nil, err
+		}
+	}
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
+
+	return fileLogging, nil
 }
