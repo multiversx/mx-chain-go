@@ -750,7 +750,12 @@ const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
-const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+const MaxLeafSize = uint64(1 << 26) //64MB
+
+// MaxBufferSizeToSendTrieNodes represents max buffer size to send in bytes used when resolving trie nodes
+// Every trie node that has a greater size than this constant is considered a large trie node and should be split in
+// smaller chunks
+const MaxBufferSizeToSendTrieNodes = 1 << 18 //256KB
 
 // MaxUserNameLength represents the maximum number of bytes a UserName can have
 const MaxUserNameLength = 32

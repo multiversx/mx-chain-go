@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +64,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 			return "chainID"
 		},
 		TxVersionCheckField: versioning.NewTxVersionChecker(1),
-		EpochNotifierField: &mock.EpochNotifierStub{},
+		EpochNotifierField:  &mock.EpochNotifierStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),
@@ -90,7 +91,7 @@ func createMockArgument(
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
 	}
 }

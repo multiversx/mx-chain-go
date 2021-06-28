@@ -4,10 +4,11 @@ import "github.com/ElrondNetwork/elrond-go/process"
 
 // WhiteListHandlerStub -
 type WhiteListHandlerStub struct {
-	RemoveCalled            func(keys [][]byte)
-	AddCalled               func(keys [][]byte)
-	IsWhiteListedCalled     func(interceptedData process.InterceptedData) bool
-	IsForCurrentShardCalled func(interceptedData process.InterceptedData) bool
+	RemoveCalled                  func(keys [][]byte)
+	AddCalled                     func(keys [][]byte)
+	IsWhiteListedCalled           func(interceptedData process.InterceptedData) bool
+	IsWhiteListedAtLeastOneCalled func(identifiers [][]byte) bool
+	IsForCurrentShardCalled       func(interceptedData process.InterceptedData) bool
 }
 
 // IsWhiteListed -
@@ -15,6 +16,15 @@ func (w *WhiteListHandlerStub) IsWhiteListed(interceptedData process.Intercepted
 	if w.IsWhiteListedCalled != nil {
 		return w.IsWhiteListedCalled(interceptedData)
 	}
+	return false
+}
+
+// IsWhiteListedAtLeastOne -
+func (w *WhiteListHandlerStub) IsWhiteListedAtLeastOne(identifiers [][]byte) bool {
+	if w.IsWhiteListedAtLeastOneCalled != nil {
+		return w.IsWhiteListedAtLeastOneCalled(identifiers)
+	}
+
 	return false
 }
 

@@ -360,7 +360,7 @@ func getFlags() []cli.Flag {
 	}
 }
 
-func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error {
+func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
@@ -379,6 +379,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	return flagsConfig
+}
+
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.ContextFlagsConfig, log logger.Logger) error {
 
 	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
 	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)

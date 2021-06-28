@@ -92,6 +92,8 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
+		//key-value test point
+
 		err = acntDst.DataTrieTracker().SaveKeyValue(key, value)
 		if err != nil {
 			return nil, err
