@@ -1,6 +1,7 @@
 package requestHandlers
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
+const bytesInUint32 = 4
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
 //TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
@@ -164,6 +166,21 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 				"batch size", len(batch),
 			)
 		}
+	}
+}
+
+func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
+	reference []byte,
+	chunkIndex uint32,
+	resolver ChunkResolver,
+) {
+	err := resolver.RequestDataFromReferenceAndChunk(reference, chunkIndex)
+	if err != nil {
+		log.Debug("requestByHashes.requestReferenceWithChunkIndex",
+			"error", err.Error(),
+			"reference", reference,
+			"chunk index", chunkIndex,
+		)
 	}
 }
 
@@ -426,6 +443,50 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.addRequestedItems(itemsToRequest)
 	rrh.lastTrieRequestTime = time.Now()
 	rrh.trieHashesAccumulator = make(map[string]struct{})
+}
+
+// CreateTrieNodeIdentifier returns the requested trie node identifier that will be whitelisted
+func (rrh *resolverRequestHandler) CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte {
+	chunkBuffer := make([]byte, bytesInUint32)
+	binary.BigEndian.PutUint32(chunkBuffer, chunkIndex)
+
+	return append(requestHash, chunkBuffer...)
+}
+
+// RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
+func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
+	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
+	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier})
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
+	rrh.whiteList.Add(unrequestedHashes)
+
+	log.Trace("requesting trie node from network",
+		"topic", topic,
+		"hash", requestHash,
+		"chunk index", chunkIndex,
+	)
+
+	resolver, err := rrh.resolversFinder.MetaChainResolver(topic)
+	if err != nil {
+		log.Error("requestByHash.Resolver",
+			"error", err.Error(),
+			"topic", topic,
+		)
+		return
+	}
+
+	trieResolver, ok := resolver.(ChunkResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating a trie chunk resolver")
+		return
+	}
+
+	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieResolver)
+
+	rrh.addRequestedItems([][]byte{identifier})
 }
 
 func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {

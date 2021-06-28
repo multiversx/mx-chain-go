@@ -63,3 +63,20 @@ func TestTrieSyncStatistics_Missing(t *testing.T) {
 	tss.Reset()
 	assert.Equal(t, 0, tss.NumMissing())
 }
+
+func TestTrieSyncStatistics_Large(t *testing.T) {
+	t.Parallel()
+
+	tss := NewTrieSyncStatistics()
+
+	assert.Equal(t, 0, tss.NumLarge())
+
+	tss.AddNumLarge(2)
+	assert.Equal(t, 2, tss.NumLarge())
+
+	tss.AddNumLarge(4)
+	assert.Equal(t, 6, tss.NumLarge())
+
+	tss.Reset()
+	assert.Equal(t, 0, tss.NumLarge())
+}

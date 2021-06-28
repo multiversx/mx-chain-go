@@ -1,7 +1,6 @@
 package core_test
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -114,13 +114,33 @@ func TestIsUnknownEpochIdentifier_Ok(t *testing.T) {
 func TestCalculateHash_Good(t *testing.T) {
 	t.Parallel()
 
-	obj := &batch.Batch{Data: [][]byte{[]byte("object")}}
-	results := []byte{0x90, 0xe2, 0x17, 0x2c, 0xaa, 0xa5, 0x4c, 0xb2, 0xad, 0x55, 0xd4, 0xd1, 0x26, 0x91, 0x87, 0xa4, 0xe6, 0x6e, 0xcf, 0x12, 0xfd, 0xc2, 0x5b, 0xf8, 0x67, 0xb7, 0x7, 0x9, 0x6d, 0xe5, 0x43, 0xdd}
-	hash, err := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, obj)
-	assert.NotNil(t, hash)
+	initialObject := "random string"
+	marshalCalled := false
+	hashCalled := false
+	marshaledData := "marshalized random string"
+	hashedData := "hashed marshalized random string"
+	hash, err := core.CalculateHash(
+		&testscommon.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				marshalCalled = true
+				assert.Equal(t, initialObject, obj)
+
+				return []byte(marshaledData), nil
+			},
+		},
+		&testscommon.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				hashCalled = true
+				assert.Equal(t, marshaledData, s)
+				return []byte(hashedData)
+			},
+		},
+		initialObject)
+
 	assert.Nil(t, err)
-	assert.Equal(t, results, hash)
-	assert.True(t, bytes.Equal(results, hash))
+	assert.True(t, marshalCalled)
+	assert.True(t, hashCalled)
+	assert.Equal(t, hashedData, string(hash))
 }
 
 func TestSecondsToHourMinSec_ShouldWork(t *testing.T) {

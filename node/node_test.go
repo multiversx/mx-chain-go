@@ -1851,7 +1851,11 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		},
 	}
 	stateComponents := getDefaultStateComponents()
-	stateComponents.Accounts = &mock.AccountsStub{}
+	stateComponents.Accounts = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+			return state.NewUserAccount([]byte("address"))
+		},
+	}
 
 	processComponents := getDefaultProcessComponents()
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
@@ -1960,8 +1964,8 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 			return 1
 		},
 	}
-	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
-	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListerVerifiedTxsInternal = &testscommon.WhiteListHandlerStub{}
+	processComponents.WhiteListHandlerInternal = &testscommon.WhiteListHandlerStub{}
 
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = &mock.SingleSignerMock{}
@@ -2053,12 +2057,12 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 			return 1
 		},
 	}
-	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{
+	processComponents.WhiteListerVerifiedTxsInternal = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return false
 		},
 	}
-	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListHandlerInternal = &testscommon.WhiteListHandlerStub{}
 
 	cryptoComponents := getDefaultCryptoComponents()
 	cryptoComponents.TxSig = &mock.SingleSignerMock{}
@@ -3090,8 +3094,8 @@ func TestNode_ValidateTransactionForSimulation_CheckSignatureFalse(t *testing.T)
 
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = bootstrapComponents.ShCoordinator
-	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
-	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListHandlerInternal = &testscommon.WhiteListHandlerStub{}
+	processComponents.WhiteListerVerifiedTxsInternal = &testscommon.WhiteListHandlerStub{}
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
 
 	cryptoComponents := getDefaultCryptoComponents()
