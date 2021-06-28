@@ -100,7 +100,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		},
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 		ChanceComputer: &mock.NodesCoordinatorStub{},
 		GenesisNodesConfig: &mock.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {

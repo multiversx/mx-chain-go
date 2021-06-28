@@ -7,3 +7,13 @@ func New(buffs ...[]byte) *Batch {
 		Data: buffs,
 	}
 }
+
+// NewChunk returns a new batch containing a chunk from given buffers
+func NewChunk(chunkIndex uint32, reference []byte, maxChunks uint32, buffs ...[]byte) *Batch {
+	return &Batch{
+		Data:       buffs,
+		Reference:  reference,
+		ChunkIndex: chunkIndex,
+		MaxChunks:  maxChunks,
+	}
+}

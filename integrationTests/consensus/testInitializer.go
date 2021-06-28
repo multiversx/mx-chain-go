@@ -56,7 +56,7 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {
 	node         *node.Node
-	mesenger     p2p.Messenger
+	messenger    p2p.Messenger
 	blkc         data.ChainHandler
 	blkProcessor *mock.BlockProcessorMock
 	sk           crypto.PrivateKey
@@ -398,7 +398,7 @@ func createConsensusOnlyNode(
 	processComponents.NodesCoord = nodesCoordinator
 	processComponents.BlockProcess = blockProcessor
 	processComponents.BlockTrack = &mock.BlockTrackerStub{}
-	processComponents.IntContainer = &mock.InterceptorsContainerStub{}
+	processComponents.IntContainer = &testscommon.InterceptorsContainerStub{}
 	processComponents.ResFinder = resolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
@@ -406,7 +406,7 @@ func createConsensusOnlyNode(
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
-	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
 
@@ -518,7 +518,7 @@ func createNodes(
 
 		testNodeObject.node = n
 		testNodeObject.sk = kp.sk
-		testNodeObject.mesenger = mes
+		testNodeObject.messenger = mes
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc

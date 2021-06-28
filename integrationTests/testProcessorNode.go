@@ -1153,7 +1153,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:          coreComponents,
 			CryptoComponents:        cryptoComponents,
 			ShardCoordinator:        tpn.ShardCoordinator,
@@ -1164,7 +1164,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Accounts:                tpn.AccntState,
 			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 			TxFeeHandler:            tpn.EconomicsData,
-			BlackList:               tpn.BlockBlackListHandler,
+			BlockBlackList:          tpn.BlockBlackListHandler,
 			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 			SizeCheckDelta:          sizeCheckDelta,
@@ -1175,8 +1175,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+			RequestHandler:          tpn.RequestHandler,
 		}
-		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
+		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
@@ -1208,7 +1209,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
-		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:          coreComponents,
 			CryptoComponents:        cryptoComponents,
 			Accounts:                tpn.AccntState,
@@ -1230,8 +1231,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+			RequestHandler:          tpn.RequestHandler,
 		}
-		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
+		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
 		tpn.InterceptorsContainer, err = interceptorContainerFactory.Create()
 		if err != nil {
@@ -2774,7 +2776,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 			NoShards:     1,
 			CurrentShard: 0,
 		},
-		IntContainer:             &mock.InterceptorsContainerStub{},
+		IntContainer:             &testscommon.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
@@ -2789,7 +2791,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		ValidatorProvider:        &mock.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:               &mock.RequestHandlerStub{},
+		ReqHandler:               &testscommon.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},

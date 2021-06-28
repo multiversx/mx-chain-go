@@ -73,7 +73,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, _ := NewPendingMiniBlocksSyncer(args)

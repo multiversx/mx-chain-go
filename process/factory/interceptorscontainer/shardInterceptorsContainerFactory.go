@@ -20,7 +20,7 @@ type shardInterceptorsContainerFactory struct {
 
 // NewShardInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewShardInterceptorsContainerFactory(
-	args ShardInterceptorsContainerFactoryArgs,
+	args CommonInterceptorsContainerFactoryArgs,
 ) (*shardInterceptorsContainerFactory, error) {
 	err := checkBaseParams(
 		args.CoreComponents,
@@ -36,6 +36,7 @@ func NewShardInterceptorsContainerFactory(
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
 		args.PreferredPeersHolder,
+		args.RequestHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -99,6 +100,8 @@ func NewShardInterceptorsContainerFactory(
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		preferredPeersHolder:   args.PreferredPeersHolder,
+		hasher:                 args.CoreComponents.Hasher(),
+		requestHandler:         args.RequestHandler,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
