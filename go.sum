@@ -83,6 +83,10 @@ github.com/ElrondNetwork/notifier-go v0.0.0-20210625125327-3377200778da h1:PPDen
 github.com/ElrondNetwork/notifier-go v0.0.0-20210625125327-3377200778da/go.mod h1:Xs6mQhPgEbiDB1DrNp9J+9NQuZG+174jb7Qofo7SvMY=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210625145049-5d14707063ac h1:zGFbMu2tZpV0U4I80+PD6D04vcovsAut/6u/PgY826M=
 github.com/ElrondNetwork/notifier-go v0.0.0-20210625145049-5d14707063ac/go.mod h1:Xs6mQhPgEbiDB1DrNp9J+9NQuZG+174jb7Qofo7SvMY=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210628073600-e8a0fa7fe2b8 h1:i+9VWSQhJEVghNz0ouuoAkWyeRn9vtYKEQRFiVMShaY=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210628073600-e8a0fa7fe2b8/go.mod h1:CHDZbYHOzSt/2LtzwPGp093bk7b+ZKuRnBtdhnbPX3k=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210628100300-46d55b36c36a h1:Nupw4xr0XyFtqa2OEP5uddjP7txzNAzUtBIOVmMVDvw=
+github.com/ElrondNetwork/notifier-go v0.0.0-20210628100300-46d55b36c36a/go.mod h1:CHDZbYHOzSt/2LtzwPGp093bk7b+ZKuRnBtdhnbPX3k=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=

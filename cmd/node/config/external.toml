@@ -17,7 +17,7 @@
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 [EventNotifierConnector]
     # Enabled signals whether the driver is enabled or not
-    Enabled = false
+    Enabled = true
 
     # The port on which the Hub listens for subscriptions
     TcpPort = "5000"
