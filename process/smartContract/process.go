@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -34,6 +35,9 @@ const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
 // TODO: Move to vm-common.
 const upgradeFunctionName = "upgradeContract"
+
+// TooMuchGasProvidedMessage is the message for the too much gas provided error
+const TooMuchGasProvidedMessage = "too much gas provided"
 
 var zero = big.NewInt(0)
 
@@ -75,6 +79,7 @@ type scProcessor struct {
 	builtInGasCosts     map[string]uint64
 	mutGasLock          sync.RWMutex
 	txLogsProcessor     process.TransactionLogProcessor
+	vmOutputCacher      storage.Cacher
 	isGenesisProcessing bool
 }
 
@@ -106,6 +111,7 @@ type ArgsNewSmartContractProcessor struct {
 	SenderInOutTransferEnableEpoch              uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch uint32
 	EpochNotifier                               process.EpochNotifier
+	VMOutputCacher                              storage.Cacher
 	ArwenChangeLocker                           process.Locker
 	IsGenesisProcessing                         bool
 }
@@ -169,6 +175,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNilReflect(args.ArwenChangeLocker) {
 		return nil, process.ErrNilLocker
 	}
+	if check.IfNil(args.VMOutputCacher) {
+		return nil, process.ErrNilCacher
+	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
 	sc := &scProcessor{
@@ -198,8 +207,18 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
 		arwenChangeLocker:                   args.ArwenChangeLocker,
+		vmOutputCacher:                      args.VMOutputCacher,
+
 		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
+
+	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for built in functions", "epoch", sc.builtinEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
+	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
+		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -316,8 +335,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	var vmOutput *vmcommon.VMOutput
-	vmOutput, err = sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
 	if err != nil {
 		return returnCode, err
 	}
@@ -353,6 +371,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	sc.arwenChangeLocker.RLock()
+
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
@@ -382,15 +401,10 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return nil, err
-	}
-
-	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
-	if ignorableError != nil {
-		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
 	return vmOutput, nil
@@ -416,9 +430,16 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
+
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return vmcommon.Ok, nil
 }
@@ -763,14 +784,15 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
-	vmOutput, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "function", "ExecuteBultInFunction.computeBuiltInFuncGasUsed")
+	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
 		vmOutput.GasRemaining += vmInput.GasLocked
@@ -1143,6 +1165,11 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+	}, 0)
+
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
@@ -1328,7 +1355,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
-
 	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
@@ -1378,7 +1404,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return 0, err
@@ -1399,6 +1425,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return 0, nil
 }
@@ -1582,8 +1610,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
-	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
-		gasUsed, vmOutput.GasRemaining)
+	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
 }
 
@@ -2150,7 +2178,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 		}
 
 		if check.IfNil(acc) {
-			//TODO: sharded Smart Contract processing
+			// TODO: sharded Smart Contract processing
 			continue
 		}
 
@@ -2314,7 +2342,7 @@ func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) EpochConfirmed(epoch uint32) {
+func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	sc.flagDeploy.Toggle(epoch >= sc.deployEnableEpoch)
 	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
 

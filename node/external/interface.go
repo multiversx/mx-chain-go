@@ -11,6 +11,7 @@ import (
 type SCQueryService interface {
 	ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -21,6 +22,7 @@ type StatusMetricsHandler interface {
 	StatusMetricsWithoutP2PPrometheusString() string
 	EconomicsMetrics() map[string]interface{}
 	ConfigMetrics() map[string]interface{}
+	EnableEpochsMetrics() map[string]interface{}
 	NetworkMetrics() map[string]interface{}
 	IsInterfaceNil() bool
 }

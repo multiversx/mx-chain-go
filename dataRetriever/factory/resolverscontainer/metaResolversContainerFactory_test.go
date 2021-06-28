@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +33,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, handler p2p.MessageProcessor) error {
+	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -151,6 +153,17 @@ func TestNewMetaResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilDataPoolHolder, err)
 }
 
+func TestNewMetaResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.PreferredPeersHolder = nil
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
+}
+
 func TestNewMetaResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -192,6 +205,9 @@ func TestNewMetaResolversContainerFactory_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rcf))
+	assert.Equal(t, int(args.ResolverConfig.NumIntraShardPeers), rcf.NumIntraShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumCrossShardPeers), rcf.NumCrossShardPeers())
+	assert.Equal(t, int(args.ResolverConfig.NumFullHistoryPeers), rcf.NumFullHistoryPeers())
 }
 
 //------- Create
@@ -253,17 +269,24 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
-		Messenger:                  createStubTopicMessageHandlerForMeta("", ""),
-		Store:                      createStoreForMeta(),
-		Marshalizer:                &mock.MarshalizerMock{},
-		DataPools:                  createDataPoolsForMeta(),
-		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                 &mock.DataPackerStub{},
-		TriesContainer:             createTriesHolderForMeta(),
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
+		Messenger:                   createStubTopicMessageHandlerForMeta("", ""),
+		Store:                       createStoreForMeta(),
+		Marshalizer:                 &mock.MarshalizerMock{},
+		DataPools:                   createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                  &mock.DataPackerStub{},
+		TriesContainer:              createTriesHolderForMeta(),
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+		ResolverConfig: config.ResolverConfig{
+			NumCrossShardPeers:  1,
+			NumIntraShardPeers:  2,
+			NumFullHistoryPeers: 3,
+		},
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,8 @@ func createMessenger() p2p.Messenger {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)
@@ -79,7 +81,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 	smallPacketReceived.Store(false)
 
 	_ = mes2.CreateTopic(topic, false)
-	_ = mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
+	_ = mes2.RegisterMessageProcessor(topic, "identifier", &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)

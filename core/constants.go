@@ -63,6 +63,9 @@ const MaxTxNonceDeltaAllowed = 30000
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
+// MaxTxsToRequest specifies the maximum number of txs to request
+const MaxTxsToRequest = 1000
+
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"
 
@@ -267,6 +270,9 @@ const MetricNumValidators = "erd_num_validators"
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
 const MetricPeerType = "erd_peer_type"
 
+// MetricPeerSubType is the metric which tells the peer's subtype (regular observer or full history observer)
+const MetricPeerSubType = "erd_peer_subtype"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
@@ -395,6 +401,73 @@ const AsyncCallStepField = "AsyncCallStep"
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
+	// MetricScDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+	MetricScDeployEnableEpoch = "erd_smart_contract_deploy_enable_epoch"
+
+	//MetricBuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+	MetricBuiltInFunctionsEnableEpoch = "erd_built_in_functions_enable_epoch"
+
+	//MetricRelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+	MetricRelayedTransactionsEnableEpoch = "erd_relayed_transactions_enable_epoch"
+
+	//MetricPenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+	MetricPenalizedTooMuchGasEnableEpoch = "erd_penalized_too_much_gas_enable_epoch"
+
+	//MetricSwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+	MetricSwitchJailWaitingEnableEpoch = "erd_switch_jail_waiting_enable_epoch"
+
+	//MetricSwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
+	//also (minimum) hysteresis nodes for the minimum number of nodes
+	MetricSwitchHysteresisForMinNodesEnableEpoch = "erd_switch_hysteresis_for_min_nodes_enable_epoch"
+
+	//MetricBelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+	MetricBelowSignedThresholdEnableEpoch = "erd_below_signed_threshold_enable_epoch"
+
+	//MetricTransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+	//signed with the hash of transaction
+	MetricTransactionSignedWithTxHashEnableEpoch = "erd_transaction_signed_with_txhash_enable_epoch"
+
+	//MetricMetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+	MetricMetaProtectionEnableEpoch = "erd_meta_protection_enable_epoch"
+
+	//MetricAheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+	MetricAheadOfTimeGasUsageEnableEpoch = "erd_ahead_of_time_gas_usage_enable_epoch"
+
+	//MetricGasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+	MetricGasPriceModifierEnableEpoch = "erd_gas_price_modifier_enable_epoch"
+
+	//MetricRepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+	MetricRepairCallbackEnableEpoch = "erd_repair_callback_enable_epoch"
+
+	//MetricBlockGasAndFreeRecheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+	MetricBlockGasAndFreeRecheckEnableEpoch = "erd_block_gas_and_fee_recheck_enable_epoch"
+
+	//MetricStakingV2EnableEpoch represents the epoch when staking v2 is enabled
+	MetricStakingV2EnableEpoch = "erd_staking_v2_enable_epoch"
+
+	//MetricStakeEnableEpoch represents the epoch when staking is enabled
+	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
+
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
+	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
+
+	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
+	MetricEsdtEnableEpoch = "erd_esdt_enable_epoch"
+
+	//MetricGovernanceEnableEpoch  represents the epoch when governance is enabled
+	MetricGovernanceEnableEpoch = "erd_governance_enable_epoch"
+
+	//MetricDelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled epoch should not be 0
+	MetricDelegationManagerEnableEpoch = "erd_delegation_manager_enable_epoch"
+
+	//MetricDelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled epoch should not be 0
+	MetricDelegationSmartContractEnableEpoch = "erd_delegation_smart_contract_enable_epoch"
+
+	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
+	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
+)
+
+const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
@@ -435,6 +508,9 @@ const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
 
 // MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
 const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
+
+// MetricP2PFullHistoryObservers is the metric that outputs the full-history connected observers
+const MetricP2PFullHistoryObservers = "erd_p2p_full_history_observers"
 
 // MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
 const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
@@ -554,6 +630,9 @@ const MaxRoyalty = uint32(10000)
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 
+// RelayedTransactionV2 is the key for the optimized elrond meta/gassless/relayed transaction standard
+const RelayedTransactionV2 = "relayedTxV2"
+
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
 
@@ -571,6 +650,30 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
+
+// DefaultStatsPath is the default path where the node stats are logged
+const DefaultStatsPath = "stats"
+
+// DefaultDBPath is the default path for nodes databases
+const DefaultDBPath = "db"
+
+// DefaultEpochString is the default folder root name for node per epoch databases
+const DefaultEpochString = "Epoch"
+
+// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
+const DefaultStaticDbString = "Static"
+
+// DefaultShardString is the default folder root name for per shard databases
+const DefaultShardString = "Shard"
+
+// MetachainShardName is the string identifier of the metachain shard
+const MetachainShardName = "metachain"
+
+// TemporaryPath is the default temporary path directory
+const TemporaryPath = "temp"
+
+// SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
+const SecondsToWaitForP2PBootstrap = 20
 
 // DelegationSystemSCKey is the key under which there is data in case of system delegation smart contracts
 const DelegationSystemSCKey = "delegation"
@@ -630,6 +733,9 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
 
+// NotSetDestinationShardID represents the shardIdString when the destinationShardId is not set in the prefs
+const NotSetDestinationShardID = "disabled"
+
 // AdditionalScrForEachScCallOrSpecialTx specifies the additional number of smart contract results which should be
 // considered by a node, when it includes sc calls or special txs in a miniblock.
 // Ex.: normal txs -> aprox. 27000, sc calls or special txs -> aprox. 6250 = 27000 / (AdditionalScrForEachScCallOrSpecialTx + 1),
@@ -657,3 +763,20 @@ const MinLenArgumentsESDTNFTTransfer = 4
 
 // MaxLenForESDTIssueMint defines the maximum length in bytes for the issued/minted balance
 const MaxLenForESDTIssueMint = 100
+
+// DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
+//(that makes the node run properly)
+const DefaultResolversIdentifier = "default resolver"
+
+// DefaultInterceptorsIdentifier represents the identifier that is used in conjunction with regular interceptors
+//(that makes the node run properly)
+const DefaultInterceptorsIdentifier = "default interceptor"
+
+// HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
+const HardforkInterceptorsIdentifier = "hardfork interceptor"
+
+// HardforkResolversIdentifier represents the resolver that is used in the hardfork process
+const HardforkResolversIdentifier = "hardfork resolver"
+
+// EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
+const EpochStartInterceptorsIdentifier = "epoch start interceptor"

@@ -30,6 +30,16 @@ type AccountsStub struct {
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
 	GetCodeCalled            func([]byte) []byte
+	GetTrieCalled            func([]byte) (data.Trie, error)
+}
+
+// GetTrie -
+func (as *AccountsStub) GetTrie(codeHash []byte) (data.Trie, error) {
+	if as.GetTrieCalled != nil {
+		return as.GetTrieCalled(codeHash)
+	}
+
+	return nil, nil
 }
 
 // GetCode -
@@ -69,7 +79,9 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan c
 	if as.GetAllLeavesCalled != nil {
 		return as.GetAllLeavesCalled(rootHash)
 	}
-	return nil, nil
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+	return ch, nil
 }
 
 var errNotImplemented = errors.New("not implemented")

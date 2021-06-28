@@ -16,7 +16,8 @@ import (
 )
 
 func TestPrepareEpochFromStorage(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
@@ -27,8 +28,10 @@ func TestPrepareEpochFromStorage(t *testing.T) {
 }
 
 func TestGetEpochStartMetaFromStorage(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
 
 	meta := &block.MetaBlock{Nonce: 1}
@@ -47,7 +50,8 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 }
 
 func TestGetLastBootstrapData(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 
@@ -92,7 +96,8 @@ func TestGetLastBootstrapData(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -115,7 +120,8 @@ func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -138,7 +144,8 @@ func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0
@@ -162,7 +169,8 @@ func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
 }
 
 func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.initializeFromLocalStorage()
 	epochStartProvider.baseData.lastEpoch = 0

@@ -253,6 +253,11 @@ func (tnRes *TrieNodeResolver) SetResolverDebugHandler(handler dataRetriever.Res
 	return tnRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
+// Close returns nil
+func (tnRes *TrieNodeResolver) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
 	return tnRes == nil

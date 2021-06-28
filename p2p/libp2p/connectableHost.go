@@ -15,6 +15,7 @@ type PeerInfoHandler func(pInfo peer.AddrInfo)
 type ConnectableHost interface {
 	host.Host
 	ConnectToPeer(ctx context.Context, address string) error
+	AddressToPeerInfo(address string) (*peer.AddrInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -29,14 +30,19 @@ func NewConnectableHost(h host.Host) *connectableHost {
 	}
 }
 
-// ConnectToPeer connects to a peer by knowing its string address
-func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address string) error {
+// AddressToPeerInfo converts the unified string address into libp2p address components: PeerID and multi-address slice
+func (connHost *connectableHost) AddressToPeerInfo(address string) (*peer.AddrInfo, error) {
 	multiAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pInfo, err := peer.AddrInfoFromP2pAddr(multiAddr)
+	return peer.AddrInfoFromP2pAddr(multiAddr)
+}
+
+// ConnectToPeer connects to a peer by knowing its string address
+func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address string) error {
+	pInfo, err := connHost.AddressToPeerInfo(address)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[s
 	}
 }
 
-//GetVersion returns the version of the VM
+// GetVersion -
 func (vm *VMExecutionHandlerStub) GetVersion() string {
 	if vm.GetVersionCalled == nil {
 		return ""

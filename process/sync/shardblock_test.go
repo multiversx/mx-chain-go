@@ -155,7 +155,7 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 	}
 }
 
-func initRounder() consensus.Rounder {
+func initRoundHandler() consensus.RoundHandler {
 	rnd, _ := round.NewRound(
 		time.Now(),
 		time.Now(),
@@ -172,7 +172,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		PoolsHolder:         createMockPools(),
 		Store:               createStore(),
 		ChainHandler:        initBlockchain(),
-		Rounder:             &mock.RounderMock{},
+		RoundHandler:        &mock.RoundHandlerMock{},
 		BlockProcessor:      &mock.BlockProcessorMock{},
 		WaitTime:            waitTime,
 		Hasher:              &mock.HasherMock{},
@@ -188,6 +188,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		EpochHandler:        &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:    &mock.AppStatusHandlerStub{},
 		Indexer:             &mock.IndexerMock{},
 	}
 
@@ -256,6 +257,18 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
+func TestNewShardBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.AppStatusHandler = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
+}
+
 func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -268,16 +281,16 @@ func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
-func TestNewShardBootstrap_NilRounderShouldErr(t *testing.T) {
+func TestNewShardBootstrap_NilRoundHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateShardBootstrapMockArguments()
-	args.Rounder = nil
+	args.RoundHandler = nil
 
 	bs, err := sync.NewShardBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilRounder, err)
+	assert.Equal(t, process.ErrNilRoundHandler, err)
 }
 
 func TestNewShardBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
@@ -439,10 +452,10 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
 	args.Store = store
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	_ = blkc.SetGenesisHeader(&block.Header{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
@@ -465,7 +478,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		return 100
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -497,7 +510,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
@@ -554,7 +567,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
@@ -596,7 +609,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 
@@ -682,7 +695,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 	args.Accounts = account
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(200*time.Millisecond),
 		100*time.Millisecond,
@@ -764,7 +777,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
@@ -846,7 +859,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
@@ -874,7 +887,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNilAndR
 		},
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
@@ -895,7 +908,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(100*time.Millisecond),
 		100*time.Millisecond,
@@ -929,7 +942,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenNodeIsSynced(t *testi
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
@@ -957,7 +970,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(
+	args.RoundHandler, _ = round.NewRound(
 		time.Now(),
 		time.Now().Add(100*time.Millisecond),
 		100*time.Millisecond,
@@ -1013,9 +1026,9 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		return sds
 	}
 	args.PoolsHolder = pools
-	args.Rounder = &mock.RounderMock{RoundIndex: 2}
+	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
-		args.Rounder,
+		args.RoundHandler,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerMock{},
 		0,
@@ -1084,9 +1097,9 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 	}
 	args.PoolsHolder = pools
 
-	args.Rounder = &mock.RounderMock{RoundIndex: 2}
+	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
-		args.Rounder,
+		args.RoundHandler,
 		&mock.BlackListHandlerStub{},
 		&mock.BlockTrackerMock{},
 		0,
@@ -1123,7 +1136,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		return process.NewForkInfo()
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 	hdr, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, args.PoolsHolder.Headers())
@@ -1157,7 +1170,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		return sds
 	}
 	args.PoolsHolder = pools
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 	hdr2, _, _ := process.GetShardHeaderFromPoolWithNonce(0, 0, pools.Headers())
@@ -1171,10 +1184,10 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
-	args.Rounder = initRounder()
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
+	args.RoundHandler = initRoundHandler()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return mbsAndHashes, nil
 		},
 	}
@@ -1237,7 +1250,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder = initRounder()
+	args.RoundHandler = initRoundHandler()
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ReceivedHeaders(addedHdr, addedHash)
@@ -1599,15 +1612,14 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1639,8 +1651,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		},
 	}
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1661,16 +1672,16 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1752,38 +1763,6 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	assert.Equal(t, 3, calls)
 }
 
-func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	pools := testscommon.NewPoolsHolderStub()
-	pools.HeadersCalled = func() dataRetriever.HeadersPool {
-		sds := &mock.HeadersCacherStub{}
-
-		sds.AddCalled = func(headerHash []byte, header data.HeaderHandler) {
-			assert.Fail(t, "should have not reached this point")
-		}
-
-		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
-		}
-
-		return sds
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
-		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-
-		return cs
-	}
-	args.PoolsHolder = pools
-
-	bs, _ := sync.NewShardBootstrap(args)
-	err := bs.SetStatusHandler(nil)
-
-	assert.Equal(t, process.ErrNilAppStatusHandler, err)
-}
-
 func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing.T) {
 	t.Parallel()
 
@@ -1857,8 +1836,8 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		},
 	}
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
-			return make([]*process.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
+		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+			return make([]*block.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
 		},
 	}
 
@@ -1911,9 +1890,9 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWh
 		},
 	}
 
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RoundIndex = 1
-	args.Rounder = rounderMock
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.RoundIndex = 1
+	args.RoundHandler = roundHandlerMock
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.SetNumSyncedWithErrorsForNonce(2, 9)
@@ -1972,4 +1951,11 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 
 	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
 	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
+}
+
+func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
+	t.Parallel()
+
+	bootstrapper := &sync.ShardBootstrap{}
+	assert.Nil(t, bootstrapper.Close())
 }
