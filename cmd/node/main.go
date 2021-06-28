@@ -119,7 +119,6 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	}
 
 	err = nodeRunner.Start()
-
 	if err != nil {
 		log.Error(err.Error())
 	}
