@@ -1852,7 +1852,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	}
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount([]byte("address"))
 		},
 	}
