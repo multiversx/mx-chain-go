@@ -90,6 +90,8 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 		return err
 	}
 
+	//test point encodeNodeAndCommitToDB
+
 	err = db.Put(key, val)
 
 	return err

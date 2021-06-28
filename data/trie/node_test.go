@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -704,4 +705,29 @@ func TestPatriciaMerkleTrie_newHashesAndOldHashesAreResetAfterEveryCommit(t *tes
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(tr.oldHashes))
 	assert.Equal(t, 0, len(tr.newHashes))
+}
+
+func TestNode_NodeExtension(t *testing.T) {
+	n := &branchNode{
+		baseNode: &baseNode{
+			hasher: testscommon.HasherStub{
+				ComputeCalled: func(s string) []byte {
+					return []byte{0, 0, 0, 0}
+				},
+			},
+		},
+	}
+	assert.True(t, shouldTestNode(n, make([]byte, 0)))
+
+	n = &branchNode{
+		baseNode: &baseNode{
+			hasher: testscommon.HasherStub{
+				ComputeCalled: func(s string) []byte {
+					return []byte{0, 0, 0, 1}
+				},
+			},
+		},
+	}
+	assert.False(t, shouldTestNode(n, make([]byte, 0)))
+
 }
