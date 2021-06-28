@@ -3,12 +3,14 @@ package containers
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ process.InterceptorsContainer = (*interceptorsContainer)(nil)
+var log = logger.GetOrCreate("process/factory/containers")
 
 // interceptorsContainer is an interceptors holder organized by type
 type interceptorsContainer struct {
@@ -121,6 +123,22 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 			return
 		}
 	}
+}
+
+// Close will call the close method on all contained interceptors
+func (ic *interceptorsContainer) Close() error {
+	var errFound error
+	ic.Iterate(func(key string, interceptor process.Interceptor) bool {
+		err := interceptor.Close()
+		if err != nil {
+			log.Error("error closing interceptor", "key", key, "error", err)
+			errFound = err
+		}
+
+		return true
+	})
+
+	return errFound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

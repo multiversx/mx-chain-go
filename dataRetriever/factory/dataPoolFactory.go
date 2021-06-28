@@ -90,6 +90,13 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesChunksDataPool)
+	trieNodesChunks, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		log.Error("error creating trieNodesChunks")
+		return nil, err
+	}
+
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
@@ -102,15 +109,17 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	return dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currBlockTxs,
-		smartContracts,
-	)
+	dataPoolArgs := dataPool.DataPoolArgs{
+		Transactions:             txPool,
+		UnsignedTransactions:     uTxPool,
+		RewardTransactions:       rewardTxPool,
+		Headers:                  hdrPool,
+		MiniBlocks:               txBlockBody,
+		PeerChangesBlocks:        peerChangeBlockBody,
+		TrieNodes:                trieNodes,
+		TrieNodesChunks:          trieNodesChunks,
+		CurrentBlockTransactions: currBlockTxs,
+		SmartContracts:           smartContracts,
+	}
+	return dataPool.NewDataPool(dataPoolArgs)
 }

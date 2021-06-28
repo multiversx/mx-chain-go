@@ -231,7 +231,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			delete(ts.nodesForTrie, nodeHash)
 
-			err = encodeNodeAndCommitToDB(currentNode, ts.db)
+			_, err = encodeNodeAndCommitToDB(currentNode, ts.db)
 			if err != nil {
 				return false, err
 			}
