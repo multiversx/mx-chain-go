@@ -85,7 +85,10 @@ func (odc *oldDatabaseCleaner) handleEpochChangeAction(epoch uint32) error {
 		return err
 	}
 
+	odc.Lock()
 	odc.oldestEpochsToKeep[epoch] = newOldestEpoch
+	odc.Unlock()
+
 	log.Debug("old database cleaner", "epoch", epoch, "inner map", odc.oldestEpochsToKeep)
 	shouldClean := odc.shouldCleanOldData(epoch, newOldestEpoch)
 	if !shouldClean {
