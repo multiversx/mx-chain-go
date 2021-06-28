@@ -218,7 +218,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Accounts:         context.Accounts,
 		ShardCoordinator: oneShardCoordinator,
 	}
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	require.Nil(context.T, err)
 
 	blockchainMock := &mock.BlockChainMock{}

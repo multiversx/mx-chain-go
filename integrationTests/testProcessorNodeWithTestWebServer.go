@@ -135,7 +135,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	log.LogIfError(err)
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{

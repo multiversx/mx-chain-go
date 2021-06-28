@@ -789,7 +789,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	smartContractsCache := testscommon.NewCacherMock()
 
@@ -1355,7 +1355,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)
@@ -1546,7 +1546,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
 	}
-	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           tpn.AccntState,
 		PubkeyConv:         TestAddressPubkeyConverter,

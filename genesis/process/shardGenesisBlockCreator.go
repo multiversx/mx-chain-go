@@ -276,7 +276,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:             arg.Accounts,
 		ShardCoordinator:     arg.ShardCoordinator,
 	}
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}

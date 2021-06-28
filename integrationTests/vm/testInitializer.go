@@ -536,7 +536,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -604,7 +604,7 @@ func CreateVMAndBlockchainHookMeta(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncs, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{

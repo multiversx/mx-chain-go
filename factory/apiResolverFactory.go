@@ -327,7 +327,7 @@ func createBuiltinFuncs(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}

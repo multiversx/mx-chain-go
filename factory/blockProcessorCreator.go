@@ -104,7 +104,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
 
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +426,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:         pcf.state.AccountsAdapter(),
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
-	builtInFuncs, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
