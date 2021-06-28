@@ -501,6 +501,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
 		EpochNotifier:             e.epochNotifier,
+		RequestHandler:            e.requestHandler,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

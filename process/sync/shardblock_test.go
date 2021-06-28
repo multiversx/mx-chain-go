@@ -178,7 +178,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		Hasher:              &mock.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		ForkDetector:        &mock.ForkDetectorMock{},
-		RequestHandler:      &mock.RequestHandlerStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		Accounts:            &mock.AccountsStub{},
 		BlackListHandler:    &mock.BlackListHandlerStub{},
@@ -1843,7 +1843,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return mapToRet, nil
 	}
 	args.Store = store
-	args.RequestHandler = &mock.RequestHandlerStub{
+	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
 			requestDataWasCalled = true
 		},

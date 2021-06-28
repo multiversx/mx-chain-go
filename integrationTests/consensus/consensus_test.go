@@ -194,7 +194,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	mutex := &sync.Mutex{}
 	defer func() {
 		for _, n := range nodes {
-			_ = n.mesenger.Close()
+			_ = n.messenger.Close()
 		}
 	}()
 
@@ -241,7 +241,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	mutex := &sync.Mutex{}
 	defer func() {
 		for _, n := range nodes {
-			_ = n.mesenger.Close()
+			_ = n.messenger.Close()
 		}
 	}()
 

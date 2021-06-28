@@ -15,6 +15,7 @@ type PoolsHolderStub struct {
 	MetaBlocksCalled           func() storage.Cacher
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 	TrieNodesCalled            func() storage.Cacher
+	TrieNodesChunksCalled      func() storage.Cacher
 	PeerChangesBlocksCalled    func() storage.Cacher
 	SmartContractsCalled       func() storage.Cacher
 }
@@ -91,6 +92,15 @@ func (holder *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher
 func (holder *PoolsHolderStub) TrieNodes() storage.Cacher {
 	if holder.TrieNodesCalled != nil {
 		return holder.TrieNodesCalled()
+	}
+
+	return NewCacherStub()
+}
+
+// TrieNodesChunks -
+func (holder *PoolsHolderStub) TrieNodesChunks() storage.Cacher {
+	if holder.TrieNodesChunksCalled != nil {
+		return holder.TrieNodesChunksCalled()
 	}
 
 	return NewCacherStub()

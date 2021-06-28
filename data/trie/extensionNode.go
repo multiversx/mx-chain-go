@@ -188,7 +188,7 @@ func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uin
 	}
 
 	en.dirty = false
-	err = encodeNodeAndCommitToDB(en, targetDb)
+	_, err = encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
