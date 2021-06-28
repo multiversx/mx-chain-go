@@ -201,7 +201,6 @@ func (boot *MetaBootstrap) syncAccountsDBs() error {
 func (boot *MetaBootstrap) syncValidatorAccountsState() error {
 	rootHash, err := boot.validatorAccountsDB.RootHash()
 	if err != nil {
-		log.Error("SyncBlock syncUserAccountsState", "error", err)
 		return err
 	}
 

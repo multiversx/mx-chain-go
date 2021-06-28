@@ -631,7 +631,6 @@ func (boot *baseBootstrap) syncBlock() error {
 func (boot *baseBootstrap) syncUserAccountsState() error {
 	rootHash, err := boot.accounts.RootHash()
 	if err != nil {
-		log.Error("SyncBlock syncUserAccountsState", "error", err)
 		return err
 	}
 
