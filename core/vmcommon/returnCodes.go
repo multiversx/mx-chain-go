@@ -29,6 +29,8 @@ func (rc ReturnCode) String() string {
 		return "contract invalid"
 	case ExecutionFailed:
 		return "execution failed"
+	case SimulateFailed:
+		return "simulate transaction failed"
 	default:
 		return fmt.Sprintf("unknown error, code: %d", rc)
 	}
@@ -70,4 +72,7 @@ const (
 
 	// UpgradeFailed is returned when the upgrade of the contract has failed
 	UpgradeFailed ReturnCode = 11
+
+	// SimulateFailed is returned when the simulation of a smart contract transaction has failed
+	SimulateFailed ReturnCode = 12
 )

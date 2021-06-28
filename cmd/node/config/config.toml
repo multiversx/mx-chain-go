@@ -411,6 +411,11 @@
     Capacity = 5000
     Type = "LRU"
 
+[VMOutputCacher]
+    Name = "VMOutputCacher"
+    Capacity = 10000
+    Type = "LRU"
+
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
@@ -589,7 +594,7 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 100
+    CheckpointRoundsModulus = 10000000
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5

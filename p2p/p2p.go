@@ -217,27 +217,28 @@ type PeerShardResolver interface {
 
 // ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
 type ConnectedPeersInfo struct {
-	SelfShardID             uint32
-	UnknownPeers            []string
-	Seeders                 []string
-	IntraShardValidators    map[uint32][]string
-	IntraShardObservers     map[uint32][]string
-	CrossShardValidators    map[uint32][]string
-	CrossShardObservers     map[uint32][]string
-	FullHistoryObservers    map[uint32][]string
-	NumValidatorsOnShard    map[uint32]int
-	NumObserversOnShard     map[uint32]int
-	NumIntraShardValidators int
-	NumIntraShardObservers  int
-	NumCrossShardValidators int
-	NumCrossShardObservers  int
-	NumFullHistoryObservers int
+	SelfShardID              uint32
+	UnknownPeers             []string
+	Seeders                  []string
+	IntraShardValidators     map[uint32][]string
+	IntraShardObservers      map[uint32][]string
+	CrossShardValidators     map[uint32][]string
+	CrossShardObservers      map[uint32][]string
+	FullHistoryObservers     map[uint32][]string
+	NumValidatorsOnShard     map[uint32]int
+	NumObserversOnShard      map[uint32]int
+	NumPreferredPeersOnShard map[uint32]int
+	NumIntraShardValidators  int
+	NumIntraShardObservers   int
+	NumCrossShardValidators  int
+	NumCrossShardObservers   int
+	NumFullHistoryObservers  int
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	IsInterfaceNil() bool
 }
 
@@ -253,6 +254,16 @@ type SignerVerifier interface {
 type Marshalizer interface {
 	Marshal(obj interface{}) ([]byte, error)
 	Unmarshal(obj interface{}, buff []byte) error
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
 	IsInterfaceNil() bool
 }
 

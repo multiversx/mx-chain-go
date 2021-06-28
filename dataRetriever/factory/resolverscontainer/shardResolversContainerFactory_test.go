@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -179,6 +180,17 @@ func TestNewShardResolversContainerFactory_NilDataPackerShouldErr(t *testing.T) 
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
+}
+
+func TestNewShardResolversContainerFactory_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.PreferredPeersHolder = nil
+	rcf, err := resolverscontainer.NewShardResolversContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, dataRetriever.ErrNilPreferredPeersHolder, err)
 }
 
 func TestNewShardResolversContainerFactory_NilTriesContainerShouldErr(t *testing.T) {
@@ -348,6 +360,7 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
 		NumConcurrentResolvingJobs:  10,
 		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
+		PreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
 		ResolverConfig: config.ResolverConfig{
 			NumCrossShardPeers:  1,
 			NumIntraShardPeers:  2,

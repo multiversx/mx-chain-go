@@ -22,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -97,6 +99,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
 		ArwenChangeLocker:    &sync.RWMutex{},
+		VMOutputCacher:       txcache.NewDisabledCache(),
 	}
 }
 
@@ -111,6 +114,18 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	require.Nil(t, sc)
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
+}
+
+func TestNewSmartContractProcessorNilVMOutputCacher(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VMOutputCacher = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilCacher, err)
 }
 
 func TestNewSmartContractProcessorNilArgsParser(t *testing.T) {
@@ -1530,6 +1545,10 @@ func TestScProcessor_ExecuteSmartContractTransactionGasConsumedChecksError(t *te
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
+	arguments.VMOutputCacher, _ = storageUnit.NewCache(storageUnit.CacheConfig{
+		Type:     storageUnit.LRUCache,
+		Capacity: 10000,
+	})
 
 	sc, _ := NewSmartContractProcessor(arguments)
 
@@ -1910,7 +1929,7 @@ func createAccountsAndTransaction() (state.UserAccountHandler, state.UserAccount
 
 	acntSrc, acntDst := createAccounts(tx)
 
-	return acntSrc.(state.UserAccountHandler), acntDst.(state.UserAccountHandler), tx
+	return acntSrc, acntDst, tx
 }
 
 func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
@@ -2281,12 +2300,12 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	tx.GasLimit = 10
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
+	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
-	require.Equal(t, modifiedBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
 
 func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
@@ -2321,18 +2340,18 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	tx.GasLimit = 10
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
+	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - txFee.Uint64()
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
-	require.Equal(t, modifiedBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 
 	acntSrc, _ = createAccounts(tx)
 	modifiedBalance = currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 	sc.flagPenalizedTooMuchGas.Toggle(false)
 	err = sc.processSCPayment(tx, acntSrc)
 	require.Nil(t, err)
-	require.Equal(t, modifiedBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
@@ -2356,7 +2375,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	txHash := []byte("txHash")
 
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
+	currBalance := acntSrc.GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _ = sc.createSCRForSenderAndRelayer(
 		vmOutput,
@@ -2365,7 +2384,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 		vmcommon.DirectCall,
 	)
 	require.Nil(t, err)
-	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
 }
 
 func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
@@ -2430,7 +2449,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 	acntSrc, _ := createAccounts(tx)
-	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
+	currBalance := acntSrc.GetBalance().Uint64()
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
@@ -2443,7 +2462,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	require.Nil(t, err)
 
 	finalValue := big.NewInt(0).Mul(refundGas, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
-	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
 	require.Equal(t, scr.Value.Cmp(finalValue), 0)
 }
 

@@ -470,7 +470,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
 
-	importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+	importCheckpointRoundsModulus := uint(math.MaxUint32)
 	var err error
 
 	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
@@ -488,6 +488,14 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
+	defaultSecondsToCheckHealth := 300                   // 5minutes
+	defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+
+	generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
+
 	alterStorageConfigsForDBImport(generalConfigs)
 
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
@@ -501,6 +509,10 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
+		"health interval diagnose components deeply in seconds", generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
+		"health interval diagnose components in seconds", generalConfigs.Health.IntervalDiagnoseComponentsInSeconds,
+		"health interval verify memory in seconds", generalConfigs.Health.IntervalVerifyMemoryInSeconds,
+		"health memory usage threshold", core.ConvertBytes(uint64(generalConfigs.Health.MemoryUsageToCreateProfiles)),
 	)
 	return nil
 }

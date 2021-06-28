@@ -23,10 +23,13 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
-	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
-	pc, _ := pcf.Create()
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
 
-	err := pc.Close()
+	pc, err := pcf.Create()
+	require.Nil(t, err)
+
+	err = pc.Close()
 	require.NoError(t, err)
 }
 
