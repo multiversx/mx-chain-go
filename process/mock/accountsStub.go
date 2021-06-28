@@ -64,7 +64,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (vmcommon.AccountHandler, er
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, errNotImplemented
+	return NewAccountWrapMock(address), nil
 }
 
 // SaveAccount -
