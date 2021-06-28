@@ -21,7 +21,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	ShardCoordinator     sharding.Coordinator
 }
 
-// CreateBuiltInFunctionContainer creates a factory which will instantiate the built in functions contracts
+// CreateBuiltInFunctionContainer creates a container that will hold all the available built in functions
 func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (vmcommon.BuiltInFunctionContainer, error) {
 	if check.IfNil(args.GasSchedule) {
 		return nil, process.ErrNilGasSchedule
