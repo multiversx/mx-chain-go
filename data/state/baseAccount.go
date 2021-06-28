@@ -38,7 +38,7 @@ func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
 }
 
-// AccountDataHandler return the account data handler
+// AccountDataHandler returns the account data handler
 func (ba *baseAccount) AccountDataHandler() vmcommon.AccountDataHandler {
 	return ba.dataTrieTracker
 }
