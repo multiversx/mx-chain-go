@@ -1166,6 +1166,11 @@ func (sc *scProcessor) ProcessIfError(
 		returnMessage = []byte(returnCode)
 	}
 
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return err
+	}
+
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
