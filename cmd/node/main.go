@@ -82,7 +82,6 @@ func main() {
 
 	err = app.Run(os.Args)
 	if err != nil {
-		log.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -120,6 +119,10 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	}
 
 	err = nodeRunner.Start()
+
+	if err != nil {
+		log.Error(err.Error())
+	}
 
 	if !check.IfNil(fileLogging) {
 		err = fileLogging.Close()
