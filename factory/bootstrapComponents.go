@@ -145,6 +145,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CryptoComponentsHolder:     bcf.cryptoComponents,
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
+		PrefsConfig:                bcf.prefConfig.Preferences,
 		EpochConfig:                bcf.epochConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),

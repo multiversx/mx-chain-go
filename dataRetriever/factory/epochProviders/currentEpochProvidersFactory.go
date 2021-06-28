@@ -12,8 +12,9 @@ func CreateCurrentEpochProvider(
 	generalConfigs config.Config,
 	roundTimeInMilliseconds uint64,
 	startTime int64,
+	isFullArchive bool,
 ) (dataRetriever.CurrentNetworkEpochProviderHandler, error) {
-	if !generalConfigs.StoragePruning.FullArchive {
+	if !isFullArchive {
 		return disabled.NewEpochProvider(), nil
 	}
 
