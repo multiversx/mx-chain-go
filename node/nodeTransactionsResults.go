@@ -12,6 +12,8 @@ import (
 )
 
 func (n *Node) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	n.putLogsInTransaction(hash, tx, epoch)
+
 	resultsHashes, err := n.processComponents.HistoryRepository().GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
 		return
@@ -83,6 +85,16 @@ func (n *Node) putSmartContractResultsInTransaction(
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
 }
 
+func (n *Node) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	logsAndEvents, err := n.getLogsAndEvents(hash, epoch)
+	if err != nil {
+		return
+	}
+
+	logsAPI := n.prepareLogsAndEvents(logsAndEvents)
+	tx.Logs = logsAPI
+}
+
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
 	unsignedTxsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
 	scrBytes, err := unsignedTxsStorer.GetFromEpoch(hash, epoch)
@@ -116,22 +128,59 @@ func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult
 		ReturnMessage:  string(scr.ReturnMessage),
 	}
 
-	adressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	addressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	if len(scr.SndAddr) != 0 {
-		apiSCR.SndAddr = adressPubKeyConverter.Encode(scr.SndAddr)
+		apiSCR.SndAddr = addressPubKeyConverter.Encode(scr.SndAddr)
 	}
 
 	if len(scr.RcvAddr) != 0 {
-		apiSCR.RcvAddr = adressPubKeyConverter.Encode(scr.RcvAddr)
+		apiSCR.RcvAddr = addressPubKeyConverter.Encode(scr.RcvAddr)
 	}
 
 	if len(scr.RelayerAddr) != 0 {
-		apiSCR.RelayerAddr = adressPubKeyConverter.Encode(scr.RelayerAddr)
+		apiSCR.RelayerAddr = addressPubKeyConverter.Encode(scr.RelayerAddr)
 	}
 
 	if len(scr.OriginalSender) != 0 {
-		apiSCR.OriginalSender = adressPubKeyConverter.Encode(scr.OriginalSender)
+		apiSCR.OriginalSender = addressPubKeyConverter.Encode(scr.OriginalSender)
 	}
 
 	return apiSCR
+}
+
+func (n *Node) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.LogsAPI {
+	addressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
+	addrEncoded := addressPubKeyConverter.Encode(logsAndEvents.Address)
+
+	logsAPI := &transaction.LogsAPI{
+		Address: addrEncoded,
+		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
+	}
+
+	for _, event := range logsAndEvents.Events {
+		logsAPI.Events = append(logsAPI.Events, &transaction.Events{
+			Address:    addressPubKeyConverter.Encode(event.Address),
+			Identifier: string(event.Identifier),
+			Topics:     event.Topics,
+			Data:       event.Data,
+		})
+	}
+
+	return logsAPI
+}
+
+func (n *Node) getLogsAndEvents(hash []byte, epoch uint32) (*transaction.Log, error) {
+	logsAndEventsStorer := n.dataComponents.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	logsAndEventsBytes, err := logsAndEventsStorer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	txLog := &transaction.Log{}
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(txLog, logsAndEventsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return txLog, nil
 }
