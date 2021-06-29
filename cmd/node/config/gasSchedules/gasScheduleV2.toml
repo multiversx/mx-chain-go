@@ -119,6 +119,7 @@
     GetBlockTimeStamp   = 100000
 
 [BigIntAPICost]
+    EllipticCurveNew         = 10000
     BigIntNew                = 2000
     BigIntByteLength         = 2000
     BigIntUnsignedByteLength = 2000
@@ -160,12 +161,21 @@
     BigIntGetExternalBalance    = 10000
 
 [CryptoAPICost]
-    SHA256          = 1000000
-    Keccak256       = 1000000
-    Ripemd160       = 1000000
-    VerifyBLS       = 5000000
-    VerifyEd25519   = 2000000
-    VerifySecp256k1 = 2000000
+    SHA256                 = 1000000
+    Keccak256              = 1000000
+    Ripemd160              = 1000000
+    VerifyBLS              = 5000000
+    VerifyEd25519          = 2000000
+    VerifySecp256k1        = 2000000
+    AddECC                 = 1000000
+    DoubleECC              = 1000000
+    IsOnCurveECC           = 1000000
+    ScalarMultECC          = 1000000
+    MarshalECC             = 1000000
+    MarshalCompressedECC   = 1000000
+    UnmarshalECC           = 1000000
+    UnmarshalCompressedECC = 1000000
+    GenerateKeyECC         = 1000000
 
 [WASMOpcodeCost]
     Unreachable = 1
