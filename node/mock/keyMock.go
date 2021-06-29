@@ -89,7 +89,11 @@ func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, 
 
 // PublicKeyFromByteArray -
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
-	return keyGen.PublicKeyFromByteArrayMock(b)
+	if keyGen.PublicKeyFromByteArrayMock != nil {
+		return keyGen.PublicKeyFromByteArrayMock(b)
+	}
+
+	return &PublicKeyMock{}, nil
 }
 
 // CheckPublicKeyValid -

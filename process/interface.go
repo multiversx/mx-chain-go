@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -354,6 +355,7 @@ type InterceptorsContainer interface {
 	Remove(key string)
 	Len() int
 	Iterate(handler func(key string, interceptor Interceptor) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -469,6 +471,7 @@ type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -504,6 +507,8 @@ type RequestHandler interface {
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error
 	GetNumPeersToQuery(key string) (int, int, error)
+	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
+	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	IsInterfaceNil() bool
 }
 
@@ -588,6 +593,7 @@ type feeHandler interface {
 	MinGasPriceForProcessing() uint64
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimitBasedOnBalance(tx TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -966,6 +972,7 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData InterceptedData) bool
+	IsWhiteListedAtLeastOne(identifiers [][]byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -1098,7 +1105,7 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
+// NumConnectedPeersProvider defines the actions that a component that provides the number of connected peers should do
 type NumConnectedPeersProvider interface {
 	ConnectedPeers() []core.PeerID
 	IsInterfaceNil() bool
@@ -1110,4 +1117,18 @@ type Locker interface {
 	Unlock()
 	RLock()
 	RUnlock()
+}
+
+// CheckedChunkResult is the DTO used to hold the results after checking a chunk of intercepted data
+type CheckedChunkResult struct {
+	IsChunk        bool
+	HaveAllChunks  bool
+	CompleteBuffer []byte
+}
+
+// InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
+type InterceptedChunksProcessor interface {
+	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
+	Close() error
+	IsInterfaceNil() bool
 }

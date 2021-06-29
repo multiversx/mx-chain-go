@@ -121,7 +121,9 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ data.DBWriteCacher, targetDb d
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+
+	return err
 }
 func (ln *leafNode) commitCheckpoint(
 	_ data.DBWriteCacher,

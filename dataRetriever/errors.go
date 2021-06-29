@@ -116,6 +116,9 @@ var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
 
+// ErrNilTrieNodesChunksPool signals that a nil trie nodes chunks data pool was provided
+var ErrNilTrieNodesChunksPool = errors.New("nil trie nodes chunks data pool")
+
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
 

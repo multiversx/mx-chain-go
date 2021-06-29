@@ -133,8 +133,8 @@ func GetGeneralConfig() config.Config {
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
-		TxBlockBodyDataPool:   getLRUCacheConfig(),
-		PeerBlockBodyDataPool: getLRUCacheConfig(),
+		TxBlockBodyDataPool:     getLRUCacheConfig(),
+		PeerBlockBodyDataPool:   getLRUCacheConfig(),
 		TrieSyncStorage: config.TrieSyncStorageConfig{
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("TrieSync"),
@@ -147,7 +147,8 @@ func GetGeneralConfig() config.Config {
 			Capacity:    10,
 			SizeInBytes: 10000,
 		},
-		SmartContractDataPool: getLRUCacheConfig(),
+		TrieNodesChunksDataPool: getLRUCacheConfig(),
+		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -344,6 +345,11 @@ func GetGeneralConfig() config.Config {
 					},
 				},
 			},
+		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
 		},
 	}
 }

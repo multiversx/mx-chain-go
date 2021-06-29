@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 )
@@ -411,6 +412,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		SenderInOutTransferEnableEpoch:      enableEpochs.SenderInOutTransferEnableEpoch,
 		IsGenesisProcessing:                 true,
 		StakingV2EnableEpoch:                arg.EpochConfig.EnableEpochs.StakingV2EnableEpoch,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
 		ArwenChangeLocker:                   genesisArwenLocker,
 
 		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,

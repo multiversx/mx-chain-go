@@ -267,7 +267,7 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 		}
 	}
 	bn.dirty = false
-	err = encodeNodeAndCommitToDB(bn, targetDb)
+	_, err = encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}

@@ -406,12 +406,13 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		blockTracker,
 		epochStartTrigger,
+		requestHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO refactor all these factory calls
+	// TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -434,9 +435,18 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
+	vmOutputCacher, err := storageUnit.NewCache(vmOutputCacherConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
 		AddressPubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		VMOutputCacher:         vmOutputCacher,
+		Hasher:                 pcf.coreData.Hasher(),
+		Marshalizer:            pcf.coreData.InternalMarshalizer(),
 	}
 
 	blockProcessor, err := pcf.newBlockProcessor(
@@ -971,6 +981,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	requestHandler process.RequestHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() < pcf.bootstrapComponents.ShardCoordinator().NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -978,6 +989,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			headerIntegrityVerifier,
 			validityAttester,
 			epochStartTrigger,
+			requestHandler,
 		)
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -986,6 +998,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			headerIntegrityVerifier,
 			validityAttester,
 			epochStartTrigger,
+			requestHandler,
 		)
 	}
 
@@ -1005,7 +1018,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
 	defer func() {
-		//we need to call this after we wired all the notified components
+		// we need to call this after we wired all the notified components
 		if pcf.importDBConfig.IsImportDBMode {
 			manualEpochStartNotifier.NewEpoch(pcf.bootstrapComponents.EpochBootstrapParams().Epoch() + 1)
 		}
@@ -1115,9 +1128,10 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	requestHandler process.RequestHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,
 		Accounts:                  pcf.state.AccountsAdapter(),
@@ -1140,6 +1154,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
+		RequestHandler:            requestHandler,
 	}
 	log.Debug("shardInterceptor: enable epoch for transaction signed with tx hash", "epoch", shardInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1156,9 +1171,10 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	headerIntegrityVerifier factory.HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	requestHandler process.RequestHandler,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
-	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:            pcf.coreData,
 		CryptoComponents:          pcf.crypto,
 		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
@@ -1169,7 +1185,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Accounts:                  pcf.state.AccountsAdapter(),
 		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:              pcf.coreData.EconomicsData(),
-		BlackList:                 headerBlackList,
+		BlockBlackList:            headerBlackList,
 		HeaderSigVerifier:         headerSigVerifier,
 		HeaderIntegrityVerifier:   headerIntegrityVerifier,
 		ValidityAttester:          validityAttester,
@@ -1181,6 +1197,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		SizeCheckDelta:            pcf.config.Marshalizer.SizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.epochConfig.EnableEpochs.TransactionSignedWithTxHashEnableEpoch,
 		PreferredPeersHolder:      pcf.network.PreferredPeersHolderHandler(),
+		RequestHandler:            requestHandler,
 	}
 	log.Debug("metaInterceptor: enable epoch for transaction signed with tx hash", "epoch", metaInterceptorsContainerFactoryArgs.EnableSignTxWithHashEpoch)
 
@@ -1377,6 +1394,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.importHandler) {
 		log.LogIfError(pc.importHandler.Close())
+	}
+	if !check.IfNil(pc.interceptorsContainer) {
+		log.LogIfError(pc.interceptorsContainer.Close())
 	}
 	return nil
 }

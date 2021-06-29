@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	nodeFacade "github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -57,7 +59,7 @@ func NewTestProcessorNodeWithTestWebServer(
 
 // DoRequest preforms a test request on the web server, returning the response ready to be parsed
 func (node *TestProcessorNodeWithTestWebServer) DoRequest(request *http.Request) *httptest.ResponseRecorder {
-	//this is a critical section, serialize each request
+	// this is a critical section, serialize each request
 	node.mutWs.Lock()
 	defer node.mutWs.Unlock()
 
@@ -149,7 +151,17 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, tpn.EconomicsData, tpn.SCQueryService, gasScheduleNotifier)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(
+		txTypeHandler,
+		tpn.EconomicsData,
+		&mock.TransactionSimulatorStub{
+			ProcessTxCalled: func(tx *dataTransaction.Transaction) (*dataTransaction.SimulationResults, error) {
+				return &dataTransaction.SimulationResults{}, nil
+			},
+		},
+		tpn.AccntState,
+		tpn.ShardCoordinator,
+	)
 	log.LogIfError(err)
 
 	accountsWrapper := &trieIterators.AccountsWrapper{
@@ -186,10 +198,13 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 	log.LogIfError(err)
 
 	argSimulator := txsimulator.ArgsTxSimulator{
-		TransactionProcessor:       tpn.TxProcessor,
-		IntermmediateProcContainer: tpn.InterimProcContainer,
-		AddressPubKeyConverter:     TestAddressPubkeyConverter,
-		ShardCoordinator:           tpn.ShardCoordinator,
+		TransactionProcessor:      tpn.TxProcessor,
+		IntermediateProcContainer: tpn.InterimProcContainer,
+		AddressPubKeyConverter:    TestAddressPubkeyConverter,
+		ShardCoordinator:          tpn.ShardCoordinator,
+		Marshalizer:               TestMarshalizer,
+		Hasher:                    TestHasher,
+		VMOutputCacher:            &testscommon.CacherMock{},
 	}
 
 	txSimulator, err := txsimulator.NewTransactionSimulator(argSimulator)

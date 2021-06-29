@@ -179,7 +179,7 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	}
 
 	en.dirty = false
-	err = encodeNodeAndCommitToDB(en, targetDb)
+	_, err = encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}
