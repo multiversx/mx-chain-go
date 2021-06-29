@@ -95,6 +95,10 @@
     # GovernanceSCEnableEpoch represents the epoch when the governance SC is enabled
     GovernanceSCEnableEpoch = 1000000
 
+    # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
+    # is enabled. The fix is done by adding an extra increment.
+    IncrementSCRNonceInMultiTransferEnableEpoch = 1000000
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
