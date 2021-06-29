@@ -2307,11 +2307,11 @@ func TestAccountsDB_GetTrie(t *testing.T) {
 	addresses := generateAccounts(t, 2, adb)
 	_ = modifyDataTries(t, addresses, adb)
 
-	rootHash, _ := adb.Commit()
+	_, _ = adb.Commit()
 
 	for i := 0; i < len(addresses); i++ {
 		acc, _ := adb.LoadAccount(addresses[i])
-		rootHash = acc.(state.UserAccountHandler).GetRootHash()
+		rootHash := acc.(state.UserAccountHandler).GetRootHash()
 
 		tr, err := adb.GetTrie(rootHash)
 		assert.Nil(t, err)
