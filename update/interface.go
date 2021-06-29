@@ -164,6 +164,7 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData process.InterceptedData) bool
+	IsWhiteListedAtLeastOne(identifiers [][]byte) bool
 	IsInterfaceNil() bool
 }
 

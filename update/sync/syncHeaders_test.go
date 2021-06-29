@@ -27,7 +27,7 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 		Marshalizer:      &mock.MarshalizerFake{},
 		Hasher:           &mock.HasherMock{},
 		EpochHandler:     &mock.EpochStartTriggerStub{},
-		RequestHandler:   &mock.RequestHandlerStub{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}

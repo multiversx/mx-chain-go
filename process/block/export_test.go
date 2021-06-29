@@ -113,7 +113,7 @@ func NewShardProcessorEmptyWith3shards(
 			ForkDetector:        &mock.ForkDetectorMock{},
 			NodesCoordinator:    nodesCoordinator,
 			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &mock.RequestHandlerStub{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},

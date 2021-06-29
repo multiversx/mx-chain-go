@@ -175,6 +175,6 @@ func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
 		Storage:        &mock.StorerMock{},
 		Cache:          &mock.HeadersCacherStub{},
 		Marshalizer:    &mock.MarshalizerMock{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }

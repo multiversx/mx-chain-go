@@ -344,7 +344,7 @@ func CreateMockArguments(
 			ForkDetector:        &mock.ForkDetectorMock{},
 			NodesCoordinator:    nodesCoordinator,
 			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &mock.RequestHandlerStub{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
@@ -376,7 +376,7 @@ func createMockTransactionCoordinatorArguments(
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:                          accountAdapter,
 		MiniBlockPool:                     poolsHolder.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
+		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     preProcessorsContainer,
 		InterProcessors:                   &mock.InterimProcessorContainerMock{},
 		GasHandler:                        &mock.GasHandlerMock{},
@@ -1085,7 +1085,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
@@ -1133,7 +1133,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)

@@ -123,7 +123,9 @@ func (ln *leafNode) commit(force bool, _ byte, _ uint, _ data.DBWriteCacher, tar
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+
+	return err
 }
 
 func (ln *leafNode) getEncodedNode() ([]byte, error) {

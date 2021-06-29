@@ -26,7 +26,7 @@ func createMockArgs() ArgsNewPendingTransactionsSyncer {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }
 

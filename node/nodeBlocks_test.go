@@ -554,7 +554,7 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 			NoShards:     1,
 			CurrentShard: 0,
 		},
-		IntContainer:                   &mock.InterceptorsContainerStub{},
+		IntContainer:                   &testscommon.InterceptorsContainerStub{},
 		ResFinder:                      &mock.ResolversFinderStub{},
 		RoundHandlerField:              &testscommon.RoundHandlerMock{},
 		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
@@ -569,12 +569,12 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 		ValidatorProvider:              &mock.ValidatorsProviderStub{},
 		BlockTrack:                     &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:                     &mock.RequestHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                  &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
 		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
-		WhiteListHandlerInternal:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxsInternal: &mock.WhiteListHandlerStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
 	}
 }
 

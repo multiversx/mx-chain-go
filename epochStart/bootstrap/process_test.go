@@ -381,9 +381,9 @@ func TestCreateSyncers(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	epochStartProvider.whiteListHandler = &mock.WhiteListHandlerStub{}
-	epochStartProvider.whiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)
@@ -613,7 +613,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			}
 		},
 	}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.miniBlocksSyncer = &mock.PendingMiniBlockSyncHandlerStub{}
 
 	params, err := epochStartProvider.requestAndProcessing()
@@ -653,7 +653,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 	}
-	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
 	err = epochStartProvider.processNodesConfig([]byte("something"))
 	assert.Nil(t, err)
