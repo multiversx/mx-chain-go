@@ -710,7 +710,7 @@ func TestPatriciaMerkleTrie_newHashesAndOldHashesAreResetAfterEveryCommit(t *tes
 func TestNode_NodeExtension(t *testing.T) {
 	n := &branchNode{
 		baseNode: &baseNode{
-			hasher: testscommon.HasherStub{
+			hasher: &testscommon.HasherStub{
 				ComputeCalled: func(s string) []byte {
 					return []byte{0, 0, 0, 0}
 				},
@@ -721,7 +721,7 @@ func TestNode_NodeExtension(t *testing.T) {
 
 	n = &branchNode{
 		baseNode: &baseNode{
-			hasher: testscommon.HasherStub{
+			hasher: &testscommon.HasherStub{
 				ComputeCalled: func(s string) []byte {
 					return []byte{0, 0, 0, 1}
 				},
