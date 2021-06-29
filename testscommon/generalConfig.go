@@ -133,8 +133,8 @@ func GetGeneralConfig() config.Config {
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
-		TxBlockBodyDataPool:     getLRUCacheConfig(),
-		PeerBlockBodyDataPool:   getLRUCacheConfig(),
+		TxBlockBodyDataPool:   getLRUCacheConfig(),
+		PeerBlockBodyDataPool: getLRUCacheConfig(),
 		TrieSyncStorage: config.TrieSyncStorageConfig{
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("TrieSync"),

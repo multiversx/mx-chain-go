@@ -499,7 +499,7 @@ func testTrieNodeResolverProcessReceivedMessageLargeTrieNode(
 			return nil
 		},
 	}
-	arg.TrieDataGetter = &mock.TrieStub{
+	arg.TrieDataGetter = &testscommon.TrieStub{
 		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
 			for i := 0; i < len(hashes); i++ {
 				if bytes.Equal(hash, hashes[i]) {

@@ -256,7 +256,7 @@ func (en *extensionNode) commitSnapshot(
 }
 
 func (en *extensionNode) saveToStorage(targetDb data.DBWriteCacher) error {
-	err := encodeNodeAndCommitToDB(en, targetDb)
+	_, err := encodeNodeAndCommitToDB(en, targetDb)
 	if err != nil {
 		return err
 	}

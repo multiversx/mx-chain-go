@@ -356,7 +356,7 @@ func (bn *branchNode) commitSnapshot(
 }
 
 func (bn *branchNode) saveToStorage(targetDb data.DBWriteCacher) error {
-	err := encodeNodeAndCommitToDB(bn, targetDb)
+	_, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}

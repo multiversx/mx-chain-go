@@ -160,7 +160,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Headers:                  hdrPool,
 		MiniBlocks:               txBlockBody,
 		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                trieNodes,
+		TrieNodes:                adaptedTrieNodesStorage,
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currBlockTxs,
 		SmartContracts:           smartContracts,

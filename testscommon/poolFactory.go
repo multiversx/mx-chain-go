@@ -115,7 +115,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		Headers:                  headersPool,
 		MiniBlocks:               txBlockBody,
 		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                trieNodes,
+		TrieNodes:                adaptedTrieNodesStorage,
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currentTx,
 		SmartContracts:           smartContracts,
