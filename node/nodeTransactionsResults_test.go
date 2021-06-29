@@ -112,17 +112,22 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	marshalizerdMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-					switch {
-					case bytes.Equal(key, scrHash1):
-						return marshalizerdMock.Marshal(scr1)
-					case bytes.Equal(key, scrHash2):
-						return marshalizerdMock.Marshal(scr2)
-					default:
-						return nil, nil
-					}
-				},
+			switch unitType {
+			case dataRetriever.UnsignedTransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						switch {
+						case bytes.Equal(key, scrHash1):
+							return marshalizerdMock.Marshal(scr1)
+						case bytes.Equal(key, scrHash2):
+							return marshalizerdMock.Marshal(scr2)
+						default:
+							return nil, nil
+						}
+					},
+				}
+			default:
+				return mock.NewStorerMock()
 			}
 		},
 	}
@@ -176,10 +181,12 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			RcvAddr:        addressPubKeyConverter.Encode(scr1.RcvAddr),
 			RelayerAddr:    addressPubKeyConverter.Encode(scr1.RelayerAddr),
 			OriginalSender: addressPubKeyConverter.Encode(scr1.OriginalSender),
+			Logs:           nil,
 		},
 		{
 			Hash:           hex.EncodeToString(scrHash2),
 			OriginalTxHash: hex.EncodeToString(scr1.OriginalTxHash),
+			Logs:           nil,
 		},
 	}
 

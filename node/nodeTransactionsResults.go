@@ -90,7 +90,7 @@ func (n *Node) putSmartContractResultsInTransaction(
 
 func (n *Node) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
 	logsAndEvents, err := n.getLogsAndEvents(hash, epoch)
-	if err != nil {
+	if err != nil || logsAndEvents == nil {
 		return
 	}
 

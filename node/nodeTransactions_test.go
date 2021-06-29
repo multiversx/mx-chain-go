@@ -3,6 +3,7 @@ package node_test
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -223,6 +224,12 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				return &mock.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
+					},
+				}
+			case dataRetriever.TxLogsUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return nil, errors.New("dummy")
 					},
 				}
 			default:
