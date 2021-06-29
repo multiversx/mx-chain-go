@@ -75,6 +75,7 @@ type ApiSmartContractResult struct {
 	CodeMetadata   string            `json:"codeMetadata,omitempty"`
 	ReturnMessage  string            `json:"returnMessage,omitempty"`
 	OriginalSender string            `json:"originalSender,omitempty"`
+	Logs           *LogsAPI          `json:"logs,omitempty"`
 }
 
 // ReceiptApi represents a receipt with changed fields' types in order to make it friendly for API's json

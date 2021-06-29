@@ -77,7 +77,10 @@ func (n *Node) putSmartContractResultsInTransaction(
 				continue
 			}
 
-			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
+			scrAPI := n.adaptSmartContractResult(scrHash, scr)
+			n.putLogsInSCR(scrHash, scrHashesE.Epoch, scrAPI)
+
+			tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
 		}
 	}
 
@@ -93,6 +96,16 @@ func (n *Node) putLogsInTransaction(hash []byte, tx *transaction.ApiTransactionR
 
 	logsAPI := n.prepareLogsAndEvents(logsAndEvents)
 	tx.Logs = logsAPI
+}
+
+func (n *Node) putLogsInSCR(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {
+	logsAndEvents, err := n.getLogsAndEvents(scrHash, epoch)
+	if err != nil {
+		return
+	}
+
+	logsAPI := n.prepareLogsAndEvents(logsAndEvents)
+	scr.Logs = logsAPI
 }
 
 func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResult.SmartContractResult, error) {
