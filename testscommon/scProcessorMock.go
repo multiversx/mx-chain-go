@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -22,7 +22,7 @@ type SCProcessorMock struct {
 // IsPayable -
 func (sc *SCProcessorMock) IsPayable(address []byte) (bool, error) {
 	if sc.IsPayableCalled != nil {
-		return sc.IsPayable(address)
+		return sc.IsPayableCalled(address)
 	}
 	return true, nil
 }
