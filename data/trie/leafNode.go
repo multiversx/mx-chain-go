@@ -121,7 +121,9 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ data.DBWriteCacher, targetDb d
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+
+	return err
 }
 func (ln *leafNode) commitCheckpoint(
 	_ data.DBWriteCacher,
@@ -150,7 +152,13 @@ func (ln *leafNode) commitCheckpoint(
 	}
 
 	checkpointHashes.Remove(hash)
-	return encodeNodeAndCommitToDB(ln, targetDb)
+
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ln *leafNode) commitSnapshot(
@@ -168,7 +176,12 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {

@@ -46,7 +46,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler:       &mock.RequestHandlerStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 		RoundHandler:         &mock.RoundHandlerStub{},
@@ -449,9 +449,11 @@ func TestTrigger_RequestEpochStartIfNeeded(t *testing.T) {
 
 	args := createMockShardEpochStartTriggerArguments()
 	called := false
-	args.RequestHandler = &mock.RequestHandlerStub{RequestStartOfEpochMetaBlockCalled: func(_ uint32) {
-		called = true
-	}}
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestStartOfEpochMetaBlockCalled: func(_ uint32) {
+			called = true
+		},
+	}
 	et, _ := NewEpochStartTrigger(args)
 	et.epoch = 2
 

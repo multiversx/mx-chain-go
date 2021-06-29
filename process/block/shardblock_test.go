@@ -463,7 +463,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		tdp,
 		createMockPubkeyConverter(),
 		accounts,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, process.ErrHigherNonceInTransaction
@@ -684,7 +684,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		tdp,
 		createMockPubkeyConverter(),
 		accounts,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		tpm,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -1353,7 +1353,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.RequestHandler = &mock.RequestHandlerStub{
+	arguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 		},
@@ -2270,7 +2270,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		tdp,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2374,7 +2374,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		tdp,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2446,7 +2446,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash2Requested := int32(0)
 	miniBlockHash3Requested := int32(0)
 
-	requestHandler := &mock.RequestHandlerStub{
+	requestHandler := &testscommon.RequestHandlerStub{
 		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
 			if bytes.Equal(miniBlockHash1, miniblockHash) {
 				atomic.AddInt32(&miniBlockHash1Requested, 1)
@@ -2521,7 +2521,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	noOfMissingMiniBlocks := int32(0)
 
-	requestHandler := &mock.RequestHandlerStub{
+	requestHandler := &testscommon.RequestHandlerStub{
 		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
 			atomic.AddInt32(&noOfMissingMiniBlocks, 1)
 		},
@@ -2741,7 +2741,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		datapool,
 		createMockPubkeyConverter(),
 		accntAdapter,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		txProcessorMock,
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
@@ -2939,7 +2939,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		datapool,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
