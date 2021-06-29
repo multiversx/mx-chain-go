@@ -776,6 +776,19 @@ func TestPatriciaMerkleTrie_GetNumNodes(t *testing.T) {
 	assert.Equal(t, 2, numNodes.Branches)
 }
 
+func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	_ = tr.Update([]byte("eod"), []byte("reindeer"))
+	_ = tr.Update([]byte("god"), []byte("puppy"))
+	_ = tr.Commit()
+	expecterOldRoot, _ := tr.RootHash()
+
+	_ = tr.Update([]byte("eggod"), []byte("cat"))
+	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()

@@ -2210,6 +2210,143 @@ func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.Accoun
 	return newHashes
 }
 
+func TestAccountsDB_GetCode(t *testing.T) {
+	t.Parallel()
+
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
+
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     mock.NewMemDbMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+	storageManager, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
+	spm := disabled.NewDisabledStoragePruningManager()
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	userAcc := acc.(state.UserAccountHandler)
+	codeLen := 100000
+	code := make([]byte, codeLen)
+
+	n, err := rand.Read(code)
+	require.Nil(t, err)
+	require.Equal(t, codeLen, n)
+
+	userAcc.SetCode(code)
+	err = adb.SaveAccount(userAcc)
+	require.Nil(t, err)
+
+	codeHash := hasher.Compute(string(code))
+
+	retrievedCode := adb.GetCode(codeHash)
+	assert.Equal(t, retrievedCode, code)
+}
+
+func TestAccountsDB_ImportAccount(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	retrievedAcc, err := adb.GetExistingAccount(address)
+	assert.NotNil(t, err)
+	assert.Nil(t, retrievedAcc)
+
+	err = adb.ImportAccount(acc)
+	assert.Nil(t, err)
+
+	retrievedAcc, err = adb.GetExistingAccount(address)
+	assert.NotNil(t, retrievedAcc)
+	assert.Nil(t, err)
+}
+
+func TestAccountsDB_RecreateAllTries(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	addresses := generateAccounts(t, 2, adb)
+	_ = modifyDataTries(t, addresses, adb)
+
+	rootHash, _ := adb.Commit()
+
+	tries, err := adb.RecreateAllTries(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(tries))
+
+	_, ok := tries[string(rootHash)]
+	assert.True(t, ok)
+
+	for i := 0; i < len(addresses); i++ {
+		acc, _ := adb.LoadAccount(addresses[i])
+		rootHash = acc.(state.UserAccountHandler).GetRootHash()
+
+		_, ok = tries[string(rootHash)]
+		assert.True(t, ok)
+	}
+}
+
+func TestAccountsDB_GetTrie(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	addresses := generateAccounts(t, 2, adb)
+	_ = modifyDataTries(t, addresses, adb)
+
+	rootHash, _ := adb.Commit()
+
+	for i := 0; i < len(addresses); i++ {
+		acc, _ := adb.LoadAccount(addresses[i])
+		rootHash = acc.(state.UserAccountHandler).GetRootHash()
+
+		tr, err := adb.GetTrie(rootHash)
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+}
+
+func TestAccountsDB_Close(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	tr := &testscommon.TrieStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return mock.NewMemDbMock()
+				},
+			}
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := &mock.HasherMock{}
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+
+	err := adb.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
+}
+
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}

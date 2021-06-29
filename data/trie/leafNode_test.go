@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -698,4 +699,19 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 		},
 	}
 	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+}
+
+func TestLeafNode_writeNodeOnChannel(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+	_ = ln.setHash()
+	leavesChannel := make(chan core.KeyValueHolder, 2)
+
+	err := writeNodeOnChannel(ln, leavesChannel)
+	assert.Nil(t, err)
+
+	retrievedLn := <-leavesChannel
+	assert.Equal(t, ln.getHash(), retrievedLn.Key())
+	assert.Equal(t, ln.Value, retrievedLn.Value())
 }
