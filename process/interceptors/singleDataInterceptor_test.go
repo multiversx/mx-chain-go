@@ -228,7 +228,7 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return validityErr
 		},
@@ -267,7 +267,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -321,7 +321,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},
@@ -374,7 +374,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},

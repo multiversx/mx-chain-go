@@ -446,7 +446,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -495,7 +495,7 @@ func createPreProcessorContainerWithDataPool(
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -778,7 +778,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -911,7 +911,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
@@ -1018,7 +1018,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -1534,7 +1534,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		createMockPubkeyConverter(),
 		accounts,
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, process.ErrHigherNonceInTransaction
 			},
@@ -1660,7 +1660,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		createMockPubkeyConverter(),
 		accounts,
 		requestHandler,
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -1770,7 +1770,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		createMockPubkeyConverter(),
 		accounts,
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				// execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
@@ -1905,7 +1905,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		createMockPubkeyConverter(),
 		accounts,
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				if bytes.Equal(transaction.Data, txHash2) {
 					return 0, process.ErrHigherNonceInTransaction

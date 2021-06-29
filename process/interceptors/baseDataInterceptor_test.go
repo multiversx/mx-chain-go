@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -230,7 +231,7 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.False(t, processCalled)
 }
@@ -250,7 +251,7 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.True(t, processCalled)
 }
@@ -270,7 +271,7 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.True(t, processCalled)
 }
@@ -288,7 +289,7 @@ func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 	}
 
 	numCalls := 40
-	ids := &mock.InterceptedDataStub{
+	ids := &testscommon.InterceptedDataStub{
 		IdentifiersCalled: func() [][]byte {
 			return make([][]byte, numCalls)
 		},
@@ -312,7 +313,7 @@ func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
 	}
 
 	numCalls := 40
-	ids := &mock.InterceptedDataStub{
+	ids := &testscommon.InterceptedDataStub{
 		IdentifiersCalled: func() [][]byte {
 			return make([][]byte, numCalls)
 		},

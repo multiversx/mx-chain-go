@@ -464,7 +464,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		createMockPubkeyConverter(),
 		accounts,
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, process.ErrHigherNonceInTransaction
 			},
@@ -669,7 +669,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	tpm := &mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
+	tpm := &testscommon.TxProcessorMock{ProcessTransactionCalled: txProcess}
 	store := &mock.ChainStorerMock{}
 	accounts := &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
@@ -2271,7 +2271,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
@@ -2375,7 +2375,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
@@ -2705,7 +2705,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	txProcessorMock := &mock.TxProcessorMock{
+	txProcessorMock := &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 			if bytes.Equal(transaction.Data, txHash1) {
@@ -2940,7 +2940,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&testscommon.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
