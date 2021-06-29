@@ -231,6 +231,11 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 		return nil, err
 	}
 
+	tokenNonce := esdtData.TokenMetaData.Nonce
+	logEntry := newEntryForNFT(core.BuiltInFunctionESDTNFTTransfer, vmInput.CallerAddr, vmInput.Arguments[0], tokenNonce)
+	logEntry.Topics = append(logEntry.Topics, dstAddress)
+	vmOutput.Logs = []*vmcommon.LogEntry{logEntry}
+
 	return vmOutput, nil
 }
 
