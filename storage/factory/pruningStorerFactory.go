@@ -247,15 +247,9 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	if psf.generalConfig.StoragePruning.CleanOldEpochsData {
-		_, err = clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
-			DatabasePath:        psf.pathManager.DatabasePath(),
-			StorageListProvider: store,
-			EpochStartNotifier:  psf.epochStartNotifier,
-		})
-		if err != nil {
-			return nil, err
-		}
+	err = psf.initOldDatabasesCleaningIfNeeded(store)
+	if err != nil {
+		return nil, err
 	}
 
 	return store, err
@@ -436,15 +430,9 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	if psf.generalConfig.StoragePruning.CleanOldEpochsData {
-		_, err = clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
-			DatabasePath:        psf.pathManager.DatabasePath(),
-			StorageListProvider: store,
-			EpochStartNotifier:  psf.epochStartNotifier,
-		})
-		if err != nil {
-			return nil, err
-		}
+	err = psf.initOldDatabasesCleaningIfNeeded(store)
+	if err != nil {
+		return nil, err
 	}
 
 	return store, err
@@ -569,4 +557,17 @@ func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs
 	}
 
 	return pruning.NewFullHistoryPruningStorer(historyArgs)
+}
+
+func (psf *StorageServiceFactory) initOldDatabasesCleaningIfNeeded(store dataRetriever.StorageService) error {
+	if !psf.generalConfig.StoragePruning.CleanOldEpochsData {
+		return nil
+	}
+	_, err := clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
+		DatabasePath:        psf.pathManager.DatabasePath(),
+		StorageListProvider: store,
+		EpochStartNotifier:  psf.epochStartNotifier,
+	})
+
+	return err
 }

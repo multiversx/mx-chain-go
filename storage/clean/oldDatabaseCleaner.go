@@ -67,16 +67,21 @@ func NewOldDatabaseCleaner(args ArgsOldDatabaseCleaner) (*oldDatabaseCleaner, er
 // registerHandler will register a new function to the epoch start notifier
 func (odc *oldDatabaseCleaner) registerHandler(handler EpochStartNotifier) {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
-		func(hdr data.HeaderHandler) {
-			err := odc.handleEpochChangeAction(hdr.GetEpoch())
-			if err != nil {
-				log.Debug("oldDatabaseCleaner: handleEpochChangeAction", "error", err)
-			}
-		},
-		func(hdr data.HeaderHandler) {},
+		odc.epochChangeActionHandler,
+		odc.epochChangePrepareHandler,
 		core.OldDatabaseCleanOrder)
 
 	handler.RegisterHandler(subscribeHandler)
+}
+
+func (odc *oldDatabaseCleaner) epochChangeActionHandler(hdr data.HeaderHandler) {
+	err := odc.handleEpochChangeAction(hdr.GetEpoch())
+	if err != nil {
+		log.Debug("oldDatabaseCleaner: handleEpochChangeAction", "error", err)
+	}
+}
+
+func (odc *oldDatabaseCleaner) epochChangePrepareHandler(_ data.HeaderHandler) {
 }
 
 func (odc *oldDatabaseCleaner) handleEpochChangeAction(epoch uint32) error {
