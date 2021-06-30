@@ -27,8 +27,12 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.0/go.mod h1:Io5YGUs48YNnXlyJYSBX6Evx
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.7/go.mod h1:Q+ay1aQID+M4q/PWcE9Jmheojpu9nkmOuv1eSDmpBwE=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.21 h1:77i7D8/YRr7XVzYO2BHBciEuY8uPS7Ug7TdPfJHrq9I=
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.21/go.mod h1:o9do+g7dphSAeUBGb29KY2NgWMocUwD4bigu2N0EYw4=
+github.com/ElrondNetwork/arwen-wasm-vm v1.2.23 h1:x2TL3HBoWlGv6FBWhfI4iLyjdJ6AgdYtwey3KZA0thk=
+github.com/ElrondNetwork/arwen-wasm-vm v1.2.23/go.mod h1:Hy2UMASVWC8bSqhHzLgUjDHuz7oFaKqzPye+JqHOZAA=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20 h1:PS9SC6Gn2AxZu1xrhMs7UvdJpOg48l3jrVyX1xauNqQ=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20/go.mod h1:OCfM8DveQ1BZc3vUwexY5qbFIskOAV/q+ttOaxlcmrk=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.23 h1:SbUi7ryrvPAn0+cJLxsW3mxyk5ou6xZ3NnMsV7lDHQA=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.23/go.mod h1:B/x/Wv3wYeCK/Y8UMximxYOtPM18LRGteL/yjPcjLr8=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -69,6 +73,7 @@ github.com/ElrondNetwork/elrond-go v1.1.42/go.mod h1:mxhdRRV7PY+IHzznJ3MnX5/2YSM
 github.com/ElrondNetwork/elrond-go v1.1.51/go.mod h1:0gT8uLRXSqmKDrrn55aXTSca0XGpg8aszx+Q5OPMNpY=
 github.com/ElrondNetwork/elrond-go v1.1.59-0.20210526130950-2a93e2e11c39/go.mod h1:0aZfahOLX4vO+1D6Ejx8XwOLTzd7pfcx94xzAOpt2bs=
 github.com/ElrondNetwork/elrond-go v1.2.3-0.20210621134336-ee4d9e91028c/go.mod h1:/r8qgrQpnAHAeisuhZWIy+40U2xbannPUDKwumgQmZs=
+github.com/ElrondNetwork/elrond-go v1.2.3-0.20210621144238-d27b55046400/go.mod h1:TbhF01wcPP9wY3rM1/RTiReu4wSt1LwWNQhfZCYZ1z0=
 github.com/ElrondNetwork/elrond-go-logger v1.0.2/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jxwk/QTivRwSZSTAQ=
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
