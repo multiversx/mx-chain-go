@@ -76,7 +76,7 @@
     UnbondTokensV2EnableEpoch = 3
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
-    ESDTEnableEpoch = 1
+    ESDTEnableEpoch = 2
 
     # DelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
     # epoch should not be 0
