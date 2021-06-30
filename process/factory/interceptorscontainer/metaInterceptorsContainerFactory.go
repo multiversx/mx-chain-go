@@ -1,7 +1,6 @@
 package interceptorscontainer
 
 import (
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
@@ -16,8 +15,6 @@ import (
 )
 
 var _ process.InterceptorsContainerFactory = (*metaInterceptorsContainerFactory)(nil)
-
-var log = logger.GetOrCreate("factory/blockinterceptorscontainer")
 
 // metaInterceptorsContainerFactory will handle the creation the interceptors container for metachain
 type metaInterceptorsContainerFactory struct {
@@ -180,7 +177,6 @@ func (micf *metaInterceptorsContainerFactory) AddShardTrieNodeInterceptors(conta
 		}
 
 		keys = append(keys, identifierTrieNodes)
-		log.Debug("AddShardTrieNodeInterceptors", "key", identifierTrieNodes)
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
