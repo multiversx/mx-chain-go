@@ -54,6 +54,8 @@ github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630132649-d985a5254f2d
 github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630132649-d985a5254f2d/go.mod h1:2WPLqI8q1YovJKTx/PcGVLHQNpMFRQVgyKVu80tGirs=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630134403-56b4460ca7a8 h1:j74rGuex+j5Vnzo6EHRnsgilxL2FMmJwBXfY+W9CN+k=
 github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630134403-56b4460ca7a8/go.mod h1:2WPLqI8q1YovJKTx/PcGVLHQNpMFRQVgyKVu80tGirs=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630164648-164c92ab9b93 h1:n2YkOzzXm5DbAGcfr9ZprjAa6dqSA979AQTSuzX3IZs=
+github.com/ElrondNetwork/elastic-indexer-go v1.0.6-0.20210630164648-164c92ab9b93/go.mod h1:2WPLqI8q1YovJKTx/PcGVLHQNpMFRQVgyKVu80tGirs=
 github.com/ElrondNetwork/elrond-go v1.1.0/go.mod h1:R5HRN9NnnJ0gRd4QogmbUbQNTEczLsFCtfIgd3+3cYY=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113091116-de0c9a4e63c6/go.mod h1:dUNMqGg/jqTgHbnNxAmW7WkApWXlCQ8brVPbwIEFghI=
 github.com/ElrondNetwork/elrond-go v1.1.6-0.20201113120119-5f3406f2d6b5/go.mod h1:JsrmzX05L/GHE/nOeQuJCKHasJnZN2WMFr+Y6jjvHGg=
