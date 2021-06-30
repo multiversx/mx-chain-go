@@ -278,6 +278,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
+		configs.GeneralConfig.StoragePruning.FullArchive,
 	)
 	if err != nil {
 		return true, err
@@ -682,6 +684,9 @@ func waitForSignal(
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
+	wrongConfig := false
+	wrongConfigDescription := ""
+
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -689,6 +694,10 @@ func waitForSignal(
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 		if sig.Reason == core.ShuffledOut {
 			reshuffled = true
+		}
+		if sig.Reason == core.WrongConfiguration {
+			wrongConfig = true
+			wrongConfigDescription = sig.Description
 		}
 	}
 
@@ -710,6 +719,15 @@ func waitForSignal(
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
 	} else {
 		return fmt.Errorf("not reshuffled, closing")
+	}
+
+	if wrongConfig {
+		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
+		// change this behaviour
+		for {
+			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
+			time.Sleep(1 * time.Minute)
+		}
 	}
 
 	return nil

@@ -669,6 +669,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		PubKey:                    pubKey,
 		ShardIdAsObserver:         shardId,
 		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
+		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
+		IsFullArchive:             e.generalConfig.StoragePruning.FullArchive,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
