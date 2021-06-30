@@ -470,7 +470,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
@@ -687,7 +687,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.RequestHandlerStub{},
 		tpm,
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
@@ -2273,7 +2273,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
@@ -2377,7 +2377,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
@@ -2744,7 +2744,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.RequestHandlerStub{},
 		txProcessorMock,
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
@@ -2942,7 +2942,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},

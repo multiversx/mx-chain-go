@@ -452,7 +452,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
@@ -501,7 +501,7 @@ func createPreProcessorContainerWithDataPool(
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -784,7 +784,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -913,7 +913,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -1024,7 +1024,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -1540,7 +1540,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -1666,7 +1666,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{},
@@ -1787,7 +1787,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{
@@ -1914,7 +1914,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 		},
 		&testscommon.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
 		FeeHandlerMock(),
 		&mock.GasHandlerMock{

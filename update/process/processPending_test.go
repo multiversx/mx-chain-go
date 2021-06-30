@@ -18,7 +18,7 @@ func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor
 	return ArgsPendingTransactionProcessor{
 		Accounts:         &mock.AccountsStub{},
 		TxProcessor:      &testscommon.TxProcessorMock{},
-		RwdTxProcessor:   &mock.RewardTxProcessorMock{},
+		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
 		ScrTxProcessor:   &mock.SCProcessorMock{},
 		PubKeyConv:       &mock.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
