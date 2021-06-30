@@ -32,7 +32,6 @@
 
 [DelegationManagerSystemSCConfig]
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
-    EnabledEpoch = 2 #enable epoch should not be 0
     MinStakeAmount = "1000000000000000000" #1 eGLD
     ConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
 
