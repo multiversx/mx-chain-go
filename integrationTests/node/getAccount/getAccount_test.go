@@ -1,7 +1,6 @@
 package getAccount
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -24,10 +23,12 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
-	assert.Equal(t, big.NewInt(0), recovAccnt.GetBalance())
-	assert.Nil(t, recovAccnt.GetCodeHash())
-	assert.Nil(t, recovAccnt.GetRootHash())
+	assert.Equal(t, uint64(0), recovAccnt.Nonce)
+	assert.Equal(t, "0", recovAccnt.Balance)
+	assert.Equal(t, "0", recovAccnt.DeveloperReward)
+	assert.Empty(t, recovAccnt.OwnerAddress)
+	assert.Nil(t, recovAccnt.CodeHash)
+	assert.Nil(t, recovAccnt.RootHash)
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
@@ -52,5 +53,5 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
-	assert.Equal(t, nonce, recovAccnt.GetNonce())
+	assert.Equal(t, nonce, recovAccnt.Nonce)
 }

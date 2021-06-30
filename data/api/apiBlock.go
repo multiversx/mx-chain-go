@@ -24,12 +24,26 @@ type Block struct {
 	AccumulatedFeesInEpoch string            `json:"accumulatedFeesInEpoch,omitempty"`
 	DeveloperFeesInEpoch   string            `json:"developerFeesInEpoch,omitempty"`
 	Status                 string            `json:"status,omitempty"`
+	EpochStartInfo         *EpochStartInfo   `json:"epochStartInfo,omitempty"`
+}
+
+// EpochStartInfo is a structure that holds information about epoch start meta block
+type EpochStartInfo struct {
+	TotalSupply                      string `json:"totalSupply"`
+	TotalToDistribute                string `json:"totalToDistribute"`
+	TotalNewlyMinted                 string `json:"totalNewlyMinted"`
+	RewardsPerBlock                  string `json:"rewardsPerBlock"`
+	RewardsForProtocolSustainability string `json:"rewardsForProtocolSustainability"`
+	NodePrice                        string `json:"nodePrice"`
+	PrevEpochStartRound              uint64 `json:"prevEpochStartRound"`
+	PrevEpochStartHash               string `json:"prevEpochStartHash"`
 }
 
 // NotarizedBlock represents a notarized block
 type NotarizedBlock struct {
 	Hash  string `json:"hash"`
 	Nonce uint64 `json:"nonce"`
+	Round uint64 `json:"round"`
 	Shard uint32 `json:"shard"`
 }
 

@@ -1575,18 +1575,29 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
-		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
+		defaultSecondsToCheckHealth := 300                   // 5minutes
+		defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+
+		config.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
+		config.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
+		config.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
+
 		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StateTriesConfig.CheckpointRoundsModulus", math.MaxUint32,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
 			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
+			"health interval diagnose components deeply in seconds", config.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
+			"health interval diagnose components in seconds", config.Health.IntervalDiagnoseComponentsInSeconds,
+			"health interval verify memory in seconds", config.Health.IntervalVerifyMemoryInSeconds,
+			"health memory usage threshold", core.ConvertBytes(uint64(config.Health.MemoryUsageToCreateProfiles)),
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
-		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StateTriesConfig.CheckpointRoundsModulus = math.MaxUint32
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
 		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
