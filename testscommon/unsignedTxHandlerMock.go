@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"math/big"
@@ -64,7 +64,7 @@ func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
 }
 
 // ProcessTransactionFee -
-func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte) {
+func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int, _ *big.Int, txHash []byte) {
 	if ut.ProcessTransactionFeeCalled == nil {
 		return
 	}

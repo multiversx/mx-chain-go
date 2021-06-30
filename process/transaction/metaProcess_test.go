@@ -26,7 +26,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
 		EpochNotifier:    &mock.EpochNotifierStub{},
@@ -243,7 +243,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
-	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},
@@ -291,7 +291,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
-	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},

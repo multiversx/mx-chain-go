@@ -19,7 +19,7 @@ func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor
 		Accounts:         &mock.AccountsStub{},
 		TxProcessor:      &testscommon.TxProcessorMock{},
 		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
-		ScrTxProcessor:   &mock.SCProcessorMock{},
+		ScrTxProcessor:   &testscommon.SCProcessorMock{},
 		PubKeyConv:       &mock.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
