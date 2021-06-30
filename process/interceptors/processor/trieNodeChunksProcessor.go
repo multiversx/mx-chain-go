@@ -210,6 +210,7 @@ func (proc *trieNodeChunksProcessor) doRequests(ctx context.Context) {
 	for _, ref := range references {
 		select {
 		case <-ctx.Done():
+			log.Debug("doRequests context done")
 			//early exit
 			return
 		default:
@@ -234,6 +235,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 	for _, missingChunkIndex := range missing {
 		select {
 		case <-ctx.Done():
+			log.Debug("requestMissingForReference context done")
 			//early exit
 			return
 		default:
