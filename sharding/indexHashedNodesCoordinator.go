@@ -132,6 +132,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		startEpoch:                    arguments.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
 		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
+		chanStopNode:                  arguments.ChanStopNode,
+		isFullArchive:                 arguments.IsFullArchive,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihgs.waitingListFixEnableEpoch)
 
