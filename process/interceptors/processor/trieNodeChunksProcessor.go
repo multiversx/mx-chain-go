@@ -80,6 +80,8 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 	ctx, tncp.cancel = context.WithCancel(context.Background())
 	go tncp.processLoop(ctx)
 
+	log.Debug("NewTrieNodeChunksProcessor created a tncp")
+
 	return tncp, nil
 }
 
@@ -243,9 +245,12 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 
 // Close will close the process go routine
 func (proc *trieNodeChunksProcessor) Close() error {
+	log.Debug("trieNodeChunkProcessor closing called")
 	defer func() {
+		log.Debug("trieNodeChunkProcessor defer enter")
 		//this instruction should be called last as to release hanging go routines
 		close(proc.chanClose)
+		log.Debug("trieNodeChunkProcessor defer exit")
 	}()
 
 	proc.cancel()

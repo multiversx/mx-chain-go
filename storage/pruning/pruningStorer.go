@@ -334,6 +334,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 	}
 
 	closeFunc := func() {
+		log.Debug("openfilesproblem createAndInitPersister().Close()", "path", pd.path)
 		err = pd.Close()
 		if err != nil {
 			log.Warn("createAndInitPersister(): persister.Close()", "error", err.Error())
@@ -347,6 +348,8 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 	}
 
 	pd.setPersisterAndIsClosed(persister, false)
+
+	log.Debug("openfilesproblem createAndInitPersister()", "path", pd.path)
 
 	return persister, closeFunc, nil
 }
@@ -422,8 +425,8 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
 	if !exists {
-		return nil, fmt.Errorf("key %s not found in %s",
-			hex.EncodeToString(key), ps.identifier)
+		return nil, fmt.Errorf("openfilesproblem  key %s not found in %s for epoch %v",
+			hex.EncodeToString(key), ps.identifier, epoch)
 	}
 
 	persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
@@ -465,6 +468,8 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		return nil, err
 	}
 	defer closePersister()
+
+	log.Debug("openfilesproblem GetBulkFromEpoch", "epoch", epoch, "path", pd.path)
 
 	returnMap := make(map[string][]byte)
 	for _, key := range keys {
@@ -827,6 +832,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 }
 
 func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+	log.Debug("openfilesproblem  closeAndDestroyPersisters - entered")
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := make([]*persisterData, 0)
 	persistersToDestroy := make([]*persisterData, 0)
@@ -860,6 +866,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	ps.lock.Unlock()
 
 	for _, pd := range persistersToClose {
+		log.Debug("openfilesproblem  PruningStorer - close persister", "path", pd.path, "epoch", epoch)
 		err := pd.Close()
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
@@ -867,6 +874,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	}
 
 	for _, pd := range persistersToDestroy {
+		log.Debug("openfilesproblem  PruningStorer - destroying persister", "path", pd.path, "epoch", epoch)
 		err := pd.getPersister().DestroyClosed()
 		if err != nil {
 			return err
