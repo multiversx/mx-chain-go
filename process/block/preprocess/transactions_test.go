@@ -762,9 +762,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&testscommon.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
@@ -832,9 +833,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&testscommon.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,
@@ -907,9 +909,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&testscommon.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
 		requestTransaction,

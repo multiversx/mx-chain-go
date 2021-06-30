@@ -524,7 +524,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		SignMarshalizer:  testMarshalizer,
 		ShardCoordinator: shardCoordinator,
 		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxFeeHandler:     &testscommon.UnsignedTxHandlerMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     &mock.FeeHandlerStub{},
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},

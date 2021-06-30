@@ -900,7 +900,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		SignMarshalizer:  TestTxSignMarshalizer,
 		ShardCoordinator: shardCoordinator,
 		ScProcessor:      &testscommon.SCProcessorMock{},
-		TxFeeHandler:     &testscommon.UnsignedTxHandlerMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {

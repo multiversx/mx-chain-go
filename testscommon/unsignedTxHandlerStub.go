@@ -6,10 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// UnsignedTxHandlerMock -
-type UnsignedTxHandlerMock struct {
+// UnsignedTxHandlerStub -
+type UnsignedTxHandlerStub struct {
 	CleanProcessedUtxsCalled    func()
-	ProcessTransactionFeeCalled func(cost *big.Int, hash []byte)
+	ProcessTransactionFeeCalled func(cost *big.Int, fee *big.Int, hash []byte)
 	CreateAllUTxsCalled         func() []data.TransactionHandler
 	VerifyCreatedUTxsCalled     func() error
 	AddTxFeeFromBlockCalled     func(tx data.TransactionHandler)
@@ -19,18 +19,18 @@ type UnsignedTxHandlerMock struct {
 }
 
 // RevertFees -
-func (ut *UnsignedTxHandlerMock) RevertFees(txHashes [][]byte) {
+func (ut *UnsignedTxHandlerStub) RevertFees(txHashes [][]byte) {
 	if ut.RevertFeesCalled != nil {
 		ut.RevertFeesCalled(txHashes)
 	}
 }
 
 // CreateBlockStarted -
-func (ut *UnsignedTxHandlerMock) CreateBlockStarted() {
+func (ut *UnsignedTxHandlerStub) CreateBlockStarted() {
 }
 
 // GetAccumulatedFees -
-func (ut *UnsignedTxHandlerMock) GetAccumulatedFees() *big.Int {
+func (ut *UnsignedTxHandlerStub) GetAccumulatedFees() *big.Int {
 	if ut.GetAccumulatedFeesCalled != nil {
 		return ut.GetAccumulatedFeesCalled()
 	}
@@ -38,7 +38,7 @@ func (ut *UnsignedTxHandlerMock) GetAccumulatedFees() *big.Int {
 }
 
 // GetDeveloperFees -
-func (ut *UnsignedTxHandlerMock) GetDeveloperFees() *big.Int {
+func (ut *UnsignedTxHandlerStub) GetDeveloperFees() *big.Int {
 	if ut.GetDeveloperFeesCalled != nil {
 		return ut.GetDeveloperFeesCalled()
 	}
@@ -46,7 +46,7 @@ func (ut *UnsignedTxHandlerMock) GetDeveloperFees() *big.Int {
 }
 
 // AddRewardTxFromBlock -
-func (ut *UnsignedTxHandlerMock) AddRewardTxFromBlock(tx data.TransactionHandler) {
+func (ut *UnsignedTxHandlerStub) AddRewardTxFromBlock(tx data.TransactionHandler) {
 	if ut.AddTxFeeFromBlockCalled == nil {
 		return
 	}
@@ -55,7 +55,7 @@ func (ut *UnsignedTxHandlerMock) AddRewardTxFromBlock(tx data.TransactionHandler
 }
 
 // CleanProcessedUTxs -
-func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
+func (ut *UnsignedTxHandlerStub) CleanProcessedUTxs() {
 	if ut.CleanProcessedUtxsCalled == nil {
 		return
 	}
@@ -64,16 +64,16 @@ func (ut *UnsignedTxHandlerMock) CleanProcessedUTxs() {
 }
 
 // ProcessTransactionFee -
-func (ut *UnsignedTxHandlerMock) ProcessTransactionFee(cost *big.Int, _ *big.Int, txHash []byte) {
+func (ut *UnsignedTxHandlerStub) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte) {
 	if ut.ProcessTransactionFeeCalled == nil {
 		return
 	}
 
-	ut.ProcessTransactionFeeCalled(cost, txHash)
+	ut.ProcessTransactionFeeCalled(cost, devFee, txHash)
 }
 
 // CreateAllUTxs -
-func (ut *UnsignedTxHandlerMock) CreateAllUTxs() []data.TransactionHandler {
+func (ut *UnsignedTxHandlerStub) CreateAllUTxs() []data.TransactionHandler {
 	if ut.CreateAllUTxsCalled == nil {
 		return nil
 	}
@@ -81,7 +81,7 @@ func (ut *UnsignedTxHandlerMock) CreateAllUTxs() []data.TransactionHandler {
 }
 
 // VerifyCreatedUTxs -
-func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
+func (ut *UnsignedTxHandlerStub) VerifyCreatedUTxs() error {
 	if ut.VerifyCreatedUTxsCalled == nil {
 		return nil
 	}
@@ -89,6 +89,6 @@ func (ut *UnsignedTxHandlerMock) VerifyCreatedUTxs() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ut *UnsignedTxHandlerMock) IsInterfaceNil() bool {
+func (ut *UnsignedTxHandlerStub) IsInterfaceNil() bool {
 	return ut == nil
 }
