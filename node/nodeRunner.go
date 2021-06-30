@@ -714,13 +714,6 @@ func waitForSignal(
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
-	if reshuffled {
-		log.Info("=============================" + SoftRestartMessage + "==================================")
-		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
-	} else {
-		return fmt.Errorf("not reshuffled, closing")
-	}
-
 	if wrongConfig {
 		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
 		// change this behaviour
@@ -728,6 +721,13 @@ func waitForSignal(
 			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
 			time.Sleep(1 * time.Minute)
 		}
+	}
+
+	if reshuffled {
+		log.Info("=============================" + SoftRestartMessage + "==================================")
+		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
+	} else {
+		return fmt.Errorf("not reshuffled, closing")
 	}
 
 	return nil
