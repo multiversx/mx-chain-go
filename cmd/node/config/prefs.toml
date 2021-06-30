@@ -2,7 +2,7 @@
    # DestinationShardAsObserver represents the desired shard when running as observer
    # value will be given as string. For example: "0", "1", "15", "metachain"
    # if "disabled" is provided then the node will start in the corresponding shard for its public key or 0 otherwise
-   DestinationShardAsObserver = "disabled"
+   DestinationShardAsObserver = "metachain"
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
    NodeDisplayName = ""
