@@ -125,11 +125,13 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 	if quantity.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, invalid quantity", process.ErrInvalidArguments)
 	}
+
 	if quantity.Cmp(big.NewInt(1)) > 0 {
 		err = e.rolesHandler.CheckAllowedToExecute(acntSnd, vmInput.Arguments[0], []byte(core.ESDTRoleNFTAddQuantity))
 		if err != nil {
 			return nil, err
 		}
+
 	}
 
 	nextNonce := nonce + 1
@@ -157,11 +159,15 @@ func (e *esdtNFTCreate) ProcessBuiltinFunction(
 		return nil, err
 	}
 
+	logEntry := newEntryForNFT(core.BuiltInFunctionESDTNFTCreate, vmInput.CallerAddr, tokenID, nextNonce)
+
 	vmOutput := &vmcommon.VMOutput{
 		ReturnCode:   vmcommon.Ok,
 		GasRemaining: vmInput.GasProvided - gasToUse,
 		ReturnData:   [][]byte{big.NewInt(0).SetUint64(nextNonce).Bytes()},
+		Logs:         []*vmcommon.LogEntry{logEntry},
 	}
+
 	return vmOutput, nil
 }
 

@@ -644,6 +644,9 @@ var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
+// ErrNilPreferredPeersHolder signals that preferred peers holder is nil
+var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -860,6 +863,9 @@ var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this 
 // ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
 var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
 
+// ErrTrieNodeIsNotWhitelisted signals that a trie node is not whitelisted
+var ErrTrieNodeIsNotWhitelisted = errors.New("trie node is not whitelisted")
+
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 
@@ -1009,3 +1015,12 @@ var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers 
 
 // ErrNilLocker signals that a nil locker was provided
 var ErrNilLocker = errors.New("nil locker")
+
+// ErrNilChunksProcessor signals that a nil chunks processor has been provided
+var ErrNilChunksProcessor = errors.New("nil chunks processor")
+
+// ErrIncompatibleReference signals that an incompatible reference was provided when processing a batch
+var ErrIncompatibleReference = errors.New("incompatible reference when processing batch")
+
+// ErrProcessClosed signals that an incomplete processing occurred due to the early process closing
+var ErrProcessClosed = errors.New("incomplete processing: process is closing")

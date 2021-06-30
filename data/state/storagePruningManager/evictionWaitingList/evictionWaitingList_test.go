@@ -292,3 +292,15 @@ func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 	assert.False(t, present)
 	assert.Equal(t, state.ErrInvalidKey, err)
 }
+
+func TestNewEvictionWaitingList_Close(t *testing.T) {
+	t.Parallel()
+
+	db := memorydb.New()
+	ewl, err := NewEvictionWaitingList(10, db, &mock.MarshalizerMock{})
+	assert.Nil(t, err)
+	assert.NotNil(t, ewl)
+
+	err = ewl.Close()
+	assert.Nil(t, err)
+}

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -88,7 +89,8 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 }
 
@@ -180,6 +182,15 @@ func TestNewNetworkMessenger_NilMessengerShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(mes))
 	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
+}
+
+func TestNewNetworkMessenger_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.PreferredPeersHolder = nil
+	mes, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.True(t, check.IfNil(mes))
+	assert.True(t, errors.Is(err, p2p.ErrNilPreferredPeersHolder))
 }
 
 func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
@@ -1283,7 +1294,8 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1346,7 +1358,8 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1416,7 +1429,8 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1477,7 +1491,8 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
-		SyncTimer: &libp2p.LocalSyncTimer{},
+		SyncTimer:            &libp2p.LocalSyncTimer{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1632,6 +1647,50 @@ func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
 	assert.Equal(t, 2, cpi.NumValidatorsOnShard[crossShardID])
 	assert.Equal(t, selfShardID, cpi.SelfShardID)
 	assert.Equal(t, 1, len(cpi.UnknownPeers))
+}
+
+func TestNetworkMessenger_mapHistogram(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNetworkArgs()
+	netMes, _ := libp2p.NewNetworkMessenger(args)
+
+	inp := map[uint32]int{
+		0:                     5,
+		1:                     7,
+		2:                     9,
+		core.MetachainShardId: 11,
+	}
+	output := `shard 0: 5, shard 1: 7, shard 2: 9, meta: 11`
+
+	require.Equal(t, output, netMes.MapHistogram(inp))
+}
+
+func TestNetworkMessenger_ApplyOptionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected option err")
+	args := createMockNetworkArgs()
+	netMes, _ := libp2p.NewNetworkMessenger(args)
+
+	opt := netMes.GetOption(func() error {
+		return expectedErr
+	})
+	err := netMes.ApplyOptions(opt)
+	require.Equal(t, expectedErr, err)
+}
+
+func TestNetworkMessenger_ApplyOptionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNetworkArgs()
+	netMes, _ := libp2p.NewNetworkMessenger(args)
+
+	opt := netMes.GetOption(func() error {
+		return nil
+	})
+	err := netMes.ApplyOptions(opt)
+	require.NoError(t, err)
 }
 
 func TestNetworkMessenger_Bootstrap(t *testing.T) {

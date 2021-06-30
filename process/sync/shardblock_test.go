@@ -178,7 +178,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		Hasher:              &mock.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		ForkDetector:        &mock.ForkDetectorMock{},
-		RequestHandler:      &mock.RequestHandlerStub{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		Accounts:            &testscommon.AccountsStub{},
 		BlackListHandler:    &mock.BlackListHandlerStub{},
@@ -417,13 +417,21 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		return cs
 	}
 	args.PoolsHolder = pools
-
+	args.IsInImportMode = true
 	bs, err := sync.NewShardBootstrap(args)
 
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
+	assert.True(t, bs.IsInImportMode())
+
+	args.IsInImportMode = false
+	bs, err = sync.NewShardBootstrap(args)
+
+	assert.NotNil(t, bs)
+	assert.Nil(t, err)
+	assert.False(t, bs.IsInImportMode())
 }
 
 //------- processing
@@ -1822,7 +1830,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return mapToRet, nil
 	}
 	args.Store = store
-	args.RequestHandler = &mock.RequestHandlerStub{
+	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
 			requestDataWasCalled = true
 		},

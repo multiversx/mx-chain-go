@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,6 +66,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 		return testscommon.NewShardedDataStub()
 	}
 	pools.TrieNodesCalled = func() storage.Cacher {
+		return testscommon.NewCacherStub()
+	}
+	pools.TrieNodesChunksCalled = func() storage.Cacher {
 		return testscommon.NewCacherStub()
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
@@ -529,7 +533,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	args.WhiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
+	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -555,7 +559,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		NbShards:           uint32(noOfShards),
 	}
 
-	mesenger := &mock.TopicHandlerStub{
+	messenger := &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
 		},
@@ -569,7 +573,8 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args := getArgumentsShard(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
-	args.Messenger = mesenger
+	args.Messenger = messenger
+	args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -620,8 +625,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 func getArgumentsShard(
 	coreComp *mock.CoreComponentsMock,
 	cryptoComp *mock.CryptoComponentsMock,
-) interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
-	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
+	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
 		Accounts:                &testscommon.AccountsStub{},
@@ -639,8 +644,10 @@ func getArgumentsShard(
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		WhiteListHandler:        &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &testscommon.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		RequestHandler:          &testscommon.RequestHandlerStub{},
 	}
 }

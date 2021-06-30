@@ -110,7 +110,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedBn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
 	assert.Nil(t, err)
 
 	val, _ := db.Get(nodeHash)
@@ -126,7 +126,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(collapsedEn, db)
+	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
 	assert.Nil(t, err)
 
 	val, _ := db.Get(nodeHash)
@@ -142,7 +142,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	err := encodeNodeAndCommitToDB(ln, db)
+	_, err := encodeNodeAndCommitToDB(ln, db)
 	assert.Nil(t, err)
 
 	val, _ := db.Get(nodeHash)
@@ -564,7 +564,7 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
-	tsm.TakeSnapshot(rootHash, true)
+	tsm.TakeSnapshot(rootHash, true, nil)
 	time.Sleep(snapshotDelay * 2)
 	err := tsm.db.Remove(rootHash)
 	assert.Nil(t, err)

@@ -57,7 +57,7 @@ func TestAccountsDB_PruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 
 	trieStorage := tr.GetStorageManager()
-	trieStorage.TakeSnapshot(rootHash, true)
+	trieStorage.TakeSnapshot(rootHash, true, nil)
 	time.Sleep(trieDbOperationDelay)
 	spm.PruneTrie(rootHash, data.NewRoot, trieStorage)
 	time.Sleep(trieDbOperationDelay)

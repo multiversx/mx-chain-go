@@ -12,6 +12,7 @@ import (
 type ArgsConnectionMonitorFactory struct {
 	Reconnecter                p2p.Reconnecter
 	Sharder                    p2p.Sharder
+	PreferredPeersHolder       p2p.PreferredPeersHolderHandler
 	ThresholdMinConnectedPeers uint32
 	TargetCount                int
 }
@@ -21,10 +22,13 @@ func NewConnectionMonitor(arg ArgsConnectionMonitorFactory) (ConnectionMonitor, 
 	if check.IfNil(arg.Reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, p2p.ErrNilPreferredPeersHolder
+	}
 
 	switch kadSharder := arg.Sharder.(type) {
 	case connectionMonitor.Sharder:
-		return connectionMonitor.NewLibp2pConnectionMonitorSimple(arg.Reconnecter, arg.ThresholdMinConnectedPeers, kadSharder)
+		return connectionMonitor.NewLibp2pConnectionMonitorSimple(arg.Reconnecter, arg.ThresholdMinConnectedPeers, kadSharder, arg.PreferredPeersHolder)
 	default:
 		return nil, fmt.Errorf("%w for connection monitor: invalid type %T", p2p.ErrInvalidValue, kadSharder)
 	}

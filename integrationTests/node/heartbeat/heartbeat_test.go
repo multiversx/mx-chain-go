@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -236,11 +237,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 	mp, _ := process.NewMessageProcessor(
 		&mock2.PeerSignatureHandler{Signer: singlesigner, KeyGen: keyGen},
 		marshalizer,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
-			UpdatePeerIdSubTypeCalled:   func(pid core.PeerID, peerSubType core.P2PPeerSubType) {},
-		})
+		&p2pmocks.NetworkShardingCollectorStub{},
+	)
 
 	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                 integrationTests.TestMarshalizer,

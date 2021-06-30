@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +32,7 @@ func TestNewMessageProcessor_PeerSignatureHandlerNilShouldErr(t *testing.T) {
 	mon, err := process.NewMessageProcessor(
 		nil,
 		&mock.MarshalizerStub{},
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, mon)
@@ -43,7 +45,7 @@ func TestNewMessageProcessor_MarshalizerNilShouldErr(t *testing.T) {
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
 		nil,
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, mon)
@@ -69,7 +71,7 @@ func TestNewMessageProcessor_ShouldWork(t *testing.T) {
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
 		&mock.MarshalizerStub{},
-		&mock.NetworkShardingCollectorStub{},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	assert.Nil(t, err)
@@ -226,18 +228,14 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 		return nil
 	}
 
-	updatePubKeyWasCalled := false
-	updatePidShardIdCalled := false
+	updatePeerInfoWasCalled := false
 	updatePidSubTypeCalled := false
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{Signer: &mock.SinglesignMock{}},
 		marshalizer,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
-				updatePubKeyWasCalled = true
-			},
-			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
-				updatePidShardIdCalled = true
+		&p2pmocks.NetworkShardingCollectorStub{
+			UpdatePeerIDInfoCalled: func(pid core.PeerID, pk []byte, shardID uint32) {
+				updatePeerInfoWasCalled = true
 			},
 			UpdatePeerIdSubTypeCalled: func(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 				updatePidSubTypeCalled = true
@@ -260,9 +258,61 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ret)
-	assert.True(t, updatePubKeyWasCalled)
-	assert.True(t, updatePidShardIdCalled)
+	assert.True(t, updatePeerInfoWasCalled)
 	assert.True(t, updatePidSubTypeCalled)
+}
+
+func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageInvalidPeerSignatureShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hb := data.Heartbeat{
+		Payload:         []byte("Payload"),
+		Pubkey:          []byte("PubKey"),
+		Signature:       []byte("signed"),
+		ShardID:         0,
+		VersionNumber:   "VersionNumber",
+		NodeDisplayName: "NodeDisplayName",
+	}
+
+	marshalizer := &mock.MarshalizerStub{}
+
+	marshalizer.UnmarshalHandler = func(obj interface{}, buff []byte) error {
+		(obj.(*data.Heartbeat)).Pubkey = hb.Pubkey
+		(obj.(*data.Heartbeat)).Payload = hb.Payload
+		(obj.(*data.Heartbeat)).Signature = hb.Signature
+		(obj.(*data.Heartbeat)).ShardID = hb.ShardID
+		(obj.(*data.Heartbeat)).VersionNumber = hb.VersionNumber
+		(obj.(*data.Heartbeat)).NodeDisplayName = hb.NodeDisplayName
+
+		return nil
+	}
+
+	expErr := errors.New("invalid signature")
+
+	mon, err := process.NewMessageProcessor(
+		&mock.PeerSignatureHandler{Signer: &mock.SinglesignStub{
+			VerifyCalled: func(_ crypto.PublicKey, _ []byte, _ []byte) error {
+				return expErr
+			},
+		}},
+		marshalizer,
+		&p2pmocks.NetworkShardingCollectorStub{},
+	)
+	assert.Nil(t, err)
+
+	message := &mock.P2PMessageStub{
+		FromField:      nil,
+		DataField:      make([]byte, 5),
+		SeqNoField:     nil,
+		TopicField:     "",
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+	}
+
+	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
+	assert.Equal(t, expErr, err)
+	assert.Nil(t, ret)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {
@@ -281,9 +331,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 	mon, _ := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
 		&mock.MarshalizerStub{},
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-		},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
@@ -314,9 +362,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 				return expectedErr
 			},
 		},
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-		},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
@@ -361,9 +407,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 	mon, err := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
 		marshalizer,
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-		},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 	assert.Nil(t, err)
 
@@ -389,9 +433,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 	mon, _ := process.NewMessageProcessor(
 		&mock.PeerSignatureHandler{},
 		&mock.MarshalizerStub{},
-		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-		},
+		&p2pmocks.NetworkShardingCollectorStub{},
 	)
 
 	ret, err := mon.CreateHeartbeatFromP2PMessage(nil)

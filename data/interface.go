@@ -209,8 +209,8 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	TakeSnapshot([]byte, bool)
-	SetCheckpoint([]byte)
+	TakeSnapshot([]byte, bool, chan core.KeyValueHolder)
+	SetCheckpoint([]byte, chan core.KeyValueHolder)
 	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
@@ -279,8 +279,10 @@ type MiniBlockInfo struct {
 type SyncStatisticsHandler interface {
 	Reset()
 	AddNumReceived(value int)
+	AddNumLarge(value int)
 	SetNumMissing(rootHash []byte, value int)
 	NumReceived() int
+	NumLarge() int
 	NumMissing() int
 	IsInterfaceNil() bool
 }

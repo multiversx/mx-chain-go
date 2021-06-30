@@ -237,6 +237,9 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 					DatabaseCalled: func() data.DBWriteCacher {
 						return db
 					},
+					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder) {
+						close(leavesChan)
+					},
 				}
 			},
 			RecreateCalled: func(root []byte) (data.Trie, error) {
@@ -1110,7 +1113,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	trieStub := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &testscommon.StorageManagerStub{
-				TakeSnapshotCalled: func(rootHash []byte, _ bool) {
+				TakeSnapshotCalled: func(rootHash []byte, _ bool, _ chan core.KeyValueHolder) {
 					snapshotMut.Lock()
 					takeSnapshotWasCalled = true
 					snapshotMut.Unlock()
@@ -1130,6 +1133,48 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 	snapshotMut.Unlock()
 }
 
+func TestAccountsDB_SnapshotStateWithDataTries(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	accountsAddresses := generateAccounts(t, 3, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
+	rootHash, _ := adb.Commit()
+
+	adb.SnapshotState(rootHash)
+	time.Sleep(time.Second)
+
+	trieDb := tr.GetStorageManager().Database()
+	err := trieDb.Remove(rootHash)
+	assert.Nil(t, err)
+	for hash := range newHashes {
+		err = trieDb.Remove([]byte(hash))
+		assert.Nil(t, err)
+	}
+
+	snapshotDb := tr.GetStorageManager().GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, snapshotDb)
+
+	val, err := trieDb.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	val, err = snapshotDb.Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	for hash := range newHashes {
+		val, err := trieDb.Get([]byte(hash))
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+
+		val, err = snapshotDb.Get([]byte(hash))
+		assert.NotNil(t, val)
+		assert.Nil(t, err)
+	}
+}
+
 func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	t.Parallel()
 
@@ -1138,7 +1183,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	trieStub := &testscommon.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &testscommon.StorageManagerStub{
-				SetCheckpointCalled: func(rootHash []byte) {
+				SetCheckpointCalled: func(rootHash []byte, _ chan core.KeyValueHolder) {
 					snapshotMut.Lock()
 					setCheckPointWasCalled = true
 					snapshotMut.Unlock()
@@ -1156,6 +1201,48 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 	snapshotMut.Lock()
 	assert.True(t, setCheckPointWasCalled)
 	snapshotMut.Unlock()
+}
+
+func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
+	t.Parallel()
+
+	tr, adb := getDefaultTrieAndAccountsDb()
+
+	accountsAddresses := generateAccounts(t, 3, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
+	rootHash, _ := adb.Commit()
+
+	adb.SetStateCheckpoint(rootHash)
+	time.Sleep(time.Second)
+
+	trieDb := tr.GetStorageManager().Database()
+	err := trieDb.Remove(rootHash)
+	assert.Nil(t, err)
+	for hash := range newHashes {
+		err = trieDb.Remove([]byte(hash))
+		assert.Nil(t, err)
+	}
+
+	snapshotDb := tr.GetStorageManager().GetSnapshotThatContainsHash(rootHash)
+	assert.NotNil(t, snapshotDb)
+
+	val, err := trieDb.Get(rootHash)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	val, err = snapshotDb.Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	for hash := range newHashes {
+		val, err := trieDb.Get([]byte(hash))
+		assert.Nil(t, val)
+		assert.NotNil(t, err)
+
+		val, err = snapshotDb.Get([]byte(hash))
+		assert.NotNil(t, val)
+		assert.Nil(t, err)
+	}
 }
 
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
@@ -1934,7 +2021,6 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashesHolder(t *testing.T) {
 	t.Parallel()
 
-	newHashes := make(data.ModifiedHashes)
 	removeCommitedCalled := false
 	checkpointHashesHolder := &testscommon.CheckpointHashesHolderStub{
 		PutCalled: func(_ []byte, _ data.ModifiedHashes) bool {
@@ -1950,7 +2036,7 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
 	accountsAddresses := generateAccounts(t, 3, adb)
-	newHashes = modifyDataTries(t, accountsAddresses, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
 	newHashesMainTrie, _ := tr.GetDirtyHashes()
 	mergeMaps(newHashes, newHashesMainTrie)
 
@@ -1972,7 +2058,6 @@ func TestAccountsDB_SnapshotStateCommitsAllStateInOneDbAndCleansCheckpointHashes
 func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	t.Parallel()
 
-	newHashes := make(data.ModifiedHashes)
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(100000, testscommon.HashSize)
 	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder)
 
@@ -1983,7 +2068,7 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	assert.Nil(t, err)
 	checkpointHashesHolder.RemoveCommitted(rootHash)
 
-	newHashes = modifyDataTries(t, accountsAddresses, adb)
+	newHashes := modifyDataTries(t, accountsAddresses, adb)
 
 	_ = generateAccounts(t, 2, adb)
 
@@ -2123,6 +2208,143 @@ func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.Accoun
 	mergeMaps(newHashes, newHashesDataTrie)
 
 	return newHashes
+}
+
+func TestAccountsDB_GetCode(t *testing.T) {
+	t.Parallel()
+
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
+
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     mock.NewMemDbMock(),
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       config.DBConfig{},
+		GeneralConfig:          config.TrieStorageManagerConfig{},
+		CheckpointHashesHolder: &testscommon.CheckpointHashesHolderStub{},
+	}
+	storageManager, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
+	spm := disabled.NewDisabledStoragePruningManager()
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator(), spm)
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	userAcc := acc.(state.UserAccountHandler)
+	codeLen := 100000
+	code := make([]byte, codeLen)
+
+	n, err := rand.Read(code)
+	require.Nil(t, err)
+	require.Equal(t, codeLen, n)
+
+	userAcc.SetCode(code)
+	err = adb.SaveAccount(userAcc)
+	require.Nil(t, err)
+
+	codeHash := hasher.Compute(string(code))
+
+	retrievedCode := adb.GetCode(codeHash)
+	assert.Equal(t, retrievedCode, code)
+}
+
+func TestAccountsDB_ImportAccount(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	retrievedAcc, err := adb.GetExistingAccount(address)
+	assert.NotNil(t, err)
+	assert.Nil(t, retrievedAcc)
+
+	err = adb.ImportAccount(acc)
+	assert.Nil(t, err)
+
+	retrievedAcc, err = adb.GetExistingAccount(address)
+	assert.NotNil(t, retrievedAcc)
+	assert.Nil(t, err)
+}
+
+func TestAccountsDB_RecreateAllTries(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	addresses := generateAccounts(t, 2, adb)
+	_ = modifyDataTries(t, addresses, adb)
+
+	rootHash, _ := adb.Commit()
+
+	tries, err := adb.RecreateAllTries(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(tries))
+
+	_, ok := tries[string(rootHash)]
+	assert.True(t, ok)
+
+	for i := 0; i < len(addresses); i++ {
+		acc, _ := adb.LoadAccount(addresses[i])
+		rootHash = acc.(state.UserAccountHandler).GetRootHash()
+
+		_, ok = tries[string(rootHash)]
+		assert.True(t, ok)
+	}
+}
+
+func TestAccountsDB_GetTrie(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	addresses := generateAccounts(t, 2, adb)
+	_ = modifyDataTries(t, addresses, adb)
+
+	_, _ = adb.Commit()
+
+	for i := 0; i < len(addresses); i++ {
+		acc, _ := adb.LoadAccount(addresses[i])
+		rootHash := acc.(state.UserAccountHandler).GetRootHash()
+
+		tr, err := adb.GetTrie(rootHash)
+		assert.Nil(t, err)
+		assert.NotNil(t, tr)
+	}
+}
+
+func TestAccountsDB_Close(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	tr := &testscommon.TrieStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &testscommon.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return mock.NewMemDbMock()
+				},
+			}
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := &mock.HasherMock{}
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator(), spm)
+
+	err := adb.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {

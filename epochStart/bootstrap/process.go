@@ -503,6 +503,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
 		EpochNotifier:             e.epochNotifier,
+		RequestHandler:            e.requestHandler,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -978,6 +979,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)

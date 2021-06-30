@@ -1,14 +1,15 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // StorageManagerStub -
 type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
-	TakeSnapshotCalled                func([]byte, bool)
-	SetCheckpointCalled               func([]byte)
+	TakeSnapshotCalled                func([]byte, bool, chan core.KeyValueHolder)
+	SetCheckpointCalled               func([]byte, chan core.KeyValueHolder)
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
@@ -29,16 +30,16 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 }
 
 // TakeSnapshot -
-func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, newDB bool) {
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, newDB bool, leavesChan chan core.KeyValueHolder) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash, newDB)
+		sms.TakeSnapshotCalled(rootHash, newDB, leavesChan)
 	}
 }
 
 // SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte) {
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash)
+		sms.SetCheckpointCalled(rootHash, leavesChan)
 	}
 }
 

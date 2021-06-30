@@ -121,9 +121,16 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ data.DBWriteCacher, targetDb d
 	}
 
 	ln.dirty = false
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+
+	return err
 }
-func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
+func (ln *leafNode) commitCheckpoint(
+	_ data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	checkpointHashes data.CheckpointHashesHolder,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -139,17 +146,58 @@ func (ln *leafNode) commitCheckpoint(_ data.DBWriteCacher, targetDb data.DBWrite
 		return nil
 	}
 
+	err = writeNodeOnChannel(ln, leavesChan)
+	if err != nil {
+		return err
+	}
+
 	checkpointHashes.Remove(hash)
-	return encodeNodeAndCommitToDB(ln, targetDb)
+
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (ln *leafNode) commitSnapshot(_ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (ln *leafNode) commitSnapshot(
+	_ data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	return encodeNodeAndCommitToDB(ln, targetDb)
+	err = writeNodeOnChannel(ln, leavesChan)
+	if err != nil {
+		return err
+	}
+
+	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error {
+	if leavesChan == nil {
+		return nil
+	}
+
+	leafHash, err := computeAndSetNodeHash(ln)
+	if err != nil {
+		return err
+	}
+
+	trieLeaf := keyValStorage.NewKeyValStorage(leafHash, ln.Value)
+	leavesChan <- trieLeaf
+
+	return nil
 }
 
 func (ln *leafNode) getEncodedNode() ([]byte, error) {

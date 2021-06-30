@@ -32,6 +32,15 @@ type EconomicsHandlerStub struct {
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	RewardsTopUpGradientPointCalled              func() *big.Int
 	RewardsTopUpFactorCalled                     func() float64
+	ComputeGasLimitBasedOnBalanceCalled          func(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+}
+
+// ComputeGasLimitBasedOnBalance -
+func (fhs *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	if fhs.ComputeGasLimitBasedOnBalanceCalled != nil {
+		return fhs.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
+	}
+	return 0, nil
 }
 
 // MinGasPrice -

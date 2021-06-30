@@ -294,7 +294,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patricia
 		return nil, err
 	}
 
-	err = newRoot.commitSnapshot(db, tr.trieStorage.Database())
+	err = newRoot.commitSnapshot(db, tr.trieStorage.Database(), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -100,12 +100,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
 
-	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
-
 	time.Sleep(5 * time.Second)
 
 	err = managedProcessComponents.Close()

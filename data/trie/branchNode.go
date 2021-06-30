@@ -267,7 +267,7 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 		}
 	}
 	bn.dirty = false
-	err = encodeNodeAndCommitToDB(bn, targetDb)
+	_, err = encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}
@@ -285,7 +285,12 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
-func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder) error {
+func (bn *branchNode) commitCheckpoint(
+	originDb data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	checkpointHashes data.CheckpointHashesHolder,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit checkpoint error %w", err)
@@ -311,7 +316,7 @@ func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb dat
 			continue
 		}
 
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes)
+		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan)
 		if err != nil {
 			return err
 		}
@@ -321,7 +326,11 @@ func (bn *branchNode) commitCheckpoint(originDb data.DBWriteCacher, targetDb dat
 	return bn.saveToStorage(targetDb)
 }
 
-func (bn *branchNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commitSnapshot(
+	originDb data.DBWriteCacher,
+	targetDb data.DBWriteCacher,
+	leavesChan chan core.KeyValueHolder,
+) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit snapshot error %w", err)
@@ -337,7 +346,7 @@ func (bn *branchNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.
 			continue
 		}
 
-		err = bn.children[i].commitSnapshot(originDb, targetDb)
+		err = bn.children[i].commitSnapshot(originDb, targetDb, leavesChan)
 		if err != nil {
 			return err
 		}
@@ -347,7 +356,7 @@ func (bn *branchNode) commitSnapshot(originDb data.DBWriteCacher, targetDb data.
 }
 
 func (bn *branchNode) saveToStorage(targetDb data.DBWriteCacher) error {
-	err := encodeNodeAndCommitToDB(bn, targetDb)
+	_, err := encodeNodeAndCommitToDB(bn, targetDb)
 	if err != nil {
 		return err
 	}

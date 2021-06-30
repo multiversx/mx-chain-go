@@ -73,7 +73,7 @@ func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		nil,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -90,7 +90,7 @@ func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		nil,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -126,7 +126,7 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		nil,
 		maxNonceDeltaAllowed,
 	)
@@ -144,7 +144,7 @@ func TestNewTxValidator_ShouldWork(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -166,7 +166,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -191,7 +191,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -217,7 +217,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -245,7 +245,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -272,7 +272,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	txValidator, _ := dataValidators.NewTxValidator(
 		accDB,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -297,7 +297,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 	txValidator, _ := dataValidators.NewTxValidator(
 		accDB,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{
+		&testscommon.WhiteListHandlerStub{
 			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 				return true
 			},
@@ -335,7 +335,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 	txValidator, _ := dataValidators.NewTxValidator(
 		accDB,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -359,7 +359,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 	txValidator, _ := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
@@ -382,7 +382,7 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 	txValidator, _ := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		&mock.WhiteListHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		100,
 	)

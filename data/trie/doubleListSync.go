@@ -150,12 +150,15 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
 		if err != nil {
 			return err
 		}
 
 		d.trieSyncStatistics.AddNumReceived(1)
+		if numBytes > core.MaxBufferSizeToSendTrieNodes {
+			d.trieSyncStatistics.AddNumLarge(1)
+		}
 		d.resetWatchdog()
 
 		var children []node

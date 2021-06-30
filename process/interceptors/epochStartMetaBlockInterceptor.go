@@ -163,6 +163,11 @@ func (e *epochStartMetaBlockInterceptor) resetMaps() {
 	e.mutReceivedMetaBlocks.Unlock()
 }
 
+// Close returns nil
+func (e *epochStartMetaBlockInterceptor) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (e *epochStartMetaBlockInterceptor) IsInterfaceNil() bool {
 	return e == nil

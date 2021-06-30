@@ -165,13 +165,18 @@ func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (nf *disabledNodeFacade) GetAccount(_ string) (state.UserAccountHandler, error) {
-	return nil, errNodeStarting
+func (nf *disabledNodeFacade) GetAccount(_ string) (api.AccountResponse, error) {
+	return api.AccountResponse{}, errNodeStarting
 }
 
 // GetCode returns nil and error
-func (nf *disabledNodeFacade) GetCode(_ state.UserAccountHandler) []byte {
+func (nf *disabledNodeFacade) GetCode(_ []byte) []byte {
 	return nil
+}
+
+// DirectTrigger returns error
+func (nf *disabledNodeFacade) DirectTrigger(_ uint32, _ bool) error {
+	return errNodeStarting
 }
 
 // GetHeartbeats returns nil and error

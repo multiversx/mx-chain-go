@@ -30,6 +30,21 @@ func TestDataTriesHolder_PutAndGet(t *testing.T) {
 	assert.True(t, tr == tr1)
 }
 
+func TestDataTriesHolder_Replace(t *testing.T) {
+	t.Parallel()
+
+	tr1 := &testscommon.TrieStub{}
+	tr2 := &testscommon.TrieStub{}
+
+	dth := state.NewDataTriesHolder()
+	dth.Put([]byte("trie1"), tr1)
+	dth.Replace([]byte("trie1"), tr2)
+	retrievedTrie := dth.Get([]byte("trie1"))
+
+	assert.True(t, retrievedTrie == tr2)
+	assert.True(t, retrievedTrie != tr1)
+}
+
 func TestDataTriesHolder_GetAll(t *testing.T) {
 	t.Parallel()
 
@@ -78,5 +93,27 @@ func TestDataTriesHolder_Concurrency(t *testing.T) {
 	wg.Wait()
 
 	tries := dth.GetAll()
+	assert.Equal(t, numTries, len(tries))
+}
+
+func TestDataTriesHolder_GetAllTries(t *testing.T) {
+	t.Parallel()
+
+	dth := state.NewDataTriesHolder()
+	numTries := 50
+
+	wg := sync.WaitGroup{}
+	wg.Add(numTries)
+
+	for i := 0; i < numTries; i++ {
+		go func(key int) {
+			dth.Put([]byte(strconv.Itoa(key)), &testscommon.TrieStub{})
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	tries := dth.GetAllTries()
 	assert.Equal(t, numTries, len(tries))
 }

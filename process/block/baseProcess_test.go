@@ -343,7 +343,7 @@ func CreateMockArguments(
 			ForkDetector:        &mock.ForkDetectorMock{},
 			NodesCoordinator:    nodesCoordinator,
 			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &mock.RequestHandlerStub{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
@@ -375,7 +375,7 @@ func createMockTransactionCoordinatorArguments(
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:                          accountAdapter,
 		MiniBlockPool:                     poolsHolder.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
+		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     preProcessorsContainer,
 		InterProcessors:                   &mock.InterimProcessorContainerMock{},
 		GasHandler:                        &mock.GasHandlerMock{},
@@ -385,6 +385,7 @@ func createMockTransactionCoordinatorArguments(
 		EconomicsFee:                      &mock.FeeHandlerStub{},
 		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -465,7 +466,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
 
-//------- RevertState
+// ------- RevertState
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -533,7 +534,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	assert.True(t, removeFromDataPoolWasCalled)
 }
 
-//------- ComputeNewNoncePrevHash
+// ------- ComputeNewNoncePrevHash
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()
@@ -1083,7 +1084,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
@@ -1131,7 +1132,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)

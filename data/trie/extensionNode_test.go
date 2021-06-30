@@ -898,7 +898,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.commitDirty(0, 5, db, db)
-	_ = collapsedEn.commitSnapshot(db, db)
+	_ = collapsedEn.commitSnapshot(db, db, nil)
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -911,7 +911,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := mock.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db)
+	_ = en.commitSnapshot(db, db, nil)
 	dirtyHashes := make(data.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -936,7 +936,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := mock.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, db)
+	_ = en.commitSnapshot(db, db, nil)
 
 	hashes, err := collapsedEn.getAllHashes(db)
 	assert.Nil(t, err)

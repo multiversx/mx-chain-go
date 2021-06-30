@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	createNewDb   = true
-	useExistingDb = false
+	createNewDb       = true
+	useExistingDb     = false
+	leavesChannelSize = 100
 )
 
 var numCheckpointsKey = []byte("state checkpoint")
@@ -962,8 +963,9 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	go func() {
 		stopWatch := core.NewStopWatch()
 		stopWatch.Start("snapshotState")
-		trieStorageManager.TakeSnapshot(rootHash, createNewDb)
-		adb.snapshotUserAccountDataTrie(rootHash, true)
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+		trieStorageManager.TakeSnapshot(rootHash, createNewDb, leavesChannel)
+		adb.snapshotUserAccountDataTrie(true, leavesChannel)
 		stopWatch.Stop("snapshotState")
 
 		log.Debug("snapshotState", stopWatch.GetMeasurements()...)
@@ -973,17 +975,10 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	}()
 }
 
-func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, isSnapshot bool) {
-	// TODO improve GetAllLeaves to return only the accounts that have dirty data tries
-	leavesChannel, err := adb.GetAllLeaves(rootHash)
-	if err != nil {
-		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
-		return
-	}
-
+func (adb *AccountsDB) snapshotUserAccountDataTrie(isSnapshot bool, leavesChannel chan core.KeyValueHolder) {
 	for leaf := range leavesChannel {
 		account := &userAccount{}
-		err = adb.marshalizer.Unmarshal(account, leaf.Value())
+		err := adb.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
@@ -994,11 +989,11 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, isSnapshot b
 		}
 
 		if isSnapshot {
-			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, useExistingDb)
+			adb.mainTrie.GetStorageManager().TakeSnapshot(account.RootHash, useExistingDb, nil)
 			continue
 		}
 
-		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash)
+		adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash, nil)
 	}
 }
 
@@ -1018,8 +1013,9 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 	go func() {
 		stopWatch := core.NewStopWatch()
 		stopWatch.Start("setStateCheckpoint")
-		trieStorageManager.SetCheckpoint(rootHash)
-		adb.snapshotUserAccountDataTrie(rootHash, false)
+		leavesChannel := make(chan core.KeyValueHolder, leavesChannelSize)
+		trieStorageManager.SetCheckpoint(rootHash, leavesChannel)
+		adb.snapshotUserAccountDataTrie(false, leavesChannel)
 		stopWatch.Stop("setStateCheckpoint")
 
 		log.Debug("setStateCheckpoint", stopWatch.GetMeasurements()...)
