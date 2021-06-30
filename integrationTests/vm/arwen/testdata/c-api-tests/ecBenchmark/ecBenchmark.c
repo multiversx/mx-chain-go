@@ -1,7 +1,5 @@
-#include "../elrond/context.h"
-#include "../elrond/test_utils.h"
-#include "../elrond/bigInt.h"
-
+#include "../context.h"
+#include "../bigInt.h"
 
 typedef byte P224PRIVKEY[28];
 typedef byte P256PRIVKEY[32];
@@ -13,39 +11,43 @@ typedef byte P256MRESULT[65];
 typedef byte P384MRESULT[97];
 typedef byte P521MRESULT[133];
 
+const int p224SMResultLength = 28;
+const int p256SMResultLength = 32;
+const int p384SMResultLength = 48;
+const int p521SMResultLength = 66;
 typedef byte P224MCRESULT[29];
 typedef byte P256MCRESULT[33];
 typedef byte P384MCRESULT[49];
 typedef byte P521MCRESULT[67];
 
-const int LIMIT = 1000;
+const int LIMIT = 100;
 
 void init() 
 {
 }
 
-void initialVariablesAndCallsTest()
-{
-    int fieldOrderHandle = bigIntNew(0);
-    int basePointOrderHandle = bigIntNew(0);
-    int eqConstantHandle = bigIntNew(0);
-    int p224Handle = p224Ec();
-    int p224XBasePointHandle = bigIntNew(0);
-    int p224YBasePointHandle = bigIntNew(0);
-    ellipticCurveGetValues(p224Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p224XBasePointHandle,p224YBasePointHandle);
-    int p256Handle = p256Ec();
-    int p256XBasePointHandle = bigIntNew(0);
-    int p256YBasePointHandle = bigIntNew(0);
-    ellipticCurveGetValues(p256Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p256XBasePointHandle,p256YBasePointHandle);
-    int p384Handle = p384Ec();
-    int p384XBasePointHandle = bigIntNew(0);
-    int p384YBasePointHandle = bigIntNew(0);
-    ellipticCurveGetValues(p384Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p384XBasePointHandle,p384YBasePointHandle);
-    int p521Handle = p521Ec();
-    int p521XBasePointHandle = bigIntNew(0);
-    int p521YBasePointHandle = bigIntNew(0);
-    ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
-}
+// void initialVariablesAndCallsTest()
+// {
+//     int fieldOrderHandle = bigIntNew(0);
+//     int basePointOrderHandle = bigIntNew(0);
+//     int eqConstantHandle = bigIntNew(0);
+//     int p224Handle = p224Ec();
+//     int p224XBasePointHandle = bigIntNew(0);
+//     int p224YBasePointHandle = bigIntNew(0);
+//     ellipticCurveGetValues(p224Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p224XBasePointHandle,p224YBasePointHandle);
+//     int p256Handle = p256Ec();
+//     int p256XBasePointHandle = bigIntNew(0);
+//     int p256YBasePointHandle = bigIntNew(0);
+//     ellipticCurveGetValues(p256Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p256XBasePointHandle,p256YBasePointHandle);
+//     int p384Handle = p384Ec();
+//     int p384XBasePointHandle = bigIntNew(0);
+//     int p384YBasePointHandle = bigIntNew(0);
+//     ellipticCurveGetValues(p384Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p384XBasePointHandle,p384YBasePointHandle);
+//     int p521Handle = p521Ec();
+//     int p521XBasePointHandle = bigIntNew(0);
+//     int p521YBasePointHandle = bigIntNew(0);
+//     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
+// }
 
 void addEcTest()
 {
@@ -195,10 +197,10 @@ void marshalEcTest()
     int p521XBasePointHandle = bigIntNew(0);
     int p521YBasePointHandle = bigIntNew(0);
     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
-    P224MRESULT p224MarshalResult = { 0 };
-    P256MRESULT p256MarshalResult = { 0 };
-    P384MRESULT p384MarshalResult = { 0 };
-    P521MRESULT p521MarshalResult = { 0 };
+    P224MRESULT p224MarshalResult;
+    P256MRESULT p256MarshalResult;
+    P384MRESULT p384MarshalResult;
+    P521MRESULT p521MarshalResult;
     
     int i;
     for (i = 0; i < LIMIT/4; i++)
@@ -244,10 +246,10 @@ void unmarshalEcTest()
     int p521XBasePointHandle = bigIntNew(0);
     int p521YBasePointHandle = bigIntNew(0);
     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
-    P224MRESULT p224MarshalResult = { 0 };
-    P256MRESULT p256MarshalResult = { 0 };
-    P384MRESULT p384MarshalResult = { 0 };
-    P521MRESULT p521MarshalResult = { 0 };
+    P224MRESULT p224MarshalResult;
+    P256MRESULT p256MarshalResult;
+    P384MRESULT p384MarshalResult;
+    P521MRESULT p521MarshalResult;
     
     int i;
     for (i = 0; i < LIMIT/4; i++)
@@ -297,10 +299,10 @@ void marshalCompressedEcTest()
     int p521XBasePointHandle = bigIntNew(0);
     int p521YBasePointHandle = bigIntNew(0);
     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
-    P224MCRESULT p224MarshalResult = { 0 };
-    P256MCRESULT p256MarshalResult = { 0 };
-    P384MCRESULT p384MarshalResult = { 0 };
-    P521MCRESULT p521MarshalResult = { 0 };
+    P224MCRESULT p224MarshalResult;
+    P256MCRESULT p256MarshalResult;
+    P384MCRESULT p384MarshalResult;
+    P521MCRESULT p521MarshalResult;
     
     int i;
     for (i = 0; i < LIMIT/4; i++)
@@ -346,10 +348,10 @@ void unmarshalCompressedEcTest()
     int p521XBasePointHandle = bigIntNew(0);
     int p521YBasePointHandle = bigIntNew(0);
     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
-    P224MCRESULT p224MarshalResult = { 0 };
-    P256MCRESULT p256MarshalResult = { 0 };
-    P384MCRESULT p384MarshalResult = { 0 };
-    P521MCRESULT p521MarshalResult = { 0 };
+    P224MCRESULT p224MarshalResult;
+    P256MCRESULT p256MarshalResult;
+    P384MCRESULT p384MarshalResult;
+    P521MCRESULT p521MarshalResult;
     
     int i;
     for (i = 0; i < LIMIT/4; i++)
@@ -387,10 +389,10 @@ void generateKeyEcTest()
     int p384Handle = p384Ec();
     int p521Handle = p521Ec();
     int i;
-    P224PRIVKEY p224PrivKey = { 0 };
-    P256PRIVKEY p256PrivKey = { 0 };
-    P384PRIVKEY p384PrivKey = { 0 };
-    P521PRIVKEY p521PrivKey = { 0 };
+    P224PRIVKEY p224PrivKey;
+    P256PRIVKEY p256PrivKey;
+    P384PRIVKEY p384PrivKey;
+    P521PRIVKEY p521PrivKey;
 
     for (i = 0; i < LIMIT/4; i++)
     {
@@ -408,7 +410,7 @@ void generateKeyEcTest()
     {
         generateKeyEC(xPubKeyHandle,yPubKeyHandle,p521Handle,p521PrivKey);
     }
-}
+ }
 
 void scalarMultEcTest()
 {
@@ -432,10 +434,10 @@ void scalarMultEcTest()
     int p521YBasePointHandle = bigIntNew(0);
     ellipticCurveGetValues(p521Handle,fieldOrderHandle,basePointOrderHandle,eqConstantHandle,p521XBasePointHandle,p521YBasePointHandle);
 
-    P224PRIVKEY p224Scalar = { 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x0e, 0x00, 0xff};
-    P256PRIVKEY p256Scalar = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37};
-    P384PRIVKEY p384Scalar = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37, 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00};
-    P521PRIVKEY p521Scalar = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37, 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00, 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40};    
+    byte p224Scalar[p224SMResultLength] = { 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x0e, 0x00, 0xff};
+    byte p256Scalar[p256SMResultLength] = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37};
+    byte p384Scalar[p384SMResultLength] = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37, 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00};
+    byte p521Scalar[p521SMResultLength] = { 0x2a, 0x26, 0x5f, 0x8b, 0xcb, 0xdc, 0xaf, 0x94, 0xd5, 0x85, 0x19, 0x14, 0x1e, 0x57, 0x81, 0x24, 0xcb, 0x40, 0xd6, 0x4a, 0x50, 0x1f, 0xba, 0x9c, 0x11, 0x84, 0x7b, 0x28, 0x96, 0x5b, 0xc7, 0x37, 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00, 0x7f, 0xff, 0xff, 0xc0, 0x3f, 0xff, 0xc0, 0x03, 0xff, 0xff, 0xfc, 0x00, 0x7f, 0xff, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x0e, 0x00, 0xff};    
 
     int i;
     for (i = 0; i < LIMIT/4; i++)
@@ -456,6 +458,6 @@ void scalarMultEcTest()
     for ( i = 0; i < LIMIT/4; i++)
     {
         doubleEC(p521XBasePointHandle,p521YBasePointHandle,p521Handle,p521XBasePointHandle,p521YBasePointHandle);
-        scalarMultEC(fieldOrderHandle,basePointOrderHandle,p521Handle,p521XBasePointHandle,p521YBasePointHandle,p521Scalar,66);
+      //  scalarMultEC(fieldOrderHandle,basePointOrderHandle,p521Handle,p521XBasePointHandle,p521YBasePointHandle,p521Scalar,66);
     }
 }
