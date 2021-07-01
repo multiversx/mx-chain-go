@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -92,7 +92,7 @@ func DoDeploySecond(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	pathToContract string,
-	senderAccount state.AccountHandler,
+	senderAccount vmcommon.AccountHandler,
 	gasPrice uint64,
 	gasLimit uint64,
 	args [][]byte,

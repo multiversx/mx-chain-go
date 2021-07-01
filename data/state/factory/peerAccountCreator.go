@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // PeerAccountCreator has a method to create a new peer account
@@ -14,7 +15,7 @@ func NewPeerAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (pac *PeerAccountCreator) CreateAccount(address []byte) (state.AccountHandler, error) {
+func (pac *PeerAccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return state.NewPeerAccount(address)
 }
 

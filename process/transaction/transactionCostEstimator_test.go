@@ -8,14 +8,13 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,7 +74,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return &transaction.SimulationResults{}, nil
 		},
 	}, &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 		},
 	}, &mock.ShardCoordinatorStub{})
@@ -107,7 +106,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 				}, nil
 			},
 		}, &mock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{})
@@ -134,7 +133,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 				return nil, localErr
 			},
 		}, &mock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{})
@@ -160,7 +159,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 				return &transaction.SimulationResults{}, nil
 			},
 		}, &mock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{})
@@ -190,7 +189,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 				}, nil
 			},
 		}, &mock.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountStub{Balance: big.NewInt(100000)}, nil
 			},
 		}, &mock.ShardCoordinatorStub{})
