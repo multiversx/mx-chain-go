@@ -123,7 +123,10 @@ func TestManagedDataComponents_Close_ShouldWork(t *testing.T) {
 
 func getDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsFactoryArgs {
 	return factory.DataComponentsFactoryArgs{
-		Config:                        testscommon.GetGeneralConfig(),
+		Config: testscommon.GetGeneralConfig(),
+		PrefsConfig: config.PreferencesConfig{
+			FullArchive: false,
+		},
 		ShardCoordinator:              shardCoordinator,
 		Core:                          coreComponents,
 		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
