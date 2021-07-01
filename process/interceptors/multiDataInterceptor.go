@@ -244,11 +244,9 @@ func (mdi *MultiDataInterceptor) SetChunkProcessor(processor process.Intercepted
 
 // Close will call the chunk processor's close method
 func (mdi *MultiDataInterceptor) Close() error {
-	log.Debug("entering MultiDataInterceptor.Close()")
 	mdi.mutChunksProcessor.RLock()
 	defer mdi.mutChunksProcessor.RUnlock()
 
-	log.Debug("entering MultiDataInterceptor.AcquiredRLock()")
 	return mdi.chunksProcessor.Close()
 }
 
