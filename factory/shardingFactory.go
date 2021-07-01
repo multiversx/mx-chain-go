@@ -101,7 +101,11 @@ func CreateNodesCoordinator(
 	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
 	waitingListFixEnabledEpoch uint32,
+	chanNodeStop chan endProcess.ArgEndProcess,
 ) (sharding.NodesCoordinator, error) {
+	if chanNodeStop == nil {
+		return nil, sharding.ErrNilNodeStopChannel
+	}
 	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 	if err != nil {
 		return nil, err
@@ -184,6 +188,8 @@ func CreateNodesCoordinator(
 		Epoch:                      currentEpoch,
 		StartEpoch:                 startEpoch,
 		WaitingListFixEnabledEpoch: waitingListFixEnabledEpoch,
+		ChanStopNode:               chanNodeStop,
+		IsFullArchive:              prefsConfig.FullArchive,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

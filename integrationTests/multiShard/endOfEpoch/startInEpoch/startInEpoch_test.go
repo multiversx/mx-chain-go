@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -197,6 +198,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}
+	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: cryptoComponents,
