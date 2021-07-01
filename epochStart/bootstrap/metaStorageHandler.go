@@ -29,6 +29,7 @@ type metaStorageHandler struct {
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
 func NewMetaStorageHandler(
 	generalConfig config.Config,
+	prefsConfig config.PreferencesConfig,
 	shardCoordinator sharding.Coordinator,
 	pathManagerHandler storage.PathManagerHandler,
 	marshalizer marshal.Marshalizer,
@@ -39,6 +40,7 @@ func NewMetaStorageHandler(
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
+		&prefsConfig,
 		shardCoordinator,
 		pathManagerHandler,
 		epochStartNotifier,
