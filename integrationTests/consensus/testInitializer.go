@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const blsConsensusType = "bls"
@@ -173,7 +174,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
+		CreateAccountCalled: func(address []byte) (wrapper vmcommon.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
 	})

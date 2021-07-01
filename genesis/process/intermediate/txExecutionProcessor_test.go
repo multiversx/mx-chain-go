@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,7 +84,7 @@ func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -103,7 +103,7 @@ func TestTxExecutionProcessor_GetNonceShouldWork(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: nonce,
 				}, nil
@@ -126,7 +126,7 @@ func TestTxExecutionProcessor_AddBalanceAccountsErrShouldErr(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -144,7 +144,7 @@ func TestTxExecutionProcessor_AddBalanceWrongTypeShouldErr(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: nonce,
 				}, nil
@@ -163,7 +163,7 @@ func TestTxExecutionProcessor_AddBalanceNegativeValueShouldErr(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountMock{
 					BalanceField: big.NewInt(0),
 				}, nil
@@ -184,12 +184,12 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.UserAccountMock{
 					BalanceField: big.NewInt(0).Set(initialBalance),
 				}, nil
 			},
-			SaveAccountCalled: func(account state.AccountHandler) error {
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 				expectedBalance := big.NewInt(0).Set(initialBalance)
 				expectedBalance.Add(expectedBalance, added)
 
@@ -216,7 +216,7 @@ func TestTxExecutionProcessor_AddNonceAccountsErrShouldErr(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -235,12 +235,12 @@ func TestTxExecutionProcessor_AddNonceShouldWork(t *testing.T) {
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&mock.AccountsStub{
-			LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
 				return &mock.BaseAccountMock{
 					Nonce: initialNonce,
 				}, nil
 			},
-			SaveAccountCalled: func(account state.AccountHandler) error {
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 				if account.GetNonce() == initialNonce+addedNonce {
 					return nil
 				}

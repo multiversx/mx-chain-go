@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -834,7 +835,7 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 
 	args := getBaseRewardsArguments()
 	args.UserAccountsDB = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.UserAccountStub{
 				DataTrieTrackerCalled: func() state.DataTrieTracker {
 					return &mock.DataTrieTrackerStub{

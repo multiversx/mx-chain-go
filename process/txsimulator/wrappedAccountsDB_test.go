@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +32,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	failErrMsg := "this function should have not be called"
 	accDb := &mock.AccountsStub{
-		SaveAccountCalled: func(account state.AccountHandler) error {
+		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 			t.Errorf(failErrMsg)
 			return nil
 		},
@@ -110,10 +110,10 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedNumCheckpoints := uint32(7)
 
 	accDb := &mock.AccountsStub{
-		GetExistingAccountCalled: func(_ []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return expectedAcc, nil
 		},
-		LoadAccountCalled: func(_ []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return expectedAcc, nil
 		},
 		JournalLenCalled: func() int {
