@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,8 +25,8 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		Accounts:         &mock.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		ScProcessor:      &mock.SCProcessorMock{},
-		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		ScProcessor:      &testscommon.SCProcessorMock{},
+		TxTypeHandler:    &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:     createFreeTxFeeHandler(),
 		ESDTEnableEpoch:  0,
 		EpochNotifier:    &mock.EpochNotifierStub{},
@@ -191,7 +192,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	called := false
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
-	args.ScProcessor = &mock.SCProcessorMock{
+	args.ScProcessor = &testscommon.SCProcessorMock{
 		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
 			called = true
 			return nil
@@ -231,7 +232,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		saveAccountCalled++
 		return nil
 	}
-	scProcessorMock := &mock.SCProcessorMock{}
+	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
@@ -242,7 +243,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
-	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},
@@ -279,7 +280,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		return nil
 	}
 
-	scProcessorMock := &mock.SCProcessorMock{}
+	scProcessorMock := &testscommon.SCProcessorMock{}
 
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
@@ -290,7 +291,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
-	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},
@@ -337,7 +338,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return nil
 	}
 
-	scProcessorMock := &mock.SCProcessorMock{}
+	scProcessorMock := &testscommon.SCProcessorMock{}
 	wasCalled := false
 	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true

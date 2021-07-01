@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return core.SafeMul(tx.GetGasPrice(), gasToUse)
 			},
 		},
-		TxTypeHandler: &mock.TxTypeHandlerMock{},
+		TxTypeHandler: &testscommon.TxTypeHandlerMock{},
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -3002,7 +3003,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
+	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCDeployment, process.SCDeployment
 		},
@@ -3063,7 +3064,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 			}, nil
 		},
 	}
-	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
+	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},
@@ -3126,7 +3127,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			}, nil
 		},
 	}
-	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
+	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
@@ -3197,7 +3198,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 			}, nil
 		},
 	}
-	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
+	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		},

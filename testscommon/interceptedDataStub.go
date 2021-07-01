@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // InterceptedDataStub -
 type InterceptedDataStub struct {
