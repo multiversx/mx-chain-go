@@ -17,9 +17,9 @@ import (
 func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor {
 	return ArgsPendingTransactionProcessor{
 		Accounts:         &testscommon.AccountsStub{},
-		TxProcessor:      &mock.TxProcessorMock{},
-		RwdTxProcessor:   &mock.RewardTxProcessorMock{},
-		ScrTxProcessor:   &mock.SCProcessorMock{},
+		TxProcessor:      &testscommon.TxProcessorMock{},
+		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
+		ScrTxProcessor:   &testscommon.SCProcessorMock{},
 		PubKeyConv:       &mock.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
@@ -56,7 +56,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	_ = shardCoordinator.SetSelfId(1)
 	args.ShardCoordinator = shardCoordinator
 
-	args.TxProcessor = &mock.TxProcessorMock{
+	args.TxProcessor = &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			if bytes.Equal(transaction.SndAddr, addr4) {
 				return 0, errors.New("localErr")
