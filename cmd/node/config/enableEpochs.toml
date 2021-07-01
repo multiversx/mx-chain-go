@@ -93,6 +93,8 @@
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 1000000
 
+    RelayedTransactionsV2EnableEpoch = 1000000
+
     # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
