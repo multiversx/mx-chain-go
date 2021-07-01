@@ -403,7 +403,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		PubKey:             pubKey,
 		ShardIdAsObserver:  shardId,
 		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		IsFullArchive:      sesb.generalConfig.StoragePruning.FullArchive,
+		IsFullArchive:      sesb.prefsConfig.FullArchive,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

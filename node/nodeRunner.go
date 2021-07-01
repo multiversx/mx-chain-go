@@ -279,7 +279,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
-		configs.GeneralConfig.StoragePruning.FullArchive,
 	)
 	if err != nil {
 		return true, err
