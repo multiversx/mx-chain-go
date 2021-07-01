@@ -275,7 +275,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
 	errExpected := errors.New("expected err")
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -338,7 +338,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},
@@ -462,7 +462,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
 	arg := createMockArgMultiDataInterceptor()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -514,7 +514,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -569,7 +569,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	marshalizer := &mock.MarshalizerMock{}
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},
@@ -651,7 +651,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},

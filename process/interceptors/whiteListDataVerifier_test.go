@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -91,7 +90,7 @@ func TestWhiteListDataVerifier_IsWhiteListedNotFoundShouldRetFalse(t *testing.T)
 		},
 	)
 
-	ids := &mock.InterceptedDataStub{
+	ids := &testscommon.InterceptedDataStub{
 		HashCalled: func() []byte {
 			return keyCheck
 		},
@@ -112,7 +111,7 @@ func TestWhiteListDataVerifier_IsWhiteListedFoundShouldRetTrue(t *testing.T) {
 		},
 	)
 
-	ids := &mock.InterceptedDataStub{
+	ids := &testscommon.InterceptedDataStub{
 		IdentifiersCalled: func() [][]byte {
 			return [][]byte{keyCheck}
 		},
