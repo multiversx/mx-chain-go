@@ -25,8 +25,10 @@ type RewardsCreatorProxyArgs struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
-	RewardsHandler        process.RewardsHandler
 	EpochEnableV2         uint32
+
+	TopUpRewardFactor  float64
+	TopUpGradientPoint *big.Int
 }
 
 type rewardsCreatorProxy struct {
@@ -185,7 +187,9 @@ func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (*rewardsCreatorV2, err
 		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
 		StakingDataProvider:    rcp.args.StakingDataProvider,
 		EconomicsDataProvider:  rcp.args.EconomicsDataProvider,
-		RewardsHandler:         rcp.args.RewardsHandler,
+
+		TopUpRewardFactor:  rcp.args.TopUpRewardFactor,
+		TopUpGradientPoint: rcp.args.TopUpGradientPoint,
 	}
 
 	return NewRewardsCreatorV2(argsV2)
