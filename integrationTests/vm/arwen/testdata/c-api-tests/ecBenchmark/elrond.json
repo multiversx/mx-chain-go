@@ -1,0 +1,6 @@
+{
+    "language": "clang",
+    "source_files": [
+        "ecBenchmark.c"
+    ]
+}

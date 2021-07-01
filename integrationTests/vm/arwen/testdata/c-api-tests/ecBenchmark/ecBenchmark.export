@@ -1,5 +1,4 @@
 init
-initialVariablesAndCallsTest
 addEcTest
 doubleEcTest
 isOnCurveEcTest
