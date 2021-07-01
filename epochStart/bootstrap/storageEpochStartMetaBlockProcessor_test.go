@@ -125,7 +125,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAHeader(t *testing.T) {
 		&mock.HasherMock{},
 	)
 
-	err := sesmbp.Save(&mock.InterceptedDataStub{}, "", "")
+	err := sesmbp.Save(&testscommon.InterceptedDataStub{}, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
 	assert.True(t, check.IfNil(mb))

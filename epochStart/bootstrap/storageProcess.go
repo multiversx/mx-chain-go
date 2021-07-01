@@ -263,6 +263,7 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		&sesb.generalConfig,
+		&sesb.prefsConfig,
 		shardCoordinator,
 		pathManager,
 		mesn,

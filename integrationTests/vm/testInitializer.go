@@ -452,7 +452,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		ShardCoordinator: oneShardCoordinator,
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		EconomicsFee:     economicsData,
 		TxTypeHandler:    txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
@@ -478,7 +478,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		SignMarshalizer:                testMarshalizer,
 		ShardCoordinator:               oneShardCoordinator,
 		ScProcessor:                    scProcessor,
-		TxFeeHandler:                   &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:                   &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:                  txTypeHandler,
 		EconomicsFee:                   economicsData,
 		ReceiptForwarder:               &mock.IntermediateTransactionHandlerMock{},

@@ -179,7 +179,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -206,7 +206,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		nil,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -233,7 +233,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -260,7 +260,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		nil,
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -314,7 +314,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		nil,
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -341,7 +341,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		requestTransaction,
@@ -367,7 +367,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		nil,
@@ -394,7 +394,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -421,7 +421,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -448,7 +448,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -475,7 +475,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -502,7 +502,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -529,7 +529,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -556,7 +556,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -762,9 +762,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -832,9 +833,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -907,9 +909,10 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			return 0, nil
-		}},
+		&testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
+			}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -1058,7 +1061,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&testscommon.AccountsStub{},
 		requestTransaction,
@@ -1099,7 +1102,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, nil
 			},
@@ -1175,7 +1178,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				nbTxsProcessed++
 				return vmcommon.Ok, nil

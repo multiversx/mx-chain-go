@@ -971,6 +971,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:                        *configs.GeneralConfig,
+		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
