@@ -20,33 +20,7 @@ typedef byte P256MCRESULT[33];
 typedef byte P384MCRESULT[49];
 typedef byte P521MCRESULT[67];
 
-const int LIMIT = 10000;
-
-void* memset(void *dest, int c, unsigned long n);
-void* memset(void *dest, int c, unsigned long n)
-{
-    int i;
-    char *cdest = (char *)dest;
-    for (i = 0; i < n; i++)
-    {
-        cdest[i] = c;
-    }
-    return dest;
-}
-
-void *memcpy(void *dest, const void *src, unsigned long n);
-void *memcpy(void *dest, const void *src, unsigned long n)
-{
-    char *csrc = (char *)src;
-    char *cdest = (char *)dest;
-
-    for (int i = 0; i < n; i++)
-    {
-        cdest[i] = csrc[i];
-    }
-
-    return dest;
-}
+const int LIMIT = 1000;
 
 void init() 
 {

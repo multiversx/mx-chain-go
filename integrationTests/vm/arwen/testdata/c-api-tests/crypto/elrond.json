@@ -1,7 +1,7 @@
 {
     "language": "clang",
     "source_files": [
-        "ecBenchmark.c",
+        "cryptoTest.c",
         "../cbuiltins.c"
     ]
 }
