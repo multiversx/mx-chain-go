@@ -108,10 +108,10 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},
@@ -136,10 +136,10 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},
@@ -166,10 +166,10 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hdrInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return []byte("hash")
 			},
