@@ -77,6 +77,11 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 
 // EpochConfirmed is called whenever the epoch was changed and will cause the re-computation of the network's current epoch
 func (aep *arithmeticEpochProvider) EpochConfirmed(newEpoch uint32, newTimestamp uint64) {
+	isTimestampInvalid := newTimestamp == 0
+	if isTimestampInvalid {
+		return
+	}
+
 	aep.Lock()
 	aep.headerEpoch = newEpoch
 	aep.headerTimestampForNewEpoch = newTimestamp

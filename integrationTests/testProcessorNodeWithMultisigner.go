@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -511,6 +512,8 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ConsensusGroupCache:        consensusCache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -607,6 +610,8 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ConsensusGroupCache:        cache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

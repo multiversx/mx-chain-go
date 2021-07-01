@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -121,6 +122,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
+	prefsConfig := config.PreferencesConfig{
+		FullArchive: false,
+	}
 
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
@@ -194,12 +198,16 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}
+	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		CryptoComponentsHolder:     cryptoComponents,
-		CoreComponentsHolder:       coreComponents,
-		Messenger:                  nodeToJoinLate.Messenger,
-		GeneralConfig:              generalConfig,
+		CryptoComponentsHolder: cryptoComponents,
+		CoreComponentsHolder:   coreComponents,
+		Messenger:              nodeToJoinLate.Messenger,
+		GeneralConfig:          generalConfig,
+		PrefsConfig: config.PreferencesConfig{
+			FullArchive: false,
+		},
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
@@ -225,6 +233,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
+		&prefsConfig,
 		shardC,
 		&testscommon.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),

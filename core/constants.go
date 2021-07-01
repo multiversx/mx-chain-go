@@ -641,6 +641,9 @@ const SCDeployInitFunctionName = "_init"
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 
+// WrongConfiguration signals that the node has a malformed configuration and cannot continue processing
+const WrongConfiguration = "wrongConfiguration"
+
 // ImportComplete signals that a node restart will be done because the import did complete
 const ImportComplete = "importComplete"
 

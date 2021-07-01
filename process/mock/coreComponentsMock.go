@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,6 +29,16 @@ type CoreComponentsMock struct {
 	EpochNotifierField          process.EpochNotifier
 	RoundField                  consensus.RoundHandler
 	StatusField                 core.AppStatusHandler
+	ChanStopNode                chan endProcess.ArgEndProcess
+}
+
+// ChanStopNodeProcess -
+func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
+	if ccm.ChanStopNode != nil {
+		return ccm.ChanStopNode
+	}
+
+	return endProcess.GetDummyEndProcessChannel()
 }
 
 // InternalMarshalizer -

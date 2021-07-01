@@ -278,6 +278,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
 	)
 	if err != nil {
 		return true, err
@@ -682,6 +683,9 @@ func waitForSignal(
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
+	wrongConfig := false
+	wrongConfigDescription := ""
+
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -689,6 +693,10 @@ func waitForSignal(
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 		if sig.Reason == core.ShuffledOut {
 			reshuffled = true
+		}
+		if sig.Reason == core.WrongConfiguration {
+			wrongConfig = true
+			wrongConfigDescription = sig.Description
 		}
 	}
 
@@ -703,6 +711,15 @@ func waitForSignal(
 	case <-time.After(maxTimeToClose):
 		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
 		return fmt.Errorf("did NOT close all components gracefully")
+	}
+
+	if wrongConfig {
+		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
+		// change this behaviour
+		for {
+			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
+			time.Sleep(1 * time.Minute)
+		}
 	}
 
 	if reshuffled {
@@ -971,6 +988,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:                        *configs.GeneralConfig,
+		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
