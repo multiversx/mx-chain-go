@@ -144,7 +144,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
-		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
+		nodesConfig.shardID, _ = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
 		log.Debug("registry to nodes coordinator", "epoch", epoch32)

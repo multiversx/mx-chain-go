@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -500,6 +501,8 @@ func createNodes(
 			ConsensusGroupCache:        consensusCache,
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
