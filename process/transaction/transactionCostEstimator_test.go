@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, nil, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -38,7 +39,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, tce)
 	require.Equal(t, txsimulator.ErrNilTxSimulatorProcessor, err)
@@ -47,7 +48,7 @@ func TestTransactionCostEstimator_NilTransactionSimulatorShouldErr(t *testing.T)
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
+	tce, err := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.TransactionSimulatorStub{}, &mock.AccountsStub{}, &mock.ShardCoordinatorStub{})
 
 	require.Nil(t, err)
 	require.False(t, check.IfNil(tce))
@@ -57,7 +58,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	t.Parallel()
 
 	consumedGasUnits := uint64(1000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.MoveBalance, process.MoveBalance
 		},
@@ -86,7 +87,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 
 func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	consumedGasUnits := uint64(4000)
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
@@ -118,7 +119,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 
 func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
@@ -144,7 +145,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
@@ -170,7 +171,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 }
 
 func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
-	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
+	tce, _ := NewTransactionCostEstimator(&testscommon.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
@@ -203,7 +204,7 @@ func TestTransactionCostEstimator_RelayedTxShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tce, _ := NewTransactionCostEstimator(
-		&mock.TxTypeHandlerMock{
+		&testscommon.TxTypeHandlerMock{
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.RelayedTx, process.RelayedTx
 			},

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -16,9 +17,9 @@ import (
 func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor {
 	return ArgsPendingTransactionProcessor{
 		Accounts:         &mock.AccountsStub{},
-		TxProcessor:      &mock.TxProcessorMock{},
-		RwdTxProcessor:   &mock.RewardTxProcessorMock{},
-		ScrTxProcessor:   &mock.SCProcessorMock{},
+		TxProcessor:      &testscommon.TxProcessorMock{},
+		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
+		ScrTxProcessor:   &testscommon.SCProcessorMock{},
 		PubKeyConv:       &mock.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
@@ -55,7 +56,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	_ = shardCoordinator.SetSelfId(1)
 	args.ShardCoordinator = shardCoordinator
 
-	args.TxProcessor = &mock.TxProcessorMock{
+	args.TxProcessor = &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			if bytes.Equal(transaction.SndAddr, addr4) {
 				return 0, errors.New("localErr")

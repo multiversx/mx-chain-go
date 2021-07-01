@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -522,8 +523,8 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		Marshalizer:      testMarshalizer,
 		SignMarshalizer:  testMarshalizer,
 		ShardCoordinator: shardCoordinator,
-		ScProcessor:      &mock.SCProcessorMock{},
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		ScProcessor:      &testscommon.SCProcessorMock{},
+		TxFeeHandler:     &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     &mock.FeeHandlerStub{},
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},

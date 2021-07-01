@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -12,9 +12,19 @@ import (
 type SCProcessorMock struct {
 	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
 	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunctionCalled          func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
-	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
+	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
+	IsPayableCalled                       func(address []byte) (bool, error)
+}
+
+// IsPayable -
+func (sc *SCProcessorMock) IsPayable(address []byte) (bool, error) {
+	if sc.IsPayableCalled != nil {
+		return sc.IsPayableCalled(address)
+	}
+	return true, nil
 }
 
 // ProcessIfError -
@@ -25,9 +35,10 @@ func (sc *SCProcessorMock) ProcessIfError(
 	returnCode string,
 	returnMessage []byte,
 	snapshot int,
+	gasLocked uint64,
 ) error {
 	if sc.ProcessIfErrorCalled != nil {
-		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, returnMessage, snapshot)
+		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked)
 	}
 	return nil
 }
@@ -51,6 +62,18 @@ func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	}
 
 	return sc.ExecuteSmartContractTransactionCalled(tx, acntSrc, acntDst)
+}
+
+// ExecuteBuiltInFunction -
+func (sc *SCProcessorMock) ExecuteBuiltInFunction(
+	tx data.TransactionHandler,
+	acntSrc, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	if sc.ExecuteBuiltInFunctionCalled == nil {
+		return 0, nil
+	}
+
+	return sc.ExecuteBuiltInFunctionCalled(tx, acntSrc, acntDst)
 }
 
 // DeploySmartContract -

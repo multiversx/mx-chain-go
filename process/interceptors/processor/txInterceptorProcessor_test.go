@@ -87,7 +87,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
 	err := txip.Validate(txInterceptedData, "")
@@ -108,7 +108,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
 	err := txip.Validate(txInterceptedData, "")
@@ -133,10 +133,10 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	addedWasCalled := false
 	txInterceptedData := &struct {
-		mock.InterceptedDataStub
+		testscommon.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{
-		InterceptedDataStub: mock.InterceptedDataStub{
+		InterceptedDataStub: testscommon.InterceptedDataStub{
 			HashCalled: func() []byte {
 				return make([]byte, 0)
 			},

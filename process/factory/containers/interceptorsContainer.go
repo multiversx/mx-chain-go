@@ -129,6 +129,7 @@ func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor pr
 func (ic *interceptorsContainer) Close() error {
 	var errFound error
 	ic.Iterate(func(key string, interceptor process.Interceptor) bool {
+		log.Debug("interceptorsContainer closing interceptor", "key", key)
 		err := interceptor.Close()
 		if err != nil {
 			log.Error("error closing interceptor", "key", key, "error", err)

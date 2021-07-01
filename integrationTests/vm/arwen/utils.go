@@ -158,8 +158,8 @@ func SetupTestContext(t *testing.T) *TestContext {
 }
 
 func (context *TestContext) initFeeHandlers() {
-	context.UnsignexTxHandler = &mock.UnsignedTxHandlerMock{
-		ProcessTransactionFeeCalled: func(cost *big.Int, hash []byte) {
+	context.UnsignexTxHandler = &testscommon.UnsignedTxHandlerStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
 			context.LastConsumedFee = cost.Uint64()
 		},
 	}

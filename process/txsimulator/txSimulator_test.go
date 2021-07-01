@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -112,7 +113,7 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	expRetCode := vmcommon.Ok
 	expErr := errors.New("transaction failed")
 	args := getTxSimulatorArgs()
-	args.TransactionProcessor = &mock.TxProcessorStub{
+	args.TransactionProcessor = &testscommon.TxProcessorStub{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			return expRetCode, expErr
 		},
@@ -217,7 +218,7 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 
 func getTxSimulatorArgs() ArgsTxSimulator {
 	return ArgsTxSimulator{
-		TransactionProcessor:      &mock.TxProcessorStub{},
+		TransactionProcessor:      &testscommon.TxProcessorStub{},
 		IntermediateProcContainer: &mock.IntermProcessorContainerStub{},
 		AddressPubKeyConverter:    &mock.PubkeyConverterMock{},
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),

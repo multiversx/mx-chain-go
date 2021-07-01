@@ -115,6 +115,22 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 	assert.Equal(t, uint32(2), aep.CurrentComputedEpoch())
 }
 
+func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
+	t.Parallel()
+
+	arg := ArgArithmeticEpochProvider{
+		RoundsPerEpoch:          2400,
+		RoundTimeInMilliseconds: 6000,
+		StartTime:               1000,
+	}
+	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
+	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+
+	aep.EpochConfirmed(1000, 0)
+
+	assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
+}
+
 func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 	t.Parallel()
 

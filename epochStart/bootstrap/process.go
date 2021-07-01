@@ -80,6 +80,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
+	prefsConfig                config.PreferencesConfig
 	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -141,6 +142,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
+	PrefsConfig                config.PreferencesConfig
 	EpochConfig                config.EpochConfig
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -167,6 +169,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
+		prefsConfig:                args.PrefsConfig,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
@@ -707,6 +710,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
 		e.generalConfig,
+		e.prefsConfig,
 		e.shardCoordinator,
 		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
@@ -806,6 +810,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
+		e.prefsConfig,
 		e.shardCoordinator,
 		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
