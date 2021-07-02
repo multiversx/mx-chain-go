@@ -24,7 +24,7 @@ func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 }
 
@@ -99,7 +99,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -159,7 +159,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -228,7 +228,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -274,7 +274,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 		},
 		Cache:          testscommon.NewCacherMock(),
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -327,7 +327,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
@@ -381,7 +381,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 			},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
-		RequestHandler: &mock.RequestHandlerStub{},
+		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
 
 	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)

@@ -134,7 +134,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
@@ -166,7 +166,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
@@ -189,7 +189,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
@@ -216,7 +216,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		return 37
 	}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptosContainer := &mock.InterceptorsContainerStub{}
+	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(

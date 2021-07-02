@@ -9,5 +9,8 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // Transaction holds all the data needed for a value transfer or SC call
 message Batch {
-	repeated bytes Data  = 1 [(gogoproto.jsontag) = "data"];
+	repeated bytes Data       = 1 [(gogoproto.jsontag) = "data"];
+	bytes          Reference  = 2 [(gogoproto.jsontag) = "reference"];
+	uint32         ChunkIndex = 3 [(gogoproto.jsontag) = "chunkIndex"];
+	uint32         MaxChunks  = 4 [(gogoproto.jsontag) = "maxChunks"];
 }

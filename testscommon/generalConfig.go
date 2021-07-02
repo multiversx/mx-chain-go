@@ -133,10 +133,11 @@ func GetGeneralConfig() config.Config {
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
-		TxBlockBodyDataPool:   getLRUCacheConfig(),
-		PeerBlockBodyDataPool: getLRUCacheConfig(),
-		TrieNodesDataPool:     getLRUCacheConfig(),
-		SmartContractDataPool: getLRUCacheConfig(),
+		TxBlockBodyDataPool:     getLRUCacheConfig(),
+		PeerBlockBodyDataPool:   getLRUCacheConfig(),
+		TrieNodesDataPool:       getLRUCacheConfig(),
+		TrieNodesChunksDataPool: getLRUCacheConfig(),
+		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{

@@ -3,8 +3,8 @@ package transaction
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint
@@ -40,6 +40,7 @@ type ApiTransactionResult struct {
 	NotarizedAtDestinationInMetaHash  string                    `json:"notarizedAtDestinationInMetaHash,omitempty"`
 	MiniBlockType                     string                    `json:"miniblockType,omitempty"`
 	MiniBlockHash                     string                    `json:"miniblockHash,omitempty"`
+	Timestamp                         int64                     `json:"timestamp,omitempty"`
 	Receipt                           *ReceiptApi               `json:"receipt,omitempty"`
 	SmartContractResults              []*ApiSmartContractResult `json:"smartContractResults,omitempty"`
 	Status                            TxStatus                  `json:"status,omitempty"`

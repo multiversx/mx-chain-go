@@ -24,6 +24,7 @@ const (
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
 	generalConfig                 *config.Config
+	prefsConfig                   *config.PreferencesConfig
 	shardCoordinator              storage.ShardCoordinator
 	pathManager                   storage.PathManagerHandler
 	epochStartNotifier            storage.EpochStartNotifier
@@ -34,6 +35,7 @@ type StorageServiceFactory struct {
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
 func NewStorageServiceFactory(
 	config *config.Config,
+	prefsConfig *config.PreferencesConfig,
 	shardCoordinator storage.ShardCoordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier storage.EpochStartNotifier,
@@ -41,7 +43,10 @@ func NewStorageServiceFactory(
 	createTrieEpochRootHashStorer bool,
 ) (*StorageServiceFactory, error) {
 	if config == nil {
-		return nil, storage.ErrNilConfig
+		return nil, fmt.Errorf("%w for config.Config", storage.ErrNilConfig)
+	}
+	if prefsConfig == nil {
+		return nil, fmt.Errorf("%w for config.PreferencesConfig", storage.ErrNilConfig)
 	}
 	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && config.StoragePruning.CleanOldEpochsData {
 		return nil, storage.ErrInvalidNumberOfEpochsToSave
@@ -61,6 +66,7 @@ func NewStorageServiceFactory(
 
 	return &StorageServiceFactory{
 		generalConfig:                 config,
+		prefsConfig:                   prefsConfig,
 		shardCoordinator:              shardCoordinator,
 		pathManager:                   pathManager,
 		epochStartNotifier:            epochStartNotifier,
@@ -536,7 +542,7 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 }
 
 func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
-	if !psf.generalConfig.StoragePruning.FullArchive {
+	if !psf.prefsConfig.FullArchive {
 		return pruning.NewPruningStorer(arg)
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountWrapMock -
@@ -144,6 +145,11 @@ func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
 
 // DataTrieTracker -
 func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
+	return awm.trackableDataTrie
+}
+
+// AccountDataHandler -
+func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 	return awm.trackableDataTrie
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
@@ -29,17 +30,17 @@ func (w *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
 }
 
 // GetExistingAccount will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (state.AccountHandler, error) {
+func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return w.originalAccounts.GetExistingAccount(address)
 }
 
 // LoadAccount will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) LoadAccount(address []byte) (state.AccountHandler, error) {
+func (w *readOnlyAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return w.originalAccounts.LoadAccount(address)
 }
 
 // SaveAccount won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SaveAccount(_ state.AccountHandler) error {
+func (w *readOnlyAccountsDB) SaveAccount(_ vmcommon.AccountHandler) error {
 	return nil
 }
 

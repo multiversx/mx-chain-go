@@ -133,6 +133,7 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
+	TrieNodesChunksDataPool     CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
@@ -190,7 +191,6 @@ type StoragePruningConfig struct {
 	CleanOldEpochsData             bool
 	NumEpochsToKeep                uint64
 	NumActivePersisters            uint64
-	FullArchive                    bool
 	FullArchiveNumActivePersisters uint32
 }
 

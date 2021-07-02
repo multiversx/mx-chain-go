@@ -1051,3 +1051,111 @@ func TestRequestStartOfEpochMetaBlock_AddError(t *testing.T) {
 	rrh.RequestStartOfEpochMetaBlock(0)
 	assert.True(t, called)
 }
+
+func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
+	chTxRequested := make(chan struct{})
+	localErr := errors.New("local error")
+	resolverMock := &mock.ChunkResolverStub{
+		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
+			chTxRequested <- struct{}{}
+			return localErr
+		},
+	}
+
+	rrh, _ := NewResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestTrieNode")
+	}
+
+	time.Sleep(time.Second)
+}
+
+func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
+	chTxRequested := make(chan struct{})
+	resolverMock := &mock.ChunkResolverStub{
+		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
+			chTxRequested <- struct{}{}
+			return nil
+		},
+	}
+
+	rrh, _ := NewResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+				return resolverMock, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestTrieNode")
+	}
+}
+
+func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("test error")
+	called := false
+	rrh, _ := NewResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return nil, localError
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
+	assert.True(t, called)
+}
+
+func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	rrh, _ := NewResolverRequestHandler(
+		&mock.ResolversFinderStub{
+			MetaChainResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
+				called = true
+				return &mock.HashSliceResolverStub{}, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+
+	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
+	assert.True(t, called)
+}
