@@ -64,19 +64,19 @@ func getDefaultArgs() *pruning.StorerArgs {
 		},
 	}
 	return &pruning.StorerArgs{
-		PruningEnabled:        true,
-		Identifier:            "id",
-		CleanOldEpochsData:    false,
-		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           &testscommon.PathManagerStub{},
-		CacheConf:             cacheConf,
-		DbPath:                dbConf.FilePath,
-		PersisterFactory:      persisterFactory,
-		BloomFilterConf:       blConf,
-		NumOfEpochsToKeep:     2,
-		NumOfActivePersisters: 2,
-		Notifier:              &mock.EpochStartNotifierStub{},
-		MaxBatchSize:          10,
+		PruningEnabled:         true,
+		Identifier:             "id",
+		ShardCoordinator:       mock.NewShardCoordinatorMock(0, 2),
+		PathManager:            &testscommon.PathManagerStub{},
+		CacheConf:              cacheConf,
+		DbPath:                 dbConf.FilePath,
+		PersisterFactory:       persisterFactory,
+		BloomFilterConf:        blConf,
+		NumOfEpochsToKeep:      2,
+		NumOfActivePersisters:  2,
+		Notifier:               &mock.EpochStartNotifierStub{},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
+		MaxBatchSize:           10,
 	}
 }
 
@@ -94,7 +94,6 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 	return &pruning.StorerArgs{
 		PruningEnabled:        true,
 		Identifier:            "id",
-		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
 		PathManager:           pathManager,
 		CacheConf:             cacheConf,

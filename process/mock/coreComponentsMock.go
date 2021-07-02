@@ -30,6 +30,7 @@ type CoreComponentsMock struct {
 	RoundField                  consensus.RoundHandler
 	StatusField                 core.AppStatusHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
+	NodeTypeProviderField       sharding.NodeTypeProviderHandler
 }
 
 // ChanStopNodeProcess -
@@ -129,6 +130,11 @@ func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 // StatusHandler -
 func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
 	return ccm.StatusField
+}
+
+// NodeTypeProvider -
+func (ccm *CoreComponentsMock) NodeTypeProvider() sharding.NodeTypeProviderHandler {
+	return ccm.NodeTypeProviderField
 }
 
 // IsInterfaceNil -

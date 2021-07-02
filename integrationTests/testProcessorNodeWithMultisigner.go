@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -513,6 +514,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -611,6 +613,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
 			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

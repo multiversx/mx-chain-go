@@ -22,19 +22,21 @@ var log = logger.GetOrCreate("storage/clean")
 
 // ArgsOldDatabaseCleaner holds the arguments needed for creating an oldDatabaseCleaner
 type ArgsOldDatabaseCleaner struct {
-	DatabasePath        string
-	StorageListProvider StorageListProviderHandler
-	EpochStartNotifier  EpochStartNotifier
+	DatabasePath           string
+	StorageListProvider    StorageListProviderHandler
+	EpochStartNotifier     EpochStartNotifier
+	OldDataCleanerProvider OldDataCleanerProvider
 }
 
 type oldDatabaseCleaner struct {
 	sync.RWMutex
 
-	databasePath        string
-	storageListProvider StorageListProviderHandler
-	pathRemover         func(file string) error
-	directoryReader     storage.DirectoryReaderHandler
-	oldestEpochsToKeep  map[uint32]uint32
+	databasePath           string
+	storageListProvider    StorageListProviderHandler
+	pathRemover            func(file string) error
+	directoryReader        storage.DirectoryReaderHandler
+	oldDataCleanerProvider OldDataCleanerProvider
+	oldestEpochsToKeep     map[uint32]uint32
 }
 
 // NewOldDatabaseCleaner returns a new instance of oldDatabaseCleaner
@@ -45,6 +47,9 @@ func NewOldDatabaseCleaner(args ArgsOldDatabaseCleaner) (*oldDatabaseCleaner, er
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, storage.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.OldDataCleanerProvider) {
+		return nil, storage.ErrNilOldDataCleanerProvider
+	}
 
 	pathRemoverFunc := func(file string) error {
 		return os.RemoveAll(file)
@@ -52,11 +57,12 @@ func NewOldDatabaseCleaner(args ArgsOldDatabaseCleaner) (*oldDatabaseCleaner, er
 	directoryReader := directoryhandler.NewDirectoryReader()
 
 	odc := &oldDatabaseCleaner{
-		databasePath:        args.DatabasePath,
-		storageListProvider: args.StorageListProvider,
-		pathRemover:         pathRemoverFunc,
-		directoryReader:     directoryReader,
-		oldestEpochsToKeep:  make(map[uint32]uint32),
+		databasePath:           args.DatabasePath,
+		storageListProvider:    args.StorageListProvider,
+		pathRemover:            pathRemoverFunc,
+		directoryReader:        directoryReader,
+		oldDataCleanerProvider: args.OldDataCleanerProvider,
+		oldestEpochsToKeep:     make(map[uint32]uint32),
 	}
 
 	odc.registerHandler(args.EpochStartNotifier)
@@ -111,6 +117,10 @@ func (odc *oldDatabaseCleaner) handleEpochChangeAction(epoch uint32) error {
 func (odc *oldDatabaseCleaner) shouldCleanOldData(currentEpoch uint32, newOldestEpoch uint32) bool {
 	odc.RLock()
 	defer odc.RUnlock()
+
+	if !odc.oldDataCleanerProvider.ShouldClean() {
+		return false
+	}
 
 	epochForDeletion := currentEpoch - 1
 	previousOldestEpoch, epochExists := odc.oldestEpochsToKeep[epochForDeletion]

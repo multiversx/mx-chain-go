@@ -265,6 +265,7 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		shardCoordinator,
 		pathManager,
 		mesn,
+		sesb.coreComponentsHolder.NodeTypeProvider(),
 		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
 	)
@@ -403,6 +404,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		PubKey:             pubKey,
 		ShardIdAsObserver:  shardId,
 		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:   sesb.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:      sesb.prefsConfig.FullArchive,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

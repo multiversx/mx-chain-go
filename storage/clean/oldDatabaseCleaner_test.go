@@ -43,6 +43,16 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 			expectedErr: storage.ErrNilStorageListProvider,
 		},
 		{
+			description: "nil old data cleaner provider",
+			getArgs: func() ArgsOldDatabaseCleaner {
+				args := createMockArgs()
+				args.OldDataCleanerProvider = nil
+
+				return args
+			},
+			expectedErr: storage.ErrNilOldDataCleanerProvider,
+		},
+		{
 			description: "should work",
 			getArgs: func() ArgsOldDatabaseCleaner {
 				return createMockArgs()
@@ -211,7 +221,11 @@ func TestOldDatabaseCleaner_EpochChange(t *testing.T) {
 			handlerFunc = handler
 		},
 	}
-
+	args.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+		ShouldCleanCalled: func() bool {
+			return true
+		},
+	}
 	directoryReader := &mock.DirectoryReaderStub{
 		ListDirectoriesAsStringCalled: func(_ string) ([]string, error) {
 			return []string{"Epoch_0", "Epoch_1", "WrongDir", "Epoch_XYZ", "Epoch_2", "Epoch_3"}, nil
@@ -265,5 +279,6 @@ func createMockArgs() ArgsOldDatabaseCleaner {
 		EpochStartNotifier: &mock.EpochStartNotifierStub{
 			RegisterHandlerCalled: func(_ epochStart.ActionHandler) {},
 		},
+		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 	}
 }

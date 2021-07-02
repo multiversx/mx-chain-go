@@ -44,6 +44,7 @@ type ArgsNewSyncValidatorStatus struct {
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
 	ChanNodeStop              chan endProcess.ArgEndProcess
+	NodeTypeProvider          sharding.NodeTypeProviderHandler
 	IsFullArchive             bool
 }
 
@@ -107,6 +108,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
 		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
 		ChanStopNode:               args.ChanNodeStop,
+		NodeTypeProvider:           args.NodeTypeProvider,
 		IsFullArchive:              args.IsFullArchive,
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)

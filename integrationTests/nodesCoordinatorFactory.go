@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 )
 
 // ArgIndexHashedNodesCoordinatorFactory -
@@ -66,6 +67,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -117,6 +119,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
 		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:              false,
 	}
 

@@ -138,3 +138,9 @@ var ErrNilTxGasHandler = errors.New("nil tx gas handler")
 
 // ErrCannotComputeStorageOldestEpoch signals an issue when computing the oldest epoch for storage
 var ErrCannotComputeStorageOldestEpoch = errors.New("could not compute the oldest epoch for storage")
+
+// ErrNilNodeTypeProvider signals that a nil node type provider has been provided
+var ErrNilNodeTypeProvider = errors.New("nil node type provider")
+
+// ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been given
+var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")

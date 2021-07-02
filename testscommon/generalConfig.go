@@ -58,10 +58,11 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			CleanOldEpochsData:  false,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
+			Enabled:                     false,
+			ValidatorCleanOldEpochsData: false,
+			ObserverCleanOldEpochsData:  false,
+			NumEpochsToKeep:             3,
+			NumActivePersisters:         3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			Size: 100,

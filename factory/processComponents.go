@@ -1033,6 +1033,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pathManager,
 		manualEpochStartNotifier,
+		pcf.coreData.NodeTypeProvider(),
 		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 		false,
 	)

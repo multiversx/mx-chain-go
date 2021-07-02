@@ -141,6 +141,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 		dcf.shardCoordinator,
 		dcf.core.PathHandler(),
 		dcf.epochStartNotifier,
+		dcf.core.NodeTypeProvider(),
 		dcf.currentEpoch,
 		dcf.createTrieEpochRootHashStorer,
 	)

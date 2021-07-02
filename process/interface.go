@@ -1058,6 +1058,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
+	NodeTypeProvider() sharding.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 

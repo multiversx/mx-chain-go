@@ -30,6 +30,7 @@ type CoreComponentsMock struct {
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
+	NodeTypeProviderField       sharding.NodeTypeProviderHandler
 	mutCore                     sync.RWMutex
 }
 
@@ -43,6 +44,11 @@ func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProce
 	}
 
 	return endProcess.GetDummyEndProcessChannel()
+}
+
+// NodeTypeProvider -
+func (ccm *CoreComponentsMock) NodeTypeProvider() sharding.NodeTypeProviderHandler {
+	return ccm.NodeTypeProviderField
 }
 
 // InternalMarshalizer -

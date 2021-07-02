@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -80,20 +81,20 @@ type PruningStorer struct {
 	shardCoordinator           storage.ShardCoordinator
 	activePersisters           []*persisterData
 	//it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
-	persistersMapByEpoch  map[uint32]*persisterData
-	cacher                storage.Cacher
-	bloomFilter           storage.BloomFilter
-	pathManager           storage.PathManagerHandler
-	dbPath                string
-	persisterFactory      DbFactoryHandler
-	mutEpochPrepareHdr    sync.RWMutex
-	epochPrepareHdr       *block.MetaBlock
-	identifier            string
-	numOfEpochsToKeep     uint32
-	numOfActivePersisters uint32
-	epochForPutOperation  uint32
-	cleanOldEpochsData    bool
-	pruningEnabled        bool
+	persistersMapByEpoch   map[uint32]*persisterData
+	cacher                 storage.Cacher
+	bloomFilter            storage.BloomFilter
+	pathManager            storage.PathManagerHandler
+	dbPath                 string
+	persisterFactory       DbFactoryHandler
+	mutEpochPrepareHdr     sync.RWMutex
+	epochPrepareHdr        *block.MetaBlock
+	oldDataCleanerProvider clean.OldDataCleanerProvider
+	identifier             string
+	numOfEpochsToKeep      uint32
+	numOfActivePersisters  uint32
+	epochForPutOperation   uint32
+	pruningEnabled         bool
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -152,21 +153,21 @@ func initPruningStorer(
 	}
 
 	pdb := &PruningStorer{
-		pruningEnabled:        args.PruningEnabled,
-		identifier:            identifier,
-		cleanOldEpochsData:    args.CleanOldEpochsData,
-		activePersisters:      persisters,
-		persisterFactory:      args.PersisterFactory,
-		shardCoordinator:      args.ShardCoordinator,
-		persistersMapByEpoch:  persistersMapByEpoch,
-		cacher:                cache,
-		epochPrepareHdr:       &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
-		bloomFilter:           nil,
-		epochForPutOperation:  args.StartingEpoch,
-		pathManager:           args.PathManager,
-		dbPath:                args.DbPath,
-		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
-		numOfActivePersisters: args.NumOfActivePersisters,
+		pruningEnabled:         args.PruningEnabled,
+		identifier:             identifier,
+		activePersisters:       persisters,
+		persisterFactory:       args.PersisterFactory,
+		shardCoordinator:       args.ShardCoordinator,
+		persistersMapByEpoch:   persistersMapByEpoch,
+		cacher:                 cache,
+		epochPrepareHdr:        &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
+		bloomFilter:            nil,
+		epochForPutOperation:   args.StartingEpoch,
+		pathManager:            args.PathManager,
+		dbPath:                 args.DbPath,
+		numOfEpochsToKeep:      args.NumOfEpochsToKeep,
+		numOfActivePersisters:  args.NumOfActivePersisters,
+		oldDataCleanerProvider: args.OldDataCleanerProvider,
 	}
 
 	if args.BloomFilterConf.Size != 0 { // if size is 0, that means an empty config was used so bloom filter will be nil
@@ -861,7 +862,7 @@ func (ps *PruningStorer) closePersisters(epoch uint32) error {
 		}
 	}
 
-	if ps.cleanOldEpochsData && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
+	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
 			_, exists := ps.persistersMapByEpoch[idxToRemove]

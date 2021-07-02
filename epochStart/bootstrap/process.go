@@ -673,6 +673,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		ShardIdAsObserver:         shardId,
 		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
 		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:             e.prefsConfig.FullArchive,
 	}
 
@@ -719,6 +720,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.coreComponentsHolder.Hasher(),
 		e.epochStartMeta.Epoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err
@@ -819,6 +821,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.coreComponentsHolder.Hasher(),
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err

@@ -17,3 +17,9 @@ type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	IsInterfaceNil() bool
 }
+
+// OldDataCleanerProvider defines what a component that handles the deletion or keeping of old data should do
+type OldDataCleanerProvider interface {
+	ShouldClean() bool
+	IsInterfaceNil() bool
+}

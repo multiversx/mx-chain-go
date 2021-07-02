@@ -118,6 +118,7 @@ type CoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
+	NodeTypeProvider() sharding.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 

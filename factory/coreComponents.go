@@ -91,6 +91,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
+	nodeTypeProvider              sharding.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 }
 
@@ -295,6 +296,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
+	// set as observer at first - it will be updated when creating the nodes coordinator
+	nodeTypeProvider := sharding.NewNodeTypeProvider(core.NodeTypeObserver)
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -323,6 +327,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
+		nodeTypeProvider:              nodeTypeProvider,
 	}, nil
 }
 
