@@ -21,7 +21,6 @@ import (
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -38,6 +37,8 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 const (
@@ -555,7 +556,7 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 	return formattedTokenIdentifier
 }
 
-func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
+func (n *Node) getAccountHandler(address string) (vmcommon.AccountHandler, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
@@ -567,7 +568,7 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 }
 
-func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHandler, error) {
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
 		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
 		check.IfNil(n.dataComponents.Blockchain())
@@ -583,7 +584,7 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandle
 	return n.getAccountHandlerForPubKey(addr)
 }
 
-func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
+func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandler, error) {
 	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
 		return nil, ErrNilBlockHeader
@@ -597,7 +598,7 @@ func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler,
 	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 }
 
-func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
 	if check.IfNil(ah) {
 		return nil, false
 	}

@@ -5,9 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
@@ -27,6 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -460,9 +460,9 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	IsPayable(address []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
-	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	DeleteCompiledCode(codeHash []byte)
+	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -892,24 +892,6 @@ type ValidityAttester interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	IsInterfaceNil() bool
-}
-
-// BuiltinFunction defines the methods for the built-in protocol smart contract functions
-type BuiltinFunction interface {
-	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	SetNewGasConfig(gasCost *GasCost)
-	IsInterfaceNil() bool
-}
-
-// BuiltInFunctionContainer defines the methods for the built-in protocol container
-type BuiltInFunctionContainer interface {
-	Get(key string) (BuiltinFunction, error)
-	Add(key string, function BuiltinFunction) error
-	Replace(key string, function BuiltinFunction) error
-	Remove(key string)
-	Len() int
-	Keys() map[string]struct{}
 	IsInterfaceNil() bool
 }
 
