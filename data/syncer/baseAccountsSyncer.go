@@ -114,12 +114,17 @@ func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("finished trie sync", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
+			log.Info("finished trie sync",
+				"name", b.name,
+				"num received", ssh.NumReceived(),
+				"num large nodes", ssh.NumLarge(),
+				"num missing", ssh.NumMissing())
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			log.Info("trie sync in progress",
 				"name", b.name,
 				"num received", ssh.NumReceived(),
+				"num large nodes", ssh.NumLarge(),
 				"num missing", ssh.NumMissing(),
 				"intercepted trie nodes cache", fmt.Sprintf("len: %d, size: %s", b.cacher.Len(), core.ConvertBytes(b.cacher.SizeInBytesContained())))
 		}

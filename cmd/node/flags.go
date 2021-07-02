@@ -354,7 +354,7 @@ func getFlags() []cli.Flag {
 	}
 }
 
-func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error {
+func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
@@ -373,6 +373,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	return flagsConfig
+}
+
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.ContextFlagsConfig, log logger.Logger) error {
 
 	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
 	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
@@ -398,7 +402,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 	if ctx.IsSet(fullArchive.Name) {
-		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
@@ -450,7 +454,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if configs.GeneralConfig.StoragePruning.FullArchive {
+	if configs.PreferencesConfig.Preferences.FullArchive {
 		return processConfigFullArchiveMode(log, configs)
 	}
 

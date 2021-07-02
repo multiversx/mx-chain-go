@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 
 	sesmbp, err := NewStorageEpochStartMetaBlockProcessor(
 		nil,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -37,7 +38,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 
 	sesmbp, err = NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		nil,
 		&mock.HasherMock{},
 	)
@@ -46,7 +47,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_InvalidArgumentsShouldErr(t *tes
 
 	sesmbp, err = NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		nil,
 	)
@@ -59,7 +60,7 @@ func TestNewStorageEpochStartMetaBlockProcessor_ShouldWork(t *testing.T) {
 
 	sesmbp, err := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -72,7 +73,7 @@ func TestStorageEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -91,7 +92,7 @@ func TestStorageEpochStartMetaBlockProcessor_RegisterHandlerShouldNotPanic(t *te
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -103,7 +104,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNilData(t *testing.T) {
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -119,12 +120,12 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAHeader(t *testing.T) {
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
 
-	err := sesmbp.Save(&mock.InterceptedDataStub{}, "", "")
+	err := sesmbp.Save(&testscommon.InterceptedDataStub{}, "", "")
 	assert.Nil(t, err)
 	mb, _ := sesmbp.getMetablock()
 	assert.True(t, check.IfNil(mb))
@@ -135,7 +136,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveNotAnEpochStartBlock(t *testing
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -157,7 +158,7 @@ func TestStorageEpochStartMetaBlockProcessor_SaveShouldWork(t *testing.T) {
 
 	sesmbp, _ := NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)
@@ -194,7 +195,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldRequest
 	var sesmbp EpochStartMetaBlockInterceptorProcessor
 	sesmbp, _ = NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{
+		&testscommon.RequestHandlerStub{
 			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
 				numRequests++
 				if numRequests > numUnsuccessfulRequests {
@@ -217,7 +218,7 @@ func TestStorageEpochStartMetaBlockProcessor_GetEpochStartMetaBlockContextDoneSh
 	var sesmbp EpochStartMetaBlockInterceptorProcessor
 	sesmbp, _ = NewStorageEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{},
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 	)

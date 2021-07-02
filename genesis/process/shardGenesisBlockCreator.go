@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -31,6 +30,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -275,11 +276,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Accounts:             arg.Accounts,
 		ShardCoordinator:     arg.ShardCoordinator,
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +319,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
+	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +397,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                       txTypeHandler,
 		GasHandler:                          gasHandler,
 		GasSchedule:                         arg.GasSchedule,
-		BuiltInFunctions:                    vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     arg.TxLogsProcessor,
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       epochNotifier,

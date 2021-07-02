@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -31,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -463,15 +463,15 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		tdp,
 		createMockPubkeyConverter(),
 		accounts,
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return 0, process.ErrHigherNonceInTransaction
 			},
 		},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -669,7 +669,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	tpm := &mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
+	tpm := &testscommon.TxProcessorMock{ProcessTransactionCalled: txProcess}
 	store := &mock.ChainStorerMock{}
 	accounts := &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
@@ -684,11 +684,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		tdp,
 		createMockPubkeyConverter(),
 		accounts,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		tpm,
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -1353,7 +1353,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	dataComponents.DataPool = tdp
 	dataComponents.BlockChain = blkc
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.RequestHandler = &mock.RequestHandlerStub{
+	arguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
 		},
@@ -2273,11 +2273,11 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		tdp,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
@@ -2377,11 +2377,11 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		tdp,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
@@ -2449,7 +2449,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash2Requested := int32(0)
 	miniBlockHash3Requested := int32(0)
 
-	requestHandler := &mock.RequestHandlerStub{
+	requestHandler := &testscommon.RequestHandlerStub{
 		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
 			if bytes.Equal(miniBlockHash1, miniblockHash) {
 				atomic.AddInt32(&miniBlockHash1Requested, 1)
@@ -2524,7 +2524,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	noOfMissingMiniBlocks := int32(0)
 
-	requestHandler := &mock.RequestHandlerStub{
+	requestHandler := &testscommon.RequestHandlerStub{
 		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
 			atomic.AddInt32(&noOfMissingMiniBlocks, 1)
 		},
@@ -2708,7 +2708,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	txProcessorMock := &mock.TxProcessorMock{
+	txProcessorMock := &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 			if bytes.Equal(transaction.Data, txHash1) {
@@ -2744,11 +2744,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		datapool,
 		createMockPubkeyConverter(),
 		accntAdapter,
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		txProcessorMock,
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return 0
@@ -2942,11 +2942,11 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		datapool,
 		createMockPubkeyConverter(),
 		initAccountsMock(),
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SCProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.RewardTxProcessorMock{},
+		&testscommon.RequestHandlerStub{},
+		&testscommon.TxProcessorMock{},
+		&testscommon.SCProcessorMock{},
+		&testscommon.SmartContractResultsProcessorMock{},
+		&testscommon.RewardTxProcessorMock{},
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},

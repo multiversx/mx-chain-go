@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -47,9 +46,7 @@ import (
 )
 
 const (
-	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-go"
-	maxTimeToClose  = 10 * time.Second
+	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
 )
@@ -77,22 +74,18 @@ func (nr *nodeRunner) Start() error {
 	configurationPaths := configs.ConfigurationPathsHolder
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
-	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
-	log.Debug("config", "file", configurationPaths.Genesis)
-
 	enableGopsIfNeeded(flagsConfig.EnableGops)
 
-	fileLogging, err := nr.attachFileLogger()
-	if err != nil {
-		return err
-	}
-
+	var err error
 	configurationPaths.Nodes, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
 	log.Debug("config", "file", configurationPaths.Nodes)
+	log.Debug("config", "file", configurationPaths.Genesis)
+
+	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
@@ -106,12 +99,6 @@ func (nr *nodeRunner) Start() error {
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
 		return err
-	}
-
-	log.Debug("closing node")
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.Close()
-		log.LogIfError(err)
 	}
 
 	return nil
@@ -292,6 +279,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
 	)
 	if err != nil {
 		return true, err
@@ -693,6 +681,9 @@ func waitForSignal(
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
+	wrongConfig := false
+	wrongConfigDescription := ""
+
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -700,6 +691,10 @@ func waitForSignal(
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 		if sig.Reason == core.ShuffledOut {
 			reshuffled = true
+		}
+		if sig.Reason == core.WrongConfiguration {
+			wrongConfig = true
+			wrongConfigDescription = sig.Description
 		}
 	}
 
@@ -714,6 +709,15 @@ func waitForSignal(
 	case <-time.After(maxTimeToClose):
 		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
 		return fmt.Errorf("did NOT close all components gracefully")
+	}
+
+	if wrongConfig {
+		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
+		// change this behaviour
+		for {
+			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
+			time.Sleep(1 * time.Minute)
+		}
 	}
 
 	if reshuffled {
@@ -980,6 +984,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:                        *configs.GeneralConfig,
+		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
@@ -1378,49 +1383,4 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func (nr *nodeRunner) attachFileLogger() (factory.FileLoggingHandler, error) {
-	configs := nr.configs
-	flagsConfig := configs.FlagsConfig
-	var fileLogging factory.FileLoggingHandler
-	var err error
-	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
-		if err != nil {
-			return nil, fmt.Errorf("%w creating a log file", err)
-		}
-	}
-
-	err = logger.SetDisplayByteSlice(logger.ToHex)
-	log.LogIfError(err)
-	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
-	logger.ToggleLoggerName(flagsConfig.EnableLogName)
-	logLevelFlagValue := flagsConfig.LogLevel
-	err = logger.SetLogLevel(logLevelFlagValue)
-	if err != nil {
-		return nil, err
-	}
-
-	if flagsConfig.DisableAnsiColor {
-		err = logger.RemoveLogObserver(os.Stdout)
-		if err != nil {
-			return nil, err
-		}
-
-		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
-
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(configs.GeneralConfig.Logs.LogFileLifeSpanInSec))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return fileLogging, nil
 }
