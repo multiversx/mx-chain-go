@@ -40,6 +40,7 @@ type ApiTransactionResult struct {
 	NotarizedAtDestinationInMetaHash  string                    `json:"notarizedAtDestinationInMetaHash,omitempty"`
 	MiniBlockType                     string                    `json:"miniblockType,omitempty"`
 	MiniBlockHash                     string                    `json:"miniblockHash,omitempty"`
+	Timestamp                         int64                     `json:"timestamp,omitempty"`
 	Receipt                           *ApiReceipt               `json:"receipt,omitempty"`
 	SmartContractResults              []*ApiSmartContractResult `json:"smartContractResults,omitempty"`
 	Logs                              *ApiLogs                  `json:"logs,omitempty"`
