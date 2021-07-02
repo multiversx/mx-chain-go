@@ -40,9 +40,9 @@ type ApiTransactionResult struct {
 	NotarizedAtDestinationInMetaHash  string                    `json:"notarizedAtDestinationInMetaHash,omitempty"`
 	MiniBlockType                     string                    `json:"miniblockType,omitempty"`
 	MiniBlockHash                     string                    `json:"miniblockHash,omitempty"`
-	Receipt                           *ReceiptApi               `json:"receipt,omitempty"`
+	Receipt                           *ApiReceipt               `json:"receipt,omitempty"`
 	SmartContractResults              []*ApiSmartContractResult `json:"smartContractResults,omitempty"`
-	Logs                              *LogsAPI                  `json:"logs,omitempty"`
+	Logs                              *ApiLogs                  `json:"logs,omitempty"`
 	Status                            TxStatus                  `json:"status,omitempty"`
 }
 
@@ -51,7 +51,7 @@ type SimulationResults struct {
 	Status     TxStatus                           `json:"status,omitempty"`
 	FailReason string                             `json:"failReason,omitempty"`
 	ScResults  map[string]*ApiSmartContractResult `json:"scResults,omitempty"`
-	Receipts   map[string]*ReceiptApi             `json:"receipts,omitempty"`
+	Receipts   map[string]*ApiReceipt             `json:"receipts,omitempty"`
 	Hash       string                             `json:"hash,omitempty"`
 	VMOutput   *vmcommon.VMOutput                 `json:"-"`
 }
@@ -75,19 +75,19 @@ type ApiSmartContractResult struct {
 	CodeMetadata   string            `json:"codeMetadata,omitempty"`
 	ReturnMessage  string            `json:"returnMessage,omitempty"`
 	OriginalSender string            `json:"originalSender,omitempty"`
-	Logs           *LogsAPI          `json:"logs,omitempty"`
+	Logs           *ApiLogs          `json:"logs,omitempty"`
 }
 
-// ReceiptApi represents a receipt with changed fields' types in order to make it friendly for API's json
-type ReceiptApi struct {
+// ApiReceipt represents a receipt with changed fields' types in order to make it friendly for API's json
+type ApiReceipt struct {
 	Value   *big.Int `json:"value"`
 	SndAddr string   `json:"sender"`
 	Data    string   `json:"data,omitempty"`
 	TxHash  string   `json:"txHash"`
 }
 
-// LogsAPI represents logs with changed fields' types in order to make it friendly for API's json
-type LogsAPI struct {
+// ApiLogs represents logs with changed fields' types in order to make it friendly for API's json
+type ApiLogs struct {
 	Address string    `json:"address"`
 	Events  []*Events `json:"events"`
 }

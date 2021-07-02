@@ -72,7 +72,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	tx := &transaction.ApiTransactionResult{}
 
-	expectedRecAPI := &transaction.ReceiptApi{
+	expectedRecAPI := &transaction.ApiReceipt{
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
@@ -219,14 +219,14 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 
-	marshalizerdMock := &mock.MarshalizerFake{}
+	marshalizerMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					switch {
 					case bytes.Equal(key, txHash):
-						return marshalizerdMock.Marshal(logsAndEvents)
+						return marshalizerMock.Marshal(logsAndEvents)
 					default:
 						return nil, nil
 					}
@@ -236,7 +236,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizerdMock
+	coreComponents.IntMarsh = marshalizerMock
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
 
 	dataComponents := getDefaultDataComponents()
@@ -257,7 +257,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	)
 
 	addressPubKeyConverter := n.GetCoreComponents().AddressPubKeyConverter()
-	expectedLogs := &transaction.LogsAPI{
+	expectedLogs := &transaction.ApiLogs{
 		Address: addressPubKeyConverter.Encode(logsAndEvents.Address),
 		Events: []*transaction.Events{
 			{

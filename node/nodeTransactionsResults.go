@@ -54,8 +54,8 @@ func (n *Node) getReceiptFromStorage(hash []byte, epoch uint32) (*receipt.Receip
 	return rec, nil
 }
 
-func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
-	return &transaction.ReceiptApi{
+func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
 		SndAddr: n.coreComponents.AddressPubKeyConverter().Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),
@@ -161,11 +161,11 @@ func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult
 	return apiSCR
 }
 
-func (n *Node) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.LogsAPI {
+func (n *Node) prepareLogsAndEvents(logsAndEvents *transaction.Log) *transaction.ApiLogs {
 	addressPubKeyConverter := n.coreComponents.AddressPubKeyConverter()
 	addrEncoded := addressPubKeyConverter.Encode(logsAndEvents.Address)
 
-	logsAPI := &transaction.LogsAPI{
+	logsAPI := &transaction.ApiLogs{
 		Address: addrEncoded,
 		Events:  make([]*transaction.Events, 0, len(logsAndEvents.Events)),
 	}
