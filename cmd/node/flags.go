@@ -409,7 +409,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 	if ctx.IsSet(fullArchive.Name) {
-		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
@@ -461,7 +461,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if configs.GeneralConfig.StoragePruning.FullArchive {
+	if configs.PreferencesConfig.Preferences.FullArchive {
 		return processConfigFullArchiveMode(log, configs)
 	}
 

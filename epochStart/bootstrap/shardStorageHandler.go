@@ -30,6 +30,7 @@ type shardStorageHandler struct {
 // NewShardStorageHandler will return a new instance of shardStorageHandler
 func NewShardStorageHandler(
 	generalConfig config.Config,
+	prefsConfig config.PreferencesConfig,
 	shardCoordinator sharding.Coordinator,
 	pathManagerHandler storage.PathManagerHandler,
 	marshalizer marshal.Marshalizer,
@@ -40,6 +41,7 @@ func NewShardStorageHandler(
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
+		&prefsConfig,
 		shardCoordinator,
 		pathManagerHandler,
 		epochStartNotifier,

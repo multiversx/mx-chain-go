@@ -205,6 +205,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.config,
 		pcf.coreData.GenesisNodesSetup().GetRoundDuration(),
 		pcf.coreData.GenesisTime().Unix(),
+		pcf.prefConfigs.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -931,7 +932,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
+		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
@@ -966,7 +967,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		InputAntifloodHandler:       pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:      pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs:  pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:           pcf.config.StoragePruning.FullArchive,
+		IsFullHistoryNode:           pcf.prefConfigs.FullArchive,
 		CurrentNetworkEpochProvider: currentEpochProvider,
 		ResolverConfig:              pcf.config.Resolvers,
 		PreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
@@ -1028,6 +1029,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		&pcf.config,
+		&pcf.prefConfigs,
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pathManager,
 		manualEpochStartNotifier,

@@ -19,6 +19,7 @@ import (
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
 	Config                        config.Config
+	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              sharding.Coordinator
 	Core                          CoreComponentsHolder
 	EpochStartNotifier            EpochStartNotifier
@@ -28,6 +29,7 @@ type DataComponentsFactoryArgs struct {
 
 type dataComponentsFactory struct {
 	config                        config.Config
+	prefsConfig                   config.PreferencesConfig
 	shardCoordinator              sharding.Coordinator
 	core                          CoreComponentsHolder
 	epochStartNotifier            EpochStartNotifier
@@ -63,6 +65,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
+		prefsConfig:                   args.PrefsConfig,
 		shardCoordinator:              args.ShardCoordinator,
 		core:                          args.Core,
 		epochStartNotifier:            args.EpochStartNotifier,
@@ -134,6 +137,7 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := factory.NewStorageServiceFactory(
 		&dcf.config,
+		&dcf.prefsConfig,
 		dcf.shardCoordinator,
 		dcf.core.PathHandler(),
 		dcf.epochStartNotifier,
