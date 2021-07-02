@@ -1,11 +1,11 @@
-package mock
+package testscommon
 
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TxProcessorMock -

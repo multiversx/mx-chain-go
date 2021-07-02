@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,10 +99,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 				CommitCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},
-				SaveAccountCalled: func(account state.AccountHandler) error {
+				SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 					return nil
 				},
-				LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 					return state.NewEmptyPeerAccount(), nil
 				},
 			}

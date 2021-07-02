@@ -191,7 +191,6 @@ type StoragePruningConfig struct {
 	CleanOldEpochsData             bool
 	NumEpochsToKeep                uint64
 	NumActivePersisters            uint64
-	FullArchive                    bool
 	FullArchiveNumActivePersisters uint32
 }
 
