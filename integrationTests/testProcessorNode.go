@@ -2836,10 +2836,14 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &testscommon.AccountsStub{},
-		Accounts:        &testscommon.AccountsStub{},
-		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
+		PeersAcc: &testscommon.AccountsStub{},
+		Accounts: &testscommon.AccountsStub{},
+		Tries:    &mock.TriesHolderStub{},
+		StorageManagers: map[string]data.StorageManager{
+			"0":                         &testscommon.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+		},
 	}
 }
 
