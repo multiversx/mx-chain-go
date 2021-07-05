@@ -230,7 +230,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 					},
 				}
 			case dataRetriever.TxLogsUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
