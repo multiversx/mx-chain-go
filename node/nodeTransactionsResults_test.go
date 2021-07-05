@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -57,7 +59,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = dataStore
 
-	processComponents:= getDefaultProcessComponents()
+	processComponents := getDefaultProcessComponents()
 	processComponents.HistoryRepositoryInternal = historyRepo
 
 	n, _ := node.NewNode(
@@ -70,7 +72,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 
 	tx := &transaction.ApiTransactionResult{}
 
-	expectedRecAPI := &transaction.ReceiptApi{
+	expectedRecAPI := &transaction.ApiReceipt{
 		Value:   rec.Value,
 		Data:    string(rec.Data),
 		TxHash:  hex.EncodeToString(txHash),
@@ -110,17 +112,22 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	marshalizerdMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-					switch {
-					case bytes.Equal(key, scrHash1):
-						return marshalizerdMock.Marshal(scr1)
-					case bytes.Equal(key, scrHash2):
-						return marshalizerdMock.Marshal(scr2)
-					default:
-						return nil, nil
-					}
-				},
+			switch unitType {
+			case dataRetriever.UnsignedTransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						switch {
+						case bytes.Equal(key, scrHash1):
+							return marshalizerdMock.Marshal(scr1)
+						case bytes.Equal(key, scrHash2):
+							return marshalizerdMock.Marshal(scr2)
+						default:
+							return nil, nil
+						}
+					},
+				}
+			default:
+				return mock.NewStorerMock()
 			}
 		},
 	}
@@ -145,7 +152,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = dataStore
 
-	processComponents:= getDefaultProcessComponents()
+	processComponents := getDefaultProcessComponents()
 	processComponents.HistoryRepositoryInternal = historyRepo
 
 	n, _ := node.NewNode(
@@ -174,14 +181,101 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			RcvAddr:        addressPubKeyConverter.Encode(scr1.RcvAddr),
 			RelayerAddr:    addressPubKeyConverter.Encode(scr1.RelayerAddr),
 			OriginalSender: addressPubKeyConverter.Encode(scr1.OriginalSender),
+			Logs:           nil,
 		},
 		{
 			Hash:           hex.EncodeToString(scrHash2),
 			OriginalTxHash: hex.EncodeToString(scr1.OriginalTxHash),
+			Logs:           nil,
 		},
 	}
 
 	tx := &transaction.ApiTransactionResult{}
 	n.PutResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedSCRS, tx.SmartContractResults)
+}
+
+func TestPutLogsInTransaction(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	txHash := []byte("txHash")
+
+	logsAndEvents := &transaction.Log{
+		Address: []byte("sender"),
+		Events: []*transaction.Event{
+			{
+				Address:    []byte("addr1"),
+				Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+				Topics:     [][]byte{[]byte("topic1"), []byte("topic2")},
+				Data:       []byte("data1"),
+			},
+			{
+				Address:    []byte("addr2"),
+				Identifier: []byte(core.BuiltInFunctionESDTBurn),
+				Topics:     [][]byte{[]byte("topic1"), []byte("topic2")},
+				Data:       []byte("data1"),
+			},
+		},
+	}
+
+	marshalizerMock := &mock.MarshalizerFake{}
+	dataStore := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					switch {
+					case bytes.Equal(key, txHash):
+						return marshalizerMock.Marshal(logsAndEvents)
+					default:
+						return nil, nil
+					}
+				},
+			}
+		},
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizerMock
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+
+	dataComponents := getDefaultDataComponents()
+	dataComponents.Store = dataStore
+
+	historyRepo := &testscommon.HistoryRepositoryStub{
+		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return nil, errors.New("local err")
+		},
+	}
+	processComponents := getDefaultProcessComponents()
+	processComponents.HistoryRepositoryInternal = historyRepo
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
+	)
+
+	addressPubKeyConverter := n.GetCoreComponents().AddressPubKeyConverter()
+	expectedLogs := &transaction.ApiLogs{
+		Address: addressPubKeyConverter.Encode(logsAndEvents.Address),
+		Events: []*transaction.Events{
+			{
+				Address:    addressPubKeyConverter.Encode(logsAndEvents.Events[0].Address),
+				Identifier: string(logsAndEvents.Events[0].Identifier),
+				Topics:     logsAndEvents.Events[0].Topics,
+				Data:       logsAndEvents.Events[0].Data,
+			},
+			{
+				Address:    addressPubKeyConverter.Encode(logsAndEvents.Events[1].Address),
+				Identifier: string(logsAndEvents.Events[1].Identifier),
+				Topics:     logsAndEvents.Events[1].Topics,
+				Data:       logsAndEvents.Events[1].Data,
+			},
+		},
+	}
+
+	tx := &transaction.ApiTransactionResult{}
+	n.PutResultsInTransaction(txHash, tx, epoch)
+	require.Equal(t, expectedLogs, tx.Logs)
 }
