@@ -39,6 +39,7 @@ type ArgBaseBootstrapper struct {
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler    core.AppStatusHandler
 	Indexer             process.Indexer
+	AccountsDBSyncer    process.AccountsDBSyncer
 	IsInImportMode      bool
 }
 
@@ -52,5 +53,7 @@ type ArgShardBootstrapper struct {
 // new instances of meta bootstrapper
 type ArgMetaBootstrapper struct {
 	ArgBaseBootstrapper
-	EpochBootstrapper process.EpochBootstrapper
+	EpochBootstrapper           process.EpochBootstrapper
+	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
+	ValidatorAccountsDB         state.AccountsAdapter
 }

@@ -13,12 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/denisbrodbeck/machineid"
 	"github.com/urfave/cli"
 )
 
 const (
-	maxMachineIDLen = 10
 	defaultLogsPath = "logs"
 	logFilePrefix   = "elrond-go"
 )
@@ -57,14 +55,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	machineID, err := machineid.ProtectedID(app.Name)
-	if err != nil {
-		log.Warn("error fetching machine id", "error", err)
-		machineID = "unknown"
-	}
-	if len(machineID) > maxMachineIDLen {
-		machineID = machineID[:maxMachineIDLen]
-	}
+	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
@@ -80,7 +71,7 @@ func main() {
 		return startNodeRunner(c, log, app.Version)
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		os.Exit(1)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -406,10 +407,14 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc:        &mock.AccountsStub{},
-		Accounts:        &mock.AccountsStub{},
-		Tries:           &mock.TriesHolderStub{},
-		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+		PeersAcc: &mock.AccountsStub{},
+		Accounts: &mock.AccountsStub{},
+		Tries:    &mock.TriesHolderStub{},
+		StorageManagers: map[string]data.StorageManager{
+			"0":                         &mock.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &mock.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &mock.StorageManagerStub{},
+		},
 	}
 }
 
