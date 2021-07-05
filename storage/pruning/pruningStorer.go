@@ -438,7 +438,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		return res, nil
 	}
 
-	log.Warn("get from closed persister",
+	log.Debug("get from closed persister",
 		"id", ps.identifier,
 		"epoch", epoch,
 		"key", key,
