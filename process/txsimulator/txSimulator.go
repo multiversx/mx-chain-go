@@ -164,7 +164,7 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 		return err
 	}
 
-	receipts := make(map[string]*transaction.ReceiptApi)
+	receipts := make(map[string]*transaction.ApiReceipt)
 	for hash, value := range receiptsForwarder.GetAllCurrentFinishedTxs() {
 		rcpt, ok := value.(*receipt.Receipt)
 		if !ok {
@@ -205,8 +205,8 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 	return resScr
 }
 
-func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
-	return &transaction.ReceiptApi{
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
 		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),
