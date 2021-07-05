@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
@@ -584,4 +586,28 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
+}
+
+func TestNode_ComputeTimestampForRound(t *testing.T) {
+	genesis := getTime(t, "1596117600")
+	n, _ := node.NewNode(
+		node.WithGenesisTime(genesis),
+		node.WithRoundDuration(6000),
+	)
+
+	res := n.ComputeTimestampForRound(0)
+	require.Equal(t, int64(0), res)
+
+	res = n.ComputeTimestampForRound(4837403)
+	require.Equal(t, int64(1625142018), res)
+}
+
+func getTime(t *testing.T, timestamp string) time.Time {
+	i, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	tm := time.Unix(i, 0)
+
+	return tm
 }
