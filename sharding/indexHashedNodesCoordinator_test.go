@@ -1153,24 +1153,119 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	require.False(t, isValidator)
 }
 
-func TestChan(t *testing.T) {
-	ch := make(chan endProcess.ArgEndProcess)
+func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldTriggerWrongConfiguration(t *testing.T) {
+	t.Parallel()
 
-	go func() {
-		ch <- endProcess.ArgEndProcess{
-			Reason:      "rsn",
-			Description: "",
-		}
-	}()
+	chanStopNode := make(chan endProcess.ArgEndProcess, 1)
+	arguments := createArguments()
+	arguments.ChanStopNode = chanStopNode
+	arguments.IsFullArchive = true
 
-	time.Sleep(1 * time.Second)
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
 
-	ep := <-ch
-	fmt.Println(ep)
-	close(ch)
+	eligibleMap := map[uint32][]Validator{
+		core.MetachainShardId: {
+			mock.NewValidatorMock(pk, 1, 1),
+		},
+	}
 
-	ep = <-ch
-	fmt.Println(ep)
+	err = ihgs.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	require.NoError(t, err)
+
+	value := <-chanStopNode
+	require.Equal(t, core.WrongConfiguration, value.Reason)
+}
+
+func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldNotTriggerWrongConfiguration(t *testing.T) {
+	t.Parallel()
+
+	chanStopNode := make(chan endProcess.ArgEndProcess, 1)
+	arguments := createArguments()
+	arguments.ChanStopNode = chanStopNode
+	arguments.IsFullArchive = false
+
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	eligibleMap := map[uint32][]Validator{
+		core.MetachainShardId: {
+			mock.NewValidatorMock(pk, 1, 1),
+		},
+	}
+
+	err = ihgs.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	require.NoError(t, err)
+
+	require.Empty(t, chanStopNode)
+}
+
+func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeValidator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	arguments.IsFullArchive = false
+
+	var nodeTypeResult core.NodeType
+	var setTypeWasCalled bool
+	arguments.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+		SetTypeCalled: func(nodeType core.NodeType) {
+			nodeTypeResult = nodeType
+			setTypeWasCalled = true
+		},
+	}
+
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	eligibleMap := map[uint32][]Validator{
+		core.MetachainShardId: {
+			mock.NewValidatorMock(pk, 1, 1),
+		},
+	}
+
+	err = ihgs.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	require.NoError(t, err)
+	require.True(t, setTypeWasCalled)
+	require.Equal(t, core.NodeTypeValidator, nodeTypeResult)
+}
+
+func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeObserver(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	arguments.IsFullArchive = false
+
+	var nodeTypeResult core.NodeType
+	var setTypeWasCalled bool
+	arguments.NodeTypeProvider = &nodeTypeProviderMock.NodeTypeProviderStub{
+		SetTypeCalled: func(nodeType core.NodeType) {
+			nodeTypeResult = nodeType
+			setTypeWasCalled = true
+		},
+	}
+
+	pk := []byte("observer pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	eligibleMap := map[uint32][]Validator{
+		core.MetachainShardId: {
+			mock.NewValidatorMock([]byte("validator pk"), 1, 1),
+		},
+	}
+
+	err = ihgs.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	require.NoError(t, err)
+	require.True(t, setTypeWasCalled)
+	require.Equal(t, core.NodeTypeObserver, nodeTypeResult)
 }
 
 func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
