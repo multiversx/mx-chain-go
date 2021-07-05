@@ -2049,7 +2049,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 			syncCalled = true
 			return nil
 		}}
-	args.Accounts = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

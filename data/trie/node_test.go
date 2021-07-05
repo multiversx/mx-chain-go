@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dataMock "github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -655,7 +655,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 func TestNode_NodeExtension(t *testing.T) {
 	n := &branchNode{
 		baseNode: &baseNode{
-			hasher: &testscommon.HasherStub{
+			hasher: &dataMock.HasherStub{
 				ComputeCalled: func(s string) []byte {
 					return []byte{0, 0, 0, 0}
 				},
@@ -666,7 +666,7 @@ func TestNode_NodeExtension(t *testing.T) {
 
 	n = &branchNode{
 		baseNode: &baseNode{
-			hasher: &testscommon.HasherStub{
+			hasher: &dataMock.HasherStub{
 				ComputeCalled: func(s string) []byte {
 					return []byte{0, 0, 0, 1}
 				},
@@ -674,5 +674,4 @@ func TestNode_NodeExtension(t *testing.T) {
 		},
 	}
 	assert.False(t, shouldTestNode(n, make([]byte, 0)))
-
 }
