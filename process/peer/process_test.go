@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -251,7 +252,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 
 	adapterError := errors.New("account error")
 	peerAdapters := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, adapterError
 		},
 	}
@@ -273,7 +274,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	t.Parallel()
 
 	peerAdapter := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return &mock.AccountWrapMock{}, nil
 		},
 	}
@@ -296,10 +297,10 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	saveAccountError := errors.New("save account error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 	peerAdapter := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return saveAccountError
 		},
 	}
@@ -322,13 +323,13 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommitErrors(t *testing.T)
 	commitError := errors.New("commit error")
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 	peerAdapter := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
 		CommitCalled: func() (bytes []byte, e error) {
 			return nil, commitError
 		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil
 		},
 	}
@@ -345,13 +346,13 @@ func TestValidatorStatisticsProcessor_SaveInitialStateCommit(t *testing.T) {
 
 	peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 	peerAdapter := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return peerAccount, nil
 		},
 		CommitCalled: func() (bytes []byte, e error) {
 			return nil, nil
 		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			return nil
 		},
 	}
@@ -431,7 +432,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 
 	existingAccountErr := errors.New("existing account err")
 	adapter := getAccountsMock()
-	adapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return nil, existingAccountErr
 	}
 
@@ -456,7 +457,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 	t.Parallel()
 
 	adapter := getAccountsMock()
-	adapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}
 
@@ -484,7 +485,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	adapter := getAccountsMock()
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return state.NewPeerAccount(address)
 	}
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
@@ -530,7 +531,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	increaseValidatorCalled := false
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			IncreaseLeaderSuccessRateCalled: func(value uint32) {
 				increaseLeaderCalled = true
@@ -1199,7 +1200,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	shouldErr := false
 	marshalizer := &mock.MarshalizerStub{}
 
-	adapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	adapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateCalled: func(value uint32) {
 				shouldErr = true
@@ -1207,7 +1208,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 		}, nil
 	}
 
-	adapter.SaveAccountCalled = func(account state.AccountHandler) error {
+	adapter.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		if shouldErr {
 			return missedBlocksErr
 		}
@@ -1352,7 +1353,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnDecrease(t *testi
 	decreaseErr := false
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateCalled: func(value uint32) {
 				decreaseErr = true
@@ -1386,7 +1387,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksCallsDecrease(t *testi
 	pubKey := []byte("pubKey")
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateCalled: func(value uint32) {
 				decreaseCount += 5
@@ -1431,7 +1432,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateCalled: func(value uint32) {
 				decreaseLeaderCalls++
@@ -1490,7 +1491,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return &mock.PeerAccountHandlerMock{
 			DecreaseLeaderSuccessRateCalled: func(value uint32) {
 				decreaseLeaderCalls++
@@ -1677,7 +1678,7 @@ func DoComputeMissingBlocks(
 
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 	peerAdapter := getAccountsMock()
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		key := string(address)
 		account, found := accountsMap[key]
 
@@ -1831,7 +1832,7 @@ func getAccountsMock() *testscommon.AccountsStub {
 		CommitCalled: func() (bytes []byte, e error) {
 			return make([]byte, 0), nil
 		},
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -1882,7 +1883,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 		}
 		return nil, expectedErr
 	}
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
 			return pa0, nil
 		}
@@ -1943,7 +1944,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 		}
 		return nil, expectedErr
 	}
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.GetBLSPublicKey(), address) {
 			return pa0, nil
 		}
@@ -2424,7 +2425,7 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 
 		return ch, nil
 	}
-	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		return pa0, nil
 	}
 	arguments.PeerAdapter = peerAdapter
@@ -2436,7 +2437,7 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 
 	arguments.Rater = mock.GetNewMockRater()
 	adapter := getAccountsMock()
-	adapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		pk := string(address)
 		_, ok := peerAccountsMap[pk]
 		if !ok {
@@ -2469,7 +2470,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
 
-	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		peerAcc := state.NewEmptyPeerAccount()
 		peerAcc.List = string(core.LeavingList)
 		return peerAcc, nil
@@ -2488,7 +2489,7 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) 
 	assert.Nil(t, err)
 	assert.True(t, nodeForcedToRemain)
 
-	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	peerAdapter.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		return state.NewEmptyPeerAccount(), nil
 	}
 	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)

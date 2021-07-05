@@ -2,15 +2,24 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // BlockChainHookHandlerMock -
 type BlockChainHookHandlerMock struct {
-	SetCurrentHeaderCalled   func(hdr data.HeaderHandler)
-	NewAddressCalled         func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled          func(address []byte) (bool, error)
-	DeleteCompiledCodeCalled func(codeHash []byte)
+	SetCurrentHeaderCalled       func(hdr data.HeaderHandler)
+	NewAddressCalled             func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsPayableCalled              func(address []byte) (bool, error)
+	DeleteCompiledCodeCalled     func(codeHash []byte)
+	ProcessBuiltInFunctionCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+}
+
+// ProcessBuiltInFunction -
+func (e *BlockChainHookHandlerMock) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	if e.ProcessBuiltInFunctionCalled != nil {
+		return e.ProcessBuiltInFunctionCalled(input)
+	}
+	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsPayable -
@@ -19,11 +28,6 @@ func (e *BlockChainHookHandlerMock) IsPayable(address []byte) (bool, error) {
 		return e.IsPayableCalled(address)
 	}
 	return true, nil
-}
-
-// GetBuiltInFunctions -
-func (e *BlockChainHookHandlerMock) GetBuiltInFunctions() process.BuiltInFunctionContainer {
-	return nil
 }
 
 // SetCurrentHeader -

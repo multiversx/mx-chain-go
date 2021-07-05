@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountCreator has method to create a new account
@@ -14,7 +15,7 @@ func NewAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (ac *AccountCreator) CreateAccount(address []byte) (state.AccountHandler, error) {
+func (ac *AccountCreator) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
 

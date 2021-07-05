@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1166,7 +1167,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func newDefaultAccount(adb *state.AccountsDB, address []byte) state.AccountHandler {
+func newDefaultAccount(adb *state.AccountsDB, address []byte) vmcommon.AccountHandler {
 	account, _ := adb.LoadAccount(address)
 	_ = adb.SaveAccount(account)
 
@@ -1889,7 +1890,7 @@ func updateCode(
 	AccntState state.AccountsAdapter,
 	codeArray [][]byte,
 	codeMap map[string]int,
-	account state.AccountHandler,
+	account vmcommon.AccountHandler,
 	numCodes int,
 ) {
 	snapshot := AccntState.JournalLen()
@@ -1919,7 +1920,7 @@ func removeCode(
 	t *testing.T,
 	AccntState state.AccountsAdapter,
 	codeMap map[string]int,
-	account state.AccountHandler,
+	account vmcommon.AccountHandler,
 ) {
 	snapshot := AccntState.JournalLen()
 	code := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())

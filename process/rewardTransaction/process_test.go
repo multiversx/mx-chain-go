@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -105,7 +106,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 	}
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&testscommon.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				getAccountWithJournalWasCalled = true
 				return nil, nil
 			},
@@ -133,7 +134,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	expectedErr := errors.New("cannot get account")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&testscommon.AccountsStub{
-			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -156,7 +157,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 	t.Parallel()
 
 	accountsDb := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -184,10 +185,10 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	saveAccountWasCalled := false
 
 	accountsDb := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount(address)
 		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			saveAccountWasCalled = true
 			return nil
 		},
@@ -219,10 +220,10 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 	userAccount, _ := state.NewUserAccount(address)
 	accountsDb := &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return userAccount, nil
 		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			saveAccountWasCalled = true
 			return nil
 		},

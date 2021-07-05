@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
@@ -164,7 +165,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 }
 
 // ImportAccount saves the account in the trie. It does not modify
-func (adb *AccountsDB) ImportAccount(account AccountHandler) error {
+func (adb *AccountsDB) ImportAccount(account vmcommon.AccountHandler) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -176,7 +177,7 @@ func (adb *AccountsDB) ImportAccount(account AccountHandler) error {
 }
 
 // SaveAccount saves in the trie all changes made to the account.
-func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
+func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -212,7 +213,7 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	return adb.saveAccountToTrie(account)
 }
 
-func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc AccountHandler) error {
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
 	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
 	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
@@ -459,7 +460,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) saveAccountToTrie(accountHandler AccountHandler) error {
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler) error {
 	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
@@ -509,7 +510,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	return adb.mainTrie.Update(address, make([]byte, 0))
 }
 
-func (adb *AccountsDB) removeCodeAndDataTrie(acnt AccountHandler) error {
+func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error {
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if !ok {
 		return nil
@@ -572,7 +573,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 }
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
-func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
+func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -603,7 +604,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 	return acnt, nil
 }
 
-func (adb *AccountsDB) getAccount(address []byte) (AccountHandler, error) {
+func (adb *AccountsDB) getAccount(address []byte) (vmcommon.AccountHandler, error) {
 	val, err := adb.mainTrie.Get(address)
 	if err != nil {
 		return nil, err
@@ -626,7 +627,7 @@ func (adb *AccountsDB) getAccount(address []byte) (AccountHandler, error) {
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing
-func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error) {
+func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 

@@ -1,6 +1,9 @@
 package state
 
-import "github.com/ElrondNetwork/elrond-go/marshal"
+import (
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	return &baseAccount{
@@ -17,7 +20,7 @@ func (adb *AccountsDB) LoadDataTrie(accountHandler baseAccountHandler) error {
 	return adb.loadDataTrie(accountHandler)
 }
 
-func (adb *AccountsDB) GetAccount(address []byte) (AccountHandler, error) {
+func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, error) {
 	return adb.getAccount(address)
 }
 

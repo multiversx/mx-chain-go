@@ -404,6 +404,8 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		Hasher:             sesb.coreComponentsHolder.Hasher(),
 		PubKey:             pubKey,
 		ShardIdAsObserver:  shardId,
+		ChanNodeStop:       sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		IsFullArchive:      sesb.prefsConfig.FullArchive,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

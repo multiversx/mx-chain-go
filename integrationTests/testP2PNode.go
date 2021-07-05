@@ -346,6 +346,8 @@ func CreateNodesWithTestP2PNodes(
 			EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -388,6 +390,8 @@ func CreateNodesWithTestP2PNodes(
 				EpochStartNotifier:         notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 				WaitingListFixEnabledEpoch: 0,
+				ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:              false,
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

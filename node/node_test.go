@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -37,6 +36,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +48,7 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 
 func getAccAdapter(balance *big.Int) *testscommon.AccountsStub {
 	accDB := &testscommon.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		_ = acc.AddToBalance(balance)
 		acc.IncreaseNonce(1)
@@ -139,7 +140,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	expectedErr := errors.New("error")
 
 	accAdapter := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, expectedErr
 		},
 	}
@@ -173,7 +174,7 @@ func createDummyHexAddress(hexChars int) string {
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 	accAdapter := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -217,7 +218,7 @@ func TestGetUsername(t *testing.T) {
 	expectedUsername := []byte("elrond")
 
 	accDB := &testscommon.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		acc, _ := state.NewUserAccount(address)
 		acc.UserName = expectedUsername
 		acc.IncreaseNonce(1)
@@ -272,7 +273,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 			},
 		})
 
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 	accDB.RecreateTrieCalled = func(rootHash []byte) error {
@@ -319,7 +320,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 
 	accDB := &testscommon.AccountsStub{}
 
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -351,7 +352,7 @@ func TestNode_GetESDTData(t *testing.T) {
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
 	accDB := &testscommon.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -385,7 +386,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
 	accDB := &testscommon.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -438,7 +439,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -522,7 +523,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -605,7 +606,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 
@@ -691,7 +692,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 	coreComponents := getDefaultCoreComponents()
@@ -765,7 +766,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 			return nil
 		},
 	}
-	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 		return acc, nil
 	}
 	coreComponents := getDefaultCoreComponents()
@@ -873,7 +874,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -900,7 +901,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount(address)
 		},
 	}
@@ -1042,7 +1043,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
 	accAdapter := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc, _ := state.NewUserAccount(address)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.IncreaseNonce(nonce)
@@ -1870,7 +1871,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	}
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return state.NewUserAccount([]byte("address"))
 		},
 	}
@@ -2424,7 +2425,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2448,7 +2449,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2478,7 +2479,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	accDB := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2507,7 +2508,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	accDB := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -2541,7 +2542,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	accnt.SetOwnerAddress([]byte("owner address"))
 
 	accDB := &testscommon.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			return accnt, nil
 		},
 	}

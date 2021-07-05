@@ -343,6 +343,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	defer func() {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}()
+
 	params, err = e.requestAndProcessing()
 	if err != nil {
 		return Parameters{}, err
@@ -674,6 +681,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		PubKey:                    pubKey,
 		ShardIdAsObserver:         shardId,
 		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
+		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
+		IsFullArchive:             e.prefsConfig.FullArchive,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
@@ -690,8 +699,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
-	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	err = e.syncValidatorAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
 		return err
 	}
@@ -931,7 +940,7 @@ func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
 	}
 }
 
-func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
+func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
 	e.mutTrieStorageManagers.RLock()
 	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
 	e.mutTrieStorageManagers.RUnlock()

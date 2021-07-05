@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type journalEntryCode struct {
@@ -41,7 +42,7 @@ func NewJournalEntryCode(
 }
 
 // Revert applies undo operation
-func (jea *journalEntryCode) Revert() (AccountHandler, error) {
+func (jea *journalEntryCode) Revert() (vmcommon.AccountHandler, error) {
 	if bytes.Equal(jea.oldCodeHash, jea.newCodeHash) {
 		return nil, nil
 	}
@@ -107,11 +108,11 @@ func (jea *journalEntryCode) IsInterfaceNil() bool {
 
 // JournalEntryAccount represents a journal entry for account fields change
 type journalEntryAccount struct {
-	account AccountHandler
+	account vmcommon.AccountHandler
 }
 
 // NewJournalEntryAccount creates a new instance of JournalEntryAccount
-func NewJournalEntryAccount(account AccountHandler) (*journalEntryAccount, error) {
+func NewJournalEntryAccount(account vmcommon.AccountHandler) (*journalEntryAccount, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryAccount", ErrNilAccountHandler)
 	}
@@ -122,7 +123,7 @@ func NewJournalEntryAccount(account AccountHandler) (*journalEntryAccount, error
 }
 
 // Revert applies undo operation
-func (jea *journalEntryAccount) Revert() (AccountHandler, error) {
+func (jea *journalEntryAccount) Revert() (vmcommon.AccountHandler, error) {
 	return jea.account, nil
 }
 
@@ -153,7 +154,7 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 }
 
 // Revert applies undo operation
-func (jea *journalEntryAccountCreation) Revert() (AccountHandler, error) {
+func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
 	return nil, jea.updater.Update(jea.address, nil)
 }
 
@@ -185,7 +186,7 @@ func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseA
 }
 
 // Revert applies undo operation
-func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
+func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, error) {
 	for key := range jedtu.trieUpdates {
 		err := jedtu.account.DataTrie().Update([]byte(key), jedtu.trieUpdates[key])
 		if err != nil {
@@ -233,7 +234,7 @@ func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[s
 }
 
 // Revert applies undo operation
-func (jedtr *journalEntryDataTrieRemove) Revert() (AccountHandler, error) {
+func (jedtr *journalEntryDataTrieRemove) Revert() (vmcommon.AccountHandler, error) {
 	delete(jedtr.obsoleteDataTrieHashes, string(jedtr.rootHash))
 
 	return nil, nil
