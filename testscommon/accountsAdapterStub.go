@@ -3,7 +3,8 @@ package testscommon
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountsStub -
@@ -59,7 +60,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (vmcommon.AccountHandler, er
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, nil
+	return mock.NewAccountWrapMock(address), nil
 }
 
 // SaveAccount -
