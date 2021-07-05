@@ -586,6 +586,8 @@ func (ps *PruningStorer) GetOldestEpoch() (uint32, error) {
 		}
 	}
 
+	log.Debug("pruningStorer.GetOldestEpoch", "identifier", ps.identifier, "epoch", oldestEpoch)
+
 	return oldestEpoch, nil
 }
 

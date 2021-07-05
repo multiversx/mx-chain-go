@@ -141,8 +141,8 @@ func (odc *oldDatabaseCleaner) shouldCleanOldData(currentEpoch uint32, newOldest
 }
 
 func (odc *oldDatabaseCleaner) computeOldestEpochToKeep() (uint32, error) {
-	odc.Lock()
-	defer odc.Unlock()
+	odc.RLock()
+	defer odc.RUnlock()
 
 	oldestEpoch := uint32(math.MaxUint32)
 	storers := odc.storageListProvider.GetAllStorers()
@@ -205,9 +205,26 @@ func (odc *oldDatabaseCleaner) cleanOldEpochs(currentEpoch uint32) error {
 		}
 	}
 
-	delete(odc.oldestEpochsToKeep, epochForDeletion)
+	odc.cleanMap(currentEpoch)
 
 	return nil
+}
+
+// cleanMap will remove all the entries from the map that aren't for current epoch.
+// should be called under mutex protection
+func (odc *oldDatabaseCleaner) cleanMap(currentEpoch uint32) {
+	epochsToRemove := make([]uint32, 0)
+	for epoch := range odc.oldestEpochsToKeep {
+		if epoch == currentEpoch {
+			continue
+		}
+
+		epochsToRemove = append(epochsToRemove, epoch)
+	}
+
+	for _, epochToRemove := range epochsToRemove {
+		delete(odc.oldestEpochsToKeep, epochToRemove)
+	}
 }
 
 func getSortedEpochDirectories(directories []string) ([]string, []uint32, bool) {

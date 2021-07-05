@@ -43,7 +43,7 @@ func (odcp *oldDataCleanerProvider) ShouldClean() bool {
 	}
 
 	// TODO: remove this log before merging
-	log.Debug("oldDataCleanerProvider.ShouldClean", "node type", nodeType, "value", odcp.validatorCleanOldEpochsData)
+	log.Debug("oldDataCleanerProvider.ShouldClean", "node type", nodeType, "value", shouldClean)
 
 	return shouldClean
 }
