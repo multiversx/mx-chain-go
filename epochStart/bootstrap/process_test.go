@@ -430,7 +430,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 	assert.Equal(t, header2, headers[string(hdrHash2)])
 }
 
-func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
+func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -445,7 +445,7 @@ func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 	}
 	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
 	rootHash := []byte("rootHash")
-	err := epochStartProvider.syncPeerAccountsState(rootHash)
+	err := epochStartProvider.syncValidatorAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }
 

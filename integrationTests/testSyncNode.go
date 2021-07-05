@@ -273,6 +273,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		Indexer:             &mock.NilIndexer{},
+		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
 		IsInImportMode:      false,
 	}
 
@@ -313,12 +314,15 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
 		Indexer:             &mock.NilIndexer{},
+		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
 		IsInImportMode:      false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-		EpochBootstrapper:   tpn.EpochStartTrigger,
+		ArgBaseBootstrapper:         argsBaseBootstrapper,
+		EpochBootstrapper:           tpn.EpochStartTrigger,
+		ValidatorAccountsDB:         tpn.PeerState,
+		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
