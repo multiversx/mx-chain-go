@@ -25,3 +25,8 @@ func (n *Node) PrepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 func (n *Node) AddClosableComponents(components ...factory.Closer) {
 	n.closableComponents = append(n.closableComponents, components...)
 }
+
+// ComputeTimestampForRound -
+func (n *Node) ComputeTimestampForRound(round uint64) int64 {
+	return n.computeTimestampForRound(round)
+}

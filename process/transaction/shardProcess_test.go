@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -24,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,7 +52,7 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 ) *testscommon.AccountsStub {
 	adb := testscommon.AccountsStub{}
 
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, sndAddr) {
 			return acntSrc, nil
 		}
@@ -317,7 +317,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	acnt1, _ := state.NewUserAccount(adr1)
 	acnt2, _ := state.NewUserAccount(adr2)
 
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, adr1) {
 			return acnt1, nil
 		}
@@ -362,7 +362,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	acnt1, _ := state.NewUserAccount(adr1)
 	acnt2, _ := state.NewUserAccount(adr2)
 
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, adr1) {
 			return nil, errors.New("failure on source")
 		}
@@ -695,7 +695,7 @@ func TestTxProcessor_ProcessWithWrongAssertionShouldErr(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.Accounts = &testscommon.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -867,7 +867,7 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 	acntDst.CodeMetadata = []byte{0, vmcommon.MetadataPayable}
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -906,7 +906,7 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -938,7 +938,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -973,7 +973,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	acntDst.Balance = big.NewInt(10)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1011,7 +1011,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	acntDst.Balance = big.NewInt(10)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1061,7 +1061,7 @@ func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1112,7 +1112,7 @@ func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1163,7 +1163,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1211,7 +1211,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1268,7 +1268,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -1647,7 +1647,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -1726,7 +1726,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -1804,7 +1804,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -1889,7 +1889,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -1967,7 +1967,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2040,7 +2040,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2129,7 +2129,7 @@ func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *test
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2192,7 +2192,7 @@ func TestTxProcessor_ProcessRelayedTransactionMultipleArgumentsShouldError(t *te
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2255,7 +2255,7 @@ func TestTxProcessor_ProcessRelayedTransactionFailUnMarshalInnerShouldError(t *t
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2318,7 +2318,7 @@ func TestTxProcessor_ProcessRelayedTransactionDifferentSenderInInnerTxThanReceiv
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2381,7 +2381,7 @@ func TestTxProcessor_ProcessRelayedTransactionSmallerValueInnerTxShouldError(t *
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2444,7 +2444,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasPriceMismatchShouldError(t *tes
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2507,7 +2507,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2566,7 +2566,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	acntFinal.Balance = big.NewInt(10)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2700,7 +2700,7 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2764,7 +2764,7 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2828,7 +2828,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2892,7 +2892,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -2956,7 +2956,7 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -3024,7 +3024,7 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -3094,7 +3094,7 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}
@@ -3154,7 +3154,7 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 	acntFinal.Balance = big.NewInt(100)
 
 	adb := &testscommon.AccountsStub{}
-	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
 		if bytes.Equal(address, tx.SndAddr) {
 			return acntSrc, nil
 		}

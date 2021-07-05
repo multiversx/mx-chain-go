@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -15,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -184,7 +184,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -228,7 +228,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -275,7 +275,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}
@@ -333,7 +333,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
 		saveAccountCalled++
 		return nil
 	}

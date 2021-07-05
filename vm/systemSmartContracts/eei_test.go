@@ -8,12 +8,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -199,7 +199,7 @@ func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&testscommon.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return nil, errors.New("not found")
 			},
 		},
@@ -216,7 +216,7 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&testscommon.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				return state.NewEmptyUserAccount(), nil
 			},
 		},
@@ -263,7 +263,7 @@ func TestVmContext_IsValidator(t *testing.T) {
 			hooks.NewVMCryptoHook(),
 			&mock.ArgumentParserMock{},
 			&testscommon.AccountsStub{
-				GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 					assert.Equal(t, blsKey, address)
 
 					acnt := state.NewEmptyPeerAccount()

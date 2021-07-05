@@ -3,14 +3,14 @@ package testscommon
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
-	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
-	SaveAccountCalled        func(account state.AccountHandler) error
+	GetExistingAccountCalled func(addressContainer []byte) (vmcommon.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (vmcommon.AccountHandler, error)
+	SaveAccountCalled        func(account vmcommon.AccountHandler) error
 	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
@@ -55,7 +55,7 @@ func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie,
 }
 
 // LoadAccount -
-func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error) {
+func (as *AccountsStub) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
@@ -63,7 +63,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error
 }
 
 // SaveAccount -
-func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
+func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 	if as.SaveAccountCalled != nil {
 		return as.SaveAccountCalled(account)
 	}
@@ -88,7 +88,7 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 }
 
 // GetExistingAccount -
-func (as *AccountsStub) GetExistingAccount(addressContainer []byte) (state.AccountHandler, error) {
+func (as *AccountsStub) GetExistingAccount(addressContainer []byte) (vmcommon.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
 		return as.GetExistingAccountCalled(addressContainer)
 	}

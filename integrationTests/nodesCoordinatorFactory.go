@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -64,6 +65,8 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		BootStorer:                 arg.bootStorer,
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		IsFullArchive:              false,
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -113,6 +116,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		BootStorer:                 arg.bootStorer,
 		ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
 		WaitingListFixEnabledEpoch: 0,
+		ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+		IsFullArchive:              false,
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
