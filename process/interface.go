@@ -1116,3 +1116,9 @@ type InterceptedChunksProcessor interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
