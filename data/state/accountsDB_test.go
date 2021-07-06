@@ -193,7 +193,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		adb.SetStateCheckpoint([]byte("rootHash"), context.Background())
 	}
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second*2 + time.Millisecond*500)
 
 	val, err := db.Get(numCheckpointsKey)
 	assert.Nil(t, err)

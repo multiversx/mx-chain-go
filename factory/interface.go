@@ -250,6 +250,7 @@ type ProcessComponentsHolder interface {
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	ArwenChangeLocker() process.Locker
+	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	IsInterfaceNil() bool
 }
 

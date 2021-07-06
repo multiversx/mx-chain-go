@@ -7,12 +7,24 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getMockChainHandler() data.ChainHandler {
+	return &mock.BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: 0,
+			}
+		},
+	}
+}
 
 func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *testing.T) {
 	t.Parallel()
@@ -131,6 +143,8 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		isInImportMode:        true,
 		isNodeStateCalculated: true,
 		roundHandler:          &mock.RoundHandlerMock{},
+		chainHandler:          getMockChainHandler(),
+		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
@@ -138,6 +152,8 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
 		roundHandler:          &mock.RoundHandlerMock{},
+		chainHandler:          getMockChainHandler(),
+		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 
@@ -146,6 +162,67 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		isInImportMode:        false,
 		isNodeStateCalculated: true,
 		roundHandler:          &mock.RoundHandlerMock{},
+		chainHandler:          getMockChainHandler(),
+		currentEpochProvider:  &testscommon.CurrentEpochProviderStub{},
 	}
 	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
+
+	boot = &baseBootstrap{
+		roundIndex:            1,
+		isInImportMode:        false,
+		isNodeStateCalculated: true,
+		roundHandler:          &mock.RoundHandlerMock{},
+		chainHandler:          getMockChainHandler(),
+		currentEpochProvider: &testscommon.CurrentEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				return false
+			},
+		},
+	}
+	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+}
+
+func TestBaseSync_getEpochForCurrentBlockGenesis(t *testing.T) {
+	t.Parallel()
+
+	genesisEpoch := uint32(1123)
+	boot := &baseBootstrap{
+		chainHandler: &mock.BlockChainMock{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Epoch: genesisEpoch,
+				}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		},
+	}
+
+	epoch := boot.getEpochForCurrentBlock()
+	assert.Equal(t, genesisEpoch, epoch)
+}
+
+func TestBaseSync_getEpochForCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	genesisEpoch := uint32(1123)
+	headerEpoch := uint32(97493)
+	boot := &baseBootstrap{
+		chainHandler: &mock.BlockChainMock{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Epoch: genesisEpoch,
+				}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Epoch: headerEpoch,
+				}
+			},
+		},
+	}
+
+	epoch := boot.getEpochForCurrentBlock()
+	assert.Equal(t, headerEpoch, epoch)
 }

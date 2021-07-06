@@ -2803,6 +2803,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 				return &mock.PrivateKeyMock{}
 			},
 		},
+		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 	}
 }
 
