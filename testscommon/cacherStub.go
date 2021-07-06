@@ -131,3 +131,8 @@ func (cacher *CacherStub) UnRegisterHandler(id string) {
 func (cacher *CacherStub) IsInterfaceNil() bool {
 	return cacher == nil
 }
+
+// Close -
+func (cacher *CacherStub) Close() error {
+	return nil
+}

@@ -22,7 +22,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 	args := txproc.ArgsNewMetaTxProcessor{
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		Accounts:         &mock.AccountsStub{},
+		Accounts:         &testscommon.AccountsStub{},
 		PubkeyConv:       createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		ScProcessor:      &testscommon.SCProcessorMock{},

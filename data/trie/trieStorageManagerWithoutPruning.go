@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -20,29 +21,13 @@ func NewTrieStorageManagerWithoutPruning(db data.DBWriteCacher) (*trieStorageMan
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot(_ []byte, _ bool, _ chan core.KeyValueHolder) {
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint(_ []byte, _ chan core.KeyValueHolder) {
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
-}
-
-// Prune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) Prune(_ []byte, _ data.TriePruningIdentifier) {
-	log.Trace("trieStorageManagerWithoutPruning - Prune:trie storage pruning is disabled")
-}
-
-// CancelPrune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
-	log.Trace("trieStorageManagerWithoutPruning - CancelPrune:trie storage pruning is disabled")
-}
-
-// MarkForEviction does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) MarkForEviction(_ []byte, _ data.ModifiedHashes) error {
-	log.Trace("trieStorageManagerWithoutPruning - MarkForEviction:trie storage pruning is disabled")
-	return nil
 }
 
 // Close - closes all underlying components
@@ -54,4 +39,14 @@ func (tsm *trieStorageManagerWithoutPruning) Close() error {
 // IsPruningEnabled returns false if the trie pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 	return false
+}
+
+// AddDirtyCheckpointHashes does nothing for this implementation
+func (tsm *trieStorageManagerWithoutPruning) AddDirtyCheckpointHashes(_ []byte, _ data.ModifiedHashes) bool {
+	return false
+}
+
+// Remove does nothing for this implementation
+func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte) error {
+	return nil
 }

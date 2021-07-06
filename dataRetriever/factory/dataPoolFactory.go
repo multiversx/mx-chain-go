@@ -1,17 +1,25 @@
 package factory
 
 import (
+	"io/ioutil"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
+	"github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter"
+	trieNodeFactory "github.com/ElrondNetwork/elrond-go/storage/storageCacherAdapter/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -22,6 +30,8 @@ type ArgsDataPool struct {
 	Config           *config.Config
 	EconomicsData    process.EconomicsDataHandler
 	ShardCoordinator sharding.Coordinator
+	Marshalizer      marshal.Marshalizer
+	PathManager      storage.PathManagerHandler
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -36,6 +46,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManager) {
+		return nil, dataRetriever.ErrNilPathManager
 	}
 
 	mainConfig := args.Config
@@ -83,10 +96,41 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
-	trieNodes, err := storageUnit.NewCache(cacherCfg)
+	cacher, err := capacity.NewCapacityLRU(
+		int(mainConfig.TrieSyncStorage.Capacity),
+		int64(mainConfig.TrieSyncStorage.SizeInBytes),
+	)
 	if err != nil {
-		log.Error("error creating trieNodes")
+		return nil, err
+	}
+
+	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
+	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
+	argDB := storageUnit.ArgDB{
+		DBType:            dbCfg.Type,
+		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
+		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
+		MaxBatchSize:      dbCfg.MaxBatchSize,
+		MaxOpenFiles:      dbCfg.MaxOpenFiles,
+	}
+
+	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
+		filePath, err := ioutil.TempDir("", "trieSyncStorage")
+		if err != nil {
+			return nil, err
+		}
+
+		argDB.Path = filePath
+	}
+
+	db, err := storageUnit.NewDB(argDB)
+	if err != nil {
+		return nil, err
+	}
+
+	tnf := trieNodeFactory.NewTrieNodeFactory()
+	adaptedTrieNodesStorage, err := storageCacherAdapter.NewStorageCacherAdapter(cacher, db, tnf, args.Marshalizer)
+	if err != nil {
 		return nil, err
 	}
 
@@ -116,7 +160,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Headers:                  hdrPool,
 		MiniBlocks:               txBlockBody,
 		PeerChangesBlocks:        peerChangeBlockBody,
-		TrieNodes:                trieNodes,
+		TrieNodes:                adaptedTrieNodesStorage,
 		TrieNodesChunks:          trieNodesChunks,
 		CurrentBlockTransactions: currBlockTxs,
 		SmartContracts:           smartContracts,

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) 
 		ShardID: core.MetachainShardId,
 		Accounts: &trieIterators.AccountsWrapper{
 			Mutex:           &sync.Mutex{},
-			AccountsAdapter: &mock.AccountsStub{},
+			AccountsAdapter: &testscommon.AccountsStub{},
 		},
 		PublicKeyConverter: &mock.PubkeyConverterMock{},
 		BlockChain:         &mock.BlockChainMock{},

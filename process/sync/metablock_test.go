@@ -58,7 +58,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ForkDetector:        &mock.ForkDetectorMock{},
 		RequestHandler:      &testscommon.RequestHandlerStub{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		Accounts:            &mock.AccountsStub{},
+		Accounts:            &testscommon.AccountsStub{},
 		BlackListHandler:    &mock.BlackListHandlerStub{},
 		NetworkWatcher:      initNetworkWatcher(),
 		BootStorer:          &mock.BoostrapStorerMock{},
@@ -74,7 +74,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
 		ArgBaseBootstrapper:         argsBaseBootstrapper,
 		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &mock.AccountsStub{},
+		ValidatorAccountsDB:         &testscommon.AccountsStub{},
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
@@ -492,7 +492,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &mock.AccountsStub{}
+	account := &testscommon.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1246,7 +1246,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1384,7 +1384,7 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t 
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1549,10 +1549,10 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 			validatorSyncCalled = true
 			return nil
 		}}
-	args.Accounts = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
-	args.ValidatorAccountsDB = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.ValidatorAccountsDB = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 
