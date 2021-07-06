@@ -189,11 +189,11 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
-func initAccountsMock() *mock.AccountsStub {
+func initAccountsMock() *testscommon.AccountsStub {
 	rootHashCalled := func() ([]byte, error) {
 		return []byte("rootHash"), nil
 	}
-	return &mock.AccountsStub{
+	return &testscommon.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
 }
@@ -203,7 +203,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		Hasher:                            &mock.HasherMock{},
 		Marshalizer:                       &mock.MarshalizerMock{},
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(5),
-		Accounts:                          &mock.AccountsStub{},
+		Accounts:                          &testscommon.AccountsStub{},
 		MiniBlockPool:                     testscommon.NewPoolsHolderMock().MiniBlocks(),
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     &mock.PreProcessorContainerMock{},
@@ -444,7 +444,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.HasherMock{},
 		initDataPool([]byte("tx_hash0")),
 		createMockPubkeyConverter(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -493,7 +493,7 @@ func createPreProcessorContainerWithDataPool(
 		&mock.HasherMock{},
 		dataPool,
 		createMockPubkeyConverter(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -776,7 +776,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.HasherMock{},
 		tdp,
 		createMockPubkeyConverter(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -909,7 +909,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&mock.HasherMock{},
 		tdp,
 		createMockPubkeyConverter(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{},
 		&testscommon.SCProcessorMock{},
@@ -1016,7 +1016,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 			},
 		},
 		createMockPubkeyConverter(),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		&testscommon.RequestHandlerStub{},
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -1749,7 +1749,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
@@ -1883,7 +1883,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	currentJournalLen := 445
 	revertAccntStateCalled := false
 
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			if snapshot == currentJournalLen {
 				revertAccntStateCalled = true

@@ -591,7 +591,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

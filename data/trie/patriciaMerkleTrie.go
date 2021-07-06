@@ -2,12 +2,11 @@ package trie
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -37,11 +36,10 @@ type patriciaMerkleTrie struct {
 	hasher       hashing.Hasher
 	mutOperation sync.RWMutex
 
-	oldHashes [][]byte
-	oldRoot   []byte
-	newHashes data.ModifiedHashes
-
+	oldHashes            [][]byte
+	oldRoot              []byte
 	maxTrieLevelInMemory uint
+	chanClose            chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -71,8 +69,8 @@ func NewTrie(
 		hasher:               hsh,
 		oldHashes:            make([][]byte, 0),
 		oldRoot:              make([]byte, 0),
-		newHashes:            make(data.ModifiedHashes),
 		maxTrieLevelInMemory: maxTrieLevelInMemory,
+		chanClose:            make(chan struct{}),
 	}, nil
 }
 
@@ -128,10 +126,15 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		_, newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage.Database())
+		newRoot, oldHashes, err = tr.root.insert(newLn, tr.trieStorage.Database())
 		if err != nil {
 			return err
 		}
+
+		if check.IfNil(newRoot) {
+			return nil
+		}
+
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
@@ -222,14 +225,6 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	if tr.trieStorage.IsPruningEnabled() {
-		err = tr.markForEviction()
-		if err != nil {
-			return err
-		}
-	}
-
-	tr.newHashes = make(data.ModifiedHashes)
 	tr.oldRoot = make([]byte, 0)
 	tr.oldHashes = make([][]byte, 0)
 
@@ -237,61 +232,12 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
+	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (tr *patriciaMerkleTrie) markForEviction() error {
-	newRoot := tr.root.getHash()
-
-	if bytes.Equal(newRoot, tr.oldRoot) {
-		log.Trace("old root and new root are identical", "rootHash", newRoot)
-		return nil
-	}
-
-	oldHashes := make(data.ModifiedHashes)
-	for i := range tr.oldHashes {
-		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
-	}
-
-	log.Trace("trie hashes sizes", "newHashes", len(tr.newHashes), "oldHashes", len(oldHashes))
-	removeDuplicatedKeys(oldHashes, tr.newHashes)
-
-	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
-		newRoot = append(newRoot, byte(data.NewRoot))
-		err := tr.trieStorage.MarkForEviction(newRoot, tr.newHashes)
-		if err != nil {
-			return err
-		}
-
-		logMapWithTrace("MarkForEviction newHashes", "hash", tr.newHashes)
-	}
-
-	if len(oldHashes) > 0 && len(tr.oldRoot) > 0 {
-		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
-		err := tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
-		if err != nil {
-			return err
-		}
-
-		logMapWithTrace("MarkForEviction oldHashes", "hash", oldHashes)
-	}
-	return nil
-}
-
-func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]struct{}) {
-	for key := range oldHashes {
-		_, ok := newHashes[key]
-		if ok {
-			delete(oldHashes, key)
-			delete(newHashes, key)
-			log.Trace("found in newHashes and oldHashes", "hash", key)
-		}
-	}
 }
 
 // Recreate returns a new trie that has the given root hash and database
@@ -348,7 +294,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patricia
 		return nil, err
 	}
 
-	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.trieStorage.Database())
+	err = newRoot.commitSnapshot(db, tr.trieStorage.Database(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -384,20 +330,10 @@ func emptyTrie(root []byte) bool {
 	return false
 }
 
-// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
-func (tr *patriciaMerkleTrie) AppendToOldHashes(hashes [][]byte) {
-	tr.mutOperation.Lock()
-	tr.oldHashes = append(tr.oldHashes, hashes...)
-	tr.mutOperation.Unlock()
-}
-
-// ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
-func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
+// GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
+func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
 	tr.mutOperation.Lock()
 	oldHashes := tr.oldHashes
-	tr.oldHashes = make([][]byte, 0)
-	tr.oldRoot = make([]byte, 0)
-
 	logArrayWithTrace("old trie hash", "hash", oldHashes)
 
 	tr.mutOperation.Unlock()
@@ -428,14 +364,6 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 	logMapWithTrace("new trie hash", "hash", dirtyHashes)
 
 	return dirtyHashes, nil
-}
-
-// SetNewHashes adds the given hashes to tr.newHashes
-func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	tr.newHashes = newHashes
 }
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
@@ -554,11 +482,10 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 }
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
-func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
 	leavesChannel := make(chan core.KeyValueHolder, 100)
 
 	tr.mutOperation.RLock()
-
 	newTrie, err := tr.recreate(rootHash)
 	if err != nil {
 		tr.mutOperation.RUnlock()
@@ -576,14 +503,20 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.trieStorage.Database(), tr.marshalizer, ctx)
+		err = newTrie.root.getAllLeavesOnChannel(
+			leavesChannel,
+			[]byte{},
+			tr.trieStorage.Database(),
+			tr.marshalizer,
+			tr.chanClose,
+		)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
-		tr.mutOperation.RLock()
+		tr.mutOperation.Lock()
 		tr.trieStorage.ExitPruningBufferingMode()
-		tr.mutOperation.RUnlock()
+		tr.mutOperation.Unlock()
 
 		close(leavesChannel)
 	}()
@@ -721,4 +654,34 @@ func (tr *patriciaMerkleTrie) GetStorageManager() data.StorageManager {
 	defer tr.mutOperation.Unlock()
 
 	return tr.trieStorage
+}
+
+// GetOldRoot returns the rootHash of the trie before the latest changes
+func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return tr.oldRoot
+}
+
+// Close stops all the active goroutines started by the trie
+func (tr *patriciaMerkleTrie) Close() error {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if !isChannelClosed(tr.chanClose) {
+		close(tr.chanClose)
+	}
+
+	return nil
+}
+
+func isChannelClosed(ch chan struct{}) bool {
+	select {
+	case <-ch:
+		return true
+	default:
+	}
+
+	return false
 }

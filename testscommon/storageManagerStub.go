@@ -1,27 +1,27 @@
-package mock
+package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// StorageManagerStub --
+// StorageManagerStub -
 type StorageManagerStub struct {
 	DatabaseCalled                    func() data.DBWriteCacher
-	TakeSnapshotCalled                func([]byte)
-	SetCheckpointCalled               func([]byte)
-	PruneCalled                       func(rootHash []byte, identifier data.TriePruningIdentifier)
-	CancelPruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
-	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
+	TakeSnapshotCalled                func([]byte, bool, chan core.KeyValueHolder)
+	SetCheckpointCalled               func([]byte, chan core.KeyValueHolder)
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
+	IsPruningBlockedCalled            func() bool
 	EnterPruningBufferingModeCalled   func()
 	ExitPruningBufferingModeCalled    func()
+	AddDirtyCheckpointHashesCalled    func([]byte, data.ModifiedHashes) bool
+	RemoveCalled                      func([]byte) error
 	IsInterfaceNilCalled              func() bool
-	CloseCalled                       func() error
 }
 
-// Database --
+// Database -
 func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
@@ -29,43 +29,21 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 	return nil
 }
 
-// TakeSnapshot --
-func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte) {
+// TakeSnapshot -
+func (sms *StorageManagerStub) TakeSnapshot(rootHash []byte, newDB bool, leavesChan chan core.KeyValueHolder) {
 	if sms.TakeSnapshotCalled != nil {
-		sms.TakeSnapshotCalled(rootHash)
+		sms.TakeSnapshotCalled(rootHash, newDB, leavesChan)
 	}
 }
 
-// SetCheckpoint --
-func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte) {
+// SetCheckpoint -
+func (sms *StorageManagerStub) SetCheckpoint(rootHash []byte, leavesChan chan core.KeyValueHolder) {
 	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash)
+		sms.SetCheckpointCalled(rootHash, leavesChan)
 	}
 }
 
-// Prune --
-func (sms *StorageManagerStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if sms.PruneCalled != nil {
-		sms.PruneCalled(rootHash, identifier)
-	}
-}
-
-// CancelPrune --
-func (sms *StorageManagerStub) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if sms.CancelPruneCalled != nil {
-		sms.CancelPruneCalled(rootHash, identifier)
-	}
-}
-
-// MarkForEviction --
-func (sms *StorageManagerStub) MarkForEviction(d []byte, m data.ModifiedHashes) error {
-	if sms.MarkForEvictionCalled != nil {
-		return sms.MarkForEvictionCalled(d, m)
-	}
-	return nil
-}
-
-// GetSnapshotThatContainsHash --
+// GetSnapshotThatContainsHash -
 func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
@@ -74,7 +52,7 @@ func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.Snapsh
 	return nil
 }
 
-// IsPruningEnabled --
+// IsPruningEnabled -
 func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	if sms.IsPruningEnabledCalled != nil {
 		return sms.IsPruningEnabledCalled()
@@ -82,18 +60,44 @@ func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// EnterPruningBufferingMode --
+// IsPruningBlocked -
+func (sms *StorageManagerStub) IsPruningBlocked() bool {
+	if sms.IsPruningBlockedCalled != nil {
+		return sms.IsPruningBlockedCalled()
+	}
+	return false
+}
+
+// EnterPruningBufferingMode -
 func (sms *StorageManagerStub) EnterPruningBufferingMode() {
 	if sms.EnterPruningBufferingModeCalled != nil {
 		sms.EnterPruningBufferingModeCalled()
 	}
 }
 
-// ExitPruningBufferingMode --
+// ExitPruningBufferingMode -
 func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 	if sms.ExitPruningBufferingModeCalled != nil {
 		sms.ExitPruningBufferingModeCalled()
 	}
+}
+
+// AddDirtyCheckpointHashes -
+func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes data.ModifiedHashes) bool {
+	if sms.AddDirtyCheckpointHashesCalled != nil {
+		return sms.AddDirtyCheckpointHashesCalled(rootHash, hashes)
+	}
+
+	return false
+}
+
+// Remove -
+func (sms *StorageManagerStub) Remove(hash []byte) error {
+	if sms.RemoveCalled != nil {
+		return sms.RemoveCalled(hash)
+	}
+
+	return nil
 }
 
 // GetSnapshotDbBatchDelay -
@@ -103,13 +107,10 @@ func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 
 // Close -
 func (sms *StorageManagerStub) Close() error {
-	if sms.CloseCalled != nil {
-		return sms.CloseCalled()
-	}
 	return nil
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (sms *StorageManagerStub) IsInterfaceNil() bool {
 	return sms == nil
 }

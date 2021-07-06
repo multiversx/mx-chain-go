@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -24,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 

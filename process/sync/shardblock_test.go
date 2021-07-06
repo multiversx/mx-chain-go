@@ -180,7 +180,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ForkDetector:        &mock.ForkDetectorMock{},
 		RequestHandler:      &testscommon.RequestHandlerStub{},
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		Accounts:            &mock.AccountsStub{},
+		Accounts:            &testscommon.AccountsStub{},
 		BlackListHandler:    &mock.BlackListHandlerStub{},
 		NetworkWatcher:      initNetworkWatcher(),
 		BootStorer:          &mock.BoostrapStorerMock{},
@@ -703,7 +703,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	args.ForkDetector = forkDetector
 
-	account := &mock.AccountsStub{}
+	account := &testscommon.AccountsStub{}
 	account.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1457,7 +1457,7 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -1597,7 +1597,7 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 		},
 	}
 	args.ForkDetector = createForkDetector(currentHdrNonce, remFlags)
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
 		},
@@ -2049,7 +2049,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 			syncCalled = true
 			return nil
 		}}
-	args.Accounts = &mock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+	args.Accounts = &testscommon.AccountsStub{RootHashCalled: func() ([]byte, error) {
 		return []byte("roothash"), nil
 	}}
 

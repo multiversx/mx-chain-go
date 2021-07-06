@@ -74,6 +74,9 @@ type Cacher interface {
 	RegisterHandler(handler func(key []byte, value interface{}), id string)
 	// UnRegisterHandler deletes the handler from the list
 	UnRegisterHandler(id string)
+	// Close closes the underlying temporary db if the cacher implementation has one,
+	// otherwise it does nothing
+	Close() error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -212,4 +215,23 @@ type TimeCacher interface {
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
+}
+
+// AdaptedSizedLRUCache defines a cache that returns the evicted value
+type AdaptedSizedLRUCache interface {
+	SizedLRUCacheHandler
+	AddSizedAndReturnEvicted(key, value interface{}, sizeInBytes int64) map[interface{}]interface{}
+	IsInterfaceNil() bool
+}
+
+// StoredDataFactory creates empty objects of the stored data type
+type StoredDataFactory interface {
+	CreateEmpty() interface{}
+	IsInterfaceNil() bool
+}
+
+// SerializedStoredData defines a data type that has the serialized data as a field
+type SerializedStoredData interface {
+	GetSerialized() []byte
+	SetSerialized([]byte)
 }

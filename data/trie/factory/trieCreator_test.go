@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -87,7 +86,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
 
-func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
+func TestTrieFactory_CreateWithoutPruningShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
@@ -100,43 +99,10 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
+func TestTrieCreator_CreateWithPruningShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getArgs()
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
-
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
-	require.Nil(t, tr)
-	require.Equal(t, storage.ErrNotSupportedDBType, err)
-}
-
-func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB: config.DBConfig{Type: string(storageUnit.MemoryDB)},
-	}
-	tf, _ := NewTrieFactory(args)
-	trieStorageCfg := createTrieStorageCfg()
-
-	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
-	require.Nil(t, tr)
-	require.Equal(t, data.ErrInvalidCacheSize, err)
-}
-
-func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	args.EvictionWaitingListCfg = config.EvictionWaitingListConfig{
-		DB:   config.DBConfig{Type: string(storageUnit.MemoryDB)},
-		Size: 100,
-	}
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
 

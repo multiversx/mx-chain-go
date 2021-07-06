@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &mock.AccountsStub{
+		Accounts: &testscommon.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
@@ -79,7 +79,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
@@ -334,7 +334,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxServiceFee: 100,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{

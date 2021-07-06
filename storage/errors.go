@@ -144,3 +144,6 @@ var ErrNilNodeTypeProvider = errors.New("nil node type provider")
 
 // ErrNilOldDataCleanerProvider signals that a nil old data cleaner provider has been given
 var ErrNilOldDataCleanerProvider = errors.New("nil old data cleaner provider")
+
+// ErrNilStoredDataFactory signals that a nil stored data factory has been provided
+var ErrNilStoredDataFactory = errors.New("nil stored data factory")

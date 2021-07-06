@@ -629,7 +629,7 @@ func getArgumentsShard(
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},

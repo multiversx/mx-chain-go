@@ -559,7 +559,7 @@ func getArgumentsMeta(
 		Messenger:               &mock.TopicHandlerStub{},
 		Store:                   createMetaStore(),
 		DataPool:                createMetaDataPools(),
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
 		BlockBlackList:          &mock.BlackListHandlerStub{},

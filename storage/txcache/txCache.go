@@ -292,6 +292,11 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 func (cache *TxCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }
 
+// Close does nothing for this cacher implementation
+func (cache *TxCache) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil

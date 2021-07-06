@@ -80,7 +80,7 @@ func NewShardProcessorEmptyWith3shards(
 	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &testscommon.AccountsStub{}
 
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},

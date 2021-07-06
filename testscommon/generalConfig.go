@@ -134,9 +134,20 @@ func GetGeneralConfig() config.Config {
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
-		TxBlockBodyDataPool:     getLRUCacheConfig(),
-		PeerBlockBodyDataPool:   getLRUCacheConfig(),
-		TrieNodesDataPool:       getLRUCacheConfig(),
+		TxBlockBodyDataPool:   getLRUCacheConfig(),
+		PeerBlockBodyDataPool: getLRUCacheConfig(),
+		TrieSyncStorage: config.TrieSyncStorageConfig{
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("TrieSync"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      1000,
+				MaxOpenFiles:      10,
+				UseTmpAsFilePath:  true,
+			},
+			Capacity:    10,
+			SizeInBytes: 10000,
+		},
 		TrieNodesChunksDataPool: getLRUCacheConfig(),
 		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
