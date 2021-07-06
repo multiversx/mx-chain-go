@@ -112,7 +112,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer, acntDst) {
+		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer) {
 			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
 			if errPayable != nil {
 				return nil, errPayable
@@ -173,7 +173,6 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 func mustVerifyPayable(
 	vmInput *vmcommon.ContractCallInput,
 	minLenArguments int,
-	acntDst state.UserAccountHandler,
 ) bool {
 	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
 		return false
@@ -184,9 +183,8 @@ func mustVerifyPayable(
 	if vmInput.CallType == vmcommon.AsynchronousCallBack {
 		return false
 	}
-
 	if vmInput.CallType == vmcommon.ESDTTransferAndExecute {
-		return !check.IfNil(acntDst)
+		return false
 	}
 
 	return true

@@ -132,7 +132,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	err = e.addNFTToDestination(acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer, acntDst), vmInput.ReturnCallAfterError)
+	err = e.addNFTToDestination(acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer), vmInput.ReturnCallAfterError)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		err = e.addNFTToDestination(userAccount, esdtData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer, userAccount), vmInput.ReturnCallAfterError)
+		err = e.addNFTToDestination(userAccount, esdtData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer), vmInput.ReturnCallAfterError)
 		if err != nil {
 			return nil, err
 		}
