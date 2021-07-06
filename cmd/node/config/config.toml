@@ -295,6 +295,7 @@
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
     KeepSnapshots = false
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -339,12 +340,6 @@
     SizeInBytesPerSender = 12288000
     Type = "TxCache"
     Shards = 16
-
-[TrieNodesDataPool]
-    Name = "TrieNodesDataPool"
-    Capacity = 300000
-    Type = "SizeLRU"
-    SizeInBytes = 104857600 #100MB
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
@@ -416,6 +411,17 @@
     Name = "VMOutputCacher"
     Capacity = 10000
     Type = "LRU"
+
+[TrieSyncStorage]
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
+    [TrieSyncStorage.DB]
+        FilePath = "TrieSyncStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [Antiflood]
     Enabled = true
@@ -595,7 +601,7 @@
    Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 10000000
+    CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5

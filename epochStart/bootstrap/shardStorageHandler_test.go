@@ -23,7 +23,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 	gCfg := testscommon.GetGeneralConfig()
 	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -41,7 +41,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 	gCfg := testscommon.GetGeneralConfig()
 	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -66,7 +66,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 	gCfg := testscommon.GetGeneralConfig()
 	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
@@ -98,7 +98,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	gCfg := testscommon.GetGeneralConfig()
 	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}

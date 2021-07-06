@@ -1,7 +1,6 @@
-package mock
+package testscommon
 
 import (
-	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,17 +17,18 @@ type TrieStub struct {
 	RootCalled                  func() ([]byte, error)
 	CommitCalled                func() error
 	RecreateCalled              func(root []byte) (data.Trie, error)
-	ResetOldHashesCalled        func() [][]byte
+	GetObsoleteHashesCalled     func() [][]byte
 	AppendToOldHashesCalled     func([][]byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
-	GetSerializedNodeCalled     func(hash []byte) ([]byte, error)
-	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashesCalled          func() ([][]byte, error)
-	ClosePersisterCalled        func() error
+	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetProofCalled              func(key []byte) ([][]byte, error)
 	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled     func() data.StorageManager
+	GetSerializedNodeCalled     func(bytes []byte) ([]byte, error)
 	GetNumNodesCalled           func() data.NumNodesDTO
+	GetOldRootCalled            func() []byte
+	CloseCalled                 func() error
 }
 
 // GetStorageManager -
@@ -56,6 +56,18 @@ func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// GetAllLeavesOnChannel -
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
+	if ts.GetAllLeavesOnChannelCalled != nil {
+		return ts.GetAllLeavesOnChannelCalled(rootHash)
+	}
+
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch, nil
 }
 
 // Get -
@@ -96,7 +108,7 @@ func (ts *TrieStub) RootHash() ([]byte, error) {
 
 // Commit -
 func (ts *TrieStub) Commit() error {
-	if ts != nil {
+	if ts.CommitCalled != nil {
 		return ts.CommitCalled()
 	}
 
@@ -117,37 +129,18 @@ func (ts *TrieStub) String() string {
 	return "stub trie"
 }
 
-// GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
-	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(rootHash)
-	}
-
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	return ch, nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil
 }
 
-// ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
-func (ts *TrieStub) ResetOldHashes() [][]byte {
-	if ts.ResetOldHashesCalled != nil {
-		return ts.ResetOldHashesCalled()
+// GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
+func (ts *TrieStub) GetObsoleteHashes() [][]byte {
+	if ts.GetObsoleteHashesCalled != nil {
+		return ts.GetObsoleteHashesCalled()
 	}
 
 	return nil
-}
-
-// AppendToOldHashes appends the given hashes to the trie's oldHashes variable
-func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
-	if ts.AppendToOldHashesCalled != nil {
-		ts.AppendToOldHashesCalled(hashes)
-	}
 }
 
 // GetSerializedNodes -
@@ -156,14 +149,6 @@ func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]b
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
 	}
 	return nil, 0, nil
-}
-
-// GetSerializedNode -
-func (ts *TrieStub) GetSerializedNode(hash []byte) ([]byte, error) {
-	if ts.GetSerializedNodeCalled != nil {
-		return ts.GetSerializedNodeCalled(hash)
-	}
-	return make([]byte, 0), nil
 }
 
 // GetDirtyHashes -
@@ -184,6 +169,15 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	return nil, nil
 }
 
+// GetSerializedNode -
+func (ts *TrieStub) GetSerializedNode(bytes []byte) ([]byte, error) {
+	if ts.GetSerializedNodeCalled != nil {
+		return ts.GetSerializedNodeCalled(bytes)
+	}
+
+	return nil, nil
+}
+
 // GetNumNodes -
 func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
 	if ts.GetNumNodesCalled != nil {
@@ -191,4 +185,22 @@ func (ts *TrieStub) GetNumNodes() data.NumNodesDTO {
 	}
 
 	return data.NumNodesDTO{}
+}
+
+// GetOldRoot -
+func (ts *TrieStub) GetOldRoot() []byte {
+	if ts.GetOldRootCalled != nil {
+		return ts.GetOldRootCalled()
+	}
+
+	return nil
+}
+
+// Close -
+func (ts *TrieStub) Close() error {
+	if ts.CloseCalled != nil {
+		return ts.CloseCalled()
+	}
+
+	return nil
 }

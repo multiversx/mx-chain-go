@@ -7,7 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +23,7 @@ func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 func TestNewReadOnlyAccountsDB(t *testing.T) {
 	t.Parallel()
 
-	roAccDb, err := NewReadOnlyAccountsDB(&mock.AccountsStub{})
+	roAccDb, err := NewReadOnlyAccountsDB(&testscommon.AccountsStub{})
 	require.False(t, check.IfNil(roAccDb))
 	require.NoError(t, err)
 }
@@ -31,7 +32,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 	t.Parallel()
 
 	failErrMsg := "this function should have not be called"
-	accDb := &mock.AccountsStub{
+	accDb := &testscommon.AccountsStub{
 		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 			t.Errorf(failErrMsg)
 			return nil
@@ -92,11 +93,11 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	roAccDb.CancelPrune(nil, data.NewRoot)
 
-	roAccDb.SnapshotState(nil, nil)
+	roAccDb.SnapshotState(nil)
 
-	roAccDb.SetStateCheckpoint(nil, nil)
+	roAccDb.SetStateCheckpoint(nil)
 
-	_, err = roAccDb.RecreateAllTries(nil, nil)
+	_, err = roAccDb.RecreateAllTries(nil)
 	require.NoError(t, err)
 }
 
@@ -109,7 +110,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedLeavesChannel := make(chan core.KeyValueHolder)
 	expectedNumCheckpoints := uint32(7)
 
-	accDb := &mock.AccountsStub{
+	accDb := &testscommon.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return expectedAcc, nil
 		},
@@ -154,7 +155,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
-	actualAllLeaves, err := roAccDb.GetAllLeaves(nil, nil)
+	actualAllLeaves, err := roAccDb.GetAllLeaves(nil)
 	require.NoError(t, err)
 	require.Equal(t, expectedLeavesChannel, actualAllLeaves)
 

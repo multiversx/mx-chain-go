@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +17,7 @@ import (
 func createMockArgument() ArgTrieSyncer {
 	return ArgTrieSyncer{
 		RequestHandler:                 &mock.RequestHandlerStub{},
-		InterceptedNodes:               testscommon.NewCacherMock(),
+		InterceptedNodes:               mock.NewCacherMock(),
 		DB:                             mock.NewMemDbMock(),
 		Hasher:                         mock.HasherMock{},
 		Marshalizer:                    &mock.MarshalizerMock{},
@@ -198,7 +197,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	rootHash := bn.getHash()
 	db := mock.NewMemDbMock()
 
-	err = bn.commit(true, 2, 2, db, db)
+	err = bn.commitSnapshot(db, db, nil)
 	require.Nil(t, err)
 
 	arg := createMockArgument()

@@ -115,3 +115,15 @@ var ErrInvalidRootHash = errors.New("invalid root hash")
 
 // ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
 var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
+
+// ErrNilEvictionWaitingList is raised when a nil eviction waiting list is provided
+var ErrNilEvictionWaitingList = errors.New("nil eviction waiting list provided")
+
+// ErrInvalidIdentifier signals that the root hash has an  invalid identifier
+var ErrInvalidIdentifier = errors.New("invalid identifier")
+
+// ErrNilStoragePruningManager signals that a nil storagePruningManager was provided
+var ErrNilStoragePruningManager = errors.New("nil storagePruningManager")
+
+// ErrInvalidKey is raised when the given key is invalid
+var ErrInvalidKey = errors.New("invalid key")

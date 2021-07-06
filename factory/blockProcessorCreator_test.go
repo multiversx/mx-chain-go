@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -92,7 +93,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	stateComp := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
-			return &mock.AccountsStub{
+			return &testscommon.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},
@@ -164,7 +165,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager())
 	if err != nil {
 		return nil, err
 	}

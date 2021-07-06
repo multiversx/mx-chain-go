@@ -407,13 +407,13 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 
 func getDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
-		PeersAcc: &mock.AccountsStub{},
-		Accounts: &mock.AccountsStub{},
+		PeersAcc: &testscommon.AccountsStub{},
+		Accounts: &testscommon.AccountsStub{},
 		Tries:    &mock.TriesHolderStub{},
 		StorageManagers: map[string]data.StorageManager{
-			"0":                         &mock.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &mock.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &mock.StorageManagerStub{},
+			"0":                         &testscommon.StorageManagerStub{},
+			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
 		},
 	}
 }
