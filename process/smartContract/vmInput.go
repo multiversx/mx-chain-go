@@ -101,6 +101,8 @@ func (sc *scProcessor) createVMCallInput(
 		vmCallInput.PrevTxHash = txHash
 	}
 
+	vmCallInput.ReturnCallAfterError = isSCR && len(scr.ReturnMessage) > 0
+
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
 		return nil, err

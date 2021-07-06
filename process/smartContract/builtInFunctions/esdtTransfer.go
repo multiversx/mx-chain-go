@@ -102,7 +102,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler, vmInput.ReturnCallAfterError)
 		if err != nil {
 			return nil, err
 		}
@@ -112,24 +112,17 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
-		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer) {
+		if mustVerifyPayable(vmInput, core.MinLenArgumentsESDTTransfer, acntDst) {
 			isPayable, errPayable := e.payableHandler.IsPayable(vmInput.RecipientAddr)
 			if errPayable != nil {
 				return nil, errPayable
 			}
 			if !isPayable {
-				if !check.IfNil(acntSnd) {
-					err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
-					if err != nil {
-						return nil, err
-					}
-				}
-
 				return nil, process.ErrAccountNotPayable
 			}
 		}
 
-		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+		err = addToESDTBalance(acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler, vmInput.ReturnCallAfterError)
 		if err != nil {
 			return nil, err
 		}
@@ -177,16 +170,23 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	return vmOutput, nil
 }
 
-func mustVerifyPayable(vmInput *vmcommon.ContractCallInput, minLenArguments int) bool {
-	if vmInput.CallType == vmcommon.AsynchronousCallBack || vmInput.CallType == vmcommon.ESDTTransferAndExecute {
-		return false
-	}
+func mustVerifyPayable(
+	vmInput *vmcommon.ContractCallInput,
+	minLenArguments int,
+	acntDst state.UserAccountHandler,
+) bool {
 	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
 		return false
 	}
-
 	if len(vmInput.Arguments) > minLenArguments {
 		return false
+	}
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
+		return false
+	}
+
+	if vmInput.CallType == vmcommon.ESDTTransferAndExecute {
+		return !check.IfNil(acntDst)
 	}
 
 	return true
@@ -222,12 +222,12 @@ func addOutputTransferToVMOutput(
 }
 
 func addToESDTBalance(
-	senderAddr []byte,
 	userAcnt state.UserAccountHandler,
 	key []byte,
 	value *big.Int,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,
+	isReturnWithError bool,
 ) error {
 	esdtData, err := getESDTDataFromKey(userAcnt, key, marshalizer)
 	if err != nil {
@@ -238,7 +238,7 @@ func addToESDTBalance(
 		return process.ErrOnlyFungibleTokensHaveBalanceTransfer
 	}
 
-	err = checkFrozeAndPause(senderAddr, key, esdtData, pauseHandler)
+	err = checkFrozeAndPause(userAcnt.AddressBytes(), key, esdtData, pauseHandler, isReturnWithError)
 	if err != nil {
 		return err
 	}
@@ -261,7 +261,11 @@ func checkFrozeAndPause(
 	key []byte,
 	esdtData *esdt.ESDigitalToken,
 	pauseHandler process.ESDTPauseHandler,
+	isReturnWithError bool,
 ) error {
+	if isReturnWithError {
+		return nil
+	}
 	if bytes.Equal(senderAddr, vm.ESDTSCAddress) {
 		return nil
 	}

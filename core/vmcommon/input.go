@@ -92,6 +92,9 @@ type VMInput struct {
 
 	// ESDTTokenNonce is the nonce for the given NFT token
 	ESDTTokenNonce uint64
+
+	// ReturnCallAfterError is true when the contract call input is created as return when processing failed
+	ReturnCallAfterError bool
 }
 
 // ContractCreateInput VM input when creating a new contract.

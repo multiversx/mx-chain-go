@@ -132,7 +132,7 @@ func (e *esdtNFTTransfer) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	err = e.addNFTToDestination(vmInput.RecipientAddr, acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer))
+	err = e.addNFTToDestination(acntDst, esdtTransferData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer, acntDst), vmInput.ReturnCallAfterError)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +189,7 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 	}
 	esdtData.Value.Sub(esdtData.Value, quantityToTransfer)
 
-	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler)
+	err = saveESDTNFTToken(acntSnd, esdtTokenKey, esdtData, e.marshalizer, e.pauseHandler, vmInput.ReturnCallAfterError)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (e *esdtNFTTransfer) processNFTTransferOnSenderShard(
 			return nil, process.ErrWrongTypeAssertion
 		}
 
-		err = e.addNFTToDestination(dstAddress, userAccount, esdtData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer))
+		err = e.addNFTToDestination(userAccount, esdtData, esdtTokenKey, mustVerifyPayable(vmInput, core.MinLenArgumentsESDTNFTTransfer, userAccount), vmInput.ReturnCallAfterError)
 		if err != nil {
 			return nil, err
 		}
@@ -293,14 +293,14 @@ func (e *esdtNFTTransfer) createNFTOutputTransfers(
 }
 
 func (e *esdtNFTTransfer) addNFTToDestination(
-	dstAddress []byte,
 	userAccount state.UserAccountHandler,
 	esdtDataToTransfer *esdt.ESDigitalToken,
 	esdtTokenKey []byte,
 	mustVerifyPayable bool,
+	isReturnWithError bool,
 ) error {
 	if mustVerifyPayable {
-		isPayable, errIsPayable := e.payableHandler.IsPayable(dstAddress)
+		isPayable, errIsPayable := e.payableHandler.IsPayable(userAccount.AddressBytes())
 		if errIsPayable != nil {
 			return errIsPayable
 		}
@@ -313,7 +313,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 	if err != nil && !errors.Is(err, process.ErrNFTTokenDoesNotExist) {
 		return err
 	}
-	err = checkFrozeAndPause(dstAddress, esdtTokenKey, currentESDTData, e.pauseHandler)
+	err = checkFrozeAndPause(userAccount.AddressBytes(), esdtTokenKey, currentESDTData, e.pauseHandler, isReturnWithError)
 	if err != nil {
 		return err
 	}
@@ -325,7 +325,7 @@ func (e *esdtNFTTransfer) addNFTToDestination(
 		esdtDataToTransfer.Value.Add(esdtDataToTransfer.Value, currentESDTData.Value)
 	}
 
-	err = saveESDTNFTToken(userAccount, esdtTokenKey, esdtDataToTransfer, e.marshalizer, e.pauseHandler)
+	err = saveESDTNFTToken(userAccount, esdtTokenKey, esdtDataToTransfer, e.marshalizer, e.pauseHandler, isReturnWithError)
 	if err != nil {
 		return err
 	}
