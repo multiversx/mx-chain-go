@@ -577,8 +577,8 @@ func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs
 }
 
 func (psf *StorageServiceFactory) initOldDatabasesCleaningIfNeeded(store dataRetriever.StorageService) error {
-	isFullArchive := !psf.prefsConfig.FullArchive
-	if !isFullArchive {
+	isFullArchive := psf.prefsConfig.FullArchive
+	if isFullArchive {
 		return nil
 	}
 	_, err := clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{

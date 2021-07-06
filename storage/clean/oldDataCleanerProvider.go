@@ -42,7 +42,6 @@ func (odcp *oldDataCleanerProvider) ShouldClean() bool {
 		shouldClean = odcp.observerCleanOldEpochsData
 	}
 
-	// TODO: remove this log before merging
 	log.Debug("oldDataCleanerProvider.ShouldClean", "node type", nodeType, "value", shouldClean)
 
 	return shouldClean

@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -41,7 +42,11 @@ func TestNodeTypeProvider_ConcurrentSafe(t *testing.T) {
 		require.Empty(t, r)
 	}()
 
-	for i := 0; i < 100; i++ {
+	numGoRoutines := 100
+
+	wg := sync.WaitGroup{}
+	wg.Add(numGoRoutines)
+	for i := 0; i < numGoRoutines; i++ {
 		go func(idx int) {
 			modRes := idx % 3
 			switch modRes {
@@ -52,6 +57,9 @@ func TestNodeTypeProvider_ConcurrentSafe(t *testing.T) {
 			case 2:
 				ntp.SetType(core.NodeTypeValidator)
 			}
+			wg.Done()
 		}(i)
 	}
+
+	wg.Wait()
 }
