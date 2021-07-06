@@ -2051,6 +2051,11 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
+			log.Warn("processSCOutputAccounts(): saveKeyValue",
+				"txHash", hex.EncodeToString(txHash),
+				"key", hex.EncodeToString(storeUpdate.Offset),
+				"data", hex.EncodeToString(storeUpdate.Data),
+			)
 			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 			if err != nil {
 				log.Warn("saveKeyValue", "error", err)
