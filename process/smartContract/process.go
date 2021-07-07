@@ -780,7 +780,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) || (vmInput.CallType == vmcommon.AsynchronousCallBack && vmInput.ReturnCallAfterError) {
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
 		// in case of asynchronous callback - the process of built in function is a must
 		snapshot = sc.accounts.JournalLen()
 	}
@@ -1009,15 +1009,16 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       callType,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    scExecuteOutTransfer.GasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             callType,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          scExecuteOutTransfer.GasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     recipient,
 		Function:          function,
@@ -1049,15 +1050,16 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       vmcommon.AsynchronousCallBack,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    gasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             vmcommon.AsynchronousCallBack,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          gasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     vmInput.RecipientAddr,
 		Function:          "callBack",
