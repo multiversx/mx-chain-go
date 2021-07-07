@@ -980,7 +980,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 
 	txHash := []byte("txHash")
 	scrstorage := mock.ChainStorerMock{}
-	scrstorage.AddStorer(1, &mock.StorerStub{})
+	scrstorage.AddStorer(1, &testscommon.StorerStub{})
 	err := scrstorage.Put(1, txHash, txHash)
 	assert.Nil(t, err)
 
@@ -991,7 +991,7 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		return par, nil
 	}
 	scrstorage.GetStorerCalled = func(unitType dataRetriever.UnitType) storage.Storer {
-		return &mock.StorerStub{
+		return &testscommon.StorerStub{
 			RemoveCalled: func(key []byte) error {
 				return nil
 			},

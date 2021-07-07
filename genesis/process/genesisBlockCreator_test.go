@@ -64,7 +64,7 @@ func createMockArgument(
 			MinTxVersion:        1,
 		},
 		Data: &mock.DataComponentsMock{
-			Storage: &mock.ChainStorerMock{
+			Storage: &mock.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 					return mock.NewStorerMock()
 				},

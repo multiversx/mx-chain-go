@@ -1,4 +1,4 @@
-package factory
+package directoryhandler
 
 import (
 	"os"

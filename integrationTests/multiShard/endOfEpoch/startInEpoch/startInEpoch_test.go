@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -198,6 +199,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}
+	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
@@ -237,6 +239,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		shardC,
 		&testscommon.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
+		&nodeTypeProviderMock.NodeTypeProviderStub{},
 		0,
 		false,
 	)

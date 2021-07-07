@@ -60,7 +60,7 @@ func (c *chainStorer) GetStorer(unitType dataRetriever.UnitType) storage.Storer 
 }
 
 // SetEpochForPutOperation won't do anything
-func (c *chainStorer) SetEpochForPutOperation(epoch uint32) {
+func (c *chainStorer) SetEpochForPutOperation(_ uint32) {
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise
@@ -104,6 +104,18 @@ func (c *chainStorer) GetAll(unitType dataRetriever.UnitType, keys [][]byte) (ma
 	}
 
 	return allValues, nil
+}
+
+// GetAllStorers returns the map containing all the storers
+func (c *chainStorer) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	c.mutex.Lock()
+	chainMapCopy := make(map[dataRetriever.UnitType]storage.Storer, len(c.mapStorages))
+	for key, value := range c.mapStorages {
+		chainMapCopy[key] = value
+	}
+	c.mutex.Unlock()
+
+	return chainMapCopy
 }
 
 // Destroy removes the underlying files/resources used by the storage service

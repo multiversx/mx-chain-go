@@ -2,6 +2,7 @@ package pruning
 
 import (
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -15,12 +16,12 @@ type StorerArgs struct {
 	PersisterFactory          DbFactoryHandler
 	BloomFilterConf           storageUnit.BloomConfig
 	Notifier                  EpochStartNotifier
+	OldDataCleanerProvider    clean.OldDataCleanerProvider
 	MaxBatchSize              int
 	NumOfEpochsToKeep         uint32
 	NumOfActivePersisters     uint32
 	StartingEpoch             uint32
 	PruningEnabled            bool
-	CleanOldEpochsData        bool
 	EnabledDbLookupExtensions bool
 }
 

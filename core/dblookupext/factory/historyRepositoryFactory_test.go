@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,7 +54,7 @@ func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing
 	args.Config.Enabled = true
 	args.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 

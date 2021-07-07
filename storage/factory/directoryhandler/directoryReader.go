@@ -1,9 +1,11 @@
-package factory
+package directoryhandler
 
 import (
 	"errors"
 	"os"
 )
+
+const allFiles = -1
 
 type directoryReader struct {
 }

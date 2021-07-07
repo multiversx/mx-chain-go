@@ -499,7 +499,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, getHeaderError
 				},
@@ -555,7 +555,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},
@@ -1227,7 +1227,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	}
 	arguments.StorageService = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, e error) {
 					return nil, nil
 				},

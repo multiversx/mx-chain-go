@@ -480,6 +480,8 @@ const (
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
+	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
+	OldDatabaseCleanOrder
 )
 
 // NodeState specifies what type of state a node could have
