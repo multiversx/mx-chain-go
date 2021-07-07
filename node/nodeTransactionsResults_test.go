@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dbLookupExtMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +37,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	marshalizerdMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					recBytes, _ := json.Marshal(rec)
 					return recBytes, nil
@@ -44,7 +45,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 			}
 		},
 	}
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return &dblookupext.ResultsHashesByTxHash{
 				ReceiptsHash: receiptHash,
@@ -114,7 +115,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.UnsignedTransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						switch {
 						case bytes.Equal(key, scrHash1):
@@ -131,7 +132,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			}
 		},
 	}
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return &dblookupext.ResultsHashesByTxHash{
 				ReceiptsHash: nil,
@@ -222,7 +223,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	marshalizerMock := &mock.MarshalizerFake{}
 	dataStore := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 					switch {
 					case bytes.Equal(key, txHash):
@@ -242,7 +243,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = dataStore
 
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return nil, errors.New("local err")
 		},

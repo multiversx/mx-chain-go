@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
@@ -40,7 +41,7 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -71,7 +72,7 @@ func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
 func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -110,7 +111,7 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -201,7 +202,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
 	processComponentsMock := getDefaultProcessComponents()
 	processComponentsMock.ShardCoord = &mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}
-	processComponentsMock.HistoryRepositoryInternal = &testscommon.HistoryRepositoryStub{
+	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return false
 		},
@@ -265,7 +266,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -296,7 +297,7 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -400,7 +401,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		},
 	}
 
-	processComponentsMock.HistoryRepositoryInternal = &testscommon.HistoryRepositoryStub{
+	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return false
 		},
@@ -437,7 +438,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},

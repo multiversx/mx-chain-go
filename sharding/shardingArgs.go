@@ -27,5 +27,6 @@ type ArgNodesCoordinator struct {
 	ShuffledOutHandler         ShuffledOutHandler
 	WaitingListFixEnabledEpoch uint32
 	ChanStopNode               chan endProcess.ArgEndProcess
+	NodeTypeProvider           NodeTypeProviderHandler
 	IsFullArchive              bool
 }

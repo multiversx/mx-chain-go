@@ -17,7 +17,7 @@ var timeout = time.Second * 2
 func TestNewTimeAccumulator_InvalidMaxWaitTimeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime-1, 0)
+	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAllowedTime-1, 0)
 
 	assert.True(t, check.IfNil(ta))
 	assert.True(t, errors.Is(err, core.ErrInvalidValue))
@@ -26,7 +26,7 @@ func TestNewTimeAccumulator_InvalidMaxWaitTimeShouldErr(t *testing.T) {
 func TestNewTimeAccumulator_InvalidMaxOffsetShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime, -1)
+	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAllowedTime, -1)
 
 	assert.True(t, check.IfNil(ta))
 	assert.True(t, errors.Is(err, core.ErrInvalidValue))
@@ -35,7 +35,7 @@ func TestNewTimeAccumulator_InvalidMaxOffsetShouldErr(t *testing.T) {
 func TestNewTimeAccumulator_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAlowedTime, 0)
+	ta, err := accumulator.NewTimeAccumulator(accumulator.MinimumAllowedTime, 0)
 
 	assert.False(t, check.IfNil(ta))
 	assert.Nil(t, err)

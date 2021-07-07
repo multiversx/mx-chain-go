@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	dblookupextMock "github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -217,19 +218,19 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			switch unitType {
 			case dataRetriever.TransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(tx)
 					},
 				}
 			case dataRetriever.UnsignedTransactionUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return marshalizer.Marshal(scResult)
 					},
 				}
 			case dataRetriever.TxLogsUnit:
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 						return nil, errors.New("dummy")
 					},
@@ -239,7 +240,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 			}
 		},
 	}
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 			return &dblookupext.MiniblockMetadata{}, nil
 		},
@@ -461,12 +462,12 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericMocks.ChainStorerMock, *testscommon.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
 	chainStorer := genericMocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
-	historyRepo := &testscommon.HistoryRepositoryStub{
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return withDbLookupExt
 		},
@@ -514,7 +515,7 @@ func createShardCoordinator() *mock.ShardCoordinatorMock {
 }
 
 func setupGetMiniblockMetadataByTxHash(
-	historyRepo *testscommon.HistoryRepositoryStub,
+	historyRepo *dblookupextMock.HistoryRepositoryStub,
 	blockType block.Type,
 	sourceShard uint32,
 	destinationShard uint32,

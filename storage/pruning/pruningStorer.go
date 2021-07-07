@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -80,20 +81,20 @@ type PruningStorer struct {
 	shardCoordinator           storage.ShardCoordinator
 	activePersisters           []*persisterData
 	//it is mandatory to keep map of pointers for persistersMapByEpoch as a loaded pointer might get modified in inner functions
-	persistersMapByEpoch  map[uint32]*persisterData
-	cacher                storage.Cacher
-	bloomFilter           storage.BloomFilter
-	pathManager           storage.PathManagerHandler
-	dbPath                string
-	persisterFactory      DbFactoryHandler
-	mutEpochPrepareHdr    sync.RWMutex
-	epochPrepareHdr       *block.MetaBlock
-	identifier            string
-	numOfEpochsToKeep     uint32
-	numOfActivePersisters uint32
-	epochForPutOperation  uint32
-	cleanOldEpochsData    bool
-	pruningEnabled        bool
+	persistersMapByEpoch   map[uint32]*persisterData
+	cacher                 storage.Cacher
+	bloomFilter            storage.BloomFilter
+	pathManager            storage.PathManagerHandler
+	dbPath                 string
+	persisterFactory       DbFactoryHandler
+	mutEpochPrepareHdr     sync.RWMutex
+	epochPrepareHdr        *block.MetaBlock
+	oldDataCleanerProvider clean.OldDataCleanerProvider
+	identifier             string
+	numOfEpochsToKeep      uint32
+	numOfActivePersisters  uint32
+	epochForPutOperation   uint32
+	pruningEnabled         bool
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -152,21 +153,21 @@ func initPruningStorer(
 	}
 
 	pdb := &PruningStorer{
-		pruningEnabled:        args.PruningEnabled,
-		identifier:            identifier,
-		cleanOldEpochsData:    args.CleanOldEpochsData,
-		activePersisters:      persisters,
-		persisterFactory:      args.PersisterFactory,
-		shardCoordinator:      args.ShardCoordinator,
-		persistersMapByEpoch:  persistersMapByEpoch,
-		cacher:                cache,
-		epochPrepareHdr:       &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
-		bloomFilter:           nil,
-		epochForPutOperation:  args.StartingEpoch,
-		pathManager:           args.PathManager,
-		dbPath:                args.DbPath,
-		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
-		numOfActivePersisters: args.NumOfActivePersisters,
+		pruningEnabled:         args.PruningEnabled,
+		identifier:             identifier,
+		activePersisters:       persisters,
+		persisterFactory:       args.PersisterFactory,
+		shardCoordinator:       args.ShardCoordinator,
+		persistersMapByEpoch:   persistersMapByEpoch,
+		cacher:                 cache,
+		epochPrepareHdr:        &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
+		bloomFilter:            nil,
+		epochForPutOperation:   args.StartingEpoch,
+		pathManager:            args.PathManager,
+		dbPath:                 args.DbPath,
+		numOfEpochsToKeep:      args.NumOfEpochsToKeep,
+		numOfActivePersisters:  args.NumOfActivePersisters,
+		oldDataCleanerProvider: args.OldDataCleanerProvider,
 	}
 
 	if args.BloomFilterConf.Size != 0 { // if size is 0, that means an empty config was used so bloom filter will be nil
@@ -569,6 +570,27 @@ func (ps *PruningStorer) ClearCache() {
 	ps.cacher.Clear()
 }
 
+// GetOldestEpoch returns the oldest epoch from current configuration
+func (ps *PruningStorer) GetOldestEpoch() (uint32, error) {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if len(ps.persistersMapByEpoch) == 0 {
+		return 0, fmt.Errorf("no epoch configuration in pruning storer with identifer %s", ps.identifier)
+	}
+
+	oldestEpoch := uint32(math.MaxUint32)
+	for epoch := range ps.persistersMapByEpoch {
+		if epoch < oldestEpoch {
+			oldestEpoch = epoch
+		}
+	}
+
+	log.Debug("pruningStorer.GetOldestEpoch", "identifier", ps.identifier, "epoch", oldestEpoch)
+
+	return oldestEpoch, nil
+}
+
 // DestroyUnit cleans up the bloom filter, the cache, and the dbs
 func (ps *PruningStorer) DestroyUnit() error {
 	ps.lock.Lock()
@@ -708,9 +730,9 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closeAndDestroyPersisters(epoch)
+	err = ps.closePersisters(epoch)
 	if err != nil {
-		log.Warn("closing and destroying old persister", "error", err.Error())
+		log.Warn("closing persisters", "error", err.Error())
 		return err
 	}
 	return nil
@@ -826,10 +848,9 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
+func (ps *PruningStorer) closePersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	persistersToClose := make([]*persisterData, 0)
-	persistersToDestroy := make([]*persisterData, 0)
 
 	ps.lock.Lock()
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
@@ -843,18 +864,15 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		}
 	}
 
-	if ps.cleanOldEpochsData && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
+	if ps.oldDataCleanerProvider.ShouldClean() && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
-			//epochToRemove := epoch - ps.numOfEpochsToKeep
-			persisterToDestroy, ok := ps.persistersMapByEpoch[idxToRemove]
-			if !ok {
+			_, exists := ps.persistersMapByEpoch[idxToRemove]
+			if !exists {
 				break
 			}
 			delete(ps.persistersMapByEpoch, idxToRemove)
 			idxToRemove--
-			persistersToDestroy = append(persistersToDestroy, persisterToDestroy)
-
 		}
 	}
 	ps.lock.Unlock()
@@ -864,14 +882,6 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		if err != nil {
 			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
 		}
-	}
-
-	for _, pd := range persistersToDestroy {
-		err := pd.getPersister().DestroyClosed()
-		if err != nil {
-			return err
-		}
-		removeDirectoryIfEmpty(pd.path)
 	}
 
 	return nil

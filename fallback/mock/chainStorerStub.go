@@ -7,14 +7,15 @@ import (
 
 // ChainStorerStub -
 type ChainStorerStub struct {
-	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled       func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled   func() error
-	CloseAllCalled  func() error
+	AddStorerCalled     func(key dataRetriever.UnitType, s storage.Storer)
+	GetStorerCalled     func(unitType dataRetriever.UnitType) storage.Storer
+	HasCalled           func(unitType dataRetriever.UnitType, key []byte) error
+	GetCalled           func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
+	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte) error
+	GetAllCalled        func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	GetAllStorersCalled func() map[dataRetriever.UnitType]storage.Storer
+	DestroyCalled       func() error
+	CloseAllCalled      func() error
 }
 
 // CloseAll -
@@ -72,8 +73,17 @@ func (css *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byt
 	return nil, nil
 }
 
+// GetAllStorers -
+func (css *ChainStorerStub) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if css.GetAllStorersCalled != nil {
+		return css.GetAllStorersCalled()
+	}
+
+	return nil
+}
+
 // SetEpochForPutOperation -
-func (css *ChainStorerStub) SetEpochForPutOperation(epoch uint32) {
+func (css *ChainStorerStub) SetEpochForPutOperation(_ uint32) {
 }
 
 // Destroy -

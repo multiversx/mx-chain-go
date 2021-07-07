@@ -681,7 +681,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 			return retMap, nil
 		},
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				RemoveCalled: func(key []byte) error {
 					return nil
 				},

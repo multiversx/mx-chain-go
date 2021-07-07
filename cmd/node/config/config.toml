@@ -38,7 +38,12 @@
    Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = false
+   # Applicable only for validators
+   ValidatorCleanOldEpochsData = true
+
+   # If this flag is set to false, the node won't delete any database between epochs
+   # Applicable only for observers
+   ObserverCleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed

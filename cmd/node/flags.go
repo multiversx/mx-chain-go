@@ -249,12 +249,6 @@ var (
 		Value: "",
 	}
 
-	keepOldEpochsData = cli.BoolFlag{
-		Name: "keep-old-epochs-data",
-		Usage: "Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database " +
-			"and will have a full history over epochs.",
-	}
-
 	numEpochsToSave = cli.Uint64Flag{
 		Name: "num-epochs-to-keep",
 		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
@@ -347,7 +341,6 @@ func getFlags() []cli.Flag {
 		bootstrapRoundIndex,
 		workingDirectory,
 		destinationShardAsObserver,
-		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
@@ -396,9 +389,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
 	}
 
-	if ctx.IsSet(keepOldEpochsData.Name) {
-		cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
 	if ctx.IsSet(numEpochsToSave.Name) {
 		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
 	}
@@ -525,13 +515,15 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	generalConfigs := configs.GeneralConfig
 
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-	configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-		"StoragePruning.CleanOldEpochsData", generalConfigs.StoragePruning.CleanOldEpochsData,
+		"StoragePruning.ValidatorCleanOldEpochsData", generalConfigs.StoragePruning.ValidatorCleanOldEpochsData,
+		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
 		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
 	)
