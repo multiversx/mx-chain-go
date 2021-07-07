@@ -502,7 +502,7 @@ func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndPr
 }
 
 // NodeTypeProvider returns the node type provider
-func (mcc *managedCoreComponents) NodeTypeProvider() sharding.NodeTypeProviderHandler {
+func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

@@ -36,7 +36,7 @@ func NewMetaStorageHandler(
 	hasher hashing.Hasher,
 	currentEpoch uint32,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	nodeTypeProvider sharding.NodeTypeProviderHandler,
+	nodeTypeProvider NodeTypeProviderHandler,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(

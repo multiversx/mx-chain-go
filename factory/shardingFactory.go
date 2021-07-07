@@ -102,7 +102,7 @@ func CreateNodesCoordinator(
 	startEpoch uint32,
 	waitingListFixEnabledEpoch uint32,
 	chanNodeStop chan endProcess.ArgEndProcess,
-	nodeTypeProvider sharding.NodeTypeProviderHandler,
+	nodeTypeProvider core.NodeTypeProviderHandler,
 ) (sharding.NodesCoordinator, error) {
 	if chanNodeStop == nil {
 		return nil, sharding.ErrNilNodeStopChannel

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/nodetype"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -91,7 +92,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
-	nodeTypeProvider              sharding.NodeTypeProviderHandler
+	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 }
 
@@ -297,7 +298,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
 	// set as observer at first - it will be updated when creating the nodes coordinator
-	nodeTypeProvider := sharding.NewNodeTypeProvider(core.NodeTypeObserver)
+	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
 	return &coreComponents{
 		hasher:                        hasher,

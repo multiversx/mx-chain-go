@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
@@ -42,7 +41,7 @@ func NewStorageServiceFactory(
 	shardCoordinator storage.ShardCoordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier storage.EpochStartNotifier,
-	nodeTypeProvider sharding.NodeTypeProviderHandler,
+	nodeTypeProvider NodeTypeProviderHandler,
 	currentEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 ) (*StorageServiceFactory, error) {

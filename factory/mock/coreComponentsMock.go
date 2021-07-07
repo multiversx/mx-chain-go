@@ -50,7 +50,7 @@ type CoreComponentsMock struct {
 	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	ChanStopProcess             chan endProcess.ArgEndProcess
 	StartTime                   time.Time
-	NodeTypeProviderField       sharding.NodeTypeProviderHandler
+	NodeTypeProviderField       core.NodeTypeProviderHandler
 }
 
 // InternalMarshalizer -
@@ -218,7 +218,7 @@ func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProce
 }
 
 // NodeTypeProvider -
-func (ccm *CoreComponentsMock) NodeTypeProvider() sharding.NodeTypeProviderHandler {
+func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
 }
 

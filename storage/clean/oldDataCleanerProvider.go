@@ -4,19 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type oldDataCleanerProvider struct {
-	nodeTypeProvider            sharding.NodeTypeProviderHandler
+	nodeTypeProvider            NodeTypeProviderHandler
 	validatorCleanOldEpochsData bool
 	observerCleanOldEpochsData  bool
 }
 
 // NewOldDataCleanerProvider returns a new instance of oldDataCleanerProvider
 func NewOldDataCleanerProvider(
-	nodeTypeProvider sharding.NodeTypeProviderHandler,
+	nodeTypeProvider NodeTypeProviderHandler,
 	pruningStorerConfig config.StoragePruningConfig,
 ) (*oldDataCleanerProvider, error) {
 	if check.IfNil(nodeTypeProvider) {

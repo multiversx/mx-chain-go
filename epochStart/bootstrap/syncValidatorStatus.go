@@ -44,7 +44,7 @@ type ArgsNewSyncValidatorStatus struct {
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
 	ChanNodeStop              chan endProcess.ArgEndProcess
-	NodeTypeProvider          sharding.NodeTypeProviderHandler
+	NodeTypeProvider          NodeTypeProviderHandler
 	IsFullArchive             bool
 }
 

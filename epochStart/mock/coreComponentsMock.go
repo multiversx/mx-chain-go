@@ -30,7 +30,7 @@ type CoreComponentsMock struct {
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
-	NodeTypeProviderField       sharding.NodeTypeProviderHandler
+	NodeTypeProviderField       core.NodeTypeProviderHandler
 	mutCore                     sync.RWMutex
 }
 
@@ -47,7 +47,7 @@ func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProce
 }
 
 // NodeTypeProvider -
-func (ccm *CoreComponentsMock) NodeTypeProvider() sharding.NodeTypeProviderHandler {
+func (ccm *CoreComponentsMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return ccm.NodeTypeProviderField
 }
 
