@@ -61,7 +61,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 2
+    GovernanceEnableEpoch = 1000000
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -98,8 +98,8 @@
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
+        { EpochEnable = 1, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
 [GasSchedule]
