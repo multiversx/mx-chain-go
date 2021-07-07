@@ -780,7 +780,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	if vmInput.CallType == vmcommon.AsynchronousCallBack && vmInput.ReturnCallAfterError {
+	if bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) || vmInput.CallType == vmcommon.AsynchronousCallBack && vmInput.ReturnCallAfterError {
 		// in case of asynchronous callback - the process of built in function is a must
 		snapshot = sc.accounts.JournalLen()
 	}
