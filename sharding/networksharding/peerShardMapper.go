@@ -40,9 +40,10 @@ type PeerShardMapper struct {
 	peerIdSubTypeCache       storage.Cacher
 	mutUpdatePeerIdPublicKey sync.Mutex
 
-	mutEpoch         sync.RWMutex
-	epoch            uint32
-	nodesCoordinator sharding.NodesCoordinator
+	mutEpoch             sync.RWMutex
+	epoch                uint32
+	nodesCoordinator     sharding.NodesCoordinator
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // ArgPeerShardMapper is the initialization structure for the PeerShardMapper implementation
@@ -51,6 +52,7 @@ type ArgPeerShardMapper struct {
 	FallbackPkShardCache  storage.Cacher
 	FallbackPidShardCache storage.Cacher
 	NodesCoordinator      sharding.NodesCoordinator
+	PreferredPeersHolder  p2p.PreferredPeersHolderHandler
 	StartEpoch            uint32
 }
 
@@ -68,6 +70,9 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 	}
 	if check.IfNil(arg.FallbackPidShardCache) {
 		return nil, fmt.Errorf("%w for FallbackPidShardCache", sharding.ErrNilCacher)
+	}
+	if check.IfNil(arg.PreferredPeersHolder) {
+		return nil, p2p.ErrNilPreferredPeersHolder
 	}
 
 	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
@@ -89,6 +94,7 @@ func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
 		fallbackPidShardCache: arg.FallbackPidShardCache,
 		peerIdSubTypeCache:    peerIdSubTypeCache,
 		nodesCoordinator:      arg.NodesCoordinator,
+		preferredPeersHolder:  arg.PreferredPeersHolder,
 		epoch:                 arg.StartEpoch,
 	}, nil
 }
@@ -225,10 +231,29 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 }
 
-// UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map
+// UpdatePeerIDInfo updates the public keys and the shard ID for the peer IDin the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack
-func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
+func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
+	psm.updatePeerIDPublicKey(pid, pk)
+
+	if shardID == core.AllShardId {
+		return
+	}
+	psm.updatePublicKeyShardId(pk, shardID)
+	psm.updatePeerIdShardId(pid, shardID)
+	psm.preferredPeersHolder.Put(pk, pid, shardID)
+}
+
+func (psm *PeerShardMapper) updatePublicKeyShardId(pk []byte, shardId uint32) {
+	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
+}
+
+func (psm *PeerShardMapper) updatePeerIdShardId(pid core.PeerID, shardId uint32) {
+	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
+}
+
+func (psm *PeerShardMapper) updatePeerIDPublicKey(pid core.PeerID, pk []byte) {
 	//mutUpdatePeerIdPublicKey is used as to consider this function a critical section
 	psm.mutUpdatePeerIdPublicKey.Lock()
 	defer psm.mutUpdatePeerIdPublicKey.Unlock()
@@ -299,16 +324,6 @@ func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) {
 	}
 
 	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.size())
-}
-
-// UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
-func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
-}
-
-// UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
-func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
-	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
 // UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes

@@ -3,6 +3,7 @@ package process
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -21,7 +22,13 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	adb, err := state.NewAccountsDB(
+		tr,
+		hasher,
+		marshalizer,
+		accountFactory,
+		disabled.NewDisabledStoragePruningManager(),
+	)
 	if err != nil {
 		return nil, err
 	}

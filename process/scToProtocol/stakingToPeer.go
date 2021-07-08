@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
@@ -180,7 +181,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 
 		buff := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
-		var existingAcc state.AccountHandler
+		var existingAcc vmcommon.AccountHandler
 		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
 		shouldDeleteAccount := len(buff) == 0 && !check.IfNil(existingAcc) && err == nil
 		if shouldDeleteAccount {

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1085,7 +1086,7 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 		mutCbs.Unlock()
 	}
 
-	delayBroadcasterArgs.InterceptorsContainer = &mock.InterceptorsContainerStub{
+	delayBroadcasterArgs.InterceptorsContainer = &testscommon.InterceptorsContainerStub{
 		GetCalled: func(topic string) (process.Interceptor, error) {
 			var hdl func(handler func(topic string, hash []byte, data interface{}))
 			switch topic {
@@ -1098,7 +1099,7 @@ func TestDelayedBlockBroadcaster_RegisterInterceptorCallback(t *testing.T) {
 				return nil, errors.New("unexpected topic")
 			}
 
-			return &mock.InterceptorStub{
+			return &testscommon.InterceptorStub{
 				RegisterHandlerCalled: hdl,
 			}, nil
 		},

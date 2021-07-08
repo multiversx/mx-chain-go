@@ -1,12 +1,14 @@
 package factory_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/disabled"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -14,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +33,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	require.NoError(t, err)
 
 	bp, err := pcf.NewBlockProcessor(
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
@@ -37,7 +41,10 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{},
+		&txsimulator.ArgsTxSimulator{
+			VMOutputCacher: txcache.NewDisabledCache(),
+		},
+		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -87,17 +94,17 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	stateComp := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
-			return &mock.AccountsStub{
+			return &testscommon.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},
 				CommitCalled: func() ([]byte, error) {
 					return make([]byte, 0), nil
 				},
-				SaveAccountCalled: func(account state.AccountHandler) error {
+				SaveAccountCalled: func(account vmcommon.AccountHandler) error {
 					return nil
 				},
-				LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 					return state.NewEmptyPeerAccount(), nil
 				},
 			}
@@ -130,7 +137,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	require.NoError(t, err)
 
 	bp, err := pcf.NewBlockProcessor(
-		&mock.RequestHandlerStub{},
+		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
@@ -138,7 +145,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{},
+		&txsimulator.ArgsTxSimulator{
+			VMOutputCacher: txcache.NewDisabledCache(),
+		},
+		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -157,7 +167,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory, disabled.NewDisabledStoragePruningManager())
 	if err != nil {
 		return nil, err
 	}

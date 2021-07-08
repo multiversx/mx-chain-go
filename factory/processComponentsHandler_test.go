@@ -101,6 +101,7 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedProcessComponents.TxLogsProcessor())
 	require.NotNil(t, managedProcessComponents.HeaderConstructionValidator())
 	require.NotNil(t, managedProcessComponents.HeaderIntegrityVerifier())
+	require.NotNil(t, managedProcessComponents.ArwenChangeLocker())
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {

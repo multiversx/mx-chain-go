@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -25,4 +26,7 @@ type ArgNodesCoordinator struct {
 	ConsensusGroupCache        Cacher
 	ShuffledOutHandler         ShuffledOutHandler
 	WaitingListFixEnabledEpoch uint32
+	ChanStopNode               chan endProcess.ArgEndProcess
+	NodeTypeProvider           NodeTypeProviderHandler
+	IsFullArchive              bool
 }

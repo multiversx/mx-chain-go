@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -26,6 +25,9 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // ApiResolverArgs holds the argument needed to create an API resolver
@@ -115,8 +117,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	txCostHandler, err := transaction.NewTransactionCostEstimator(
 		txTypeHandler,
 		args.CoreComponents.EconomicsData(),
-		scQueryService,
-		args.GasScheduleNotifier,
+		args.ProcessComponents.TransactionSimulatorProcessor(),
+		args.StateComponents.AccountsAdapter(),
+		args.ProcessComponents.ShardCoordinator(),
 	)
 	if err != nil {
 		return nil, err
@@ -267,22 +270,21 @@ func createScQueryElement(
 		}
 	} else {
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
-		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:                         queryVirtualMachineConfig,
 			BlockGasLimit:                  args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
 			GasSchedule:                    args.gasScheduleNotifier,
 			ArgBlockChainHook:              argsHook,
+			EpochNotifier:                  args.coreComponents.EpochNotifier(),
 			DeployEnableEpoch:              args.epochConfig.EnableEpochs.SCDeployEnableEpoch,
 			AheadOfTimeGasUsageEnableEpoch: args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch,
 			ArwenV3EnableEpoch:             args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch,
-			ArwenESDTFunctionsEnableEpoch:  args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch,
+			ArwenChangeLocker:              args.processComponents.ArwenChangeLocker(),
 		}
 
 		log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)
 		log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 		log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
-		log.Debug("apiResolver: enable epoch for ESDT functions", "epoch", args.epochConfig.EnableEpochs.ArwenESDTFunctionsEnableEpoch)
 
 		vmFactory, err = shard.NewVMContainerFactory(argsNewVMFactory)
 		if err != nil {
@@ -295,17 +297,19 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(
-		vmContainer,
-		args.coreComponents.EconomicsData(),
-		vmFactory.BlockChainHookImpl(),
-		args.dataComponents.Blockchain(),
-	)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:       vmContainer,
+		EconomicsFee:      args.coreComponents.EconomicsData(),
+		BlockChainHook:    vmFactory.BlockChainHookImpl(),
+		BlockChain:        args.dataComponents.Blockchain(),
+		ArwenChangeLocker: args.processComponents.ArwenChangeLocker(),
+	}
+	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	return scQueryService, err
 }
@@ -315,7 +319,7 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-) (process.BuiltInFunctionContainer, error) {
+) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:      gasScheduleNotifier,
 		MapDNSAddresses:  make(map[string]struct{}),
@@ -323,10 +327,10 @@ func createBuiltinFuncs(
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
-	return builtInFuncFactory.CreateBuiltInFunctionContainer()
+	return builtInFuncs, nil
 }

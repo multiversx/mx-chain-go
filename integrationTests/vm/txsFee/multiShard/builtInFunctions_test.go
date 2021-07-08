@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,6 +21,11 @@ import (
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
+	// TODO reinstate test after Arwen pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Arwen fix")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
 		vm.ArgEnableEpoch{

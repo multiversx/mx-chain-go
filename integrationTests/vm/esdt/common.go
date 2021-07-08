@@ -9,8 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -19,6 +17,8 @@ import (
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -185,6 +185,11 @@ func IssueTestTokenWithCustomGas(nodes []*integrationTests.TestProcessorNode, in
 	issueTestToken(nodes, initialSupply, ticker, gas)
 }
 
+// IssueTestTokenWithSpecialRoles -
+func IssueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string) {
+	issueTestTokenWithSpecialRoles(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
+}
+
 func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
@@ -193,6 +198,18 @@ func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	txData := txDataBuilder.NewBuilder()
 	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
+
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
+}
+
+func issueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+
+	tokenIssuer := nodes[0]
+	txData := txDataBuilder.NewBuilder()
+	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
+	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true).CanAddSpecialRoles(true)
 
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
 }

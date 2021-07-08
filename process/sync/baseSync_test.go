@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -121,4 +122,30 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(0), orderedMiniBlocks[0].SenderShardID)
 	assert.Equal(t, uint32(1), orderedMiniBlocks[1].SenderShardID)
 	assert.Equal(t, uint32(2), orderedMiniBlocks[2].SenderShardID)
+}
+
+func TestBaseBootstrap_GetNodeState(t *testing.T) {
+	t.Parallel()
+
+	boot := &baseBootstrap{
+		isInImportMode:        true,
+		isNodeStateCalculated: true,
+		roundHandler:          &mock.RoundHandlerMock{},
+	}
+	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+
+	boot = &baseBootstrap{
+		isInImportMode:        false,
+		isNodeStateCalculated: true,
+		roundHandler:          &mock.RoundHandlerMock{},
+	}
+	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
+
+	boot = &baseBootstrap{
+		roundIndex:            1,
+		isInImportMode:        false,
+		isNodeStateCalculated: true,
+		roundHandler:          &mock.RoundHandlerMock{},
+	}
+	assert.Equal(t, core.NsNotCalculated, boot.GetNodeState())
 }

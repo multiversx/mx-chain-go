@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -33,6 +34,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -102,6 +104,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -172,6 +175,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 
@@ -242,6 +246,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
+		&sync.RWMutex{},
 	)
 	require.Nil(t, err)
 

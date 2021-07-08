@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
@@ -54,6 +55,18 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 	return tx, nil
 }
 
+// computeTimestampForRound will return the timestamp for the given round
+func (n *Node) computeTimestampForRound(round uint64) int64 {
+	if round == 0 {
+		return 0
+	}
+
+	secondsSinceGenesis := round * n.roundDuration
+	timestamp := n.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+
+	return timestamp.Unix()
+}
+
 func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := n.processComponents.HistoryRepository().GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
@@ -80,6 +93,7 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*tran
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
+	tx.Timestamp = n.computeTimestampForRound(tx.Round)
 	statusComputer, err := transaction.NewStatusComputer(n.processComponents.ShardCoordinator().SelfId(), n.coreComponents.Uint64ByteSliceConverter(), n.dataComponents.StorageService())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
@@ -317,6 +331,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 		Sender:      "metachain",
 		Receiver:    n.coreComponents.AddressPubKeyConverter().Encode(tx.GetRcvAddr()),
 		SourceShard: core.MetachainShardId,
+		Timestamp:   n.computeTimestampForRound(tx.GetRound()),
 	}, nil
 }
 

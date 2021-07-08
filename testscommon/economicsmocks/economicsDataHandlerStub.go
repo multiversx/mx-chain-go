@@ -33,6 +33,7 @@ type EconomicsHandlerStub struct {
 	MinGasPriceProcessingCalled                  func() uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueCalled func(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimitBasedOnBalanceCalled          func(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 }
 
 // ComputeFeeForProcessing -
@@ -41,6 +42,14 @@ func (e *EconomicsHandlerStub) ComputeFeeForProcessing(tx process.TransactionWit
 		return e.ComputeFeeForProcessingCalled(tx, gasToUse)
 	}
 	return big.NewInt(0)
+}
+
+// ComputeGasLimitBasedOnBalance -
+func (e *EconomicsHandlerStub) ComputeGasLimitBasedOnBalance(tx process.TransactionWithFeeHandler, balance *big.Int) (uint64, error) {
+	if e.ComputeGasLimitBasedOnBalanceCalled != nil {
+		return e.ComputeGasLimitBasedOnBalanceCalled(tx, balance)
+	}
+	return 0, nil
 }
 
 // LeaderPercentage -

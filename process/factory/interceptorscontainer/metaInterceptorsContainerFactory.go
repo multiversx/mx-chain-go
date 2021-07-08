@@ -23,7 +23,7 @@ type metaInterceptorsContainerFactory struct {
 
 // NewMetaInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewMetaInterceptorsContainerFactory(
-	args MetaInterceptorsContainerFactoryArgs,
+	args CommonInterceptorsContainerFactoryArgs,
 ) (*metaInterceptorsContainerFactory, error) {
 	err := checkBaseParams(
 		args.CoreComponents,
@@ -34,10 +34,12 @@ func NewMetaInterceptorsContainerFactory(
 		args.DataPool,
 		args.Messenger,
 		args.NodesCoordinator,
-		args.BlackList,
+		args.BlockBlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
+		args.PreferredPeersHolder,
+		args.RequestHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -92,13 +94,16 @@ func NewMetaInterceptorsContainerFactory(
 		store:                  args.Store,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
-		blockBlackList:         args.BlackList,
+		blockBlackList:         args.BlockBlackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:   args.PreferredPeersHolder,
+		hasher:                 args.CoreComponents.Hasher(),
+		requestHandler:         args.RequestHandler,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -226,13 +231,14 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:            topic,
-			DataFactory:      hdrFactory,
-			Processor:        hdrProcessor,
-			Throttler:        micf.globalThrottler,
-			AntifloodHandler: micf.antifloodHandler,
-			WhiteListRequest: micf.whiteListHandler,
-			CurrentPeerId:    micf.messenger.ID(),
+			Topic:                topic,
+			DataFactory:          hdrFactory,
+			Processor:            hdrProcessor,
+			Throttler:            micf.globalThrottler,
+			AntifloodHandler:     micf.antifloodHandler,
+			WhiteListRequest:     micf.whiteListHandler,
+			CurrentPeerId:        micf.messenger.ID(),
+			PreferredPeersHolder: micf.preferredPeersHolder,
 		},
 	)
 	if err != nil {

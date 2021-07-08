@@ -98,15 +98,25 @@ func TestInterceptedTrieNode_Hash(t *testing.T) {
 	assert.Equal(t, hashes[0], hash)
 }
 
-func TestInterceptedTrieNode_EncodedNode(t *testing.T) {
+func TestInterceptedTrieNode_GetSerialized(t *testing.T) {
 	t.Parallel()
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	tr := initTrie()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 
-	encNode := interceptedNode.EncodedNode()
+	encNode := interceptedNode.GetSerialized()
 	assert.Equal(t, nodes[0], encNode)
+}
+
+func TestInterceptedTrieNode_SetSerialized(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	serializedNode := []byte("serialized node")
+
+	interceptedNode.SetSerialized(serializedNode)
+	assert.Equal(t, serializedNode, interceptedNode.GetSerialized())
 }
 
 func TestInterceptedTrieNode_IsForCurrentShard(t *testing.T) {

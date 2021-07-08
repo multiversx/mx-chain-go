@@ -151,6 +151,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricGovernanceEnableEpoch, uint64(enableEpochs.GovernanceEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDelegationManagerEnableEpoch, uint64(enableEpochs.DelegationManagerEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDelegationSmartContractEnableEpoch, uint64(enableEpochs.DelegationSmartContractEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricIncrementSCRNonceInMultiTransferEnableEpoch, uint64(enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch))
 
 	var consensusGroupSize uint32
 	switch {

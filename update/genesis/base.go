@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // EpochStartMetaBlockIdentifier is the constant which defines the export/import identifier for epoch start metaBlock
@@ -85,7 +86,7 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type, address []byte) (state.AccountHandler, error) {
+func NewEmptyAccount(accType Type, address []byte) (vmcommon.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
 		return state.NewUserAccount(address)

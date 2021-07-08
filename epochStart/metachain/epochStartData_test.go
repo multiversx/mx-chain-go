@@ -72,7 +72,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		RequestHandler:    &mock.RequestHandlerStub{},
+		RequestHandler:    &testscommon.RequestHandlerStub{},
 	}
 	return argsNewEpochStartData
 }

@@ -178,7 +178,7 @@ func (ip *identityProvider) processReceivedData(recvBuff []byte) error {
 	}
 
 	pid := core.PeerID(receivedAm.Message)
-	ip.networkShardingCollector.UpdatePeerIdPublicKey(pid, receivedAm.Pubkey)
+	ip.networkShardingCollector.UpdatePeerIDInfo(pid, receivedAm.Pubkey, core.AllShardId)
 	log.Trace("received authentication", "from", pid.Pretty(), "pk", hex.EncodeToString(receivedAm.Pubkey))
 
 	return nil

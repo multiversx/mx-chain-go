@@ -501,6 +501,18 @@ func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndPr
 	return mcc.coreComponents.chanStopNodeProcess
 }
 
+// NodeTypeProvider returns the node type provider
+func (mcc *managedCoreComponents) NodeTypeProvider() core.NodeTypeProviderHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.nodeTypeProvider
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

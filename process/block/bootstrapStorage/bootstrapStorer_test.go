@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +26,7 @@ func TestNewBootstrapStorer_NilStorerShouldErr(t *testing.T) {
 func TestNewBootstrapStorer_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	storer := &mock.StorerStub{}
+	storer := &testscommon.StorerStub{}
 	bt, err := bootstrapStorage.NewBootstrapStorer(nil, storer)
 
 	assert.Nil(t, bt)
@@ -86,7 +87,7 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 	putWasCalled := false
 	roundInStorage := int64(5)
 	marshalizer := &mock.MarshalizerMock{}
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			putWasCalled = true
 			rn := bootstrapStorage.RoundNum{}
