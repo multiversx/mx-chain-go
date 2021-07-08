@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -233,6 +234,12 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(numCheckpoints)
 	db := mock.NewMemDbMock()
+	numExitPruningBufferingModeCalled := uint32(0)
+	db.PutCalled = func(key, val []byte) error {
+		wg.Done()
+
+		return nil
+	}
 	adb, _ := state.NewAccountsDB(
 		&testscommon.TrieStub{
 			GetStorageManagerCalled: func() data.StorageManager {
@@ -244,7 +251,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 						close(leavesChan)
 					},
 					ExitPruningBufferingModeCalled: func() {
-						wg.Done()
+						atomic.AddUint32(&numExitPruningBufferingModeCalled, 1)
 					},
 				}
 			},
@@ -277,6 +284,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	numCheckpointsRecovered := binary.BigEndian.Uint32(val)
 	assert.Equal(t, uint32(numCheckpoints), numCheckpointsRecovered)
 	assert.Equal(t, uint32(numCheckpoints), adb.GetNumCheckpoints())
+	assert.Equal(t, uint32(numCheckpoints), atomic.LoadUint32(&numExitPruningBufferingModeCalled))
 }
 
 //------- SaveAccount
