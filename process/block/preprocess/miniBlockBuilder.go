@@ -191,6 +191,9 @@ func isCrossShardScCallOrSpecialTx(receiverShardID uint32, selfShardID uint32, t
 }
 
 func (mbb *miniBlocksBuilder) shouldSenderBeSkipped(address []byte) bool {
+	if len(mbb.senderToSkip) == 0 {
+		return false
+	}
 	if bytes.Equal(mbb.senderToSkip, address) {
 		mbb.stats.numTxsSkipped++
 		return true
