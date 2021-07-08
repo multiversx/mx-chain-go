@@ -58,4 +58,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}, "") })
 	require.False(t, cache.IsInterfaceNil())
+
+	err := cache.Close()
+	require.Nil(t, err)
 }

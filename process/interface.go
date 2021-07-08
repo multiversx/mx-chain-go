@@ -1058,6 +1058,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
+	NodeTypeProvider() core.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 
@@ -1114,6 +1115,12 @@ type CheckedChunkResult struct {
 type InterceptedChunksProcessor interface {
 	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	SyncAccounts(rootHash []byte) error
 	IsInterfaceNil() bool
 }
 

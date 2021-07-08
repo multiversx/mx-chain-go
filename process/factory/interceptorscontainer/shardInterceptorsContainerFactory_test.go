@@ -80,7 +80,7 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 func createShardStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
@@ -629,7 +629,7 @@ func getArgumentsShard(
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:          coreComp,
 		CryptoComponents:        cryptoComp,
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},

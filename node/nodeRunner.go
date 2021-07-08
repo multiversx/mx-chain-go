@@ -279,6 +279,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.NodeTypeProvider(),
 	)
 	if err != nil {
 		return true, err
@@ -725,11 +726,11 @@ func waitForSignal(
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
-	} else {
-		return fmt.Errorf("not reshuffled, closing")
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("not reshuffled, closing")
 }
 
 func (nr *nodeRunner) logInformation(
@@ -1251,17 +1252,16 @@ func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string 
 }
 
 func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
-	if cleanupStorage {
-		dbPath := filepath.Join(
-			workingDir,
-			core.DefaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err := os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	if !cleanupStorage {
+		return nil
 	}
-	return nil
+
+	dbPath := filepath.Join(
+		workingDir,
+		core.DefaultDBPath)
+	log.Trace("cleaning storage", "path", dbPath)
+
+	return os.RemoveAll(dbPath)
 }
 
 func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {

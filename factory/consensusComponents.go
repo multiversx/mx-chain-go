@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -8,7 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/syncer"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -17,6 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+const timeoutGettingTrieNode = time.Minute
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -412,6 +420,11 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
+	accountsDBSyncer, err := ccf.createUserAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:          ccf.dataComponents.Datapool(),
 		Store:                ccf.dataComponents.StorageService(),
@@ -434,8 +447,9 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
 		Indexer:              ccf.statusComponents.ElasticIndexer(),
-		IsInImportMode:       ccf.isInImportMode,
+		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
+		IsInImportMode:       ccf.isInImportMode,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -448,6 +462,51 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	}
 
 	return bootstrap, nil
+}
+
+func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager data.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
+	return syncer.ArgsNewBaseAccountsSyncer{
+		Hasher:                    ccf.coreComponents.Hasher(),
+		Marshalizer:               ccf.coreComponents.InternalMarshalizer(),
+		TrieStorageManager:        trieStorageManager,
+		RequestHandler:            ccf.processComponents.RequestHandler(),
+		Timeout:                   timeoutGettingTrieNode,
+		Cacher:                    ccf.dataComponents.Datapool().TrieNodes(),
+		MaxTrieLevelInMemory:      ccf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		MaxHardCapForMissingNodes: ccf.config.TrieSync.MaxHardCapForMissingNodes,
+		TrieSyncerVersion:         ccf.config.TrieSync.TrieSyncerVersion,
+	}
+}
+
+func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[factory.PeerAccountTrie]
+	if !ok {
+		return nil, errors.ErrNilTrieStorageManager
+	}
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
+	}
+	return syncer.NewValidatorAccountsSyncer(args)
+}
+
+func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
+	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[factory.UserAccountTrie]
+	if !ok {
+		return nil, errors.ErrNilTrieStorageManager
+	}
+
+	thr, err := throttler.NewNumGoRoutinesThrottler(int32(ccf.config.TrieSync.NumConcurrentTrieSyncers))
+	if err != nil {
+		return nil, err
+	}
+
+	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
+		ShardId:                   ccf.processComponents.ShardCoordinator().SelfId(),
+		Throttler:                 thr,
+	}
+	return syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 }
 
 func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bootstrapper, error) {
@@ -477,6 +536,16 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		return nil, err
 	}
 
+	accountsDBSyncer, err := ccf.createUserAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
+	validatorAccountsDBSyncer, err := ccf.createValidatorAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:          ccf.dataComponents.Datapool(),
 		Store:                ccf.dataComponents.StorageService(),
@@ -499,13 +568,16 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		Uint64Converter:      ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:     ccf.coreComponents.StatusHandler(),
 		Indexer:              ccf.statusComponents.ElasticIndexer(),
-		IsInImportMode:       ccf.isInImportMode,
+		AccountsDBSyncer:     accountsDBSyncer,
 		CurrentEpochProvider: ccf.processComponents.CurrentEpochProvider(),
+		IsInImportMode:       ccf.isInImportMode,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-		EpochBootstrapper:   ccf.processComponents.EpochStartTrigger(),
+		ArgBaseBootstrapper:         argsBaseBootstrapper,
+		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
+		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
+		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)

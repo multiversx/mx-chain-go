@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -710,8 +709,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	ctx := context.Background()
-	leavesChannel, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash, ctx)
+	leavesChannel, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash)
 	if err != nil {
 		return err
 	}
@@ -1033,6 +1031,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pathManager,
 		manualEpochStartNotifier,
+		pcf.coreData.NodeTypeProvider(),
 		pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 		false,
 	)

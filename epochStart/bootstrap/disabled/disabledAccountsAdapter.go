@@ -1,8 +1,6 @@
 package disabled
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -80,11 +78,11 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte, _ context.Context) {
+func (a *accountsAdapter) SnapshotState(_ []byte) {
 }
 
 // SetStateCheckpoint -
-func (a *accountsAdapter) SetStateCheckpoint(_ []byte, _ context.Context) {
+func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled -
@@ -98,18 +96,23 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ []byte, _ context.Context) (chan core.KeyValueHolder, error) {
+func (a *accountsAdapter) GetAllLeaves(_ []byte) (chan core.KeyValueHolder, error) {
 	return nil, nil
 }
 
 // RecreateAllTries -
-func (a *accountsAdapter) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
+func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
 	return nil, nil
 }
 
 // GetNumCheckpoints -
 func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
+}
+
+// Close -
+func (a *accountsAdapter) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -

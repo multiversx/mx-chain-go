@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -1127,8 +1126,7 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userValidatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userValidatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}

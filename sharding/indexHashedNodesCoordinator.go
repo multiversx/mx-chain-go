@@ -91,6 +91,7 @@ type indexHashedNodesCoordinator struct {
 	isFullArchive                 bool
 	chanStopNode                  chan endProcess.ArgEndProcess
 	flagWaitingListFix            atomicFlags.Flag
+	nodeTypeProvider              NodeTypeProviderHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -133,6 +134,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
 		waitingListFixEnableEpoch:     arguments.WaitingListFixEnabledEpoch,
 		chanStopNode:                  arguments.ChanStopNode,
+		nodeTypeProvider:              arguments.NodeTypeProvider,
 		isFullArchive:                 arguments.IsFullArchive,
 	}
 	log.Debug("indexHashedNodesCoordinator: enable epoch for waiting waiting list", "epoch", ihgs.waitingListFixEnableEpoch)
@@ -205,6 +207,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.ShuffledOutHandler) {
 		return ErrNilShuffledOutHandler
 	}
+	if check.IfNil(arguments.NodeTypeProvider) {
+		return ErrNilNodeTypeProvider
+	}
 	if nil == arguments.ChanStopNode {
 		return ErrNilNodeStopChannel
 	}
@@ -264,6 +269,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
+	ihgs.setNodeType(isValidator)
 
 	if ihgs.isFullArchive && isValidator {
 		ihgs.chanStopNode <- endProcess.ArgEndProcess{
@@ -275,6 +281,15 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	return nil
+}
+
+func (ihgs *indexHashedNodesCoordinator) setNodeType(isValidator bool) {
+	if isValidator {
+		ihgs.nodeTypeProvider.SetType(core.NodeTypeValidator)
+		return
+	}
+
+	ihgs.nodeTypeProvider.SetType(core.NodeTypeObserver)
 }
 
 // ComputeAdditionalLeaving - computes extra leaving validators based on computation at the start of epoch

@@ -104,7 +104,8 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	indexer process.Indexer
+	indexer          process.Indexer
+	accountsDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
@@ -450,6 +451,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Indexer) {
 		return process.ErrNilIndexer
 	}
+	if check.IfNil(arguments.AccountsDBSyncer) {
+		return process.ErrNilAccountsDBSyncer
+	}
 	if check.IfNil(arguments.CurrentEpochProvider) {
 		return process.ErrNilCurrentNetworkEpochProvider
 	}
@@ -636,6 +640,16 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 
 	return nil
+}
+
+func (boot *baseBootstrap) syncUserAccountsState() error {
+	rootHash, err := boot.accounts.RootHash()
+	if err != nil {
+		return err
+	}
+
+	log.Warn("base sync: started syncUserAccountsState")
+	return boot.accountsDBSyncer.SyncAccounts(rootHash)
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {

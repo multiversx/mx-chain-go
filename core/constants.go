@@ -448,7 +448,7 @@ const (
 	//MetricStakeEnableEpoch represents the epoch when staking is enabled
 	MetricStakeEnableEpoch = "erd_stake_enable_epoch"
 
-	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when the double key protection is enabled
+	//MetricDoubleKeyProtectionEnableEpoch represents the epoch when double key protection is enabled
 	MetricDoubleKeyProtectionEnableEpoch = "erd_double_key_protection_enable_epoch"
 
 	//MetricEsdtEnableEpoch represents the epoch when ESDT is enabled
@@ -480,6 +480,8 @@ const (
 	IndexerOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
+	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
+	OldDatabaseCleanOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -788,3 +790,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
+
+// GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
+const GetNodeFromDBErrorString = "getNodeFromDB error"

@@ -24,6 +24,7 @@ type DBConfig struct {
 	BatchDelaySeconds int
 	MaxBatchSize      int
 	MaxOpenFiles      int
+	UseTmpAsFilePath  bool
 }
 
 // BloomFilterConfig will map the bloom filter configuration
@@ -37,6 +38,13 @@ type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
 	Bloom BloomFilterConfig
+}
+
+// TrieSyncStorageConfig will map trie sync storage configuration
+type TrieSyncStorageConfig struct {
+	DB          DBConfig
+	Capacity    uint32
+	SizeInBytes uint64
 }
 
 // PubkeyConfig will map the public key configuration
@@ -132,11 +140,11 @@ type Config struct {
 	TxDataPool                  CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
-	TrieNodesDataPool           CacheConfig
 	TrieNodesChunksDataPool     CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
 	SmartContractDataPool       CacheConfig
+	TrieSyncStorage             TrieSyncStorageConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -188,7 +196,8 @@ type LogsConfig struct {
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled                        bool
-	CleanOldEpochsData             bool
+	ValidatorCleanOldEpochsData    bool
+	ObserverCleanOldEpochsData     bool
 	NumEpochsToKeep                uint64
 	NumActivePersisters            uint64
 	FullArchiveNumActivePersisters uint32
@@ -252,10 +261,11 @@ type StateTriesConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen   uint32
-	SnapshotsBufferLen uint32
-	MaxSnapshots       uint32
-	KeepSnapshots      bool
+	PruningBufferLen              uint32
+	SnapshotsBufferLen            uint32
+	MaxSnapshots                  uint32
+	KeepSnapshots                 bool
+	CheckpointHashesHolderMaxSize uint64
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

@@ -48,8 +48,3 @@ func (fhps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cac
 func (fhps *FullHistoryPruningStorer) IsEpochActive(epoch uint32) bool {
 	return fhps.isEpochActive(epoch)
 }
-
-// RemoveDirectoryIfEmpty -
-func RemoveDirectoryIfEmpty(path string) {
-	removeDirectoryIfEmpty(path)
-}

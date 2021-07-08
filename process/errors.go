@@ -968,5 +968,8 @@ var ErrIncompatibleReference = errors.New("incompatible reference when processin
 // ErrProcessClosed signals that an incomplete processing occurred due to the early process closing
 var ErrProcessClosed = errors.New("incomplete processing: process is closing")
 
+// ErrNilAccountsDBSyncer signals that a nil accounts db syncer has been provided
+var ErrNilAccountsDBSyncer = errors.New("nil accounts DB syncer")
+
 // ErrNilCurrentNetworkEpochProvider signals that a nil CurrentNetworkEpochProvider handler has been provided
 var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")

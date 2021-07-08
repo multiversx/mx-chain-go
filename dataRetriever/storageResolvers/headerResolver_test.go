@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -141,7 +142,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -174,7 +175,7 @@ func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -216,7 +217,7 @@ func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -249,12 +250,12 @@ func TestHeaderResolver_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.HeadersNoncesStorage = &mock.StorerStub{
+	arg.HeadersNoncesStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return nil, expectedErr
 		},
@@ -286,12 +287,12 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
 	}
-	arg.HeadersNoncesStorage = &mock.StorerStub{
+	arg.HeadersNoncesStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return make([]byte, 0), nil
 		},
@@ -323,7 +324,7 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	sendCalled := false
 	epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
 	arg := createMockHeaderResolverArg()
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			assert.Equal(t, epochIdentifier, key)
 			return make([]byte, 0), nil
@@ -350,13 +351,13 @@ func TestHeaderResolver_Close(t *testing.T) {
 
 	arg := createMockHeaderResolverArg()
 	closeCalled := 0
-	arg.HdrStorage = &mock.StorerStub{
+	arg.HdrStorage = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			closeCalled++
 			return nil
 		},
 	}
-	arg.HeadersNoncesStorage = &mock.StorerStub{
+	arg.HeadersNoncesStorage = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			closeCalled++
 			return nil

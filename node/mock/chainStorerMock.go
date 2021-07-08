@@ -3,19 +3,30 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 )
 
 // ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
-	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled       func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled   func() error
-	CloseAllCalled  func() error
+	AddStorerCalled     func(key dataRetriever.UnitType, s storage.Storer)
+	GetStorerCalled     func(unitType dataRetriever.UnitType) storage.Storer
+	HasCalled           func(unitType dataRetriever.UnitType, key []byte) error
+	GetCalled           func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
+	PutCalled           func(unitType dataRetriever.UnitType, key []byte, value []byte) error
+	GetAllCalled        func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	GetAllStorersCalled func() map[dataRetriever.UnitType]storage.Storer
+	DestroyCalled       func() error
+	CloseAllCalled      func() error
+}
+
+// GetAllStorers -
+func (bc *ChainStorerMock) GetAllStorers() map[dataRetriever.UnitType]storage.Storer {
+	if bc.GetAllStorersCalled != nil {
+		return bc.GetAllStorersCalled()
+	}
+
+	return nil
 }
 
 // CloseAll -
@@ -40,7 +51,7 @@ func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 		return bc.GetStorerCalled(unitType)
 	}
 
-	return &StorerStub{}
+	return &testscommon.StorerStub{}
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

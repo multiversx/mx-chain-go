@@ -78,7 +78,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 func createMetaStore() *mock.ChainStorerMock {
 	return &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
+			return &testscommon.StorerStub{}
 		},
 	}
 }
@@ -559,7 +559,7 @@ func getArgumentsMeta(
 		Messenger:               &mock.TopicHandlerStub{},
 		Store:                   createMetaStore(),
 		DataPool:                createMetaDataPools(),
-		Accounts:                &mock.AccountsStub{},
+		Accounts:                &testscommon.AccountsStub{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
 		BlockBlackList:          &mock.BlackListHandlerStub{},

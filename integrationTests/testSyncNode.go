@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 )
 
 // NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
@@ -84,7 +85,7 @@ func NewTestSyncNode(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 		ArwenChangeLocker:       &syncGo.RWMutex{},
 		TransactionLogProcessor: transactionLog.NewPrintTxLogProcessor(),
@@ -272,8 +273,9 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
 		Indexer:              &mock.NilIndexer{},
-		IsInImportMode:       false,
+		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
+		IsInImportMode:       false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -313,13 +315,16 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		Uint64Converter:      TestUint64Converter,
 		AppStatusHandler:     TestAppStatusHandler,
 		Indexer:              &mock.NilIndexer{},
-		IsInImportMode:       false,
+		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
+		IsInImportMode:       false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper: argsBaseBootstrapper,
-		EpochBootstrapper:   tpn.EpochStartTrigger,
+		ArgBaseBootstrapper:         argsBaseBootstrapper,
+		EpochBootstrapper:           tpn.EpochStartTrigger,
+		ValidatorAccountsDB:         tpn.PeerState,
+		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)
