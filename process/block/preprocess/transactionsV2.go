@@ -160,9 +160,9 @@ func (txs *transactions) processTransaction(
 	elapsedTime = time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForProcess += elapsedTime
 
-	txs.mutAccountsInfo.Lock()
-	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.mutAccountsInfo.Unlock()
+	txs.accountTxsShards.Lock()
+	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txs.accountTxsShards.Unlock()
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		if errors.Is(err, process.ErrHigherNonceInTransaction) {
@@ -380,9 +380,9 @@ func (txs *transactions) verifyTransaction(
 	elapsedTime = time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
 
-	txs.mutAccountsInfo.Lock()
-	txs.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.mutAccountsInfo.Unlock()
+	txs.accountTxsShards.Lock()
+	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txs.accountTxsShards.Unlock()
 
 	if err != nil {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)

@@ -1024,3 +1024,12 @@ var ErrNilSyncTimer = errors.New("sync timer is nil")
 
 // ErrInvalidProcessingTime signals an invalid processing time
 var ErrInvalidProcessingTime = errors.New("processing time is invalid")
+
+// ErrNilIsShardStuckHandler signals a nil shard stuck handler
+var ErrNilIsShardStuckHandler = errors.New("nil handler for checking stuck shard")
+
+// ErrNilIsMaxBlockSizeReachedHandler signals a nil max block size reached handler
+var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block size reached")
+
+// ErrNilComputeGasConsumedHandler signals a nil compute consumed gas handler
+var ErrNilComputeGasConsumedHandler = errors.New("nil compute gas consumed handler")
