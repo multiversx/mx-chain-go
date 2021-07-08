@@ -182,7 +182,7 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 	assert.Equal(t, core.NsNotSynchronized, boot.GetNodeState())
 }
 
-func TestBaseSync_getEpochForCurrentBlockGenesis(t *testing.T) {
+func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
 	t.Parallel()
 
 	genesisEpoch := uint32(1123)
@@ -199,11 +199,11 @@ func TestBaseSync_getEpochForCurrentBlockGenesis(t *testing.T) {
 		},
 	}
 
-	epoch := boot.getEpochForCurrentBlock()
+	epoch := boot.getEpochOfCurrentBlock()
 	assert.Equal(t, genesisEpoch, epoch)
 }
 
-func TestBaseSync_getEpochForCurrentBlockHeader(t *testing.T) {
+func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	genesisEpoch := uint32(1123)
@@ -223,6 +223,6 @@ func TestBaseSync_getEpochForCurrentBlockHeader(t *testing.T) {
 		},
 	}
 
-	epoch := boot.getEpochForCurrentBlock()
+	epoch := boot.getEpochOfCurrentBlock()
 	assert.Equal(t, headerEpoch, epoch)
 }

@@ -240,8 +240,8 @@ func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
 	return nonce
 }
 
-// getEpochForCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
-func (boot *baseBootstrap) getEpochForCurrentBlock() uint32 {
+// getEpochOfCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
+func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
 	epoch := boot.chainHandler.GetGenesisHeader().GetEpoch()
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
@@ -1019,7 +1019,7 @@ func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	if boot.isInImportMode {
 		return core.NsNotSynchronized
 	}
-	currentSyncedEpoch := boot.getEpochForCurrentBlock()
+	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
 	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
 		return core.NsNotSynchronized
 	}

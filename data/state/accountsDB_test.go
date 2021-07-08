@@ -230,6 +230,8 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 
 	numCheckpointsKey := []byte("state checkpoint")
 	numCheckpoints := 50
+	wg := sync.WaitGroup{}
+	wg.Add(numCheckpoints)
 	db := mock.NewMemDbMock()
 	adb, _ := state.NewAccountsDB(
 		&testscommon.TrieStub{
@@ -240,6 +242,9 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 					},
 					SetCheckpointCalled: func(_ []byte, leavesChan chan core.KeyValueHolder) {
 						close(leavesChan)
+					},
+					ExitPruningBufferingModeCalled: func() {
+						wg.Done()
 					},
 				}
 			},
@@ -264,7 +269,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 		adb.SetStateCheckpoint([]byte("rootHash"))
 	}
 
-	time.Sleep(time.Second*2 + time.Millisecond*500)
+	wg.Wait()
 
 	val, err := db.Get(numCheckpointsKey)
 	assert.Nil(t, err)
@@ -1166,7 +1171,7 @@ func TestAccountsDB_SnapshotStateWithDataTries(t *testing.T) {
 	assert.Nil(t, err)
 
 	for hash := range newHashes {
-		val, err := trieDb.Get([]byte(hash))
+		val, err = trieDb.Get([]byte(hash))
 		assert.Nil(t, val)
 		assert.NotNil(t, err)
 
@@ -1236,7 +1241,7 @@ func TestAccountsDB_SetStateCheckpointWithDataTries(t *testing.T) {
 	assert.Nil(t, err)
 
 	for hash := range newHashes {
-		val, err := trieDb.Get([]byte(hash))
+		val, err = trieDb.Get([]byte(hash))
 		assert.Nil(t, val)
 		assert.NotNil(t, err)
 
@@ -1860,9 +1865,9 @@ func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
 	time.Sleep(trieDbOperationDelay)
 
 	for i := range oldHashes {
-		encNode, err := tr.GetStorageManager().Database().Get(oldHashes[i])
+		encNode, errGet := tr.GetStorageManager().Database().Get(oldHashes[i])
 		assert.Nil(t, encNode)
-		assert.NotNil(t, err)
+		assert.NotNil(t, errGet)
 	}
 }
 
@@ -2100,16 +2105,16 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	for _, hash := range allStateHashes {
 		_, ok := newHashes[string(hash)]
 		if ok {
-			val, err := snapshotDb.Get(hash)
-			assert.Nil(t, err)
+			val, errGet := snapshotDb.Get(hash)
+			assert.Nil(t, errGet)
 			assert.NotNil(t, val)
 			numPresent++
 			continue
 		}
 
-		val, err := snapshotDb.Get(hash)
+		val, errGet := snapshotDb.Get(hash)
 		assert.Nil(t, val)
-		assert.NotNil(t, err)
+		assert.NotNil(t, errGet)
 		numAbsent++
 	}
 
