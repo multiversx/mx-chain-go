@@ -428,6 +428,10 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
+
+		if bytes.Equal(input.CallerAddr, input.RecipientAddr) {
+			return sndAccount, sndAccount, nil
+		}
 	}
 
 	var dstAccount vmcommon.UserAccountHandler
