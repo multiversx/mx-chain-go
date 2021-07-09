@@ -43,6 +43,7 @@ type ProcessComponentsStub struct {
 	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
 	ArwenChangeLockerInternal      process.Locker
+	CurrentEpochProviderInternal   process.CurrentNetworkEpochProviderHandler
 }
 
 // Create -
@@ -208,6 +209,11 @@ func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundan
 // ArwenChangeLocker -
 func (pcs *ProcessComponentsStub) ArwenChangeLocker() process.Locker {
 	return pcs.ArwenChangeLockerInternal
+}
+
+// CurrentEpochProvider -
+func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
+	return pcs.CurrentEpochProviderInternal
 }
 
 // IsInterfaceNil -
