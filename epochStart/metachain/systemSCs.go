@@ -668,7 +668,7 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 	sw.Start("total")
 	defer func() {
 		sw.Stop("total")
-		log.Info("systemSCProcessor.updateMaxNodes", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.updateMaxNodes", sw.GetMeasurements()...)
 	}()
 
 	maxNumberOfNodes := s.maxNodes
@@ -1047,7 +1047,7 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Info("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
 	}()
 
 	sw.Start("getValidatorSystemAccount")
@@ -1243,7 +1243,7 @@ func (s *systemSCProcessor) cleanAdditionalQueue() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Info("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
+		log.Debug("systemSCProcessor.cleanAdditionalQueue time measurements", sw.GetMeasurements()...)
 	}()
 
 	vmInput := &vmcommon.ContractCallInput{
