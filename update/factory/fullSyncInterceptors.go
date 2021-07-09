@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/disabled"
 )
 
 var _ process.InterceptorsContainerFactory = (*fullSyncInterceptorsContainerFactory)(nil)
@@ -40,6 +41,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	whiteListHandler       update.WhiteListHandler
 	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
+	preferredPeersHolder   update.PreferredPeersHolderHandler
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -148,6 +150,8 @@ func NewFullSyncInterceptorsContainerFactory(
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
+		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
+		preferredPeersHolder: disabled.NewPreferredPeersHolder(),
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -510,14 +514,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -549,14 +554,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -588,14 +594,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-			DataFactory:      txFactory,
-			Processor:        txProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          txFactory,
+			Processor:            txProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -660,13 +667,14 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:            topic,
-			DataFactory:      txFactory,
-			Processor:        txBlockBodyProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			DataFactory:          txFactory,
+			Processor:            txBlockBodyProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -705,13 +713,14 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	//only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:            identifierHdr,
-			DataFactory:      hdrFactory,
-			Processor:        hdrProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                identifierHdr,
+			DataFactory:          hdrFactory,
+			Processor:            hdrProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {
@@ -739,14 +748,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:            topic,
-			Marshalizer:      ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-			DataFactory:      trieNodesFactory,
-			Processor:        trieNodesProcessor,
-			Throttler:        ficf.globalThrottler,
-			AntifloodHandler: ficf.antifloodHandler,
-			WhiteListRequest: ficf.whiteListHandler,
-			CurrentPeerId:    ficf.messenger.ID(),
+			Topic:                topic,
+			Marshalizer:          ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			DataFactory:          trieNodesFactory,
+			Processor:            trieNodesProcessor,
+			Throttler:            ficf.globalThrottler,
+			AntifloodHandler:     ficf.antifloodHandler,
+			WhiteListRequest:     ficf.whiteListHandler,
+			CurrentPeerId:        ficf.messenger.ID(),
+			PreferredPeersHolder: ficf.preferredPeersHolder,
 		},
 	)
 	if err != nil {

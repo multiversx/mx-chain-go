@@ -91,13 +91,14 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:            factory.MetachainBlocksTopic,
-			DataFactory:      interceptedMetaHdrDataFactory,
-			Processor:        args.MetaBlockProcessor,
-			Throttler:        disabled.NewThrottler(),
-			AntifloodHandler: disabled.NewAntiFloodHandler(),
-			WhiteListRequest: args.WhitelistHandler,
-			CurrentPeerId:    args.Messenger.ID(),
+			Topic:                factory.MetachainBlocksTopic,
+			DataFactory:          interceptedMetaHdrDataFactory,
+			Processor:            args.MetaBlockProcessor,
+			Throttler:            disabled.NewThrottler(),
+			AntifloodHandler:     disabled.NewAntiFloodHandler(),
+			WhiteListRequest:     args.WhitelistHandler,
+			CurrentPeerId:        args.Messenger.ID(),
+			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		},
 	)
 	if err != nil {

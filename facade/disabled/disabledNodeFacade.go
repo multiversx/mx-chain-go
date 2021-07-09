@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -24,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 var _ = address.FacadeHandler(&disabledNodeFacade{})
@@ -165,13 +165,18 @@ func (nf *disabledNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (nf *disabledNodeFacade) GetAccount(_ string) (state.UserAccountHandler, error) {
-	return nil, errNodeStarting
+func (nf *disabledNodeFacade) GetAccount(_ string) (api.AccountResponse, error) {
+	return api.AccountResponse{}, errNodeStarting
 }
 
 // GetCode returns nil and error
-func (nf *disabledNodeFacade) GetCode(_ state.UserAccountHandler) []byte {
+func (nf *disabledNodeFacade) GetCode(_ []byte) []byte {
 	return nil
+}
+
+// DirectTrigger returns error
+func (nf *disabledNodeFacade) DirectTrigger(_ uint32, _ bool) error {
+	return errNodeStarting
 }
 
 // GetHeartbeats returns nil and error

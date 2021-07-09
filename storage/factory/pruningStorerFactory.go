@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/clean"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -24,9 +25,11 @@ const (
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
 	generalConfig                 *config.Config
+	prefsConfig                   *config.PreferencesConfig
 	shardCoordinator              storage.ShardCoordinator
 	pathManager                   storage.PathManagerHandler
 	epochStartNotifier            storage.EpochStartNotifier
+	oldDataCleanerProvider        clean.OldDataCleanerProvider
 	createTrieEpochRootHashStorer bool
 	currentEpoch                  uint32
 }
@@ -34,17 +37,19 @@ type StorageServiceFactory struct {
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
 func NewStorageServiceFactory(
 	config *config.Config,
+	prefsConfig *config.PreferencesConfig,
 	shardCoordinator storage.ShardCoordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier storage.EpochStartNotifier,
+	nodeTypeProvider NodeTypeProviderHandler,
 	currentEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 ) (*StorageServiceFactory, error) {
 	if config == nil {
-		return nil, storage.ErrNilConfig
+		return nil, fmt.Errorf("%w for config.Config", storage.ErrNilConfig)
 	}
-	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && config.StoragePruning.CleanOldEpochsData {
-		return nil, storage.ErrInvalidNumberOfEpochsToSave
+	if prefsConfig == nil {
+		return nil, fmt.Errorf("%w for config.PreferencesConfig", storage.ErrNilConfig)
 	}
 	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
 		return nil, storage.ErrInvalidNumberOfActivePersisters
@@ -59,13 +64,26 @@ func NewStorageServiceFactory(
 		return nil, storage.ErrNilEpochStartNotifier
 	}
 
+	oldDataCleanProvider, err := clean.NewOldDataCleanerProvider(
+		nodeTypeProvider,
+		config.StoragePruning,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && oldDataCleanProvider.ShouldClean() {
+		return nil, storage.ErrInvalidNumberOfEpochsToSave
+	}
+
 	return &StorageServiceFactory{
 		generalConfig:                 config,
+		prefsConfig:                   prefsConfig,
 		shardCoordinator:              shardCoordinator,
 		pathManager:                   pathManager,
 		epochStartNotifier:            epochStartNotifier,
 		currentEpoch:                  currentEpoch,
 		createTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
+		oldDataCleanerProvider:        oldDataCleanProvider,
 	}, nil
 }
 
@@ -251,6 +269,11 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, scheduledSCRsUnit)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = psf.initOldDatabasesCleaningIfNeeded(store)
 	if err != nil {
 		return nil, err
 	}
@@ -442,6 +465,11 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
+	err = psf.initOldDatabasesCleaningIfNeeded(store)
+	if err != nil {
+		return nil, err
+	}
+
 	return store, err
 }
 
@@ -506,7 +534,6 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {
-	cleanOldEpochsData := psf.generalConfig.StoragePruning.CleanOldEpochsData
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
@@ -516,7 +543,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		Identifier:                storageConfig.DB.FilePath,
 		PruningEnabled:            pruningEnabled,
 		StartingEpoch:             psf.currentEpoch,
-		CleanOldEpochsData:        cleanOldEpochsData,
+		OldDataCleanerProvider:    psf.oldDataCleanerProvider,
 		ShardCoordinator:          psf.shardCoordinator,
 		CacheConf:                 GetCacherFromConfig(storageConfig.Cache),
 		PathManager:               psf.pathManager,
@@ -554,7 +581,7 @@ func (psf *StorageServiceFactory) createTrieEpochRootHashStorerIfNeeded() (stora
 }
 
 func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs) (storage.Storer, error) {
-	if !psf.generalConfig.StoragePruning.FullArchive {
+	if !psf.prefsConfig.FullArchive {
 		return pruning.NewPruningStorer(arg)
 	}
 
@@ -564,4 +591,19 @@ func (psf *StorageServiceFactory) createPruningPersister(arg *pruning.StorerArgs
 	}
 
 	return pruning.NewFullHistoryPruningStorer(historyArgs)
+}
+
+func (psf *StorageServiceFactory) initOldDatabasesCleaningIfNeeded(store dataRetriever.StorageService) error {
+	isFullArchive := psf.prefsConfig.FullArchive
+	if isFullArchive {
+		return nil
+	}
+	_, err := clean.NewOldDatabaseCleaner(clean.ArgsOldDatabaseCleaner{
+		DatabasePath:           psf.pathManager.DatabasePath(),
+		StorageListProvider:    store,
+		EpochStartNotifier:     psf.epochStartNotifier,
+		OldDataCleanerProvider: psf.oldDataCleanerProvider,
+	})
+
+	return err
 }

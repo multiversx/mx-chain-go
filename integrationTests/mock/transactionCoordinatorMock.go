@@ -36,6 +36,11 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                 func() map[block.Type]map[string]data.TransactionHandler
 }
 
+// GetAllCurrentLogs -
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() map[string]data.LogHandler {
+	return nil
+}
+
 // CreatePostProcessMiniBlocks -
 func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
 	if tcm.CreatePostProcessMiniBlocksCalled != nil {

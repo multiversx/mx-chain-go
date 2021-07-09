@@ -15,11 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/denisbrodbeck/machineid"
 	"github.com/urfave/cli"
 )
 
-const maxMachineIDLen = 10
 const hostPlaceholder = "%host"
 const timestampPlaceholder = "%time"
 
@@ -56,14 +54,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node Assessment Tool"
-	machineID, err := machineid.ProtectedID(app.Name)
-	if err != nil {
-		log.Warn("error fetching machine id", "error", err)
-		machineID = "unknown"
-	}
-	if len(machineID) > maxMachineIDLen {
-		machineID = machineID[:maxMachineIDLen]
-	}
+	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("assessment-%s/%s-%s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This tool is used to measure the host's performance on some certain tasks used by an elrond node. It " +
@@ -82,7 +73,7 @@ func main() {
 		return startAssessment(c, app.Version, machineID)
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)

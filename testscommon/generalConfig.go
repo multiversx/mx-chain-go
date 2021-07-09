@@ -59,10 +59,11 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			CleanOldEpochsData:  false,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
+			Enabled:                     false,
+			ValidatorCleanOldEpochsData: false,
+			ObserverCleanOldEpochsData:  false,
+			NumEpochsToKeep:             3,
+			NumActivePersisters:         3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			Size: 100,
@@ -136,8 +137,20 @@ func GetGeneralConfig() config.Config {
 		},
 		TxBlockBodyDataPool:   getLRUCacheConfig(),
 		PeerBlockBodyDataPool: getLRUCacheConfig(),
-		TrieNodesDataPool:     getLRUCacheConfig(),
-		SmartContractDataPool: getLRUCacheConfig(),
+		TrieSyncStorage: config.TrieSyncStorageConfig{
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("TrieSync"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      1000,
+				MaxOpenFiles:      10,
+				UseTmpAsFilePath:  true,
+			},
+			Capacity:    10,
+			SizeInBytes: 10000,
+		},
+		TrieNodesChunksDataPool: getLRUCacheConfig(),
+		SmartContractDataPool:   getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -329,6 +342,26 @@ func GetGeneralConfig() config.Config {
 			NumCrossShardPeers:  2,
 			NumIntraShardPeers:  1,
 			NumFullHistoryPeers: 3,
+		},
+		VirtualMachine: config.VirtualMachineServicesConfig{
+			Execution: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
+			Querying: config.QueryVirtualMachineConfig{
+				NumConcurrentVMs: 1,
+				VirtualMachineConfig: config.VirtualMachineConfig{
+					ArwenVersions: []config.ArwenVersionByEpoch{
+						{StartEpoch: 0, Version: "*"},
+					},
+				},
+			},
+		},
+		VMOutputCacher: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10000,
+			Name:     "VMOutputCacher",
 		},
 	}
 }

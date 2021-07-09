@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -24,8 +24,7 @@ type Facade struct {
 	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
-	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
-	GetCodeCalled              func(state.AccountHandler) []byte
+	GetAccountHandler          func(address string) (api.AccountResponse, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -203,18 +202,9 @@ func (f *Facade) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	return make([]string, 0), nil
 }
 
-// GetAccount is the mock implementation of a handler's GetAccount method
-func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
+// GetAccount -
+func (f *Facade) GetAccount(address string) (api.AccountResponse, error) {
 	return f.GetAccountHandler(address)
-}
-
-// GetCode -
-func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
-	if f.GetCodeCalled != nil {
-		f.GetCodeCalled(account)
-	}
-
-	return nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

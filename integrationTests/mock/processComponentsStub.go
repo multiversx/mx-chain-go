@@ -13,35 +13,36 @@ import (
 
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
-	NodesCoord                           sharding.NodesCoordinator
-	ShardCoord                           sharding.Coordinator
-	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
-	RoundHandlerField                    consensus.RoundHandler
-	EpochTrigger                         epochStart.TriggerHandler
-	EpochNotifier                        factory.EpochStartNotifier
-	ForkDetect                           process.ForkDetector
-	BlockProcess                         process.BlockProcessor
-	BlackListHdl                         process.TimeCacher
-	BootSore                             process.BootStorer
-	HeaderSigVerif                       process.InterceptedHeaderSigVerifier
-	HeaderIntegrVerif                    process.HeaderIntegrityVerifier
-	ValidatorStatistics                  process.ValidatorStatisticsProcessor
-	ValidatorProvider                    process.ValidatorsProvider
-	BlockTrack                           process.BlockTracker
-	PendingMiniBlocksHdl                 process.PendingMiniBlocksHandler
-	ReqHandler                           process.RequestHandler
-	TxLogsProcess                        process.TransactionLogProcessorDatabase
-	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
-	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
-	FallbackHdrValidator                 process.FallbackHeaderValidator
-	WhiteListHandlerInternal             process.WhiteListHandler
-	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
-	HistoryRepositoryInternal            dblookupext.HistoryRepository
-	ImportStartHandlerInternal           update.ImportStartHandler
-	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
-	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
+	NodesCoord                     sharding.NodesCoordinator
+	ShardCoord                     sharding.Coordinator
+	IntContainer                   process.InterceptorsContainer
+	ResFinder                      dataRetriever.ResolversFinder
+	RoundHandlerField              consensus.RoundHandler
+	EpochTrigger                   epochStart.TriggerHandler
+	EpochNotifier                  factory.EpochStartNotifier
+	ForkDetect                     process.ForkDetector
+	BlockProcess                   process.BlockProcessor
+	BlackListHdl                   process.TimeCacher
+	BootSore                       process.BootStorer
+	HeaderSigVerif                 process.InterceptedHeaderSigVerifier
+	HeaderIntegrVerif              process.HeaderIntegrityVerifier
+	ValidatorStatistics            process.ValidatorStatisticsProcessor
+	ValidatorProvider              process.ValidatorsProvider
+	BlockTrack                     process.BlockTracker
+	PendingMiniBlocksHdl           process.PendingMiniBlocksHandler
+	ReqHandler                     process.RequestHandler
+	TxLogsProcess                  process.TransactionLogProcessorDatabase
+	HeaderConstructValidator       process.HeaderConstructionValidator
+	PeerMapper                     process.NetworkShardingCollector
+	TxSimulatorProcessor           factory.TransactionSimulatorProcessor
+	FallbackHdrValidator           process.FallbackHeaderValidator
+	WhiteListHandlerInternal       process.WhiteListHandler
+	WhiteListerVerifiedTxsInternal process.WhiteListHandler
+	HistoryRepositoryInternal      dblookupext.HistoryRepository
+	ImportStartHandlerInternal     update.ImportStartHandler
+	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
+	NodeRedundancyHandlerInternal  consensus.NodeRedundancyHandler
+	ArwenChangeLockerInternal      process.Locker
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 }
 
@@ -203,6 +204,11 @@ func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.Requeste
 // NodeRedundancyHandler -
 func (pcs *ProcessComponentsStub) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
 	return pcs.NodeRedundancyHandlerInternal
+}
+
+// ArwenChangeLocker -
+func (pcs *ProcessComponentsStub) ArwenChangeLocker() process.Locker {
+	return pcs.ArwenChangeLockerInternal
 }
 
 // ScheduledTxsExecutionHandler -

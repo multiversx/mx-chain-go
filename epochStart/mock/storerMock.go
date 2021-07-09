@@ -91,6 +91,11 @@ func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 
+// GetOldestEpoch -
+func (sm *StorerMock) GetOldestEpoch() (uint32, error) {
+	return 0, nil
+}
+
 // Close -
 func (sm *StorerMock) Close() error {
 	return nil

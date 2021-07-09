@@ -6,14 +6,14 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	stats "github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewResourceMonitor_NilConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor, err := stats.NewResourceMonitor(nil, &mock.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(nil, &testscommon.PathManagerStub{}, "")
 
 	assert.Equal(t, stats.ErrNilConfig, err)
 	assert.Nil(t, resourceMonitor)
@@ -34,7 +34,7 @@ func TestNewResourceMonitor_NilPathManagerShouldErr(t *testing.T) {
 func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
 
 	assert.Nil(t, err)
 	assert.NotNil(t, resourceMonitor)
@@ -43,7 +43,7 @@ func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
 
 	assert.Nil(t, err)
 	statistics := resourceMonitor.GenerateStatistics()
@@ -61,7 +61,7 @@ func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	resourceMonitor, err := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &testscommon.PathManagerStub{}, "")
 
 	assert.Nil(t, err)
 	resourceMonitor.SaveStatistics()

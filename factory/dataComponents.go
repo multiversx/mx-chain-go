@@ -19,6 +19,7 @@ import (
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
 	Config                        config.Config
+	PrefsConfig                   config.PreferencesConfig
 	ShardCoordinator              sharding.Coordinator
 	Core                          CoreComponentsHolder
 	EpochStartNotifier            EpochStartNotifier
@@ -28,6 +29,7 @@ type DataComponentsFactoryArgs struct {
 
 type dataComponentsFactory struct {
 	config                        config.Config
+	prefsConfig                   config.PreferencesConfig
 	shardCoordinator              sharding.Coordinator
 	core                          CoreComponentsHolder
 	epochStartNotifier            EpochStartNotifier
@@ -63,6 +65,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
+		prefsConfig:                   args.PrefsConfig,
 		shardCoordinator:              args.ShardCoordinator,
 		core:                          args.Core,
 		epochStartNotifier:            args.EpochStartNotifier,
@@ -88,6 +91,8 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		Config:           &dcf.config,
 		EconomicsData:    dcf.core.EconomicsData(),
 		ShardCoordinator: dcf.shardCoordinator,
+		Marshalizer:      dcf.core.InternalMarshalizer(),
+		PathManager:      dcf.core.PathHandler(),
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {
@@ -134,9 +139,11 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := factory.NewStorageServiceFactory(
 		&dcf.config,
+		&dcf.prefsConfig,
 		dcf.shardCoordinator,
 		dcf.core.PathHandler(),
 		dcf.epochStartNotifier,
+		dcf.core.NodeTypeProvider(),
 		dcf.currentEpoch,
 		dcf.createTrieEpochRootHashStorer,
 	)
@@ -156,7 +163,18 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 func (cc *dataComponents) Close() error {
 	if cc.store != nil {
 		log.Debug("closing all store units....")
-		return cc.store.CloseAll()
+		err := cc.store.CloseAll()
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(cc.datapool) && !check.IfNil(cc.datapool.TrieNodes()) {
+		log.Debug("closing trie nodes data pool....")
+		err := cc.datapool.TrieNodes().Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

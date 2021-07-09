@@ -80,6 +80,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
+	prefsConfig                config.PreferencesConfig
 	economicsData              process.EconomicsDataHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -141,6 +142,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
+	PrefsConfig                config.PreferencesConfig
 	EpochConfig                config.EpochConfig
 	EconomicsData              process.EconomicsDataHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
@@ -167,6 +169,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
+		prefsConfig:                args.PrefsConfig,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
@@ -310,6 +313,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Config:           &e.generalConfig,
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
+			Marshalizer:      e.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:      e.coreComponentsHolder.PathHandler(),
 		},
 	)
 	if err != nil {
@@ -337,6 +342,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	defer func() {
+		errClose := e.interceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+		}
+	}()
 
 	params, err = e.requestAndProcessing()
 	if err != nil {
@@ -501,6 +513,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
 		EpochNotifier:             e.epochNotifier,
+		RequestHandler:            e.requestHandler,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -668,6 +681,9 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		PubKey:                    pubKey,
 		ShardIdAsObserver:         shardId,
 		WaitingListFixEnableEpoch: e.waitingListFixEnableEpoch,
+		ChanNodeStop:              e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:          e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:             e.prefsConfig.FullArchive,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
@@ -684,8 +700,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
 
-	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
-	err = e.syncPeerAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
 	if err != nil {
 		return err
 	}
@@ -706,12 +722,14 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
 		e.generalConfig,
+		e.prefsConfig,
 		e.shardCoordinator,
 		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.epochStartMeta.GetEpoch(),
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err
@@ -806,12 +824,14 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
+		e.prefsConfig,
 		e.shardCoordinator,
 		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.baseData.lastEpoch,
 		e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		e.coreComponentsHolder.NodeTypeProvider(),
 	)
 	if err != nil {
 		return err
@@ -868,7 +888,6 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
 		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   e.coreComponentsHolder.Hasher(),
@@ -925,7 +944,7 @@ func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
 	}
 }
 
-func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
+func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error {
 	e.mutTrieStorageManagers.RLock()
 	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
 	e.mutTrieStorageManagers.RUnlock()
@@ -978,6 +997,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		InputAntifloodHandler:       disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:      disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
+		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		ResolverConfig:              e.generalConfig.Resolvers,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
@@ -1041,6 +1061,12 @@ func (e *epochStartBootstrap) Close() error {
 			err := tsm.Close()
 			log.LogIfError(err)
 		}
+	}
+
+	if !check.IfNil(e.dataPool) && !check.IfNil(e.dataPool.TrieNodes()) {
+		log.Debug("closing trie nodes data pool....")
+		err := e.dataPool.TrieNodes().Close()
+		log.LogIfError(err)
 	}
 
 	return nil

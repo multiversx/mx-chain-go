@@ -39,7 +39,12 @@
    Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = false
+   # Applicable only for validators
+   ValidatorCleanOldEpochsData = true
+
+   # If this flag is set to false, the node won't delete any database between epochs
+   # Applicable only for observers
+   ObserverCleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -49,10 +54,6 @@
    # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
    # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
-
-   # FullArchive, if enabled, will make the node able to respond to requests from past, old epochs.
-   # It is highly recommended to enable this flag on an observer (not on a validator node)
-   FullArchive = false
 
    # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
    # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
@@ -313,6 +314,7 @@
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 3
     KeepSnapshots = false
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -358,9 +360,9 @@
     Type = "TxCache"
     Shards = 16
 
-[TrieNodesDataPool]
+[TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
-    Capacity = 300000
+    Capacity = 400
     Type = "SizeLRU"
     SizeInBytes = 104857600 #100MB
 
@@ -368,7 +370,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 209715200 #200MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -423,6 +425,22 @@
     Name = "PeerHonesty"
     Capacity = 5000
     Type = "LRU"
+
+[VMOutputCacher]
+    Name = "VMOutputCacher"
+    Capacity = 10000
+    Type = "LRU"
+
+[TrieSyncStorage]
+    Capacity = 300000
+    SizeInBytes = 104857600 #100MB
+    [TrieSyncStorage.DB]
+        FilePath = "TrieSyncStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [Antiflood]
     Enabled = true
@@ -617,32 +635,32 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = false
-        [VirtualMachine.Execution.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 1000
+        ArwenVersions = [
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.3" },
+        ]
+
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
-        [VirtualMachine.Querying.OutOfProcessConfig]
-            LogsMarshalizer = "json"
-            MessagesMarshalizer = "json"
-            MaxLoopTime = 10000
+        ArwenVersions = [
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 1, Version = "v1.3" },
+        ]
 
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
-	CloseAfterExportInMinutes = 10000
-	AfterHardFork = false
-	ImportFolder = "export"
-	StartRound = 10000
-	StartNonce = 10000
-	StartEpoch = 100
-	GenesisTime = 0
-	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
-	[Hardfork.ExportStateStorageConfig]
-	    [Hardfork.ExportStateStorageConfig.Cache]
+    CloseAfterExportInMinutes = 10000
+    AfterHardFork = false
+    ImportFolder = "export"
+    StartRound = 10000
+    StartNonce = 10000
+    StartEpoch = 100
+    GenesisTime = 0
+    ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
+    [Hardfork.ExportStateStorageConfig]
+        [Hardfork.ExportStateStorageConfig.Cache]
             Name = "HardFork.ExportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -674,8 +692,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportStateStorageConfig]
-	    [Hardfork.ImportStateStorageConfig.Cache]
+    [Hardfork.ImportStateStorageConfig]
+        [Hardfork.ImportStateStorageConfig.Cache]
             Name = "HardFork.ImportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -685,8 +703,8 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[Hardfork.ImportKeysStorageConfig]
-	    [Hardfork.ImportKeysStorageConfig.Cache]
+    [Hardfork.ImportKeysStorageConfig]
+        [Hardfork.ImportKeysStorageConfig.Cache]
             Name = "HardFork.ImportKeysStorageConfig"
             Capacity = 5000
             Type = "LRU"
@@ -701,7 +719,7 @@
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3

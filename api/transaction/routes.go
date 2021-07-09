@@ -78,7 +78,7 @@ type SendTxRequest struct {
 	Options          uint32 `json:"options,omitempty"`
 }
 
-//TxResponse represents the structure on which the response will be validated against
+// TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
 	SendTxRequest
 	ShardID     uint32 `json:"shardId"`

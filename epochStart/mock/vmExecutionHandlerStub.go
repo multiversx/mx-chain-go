@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // VMExecutionHandlerStub -
@@ -11,6 +11,15 @@ type VMExecutionHandlerStub struct {
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
+	GetVersionCalled             func() string
+}
+
+// GetVersion -
+func (vm *VMExecutionHandlerStub) GetVersion() string {
+	if vm.GetVersionCalled != nil {
+		return vm.GetVersionCalled()
+	}
+	return ""
 }
 
 // GasScheduleChange -
@@ -44,7 +53,7 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	return vm.RunSmartContractCallCalled(input)
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if there is no value under the interface
 func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
 	return vm == nil
 }

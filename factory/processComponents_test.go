@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,10 +24,13 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
-	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
-	pc, _ := pcf.Create()
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
 
-	err := pc.Close()
+	pc, err := pcf.Create()
+	require.Nil(t, err)
+
+	err = pc.Close()
 	require.NoError(t, err)
 }
 
@@ -158,11 +162,20 @@ func getProcessArgs(
 				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "2500000000000000000000",
@@ -188,7 +201,7 @@ func getProcessArgs(
 			},
 		},
 		Version:     "v1.0.0",
-		HistoryRepo: &testscommon.HistoryRepositoryStub{},
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 	}
 }
 

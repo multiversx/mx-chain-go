@@ -1,7 +1,6 @@
 package genesis
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -268,8 +267,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	ctx := context.Background()
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
+	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return err
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -314,7 +315,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 	}
 
-	trie := &mock.TrieStub{
+	trie := &testscommon.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return []byte{}, nil
 		},

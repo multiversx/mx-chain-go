@@ -38,6 +38,13 @@ type TimersScheduler interface {
 	IsInterfaceNil() bool
 }
 
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType NodeType)
+	GetType() NodeType
+	IsInterfaceNil() bool
+}
+
 // WatchdogTimer is used to set alarms for different components
 type WatchdogTimer interface {
 	Set(callback func(alarmID string), duration time.Duration, alarmID string)
@@ -99,4 +106,12 @@ type GasScheduleNotifier interface {
 // Queue is an interface for queue implementations that evict the first element when the queue is full
 type Queue interface {
 	Add(hash []byte) []byte
+}
+
+// SafeCloser represents a subcomponent used for signaling a closing event. Its Close method is considered to be
+// concurrent safe
+type SafeCloser interface {
+	Close()
+	ChanClose() <-chan struct{}
+	IsInterfaceNil() bool
 }

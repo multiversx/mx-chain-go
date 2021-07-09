@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"math"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -36,29 +37,35 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 
 	base := &baseBootstrap{
-		chainHandler:                 arguments.ChainHandler,
-		blockProcessor:               arguments.BlockProcessor,
-		store:                        arguments.Store,
-		headers:                      arguments.PoolsHolder.Headers(),
-		roundHandler:                 arguments.RoundHandler,
-		waitTime:                     arguments.WaitTime,
-		hasher:                       arguments.Hasher,
-		marshalizer:                  arguments.Marshalizer,
-		forkDetector:                 arguments.ForkDetector,
-		requestHandler:               arguments.RequestHandler,
-		shardCoordinator:             arguments.ShardCoordinator,
-		accounts:                     arguments.Accounts,
-		blackListHandler:             arguments.BlackListHandler,
-		networkWatcher:               arguments.NetworkWatcher,
-		bootStorer:                   arguments.BootStorer,
-		storageBootstrapper:          arguments.StorageBootstrapper,
-		epochHandler:                 arguments.EpochHandler,
-		miniBlocksProvider:           arguments.MiniblocksProvider,
-		uint64Converter:              arguments.Uint64Converter,
-		poolsHolder:                  arguments.PoolsHolder,
-		statusHandler:                arguments.AppStatusHandler,
-		indexer:                      arguments.Indexer,
+		chainHandler:        arguments.ChainHandler,
+		blockProcessor:      arguments.BlockProcessor,
+		store:               arguments.Store,
+		headers:             arguments.PoolsHolder.Headers(),
+		roundHandler:        arguments.RoundHandler,
+		waitTime:            arguments.WaitTime,
+		hasher:              arguments.Hasher,
+		marshalizer:         arguments.Marshalizer,
+		forkDetector:        arguments.ForkDetector,
+		requestHandler:      arguments.RequestHandler,
+		shardCoordinator:    arguments.ShardCoordinator,
+		accounts:            arguments.Accounts,
+		blackListHandler:    arguments.BlackListHandler,
+		networkWatcher:      arguments.NetworkWatcher,
+		bootStorer:          arguments.BootStorer,
+		storageBootstrapper: arguments.StorageBootstrapper,
+		epochHandler:        arguments.EpochHandler,
+		miniBlocksProvider:  arguments.MiniblocksProvider,
+		uint64Converter:     arguments.Uint64Converter,
+		poolsHolder:         arguments.PoolsHolder,
+		statusHandler:       arguments.AppStatusHandler,
+		indexer:             arguments.Indexer,
+		accountsDBSyncer:    arguments.AccountsDBSyncer,
+		isInImportMode:      arguments.IsInImportMode,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
+	}
+
+	if base.isInImportMode {
+		log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
 	boot := ShardBootstrap{
@@ -128,7 +135,16 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // These methods will execute the block and its transactions. Finally if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock() error {
-	return boot.syncBlock()
+	err := boot.syncBlock()
+	isErrGetNodeFromDB := err != nil && strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
+	if isErrGetNodeFromDB {
+		errSync := boot.syncUserAccountsState()
+		if errSync != nil {
+			log.Debug("SyncBlock syncTrie", "error", errSync)
+		}
+	}
+
+	return err
 }
 
 // Close closes the synchronization loop

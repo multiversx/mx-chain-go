@@ -19,10 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	chainData "github.com/ElrondNetwork/elrond-go/data"
 	apiData "github.com/ElrondNetwork/elrond-go/data/api"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -31,6 +29,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -284,15 +284,17 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
-// GetAccount returns an accountResponse containing information
-// about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
-	return nf.node.GetAccount(address)
-}
+// GetAccount returns a response containing information about the account correlated with provided address
+func (nf *nodeFacade) GetAccount(address string) (apiData.AccountResponse, error) {
+	accountResponse, err := nf.node.GetAccount(address)
+	if err != nil {
+		return apiData.AccountResponse{}, err
+	}
 
-// GetCode returns the code for the given account
-func (nf *nodeFacade) GetCode(account state.UserAccountHandler) []byte {
-	return nf.node.GetCode(account)
+	codeHash := accountResponse.CodeHash
+	code := nf.node.GetCode(codeHash)
+	accountResponse.Code = hex.EncodeToString(code)
+	return accountResponse, nil
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

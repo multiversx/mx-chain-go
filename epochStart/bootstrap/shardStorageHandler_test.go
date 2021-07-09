@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,13 +22,15 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 	}()
 
 	gCfg := testscommon.GetGeneralConfig()
+	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
+	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
-	shardStrHandler, err := NewShardStorageHandler(gCfg, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt)
+	shardStrHandler, err := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 	assert.False(t, check.IfNil(shardStrHandler))
 	assert.Nil(t, err)
 }
@@ -37,13 +41,15 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 	}()
 
 	gCfg := testscommon.GetGeneralConfig()
+	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
+	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
-	shardStrHandler, _ := NewShardStorageHandler(gCfg, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt)
+	shardStrHandler, _ := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Epoch: 1},
@@ -61,13 +67,15 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 	}()
 
 	gCfg := testscommon.GetGeneralConfig()
+	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
+	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
-	shardStrHandler, _ := NewShardStorageHandler(gCfg, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt)
+	shardStrHandler, _ := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{
@@ -92,13 +100,15 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	}()
 
 	gCfg := testscommon.GetGeneralConfig()
+	prefsConfig := config.PreferencesConfig{}
 	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &mock.PathManagerStub{}
+	pathManager := &testscommon.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
+	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 
-	shardStrHandler, _ := NewShardStorageHandler(gCfg, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt)
+	shardStrHandler, _ := NewShardStorageHandler(gCfg, prefsConfig, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt, nodeTypeProvider)
 
 	hash1 := []byte("hash1")
 	hdr1 := block.MetaBlock{

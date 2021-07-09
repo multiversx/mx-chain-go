@@ -6,19 +6,20 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor {
 	return ArgsPendingTransactionProcessor{
-		Accounts:         &mock.AccountsStub{},
-		TxProcessor:      &mock.TxProcessorMock{},
-		RwdTxProcessor:   &mock.RewardTxProcessorMock{},
-		ScrTxProcessor:   &mock.SCProcessorMock{},
+		Accounts:         &testscommon.AccountsStub{},
+		TxProcessor:      &testscommon.TxProcessorMock{},
+		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
+		ScrTxProcessor:   &testscommon.SCProcessorMock{},
 		PubKeyConv:       &mock.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
@@ -55,7 +56,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	_ = shardCoordinator.SetSelfId(1)
 	args.ShardCoordinator = shardCoordinator
 
-	args.TxProcessor = &mock.TxProcessorMock{
+	args.TxProcessor = &testscommon.TxProcessorMock{
 		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			if bytes.Equal(transaction.SndAddr, addr4) {
 				return 0, errors.New("localErr")
@@ -65,7 +66,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	}
 
 	called := false
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			called = true
 			return nil, nil
@@ -108,7 +109,7 @@ func TestRootHash(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	args := createMockArgsPendingTransactionProcessor()
-	args.Accounts = &mock.AccountsStub{
+	args.Accounts = &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
