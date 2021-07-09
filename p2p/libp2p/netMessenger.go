@@ -1183,14 +1183,14 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			}
 		case core.ObserverPeer:
 			connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
-			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
-				connPeerInfo.NumCrossShardObservers++
-				break
-			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
 				connPeerInfo.NumFullHistoryObservers++
+				break
+			}
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardObservers++
 				break
 			}
 
