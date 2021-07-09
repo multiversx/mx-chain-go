@@ -859,6 +859,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		if len(newSCRTxs) > 0 {
 			scrResults = append(scrResults, newSCRTxs...)
 		}
+
+		mergeVMOutputLogs(newVMOutput, vmOutput)
 	}
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
@@ -885,8 +887,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 			scrResults = append(scrResults, scrForRelayer)
 		}
 	}
-
-	mergeVMOutputLogs(newVMOutput, vmOutput)
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
