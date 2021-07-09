@@ -29,6 +29,8 @@ github.com/ElrondNetwork/arwen-wasm-vm v1.2.24-0.20210625151658-9d052957d105 h1:
 github.com/ElrondNetwork/arwen-wasm-vm v1.2.24-0.20210625151658-9d052957d105/go.mod h1:eic6T0rZK5zR2ZOsbsxMPaXBV8GJpG6FfpgNzr81Fqg=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210707101801-4f643c5e630b h1:mVgKatDJ+szpanDjlXURBsqYQs5xkyIO3pKYADNkYe4=
 github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210707101801-4f643c5e630b/go.mod h1:JEmB2IcgZ1cxWYQJ4PVfIqYhPSuI504kdiSK9+bY4Z8=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210709090429-e03405ee6e0b h1:gfYib9wLSI/Zg8XDjlRGWgo/LhCux2c406o1KHPEclo=
+github.com/ElrondNetwork/arwen-wasm-vm v1.3.20-0.20210709090429-e03405ee6e0b/go.mod h1:3XzZd7XRHqCX1Vuu+Qpi5HFfcJt4S8DY9QJclE0BaL0=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -77,6 +79,8 @@ github.com/ElrondNetwork/elrond-vm-common v0.3.4-0.20210625102705-01a81e6a1fa4/g
 github.com/ElrondNetwork/elrond-vm-common v0.3.4-0.20210625150635-525789454b6f/go.mod h1:7hBvPplhnrputKHXcrO0oZEdws87Exatc3PMt3XAL/k=
 github.com/ElrondNetwork/elrond-vm-common v0.3.4-0.20210707100510-6cef7cea933f h1:972J5HdUMwSCgOrBBh1guafiAAIaUCfblvfCT3I5NRU=
 github.com/ElrondNetwork/elrond-vm-common v0.3.4-0.20210707100510-6cef7cea933f/go.mod h1:7hBvPplhnrputKHXcrO0oZEdws87Exatc3PMt3XAL/k=
+github.com/ElrondNetwork/elrond-vm-common v1.0.0 h1:tE9+AFxy6yZSDF0OGjhAuU919UFZrtxN2BZJ8/rAlBk=
+github.com/ElrondNetwork/elrond-vm-common v1.0.0/go.mod h1:7hBvPplhnrputKHXcrO0oZEdws87Exatc3PMt3XAL/k=
 github.com/ElrondNetwork/elrond-vm-util v0.3.5/go.mod h1:+ecDJZLTwN/yeRXXEqd+sa9WoalLsT4nFtQWCo0YKWA=
 github.com/ElrondNetwork/elrond-vm-util v0.4.5/go.mod h1:YqFO7HkKfBnVQesisZuJ/Qce0/oTOnqx562iZCb8El0=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
