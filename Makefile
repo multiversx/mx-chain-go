@@ -85,9 +85,9 @@ endif
 	# go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
 
 	# When referencing a released version, use this instead:
-	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //' | head -n 1)
+	go get github.com/ElrondNetwork/arwen-wasm-vm@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //' | head -n 1)
 
-	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
+	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/v1_2/cmd/arwen
 	stat ${ARWEN_PATH}
 
 cli-docs:
