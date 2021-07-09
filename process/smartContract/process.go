@@ -895,6 +895,7 @@ func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutp
 	if len(vmOutput.Logs) == 0 {
 		return
 	}
+
 	if newVMOutput.Logs == nil {
 		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
 	}
