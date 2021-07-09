@@ -107,9 +107,27 @@ func startAssessment(c *cli.Context, version string, machineID string) error {
 	log.Info("Host's anonymized info:\n" + hostInfo.ToDisplayTable())
 	log.Info("Host's performance info:\n" + benchmarkResult.ToDisplayTable())
 
+	printFinalResult(benchmarkResult)
+
 	err = saveToFile(hostInfo, benchmarkResult, outputFileName)
 
 	return err
+}
+
+func printFinalResult(results *benchmarks.TestResults) {
+	if results.Error != nil {
+		log.Error("The Node Under Test (NUT) performance can not be determined due to encountered errors")
+		return
+	}
+
+	if results.EnoughComputingPower {
+		log.Info("The Node Under Test (NUT) has enough computing power")
+		return
+	}
+
+	log.Error("The Node Under Test (NUT) does not have enough computing power",
+		"maximum accepted", benchmarks.ThresholdEnoughComputingPower,
+		"obtained", results.TotalDuration)
 }
 
 func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, outputFileName string) error {
