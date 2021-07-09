@@ -30,12 +30,15 @@ func (ldp *fullHistoryLatestDataProvider) Get() (storage.LatestDataFromStorage, 
 		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
 		if errGetDir != nil {
 			err = errGetDir
+			continue
 		}
 
 		latestDataFromStorage, errGetEpoch := ldp.getLastEpochAndRoundFromStorage(parentDir, lastEpoch)
-		if errGetEpoch == nil {
-			return latestDataFromStorage, nil
+		if errGetEpoch != nil {
+			err = errGetEpoch
+			continue
 		}
+		return latestDataFromStorage, nil
 	}
 
 	return storage.LatestDataFromStorage{}, err
@@ -51,6 +54,7 @@ func (ldp *fullHistoryLatestDataProvider) GetParentDirAndLastEpoch() (string, ui
 	for index := range epochDirs {
 		parentDir, lastEpoch, errGetDir := ldp.getParentDirAndLastEpochWithIndex(index)
 		if errGetDir != nil {
+			err = errGetDir
 			continue
 		}
 
