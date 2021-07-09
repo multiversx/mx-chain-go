@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -29,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/update/storing"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -325,7 +325,6 @@ func (gbc *genesisBlockCreator) createHeaders(
 	var nodesListSplitter genesis.NodesListSplitter
 	var err error
 
-
 	nodesListSplitter, err = intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
 		return err
@@ -405,7 +404,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		return nil
 	}
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           gbc.arg.Accounts,
 		PubkeyConv:         gbc.arg.Core.AddressPubKeyConverter(),

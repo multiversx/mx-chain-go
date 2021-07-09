@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func createMockArgumentsWithTx(
 ) baseAPIBockProcessor {
 	storerMock := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) (map[string][]byte, error) {
 					return map[string][]byte{txHash: txBytes}, nil
 				},
@@ -39,7 +40,7 @@ func createMockArgumentsWithTx(
 		selfShardID: srcShardID,
 		marshalizer: marshalizer,
 		store:       storerMock,
-		historyRepo: &testscommon.HistoryRepositoryStub{
+		historyRepo: &dblookupext.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},

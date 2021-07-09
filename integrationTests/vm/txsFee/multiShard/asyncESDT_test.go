@@ -1,3 +1,7 @@
+// +build !race
+
+// TODO remove build condition above to allow -race -short, after Arwen fix
+
 package multiShard
 
 import (
@@ -5,10 +9,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -95,7 +99,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(190300)
+	expectedAccumulatedFees = big.NewInt(190290)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
 	developerFees := big.NewInt(19029)
@@ -129,7 +133,7 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[1], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(4936630), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4936620), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
@@ -215,7 +219,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(190300)
+	expectedAccumulatedFees = big.NewInt(190290)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
 	developerFees := big.NewInt(19029)
@@ -249,5 +253,5 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(1278690), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(1278680), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }

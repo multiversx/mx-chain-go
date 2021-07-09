@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -130,7 +131,7 @@ func TestHardforkStorer_Get(t *testing.T) {
 	arg := createDefaultArg()
 	providedKey := []byte("key")
 	identifier := "identifier"
-	arg.KeyValue = &mock.StorerStub{
+	arg.KeyValue = &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if bytes.Equal(key, append([]byte(identifier), providedKey...)) {
 				getCalled++
@@ -155,13 +156,13 @@ func TestHardforkStorer_CloseKeysCloseErrors(t *testing.T) {
 	errExpected := errors.New("error keys store")
 	numCloseCalled := 0
 	arg := createDefaultArg()
-	arg.KeyValue = &mock.StorerStub{
+	arg.KeyValue = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return errExpected
 		},
 	}
-	arg.KeysStore = &mock.StorerStub{
+	arg.KeysStore = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return nil
@@ -180,13 +181,13 @@ func TestHardforkStorer_CloseKeyValueCloseErrors(t *testing.T) {
 	errExpected := errors.New("error keys store")
 	numCloseCalled := 0
 	arg := createDefaultArg()
-	arg.KeyValue = &mock.StorerStub{
+	arg.KeyValue = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return nil
 		},
 	}
-	arg.KeysStore = &mock.StorerStub{
+	arg.KeysStore = &testscommon.StorerStub{
 		CloseCalled: func() error {
 			numCloseCalled++
 			return errExpected
@@ -204,7 +205,7 @@ func TestHardforkStorer_RangeKeysNilHandlerShouldWork(t *testing.T) {
 
 	arg := createDefaultArg()
 	rangeKeysCalled := false
-	arg.KeysStore = &mock.StorerStub{
+	arg.KeysStore = &testscommon.StorerStub{
 		RangeKeysCalled: func(_ func(key []byte, val []byte) bool) {
 			rangeKeysCalled = true
 		},

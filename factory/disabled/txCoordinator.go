@@ -118,6 +118,11 @@ func (txCoordinator *TxCoordinator) GetAllIntermediateTxs() map[block.Type]map[s
 	return make(map[block.Type]map[string]data.TransactionHandler)
 }
 
+// GetAllCurrentLogs returns empty logs map
+func (txCoordinator *TxCoordinator) GetAllCurrentLogs() map[string]data.LogHandler {
+	return make(map[string]data.LogHandler)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txCoordinator *TxCoordinator) IsInterfaceNil() bool {
 	return txCoordinator == nil

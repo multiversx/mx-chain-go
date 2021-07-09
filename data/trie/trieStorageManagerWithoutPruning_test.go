@@ -3,6 +3,7 @@ package trie
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,36 +28,14 @@ func TestTrieStorageManagerWithoutPruning_TakeSnapshotShouldNotPanic(t *testing.
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.TakeSnapshot([]byte{})
+	ts.TakeSnapshot([]byte{}, true, nil)
 }
 
 func TestTrieStorageManagerWithoutPruning_SetCheckpointShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.SetCheckpoint([]byte{})
-}
-
-func TestTrieStorageManagerWithoutPruning_PruneShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.Prune([]byte{}, 0)
-}
-
-func TestTrieStorageManagerWithoutPruning_CancelPruneShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.CancelPrune([]byte{}, 0)
-}
-
-func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	err := ts.MarkForEviction([]byte{}, map[string]struct{}{})
-	assert.Nil(t, err)
+	ts.SetCheckpoint([]byte{}, nil)
 }
 
 func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
@@ -64,4 +43,33 @@ func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	assert.False(t, ts.IsPruningEnabled())
+}
+
+func TestTrieStorageManagerWithoutPruning_Close(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	ts, _ := NewTrieStorageManagerWithoutPruning(&mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	})
+	err := ts.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
+}
+
+func TestTrieStorageManagerWithoutPruning_AddDirtyCheckpointHashes(t *testing.T) {
+	t.Parallel()
+
+	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	assert.False(t, ts.AddDirtyCheckpointHashes([]byte("key"), make(data.ModifiedHashes)))
+}
+
+func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
+	t.Parallel()
+
+	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	assert.Nil(t, ts.Remove([]byte("key")))
 }

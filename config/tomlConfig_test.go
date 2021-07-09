@@ -7,6 +7,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -43,6 +44,13 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 	scheduledExecutionMilliseconds := 10
+
+	vmConfig := VirtualMachineConfig{
+		ArwenVersions: []ArwenVersionByEpoch{
+			{StartEpoch: 12, Version: "v0.3"},
+			{StartEpoch: 88, Version: "v1.2"},
+		},
+	}
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -86,8 +94,12 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     173,
-				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
+				Size: 173,
+				HashFunc: []string{
+					accountsStorageBlomHash1,
+					accountsStorageBlomHash2,
+					accountsStorageBlomHash3,
+				},
 			},
 		},
 		Hasher: TypeConfig{
@@ -99,6 +111,13 @@ func TestTomlParser(t *testing.T) {
 		Consensus: ConsensusConfig{
 			ScheduledExecutionMilliseconds: uint32(scheduledExecutionMilliseconds),
 			Type:                           consensusType,
+		},
+		VirtualMachine: VirtualMachineServicesConfig{
+			Execution: vmConfig,
+			Querying: QueryVirtualMachineConfig{
+				NumConcurrentVMs:     16,
+				VirtualMachineConfig: vmConfig,
+			},
 		},
 		Debug: DebugConfig{
 			InterceptorResolver: InterceptorResolverDebugConfig{
@@ -122,7 +141,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 	}
-
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -175,6 +193,20 @@ func TestTomlParser(t *testing.T) {
 	ScheduledExecutionMilliseconds = ` + strconv.Itoa(scheduledExecutionMilliseconds) + `
 	Type = "` + consensusType + `"
 
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
+    [VirtualMachine.Querying]
+        NumConcurrentVMs = 16
+        ArwenVersions = [
+            { StartEpoch = 12, Version = "v0.3" },
+            { StartEpoch = 88, Version = "v1.2" },
+        ]
+
 [Debug]
     [Debug.InterceptorResolver]
         Enabled = true
@@ -197,8 +229,8 @@ func TestTomlParser(t *testing.T) {
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
-	assert.Nil(t, err)
-	assert.Equal(t, cfgExpected, cfg)
+	require.Nil(t, err)
+	require.Equal(t, cfgExpected, cfg)
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
@@ -280,6 +312,8 @@ func TestTomlPreferencesParser(t *testing.T) {
 	destinationShardAsObs := "3"
 	identity := "test-identity"
 	redundancyLevel := int64(0)
+	prefPubKey0 := "preferred pub key 0"
+	prefPubKey1 := "preferred pub key 1"
 
 	cfgPreferencesExpected := Preferences{
 		Preferences: PreferencesConfig{
@@ -287,6 +321,7 @@ func TestTomlPreferencesParser(t *testing.T) {
 			DestinationShardAsObserver: destinationShardAsObs,
 			Identity:                   identity,
 			RedundancyLevel:            redundancyLevel,
+			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
 	}
 
@@ -296,6 +331,10 @@ func TestTomlPreferencesParser(t *testing.T) {
 	DestinationShardAsObserver = "` + destinationShardAsObs + `"
 	Identity = "` + identity + `"
 	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
+	PreferredConnections = [
+		"` + prefPubKey0 + `",
+		"` + prefPubKey1 + `"
+	]
 `
 	cfg := Preferences{}
 
@@ -389,6 +428,65 @@ func TestAPIRoutesToml(t *testing.T) {
  `
 
 	cfg := ApiRoutesConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestP2pConfig(t *testing.T) {
+	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
+	protocolID := "test protocol id"
+	shardingType := "ListSharder"
+	seed := "test seed"
+	port := "37373-38383"
+
+	testString := `
+#P2P config file
+[Node]
+    Port = "` + port + `"
+    Seed = "` + seed + `"
+    ThresholdMinConnectedPeers = 0
+
+[KadDhtPeerDiscovery]
+    Enabled = false
+    Type = ""
+    RefreshIntervalInSec = 0
+    ProtocolID = "` + protocolID + `"
+    InitialPeerList = ["` + initialPeersList + `"]
+
+    #kademlia's routing table bucket size
+    BucketSize = 0
+
+    #RoutingTableRefreshIntervalInSec defines how many seconds should pass between 2 kad routing table auto refresh calls
+    RoutingTableRefreshIntervalInSec = 0
+
+[Sharding]
+    # The targeted number of peer connections
+    TargetPeerCount = 0
+    MaxIntraShardValidators = 0
+    MaxCrossShardValidators = 0
+    MaxIntraShardObservers = 0
+    MaxCrossShardObservers = 0
+    MaxFullHistoryObservers = 0
+    MaxSeeders = 0
+    Type = "` + shardingType + `"
+`
+	expectedCfg := P2PConfig{
+		Node: NodeConfig{
+			Port: port,
+			Seed: seed,
+		},
+		KadDhtPeerDiscovery: KadDhtPeerDiscoveryConfig{
+			ProtocolID:      protocolID,
+			InitialPeerList: []string{initialPeersList},
+		},
+		Sharding: ShardingConfig{
+			Type: shardingType,
+		},
+	}
+	cfg := P2PConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

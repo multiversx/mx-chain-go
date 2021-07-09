@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -156,6 +157,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CryptoComponentsHolder:     bcf.cryptoComponents,
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
+		PrefsConfig:                bcf.prefConfig.Preferences,
 		EpochConfig:                bcf.epochConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
@@ -277,7 +279,7 @@ func createLatestStorageDataProvider(
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.LatestStorageDataProviderHandler, error) {
-	directoryReader := storageFactory.NewDirectoryReader()
+	directoryReader := directoryhandler.NewDirectoryReader()
 
 	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,

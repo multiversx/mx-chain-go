@@ -16,7 +16,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -414,18 +413,22 @@ func hardForkImport(
 		dataComponents.BlockChain = node.BlockChain
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:          0,
-			StartEpochNum:        100,
-			Core:                 coreComponents,
-			Data:                 dataComponents,
-			Accounts:             node.AccntState,
-			InitialNodesSetup:    node.NodesSetup,
-			Economics:            node.EconomicsData,
-			ShardCoordinator:     node.ShardCoordinator,
-			ValidatorAccounts:    node.PeerState,
-			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
-			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig: config.VirtualMachineConfig{},
+			GenesisTime:       0,
+			StartEpochNum:     100,
+			Core:              coreComponents,
+			Data:              dataComponents,
+			Accounts:          node.AccntState,
+			InitialNodesSetup: node.NodesSetup,
+			Economics:         node.EconomicsData,
+			ShardCoordinator:  node.ShardCoordinator,
+			ValidatorAccounts: node.PeerState,
+			GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
+			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig: config.VirtualMachineConfig{
+				ArwenVersions: []config.ArwenVersionByEpoch{
+					{StartEpoch: 0, Version: "*"},
+				},
+			},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               100,
@@ -442,11 +445,13 @@ func hardForkImport(
 					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-					ProposalCost:     "500",
-					NumNodes:         100,
-					MinQuorum:        50,
-					MinPassThreshold: 50,
-					MinVetoThreshold: 50,
+					Active: config.GovernanceSystemSCConfigActive{
+						ProposalCost:     "500",
+						MinQuorum:        "50",
+						MinPassThreshold: "50",
+						MinVetoThreshold: "50",
+					},
+					FirstWhitelistedAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -678,13 +683,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 
 		shardHDrStorage := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			value, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {
-				header, headerOk := value.(data.HeaderHandler)
-				if !headerOk {
-					assert.Fail(t, "wrong type in shard header pool")
-				}
-
 				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}

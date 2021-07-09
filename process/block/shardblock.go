@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -543,6 +542,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
 		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
 		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
+		Logs:     sp.txCoordinator.GetAllCurrentLogs(),
 	}
 
 	shardId := sp.shardCoordinator.SelfId()
@@ -1073,8 +1073,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 
 			rootHash := epochStartShData.RootHash
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			ctx := context.Background()
-			accounts.SnapshotState(rootHash, ctx)
+			accounts.SnapshotState(rootHash)
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {
 				err := sp.commitTrieEpochRootHashIfNeeded(metaHdr, rootHash)

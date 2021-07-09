@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.DataMarshalizer = (*transactions)(nil)
@@ -743,7 +744,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 	txs.accountTxsShards.RUnlock()
 }
 
-func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHandler, error) {
+func (txs *transactions) getAccountForAddress(address []byte) (vmcommon.AccountHandler, error) {
 	account, err := txs.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err

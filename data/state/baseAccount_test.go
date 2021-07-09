@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func TestBaseAccount_DataTrieTracker(t *testing.T) {
 func TestBaseAccount_DataTrie(t *testing.T) {
 	t.Parallel()
 
-	tr := &mock.TrieStub{}
+	tr := &testscommon.TrieStub{}
 	setCalled := false
 	getCalled := false
 

@@ -791,3 +791,37 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 	require.Equal(t, expectedGasUsed, gasUsed)
 	require.Equal(t, expectedFee, fee)
 }
+
+func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args.GasPriceModifierEnableEpoch = 1
+	economicData, _ := economics.NewEconomicsData(args)
+	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 1200000,
+		Data:     txData,
+		Value:    big.NewInt(10),
+	}
+
+	senderBalance, _ := big.NewInt(0).SetString("1", 10)
+	_, err := economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Equal(t, process.ErrInsufficientFunds, err)
+
+	senderBalance, _ = big.NewInt(0).SetString("1000", 10)
+	_, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Equal(t, process.ErrInsufficientFunds, err)
+
+	senderBalance, _ = big.NewInt(0).SetString("120000000000000010", 10)
+	gasLimit, err := economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Nil(t, err)
+	require.Equal(t, uint64(120000000), gasLimit)
+
+	senderBalance, _ = big.NewInt(0).SetString("120000000000000010", 10)
+	economicData.EpochConfirmed(10, 10)
+	gasLimit, err = economicData.ComputeGasLimitBasedOnBalance(tx, senderBalance)
+	require.Nil(t, err)
+	require.Equal(t, uint64(11894070000), gasLimit)
+}

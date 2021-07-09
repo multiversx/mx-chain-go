@@ -249,12 +249,6 @@ var (
 		Value: "",
 	}
 
-	keepOldEpochsData = cli.BoolFlag{
-		Name: "keep-old-epochs-data",
-		Usage: "Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database " +
-			"and will have a full history over epochs.",
-	}
-
 	numEpochsToSave = cli.Uint64Flag{
 		Name: "num-epochs-to-keep",
 		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
@@ -347,7 +341,6 @@ func getFlags() []cli.Flag {
 		bootstrapRoundIndex,
 		workingDirectory,
 		destinationShardAsObserver,
-		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
@@ -360,7 +353,7 @@ func getFlags() []cli.Flag {
 	}
 }
 
-func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error {
+func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsConfig {
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
@@ -379,6 +372,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	return flagsConfig
+}
+
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.ContextFlagsConfig, log logger.Logger) error {
 
 	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
 	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
@@ -392,9 +389,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
 	}
 
-	if ctx.IsSet(keepOldEpochsData.Name) {
-		cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
 	if ctx.IsSet(numEpochsToSave.Name) {
 		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
 	}
@@ -405,7 +399,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 		cfgs.PreferencesConfig.Preferences.RedundancyLevel = ctx.GlobalInt64(redundancyLevel.Name)
 	}
 	if ctx.IsSet(fullArchive.Name) {
-		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
@@ -457,7 +451,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if configs.GeneralConfig.StoragePruning.FullArchive {
+	if configs.PreferencesConfig.Preferences.FullArchive {
 		return processConfigFullArchiveMode(log, configs)
 	}
 
@@ -470,7 +464,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
 
-	importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+	importCheckpointRoundsModulus := uint(math.MaxUint32)
 	var err error
 
 	importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
@@ -488,6 +482,14 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
+	defaultSecondsToCheckHealth := 300                   // 5minutes
+	defaultDiagnoseMemoryLimit := 6 * 1024 * 1024 * 1024 // 6GB
+
+	generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.IntervalDiagnoseComponentsInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.IntervalVerifyMemoryInSeconds = defaultSecondsToCheckHealth
+	generalConfigs.Health.MemoryUsageToCreateProfiles = defaultDiagnoseMemoryLimit
+
 	alterStorageConfigsForDBImport(generalConfigs)
 
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
@@ -501,6 +503,10 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
+		"health interval diagnose components deeply in seconds", generalConfigs.Health.IntervalDiagnoseComponentsDeeplyInSeconds,
+		"health interval diagnose components in seconds", generalConfigs.Health.IntervalDiagnoseComponentsInSeconds,
+		"health interval verify memory in seconds", generalConfigs.Health.IntervalVerifyMemoryInSeconds,
+		"health memory usage threshold", core.ConvertBytes(uint64(generalConfigs.Health.MemoryUsageToCreateProfiles)),
 	)
 	return nil
 }
@@ -509,13 +515,15 @@ func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) er
 	generalConfigs := configs.GeneralConfig
 
 	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-	configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
+	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true
 	configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 
 	log.Warn("the node is in full archive mode! Will auto-set some config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-		"StoragePruning.CleanOldEpochsData", generalConfigs.StoragePruning.CleanOldEpochsData,
+		"StoragePruning.ValidatorCleanOldEpochsData", generalConfigs.StoragePruning.ValidatorCleanOldEpochsData,
+		"StoragePruning.ObserverCleanOldEpochsData", generalConfigs.StoragePruning.ObserverCleanOldEpochsData,
 		"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
 		"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
 	)

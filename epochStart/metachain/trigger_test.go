@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +34,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		AppStatusHandler:   &mock.AppStatusHandlerStub{},
 		Storage: &mock.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
+				return &testscommon.StorerStub{
 					GetCalled: func(key []byte) (bytes []byte, err error) {
 						return []byte("hash"), nil
 					},
@@ -291,7 +292,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 
 	arguments.Storage = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
+			return &testscommon.StorerStub{
 				GetCalled: func(key []byte) (bytes []byte, err error) {
 					return []byte("hash"), nil
 				},

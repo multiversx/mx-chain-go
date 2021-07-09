@@ -122,9 +122,9 @@ export PROXY_DELAY=10
 
 
 ########################################################################
-# TxGen configuration (WARNING: elrond-txgen-go is a private repository)
+# TxGen configuration
 
-# Path to elrond-txgen-go, branch: EN-5018/adapt-for-sc-arwen (will change eventually). Default: near elrond-go.
+# Path to elrond-txgen-go. Default: near elrond-go.
 export TXGENDIR="$(dirname $ELRONDDIR)/elrond-txgen-go/cmd/txgen"
 export TXGEN=$TXGENDIR/txgen    # Leave unchanged.
 
@@ -167,5 +167,3 @@ export EXTRA_OBSERVERS_FLAGS=""
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
-
-

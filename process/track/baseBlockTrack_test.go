@@ -103,14 +103,14 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	whitelistHandler := &mock.WhiteListHandlerStub{}
+	whitelistHandler := &testscommon.WhiteListHandlerStub{}
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &mock.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &mock.RequestHandlerStub{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
 			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
@@ -132,14 +132,14 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
-	whitelistHandler := &mock.WhiteListHandlerStub{}
+	whitelistHandler := &testscommon.WhiteListHandlerStub{}
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
 			Hasher:           &mock.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &mock.RequestHandlerStub{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
 			RoundHandler:     &mock.RoundHandlerMock{},
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
@@ -165,7 +165,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 		Hasher:           &mock.HasherMock{},
 		HeaderValidator:  headerValidator,
 		Marshalizer:      &mock.MarshalizerMock{},
-		RequestHandler:   &mock.RequestHandlerStub{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
 		RoundHandler:     &mock.RoundHandlerMock{},
 		ShardCoordinator: shardCoordinatorMock,
 		Store:            initStore(),
@@ -2410,7 +2410,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *test
 	mutCache := sync.Mutex{}
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2441,7 +2441,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *t
 	mutCache := sync.Mutex{}
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2478,7 +2478,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNo
 	}()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2505,7 +2505,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAn
 	}()
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2526,7 +2526,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShould
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2557,7 +2557,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShou
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2588,7 +2588,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCros
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
@@ -2619,7 +2619,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCro
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {

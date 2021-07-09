@@ -1,7 +1,6 @@
 package trieIterators
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"sync"
@@ -99,9 +98,8 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp() (*big.Int, *big.In
 		return nil, nil, err
 	}
 
-	ctx := context.Background()
 	//TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
-	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := validatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -3,6 +3,7 @@ package trie
 import (
 	"fmt"
 	"math/big"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -16,9 +17,10 @@ var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {
-	node    node
-	encNode []byte
-	hash    []byte
+	node           node
+	serializedNode []byte
+	hash           []byte
+	mutex          sync.RWMutex
 }
 
 // NewInterceptedTrieNode creates a new instance of InterceptedTrieNode
@@ -49,9 +51,9 @@ func NewInterceptedTrieNode(
 	}
 
 	return &InterceptedTrieNode{
-		node:    n,
-		encNode: buff,
-		hash:    n.getHash(),
+		node:           n,
+		serializedNode: buff,
+		hash:           n.getHash(),
 	}, nil
 }
 
@@ -78,9 +80,20 @@ func (inTn *InterceptedTrieNode) IsInterfaceNil() bool {
 	return inTn == nil
 }
 
-// EncodedNode returns the intercepted encoded node
-func (inTn *InterceptedTrieNode) EncodedNode() []byte {
-	return inTn.encNode
+// GetSerialized returns the intercepted encoded node
+func (inTn *InterceptedTrieNode) GetSerialized() []byte {
+	inTn.mutex.RLock()
+	defer inTn.mutex.RUnlock()
+
+	return inTn.serializedNode
+}
+
+// SetSerialized sets the given bytes as the SerializedNode
+func (inTn *InterceptedTrieNode) SetSerialized(serializedNode []byte) {
+	inTn.mutex.Lock()
+	defer inTn.mutex.Unlock()
+
+	inTn.serializedNode = serializedNode
 }
 
 // Type returns the type of this intercepted data
@@ -122,7 +135,10 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 
 // SizeInBytes returns the size in bytes held by this instance plus the inner node's instance size
 func (inTn *InterceptedTrieNode) SizeInBytes() int {
-	return len(inTn.hash) + len(inTn.encNode) + inTn.node.sizeInBytes()
+	inTn.mutex.RLock()
+	defer inTn.mutex.RUnlock()
+
+	return len(inTn.hash) + len(inTn.serializedNode) + inTn.node.sizeInBytes()
 }
 
 // Identifiers returns the identifiers used in requests

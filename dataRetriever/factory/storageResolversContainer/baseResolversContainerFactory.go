@@ -202,7 +202,6 @@ func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	}
 
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   brcf.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            brcf.generalConfig.TrieSnapshotDB,
 		Marshalizer:              brcf.marshalizer,
 		Hasher:                   brcf.hasher,

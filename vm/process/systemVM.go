@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type systemVM struct {
@@ -121,6 +121,11 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil
+}
+
+// GetVersion returns an empty string, because the system VM is not versioned
+func (s *systemVM) GetVersion() string {
+	return ""
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -19,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process")
@@ -609,7 +609,7 @@ func NewForkInfo() *ForkInfo {
 // DisplayProcessTxDetails displays information related to the tx which should be executed
 func DisplayProcessTxDetails(
 	message string,
-	accountHandler state.AccountHandler,
+	accountHandler vmcommon.AccountHandler,
 	txHandler data.TransactionHandler,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {

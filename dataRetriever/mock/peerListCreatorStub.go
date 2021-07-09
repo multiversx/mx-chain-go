@@ -6,14 +6,14 @@ import (
 
 // PeerListCreatorStub -
 type PeerListCreatorStub struct {
-	PeerListCalled           func() []core.PeerID
+	CrossShardPeerListCalled func() []core.PeerID
 	IntraShardPeerListCalled func() []core.PeerID
 	FullHistoryListCalled    func() []core.PeerID
 }
 
-// PeerList -
-func (p *PeerListCreatorStub) PeerList() []core.PeerID {
-	return p.PeerListCalled()
+// CrossShardPeerList -
+func (p *PeerListCreatorStub) CrossShardPeerList() []core.PeerID {
+	return p.CrossShardPeerListCalled()
 }
 
 // IntraShardPeerList -
