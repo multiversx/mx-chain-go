@@ -47,28 +47,29 @@ func createMetaStore() dataRetriever.StorageService {
 
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:         createMockPools(),
-		Store:               createStore(),
-		ChainHandler:        initBlockchain(),
-		RoundHandler:        &mock.RoundHandlerMock{},
-		BlockProcessor:      &mock.BlockProcessorMock{},
-		WaitTime:            waitTime,
-		Hasher:              &mock.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		ForkDetector:        &mock.ForkDetectorMock{},
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
-		Accounts:            &testscommon.AccountsStub{},
-		BlackListHandler:    &mock.BlackListHandlerStub{},
-		NetworkWatcher:      initNetworkWatcher(),
-		BootStorer:          &mock.BoostrapStorerMock{},
-		StorageBootstrapper: &mock.StorageBootstrapperMock{},
-		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
-		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:    &mock.AppStatusHandlerStub{},
-		Indexer:             &mock.IndexerMock{},
-		AccountsDBSyncer:    &mock.AccountsDBSyncerStub{},
+		PoolsHolder:          createMockPools(),
+		Store:                createStore(),
+		ChainHandler:         initBlockchain(),
+		RoundHandler:         &mock.RoundHandlerMock{},
+		BlockProcessor:       &mock.BlockProcessorMock{},
+		WaitTime:             waitTime,
+		Hasher:               &mock.HasherMock{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		ForkDetector:         &mock.ForkDetectorMock{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		Accounts:             &testscommon.AccountsStub{},
+		BlackListHandler:     &mock.BlackListHandlerStub{},
+		NetworkWatcher:       initNetworkWatcher(),
+		BootStorer:           &mock.BoostrapStorerMock{},
+		StorageBootstrapper:  &mock.StorageBootstrapperMock{},
+		EpochHandler:         &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:   &mock.MiniBlocksProviderStub{},
+		Uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+		Indexer:              &mock.IndexerMock{},
+		AccountsDBSyncer:     &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider: &testscommon.CurrentEpochProviderStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -289,6 +290,66 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
+}
+
+func TestNewMetaBootstrap_NilNetworkWatcherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.NetworkWatcher = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilNetworkWatcher, err)
+}
+
+func TestNewMetaBootstrap_NilBootStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.BootStorer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilBootStorer, err)
+}
+
+func TestNewMetaBootstrap_NilMiniblocksProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.MiniblocksProvider = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilMiniBlocksProvider, err)
+}
+
+func TestNewMetaBootstrap_NilIndexerProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.Indexer = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilIndexer, err)
+}
+
+func TestNewMetaBootstrap_NilCurrentEpochProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.CurrentEpochProvider = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilCurrentNetworkEpochProvider, err)
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
