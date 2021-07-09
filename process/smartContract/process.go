@@ -886,7 +886,19 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		}
 	}
 
+	mergeVMOutputLogs(newVMOutput, vmOutput)
+
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+}
+
+func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
+	if len(vmOutput.Logs) == 0 {
+		return
+	}
+	if newVMOutput.Logs == nil {
+		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
+	}
+	newVMOutput.Logs = append(newVMOutput.Logs, vmOutput.Logs...)
 }
 
 func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
