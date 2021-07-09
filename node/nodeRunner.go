@@ -1106,7 +1106,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.NetworkComponentsHandler, error) {
-	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, coreComponents.ValidatorPubKeyConverter())
 	if err != nil {
 		return nil, err
 	}

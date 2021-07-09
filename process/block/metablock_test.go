@@ -2977,7 +2977,7 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	}
 
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

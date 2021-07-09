@@ -192,7 +192,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -223,7 +223,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -254,7 +254,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -285,7 +285,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -316,7 +316,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -347,7 +347,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -378,7 +378,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -408,7 +408,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -439,7 +439,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -470,7 +470,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -501,7 +501,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -532,7 +532,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -563,7 +563,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -594,7 +594,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		nil,
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -612,9 +612,9 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&mock.GasHandlerMock{},
@@ -625,7 +625,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEpochNotifier(t *testing.T
 		&mock.BalanceComputationStub{},
 		nil,
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -643,9 +643,9 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&mock.GasHandlerMock{},
@@ -674,9 +674,9 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 		&mock.ChainStorerMock{},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
+		&testscommon.AccountsStub{},
 		requestTransaction,
 		feeHandlerMock(),
 		&mock.GasHandlerMock{},
@@ -687,7 +687,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilScheduledTxsExecutionHandl
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		nil,
 	)
 
@@ -718,7 +718,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -945,7 +945,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
@@ -1020,7 +1020,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
@@ -1105,7 +1105,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	assert.NotNil(t, txs)
@@ -1239,7 +1239,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -1288,7 +1288,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 
@@ -1373,7 +1373,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 

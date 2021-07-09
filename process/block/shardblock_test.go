@@ -523,7 +523,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -744,7 +744,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -2317,7 +2317,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -2425,7 +2425,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -2817,7 +2817,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -2998,7 +2998,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := factory.Create()
@@ -4653,7 +4653,7 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	}
 
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},

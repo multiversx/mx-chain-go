@@ -462,7 +462,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -557,7 +557,7 @@ func createPreProcessorContainerWithDataPool(
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -816,7 +816,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -949,7 +949,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -1054,7 +1054,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -1578,7 +1578,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -1700,7 +1700,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -1839,7 +1839,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()
@@ -1972,7 +1972,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.BalanceComputationStub{},
 		&mock.EpochNotifierStub{},
 		0,
-		&mock.TxTypeHandlerMock{},
+		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 	)
 	container, _ := preFactory.Create()

@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionNilTxCoordinator(t *testi
 	t.Parallel()
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		nil,
 	)
 
@@ -40,7 +41,7 @@ func TestScheduledTxsExecution_NewScheduledTxsExecutionOk(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, err := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -52,7 +53,7 @@ func TestScheduledTxsExecution_InitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -73,7 +74,7 @@ func TestScheduledTxsExecution_AddShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -107,7 +108,7 @@ func TestScheduledTxsExecution_ExecuteShouldErrMissingTransaction(t *testing.T) 
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -120,7 +121,7 @@ func TestScheduledTxsExecution_ExecuteShouldErr(t *testing.T) {
 
 	localError := errors.New("error")
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, localError
 			},
@@ -137,7 +138,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
@@ -154,7 +155,7 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, nil
 			},
@@ -171,7 +172,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -183,7 +184,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrTimeIsOut(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -199,7 +200,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldErrFailedTransaction(t *testing.T
 
 	localError := errors.New("error")
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, localError
 			},
@@ -218,7 +219,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWorkOnErrFailedTransaction(t *tes
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, process.ErrFailedTransaction
 			},
@@ -238,7 +239,7 @@ func TestScheduledTxsExecution_ExecuteAllShouldWork(t *testing.T) {
 
 	numTxsExecuted := 0
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				numTxsExecuted++
 				return vmcommon.Ok, nil
@@ -261,7 +262,7 @@ func TestScheduledTxsExecution_executeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{},
+		&testscommon.TxProcessorMock{},
 		&mock.TransactionCoordinatorMock{},
 	)
 
@@ -274,7 +275,7 @@ func TestScheduledTxsExecution_executeShouldWork(t *testing.T) {
 
 	response := errors.New("response")
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
-		&mock.TxProcessorMock{
+		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				return vmcommon.Ok, response
 			},
