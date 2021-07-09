@@ -187,6 +187,11 @@ func (builder *txDataBuilder) CanTransferNFTCreateRole(prop bool) *txDataBuilder
 	return builder.Str("canTransferNFTCreateRole").Bool(prop)
 }
 
+// CanAddSpecialRoles appends "canAddSpecialRoles" followed by the provided boolean value.
+func (builder *txDataBuilder) CanAddSpecialRoles(prop bool) *txDataBuilder {
+	return builder.Str("canAddSpecialRoles").Bool(prop)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (builder *txDataBuilder) IsInterfaceNil() bool {
 	return builder == nil

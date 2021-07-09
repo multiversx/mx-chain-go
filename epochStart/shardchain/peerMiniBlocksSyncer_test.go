@@ -19,7 +19,7 @@ import (
 func createDefaultArguments() ArgPeerMiniBlockSyncer {
 	defaultArgs := ArgPeerMiniBlockSyncer{
 		MiniBlocksPool: testscommon.NewCacherStub(),
-		Requesthandler: &mock.RequestHandlerStub{},
+		Requesthandler: &testscommon.RequestHandlerStub{},
 	}
 
 	return defaultArgs
@@ -253,7 +253,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		},
 	}
 
-	args.Requesthandler = &mock.RequestHandlerStub{
+	args.Requesthandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
@@ -317,7 +317,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 		},
 	}
 
-	args.Requesthandler = &mock.RequestHandlerStub{
+	args.Requesthandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {

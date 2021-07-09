@@ -13,11 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -136,17 +136,17 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	container := containers.NewVirtualMachinesContainer()
 
 	vmf.arwenChangeLocker.Lock()
-	defer vmf.arwenChangeLocker.Unlock()
-
 	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
 	currentVM, err := vmf.createArwenVM(version)
 	if err != nil {
+		vmf.arwenChangeLocker.Unlock()
 		return nil, err
 	}
 	vmf.gasSchedule.RegisterNotifyHandler(currentVM)
 
 	err = container.Add(factory.ArwenVirtualMachine, currentVM)
 	if err != nil {
+		vmf.arwenChangeLocker.Unlock()
 		return nil, err
 	}
 
@@ -154,6 +154,8 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	// in order to replace, from within the container, the VM instances that
 	// become out-of-date after specific epochs.
 	vmf.container = container
+	vmf.arwenChangeLocker.Unlock()
+
 	vmf.epochNotifier.RegisterNotifyHandler(vmf)
 
 	return container, nil

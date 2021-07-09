@@ -24,7 +24,7 @@ func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
 		TxPool:           testscommon.NewShardedDataStub(),
-		TxStorage:        &mock.StorerStub{},
+		TxStorage:        &testscommon.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		DataPacker:       &mock.DataPackerStub{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
@@ -292,7 +292,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 		Nonce: 10,
 	}
 	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
-	txStorage := &mock.StorerStub{}
+	txStorage := &testscommon.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
@@ -339,7 +339,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	errExpected := errors.New("expected error")
 
-	txStorage := &mock.StorerStub{}
+	txStorage := &testscommon.StorerStub{}
 	txStorage.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return nil, errExpected
@@ -455,7 +455,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 			return nil
 		},
 	}
-	arg.TxStorage = &mock.StorerStub{
+	arg.TxStorage = &testscommon.StorerStub{
 		SearchFirstCalled: func(key []byte) (i []byte, err error) {
 			return nil, errors.New("not found")
 		},

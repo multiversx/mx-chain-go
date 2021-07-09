@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -330,7 +331,7 @@ func CreateMockArguments(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
+	accountsDb[state.UserAccountsState] = &testscommon.AccountsStub{}
 
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
@@ -343,7 +344,7 @@ func CreateMockArguments(
 			ForkDetector:        &mock.ForkDetectorMock{},
 			NodesCoordinator:    nodesCoordinator,
 			FeeHandler:          &mock.FeeAccumulatorStub{},
-			RequestHandler:      &mock.RequestHandlerStub{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
 			BlockChainHook:      &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:       &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger:   &mock.EpochStartTriggerStub{},
@@ -356,7 +357,7 @@ func CreateMockArguments(
 			BlockTracker:       mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
-			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
+			HistoryRepository:  &dblookupext.HistoryRepositoryStub{},
 			EpochNotifier:      &mock.EpochNotifierStub{},
 		},
 	}
@@ -375,7 +376,7 @@ func createMockTransactionCoordinatorArguments(
 		ShardCoordinator:                  mock.NewMultiShardsCoordinatorMock(3),
 		Accounts:                          accountAdapter,
 		MiniBlockPool:                     poolsHolder.MiniBlocks(),
-		RequestHandler:                    &mock.RequestHandlerStub{},
+		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		PreProcessors:                     preProcessorsContainer,
 		InterProcessors:                   &mock.InterimProcessorContainerMock{},
 		GasHandler:                        &mock.GasHandlerMock{},
@@ -383,8 +384,9 @@ func createMockTransactionCoordinatorArguments(
 		BlockSizeComputation:              &mock.BlockSizeComputationStub{},
 		BalanceComputation:                &mock.BalanceComputationStub{},
 		EconomicsFee:                      &mock.FeeHandlerStub{},
-		TxTypeHandler:                     &mock.TxTypeHandlerMock{},
+		TxTypeHandler:                     &testscommon.TxTypeHandlerMock{},
 		BlockGasAndFeesReCheckEnableEpoch: 0,
+		TransactionsLogProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -452,7 +454,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	t.Parallel()
 	rootHash := []byte("root hash to be tested")
-	accounts := &mock.AccountsStub{
+	accounts := &testscommon.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
@@ -465,13 +467,13 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	assert.True(t, bp.VerifyStateRoot(rootHash))
 }
 
-//------- RevertState
+// ------- RevertState
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return expectedErr
 		},
@@ -533,7 +535,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	assert.True(t, removeFromDataPoolWasCalled)
 }
 
-//------- ComputeNewNoncePrevHash
+// ------- ComputeNewNoncePrevHash
 
 func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T) {
 	t.Parallel()
@@ -997,7 +999,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t
 	t.Parallel()
 
 	pruningCalled := 0
-	peerAccDb := &mock.AccountsStub{
+	peerAccDb := &testscommon.AccountsStub{
 		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			pruningCalled++
 		},
@@ -1030,7 +1032,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	t.Parallel()
 
 	pruningCalled := 0
-	peerAccDb := &mock.AccountsStub{
+	peerAccDb := &testscommon.AccountsStub{
 		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			pruningCalled++
 		},
@@ -1042,7 +1044,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 		},
 	}
 
-	accDb := &mock.AccountsStub{
+	accDb := &testscommon.AccountsStub{
 		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
 			pruningCalled++
 		},
@@ -1083,7 +1085,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
@@ -1131,7 +1133,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	coreComponents.RoundField = roundHandler
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	requestHandlerStub := &mock.RequestHandlerStub{
+	requestHandlerStub := &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
@@ -1341,7 +1343,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&mock.StorerStub{
+		&testscommon.StorerStub{
 			PutCalled: func(key, data []byte) error {
 				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
 				require.NoError(t, err)
@@ -1354,9 +1356,14 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
-		state.UserAccountsState: &mock.AccountsStub{
+		state.UserAccountsState: &testscommon.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return rootHash, nil
+			},
+			GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
+				channel := make(chan core.KeyValueHolder)
+				close(channel)
+				return channel, nil
 			},
 		},
 	}
@@ -1382,7 +1389,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 		headers[i] = block.Header{Nonce: uint64(i), RootHash: []byte(strconv.Itoa(i))}
 	}
 
-	hdrStore := &mock.StorerStub{
+	hdrStore := &testscommon.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if len(headers) != 0 {
 				header := headers[0]
@@ -1410,7 +1417,7 @@ func TestBaseProcessor_updateState(t *testing.T) {
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
-	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
+	arguments.AccountsDB[state.UserAccountsState] = &testscommon.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},

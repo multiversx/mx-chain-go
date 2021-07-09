@@ -33,5 +33,5 @@ func CreatePathManagerFromSinglePathString(dbPathWithChainID string) (*pathmanag
 		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
-	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer, dbPathWithChainID)
 }

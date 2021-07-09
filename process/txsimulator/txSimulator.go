@@ -5,21 +5,27 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
 type ArgsTxSimulator struct {
-	TransactionProcessor       TransactionProcessor
-	IntermmediateProcContainer process.IntermediateProcessorContainer
-	AddressPubKeyConverter     core.PubkeyConverter
-	ShardCoordinator           sharding.Coordinator
+	TransactionProcessor      TransactionProcessor
+	IntermediateProcContainer process.IntermediateProcessorContainer
+	AddressPubKeyConverter    core.PubkeyConverter
+	ShardCoordinator          sharding.Coordinator
+	VMOutputCacher            storage.Cacher
+	Hasher                    hashing.Hasher
+	Marshalizer               marshal.Marshalizer
 }
 
 type transactionSimulator struct {
@@ -27,6 +33,9 @@ type transactionSimulator struct {
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
+	vmOutputCacher         storage.Cacher
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
 }
 
 // NewTransactionSimulator returns a new instance of a transactionSimulator
@@ -34,7 +43,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.TransactionProcessor) {
 		return nil, ErrNilTxSimulatorProcessor
 	}
-	if check.IfNil(args.IntermmediateProcContainer) {
+	if check.IfNil(args.IntermediateProcContainer) {
 		return nil, ErrNilIntermediateProcessorContainer
 	}
 	if check.IfNil(args.AddressPubKeyConverter) {
@@ -43,12 +52,24 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
+	if check.IfNil(args.VMOutputCacher) {
+		return nil, ErrNilCacher
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, ErrNilHasher
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
-		intermProcContainer:    args.IntermmediateProcContainer,
+		intermProcContainer:    args.IntermediateProcContainer,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		shardCoordinator:       args.ShardCoordinator,
+		vmOutputCacher:         args.VMOutputCacher,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
 	}, nil
 }
 
@@ -77,7 +98,33 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transac
 		return nil, err
 	}
 
+	vmOutput, ok := ts.getVMOutputOfTx(tx)
+	if ok {
+		results.VMOutput = vmOutput
+	}
+
 	return results, nil
+}
+
+func (ts *transactionSimulator) getVMOutputOfTx(tx *transaction.Transaction) (*vmcommon.VMOutput, bool) {
+	txHash, err := core.CalculateHash(ts.marshalizer, ts.hasher, tx)
+	if err != nil {
+		return nil, false
+	}
+
+	defer ts.vmOutputCacher.Remove(txHash)
+
+	vmOutputI, ok := ts.vmOutputCacher.Get(txHash)
+	if !ok {
+		return nil, false
+	}
+
+	vmOutput, ok := vmOutputI.(*vmcommon.VMOutput)
+	if !ok {
+		return nil, false
+	}
+
+	return vmOutput, true
 }
 
 func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.SimulationResults) error {
@@ -117,7 +164,7 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 		return err
 	}
 
-	receipts := make(map[string]*transaction.ReceiptApi)
+	receipts := make(map[string]*transaction.ApiReceipt)
 	for hash, value := range receiptsForwarder.GetAllCurrentFinishedTxs() {
 		rcpt, ok := value.(*receipt.Receipt)
 		if !ok {
@@ -131,12 +178,11 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 }
 
 func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
-	return &transaction.ApiSmartContractResult{
+	resScr := &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
 		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
 		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
-		RelayerAddr:    ts.addressPubKeyConverter.Encode(scr.RelayerAddr),
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -147,12 +193,20 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
-		OriginalSender: ts.addressPubKeyConverter.Encode(scr.OriginalSender),
 	}
+
+	if scr.OriginalSender != nil {
+		resScr.OriginalSender = ts.addressPubKeyConverter.Encode(scr.OriginalSender)
+	}
+	if scr.RelayerAddr != nil {
+		resScr.RelayerAddr = ts.addressPubKeyConverter.Encode(scr.RelayerAddr)
+	}
+
+	return resScr
 }
 
-func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
-	return &transaction.ReceiptApi{
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ApiReceipt {
+	return &transaction.ApiReceipt{
 		Value:   rcpt.Value,
 		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
 		Data:    string(rcpt.Data),

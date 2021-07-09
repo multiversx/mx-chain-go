@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -42,10 +43,17 @@ type ArgsNewSyncValidatorStatus struct {
 	PubKey                    []byte
 	ShardIdAsObserver         uint32
 	WaitingListFixEnableEpoch uint32
+	ChanNodeStop              chan endProcess.ArgEndProcess
+	NodeTypeProvider          NodeTypeProviderHandler
+	IsFullArchive             bool
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
 func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStatus, error) {
+	if args.ChanNodeStop == nil {
+		return nil, sharding.ErrNilNodeStopChannel
+	}
+
 	s := &syncValidatorStatus{
 		dataPool:           args.DataPool,
 		marshalizer:        args.Marshalizer,
@@ -99,6 +107,9 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ConsensusGroupCache:        consensusGroupCache,
 		ShuffledOutHandler:         disabled.NewShuffledOutHandler(),
 		WaitingListFixEnabledEpoch: args.WaitingListFixEnableEpoch,
+		ChanStopNode:               args.ChanNodeStop,
+		NodeTypeProvider:           args.NodeTypeProvider,
+		IsFullArchive:              args.IsFullArchive,
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

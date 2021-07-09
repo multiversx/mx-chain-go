@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -21,6 +20,7 @@ func NewPeerAccountsDB(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accountFactory AccountFactory,
+	storagePruningManager StoragePruningManager,
 ) (*PeerAccountsDB, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
@@ -33,6 +33,9 @@ func NewPeerAccountsDB(
 	}
 	if check.IfNil(accountFactory) {
 		return nil, ErrNilAccountFactory
+	}
+	if check.IfNil(storagePruningManager) {
+		return nil, ErrNilStoragePruningManager
 	}
 
 	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
@@ -49,36 +52,37 @@ func NewPeerAccountsDB(
 			loadCodeMeasurements: &loadingMeasurements{
 				identifier: "load code",
 			},
+			storagePruningManager: storagePruningManager,
 		},
 	}, nil
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.TakeSnapshot(rootHash)
+	trieStorageManager.TakeSnapshot(rootHash, true, nil)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
-func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte, _ context.Context) {
+func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	trieStorageManager := adb.mainTrie.GetStorageManager()
 
 	trieStorageManager.EnterPruningBufferingMode()
-	trieStorageManager.SetCheckpoint(rootHash)
+	trieStorageManager.SetCheckpoint(rootHash, nil)
 	trieStorageManager.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
 	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return nil, err

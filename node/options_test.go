@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -197,7 +198,7 @@ func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	networkShardingCollector := &mock.NetworkShardingCollectorStub{}
+	networkShardingCollector := &p2pmocks.NetworkShardingCollectorStub{}
 	opt := WithNetworkShardingCollector(networkShardingCollector)
 	err := opt(node)
 

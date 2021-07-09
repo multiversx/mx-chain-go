@@ -65,6 +65,16 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Put(publicKey []byte, peerID core.PeerID, shardID uint32)
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	Remove(peerID core.PeerID)
+	Clear()
+	IsInterfaceNil() bool
+}
+
 // Closer defines the Close behavior
 type Closer interface {
 	Close() error
@@ -108,6 +118,7 @@ type CoreComponentsHolder interface {
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
 	EncodedAddressLen() uint32
+	NodeTypeProvider() core.NodeTypeProviderHandler
 	IsInterfaceNil() bool
 }
 
@@ -192,6 +203,7 @@ type NetworkComponentsHolder interface {
 	PubKeyCacher() process.TimeCacher
 	PeerBlackListHandler() process.PeerBlackListCacher
 	PeerHonestyHandler() PeerHonestyHandler
+	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 
@@ -239,6 +251,7 @@ type ProcessComponentsHolder interface {
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	ArwenChangeLocker() process.Locker
+	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	IsInterfaceNil() bool
 }
 

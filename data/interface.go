@@ -21,6 +21,16 @@ const (
 // ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
 type ModifiedHashes map[string]struct{}
 
+// Clone is used to create a clone of the map
+func (mh ModifiedHashes) Clone() ModifiedHashes {
+	newMap := make(ModifiedHashes)
+	for key := range mh {
+		newMap[key] = struct{}{}
+	}
+
+	return newMap
+}
+
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
 	GetShardID() uint32
@@ -166,18 +176,18 @@ type Trie interface {
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	ResetOldHashes() [][]byte
-	AppendToOldHashes([][]byte)
+	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
-	SetNewHashes(ModifiedHashes)
+	GetOldRoot() []byte
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, error)
 	VerifyProof(key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -190,15 +200,6 @@ type DBWriteCacher interface {
 	IsInterfaceNil() bool
 }
 
-// DBRemoveCacher is used to cache keys that will be deleted from the database
-type DBRemoveCacher interface {
-	Put([]byte, ModifiedHashes) error
-	Evict([]byte) (ModifiedHashes, error)
-	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
-	IsInterfaceNil() bool
-	Close() error
-}
-
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
 	StartSyncing(rootHash []byte, ctx context.Context) error
@@ -208,16 +209,16 @@ type TrieSyncer interface {
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	TakeSnapshot([]byte)
-	SetCheckpoint([]byte)
-	Prune([]byte, TriePruningIdentifier)
-	CancelPrune([]byte, TriePruningIdentifier)
-	MarkForEviction([]byte, ModifiedHashes) error
+	TakeSnapshot([]byte, bool, chan core.KeyValueHolder)
+	SetCheckpoint([]byte, chan core.KeyValueHolder)
 	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
+	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
+	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
+	Remove(hash []byte) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -278,8 +279,19 @@ type MiniBlockInfo struct {
 type SyncStatisticsHandler interface {
 	Reset()
 	AddNumReceived(value int)
+	AddNumLarge(value int)
 	SetNumMissing(rootHash []byte, value int)
 	NumReceived() int
+	NumLarge() int
 	NumMissing() int
+	IsInterfaceNil() bool
+}
+
+// CheckpointHashesHolder is used to hold the hashes that need to be committed in the future state checkpoint
+type CheckpointHashesHolder interface {
+	Put(rootHash []byte, hashes ModifiedHashes) bool
+	RemoveCommitted(lastCommittedRootHash []byte)
+	Remove(hash []byte)
+	ShouldCommit(hash []byte) bool
 	IsInterfaceNil() bool
 }

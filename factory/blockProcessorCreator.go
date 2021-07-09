@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -30,7 +29,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -102,11 +104,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
 
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +150,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = vmcommonBuiltInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +232,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EconomicsFee:                        pcf.coreData.EconomicsData(),
 		GasHandler:                          gasHandler,
 		GasSchedule:                         pcf.gasSchedule,
-		BuiltInFunctions:                    vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     pcf.txLogsProcessor,
 		TxTypeHandler:                       txTypeHandler,
 		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
@@ -247,7 +244,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:                      badTxInterim,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
 		ArwenChangeLocker:                   arwenChangeLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -360,6 +360,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: pcf.epochConfig.EnableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -425,11 +426,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Accounts:         pcf.state.AccountsAdapter(),
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
 	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +546,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxTypeHandler:                       txTypeHandler,
 		GasHandler:                          gasHandler,
 		GasSchedule:                         pcf.gasSchedule,
-		BuiltInFunctions:                    vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                     pcf.txLogsProcessor,
 		DeployEnableEpoch:                   enableEpochs.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:                  enableEpochs.BuiltInFunctionsEnableEpoch,
@@ -561,7 +557,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:                      badTxForwarder,
 		EpochNotifier:                       pcf.epochNotifier,
 		StakingV2EnableEpoch:                pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
+		VMOutputCacher:                      txcache.NewDisabledCache(),
 		ArwenChangeLocker:                   arwenChangeLocker,
+
+		IncrementSCRNonceInMultiTransferEnableEpoch: enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -652,6 +651,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EconomicsFee:                      pcf.coreData.EconomicsData(),
 		TxTypeHandler:                     txTypeHandler,
 		BlockGasAndFeesReCheckEnableEpoch: enableEpochs.BlockGasAndFeesReCheckEnableEpoch,
+		TransactionsLogProcessor:          pcf.txLogsProcessor,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -740,8 +740,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			DelegationSystemSCEnableEpoch: pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 		},
 		StakingDataProvider:   stakingDataProvider,
-		TopUpRewardFactor:     pcf.coreData.EconomicsData().RewardsTopUpFactor(),
-		TopUpGradientPoint:    pcf.coreData.EconomicsData().RewardsTopUpGradientPoint(),
+		RewardsHandler:        pcf.coreData.EconomicsData(),
 		EconomicsDataProvider: economicsDataProvider,
 		EpochEnableV2:         pcf.epochConfig.EnableEpochs.StakingV2EnableEpoch,
 	}
@@ -893,7 +892,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
 	scProcArgs.AccountsDB = readOnlyAccountsDB
-
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
@@ -907,7 +906,7 @@ func (pcf *processComponentsFactory) createShardTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	return nil
 }
@@ -946,9 +945,11 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		return err
 	}
 	scProcArgs.BadTxForwarder = badTxInterim
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
+	scProcArgs.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
@@ -977,7 +978,7 @@ func (pcf *processComponentsFactory) createMetaTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+	txSimulatorProcessorArgs.IntermediateProcContainer = interimProcContainer
 
 	return nil
 }

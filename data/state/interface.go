@@ -1,11 +1,11 @@
 package state
 
 import (
-	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // AccountsDbIdentifier is the type of accounts db
@@ -23,7 +23,7 @@ const HashLength = 32
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address []byte) (AccountHandler, error)
+	CreateAccount(address []byte) (vmcommon.AccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -31,15 +31,6 @@ type AccountFactory interface {
 type Updater interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
-	IsInterfaceNil() bool
-}
-
-// AccountHandler models a state account, which can journalize and revert
-// It knows about code and data, as data structures not hashes
-type AccountHandler interface {
-	AddressBytes() []byte
-	IncreaseNonce(nonce uint64)
-	GetNonce() uint64
 	IsInterfaceNil() bool
 }
 
@@ -78,7 +69,7 @@ type PeerAccountHandler interface {
 	GetConsecutiveProposerMisses() uint32
 	SetConsecutiveProposerMisses(uint322 uint32)
 	ResetAtNewEpoch()
-	AccountHandler
+	vmcommon.AccountHandler
 }
 
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
@@ -105,7 +96,7 @@ type UserAccountHandler interface {
 	GetOwnerAddress() []byte
 	SetUserName(userName []byte)
 	GetUserName() []byte
-	AccountHandler
+	vmcommon.AccountHandler
 }
 
 // DataTrieTracker models what how to manipulate data held by a SC account
@@ -122,9 +113,9 @@ type DataTrieTracker interface {
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
-	GetExistingAccount(address []byte) (AccountHandler, error)
-	LoadAccount(address []byte) (AccountHandler, error)
-	SaveAccount(account AccountHandler) error
+	GetExistingAccount(address []byte) (vmcommon.AccountHandler, error)
+	LoadAccount(address []byte) (vmcommon.AccountHandler, error)
+	SaveAccount(account vmcommon.AccountHandler) error
 	RemoveAccount(address []byte) error
 	Commit() ([]byte, error)
 	JournalLen() int
@@ -135,18 +126,19 @@ type AccountsAdapter interface {
 	RecreateTrie(rootHash []byte) error
 	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
-	SnapshotState(rootHash []byte, ctx context.Context)
-	SetStateCheckpoint(rootHash []byte, ctx context.Context)
+	SnapshotState(rootHash []byte)
+	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
-	RecreateAllTries(rootHash []byte, ctx context.Context) (map[string]data.Trie, error)
+	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
+	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	GetTrie(rootHash []byte) (data.Trie, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
-	Revert() (AccountHandler, error)
+	Revert() (vmcommon.AccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -180,7 +172,32 @@ type baseAccountHandler interface {
 
 // AccountsDBImporter is used in importing accounts
 type AccountsDBImporter interface {
-	ImportAccount(account AccountHandler) error
+	ImportAccount(account vmcommon.AccountHandler) error
 	Commit() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// DBRemoveCacher is used to cache keys that will be deleted from the database
+type DBRemoveCacher interface {
+	Put([]byte, data.ModifiedHashes) error
+	Evict([]byte) (data.ModifiedHashes, error)
+	ShouldKeepHash(hash string, identifier data.TriePruningIdentifier) (bool, error)
+	IsInterfaceNil() bool
+	Close() error
+}
+
+// AtomicBuffer is used to buffer byteArrays
+type AtomicBuffer interface {
+	Add(rootHash []byte)
+	RemoveAll() [][]byte
+	Len() int
+}
+
+// StoragePruningManager is used to manage all state pruning operations
+type StoragePruningManager interface {
+	MarkForEviction([]byte, []byte, data.ModifiedHashes, data.ModifiedHashes) error
+	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier, tsm data.StorageManager)
+	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier, tsm data.StorageManager)
+	Close() error
 	IsInterfaceNil() bool
 }

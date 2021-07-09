@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -178,6 +179,13 @@ type GenesisNodesSetupHandler interface {
 	GetHysteresis() float32
 	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType core.NodeType)
+	GetType() core.NodeType
 	IsInterfaceNil() bool
 }
 

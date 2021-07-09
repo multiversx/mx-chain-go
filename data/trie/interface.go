@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"context"
 	"io"
 	"sync"
 	"time"
@@ -23,27 +22,29 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 	resolveCollapsed(pos byte, db data.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
 	tryGet(key []byte, db data.DBWriteCacher) ([]byte, error)
 	getNext(key []byte, db data.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db data.DBWriteCacher) (bool, node, [][]byte, error)
+	insert(n *leafNode, db data.DBWriteCacher) (node, [][]byte, error)
 	delete(key []byte, db data.DBWriteCacher) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db data.DBWriteCacher)
-	deepClone() node
 	getDirtyHashes(data.ModifiedHashes) error
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, chan struct{}) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getNumNodes() data.NumNodesDTO
+
+	commitDirty(level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder) error
+	commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, leavesChan chan core.KeyValueHolder) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -54,14 +55,9 @@ type node interface {
 	IsInterfaceNil() bool
 }
 
-type atomicBuffer interface {
-	add(rootHash []byte)
-	removeAll() [][]byte
-	len() int
-}
-
 type snapshotNode interface {
-	commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commitCheckpoint(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, checkpointHashes data.CheckpointHashesHolder, leavesChan chan core.KeyValueHolder) error
+	commitSnapshot(originDb data.DBWriteCacher, targetDb data.DBWriteCacher, leavesChan chan core.KeyValueHolder) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

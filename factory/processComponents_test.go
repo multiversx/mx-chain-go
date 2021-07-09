@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,10 +24,13 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
-	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
-	pc, _ := pcf.Create()
+	pcf, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
 
-	err := pc.Close()
+	pc, err := pcf.Create()
+	require.Nil(t, err)
+
+	err = pc.Close()
 	require.NoError(t, err)
 }
 
@@ -197,7 +201,7 @@ func getProcessArgs(
 			},
 		},
 		Version:     "v1.0.0",
-		HistoryRepo: &testscommon.HistoryRepositoryStub{},
+		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 	}
 }
 

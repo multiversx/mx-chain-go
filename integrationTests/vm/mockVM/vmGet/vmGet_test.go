@@ -8,13 +8,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,14 +27,18 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return mockVM, nil
 		}}
-	service, _ := smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
-			return uint64(math.MaxUint64)
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer: vmContainer,
+		EconomicsFee: &mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
 		},
-	},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
 	functionName := "Get"
 	query := process.SCQuery{

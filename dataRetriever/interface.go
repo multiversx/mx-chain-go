@@ -236,7 +236,7 @@ type StorageType uint8
 
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
-	PeerList() []core.PeerID
+	CrossShardPeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
 	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
@@ -301,6 +301,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
+	TrieNodesChunks() storage.Cacher
 	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
@@ -323,6 +324,8 @@ type StorageService interface {
 	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
 	// If there is a missing key in the unit, it returns an error
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
+	// GetAllStorers returns all the storers
+	GetAllStorers() map[UnitType]storage.Storer
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
 	//CloseAll will close all the units
@@ -376,9 +379,22 @@ type ResolverDebugHandler interface {
 	IsInterfaceNil() bool
 }
 
-// CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
+// CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
+	IsInterfaceNil() bool
+}
+
+// PreferredPeersHolderHandler defines the behavior of a component able to handle preferred peers operations
+type PreferredPeersHolderHandler interface {
+	Get() map[uint32][]core.PeerID
+	Contains(peerID core.PeerID) bool
+	IsInterfaceNil() bool
+}
+
+// SelfShardIDProvider defines the behavior of a component able to provide the self shard ID
+type SelfShardIDProvider interface {
+	SelfId() uint32
 	IsInterfaceNil() bool
 }

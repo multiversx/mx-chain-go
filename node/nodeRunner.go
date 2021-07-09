@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -46,9 +45,7 @@ import (
 )
 
 const (
-	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-go"
-	maxTimeToClose  = 10 * time.Second
+	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
 )
@@ -76,22 +73,18 @@ func (nr *nodeRunner) Start() error {
 	configurationPaths := configs.ConfigurationPathsHolder
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
-	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
-	log.Debug("config", "file", configurationPaths.Genesis)
-
 	enableGopsIfNeeded(flagsConfig.EnableGops)
 
-	fileLogging, err := nr.attachFileLogger()
-	if err != nil {
-		return err
-	}
-
+	var err error
 	configurationPaths.Nodes, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
 	log.Debug("config", "file", configurationPaths.Nodes)
+	log.Debug("config", "file", configurationPaths.Genesis)
+
+	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
@@ -105,12 +98,6 @@ func (nr *nodeRunner) Start() error {
 	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
 	if err != nil {
 		return err
-	}
-
-	log.Debug("closing node")
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.Close()
-		log.LogIfError(err)
 	}
 
 	return nil
@@ -152,6 +139,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
 	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
+	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -290,6 +278,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedBootstrapComponents.EpochBootstrapParams(),
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		configs.EpochConfig.EnableEpochs.WaitingListFixEnableEpoch,
+		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.NodeTypeProvider(),
 	)
 	if err != nil {
 		return true, err
@@ -343,12 +333,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
 
-	log.Debug("starting node...")
+	log.Debug("starting node... executeOneComponentCreationCycle")
 
 	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
 		managedCoreComponents,
@@ -698,6 +684,9 @@ func waitForSignal(
 ) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
+	wrongConfig := false
+	wrongConfigDescription := ""
+
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -705,6 +694,10 @@ func waitForSignal(
 		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 		if sig.Reason == core.ShuffledOut {
 			reshuffled = true
+		}
+		if sig.Reason == core.WrongConfiguration {
+			wrongConfig = true
+			wrongConfigDescription = sig.Description
 		}
 	}
 
@@ -721,14 +714,23 @@ func waitForSignal(
 		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
+	if wrongConfig {
+		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
+		// change this behaviour
+		for {
+			log.Error("wrong configuration. stopped processing", "description", wrongConfigDescription)
+			time.Sleep(1 * time.Minute)
+		}
+	}
+
 	if reshuffled {
 		log.Info("=============================" + SoftRestartMessage + "==================================")
 		core.DumpGoRoutinesToLog(goRoutinesNumberStart)
-	} else {
-		return fmt.Errorf("not reshuffled, closing")
+
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("not reshuffled, closing")
 }
 
 func (nr *nodeRunner) logInformation(
@@ -987,6 +989,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:                        *configs.GeneralConfig,
+		PrefsConfig:                   configs.PreferencesConfig.Preferences,
 		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
@@ -1089,6 +1092,10 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
+	decodedPreferredPubKeys, err := decodeValidatorPubKeys(*nr.configs.PreferencesConfig, managedCoreComponents.ValidatorPubKeyConverter())
+	if err != nil {
+		return nil, err
+	}
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:            *nr.configs.P2pConfig,
@@ -1097,6 +1104,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		StatusHandler:        managedCoreComponents.StatusHandler(),
 		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
 		Syncer:               managedCoreComponents.SyncTimer(),
+		PreferredPublicKeys:  decodedPreferredPubKeys,
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
 	if nr.configs.ImportDbConfig.IsImportDBMode {
@@ -1244,17 +1252,16 @@ func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string 
 }
 
 func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
-	if cleanupStorage {
-		dbPath := filepath.Join(
-			workingDir,
-			core.DefaultDBPath)
-		log.Trace("cleaning storage", "path", dbPath)
-		err := os.RemoveAll(dbPath)
-		if err != nil {
-			return err
-		}
+	if !cleanupStorage {
+		return nil
 	}
-	return nil
+
+	dbPath := filepath.Join(
+		workingDir,
+		core.DefaultDBPath)
+	log.Trace("cleaning storage", "path", dbPath)
+
+	return os.RemoveAll(dbPath)
 }
 
 func copyConfigToStatsFolder(statsFolder string, gasScheduleFolder string, configs []string) {
@@ -1360,55 +1367,24 @@ func enableGopsIfNeeded(gopsEnabled bool) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
+func decodeValidatorPubKeys(prefConfig config.Preferences, validatorPubKeyConverter core.PubkeyConverter) ([][]byte, error) {
+	decodedPublicKeys := make([][]byte, 0)
+	for _, pubKey := range prefConfig.Preferences.PreferredConnections {
+		pubKeyBytes, err := validatorPubKeyConverter.Decode(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("cannot decode preferred public key(%s) : %w", pubKey, err)
+		}
+
+		decodedPublicKeys = append(decodedPublicKeys, pubKeyBytes)
+	}
+
+	return decodedPublicKeys, nil
+}
+
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
 	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func (nr *nodeRunner) attachFileLogger() (factory.FileLoggingHandler, error) {
-	configs := nr.configs
-	flagsConfig := configs.FlagsConfig
-	var fileLogging factory.FileLoggingHandler
-	var err error
-	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
-		if err != nil {
-			return nil, fmt.Errorf("%w creating a log file", err)
-		}
-	}
-
-	err = logger.SetDisplayByteSlice(logger.ToHex)
-	log.LogIfError(err)
-	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
-	logger.ToggleLoggerName(flagsConfig.EnableLogName)
-	logLevelFlagValue := flagsConfig.LogLevel
-	err = logger.SetLogLevel(logLevelFlagValue)
-	if err != nil {
-		return nil, err
-	}
-
-	if flagsConfig.DisableAnsiColor {
-		err = logger.RemoveLogObserver(os.Stdout)
-		if err != nil {
-			return nil, err
-		}
-
-		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
-
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(configs.GeneralConfig.Logs.LogFileLifeSpanInSec))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return fileLogging, nil
 }

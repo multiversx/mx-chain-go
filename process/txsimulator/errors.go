@@ -16,3 +16,12 @@ var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
 var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
+
+// ErrNilCacher signals that a nil cache has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("nil marshalizer provided")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
