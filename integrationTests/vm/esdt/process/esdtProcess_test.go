@@ -284,8 +284,6 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// send token issue
-
 	initialSupply := int64(10000000000)
 	ticker := "TCK"
 	esdtCommon.IssueTestToken(nodes, initialSupply, ticker)
@@ -302,7 +300,6 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 
 	txData := txDataBuilder.NewBuilder()
 
-	// send tx to other nodes
 	valueToSend := int64(100)
 	txData = txData.Clear().TransferESDT(tokenIdentifier, valueToSend)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), nodes[0].OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
