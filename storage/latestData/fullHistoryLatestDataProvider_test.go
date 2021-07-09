@@ -34,7 +34,7 @@ func TestFullHistoryGetParentDirAndLastEpoch_ShouldWork(t *testing.T) {
 	defaultDbPath := "default"
 	chainID := "chainID"
 	lastEpoch := uint32(2)
-	lastDirectories := []string{"WrongEpoch_10", "Epoch_1", fmt.Sprintf("Epoch_%d", lastEpoch)}
+	lastDirectories := []string{"WrongEpoch_10", "Epoch_1", fmt.Sprintf("Epoch_%d", lastEpoch), "Shard_1"}
 
 	args := getLatestDataProviderArgs()
 	args.ParentDir = filepath.Join(workingDir, defaultDbPath, chainID)
@@ -43,6 +43,26 @@ func TestFullHistoryGetParentDirAndLastEpoch_ShouldWork(t *testing.T) {
 			return lastDirectories, nil
 		},
 	}
+
+	bd := &bootstrapStorage.BootstrapData{
+		LastHeader:             bootstrapStorage.BootstrapHeaderInfo{},
+		HighestFinalBlockNonce: 1,
+		LastRound:              1,
+	}
+
+	storerStub := &testscommon.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return json.Marshal(&shardchain.TriggerRegistry{
+				EpochStartRound: 1,
+			})
+		},
+	}
+
+	args.BootstrapDataProvider = &mock.BootStrapDataProviderStub{
+		LoadForPathCalled: func(persisterFactory storage.PersisterFactory, path string) (
+			*bootstrapStorage.BootstrapData, storage.Storer, error) {
+			return bd, storerStub, nil
+		}}
 
 	ldp, _ := NewFullHistoryLatestDataProvider(args)
 
