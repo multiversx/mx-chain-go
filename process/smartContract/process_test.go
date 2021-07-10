@@ -3871,3 +3871,46 @@ func computeExpectedResults(
 	}
 	return expectedTotalFee, expectedDevFees
 }
+
+func TestMergeVmOutputLogs(t *testing.T) {
+	t.Parallel()
+
+	vmOutput1 := &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	vmOutput2 := &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Nil(t, vmOutput1.Logs)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: nil,
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 1)
+
+	vmOutput1 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	vmOutput2 = &vmcommon.VMOutput{
+		Logs: []*vmcommon.LogEntry{
+			{},
+		},
+	}
+
+	mergeVMOutputLogs(vmOutput1, vmOutput2)
+	require.Len(t, vmOutput1.Logs, 2)
+}

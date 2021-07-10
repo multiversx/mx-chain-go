@@ -71,7 +71,7 @@ func (shuf *statusHandlerUtilsFactory) Create(
 		}
 	} else {
 		handler = statusHandler.NewNilStatusHandler()
-		log.Info("no AppStatusHandler used: started with NilStatusHandler")
+		log.Debug("no AppStatusHandler used: started with NilStatusHandler")
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)

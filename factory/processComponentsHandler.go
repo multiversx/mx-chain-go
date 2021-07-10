@@ -148,6 +148,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNilReflect(m.processComponents.arwenChangeLocker) {
 		return errors.ErrNilLocker
 	}
+	if check.IfNil(m.processComponents.currentEpochProvider) {
+		return errors.ErrNilCurrentEpochProvider
+	}
 
 	return nil
 }
@@ -510,6 +513,18 @@ func (m *managedProcessComponents) ArwenChangeLocker() process.Locker {
 	}
 
 	return m.processComponents.arwenChangeLocker
+}
+
+// CurrentEpochProvider returns the current epoch provider that can decide if an epoch is active or not on the network
+func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.currentEpochProvider
 }
 
 // IsInterfaceNil returns true if the interface is nil
