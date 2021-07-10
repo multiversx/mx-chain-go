@@ -360,8 +360,8 @@ const MetricTopUpValue = "erd_total_top_up_value"
 // MetricInflation holds the inflation value for the last epoch
 const MetricInflation = "erd_inflation"
 
-// MetricDevRewards holds the developers' rewards value for the last epoch
-const MetricDevRewards = "erd_dev_rewards"
+// MetricDevRewardsInEpoch holds the developers' rewards value for the last epoch
+const MetricDevRewardsInEpoch = "erd_dev_rewards"
 
 // MetricTotalFees holds the total fees value for the last epoch
 const MetricTotalFees = "erd_total_fees"

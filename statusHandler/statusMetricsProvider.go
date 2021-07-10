@@ -150,7 +150,7 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 
 	economicsMetrics[core.MetricTotalSupply] = sm.loadStringMetric(core.MetricTotalSupply)
 	economicsMetrics[core.MetricTotalFees] = sm.loadStringMetric(core.MetricTotalFees)
-	economicsMetrics[core.MetricDevRewards] = sm.loadStringMetric(core.MetricDevRewards)
+	economicsMetrics[core.MetricDevRewardsInEpoch] = sm.loadStringMetric(core.MetricDevRewardsInEpoch)
 	economicsMetrics[core.MetricInflation] = sm.loadStringMetric(core.MetricInflation)
 	economicsMetrics[core.MetricEpochForEconomicsData] = sm.loadUint64Metric(core.MetricEpochForEconomicsData)
 
