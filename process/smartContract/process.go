@@ -1096,16 +1096,23 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 
 func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmcommon.ContractCallInput) {
 	if fullVMInput.Function == core.BuiltInFunctionESDTTransfer {
-		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
-		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
-		newVMInput.ESDTTokenType = uint32(core.Fungible)
+		newVMInput.ESDTTransfers = make([]*vmcommon.ESDTTransfer, 1)
+		newVMInput.ESDTTransfers[0] = &vmcommon.ESDTTransfer{
+			ESDTValue:      big.NewInt(0).SetBytes(fullVMInput.Arguments[1]),
+			ESDTTokenName:  fullVMInput.Arguments[0],
+			ESDTTokenType:  uint32(core.Fungible),
+			ESDTTokenNonce: 0,
+		}
 	}
 
 	if fullVMInput.Function == core.BuiltInFunctionESDTNFTTransfer {
-		newVMInput.ESDTTokenName = fullVMInput.Arguments[0]
-		newVMInput.ESDTTokenNonce = big.NewInt(0).SetBytes(fullVMInput.Arguments[1]).Uint64()
-		newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[2])
-		newVMInput.ESDTTokenType = uint32(core.NonFungible)
+		newVMInput.ESDTTransfers = make([]*vmcommon.ESDTTransfer, 1)
+		newVMInput.ESDTTransfers[0] = &vmcommon.ESDTTransfer{
+			ESDTValue:      big.NewInt(0).SetBytes(fullVMInput.Arguments[2]),
+			ESDTTokenName:  fullVMInput.Arguments[0],
+			ESDTTokenType:  uint32(core.NonFungible),
+			ESDTTokenNonce: big.NewInt(0).SetBytes(fullVMInput.Arguments[1]).Uint64(),
+		}
 	}
 }
 

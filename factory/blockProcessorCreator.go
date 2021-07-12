@@ -102,6 +102,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		Accounts:         pcf.state.AccountsAdapter(),
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:    pcf.epochNotifier,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -425,6 +426,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		Accounts:         pcf.state.AccountsAdapter(),
 		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:    pcf.epochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

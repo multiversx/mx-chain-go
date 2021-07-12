@@ -217,6 +217,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:      marshalizer,
 		Accounts:         context.Accounts,
 		ShardCoordinator: oneShardCoordinator,
+		EpochNotifier:    context.EpochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	require.Nil(context.T, err)

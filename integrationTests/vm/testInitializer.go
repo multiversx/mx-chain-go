@@ -539,6 +539,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Marshalizer:      testMarshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    globalEpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -607,6 +608,7 @@ func CreateVMAndBlockchainHookMeta(
 		Marshalizer:      testMarshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    globalEpochNotifier,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 

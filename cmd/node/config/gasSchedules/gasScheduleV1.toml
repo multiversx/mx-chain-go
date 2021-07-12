@@ -12,6 +12,9 @@
     ESDTNFTBurn              = 500000
     ESDTNFTTransfer          = 500000
     ESDTNFTChangeCreateOwner = 1000000
+    ESDTNFTAddUri            = 500000
+    ESDTNFTUpdateAttributes  = 500000
+    ESDTNFTMultiTransfer     = 1000000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000

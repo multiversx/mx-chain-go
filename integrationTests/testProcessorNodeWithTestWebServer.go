@@ -134,6 +134,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		Marshalizer:      TestMarshalizer,
 		Accounts:         tpn.AccntState,
 		ShardCoordinator: tpn.ShardCoordinator,
+		EpochNotifier:    tpn.EpochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	log.LogIfError(err)

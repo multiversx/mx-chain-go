@@ -23,6 +23,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &testscommon.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
+		EpochNotifier:        &mock.EpochNotifierStub{},
 	}
 
 	return args
@@ -68,6 +69,9 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTBurn"] = value
 	gasMap["ESDTNFTTransfer"] = value
 	gasMap["ESDTNFTChangeCreateOwner"] = value
+	gasMap["ESDTNFTAddUri"] = value
+	gasMap["ESDTNFTUpdateAttributes"] = value
+	gasMap["ESDTNFTMultiTransfer"] = value
 
 	return gasMap
 }

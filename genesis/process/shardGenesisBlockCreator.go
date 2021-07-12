@@ -275,6 +275,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:          arg.Core.InternalMarshalizer(),
 		Accounts:             arg.Accounts,
 		ShardCoordinator:     arg.ShardCoordinator,
+		EpochNotifier:        epochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

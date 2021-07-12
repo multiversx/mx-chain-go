@@ -96,6 +96,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.CoreComponents.InternalMarshalizer(),
 		args.StateComponents.AccountsAdapter(),
 		args.BootstrapComponents.ShardCoordinator(),
+		args.CoreComponents.EpochNotifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -219,6 +220,7 @@ func createScQueryElement(
 		args.coreComponents.InternalMarshalizer(),
 		args.stateComponents.AccountsAdapter(),
 		args.processComponents.ShardCoordinator(),
+		args.coreComponents.EpochNotifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -319,6 +321,7 @@ func createBuiltinFuncs(
 	marshalizer marshal.Marshalizer,
 	accnts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	epochNotifier core.EpochNotifier,
 ) (vmcommon.BuiltInFunctionContainer, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:      gasScheduleNotifier,
@@ -326,6 +329,7 @@ func createBuiltinFuncs(
 		Marshalizer:      marshalizer,
 		Accounts:         accnts,
 		ShardCoordinator: shardCoordinator,
+		EpochNotifier:    epochNotifier,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
