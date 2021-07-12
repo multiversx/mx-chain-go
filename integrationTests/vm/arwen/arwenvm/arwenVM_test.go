@@ -503,6 +503,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		Marshalizer:      testMarshalizer,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{

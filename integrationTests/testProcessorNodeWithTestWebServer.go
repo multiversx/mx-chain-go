@@ -145,6 +145,7 @@ func createFacadeComponents(tpn *TestProcessorNode) (nodeFacade.ApiResolver, nod
 		BuiltInFunctions: builtInFuncs,
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    tpn.EpochNotifier,
+		Marshalizer:      TestMarshalizer,
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)

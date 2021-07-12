@@ -24,6 +24,7 @@ func createMockArguments() ArgNewTxTypeHandler {
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
+		Marshalizer:      &mock.MarshalizerMock{},
 	}
 }
 

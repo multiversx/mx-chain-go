@@ -8,9 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
@@ -22,6 +24,7 @@ type txTypeHandler struct {
 	argumentParser         process.CallArgumentsParser
 	flagRelayedTxV2        atomic.Flag
 	relayedTxV2EnableEpoch uint32
+	esdtTransferParser     vmcommon.ESDTTransferParser
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
@@ -32,6 +35,7 @@ type ArgNewTxTypeHandler struct {
 	ArgumentParser         process.CallArgumentsParser
 	RelayedTxV2EnableEpoch uint32
 	EpochNotifier          process.EpochNotifier
+	Marshalizer            marshal.Marshalizer
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -53,6 +57,9 @@ func NewTxTypeHandler(
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	tc := &txTypeHandler{
 		pubkeyConv:             args.PubkeyConverter,
@@ -60,6 +67,12 @@ func NewTxTypeHandler(
 		argumentParser:         args.ArgumentParser,
 		builtInFunctions:       args.BuiltInFunctions,
 		relayedTxV2EnableEpoch: args.RelayedTxV2EnableEpoch,
+	}
+
+	var err error
+	tc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
+	if err != nil {
+		return nil, err
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(tc)
@@ -138,18 +151,15 @@ func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, t
 	if len(args) <= 2 {
 		return false
 	}
-	if function == core.BuiltInFunctionESDTTransfer {
-		return core.IsSmartContractAddress(tx.GetRcvAddr())
-	}
-	if function == core.BuiltInFunctionESDTNFTTransfer && len(args) > 4 {
-		rcvAddr := tx.GetRcvAddr()
-		if bytes.Equal(tx.GetRcvAddr(), tx.GetSndAddr()) {
-			rcvAddr = args[3]
-		}
-		return core.IsSmartContractAddress(rcvAddr)
-	}
 
-	return false
+	parsedTransfer, err := tth.esdtTransferParser.ParseESDTTransfers(tx.GetSndAddr(), tx.GetRcvAddr(), function, args)
+	if err != nil {
+		return false
+	}
+	if len(parsedTransfer.CallFunction) == 0 {
+		return false
+	}
+	return core.IsSmartContractAddress(parsedTransfer.RcvAddr)
 }
 
 func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) (string, [][]byte) {

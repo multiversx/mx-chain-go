@@ -432,6 +432,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		BuiltInFunctions: builtInFuncs,
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		Marshalizer:      testMarshalizer,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -762,6 +763,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BuiltInFunctions: blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		Marshalizer:      testMarshalizer,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 

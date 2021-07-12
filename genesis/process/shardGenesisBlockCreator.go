@@ -372,6 +372,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          epochNotifier,
 		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		Marshalizer:            arg.Core.InternalMarshalizer(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

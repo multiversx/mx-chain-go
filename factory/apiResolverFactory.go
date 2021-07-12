@@ -109,6 +109,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          args.CoreComponents.EpochNotifier(),
 		RelayedTxV2EnableEpoch: args.Configs.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,
+		Marshalizer:            args.CoreComponents.InternalMarshalizer(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

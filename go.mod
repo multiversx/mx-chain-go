@@ -8,7 +8,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elastic-indexer-go v1.0.7
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210709121514-acfacaa06d62
+	github.com/ElrondNetwork/elrond-vm-common v1.0.1-0.20210712175732-c8b4cdc8fcaa
 	github.com/beevik/ntp v0.3.0
 	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce

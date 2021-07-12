@@ -357,6 +357,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
+		Marshalizer:      &mock.MarshalizerMock{},
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
