@@ -1337,6 +1337,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		"sum", balanceSum.String(),
 		"nrAccounts", nrAccounts,
 		"totalSizeAccounts", totalSizeAccounts,
+		"nrAccountsWithDataTrie", nrAccountsWithDataTrie,
+		"totalSizeAccountsDataTries", totalSizeAccountsDataTries,
 		"nrNonAccounts", nrNotAccounts,
 		"totalSizeNonAccounts", totalSizeNonAccounts)
 
