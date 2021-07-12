@@ -20,7 +20,7 @@ func TestTransactionGroup(t *testing.T) {
 }
 
 func testTransactionGasCostWithMissingFields(tb testing.TB, node *integrationTests.TestProcessorNodeWithTestWebServer) {
-	//this is an example found in the wild, should not add more fields in order to pass the tests
+	// this is an example found in the wild, should not add more fields in order to pass the tests
 	tx := transaction.SendTxRequest{
 		Sender:   "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 		Receiver: "erd188anxz35atlef7cucszypmvx88lhz4m7a7t7lhcwt6sfphpsqlkswfhcx2",

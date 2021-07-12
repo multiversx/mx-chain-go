@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,10 +103,19 @@ func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAgrs()
+	closeCalled := false
+	args.SCQueryService = &mock.SCQueryServiceStub{
+		CloseCalled: func() error {
+			closeCalled = true
+
+			return nil
+		},
+	}
 	nar, _ := external.NewNodeApiResolver(args)
 
 	err := nar.Close()
 	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

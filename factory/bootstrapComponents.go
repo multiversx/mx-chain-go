@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/factory/directoryhandler"
 	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -124,6 +125,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		parentDir,
 		core.DefaultEpochString,
 		core.DefaultShardString,
+		bcf.prefConfig.Preferences.FullArchive,
 	)
 	if err != nil {
 		return nil, err
@@ -145,6 +147,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CryptoComponentsHolder:     bcf.cryptoComponents,
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
+		PrefsConfig:                bcf.prefConfig.Preferences,
 		EpochConfig:                bcf.epochConfig,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
@@ -241,8 +244,9 @@ func CreateLatestStorageDataProvider(
 	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
+	fullHistoryObserver bool,
 ) (storage.LatestStorageDataProviderHandler, error) {
-	directoryReader := storageFactory.NewDirectoryReader()
+	directoryReader := directoryhandler.NewDirectoryReader()
 
 	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
@@ -251,6 +255,10 @@ func CreateLatestStorageDataProvider(
 		ParentDir:             parentDir,
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
+	}
+
+	if fullHistoryObserver {
+		return latestData.NewFullHistoryLatestDataProvider(latestStorageDataArgs)
 	}
 	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }

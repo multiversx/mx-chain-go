@@ -20,9 +20,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager"
+	"github.com/ElrondNetwork/elrond-go/data/state/storagePruningManager/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
+	"github.com/ElrondNetwork/elrond-go/data/trie/hashesHolder"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -45,6 +48,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const blsConsensusType = "bls"
@@ -56,7 +61,7 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {
 	node         *node.Node
-	mesenger     p2p.Messenger
+	messenger    p2p.Messenger
 	blkc         data.ChainHandler
 	blkProcessor *mock.BlockProcessorMock
 	sk           crypto.PrivateKey
@@ -167,15 +172,33 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
+	args := trie.NewTrieStorageManagerArgs{
+		DB:                     store,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		SnapshotDbConfig:       cfg,
+		GeneralConfig:          generalCfg,
+		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, uint64(hasher.Size())),
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(args)
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
-			return state.NewUserAccount(address)
+	storagePruning, _ := storagePruningManager.NewStoragePruningManager(
+		ewl,
+		generalCfg.PruningBufferLen,
+	)
+	adb, _ := state.NewAccountsDB(
+		tr,
+		sha256.NewSha256(),
+		marshalizer,
+		&mock.AccountsFactoryStub{
+			CreateAccountCalled: func(address []byte) (wrapper vmcommon.AccountHandler, e error) {
+				return state.NewUserAccount(address)
+			},
 		},
-	})
+		storagePruning,
+	)
 	return adb
 }
 
@@ -398,7 +421,7 @@ func createConsensusOnlyNode(
 	processComponents.NodesCoord = nodesCoordinator
 	processComponents.BlockProcess = blockProcessor
 	processComponents.BlockTrack = &mock.BlockTrackerStub{}
-	processComponents.IntContainer = &mock.InterceptorsContainerStub{}
+	processComponents.IntContainer = &testscommon.InterceptorsContainerStub{}
 	processComponents.ResFinder = resolverFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
@@ -406,7 +429,7 @@ func createConsensusOnlyNode(
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
-	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
 	processComponents.PeerMapper = networkShardingCollector
 	processComponents.RoundHandlerField = roundHandler
 
@@ -485,19 +508,23 @@ func createNodes(
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-			ShardConsensusGroupSize: consensusSize,
-			MetaConsensusGroupSize:  1,
-			Marshalizer:             integrationTests.TestMarshalizer,
-			Hasher:                  createHasher(consensusType),
-			Shuffler:                nodeShuffler,
-			EpochStartNotifier:      epochStartRegistrationHandler,
-			BootStorer:              bootStorer,
-			NbShards:                1,
-			EligibleNodes:           eligibleMap,
-			WaitingNodes:            waitingMap,
-			SelfPublicKey:           []byte(strconv.Itoa(i)),
-			ConsensusGroupCache:     consensusCache,
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ShardConsensusGroupSize:    consensusSize,
+			MetaConsensusGroupSize:     1,
+			Marshalizer:                integrationTests.TestMarshalizer,
+			Hasher:                     createHasher(consensusType),
+			Shuffler:                   nodeShuffler,
+			EpochStartNotifier:         epochStartRegistrationHandler,
+			BootStorer:                 bootStorer,
+			NbShards:                   1,
+			EligibleNodes:              eligibleMap,
+			WaitingNodes:               waitingMap,
+			SelfPublicKey:              []byte(strconv.Itoa(i)),
+			ConsensusGroupCache:        consensusCache,
+			ShuffledOutHandler:         &mock.ShuffledOutHandlerStub{},
+			WaitingListFixEnabledEpoch: 0,
+			ChanStopNode:               endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:           &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:              false,
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -517,7 +544,7 @@ func createNodes(
 
 		testNodeObject.node = n
 		testNodeObject.sk = kp.sk
-		testNodeObject.mesenger = mes
+		testNodeObject.messenger = mes
 		testNodeObject.pk = kp.pk
 		testNodeObject.blkProcessor = blkProcessor
 		testNodeObject.blkc = blkc

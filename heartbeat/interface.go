@@ -15,7 +15,7 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap(numSecondsToWait uint32) error
+	Bootstrap() error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
@@ -61,9 +61,7 @@ type HeartbeatStorageHandler interface {
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
-	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	IsInterfaceNil() bool
 }

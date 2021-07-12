@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -29,7 +30,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 
 	arguments := track.ArgBlockProcessor{
 		HeaderValidator:  headerValidator,
-		RequestHandler:   &mock.RequestHandlerStub{},
+		RequestHandler:   &testscommon.RequestHandlerStub{},
 		ShardCoordinator: shardCoordinatorMock,
 		BlockTracker:     &mock.BlockTrackerHandlerMock{},
 		CrossNotarizer:   &mock.BlockNotarizerHandlerMock{},
@@ -716,7 +717,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfHeaderIsNil(t *testing.T) {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			called = true
 		},
@@ -741,7 +742,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfSortedHeadersAreEmpty(t *testi
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			called = true
 		},
@@ -766,7 +767,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfNodeIsSync(t *testing.T) {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			called = true
 		},
@@ -792,7 +793,7 @@ func TestRequestHeadersIfNeeded_ShouldNotRequestIfLongestChainHasAdvanced(t *tes
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			called = true
 		},
@@ -827,7 +828,7 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 	calledShard := false
 	mutCalled.Unlock()
 
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			wg.Done()
 			mutCalled.Lock()
@@ -893,7 +894,7 @@ func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uin
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			called = true
 		},
@@ -933,7 +934,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	called := false
 	mutCalled.Unlock()
 
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			wg.Done()
 			mutCalled.Lock()
@@ -986,7 +987,7 @@ func TestRequestHeaders_ShouldAddAndRequestForShardHeaders(t *testing.T) {
 
 	shardIDRequestCalled := make([]uint32, 0)
 	nonceRequestCalled := make([]uint64, 0)
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
 			mutRequest.Lock()
 			shardIDRequestCalled = append(shardIDRequestCalled, shardId)
@@ -1040,7 +1041,7 @@ func TestRequestHeaders_ShouldAddAndRequestForMetaHeaders(t *testing.T) {
 
 	shardIDRequestCalled := make([]uint32, 0)
 	nonceRequestCalled := make([]uint64, 0)
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
+	blockProcessorArguments.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequest.Lock()
 			shardIDRequestCalled = append(shardIDRequestCalled, core.MetachainShardId)

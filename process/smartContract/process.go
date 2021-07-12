@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,7 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -35,33 +36,37 @@ const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 // TODO: Move to vm-common.
 const upgradeFunctionName = "upgradeContract"
 
+// TooMuchGasProvidedMessage is the message for the too much gas provided error
+const TooMuchGasProvidedMessage = "too much gas provided"
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts                            state.AccountsAdapter
-	blockChainHook                      process.BlockChainHookHandler
-	pubkeyConv                          core.PubkeyConverter
-	hasher                              hashing.Hasher
-	marshalizer                         marshal.Marshalizer
-	shardCoordinator                    sharding.Coordinator
-	vmContainer                         process.VirtualMachinesContainer
-	argsParser                          process.ArgumentsParser
-	builtInFunctions                    process.BuiltInFunctionContainer
-	deployEnableEpoch                   uint32
-	builtinEnableEpoch                  uint32
-	penalizedTooMuchGasEnableEpoch      uint32
-	repairCallBackEnableEpoch           uint32
-	stakingV2EnableEpoch                uint32
-	returnDataToLastTransferEnableEpoch uint32
-	senderInOutTransferEnableEpoch      uint32
-	flagStakingV2                       atomic.Flag
-	flagDeploy                          atomic.Flag
-	flagBuiltin                         atomic.Flag
-	flagPenalizedTooMuchGas             atomic.Flag
-	flagRepairCallBackData              atomic.Flag
-	flagReturnDataToLastTransfer        atomic.Flag
-	flagSenderInOutTransfer             atomic.Flag
-	isGenesisProcessing                 bool
+	accounts                                    state.AccountsAdapter
+	blockChainHook                              process.BlockChainHookHandler
+	pubkeyConv                                  core.PubkeyConverter
+	hasher                                      hashing.Hasher
+	marshalizer                                 marshal.Marshalizer
+	shardCoordinator                            sharding.Coordinator
+	vmContainer                                 process.VirtualMachinesContainer
+	argsParser                                  process.ArgumentsParser
+	deployEnableEpoch                           uint32
+	builtinEnableEpoch                          uint32
+	penalizedTooMuchGasEnableEpoch              uint32
+	repairCallBackEnableEpoch                   uint32
+	stakingV2EnableEpoch                        uint32
+	returnDataToLastTransferEnableEpoch         uint32
+	senderInOutTransferEnableEpoch              uint32
+	incrementSCRNonceInMultiTransferEnableEpoch uint32
+	flagStakingV2                               atomic.Flag
+	flagDeploy                                  atomic.Flag
+	flagBuiltin                                 atomic.Flag
+	flagPenalizedTooMuchGas                     atomic.Flag
+	flagRepairCallBackData                      atomic.Flag
+	flagReturnDataToLastTransfer                atomic.Flag
+	flagSenderInOutTransfer                     atomic.Flag
+	flagIncrementSCRNonceInMultiTransfer        atomic.Flag
+	arwenChangeLocker                           process.Locker
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -70,40 +75,43 @@ type scProcessor struct {
 	txTypeHandler  process.TxTypeHandler
 	gasHandler     process.GasHandler
 
-	builtInGasCosts map[string]uint64
-	mutGasLock      sync.RWMutex
-
-	txLogsProcessor process.TransactionLogProcessor
+	builtInGasCosts     map[string]uint64
+	mutGasLock          sync.RWMutex
+	txLogsProcessor     process.TransactionLogProcessor
+	vmOutputCacher      storage.Cacher
+	isGenesisProcessing bool
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer                         process.VirtualMachinesContainer
-	ArgsParser                          process.ArgumentsParser
-	Hasher                              hashing.Hasher
-	Marshalizer                         marshal.Marshalizer
-	AccountsDB                          state.AccountsAdapter
-	BlockChainHook                      process.BlockChainHookHandler
-	PubkeyConv                          core.PubkeyConverter
-	ShardCoordinator                    sharding.Coordinator
-	ScrForwarder                        process.IntermediateTransactionHandler
-	TxFeeHandler                        process.TransactionFeeHandler
-	EconomicsFee                        process.FeeHandler
-	TxTypeHandler                       process.TxTypeHandler
-	GasHandler                          process.GasHandler
-	GasSchedule                         core.GasScheduleNotifier
-	BuiltInFunctions                    process.BuiltInFunctionContainer
-	TxLogsProcessor                     process.TransactionLogProcessor
-	BadTxForwarder                      process.IntermediateTransactionHandler
-	DeployEnableEpoch                   uint32
-	BuiltinEnableEpoch                  uint32
-	PenalizedTooMuchGasEnableEpoch      uint32
-	RepairCallbackEnableEpoch           uint32
-	StakingV2EnableEpoch                uint32
-	ReturnDataToLastTransferEnableEpoch uint32
-	SenderInOutTransferEnableEpoch      uint32
-	EpochNotifier                       process.EpochNotifier
-	IsGenesisProcessing                 bool
+	VmContainer                                 process.VirtualMachinesContainer
+	ArgsParser                                  process.ArgumentsParser
+	Hasher                                      hashing.Hasher
+	Marshalizer                                 marshal.Marshalizer
+	AccountsDB                                  state.AccountsAdapter
+	BlockChainHook                              process.BlockChainHookHandler
+	PubkeyConv                                  core.PubkeyConverter
+	ShardCoordinator                            sharding.Coordinator
+	ScrForwarder                                process.IntermediateTransactionHandler
+	TxFeeHandler                                process.TransactionFeeHandler
+	EconomicsFee                                process.FeeHandler
+	TxTypeHandler                               process.TxTypeHandler
+	GasHandler                                  process.GasHandler
+	GasSchedule                                 core.GasScheduleNotifier
+	TxLogsProcessor                             process.TransactionLogProcessor
+	BadTxForwarder                              process.IntermediateTransactionHandler
+	DeployEnableEpoch                           uint32
+	BuiltinEnableEpoch                          uint32
+	PenalizedTooMuchGasEnableEpoch              uint32
+	RepairCallbackEnableEpoch                   uint32
+	StakingV2EnableEpoch                        uint32
+	ReturnDataToLastTransferEnableEpoch         uint32
+	SenderInOutTransferEnableEpoch              uint32
+	IncrementSCRNonceInMultiTransferEnableEpoch uint32
+	EpochNotifier                               process.EpochNotifier
+	VMOutputCacher                              storage.Cacher
+	ArwenChangeLocker                           process.Locker
+	IsGenesisProcessing                         bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -150,9 +158,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return nil, process.ErrNilGasSchedule
 	}
-	if check.IfNil(args.BuiltInFunctions) {
-		return nil, process.ErrNilBuiltInFunction
-	}
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
@@ -161,6 +166,12 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
+	}
+	if check.IfNilReflect(args.ArwenChangeLocker) {
+		return nil, process.ErrNilLocker
+	}
+	if check.IfNil(args.VMOutputCacher) {
+		return nil, process.ErrNilCacher
 	}
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
@@ -179,7 +190,6 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		txTypeHandler:                       args.TxTypeHandler,
 		gasHandler:                          args.GasHandler,
 		builtInGasCosts:                     builtInFuncCost,
-		builtInFunctions:                    args.BuiltInFunctions,
 		txLogsProcessor:                     args.TxLogsProcessor,
 		badTxForwarder:                      args.BadTxForwarder,
 		deployEnableEpoch:                   args.DeployEnableEpoch,
@@ -190,6 +200,10 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		stakingV2EnableEpoch:                args.StakingV2EnableEpoch,
 		returnDataToLastTransferEnableEpoch: args.ReturnDataToLastTransferEnableEpoch,
 		senderInOutTransferEnableEpoch:      args.SenderInOutTransferEnableEpoch,
+		arwenChangeLocker:                   args.ArwenChangeLocker,
+		vmOutputCacher:                      args.VMOutputCacher,
+
+		incrementSCRNonceInMultiTransferEnableEpoch: args.IncrementSCRNonceInMultiTransferEnableEpoch,
 	}
 
 	log.Debug("smartContract/process: enable epoch for sc deploy", "epoch", sc.deployEnableEpoch)
@@ -197,6 +211,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	log.Debug("smartContract/process: enable epoch for repair callback", "epoch", sc.repairCallBackEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for penalized too much gas", "epoch", sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("smartContract/process: enable epoch for staking v2", "epoch", sc.stakingV2EnableEpoch)
+	log.Debug("smartContract/process: enable epoch for increment SCR nonce in multi transfer",
+		"epoch", sc.incrementSCRNonceInMultiTransferEnableEpoch)
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
 	args.GasSchedule.RegisterNotifyHandler(sc)
@@ -313,8 +329,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	snapshot := sc.accounts.JournalLen()
 
-	var vmOutput *vmcommon.VMOutput
-	vmOutput, err = sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
+	vmOutput, err := sc.executeSmartContractCall(vmInput, tx, txHash, snapshot, acntSnd, acntDst)
 	if err != nil {
 		return returnCode, err
 	}
@@ -349,11 +364,14 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
+	sc.arwenChangeLocker.RLock()
+
 	userErrorVmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 	vmExec, err := findVMByScAddress(sc.vmContainer, vmInput.RecipientAddr)
 	if err != nil {
+		sc.arwenChangeLocker.RUnlock()
 		returnMessage := "cannot get vm from address"
 		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
@@ -361,6 +379,7 @@ func (sc *scProcessor) executeSmartContractCall(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -376,15 +395,10 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return nil, err
-	}
-
-	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
-	if ignorableError != nil {
-		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
 	return vmOutput, nil
@@ -410,9 +424,16 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("scProcessor.ExecuteBuiltInFunction txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
+
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return vmcommon.Ok, nil
 }
@@ -684,7 +705,7 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 	return cleanSCRs
 }
 
-func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) error {
 	if !check.IfNil(acntSnd) {
 		err := sc.accounts.SaveAccount(acntSnd)
 		if err != nil {
@@ -757,14 +778,21 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
-	vmOutput, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = sc.resolveBuiltInFunctions(vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return 0, err
+	}
+
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "function", "ExecuteBultInFunction.computeBuiltInFuncGasUsed")
+	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
 		vmOutput.GasRemaining += vmInput.GasLocked
@@ -831,6 +859,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		if len(newSCRTxs) > 0 {
 			scrResults = append(scrResults, newSCRTxs...)
 		}
+
+		mergeVMOutputLogs(newVMOutput, vmOutput)
 	}
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
@@ -859,6 +889,17 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+}
+
+func mergeVMOutputLogs(newVMOutput *vmcommon.VMOutput, vmOutput *vmcommon.VMOutput) {
+	if len(vmOutput.Logs) == 0 {
+		return
+	}
+
+	if newVMOutput.Logs == nil {
+		newVMOutput.Logs = make([]*vmcommon.LogEntry, 0, len(vmOutput.Logs))
+	}
+	newVMOutput.Logs = append(newVMOutput.Logs, vmOutput.Logs...)
 }
 
 func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
@@ -891,32 +932,18 @@ func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
 }
 
 func (sc *scProcessor) resolveBuiltInFunctions(
-	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 
-	vmOutput := &vmcommon.VMOutput{
-		ReturnCode: vmcommon.UserError,
-	}
-
-	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
-	if err != nil {
-		vmOutput.ReturnMessage = err.Error()
-		return vmOutput, nil
-	}
-
-	vmOutput, err = builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	vmOutput, err := sc.blockChainHook.ProcessBuiltInFunction(vmInput)
 	if err != nil {
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
 			GasRemaining:  0,
 		}
-	}
 
-	err = sc.saveAccounts(acntSnd, acntDst)
-	if err != nil {
-		return nil, err
+		return vmOutput, nil
 	}
 
 	return vmOutput, nil
@@ -1006,15 +1033,16 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       callType,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    scExecuteOutTransfer.GasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             callType,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          scExecuteOutTransfer.GasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     recipient,
 		Function:          function,
@@ -1046,15 +1074,16 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 
 	newVMInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     vmInput.CallerAddr,
-			Arguments:      arguments,
-			CallValue:      big.NewInt(0),
-			CallType:       vmcommon.AsynchronousCallBack,
-			GasPrice:       vmInput.GasPrice,
-			GasProvided:    gasLimit,
-			GasLocked:      vmInput.GasLocked,
-			OriginalTxHash: vmInput.OriginalTxHash,
-			CurrentTxHash:  vmInput.CurrentTxHash,
+			CallerAddr:           vmInput.CallerAddr,
+			Arguments:            arguments,
+			CallValue:            big.NewInt(0),
+			CallType:             vmcommon.AsynchronousCallBack,
+			GasPrice:             vmInput.GasPrice,
+			GasProvided:          gasLimit,
+			GasLocked:            vmInput.GasLocked,
+			OriginalTxHash:       vmInput.OriginalTxHash,
+			CurrentTxHash:        vmInput.CurrentTxHash,
+			ReturnCallAfterError: vmInput.ReturnCallAfterError,
 		},
 		RecipientAddr:     vmInput.RecipientAddr,
 		Function:          "callBack",
@@ -1137,6 +1166,11 @@ func (sc *scProcessor) ProcessIfError(
 	snapshot int,
 	gasLocked uint64,
 ) error {
+	sc.vmOutputCacher.Put(txHash, &vmcommon.VMOutput{
+		ReturnCode:    vmcommon.SimulateFailed,
+		ReturnMessage: string(returnMessage),
+	}, 0)
+
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
@@ -1145,6 +1179,11 @@ func (sc *scProcessor) ProcessIfError(
 
 	if len(returnMessage) == 0 && sc.flagDeploy.IsSet() {
 		returnMessage = []byte(returnCode)
+	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		return err
 	}
 
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
@@ -1322,7 +1361,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
-
 	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
@@ -1335,13 +1373,16 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
+	sc.arwenChangeLocker.RLock()
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
+		sc.arwenChangeLocker.RUnlock()
 		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
+	sc.arwenChangeLocker.RUnlock()
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
@@ -1369,7 +1410,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) // nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return 0, err
@@ -1390,6 +1431,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
+
+	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return 0, nil
 }
@@ -1573,8 +1616,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		}
 	}
 
-	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
-		gasUsed, vmOutput.GasRemaining)
+	vmOutput.ReturnMessage += fmt.Sprintf("%s: gas needed = %d, gas remained = %d",
+		TooMuchGasProvidedMessage, gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
 }
 
@@ -1693,11 +1736,12 @@ func createBaseSCR(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
+	transferNonce uint64,
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
 	result.Value = big.NewInt(0)
-	result.Nonce = outAcc.Nonce
+	result.Nonce = outAcc.Nonce + transferNonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
@@ -1764,7 +1808,7 @@ func (sc *scProcessor) createSmartContractResults(
 
 	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		result := createBaseSCR(outAcc, tx, txHash)
+		result := createBaseSCR(outAcc, tx, txHash, 0)
 		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 
 		return false, []data.TransactionHandler{result}
@@ -1773,13 +1817,13 @@ func (sc *scProcessor) createSmartContractResults(
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
 		if callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
-			result := createBaseSCR(outAcc, tx, txHash)
+			result := createBaseSCR(outAcc, tx, txHash, 0)
 			sc.addVMOutputResultsToSCR(vmOutput, result)
 			return true, []data.TransactionHandler{result}
 		}
 
 		if !sc.flagDeploy.IsSet() {
-			result := createBaseSCR(outAcc, tx, txHash)
+			result := createBaseSCR(outAcc, tx, txHash, 0)
 			result.Code = outAcc.Code
 			result.Value.Set(outAcc.BalanceDelta)
 			if result.Value.Cmp(zero) > 0 {
@@ -1796,7 +1840,11 @@ func (sc *scProcessor) createSmartContractResults(
 	var result *smartContractResult.SmartContractResult
 	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
 	for i, outputTransfer := range outAcc.OutputTransfers {
-		result = createBaseSCR(outAcc, tx, txHash)
+		transferNonce := uint64(0)
+		if sc.flagIncrementSCRNonceInMultiTransfer.IsSet() {
+			transferNonce = uint64(i)
+		}
+		result = createBaseSCR(outAcc, tx, txHash, transferNonce)
 
 		if outputTransfer.Value != nil {
 			result.Value.Set(outputTransfer.Value)
@@ -1875,11 +1923,6 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 		return true
 	}
 	function, args, err := sc.argsParser.ParseCallData(string(data))
-	if err != nil {
-		return false
-	}
-
-	_, err = sc.builtInFunctions.Get(function)
 	if err != nil {
 		return false
 	}
@@ -2115,7 +2158,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Info("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 
@@ -2136,7 +2179,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 		}
 
 		if check.IfNil(acc) {
-			//TODO: sharded Smart Contract processing
+			// TODO: sharded Smart Contract processing
 			continue
 		}
 
@@ -2321,6 +2364,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 
 	sc.flagSenderInOutTransfer.Toggle(epoch >= sc.senderInOutTransferEnableEpoch)
 	log.Debug("scProcessor: sender in output transfer", "enabled", sc.flagSenderInOutTransfer.IsSet())
+
+	sc.flagIncrementSCRNonceInMultiTransfer.Toggle(epoch >= sc.incrementSCRNonceInMultiTransferEnableEpoch)
+	log.Debug("scProcessor: increment SCR nonce in multi transfer", "enabled", sc.flagIncrementSCRNonceInMultiTransfer.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func TestGetDataFromStorage_NotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	localErr := errors.New("not found")
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return nil, localErr
 		},
@@ -37,7 +37,7 @@ func TestGetDataFromStorage_FoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expRes := []byte("result")
-	storer := &mock.StorerStub{
+	storer := &testscommon.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			return expRes, nil
 		},

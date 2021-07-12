@@ -74,7 +74,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNonce, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
-	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
@@ -126,7 +126,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricMinTransactionVersion, uint64(minTransactionVersion))
 	appStatusHandler.SetStringValue(core.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetStringValue(core.MetricInflation, initZeroString)
-	appStatusHandler.SetStringValue(core.MetricDevRewards, initZeroString)
+	appStatusHandler.SetStringValue(core.MetricDevRewardsInEpoch, initZeroString)
 	appStatusHandler.SetStringValue(core.MetricTotalFees, initZeroString)
 	appStatusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, initUint)
 
@@ -151,6 +151,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricGovernanceEnableEpoch, uint64(enableEpochs.GovernanceEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDelegationManagerEnableEpoch, uint64(enableEpochs.DelegationManagerEnableEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricDelegationSmartContractEnableEpoch, uint64(enableEpochs.DelegationSmartContractEnableEpoch))
+	appStatusHandler.SetUInt64Value(core.MetricIncrementSCRNonceInMultiTransferEnableEpoch, uint64(enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch))
 
 	var consensusGroupSize uint32
 	switch {

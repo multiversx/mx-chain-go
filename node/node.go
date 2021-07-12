@@ -19,8 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -37,6 +37,8 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/data/esdt"
 )
 
 const (
@@ -202,6 +204,10 @@ func (n *Node) GetUsername(address string) (string, error) {
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
 	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
 	if err != nil {
 		return nil, err
@@ -222,8 +228,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -239,17 +244,8 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 			continue
 		}
 
-		esdtToken := &systemSmartContracts.ESDTData{}
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
-		if err != nil {
-			log.Warn("cannot unmarshal", "token name", tokenName, "err", err)
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !okGet {
 			continue
 		}
 
@@ -259,6 +255,24 @@ func (n *Node) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 	}
 
 	return tokens, nil
+}
+
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTData, bool) {
+	esdtToken := &systemSmartContracts.ESDTData{}
+	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
+	value, errVal := leaf.ValueWithoutSuffix(suffix)
+	if errVal != nil {
+		log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
+		return nil, false
+	}
+
+	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+	if err != nil {
+		log.Warn("cannot unmarshal esdt data", "err", err)
+		return nil, false
+	}
+
+	return esdtToken, true
 }
 
 // GetKeyValuePairs returns all the key-value pairs under the address
@@ -282,8 +296,7 @@ func (n *Node) GetKeyValuePairs(address string) (map[string]string, error) {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +376,102 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64) (*esdt.ESDigit
 	return esdtToken, nil
 }
 
+func (n *Node) getTokensIDsWithFilter(filterFunc func(esdtData *systemSmartContracts.ESDTData) bool) ([]string, error) {
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
+
+	account, err := n.getAccountHandlerForPubKey(vm.ESDTSCAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	tokens := make([]string, 0)
+	if check.IfNil(userAccount.DataTrie()) {
+		return tokens, nil
+	}
+
+	rootHash, err := userAccount.DataTrie().RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	for leaf := range chLeaves {
+		tokenName := string(leaf.Key())
+		if !strings.Contains(tokenName, "-") {
+			continue
+		}
+
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		if !okGet {
+			continue
+		}
+
+		if filterFunc(esdtToken) {
+			tokens = append(tokens, tokenName)
+		}
+	}
+
+	return tokens, nil
+}
+
+// GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address
+func (n *Node) GetNFTTokenIDsRegisteredByAddress(address string) ([]string, error) {
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, err
+	}
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return !bytes.Equal(esdtData.TokenType, []byte(core.FungibleESDT)) && bytes.Equal(esdtData.OwnerAddress, addressBytes)
+	}
+
+	return n.getTokensIDsWithFilter(filterFunc)
+}
+
+// GetESDTsWithRole returns all the tokens with the given role for the given address
+func (n *Node) GetESDTsWithRole(address string, role string) ([]string, error) {
+	if !core.IsValidESDTRole(role) {
+		return nil, ErrInvalidESDTRole
+	}
+
+	addressBytes, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, err
+	}
+
+	filterFunc := func(esdtData *systemSmartContracts.ESDTData) bool {
+		return isTokenWithRoleForAddress(addressBytes, role, esdtData)
+	}
+
+	return n.getTokensIDsWithFilter(filterFunc)
+}
+
+func isTokenWithRoleForAddress(addressBytes []byte, role string, token *systemSmartContracts.ESDTData) bool {
+	for _, esdtRoles := range token.SpecialRoles {
+		if !bytes.Equal(esdtRoles.Address, addressBytes) {
+			continue
+		}
+
+		for _, specialRole := range esdtRoles.Roles {
+			if bytes.Equal(specialRole, []byte(role)) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // GetAllESDTTokens returns all the ESDTs that the given address interacted with
 func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken, error) {
 	account, err := n.getAccountHandlerAPIAccounts(address)
@@ -388,8 +497,7 @@ func (n *Node) GetAllESDTTokens(address string) (map[string]*esdt.ESDigitalToken
 		return nil, err
 	}
 
-	ctx := context.Background()
-	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +552,7 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 	return formattedTokenIdentifier
 }
 
-func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
+func (n *Node) getAccountHandler(address string) (vmcommon.AccountHandler, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
@@ -456,7 +564,7 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 }
 
-func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandler, error) {
+func (n *Node) getAccountHandlerAPIAccounts(address string) (vmcommon.AccountHandler, error) {
 	componentsNotInitialized := check.IfNil(n.coreComponents.AddressPubKeyConverter()) ||
 		check.IfNil(n.stateComponents.AccountsAdapterAPI()) ||
 		check.IfNil(n.dataComponents.Blockchain())
@@ -472,7 +580,7 @@ func (n *Node) getAccountHandlerAPIAccounts(address string) (state.AccountHandle
 	return n.getAccountHandlerForPubKey(addr)
 }
 
-func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler, error) {
+func (n *Node) getAccountHandlerForPubKey(address []byte) (vmcommon.AccountHandler, error) {
 	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
 		return nil, ErrNilBlockHeader
@@ -486,7 +594,7 @@ func (n *Node) getAccountHandlerForPubKey(address []byte) (state.AccountHandler,
 	return n.stateComponents.AccountsAdapterAPI().GetExistingAccount(address)
 }
 
-func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
+func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserAccountHandler, bool) {
 	if check.IfNil(ah) {
 		return nil, false
 	}
@@ -856,38 +964,58 @@ func (n *Node) CreateTransaction(
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
+func (n *Node) GetAccount(address string) (api.AccountResponse, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
-		return nil, ErrNilPubkeyConverter
+		return api.AccountResponse{}, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return nil, ErrNilAccountsAdapter
+		return api.AccountResponse{}, ErrNilAccountsAdapter
 	}
 
 	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
 	if err != nil {
-		return nil, err
+		return api.AccountResponse{}, err
 	}
 
 	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return state.NewUserAccount(addr)
+			return api.AccountResponse{
+				Address:         address,
+				Balance:         "0",
+				DeveloperReward: "0",
+			}, nil
 		}
-		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
+		return api.AccountResponse{}, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
-		return nil, errors.New("account is not of type with balance and nonce")
+		return api.AccountResponse{}, errors.New("account is not of type with balance and nonce")
 	}
 
-	return account, nil
+	ownerAddress := ""
+	if len(account.GetOwnerAddress()) > 0 {
+		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
+		ownerAddress = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+	}
+
+	return api.AccountResponse{
+		Address:         address,
+		Nonce:           account.GetNonce(),
+		Balance:         account.GetBalance().String(),
+		Username:        string(account.GetUserName()),
+		CodeHash:        account.GetCodeHash(),
+		RootHash:        account.GetRootHash(),
+		CodeMetadata:    account.GetCodeMetadata(),
+		DeveloperReward: account.GetDeveloperReward().String(),
+		OwnerAddress:    ownerAddress,
+	}, nil
 }
 
-// GetCode returns the code for the given account
-func (n *Node) GetCode(account state.UserAccountHandler) []byte {
-	return n.stateComponents.AccountsAdapter().GetCode(account.GetCodeHash())
+// GetCode returns the code for the given code hash
+func (n *Node) GetCode(codeHash []byte) []byte {
+	return n.stateComponents.AccountsAdapter().GetCode(codeHash)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json

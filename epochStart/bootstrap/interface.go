@@ -48,3 +48,10 @@ type RequestHandler interface {
 	GetNumPeersToQuery(topic string) (int, int, error)
 	IsInterfaceNil() bool
 }
+
+// NodeTypeProviderHandler defines the actions needed for a component that can handle the node type
+type NodeTypeProviderHandler interface {
+	SetType(nodeType core.NodeType)
+	GetType() core.NodeType
+	IsInterfaceNil() bool
+}

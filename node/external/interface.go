@@ -1,16 +1,17 @@
 package external
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
 	ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
+	Close() error
 	IsInterfaceNil() bool
 }
 

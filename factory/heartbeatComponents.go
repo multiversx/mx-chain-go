@@ -130,7 +130,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	}
 
 	peerSubType := core.RegularPeer
-	if hcf.config.StoragePruning.FullArchive {
+	if hcf.prefs.Preferences.FullArchive {
 		peerSubType = core.FullHistoryObserver
 	}
 

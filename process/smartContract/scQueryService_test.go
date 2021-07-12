@@ -10,20 +10,32 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb99089770720a"
 
+func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
+	return ArgsNewSCQueryService{
+		VmContainer:       &mock.VMContainerMock{},
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+}
+
 func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(nil, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+	args := createMockArgumentsForSCQuery()
+	args.VmContainer = nil
+	target, err := NewSCQueryService(args)
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNoVM, err)
@@ -32,16 +44,52 @@ func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+	args := createMockArgumentsForSCQuery()
+	args.EconomicsFee = nil
+	target, err := NewSCQueryService(args)
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewSCQueryService_NilBLockChainShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.BlockChain = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilBlockChain, err)
+}
+
+func TestNewSCQueryService_NilBLockChainHookShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.BlockChainHook = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilBlockChainHook, err)
+}
+
+func TestNewSCQueryService_NilArwenLockerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForSCQuery()
+	args.ArwenChangeLocker = nil
+	target, err := NewSCQueryService(args)
+
+	assert.Nil(t, target)
+	assert.Equal(t, process.ErrNilLocker, err)
+}
+
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+	args := createMockArgumentsForSCQuery()
+	target, err := NewSCQueryService(args)
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
@@ -51,7 +99,9 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+	args := createMockArgumentsForSCQuery()
+	args.VmContainer = nil
+	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
 		ScAddress: nil,
@@ -68,7 +118,9 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+	args := createMockArgumentsForSCQuery()
+	args.VmContainer = nil
+	target, _ := NewSCQueryService(args)
 
 	query := process.SCQuery{
 		ScAddress: []byte{0},
@@ -103,21 +155,19 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			}, nil
 		},
 	}
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
+		},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
+		},
+	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
-		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
-		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	dataArgs := make([][]byte, len(args))
 	for i, arg := range args {
@@ -147,20 +197,19 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	query := process.SCQuery{
 		ScAddress: []byte(DummyScAddress),
@@ -186,20 +235,19 @@ func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 			}, nil
 		},
 	}
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	query := process.SCQuery{
 		ScAddress: []byte(DummyScAddress),
@@ -235,20 +283,18 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	noOfGoRoutines := 50
 	wg := sync.WaitGroup{}
@@ -285,20 +331,18 @@ func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *tes
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	query := process.SCQuery{
 		ScAddress: []byte(DummyScAddress),
@@ -329,20 +373,18 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	query := process.SCQuery{
 		ScAddress:  []byte(DummyScAddress),
@@ -370,20 +412,18 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	tx := &transaction.Transaction{
 		RcvAddr: []byte(DummyScAddress),
@@ -409,20 +449,18 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 		},
 	}
 
-	target, _ := NewSCQueryService(
-		&mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return mockVM, nil
 		},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return uint64(math.MaxUint64)
-			},
+	}
+	argsNewSCQuery.EconomicsFee = &mock.FeeHandlerStub{
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return uint64(math.MaxUint64)
 		},
-		&mock.BlockChainHookHandlerMock{},
-		&mock.BlockChainMock{},
-	)
+	}
+	target, _ := NewSCQueryService(argsNewSCQuery)
 
 	tx := &transaction.Transaction{
 		RcvAddr: []byte(DummyScAddress),
@@ -430,4 +468,28 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 	}
 	_, err := target.ComputeScCallGasLimit(tx)
 	require.Equal(t, errors.New(message), err)
+}
+
+func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
+	t.Parallel()
+
+	closeCalled := false
+	argsNewSCQueryService := ArgsNewSCQueryService{
+		VmContainer: &mock.VMContainerMock{
+			CloseCalled: func() error {
+				closeCalled = true
+				return nil
+			},
+		},
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
+		BlockChain:        &mock.BlockChainMock{},
+		ArwenChangeLocker: &sync.RWMutex{},
+	}
+
+	target, _ := NewSCQueryService(argsNewSCQueryService)
+
+	err := target.Close()
+	assert.Nil(t, err)
+	assert.True(t, closeCalled)
 }

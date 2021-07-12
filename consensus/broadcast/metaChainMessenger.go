@@ -101,8 +101,8 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 
 	selfIdentifier := mcm.shardCoordinator.CommunicationIdentifier(mcm.shardCoordinator.SelfId())
 
-	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
-	go mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
 
 	return nil
 }
@@ -118,7 +118,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 		return err
 	}
 
-	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }

@@ -21,8 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +41,7 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -70,7 +72,7 @@ func TestGetBlockByHash_NilStoreShouldErr(t *testing.T) {
 func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -109,7 +111,7 @@ func TestGetBlockByHash_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -200,7 +202,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	coreComponentsMock.UInt64ByteSliceConv = uint64Converter
 	processComponentsMock := getDefaultProcessComponents()
 	processComponentsMock.ShardCoord = &mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}
-	processComponentsMock.HistoryRepositoryInternal = &testscommon.HistoryRepositoryStub{
+	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return false
 		},
@@ -264,7 +266,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -295,7 +297,7 @@ func TestGetBlockByNonce_NilStoreShouldErr(t *testing.T) {
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -399,7 +401,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		},
 	}
 
-	processComponentsMock.HistoryRepositoryInternal = &testscommon.HistoryRepositoryStub{
+	processComponentsMock.HistoryRepositoryInternal = &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return false
 		},
@@ -436,7 +438,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryRepositoryStub{
+	historyProc := &dblookupext.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -552,7 +554,7 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 			NoShards:     1,
 			CurrentShard: 0,
 		},
-		IntContainer:                   &mock.InterceptorsContainerStub{},
+		IntContainer:                   &testscommon.InterceptorsContainerStub{},
 		ResFinder:                      &mock.ResolversFinderStub{},
 		RoundHandlerField:              &testscommon.RoundHandlerMock{},
 		EpochTrigger:                   &testscommon.EpochStartTriggerStub{},
@@ -567,12 +569,12 @@ func getDefaultProcessComponents() *mock2.ProcessComponentsMock {
 		ValidatorProvider:              &mock.ValidatorsProviderStub{},
 		BlockTrack:                     &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:           &mock.PendingMiniBlocksHandlerStub{},
-		ReqHandler:                     &mock.RequestHandlerStub{},
+		ReqHandler:                     &testscommon.RequestHandlerStub{},
 		TxLogsProcess:                  &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:       &mock.HeaderValidatorStub{},
-		PeerMapper:                     &mock.NetworkShardingCollectorStub{},
-		WhiteListHandlerInternal:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxsInternal: &mock.WhiteListHandlerStub{},
+		PeerMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
+		WhiteListHandlerInternal:       &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxsInternal: &testscommon.WhiteListHandlerStub{},
 	}
 }
 
@@ -589,7 +591,7 @@ func getDefaultBootstrapComponents() *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
 			TrieHolder:      &mock.TriesHolderStub{},
-			StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+			StorageManagers: map[string]data.StorageManager{"0": &testscommon.StorageManagerStub{}},
 			BootstrapCalled: nil,
 		},
 		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},

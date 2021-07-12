@@ -1,19 +1,23 @@
 package metachain
 
 import (
+	"errors"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommonBuiltInFunctions "github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +25,8 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
-		Accounts: &mock.AccountsStub{
-			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		Accounts: &testscommon.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
@@ -32,7 +36,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Marshalizer:        &mock.MarshalizerMock{},
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions:   vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
@@ -40,11 +44,8 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	return arguments
 }
 
-func TestNewVMContainerFactory_OkValues(t *testing.T) {
-	t.Parallel()
-
-	gasSchedule := makeGasSchedule()
-	argsNewVmContainerFactory := ArgsNewVMContainerFactory{
+func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNewVMContainerFactory {
+	return ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   createMockVMAccountsArguments(),
 		Economics:           &economicsmocks.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
@@ -58,11 +59,12 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -77,7 +79,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
@@ -86,12 +88,163 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				StakeEnableEpoch:     0,
 			},
 		},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
+}
+
+func TestNewVMContainerFactory_NilEconomics(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.Economics = nil
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
-	assert.NotNil(t, vmf)
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilEconomicsData))
+}
+
+func TestNewVMContainerFactory_NilMessageSignVerifier(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.MessageSignVerifier = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilKeyGen))
+}
+
+func TestNewVMContainerFactory_NilNodesConfigProvider(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.NodesConfigProvider = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilNodesConfigProvider))
+}
+
+func TestNewVMContainerFactory_NilHasher(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.Hasher = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilHasher))
+}
+
+func TestNewVMContainerFactory_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.Marshalizer = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilMarshalizer))
+}
+
+func TestNewVMContainerFactory_NilSystemConfig(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.SystemSCConfig = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilSystemSCConfig))
+}
+
+func TestNewVMContainerFactory_NilValidatorAccountsDB(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ValidatorAccountsDB = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilValidatorAccountsDB))
+}
+
+func TestNewVMContainerFactory_NilChanceComputer(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ChanceComputer = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilChanceComputer))
+}
+
+func TestNewVMContainerFactory_NilGasSchedule(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.GasSchedule = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilGasSchedule))
+}
+
+func TestNewVMContainerFactory_NilPubkeyConverter(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ArgBlockChainHook.PubkeyConv = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilAddressPubKeyConverter))
+}
+
+func TestNewVMContainerFactory_NilBlockChainHookFails(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ArgBlockChainHook.Accounts = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+}
+
+func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.ShardCoordinator = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
+}
+
+func TestNewVMContainerFactory_OkValues(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.False(t, check.IfNil(vmf))
 	assert.Nil(t, err)
-	assert.False(t, vmf.IsInterfaceNil())
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
@@ -150,11 +303,13 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        "50",
+					MinPassThreshold: "50",
+					MinVetoThreshold: "50",
+				},
+				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
@@ -172,14 +327,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
 				MinStakeAmount:      "100",
-				ConfigChangeAddress: "aabb00",
+				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
 		},
-		ValidatorAccountsDB: &mock.AccountsStub{},
+		ValidatorAccountsDB: &testscommon.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
 		EpochConfig: &config.EpochConfig{
@@ -190,6 +345,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				DelegationSmartContractEnableEpoch: 0,
 			},
 		},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(1),
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)
@@ -205,9 +361,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 
-	vm, err := container.Get(factory.SystemVirtualMachine)
+	vmInstance, err := container.Get(factory.SystemVirtualMachine)
 	assert.Nil(t, err)
-	assert.NotNil(t, vm)
+	assert.NotNil(t, vmInstance)
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)

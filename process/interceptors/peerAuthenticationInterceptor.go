@@ -49,14 +49,15 @@ func NewPeerAuthenticationInterceptor(arg ArgPeerAuthenticationInterceptor) (*pe
 
 	interceptor := &peerAuthenticationInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:        arg.Throttler,
-			antifloodHandler: arg.AntifloodHandler,
-			topic:            arg.Topic,
-			currentPeerId:    arg.CurrentPeerId,
-			processor:        arg.Processor,
-			debugHandler:     resolver.NewDisabledInterceptorResolver(),
-			marshalizer:      arg.Marshalizer,
-			factory:          arg.DataFactory,
+			throttler:            arg.Throttler,
+			antifloodHandler:     arg.AntifloodHandler,
+			topic:                arg.Topic,
+			currentPeerId:        arg.CurrentPeerId,
+			processor:            arg.Processor,
+			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			marshalizer:          arg.Marshalizer,
+			factory:              arg.DataFactory,
+			preferredPeersHolder: arg.PreferredPeersHolder,
 		},
 		validatorChecker:            arg.ValidatorChecker,
 		peerAuthenticationProcessor: arg.AuthenticationProcessor,
@@ -69,7 +70,7 @@ func NewPeerAuthenticationInterceptor(arg ArgPeerAuthenticationInterceptor) (*pe
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (pai *peerAuthenticationInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	multiDataBuff, err := pai.preProcessMessage(message, fromConnectedPeer)
+	multiDataBuff, _, err := pai.preProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

@@ -150,7 +150,7 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 
 	economicsMetrics[core.MetricTotalSupply] = sm.loadStringMetric(core.MetricTotalSupply)
 	economicsMetrics[core.MetricTotalFees] = sm.loadStringMetric(core.MetricTotalFees)
-	economicsMetrics[core.MetricDevRewards] = sm.loadStringMetric(core.MetricDevRewards)
+	economicsMetrics[core.MetricDevRewardsInEpoch] = sm.loadStringMetric(core.MetricDevRewardsInEpoch)
 	economicsMetrics[core.MetricInflation] = sm.loadStringMetric(core.MetricInflation)
 	economicsMetrics[core.MetricEpochForEconomicsData] = sm.loadUint64Metric(core.MetricEpochForEconomicsData)
 
@@ -161,7 +161,7 @@ func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
 func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics := make(map[string]interface{})
 
-	configMetrics[core.MetricNumShardsWithoutMetacahin] = sm.loadUint64Metric(core.MetricNumShardsWithoutMetacahin)
+	configMetrics[core.MetricNumShardsWithoutMetachain] = sm.loadUint64Metric(core.MetricNumShardsWithoutMetachain)
 	configMetrics[core.MetricNumNodesPerShard] = sm.loadUint64Metric(core.MetricNumNodesPerShard)
 	configMetrics[core.MetricNumMetachainNodes] = sm.loadUint64Metric(core.MetricNumMetachainNodes)
 	configMetrics[core.MetricShardConsensusGroupSize] = sm.loadUint64Metric(core.MetricShardConsensusGroupSize)
@@ -207,6 +207,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() map[string]interface{} {
 	enableEpochsMetrics[core.MetricGovernanceEnableEpoch] = sm.loadUint64Metric(core.MetricGovernanceEnableEpoch)
 	enableEpochsMetrics[core.MetricDelegationManagerEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationManagerEnableEpoch)
 	enableEpochsMetrics[core.MetricDelegationSmartContractEnableEpoch] = sm.loadUint64Metric(core.MetricDelegationSmartContractEnableEpoch)
+	enableEpochsMetrics[core.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.loadUint64Metric(core.MetricIncrementSCRNonceInMultiTransferEnableEpoch)
 
 	return enableEpochsMetrics
 }

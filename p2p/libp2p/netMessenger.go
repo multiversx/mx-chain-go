@@ -35,7 +35,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
-	secio "github.com/libp2p/go-libp2p-secio"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -84,32 +83,34 @@ type networkMessenger struct {
 	pb         *pubsub.PubSub
 	ds         p2p.DirectSender
 	//TODO refactor this (connMonitor & connMonitorWrapper)
-	connMonitor         ConnectionMonitor
-	connMonitorWrapper  p2p.ConnectionMonitorWrapper
-	peerDiscoverer      p2p.PeerDiscoverer
-	sharder             p2p.Sharder
-	peerShardResolver   p2p.PeerShardResolver
-	mutPeerResolver     sync.RWMutex
-	mutTopics           sync.RWMutex
-	processors          map[string]*topicProcessors
-	topics              map[string]*pubsub.Topic
-	subscriptions       map[string]*pubsub.Subscription
-	outgoingPLB         p2p.ChannelLoadBalancer
-	poc                 *peersOnChannel
-	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
-	ip                  *identityProvider
-	connectionsMetric   *metrics.Connections
-	debugger            p2p.Debugger
-	marshalizer         p2p.Marshalizer
-	syncTimer           p2p.SyncTimer
+	connMonitor          ConnectionMonitor
+	connMonitorWrapper   p2p.ConnectionMonitorWrapper
+	peerDiscoverer       p2p.PeerDiscoverer
+	sharder              p2p.Sharder
+	peerShardResolver    p2p.PeerShardResolver
+	mutPeerResolver      sync.RWMutex
+	mutTopics            sync.RWMutex
+	processors           map[string]*topicProcessors
+	topics               map[string]*pubsub.Topic
+	subscriptions        map[string]*pubsub.Subscription
+	outgoingPLB          p2p.ChannelLoadBalancer
+	poc                  *peersOnChannel
+	goRoutinesThrottler  *throttler.NumGoRoutinesThrottler
+	ip                   *identityProvider
+	connectionsMetric    *metrics.Connections
+	debugger             p2p.Debugger
+	marshalizer          p2p.Marshalizer
+	syncTimer            p2p.SyncTimer
+	preferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	ListenAddress string
-	Marshalizer   p2p.Marshalizer
-	P2pConfig     config.P2PConfig
-	SyncTimer     p2p.SyncTimer
+	ListenAddress        string
+	Marshalizer          p2p.Marshalizer
+	P2pConfig            config.P2PConfig
+	SyncTimer            p2p.SyncTimer
+	PreferredPeersHolder p2p.PreferredPeersHolderHandler
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -119,6 +120,9 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	}
 	if check.IfNil(args.SyncTimer) {
 		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilSyncTimer)
+	}
+	if check.IfNil(args.PreferredPeersHolder) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilPreferredPeersHolder)
 	}
 
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
@@ -141,8 +145,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
-		//backwards compatibility
-		libp2p.Security(secio.ID, secio.New),
 	}
 
 	setupExternalP2PLoggers()
@@ -194,16 +196,17 @@ func createMessenger(
 ) (*networkMessenger, error) {
 	var err error
 	netMes := networkMessenger{
-		ctx:               ctx,
-		cancelFunc:        cancelFunc,
-		p2pHost:           NewConnectableHost(p2pHost),
-		processors:        make(map[string]*topicProcessors),
-		topics:            make(map[string]*pubsub.Topic),
-		subscriptions:     make(map[string]*pubsub.Subscription),
-		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
-		peerShardResolver: &unknownPeerShardResolver{},
-		marshalizer:       args.Marshalizer,
-		syncTimer:         args.SyncTimer,
+		ctx:                  ctx,
+		cancelFunc:           cancelFunc,
+		p2pHost:              NewConnectableHost(p2pHost),
+		processors:           make(map[string]*topicProcessors),
+		topics:               make(map[string]*pubsub.Topic),
+		subscriptions:        make(map[string]*pubsub.Subscription),
+		outgoingPLB:          loadBalancer.NewOutgoingChannelLoadBalancer(),
+		peerShardResolver:    &unknownPeerShardResolver{},
+		marshalizer:          args.Marshalizer,
+		syncTimer:            args.SyncTimer,
+		preferredPeersHolder: args.PreferredPeersHolder,
 	}
 	netMes.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pHost.ID()))
 
@@ -270,6 +273,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 			select {
 			case <-time.After(durationBetweenSends):
 			case <-netMes.ctx.Done():
+				log.Debug("closing networkMessenger's send from channel load balancer go routine")
 				return
 			}
 
@@ -323,16 +327,11 @@ func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
-		PeerShardResolver:       &unknownPeerShardResolver{},
-		Pid:                     netMes.p2pHost.ID(),
-		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
-		MaxIntraShardValidators: p2pConfig.Sharding.MaxIntraShardValidators,
-		MaxCrossShardValidators: p2pConfig.Sharding.MaxCrossShardValidators,
-		MaxIntraShardObservers:  p2pConfig.Sharding.MaxIntraShardObservers,
-		MaxCrossShardObservers:  p2pConfig.Sharding.MaxCrossShardObservers,
-		MaxSeeders:              p2pConfig.Sharding.MaxSeeders,
-		MaxFullHistoryObservers: p2pConfig.Sharding.MaxFullHistoryObservers,
-		Type:                    p2pConfig.Sharding.Type,
+		PeerShardResolver:    &unknownPeerShardResolver{},
+		Pid:                  netMes.p2pHost.ID(),
+		P2pConfig:            p2pConfig,
+		Type:                 p2pConfig.Sharding.Type,
+		PreferredPeersHolder: netMes.preferredPeersHolder,
 	}
 
 	var err error
@@ -364,6 +363,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Sharder:                    netMes.sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
 		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
+		PreferredPeersHolder:       netMes.preferredPeersHolder,
 	}
 	var err error
 	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)
@@ -385,7 +385,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 			select {
 			case <-time.After(durationCheckConnections):
 			case <-netMes.ctx.Done():
-				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				log.Debug("peer monitoring go routine is stopping...")
 				return
 			}
 		}
@@ -415,6 +415,7 @@ func (netMes *networkMessenger) printLogsStats() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.printLogsStats go routine")
 			return
 		case <-time.After(timeBetweenPeerPrints):
 		}
@@ -436,6 +437,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
 			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
+			"preferred peers histogram", netMes.mapHistogram(peersInfo.NumPreferredPeersOnShard),
 		)
 
 		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
@@ -479,6 +481,7 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 	for {
 		select {
 		case <-netMes.ctx.Done():
+			log.Debug("closing networkMessenger.checkExternalLoggers go routine")
 			return
 		case <-time.After(timeBetweenExternalLoggersCheck):
 		}
@@ -599,11 +602,10 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+func (netMes *networkMessenger) Bootstrap() error {
 	err := netMes.peerDiscoverer.Bootstrap()
 	if err == nil {
-		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
-		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+		log.Info("started the network discovery process...")
 	}
 	return err
 }
@@ -1136,15 +1138,16 @@ func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEva
 func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 	peers := netMes.p2pHost.Network().Peers()
 	connPeerInfo := &p2p.ConnectedPeersInfo{
-		UnknownPeers:         make([]string, 0),
-		Seeders:              make([]string, 0),
-		IntraShardValidators: make(map[uint32][]string),
-		IntraShardObservers:  make(map[uint32][]string),
-		CrossShardValidators: make(map[uint32][]string),
-		CrossShardObservers:  make(map[uint32][]string),
-		FullHistoryObservers: make(map[uint32][]string),
-		NumObserversOnShard:  make(map[uint32]int),
-		NumValidatorsOnShard: make(map[uint32]int),
+		UnknownPeers:             make([]string, 0),
+		Seeders:                  make([]string, 0),
+		IntraShardValidators:     make(map[uint32][]string),
+		IntraShardObservers:      make(map[uint32][]string),
+		CrossShardValidators:     make(map[uint32][]string),
+		CrossShardObservers:      make(map[uint32][]string),
+		FullHistoryObservers:     make(map[uint32][]string),
+		NumObserversOnShard:      make(map[uint32]int),
+		NumValidatorsOnShard:     make(map[uint32]int),
+		NumPreferredPeersOnShard: make(map[uint32]int),
 	}
 
 	netMes.mutPeerResolver.RLock()
@@ -1180,19 +1183,23 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			}
 		case core.ObserverPeer:
 			connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
-			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
-				connPeerInfo.NumCrossShardObservers++
-				break
-			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
 				connPeerInfo.NumFullHistoryObservers++
 				break
 			}
+			if selfPeerInfo.ShardID != peerInfo.ShardID {
+				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardObservers++
+				break
+			}
 
 			connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
 			connPeerInfo.NumIntraShardObservers++
+		}
+
+		if netMes.preferredPeersHolder.Contains(pid) {
+			connPeerInfo.NumPreferredPeersOnShard[peerInfo.ShardID]++
 		}
 	}
 

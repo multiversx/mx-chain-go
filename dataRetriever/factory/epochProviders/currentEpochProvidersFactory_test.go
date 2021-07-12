@@ -15,13 +15,10 @@ func TestCreateCurrentEpochProvider_NilCurrentEpochProvider(t *testing.T) {
 	t.Parallel()
 
 	cnep, err := CreateCurrentEpochProvider(
-		config.Config{
-			StoragePruning: config.StoragePruningConfig{
-				FullArchive: false,
-			},
-		},
+		config.Config{},
 		0,
 		0,
+		false,
 	)
 
 	assert.Nil(t, err)
@@ -33,15 +30,13 @@ func TestCreateCurrentEpochProvider_ArithemticEpochProvider(t *testing.T) {
 
 	cnep, err := CreateCurrentEpochProvider(
 		config.Config{
-			StoragePruning: config.StoragePruningConfig{
-				FullArchive: true,
-			},
 			EpochStartConfig: config.EpochStartConfig{
 				RoundsPerEpoch: 1,
 			},
 		},
 		1,
 		1,
+		true,
 	)
 	require.Nil(t, err)
 

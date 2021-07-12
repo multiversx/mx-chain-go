@@ -4,8 +4,8 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have
@@ -55,6 +55,7 @@ type SystemEI interface {
 	StatusFromValidatorStatistics(blsKey []byte) string
 	CanUnJail(blsKey []byte) bool
 	IsBadRating(blsKey []byte) bool
+	CleanStorageUpdates()
 
 	IsInterfaceNil() bool
 }
@@ -120,4 +121,6 @@ type BlockchainHook interface {
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
 	Close() error
+	GetSnapshot() int
+	RevertToSnapshot(snapshot int) error
 }

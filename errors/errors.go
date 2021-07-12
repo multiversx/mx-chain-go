@@ -404,9 +404,6 @@ var ErrPublicKeyMismatch = errors.New("public key mismatch between the computed 
 // ErrStatusPollingInit signals an error while initializing the application status polling
 var ErrStatusPollingInit = errors.New("cannot init AppStatusPolling")
 
-// ErrValidatorAlreadySet signals that the validator was already set
-var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
-
 // ErrWrongTypeAssertion signals a wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
@@ -454,3 +451,9 @@ var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
 // ErrNilNodeRedundancyHandler signals that a nil node redundancy handler was provided
 var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilLocker signals that a nil locker was provided
+var ErrNilLocker = errors.New("nil locker")
+
+// ErrNilCurrentEpochProvider signals that a nil current epoch provider was provided
+var ErrNilCurrentEpochProvider = errors.New("nil current epoch provider")

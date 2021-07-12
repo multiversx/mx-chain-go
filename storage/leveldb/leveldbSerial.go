@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -29,6 +31,7 @@ type SerialDB struct {
 	cancel            context.CancelFunc
 	mutClosed         sync.Mutex
 	closed            bool
+	closer            core.SafeCloser
 }
 
 // NewSerialDB is a constructor for the leveldb persister
@@ -68,6 +71,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		dbAccess:          make(chan serialQueryer),
 		cancel:            cancel,
 		closed:            false,
+		closer:            closing.NewSafeChanCloser(),
 	}
 
 	dbStore.batch = NewBatch()
@@ -153,7 +157,10 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return nil, err
+	}
 	result := <-ch
 	close(ch)
 
@@ -190,11 +197,23 @@ func (s *SerialDB) Has(key []byte) error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
 	return result
+}
+
+func (s *SerialDB) tryWriteInDbAccessChan(req serialQueryer) error {
+	select {
+	case s.dbAccess <- req:
+		return nil
+	case <-s.closer.ChanClose():
+		return storage.ErrSerialDBIsClosed
+	}
 }
 
 // Init initializes the storage medium and prepares it for usage
@@ -221,7 +240,10 @@ func (s *SerialDB) putBatch() error {
 		resChan: ch,
 	}
 
-	s.dbAccess <- req
+	err := s.tryWriteInDbAccessChan(req)
+	if err != nil {
+		return err
+	}
 	result := <-ch
 	close(ch)
 
@@ -244,6 +266,10 @@ func (s *SerialDB) Close() error {
 	if s.closed {
 		return nil
 	}
+
+	//calling close on the SafeCloser instance should be the last instruction called
+	//(just to close some go routines started as edge cases that would otherwise hang)
+	defer s.closer.Close()
 
 	s.closed = true
 	_ = s.putBatch()

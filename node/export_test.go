@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/factory"
 )
 
 // PutMiniblockFieldsInTransaction -
@@ -18,4 +19,14 @@ func (n *Node) PutResultsInTransaction(hash []byte, tx *transaction.ApiTransacti
 
 func (n *Node) PrepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
 	return n.prepareUnsignedTx(tx)
+}
+
+// AddClosableComponents -
+func (n *Node) AddClosableComponents(components ...factory.Closer) {
+	n.closableComponents = append(n.closableComponents, components...)
+}
+
+// ComputeTimestampForRound -
+func (n *Node) ComputeTimestampForRound(round uint64) int64 {
+	return n.computeTimestampForRound(round)
 }

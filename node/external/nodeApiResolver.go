@@ -2,10 +2,10 @@ package external
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
@@ -76,7 +76,7 @@ func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // Close closes all underlying components
 func (nar *nodeApiResolver) Close() error {
-	return nil
+	return nar.scQueryService.Close()
 }
 
 // GetTotalStakedValue will return total staked value

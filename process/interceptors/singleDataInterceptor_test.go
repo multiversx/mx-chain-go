@@ -11,19 +11,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:            "test topic",
-		DataFactory:      &mock.InterceptedDataFactoryStub{},
-		Processor:        &mock.InterceptorProcessorStub{},
-		Throttler:        createMockThrottler(),
-		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest: &mock.WhiteListHandlerStub{},
-		CurrentPeerId:    "pid",
+		Topic:                "test topic",
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
 	}
 }
 
@@ -117,6 +120,17 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
+}
+
+func TestNewSingleDataInterceptor_NilPreferredPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	arg.PreferredPeersHolder = nil
+	sdi, err := interceptors.NewSingleDataInterceptor(arg)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilPreferredPeersHolder, err)
 }
 
 func TestNewSingleDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {
@@ -226,7 +240,7 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return validityErr
 		},
@@ -264,7 +278,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -281,7 +295,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -317,7 +331,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},
@@ -347,7 +361,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 			}
 		},
 	}
-	arg.WhiteListRequest = &mock.WhiteListHandlerStub{
+	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -371,7 +385,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
+	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
 		},
@@ -380,7 +394,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 		},
 	}
 
-	whiteListHandler := &mock.WhiteListHandlerStub{
+	whiteListHandler := &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
 		},
@@ -453,6 +467,16 @@ func TestSingleDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T
 
 	assert.Nil(t, err)
 	assert.True(t, debugger == sdi.InterceptedDebugHandler()) //pointer testing
+}
+
+func TestSingleDataInterceptor_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
+
+	err := sdi.Close()
+	assert.Nil(t, err)
 }
 
 //------- IsInterfaceNil

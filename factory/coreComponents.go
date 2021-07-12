@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/nodetype"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -91,6 +92,7 @@ type coreComponents struct {
 	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
+	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
 }
 
@@ -285,6 +287,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ShuffleBetweenShards:           true,
 		MaxNodesEnableConfig:           ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 		BalanceWaitingListsEnableEpoch: ccf.epochConfig.EnableEpochs.BalanceWaitingListsEnableEpoch,
+		WaitingListFixEnableEpoch:      ccf.epochConfig.EnableEpochs.WaitingListFixEnableEpoch,
 	}
 
 	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
@@ -293,6 +296,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
+
+	// set as observer at first - it will be updated when creating the nodes coordinator
+	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
 	return &coreComponents{
 		hasher:                        hasher,
@@ -322,6 +328,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
+		nodeTypeProvider:              nodeTypeProvider,
 	}, nil
 }
 

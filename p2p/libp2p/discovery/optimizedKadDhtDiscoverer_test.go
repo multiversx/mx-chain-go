@@ -3,6 +3,7 @@ package discovery_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -168,6 +169,10 @@ func TestOptimizedKadDhtDiscoverer_BootstrapErrorsShouldKeepRetrying(t *testing.
 }
 
 func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	arg := createTestArgument()
@@ -175,14 +180,14 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	arg.Context, cancelFunc = context.WithCancel(context.Background())
 	bootstrapCalled := uint32(0)
 	expectedErr := errors.New("expected error")
-	connectCalled := uint32(0)
+	mutConnect := sync.Mutex{}
+	connectCalled := 0
 	arg.Host = &mock.ConnectableHostStub{
 		ConnectCalled: func(ctx context.Context, pi peer.AddrInfo) error {
-			atomic.AddUint32(&connectCalled, 1)
+			mutConnect.Lock()
+			defer mutConnect.Unlock()
 
-			if atomic.LoadUint32(&connectCalled) < uint32(5) {
-				return expectedErr
-			}
+			connectCalled++
 
 			return nil
 		},
@@ -205,11 +210,14 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	)
 
 	err := okdd.Bootstrap()
+	time.Sleep(time.Second)
 	okdd.ReconnectToNetwork(context.Background())
-	time.Sleep(time.Millisecond * 500) //the value is chosen as such as to avoid edgecases on select statement
+	time.Sleep(time.Millisecond * 500) //the value is chosen as such as to avoid edge cases on select statement
 	cancelFunc()
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&bootstrapCalled))
-	assert.Equal(t, uint32(6), atomic.LoadUint32(&connectCalled))
+	mutConnect.Lock()
+	assert.Equal(t, 2, connectCalled)
+	mutConnect.Unlock()
 }

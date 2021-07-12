@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // VMExecutionHandlerStub -
@@ -11,6 +11,15 @@ type VMExecutionHandlerStub struct {
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GasScheduleChangeCalled      func(newGasSchedule map[string]map[string]uint64)
+	GetVersionCalled             func() string
+}
+
+// GetVersionCalled -
+func (vm *VMExecutionHandlerStub) GetVersion() string {
+	if vm.GetVersionCalled != nil {
+		return vm.GetVersionCalled()
+	}
+	return ""
 }
 
 // RunSmartContractCreate computes how a smart contract creation should be performed

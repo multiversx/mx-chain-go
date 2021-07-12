@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ import (
 
 func TestNewStateImport(t *testing.T) {
 	trieStorageManagers := make(map[string]data.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &mock.StorageManagerStub{}
+	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 	tests := []struct {
 		name    string
 		args    ArgsNewStateImport
@@ -80,8 +81,8 @@ func TestImportAll(t *testing.T) {
 	t.Parallel()
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &mock.StorageManagerStub{}
-	trieStorageManagers[factory.PeerAccountTrie] = &mock.StorageManagerStub{}
+	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
+	trieStorageManagers[factory.PeerAccountTrie] = &testscommon.StorageManagerStub{}
 
 	args := ArgsNewStateImport{
 		HardforkStorer:      &mock.HardforkStorerStub{},
@@ -103,7 +104,7 @@ func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	trieStorageManagers[factory.UserAccountTrie] = &mock.StorageManagerStub{}
+	trieStorageManagers[factory.UserAccountTrie] = &testscommon.StorageManagerStub{}
 
 	hasher := &mock.HasherMock{}
 	marshahlizer := &mock.MarshalizerMock{}
