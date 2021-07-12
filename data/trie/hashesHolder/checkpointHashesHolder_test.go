@@ -17,8 +17,8 @@ func TestNewCheckpointHashesHolder(t *testing.T) {
 }
 
 type testValues struct {
-	keys   [][]byte
-	values []data.ModifiedHashes
+	rootHashes [][]byte
+	values     []data.ModifiedHashes
 }
 
 func getTestValues() *testValues {
@@ -42,8 +42,8 @@ func getTestValues() *testValues {
 	rootHash3 := []byte("rootHash3")
 
 	testData := &testValues{
-		keys:   [][]byte{rootHash1, rootHash2, rootHash3},
-		values: []data.ModifiedHashes{hashes1, hashes2, hashes3},
+		rootHashes: [][]byte{rootHash1, rootHash2, rootHash3},
+		values:     []data.ModifiedHashes{hashes1, hashes2, hashes3},
 	}
 
 	return testData
@@ -52,26 +52,26 @@ func getTestValues() *testValues {
 func TestCheckpointHashesHolder_Put(t *testing.T) {
 	t.Parallel()
 
-	chh := NewCheckpointHashesHolder(200, testscommon.HashSize)
+	chh := NewCheckpointHashesHolder(191, testscommon.HashSize)
 	testData := getTestValues()
 
-	shouldCreateCheckpoint := chh.Put(testData.keys[0], testData.values[0])
+	shouldCreateCheckpoint := chh.Put(testData.rootHashes[0], testData.values[0])
 	assert.False(t, shouldCreateCheckpoint)
-	shouldCreateCheckpoint = chh.Put(testData.keys[1], testData.values[1])
+	shouldCreateCheckpoint = chh.Put(testData.rootHashes[1], testData.values[1])
 	assert.True(t, shouldCreateCheckpoint)
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 
 	assert.Equal(t, 3, len(chh.hashes))
-	assert.Equal(t, 1, len(chh.hashes[0]))
-	assert.Equal(t, 1, len(chh.hashes[1]))
-	assert.Equal(t, 1, len(chh.hashes[2]))
+	assert.Equal(t, 3, len(chh.hashes[0]))
+	assert.Equal(t, 3, len(chh.hashes[1]))
+	assert.Equal(t, 3, len(chh.hashes[2]))
 
-	_, ok := chh.hashes[0][string(testData.keys[0])]
-	assert.True(t, ok)
-	_, ok = chh.hashes[1][string(testData.keys[1])]
-	assert.True(t, ok)
-	_, ok = chh.hashes[2][string(testData.keys[2])]
-	assert.True(t, ok)
+	assert.Equal(t, testData.rootHashes[0], chh.rootHashes[0])
+	assert.Equal(t, testData.values[0], chh.hashes[0])
+	assert.Equal(t, testData.rootHashes[1], chh.rootHashes[1])
+	assert.Equal(t, testData.values[1], chh.hashes[1])
+	assert.Equal(t, testData.rootHashes[2], chh.rootHashes[2])
+	assert.Equal(t, testData.values[2], chh.hashes[2])
 
 	assert.Equal(t, uint64(315), chh.currentSize)
 }
@@ -82,9 +82,9 @@ func TestCheckpointHashesHolder_ShouldCommit(t *testing.T) {
 	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[1], testData.values[1])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 
 	assert.True(t, chh.ShouldCommit([]byte("hash3")))
 	assert.True(t, chh.ShouldCommit([]byte("hash4")))
@@ -98,22 +98,22 @@ func TestCheckpointHashesHolder_RemoveCommitted(t *testing.T) {
 	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[1], testData.values[1])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 	assert.Equal(t, uint64(315), chh.currentSize)
 
-	chh.RemoveCommitted(testData.keys[1])
+	chh.RemoveCommitted(testData.rootHashes[1])
 	assert.Equal(t, 1, len(chh.hashes))
-	assert.Equal(t, 1, len(chh.hashes[0]))
+	assert.Equal(t, 3, len(chh.hashes[0]))
 	assert.Equal(t, uint64(105), chh.currentSize)
 
-	_, ok := chh.hashes[0][string(testData.keys[0])]
-	assert.False(t, ok)
-	_, ok = chh.hashes[0][string(testData.keys[1])]
-	assert.False(t, ok)
-	_, ok = chh.hashes[0][string(testData.keys[2])]
-	assert.True(t, ok)
+	assert.NotEqual(t, chh.rootHashes[0], testData.rootHashes[0])
+	assert.NotEqual(t, chh.hashes[0], testData.values[0])
+	assert.NotEqual(t, chh.rootHashes[0], testData.rootHashes[1])
+	assert.NotEqual(t, chh.hashes[0], testData.values[1])
+	assert.Equal(t, chh.rootHashes[0], testData.rootHashes[2])
+	assert.Equal(t, chh.hashes[0], testData.values[2])
 }
 
 func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing.T) {
@@ -122,15 +122,15 @@ func TestCheckpointHashesHolder_RemoveCommittedInvalidSizeComputation(t *testing
 	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[1], testData.values[1])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 	assert.Equal(t, uint64(315), chh.currentSize)
 	chh.currentSize = 0
 
-	chh.RemoveCommitted(testData.keys[1])
+	chh.RemoveCommitted(testData.rootHashes[1])
 	assert.Equal(t, 1, len(chh.hashes))
-	assert.Equal(t, 1, len(chh.hashes[0]))
+	assert.Equal(t, 3, len(chh.hashes[0]))
 	assert.Equal(t, uint64(105), chh.currentSize)
 }
 
@@ -140,14 +140,14 @@ func TestCheckpointHashesHolder_Remove(t *testing.T) {
 	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[1], testData.values[1])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 	assert.Equal(t, uint64(315), chh.currentSize)
 
 	chh.Remove([]byte("hash5"))
 	assert.Equal(t, 3, len(chh.hashes))
-	assert.Equal(t, 2, len(chh.hashes[1]["rootHash2"]))
+	assert.Equal(t, 2, len(chh.hashes[1]))
 	assert.Equal(t, uint64(283), chh.currentSize)
 }
 
@@ -157,14 +157,14 @@ func TestCheckpointHashesHolder_RemoveInvalidSizeComputation(t *testing.T) {
 	chh := NewCheckpointHashesHolder(500, testscommon.HashSize)
 	testData := getTestValues()
 
-	_ = chh.Put(testData.keys[0], testData.values[0])
-	_ = chh.Put(testData.keys[1], testData.values[1])
-	_ = chh.Put(testData.keys[2], testData.values[2])
+	_ = chh.Put(testData.rootHashes[0], testData.values[0])
+	_ = chh.Put(testData.rootHashes[1], testData.values[1])
+	_ = chh.Put(testData.rootHashes[2], testData.values[2])
 	assert.Equal(t, uint64(315), chh.currentSize)
 	chh.currentSize = 1
 
 	chh.Remove([]byte("hash5"))
 	assert.Equal(t, 3, len(chh.hashes))
-	assert.Equal(t, 2, len(chh.hashes[1]["rootHash2"]))
+	assert.Equal(t, 2, len(chh.hashes[1]))
 	assert.Equal(t, uint64(283), chh.currentSize)
 }
