@@ -322,7 +322,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:        arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:       arg.ShardCoordinator,
-		BuiltInFuncNames:       builtInFuncs.Keys(),
+		BuiltInFunctions:       builtInFuncs,
 		ArgumentParser:         parsers.NewCallArgsParser(),
 		EpochNotifier:          epochNotifier,
 		RelayedTxV2EnableEpoch: arg.EpochConfig.EnableEpochs.RelayedTransactionsV2EnableEpoch,

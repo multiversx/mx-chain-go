@@ -18,7 +18,7 @@ var _ process.TxTypeHandler = (*txTypeHandler)(nil)
 type txTypeHandler struct {
 	pubkeyConv             core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
-	builtInFuncNames       map[string]struct{}
+	builtInFunctions       vmcommon.BuiltInFunctionContainer
 	argumentParser         process.CallArgumentsParser
 	flagRelayedTxV2        atomic.Flag
 	relayedTxV2EnableEpoch uint32
@@ -28,7 +28,7 @@ type txTypeHandler struct {
 type ArgNewTxTypeHandler struct {
 	PubkeyConverter        core.PubkeyConverter
 	ShardCoordinator       sharding.Coordinator
-	BuiltInFuncNames       map[string]struct{}
+	BuiltInFunctions       vmcommon.BuiltInFunctionContainer
 	ArgumentParser         process.CallArgumentsParser
 	RelayedTxV2EnableEpoch uint32
 	EpochNotifier          process.EpochNotifier
@@ -47,7 +47,7 @@ func NewTxTypeHandler(
 	if check.IfNil(args.ArgumentParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if args.BuiltInFuncNames == nil {
+	if check.IfNil(args.BuiltInFunctions) {
 		return nil, process.ErrNilBuiltInFunction
 	}
 	if check.IfNil(args.EpochNotifier) {
@@ -58,7 +58,7 @@ func NewTxTypeHandler(
 		pubkeyConv:             args.PubkeyConverter,
 		shardCoordinator:       args.ShardCoordinator,
 		argumentParser:         args.ArgumentParser,
-		builtInFuncNames:       args.BuiltInFuncNames,
+		builtInFunctions:       args.BuiltInFunctions,
 		relayedTxV2EnableEpoch: args.RelayedTxV2EnableEpoch,
 	}
 
@@ -166,12 +166,12 @@ func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) (string, [][]b
 }
 
 func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
-	if len(tth.builtInFuncNames) == 0 {
+	function, err := tth.builtInFunctions.Get(functionName)
+	if err != nil {
 		return false
 	}
 
-	_, ok := tth.builtInFuncNames[functionName]
-	return ok
+	return function.IsActive()
 }
 
 func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {

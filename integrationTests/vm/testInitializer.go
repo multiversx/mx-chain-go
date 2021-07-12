@@ -429,7 +429,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
+		BuiltInFunctions: builtInFuncs,
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
@@ -759,7 +759,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: blockChainHook.GetBuiltinFunctionNames(),
+		BuiltInFunctions: blockChainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}

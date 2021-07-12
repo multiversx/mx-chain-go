@@ -283,7 +283,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pkConverter,
 		ShardCoordinator: oneShardCoordinator,
-		BuiltInFuncNames: context.BlockchainHook.GetBuiltinFunctionNames(),
+		BuiltInFunctions: context.BlockchainHook.GetBuiltinFunctionsContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}

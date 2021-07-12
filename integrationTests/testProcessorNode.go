@@ -1415,7 +1415,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  TestAddressPubkeyConverter,
 		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
+		BuiltInFunctions: builtInFuncs,
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    tpn.EpochNotifier,
 	}
@@ -1646,7 +1646,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  TestAddressPubkeyConverter,
 		ShardCoordinator: tpn.ShardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
+		BuiltInFunctions: builtInFuncs,
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    tpn.EpochNotifier,
 	}

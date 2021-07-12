@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
@@ -1283,7 +1284,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -1666,7 +1667,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T)
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -1745,7 +1746,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2WithValueShouldErr(t *testing.T)
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -1823,7 +1824,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -1908,7 +1909,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2InvalidParamCountShouldErr(t *te
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -1986,7 +1987,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -2059,7 +2060,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -2585,7 +2586,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubKeyConverter,
 		ShardCoordinator: shardC,
-		BuiltInFuncNames: make(map[string]struct{}),
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
