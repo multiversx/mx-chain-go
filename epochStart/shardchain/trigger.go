@@ -265,7 +265,7 @@ func (t *trigger) requestMissingMiniblocks(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go goroutine is stopping...")
+			log.Debug("trigger's go routine is stopping...")
 			return
 		case <-time.After(sleepTime):
 		}
@@ -287,7 +287,7 @@ func (t *trigger) requestMissingMiniblocks(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			log.Debug("trigger's go goroutine is stopping...")
+			log.Debug("trigger's go routine is stopping...")
 			return
 		case <-time.After(waitTime):
 		}

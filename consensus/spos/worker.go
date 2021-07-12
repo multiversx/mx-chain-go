@@ -556,7 +556,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		select {
 		case wrk.executeMessageChannel <- cnsDta:
 		case <-wrk.closer.ChanClose():
-			log.Debug("worker's executeMessage go goroutine is stopping...")
+			log.Debug("worker's executeMessage go routine is stopping...")
 			return
 		}
 	}
@@ -570,7 +570,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("worker's go goroutine is stopping...")
+			log.Debug("worker's go routine is stopping...")
 			return
 		case rcvDta = <-wrk.executeMessageChannel:
 		case <-time.After(sleepTime):
