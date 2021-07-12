@@ -24,7 +24,7 @@ type GoRoutinesAnalyser struct {
 	goRoutinesData      map[string]core.GoRoutineHandlerMap
 }
 
-// NewGoRoutinesAnalyser creates a new structure for go goroutine statistics analysis
+// NewGoRoutinesAnalyser creates a new structure for go routine statistics analysis
 func NewGoRoutinesAnalyser(processor core.GoRoutinesProcessor) (*GoRoutinesAnalyser, error) {
 	if check.IfNil(processor) {
 		return nil, core.ErrNilGoRoutineProcessor

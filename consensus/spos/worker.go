@@ -643,7 +643,7 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// Close will close the endless running go goroutine
+// Close will close the endless running go routine
 func (wrk *Worker) Close() error {
 	//calling close on the SafeCloser instance should be the last instruction called
 	//(just to close some go routines started as edge cases that would otherwise hang)

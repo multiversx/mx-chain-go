@@ -1331,14 +1331,16 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
 	}
 
+	totalSizeAccounts += totalSizeAccountsDataTries
+
 	log.Debug("sum of addresses in shard at epoch start",
 		"shard", bp.shardCoordinator.SelfId(),
 		"epoch", metaBlock.Epoch,
 		"sum", balanceSum.String(),
 		"nrAccounts", nrAccounts,
 		"totalSizeAccounts", totalSizeAccounts,
-		"nrAccountsWithDataTrie", nrAccountsWithDataTrie,
-		"totalSizeAccountsDataTries", totalSizeAccountsDataTries,
+		"from which nrAccountsWithDataTrie", nrAccountsWithDataTrie,
+		"from which totalSizeAccountsDataTries", totalSizeAccountsDataTries,
 		"nrNonAccounts", nrNotAccounts,
 		"totalSizeNonAccounts", totalSizeNonAccounts)
 

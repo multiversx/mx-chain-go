@@ -126,7 +126,7 @@ type GoRoutinesProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// GoRoutineHandler contains go goroutine information
+// GoRoutineHandler contains go routine information
 type GoRoutineHandler interface {
 	ID() string
 	FirstOccurrence() time.Time
